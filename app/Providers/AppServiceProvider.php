@@ -11,6 +11,7 @@ use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;

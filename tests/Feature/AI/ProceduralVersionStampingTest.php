@@ -5,13 +5,47 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\Fyn\FynContextAssembler;
+use App\Services\AI\Fyn\FynTurnContext;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     config(['app.ai_audit_hmac_key' => 'test-key']);
 });
+
+/** Write a procedure .md at {kind}/{module}/{file}.md (4e stamping fixtures). */
+function writeStampProc(string $root, string $kind, string $module, string $file, int $version, string $body): void
+{
+    $dir = "{$root}/{$kind}/{$module}";
+    @mkdir($dir, 0777, true);
+    $procedureId = match (true) {
+        $kind === 'system_prompt_overlay' => "{$module}.overlay.{$file}",
+        $kind === 'fca_block' => "{$module}.fca.{$file}",
+        default => "{$module}.{$kind}.{$file}",
+    };
+    $fm = "procedure_id: {$procedureId}\nkind: {$kind}\nmodule: {$module}\n"
+        ."version: {$version}\nactive: true\neffective_from: '2026-01-01'\n";
+    file_put_contents("{$dir}/{$file}.md", "---\n{$fm}---\n\n{$body}\n");
+}
+
+function stampAdviceTurn(User $user, string $primary): FynTurnContext
+{
+    return FynTurnContext::make(
+        user: $user,
+        message: 'hello',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => $primary],
+    );
+}
 
 it('does not change the v2 episode row hash when procedural_version is present', function (): void {
     $user = User::factory()->create();
@@ -68,4 +102,47 @@ it('keeps a mixed v1 + v2 chain green (audit invariants unchanged by phase 4e)',
     $svc->append(['user_id' => $user->id, 'tool_name' => 'b', 'operation' => 'read', 'status' => 'dispatched']);
 
     expect($svc->verifyChain()['chain_valid'])->toBeTrue();
+});
+
+it('FynContextAssembler::selectProcedures records each injected overlay/fca_block into the holder', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $corpus = sys_get_temp_dir().'/proc-stamp-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    app()->forgetInstance(FynContextAssembler::class);
+
+    writeStampProc($corpus, 'system_prompt_overlay', 'retirement', 'tone', 3, 'Overlay body.');
+    writeStampProc($corpus, 'fca_block', 'general', 'hedge', 2, 'Always hedge advice.');
+
+    $user = User::factory()->create();
+    app(FynContextAssembler::class)->build(stampAdviceTurn($user, 'retirement'));
+
+    expect(app(ProceduralVersionHolder::class)->all())
+        ->toContain('retirement.overlay.tone@3')
+        ->toContain('general.fca.hedge@2');
+
+    File::deleteDirectory($corpus);
+});
+
+it('records nothing into the holder when no overlay/fca_block matches the turn', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $corpus = sys_get_temp_dir().'/proc-stamp-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    app()->forgetInstance(FynContextAssembler::class);
+
+    writeStampProc($corpus, 'system_prompt_overlay', 'estate', 'iht', 1, 'Estate-only.');
+
+    $user = User::factory()->create();
+    app(FynContextAssembler::class)->build(stampAdviceTurn($user, 'retirement'));
+
+    expect(app(ProceduralVersionHolder::class)->all())->toBe([]);
+
+    File::deleteDirectory($corpus);
 });

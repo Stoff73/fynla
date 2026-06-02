@@ -6,6 +6,7 @@ namespace App\Services\AI\Fyn;
 
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
@@ -47,6 +48,7 @@ final class FynContextAssembler
         private readonly FetchDispatcher $dispatcher,
         private readonly ProceduralCorpusLoader $proceduralLoader,
         private readonly ProceduralContributionCollector $proceduralContributions,
+        private readonly ProceduralVersionHolder $proceduralVersions,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -300,6 +302,7 @@ final class FynContextAssembler
                 'module' => $active->module,
                 'version' => $active->version,
             ]);
+            $this->proceduralVersions->add($active->procedureId, $active->version);
         }
 
         return $bodies;
