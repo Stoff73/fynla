@@ -379,7 +379,7 @@ git pull origin dev                          # pulls all PHP / JS source / .htac
 php artisan migrate --force
 php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
-php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex
+php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex && php artisan fyn:procedural:validate
 ```
 
 6. Smoke test `https://csjones.co/fynla`
@@ -409,7 +409,7 @@ cd ~/www/fynla.org/public_html
 php artisan migrate --force
 php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
-php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex
+php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex && php artisan fyn:procedural:validate
 ```
 
 7. Smoke test `https://fynla.org`
