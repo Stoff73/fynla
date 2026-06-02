@@ -86,8 +86,16 @@ it('does not change the v2 episode row hash when procedural_version is present',
         'procedural_version' => ['retirement.tool.create_dc_pension@2', 'general.overlay.house@1'],
     ]);
 
+    // The control supplied no procedural_version, so its result_summary carries
+    // a null value for the key (post-4e the key is always written, defaulting to
+    // null) — proving the field is recorded-but-not-hashed: the chain still
+    // verifies and the null control round-trips, while the second row carries the
+    // real array. result_summary is not part of the v2 hash preimage, so neither
+    // value changes any row_hash.
     expect($svc->verifyChain()['chain_valid'])->toBeTrue()
-        ->and($control->fresh()->result_summary)->not->toHaveKey('procedural_version');
+        ->and($control->fresh()->result_summary['procedural_version'])->toBeNull()
+        ->and($withField->fresh()->result_summary['procedural_version'])
+        ->toBe(['retirement.tool.create_dc_pension@2', 'general.overlay.house@1']);
 });
 
 it('keeps a mixed v1 + v2 chain green (audit invariants unchanged by phase 4e)', function (): void {
