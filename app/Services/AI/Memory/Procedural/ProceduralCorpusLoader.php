@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\AI\Memory\Procedural;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
+use Throwable;
 
 /**
  * Loads + validates the procedural-memory corpus
@@ -34,6 +36,81 @@ final class ProceduralCorpusLoader
     private ?string $signature = null;
 
     private float $lastStatCheck = 0.0;
+
+    /**
+     * Runtime entry. Serves the in-memory corpus within the reload interval;
+     * otherwise re-stats the corpus dir and reloads only when the signature
+     * changed. Degrades to last-good (or empty) and never throws.
+     */
+    public function load(): ProceduralCorpus
+    {
+        $now = microtime(true);
+        $interval = (int) config('fyn.memory.procedural_reload_interval', 60);
+
+        if ($this->corpus !== null && ($now - $this->lastStatCheck) < $interval) {
+            return $this->corpus;
+        }
+        $this->lastStatCheck = $now;
+
+        $sig = $this->signature();
+
+        if ($this->corpus !== null && $this->signature === $sig) {
+            return $this->corpus;
+        }
+
+        // Cold instance: try the cross-request cache before re-parsing.
+        if ($this->corpus === null) {
+            $cached = Cache::get(self::CACHE_KEY);
+            if ($cached instanceof ProceduralCorpus && Cache::get(self::SIG_KEY) === $sig) {
+                $this->signature = $sig;
+
+                return $this->corpus = $cached;
+            }
+        }
+
+        try {
+            $fresh = $this->parse();
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->corpus ?? ($this->corpus = new ProceduralCorpus([]));
+        }
+
+        // Atomic swap — ProceduralCorpus is immutable, so replacing the reference is safe.
+        $this->corpus = $fresh;
+        $this->signature = $sig;
+        Cache::put(self::CACHE_KEY, $fresh);
+        Cache::put(self::SIG_KEY, $sig);
+
+        return $this->corpus;
+    }
+
+    /** Signature of the corpus on disk: max mtime over .md files + file count. */
+    private function signature(): string
+    {
+        $root = (string) config('fyn.memory.procedural_path');
+        if (! File::isDirectory($root)) {
+            return '0:0';
+        }
+
+        $maxMtime = 0;
+        $count = 0;
+        foreach (self::KINDS as $kind) {
+            $kindDir = $root.'/'.$kind;
+            if (! File::isDirectory($kindDir)) {
+                continue;
+            }
+            foreach (File::allFiles($kindDir) as $file) {
+                if ($file->getExtension() !== 'md' || in_array($file->getFilename(), self::SKIP, true)) {
+                    continue;
+                }
+                $maxMtime = max($maxMtime, $file->getMTime());
+                $count++;
+            }
+        }
+
+        return $maxMtime.':'.$count;
+    }
 
     /** Strict parse — throws on any validation error. Used only by the deploy gate. */
     public function loadStrict(): ProceduralCorpus

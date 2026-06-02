@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 
@@ -130,4 +131,56 @@ it('accepts multiple inactive versions plus one active', function (): void {
     $corpus = app(ProceduralCorpusLoader::class)->loadStrict();
     expect($corpus->versions('retirement.tool.create_dc_pension'))->toHaveCount(2)
         ->and($corpus->active('retirement.tool.create_dc_pension')?->version)->toBe(2);
+});
+
+it('load() returns the parsed corpus', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    expect(app(ProceduralCorpusLoader::class)->load()->all())->toHaveCount(1);
+});
+
+it('load() serves stale within the reload interval', function (): void {
+    config(['fyn.memory.procedural_reload_interval' => 3600]);
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    $loader = app(ProceduralCorpusLoader::class);
+    expect($loader->load()->all())->toHaveCount(1);
+
+    writeProc($this->corpus, 'workflow', 'onboarding', 'y', validFrontmatter(['procedure_id' => 'onboarding.flow.main', 'kind' => 'workflow', 'module' => 'onboarding']));
+    expect($loader->load()->all())->toHaveCount(1); // still stale within window
+});
+
+it('load() reloads when the interval is zero and the signature changes', function (): void {
+    config(['fyn.memory.procedural_reload_interval' => 0]);
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    $loader = app(ProceduralCorpusLoader::class);
+    expect($loader->load()->all())->toHaveCount(1);
+
+    writeProc($this->corpus, 'workflow', 'onboarding', 'y', validFrontmatter(['procedure_id' => 'onboarding.flow.main', 'kind' => 'workflow', 'module' => 'onboarding']));
+    expect($loader->load()->all())->toHaveCount(2);
+});
+
+it('load() keeps the last-good corpus when a reload turns invalid', function (): void {
+    config(['fyn.memory.procedural_reload_interval' => 0]);
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    $loader = app(ProceduralCorpusLoader::class);
+    expect($loader->load()->all())->toHaveCount(1);
+
+    // Corrupt the corpus (second active version of the same id) — parse throws.
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'dupe', validFrontmatter(['version' => 9, 'active' => true]));
+    $result = $loader->load();
+    expect($result->all())->toHaveCount(1); // degraded to last-good, no throw
+});
+
+it('load() returns an empty corpus on a cold-boot invalid corpus (never throws)', function (): void {
+    config(['fyn.memory.procedural_reload_interval' => 0]);
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'a', validFrontmatter(['version' => 1, 'active' => true]));
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'b', validFrontmatter(['version' => 2, 'active' => true]));
+
+    expect(app(ProceduralCorpusLoader::class)->load()->all())->toBe([]);
+});
+
+it('load() populates the cross-request cache', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    app(ProceduralCorpusLoader::class)->load();
+    expect(Cache::has('fyn:procedural:corpus'))->toBeTrue()
+        ->and(Cache::has('fyn:procedural:corpus:sig'))->toBeTrue();
 });
