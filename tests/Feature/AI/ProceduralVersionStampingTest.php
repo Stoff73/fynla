@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
+use App\Models\AiAuditEvent;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
@@ -15,6 +18,7 @@ use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -256,4 +260,84 @@ it('OnboardingChatDirector records the active workflow procedure when the corpus
         ->toContain('onboarding.workflow.fyn-onboarding@7');
 
     File::deleteDirectory($corpus);
+});
+
+it('stamps the accumulated procedural_version onto the blob + column + attestation', function (): void {
+    config(['app.ai_audit_hmac_key' => 'test-key']);
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+    $assistant = AiMessage::factory()->create(['conversation_id' => $conv->id, 'role' => 'assistant']);
+
+    app(ProceduralVersionHolder::class)->add('retirement.tool.create_dc_pension', 2);
+    app(ProceduralVersionHolder::class)->add('general.overlay.house', 1);
+
+    $agent = app(CoordinatingAgent::class);
+    $m = new ReflectionMethod($agent, 'persistEpisode');
+    $m->setAccessible(true);
+    $m->invoke($agent, $assistant, $conv, $user, 'SYS', 'CTX', 'grok-4', null, null);
+
+    $assistant->refresh();
+
+    // blob frontmatter
+    $blob = Storage::disk('local')->get($assistant->blob_md_path);
+    expect($blob)->toContain('procedural_version:')
+        ->and($blob)->toContain('retirement.tool.create_dc_pension@2')
+        ->and($blob)->toContain('general.overlay.house@1');
+
+    // SQL column (cast array)
+    expect($assistant->procedural_version)->toBe([
+        'retirement.tool.create_dc_pension@2',
+        'general.overlay.house@1',
+    ]);
+
+    // audit attestation result_summary
+    $event = AiAuditEvent::where('tool_name', '__episode__')->where('entity_id', $assistant->id)->first();
+    expect($event)->not->toBeNull()
+        ->and($event->result_summary['procedural_version'])->toBe([
+            'retirement.tool.create_dc_pension@2',
+            'general.overlay.house@1',
+        ]);
+});
+
+it('records a null procedural_version when the holder is empty', function (): void {
+    config(['app.ai_audit_hmac_key' => 'test-key']);
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+    $assistant = AiMessage::factory()->create(['conversation_id' => $conv->id, 'role' => 'assistant']);
+
+    $agent = app(CoordinatingAgent::class);
+    $m = new ReflectionMethod($agent, 'persistEpisode');
+    $m->setAccessible(true);
+    $m->invoke($agent, $assistant, $conv, $user, 'SYS', 'CTX', 'grok-4', null, null);
+
+    $assistant->refresh();
+
+    $blob = Storage::disk('local')->get($assistant->blob_md_path);
+    expect($blob)->toContain('procedural_version: null')
+        ->and($assistant->procedural_version)->toBeNull();
+
+    $event = AiAuditEvent::where('tool_name', '__episode__')->where('entity_id', $assistant->id)->first();
+    expect($event->result_summary['procedural_version'])->toBeNull();
+});
+
+it('resets the holder after persist so the next turn does not inherit the stamp', function (): void {
+    config(['app.ai_audit_hmac_key' => 'test-key']);
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+    $assistant = AiMessage::factory()->create(['conversation_id' => $conv->id, 'role' => 'assistant']);
+
+    app(ProceduralVersionHolder::class)->add('savings.tool.create_savings_account', 4);
+
+    $agent = app(CoordinatingAgent::class);
+    $m = new ReflectionMethod($agent, 'persistEpisode');
+    $m->setAccessible(true);
+    $m->invoke($agent, $assistant, $conv, $user, 'SYS', 'CTX', 'grok-4', null, null);
+
+    expect(app(ProceduralVersionHolder::class)->all())->toBe([]);
 });

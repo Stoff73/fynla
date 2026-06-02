@@ -35,6 +35,7 @@ use App\Services\AI\KycGateChecker;
 use App\Services\AI\Memory\Episodic\EpisodeBlobData;
 use App\Services\AI\Memory\Episodic\EpisodeBlobWriter;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
@@ -954,6 +955,11 @@ trait HasAiChat
             $semanticSnapshotId = $snapshotHolder->get();
             $snapshotHolder->reset();
 
+            $versionHolder = app(ProceduralVersionHolder::class);
+            $proceduralVersion = $versionHolder->all();
+            $versionHolder->reset();
+            $proceduralVersion = $proceduralVersion !== [] ? $proceduralVersion : null;
+
             $data = new EpisodeBlobData(
                 episodeId: (string) $assistant->id,
                 conversationId: $conversation->id,
@@ -961,7 +967,7 @@ trait HasAiChat
                 timestamp: ($assistant->created_at ?? now())->utc()->toIso8601String(),
                 persona: $this->personaOverride,
                 module: null,
-                proceduralVersion: null,
+                proceduralVersion: $proceduralVersion,
                 semanticSnapshotId: $semanticSnapshotId,
                 modelUsed: $model,
                 systemPrompt: $systemPrompt,
@@ -977,6 +983,7 @@ trait HasAiChat
                 'blob_md_path' => $ref->path,
                 'blob_md_sha256' => $ref->sha256,
                 'fetch_provenance' => $provenance !== [] ? $provenance : null,
+                'procedural_version' => $proceduralVersion,
             ]);
 
             app(AuditChainService::class)->appendEpisode([
@@ -986,6 +993,7 @@ trait HasAiChat
                 'blob_md_sha256' => $ref->sha256,
                 'blob_md_path' => $ref->path,
                 'semantic_snapshot_id' => $semanticSnapshotId,
+                'procedural_version' => $proceduralVersion,
                 'fetch_provenance' => $provenance,
             ]);
         } catch (\Throwable $e) {
