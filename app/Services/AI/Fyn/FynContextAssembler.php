@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
+use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\AI\Memory\Procedural\Procedure;
 use App\Services\AI\Memory\SemanticFact;
 use App\Services\AI\Memory\SemanticRetriever;
 use App\Services\AI\MemoryRetrieverService;
@@ -42,6 +45,8 @@ final class FynContextAssembler
         private readonly SemanticRetriever $semantic,
         private readonly PointerRegistry $pointers,
         private readonly FetchDispatcher $dispatcher,
+        private readonly ProceduralCorpusLoader $proceduralLoader,
+        private readonly ProceduralContributionCollector $proceduralContributions,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -128,6 +133,36 @@ final class FynContextAssembler
         }
         if ($liveBlocks !== []) {
             $lines[] = "<live_data>\n".implode("\n\n", $liveBlocks)."\n</live_data>";
+        }
+
+        // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
+        // per-turn layers AFTER the static prefix and after <live_data>,
+        // mirroring <knowledge>/<live_data>: load the active procedures of the
+        // two prose-bearing kinds, keep those whose module matches this turn
+        // (or the 'general' wildcard), and emit one block per kind. The corpus
+        // is empty today, so this is a no-op (proven by the golden master). A
+        // malformed corpus degrades to no block — never breaks the turn.
+        $turnModule = $ctx->isOnboarding()
+            ? (string) $ctx->onboardingFocus
+            : (string) ($ctx->classification['primary'] ?? '');
+
+        try {
+            $corpus = $this->proceduralLoader->load();
+            $now = Carbon::now();
+
+            $overlayBodies = $this->selectProcedures($corpus->ofKind('system_prompt_overlay'), $turnModule, $now);
+            $fcaBodies = $this->selectProcedures($corpus->ofKind('fca_block'), $turnModule, $now);
+        } catch (\Throwable $e) {
+            report($e);
+            $overlayBodies = [];
+            $fcaBodies = [];
+        }
+
+        if ($overlayBodies !== []) {
+            $lines[] = "<overlay>\n".implode("\n\n", $overlayBodies)."\n</overlay>";
+        }
+        if ($fcaBodies !== []) {
+            $lines[] = "<fca_block>\n".implode("\n\n", $fcaBodies)."\n</fca_block>";
         }
 
         if ($has(ContextBucket::POSITION)) {
@@ -218,5 +253,55 @@ final class FynContextAssembler
             'savetax' => 'SaveTax',
             default => (string) $focus,
         };
+    }
+
+    /**
+     * From the procedures of one kind, resolve the active version of each
+     * distinct procedure_id and keep those whose module matches this turn (or
+     * the 'general' wildcard). Records each kept procedure into the
+     * request-scoped contribution collector and returns the bodies in
+     * corpus-walk order.
+     *
+     * @param  list<Procedure>  $procedures
+     * @return list<string>
+     */
+    private function selectProcedures(array $procedures, string $turnModule, Carbon $now): array
+    {
+        $bodies = [];
+        $seen = [];
+        foreach ($procedures as $proc) {
+            if (isset($seen[$proc->procedureId])) {
+                continue;
+            }
+
+            if ($proc->module !== 'general' && $proc->module !== $turnModule) {
+                continue;
+            }
+
+            // Resolve the single active, in-force version for this id.
+            $active = null;
+            foreach ($procedures as $candidate) {
+                if ($candidate->procedureId === $proc->procedureId
+                    && $candidate->active
+                    && $candidate->effectiveOn($now)
+                    && ($active === null || $candidate->version > $active->version)) {
+                    $active = $candidate;
+                }
+            }
+            if ($active === null) {
+                continue;
+            }
+
+            $seen[$proc->procedureId] = true;
+            $bodies[] = $active->body;
+            $this->proceduralContributions->record([
+                'procedure_id' => $active->procedureId,
+                'kind' => $active->kind,
+                'module' => $active->module,
+                'version' => $active->version,
+            ]);
+        }
+
+        return $bodies;
     }
 }
