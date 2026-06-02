@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cache;
  * tool names/count are unchanged across the refactor (they are produced by the
  * untouched pointerTools()).
  */
-$fixtureDir = __DIR__.'/../../Fixtures/ToolSchema';
+$fixtureDir = __DIR__.'/../../fixtures/ToolSchema';
 
 /** Deterministic, ordering-faithful encoding of a tool list with fetch_* removed. */
 $encode = function (array $tools): string {
@@ -106,7 +106,7 @@ it('keeps the pointer-tool names and count unchanged (out of 4b scope)', functio
     // still flow through getTools() (their exact set is owned by the pointer
     // registry, a different subsystem). We only assert the count is stable
     // relative to a recorded baseline written at capture time.
-    $baselinePath = __DIR__.'/../../Fixtures/ToolSchema/_pointer_baseline.json';
+    $baselinePath = __DIR__.'/../../fixtures/ToolSchema/_pointer_baseline.json';
     if (getenv('CAPTURE_TOOL_SCHEMA_GOLDEN') === '1') {
         file_put_contents($baselinePath, json_encode($fetchNames, JSON_PRETTY_PRINT));
         $this->markTestSkipped('Captured pointer baseline.');
