@@ -599,6 +599,15 @@ Route::get('/savetax/plan/v3', function () {
         ->header('Cache-Control', 'no-store');
 });
 
+// /savetax/plan/v4  = mockup: answer-personalised allowances, no right-hand Fyn
+// chat, compact register form, social-proof "Could this be you" band.
+Route::get('/savetax/plan/v4', function () {
+    ob_start();
+    include public_path('pages/savetax-plan-v4.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'no-store');
+});
+
 // Mobile dashboard design mockup — standalone HTML for review before
 // porting into resources/mobile/views/Dashboard.vue.
 Route::get('/m-mockup/dashboard', function () {

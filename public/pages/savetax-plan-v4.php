@@ -3,47 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Save More on Tax — Your UK Tax Allowances Guide | Fynla</title>
-  <meta name="description" content="See every UK tax allowance for 2026/27 — Personal Allowance, ISA, pension, and more. Understand your position and keep more of what you earn with Fynla." />
-  <link rel="canonical" href="https://fynla.org/savetax/plan" />
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Save More on Tax — Your UK Tax Allowances Guide | Fynla" />
-  <meta property="og:description" content="See every UK tax allowance for 2026/27 — Personal Allowance, ISA, pension, and more. Understand your position and keep more of what you earn with Fynla." />
-  <meta property="og:image" content="https://fynla.org/images/og/savetax-plan.jpg" />
-  <meta property="og:url" content="https://fynla.org/savetax/plan" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Save More on Tax — Your UK Tax Allowances Guide | Fynla" />
-  <meta name="twitter:description" content="See every UK tax allowance for 2026/27 — Personal Allowance, ISA, pension, and more. Understand your position and keep more of what you earn with Fynla." />
-  <meta name="twitter:image" content="https://fynla.org/images/og/savetax-plan.jpg" />
-
-  <!-- hreflang -->
-  <link rel="alternate" hreflang="en-GB" href="https://fynla.org/savetax/plan" />
-  <link rel="alternate" hreflang="x-default" href="https://fynla.org/savetax/plan" />
+  <title>Your Tax Plan (v4 mockup) — Fynla</title>
+  <meta name="description" content="Mockup v4 — personalised UK tax allowances based on your answers, with social proof and a compact register flow." />
+  <meta name="robots" content="noindex,nofollow" />
 
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
   <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=4" />
-
-  <!-- JSON-LD structured data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Save More on Tax — Your UK Tax Allowances Guide",
-    "url": "https://fynla.org/savetax/plan",
-    "description": "See every UK tax allowance for 2026/27 and understand how to keep more of what you earn.",
-    "publisher": {
-      "@type": "Organization",
-      "name": "Fynla",
-      "url": "https://fynla.org"
-    }
-  }
-  </script>
 </head>
 <body>
 
@@ -54,8 +21,8 @@
   <main id="main-content" class="campaign-body sp4-body">
 
     <!-- ================================================================
-         HERO — single column. Savings figure under the title + compact
-         register card. JS personalises the figure from saved answers.
+         HERO — single column (Fyn chat removed). Savings figure + compact
+         register CTA. JS personalises the figure from saved answers.
          ================================================================ -->
     <section id="hero" class="campaign-hero sp4-hero" aria-labelledby="hero-heading">
       <div class="campaign-inner sp4-hero__inner">
@@ -65,7 +32,7 @@
             Great news,<br />you could <span class="campaign-hero__heading-accent">save tax</span>
           </h1>
 
-          <!-- Savings figure — directly under the title -->
+          <!-- Savings figure — moved directly under the title -->
           <div class="sp4-savings sp4-savings--hero" aria-label="Your potential tax saving">
             <p class="sp4-savings__up-to">Up to</p>
             <p class="sp4-savings__figure" id="savings-figure">£3,100</p>
@@ -108,8 +75,8 @@
 
     <!-- ================================================================
          YOUR ALLOWANCES + WHAT DOES THIS MEAN — combined into one section.
-         Meaning intro + total at the top, then the personalised allowances
-         grid, then a "Find out how" register CTA.
+         "What does this mean" intro + total sit at the top, then the
+         personalised allowances grid directly below.
          ================================================================ -->
     <section id="allowances" class="sp4-combined" aria-labelledby="allowances-heading">
       <div class="campaign-inner">
@@ -143,8 +110,9 @@
     </section>
 
     <!-- ================================================================
-         COULD THIS BE YOU? — social proof relevant to the user's answers.
-         Rendered by JS. (Illustrative sample figures.)
+         COULD THIS BE YOU? — replaced example panels with SOCIAL PROOF
+         relevant to the user's answers. Rendered by JS.
+         (Sample/illustrative figures — mockup only.)
          ================================================================ -->
     <section id="examples" class="examples-section sp4-proof" aria-labelledby="examples-heading">
       <div class="campaign-inner">
@@ -160,7 +128,7 @@
 
         <div class="examples-section__footer">
           <p class="examples-section__footer-text sp4-proof__join">Join them — it's free</p>
-          <a href="#hero" class="examples-section__cta">Register for free</a>
+          <a href="#hero" class="examples-section__cta">Register &amp; meet Fyn</a>
         </div>
       </div>
     </section>
