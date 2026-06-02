@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\Memory\Procedural\Procedure;
 use App\Services\AI\Pointers\Pointer;
@@ -141,12 +142,15 @@ class AiToolDefinitions
     private function toolsFromCorpus(array $procedureIds): array
     {
         $corpus = app(ProceduralCorpusLoader::class)->load();
+        $versions = app(ProceduralVersionHolder::class);
         $tools = [];
 
         foreach ($procedureIds as $procedureId) {
-            $tool = $this->toolFromCorpus($corpus->active($procedureId));
+            $procedure = $corpus->active($procedureId);
+            $tool = $this->toolFromCorpus($procedure);
             if ($tool !== null) {
                 $tools[] = $tool;
+                $versions->add($procedure->procedureId, $procedure->version);
             }
         }
 

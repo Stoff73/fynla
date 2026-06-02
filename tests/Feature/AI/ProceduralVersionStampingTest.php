@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynTurnContext;
@@ -143,6 +144,46 @@ it('records nothing into the holder when no overlay/fca_block matches the turn',
     app(FynContextAssembler::class)->build(stampAdviceTurn($user, 'retirement'));
 
     expect(app(ProceduralVersionHolder::class)->all())->toBe([]);
+
+    File::deleteDirectory($corpus);
+});
+
+it('AiToolDefinitions records each assembled tool_schema procedure into the holder', function (): void {
+    $corpus = sys_get_temp_dir().'/proc-tools-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+
+    // A single navigation tool schema procedure the corpus can resolve. The id
+    // is the literal AiToolDefinitions::ORDER['navigation'][0] (ORDER is a
+    // private const, so it cannot be referenced from the test — use the literal).
+    $navId = 'navigation.tool.navigate_to_page';
+    [$module] = explode('.', $navId, 2);
+    $kindDir = "{$corpus}/tool_schema/{$module}";
+    @mkdir($kindDir, 0777, true);
+    $schema = json_encode([
+        'name' => 'navigate',
+        'description' => 'Navigate the app.',
+        'parameters' => ['type' => 'object', 'properties' => (object) [], 'required' => []],
+    ], JSON_UNESCAPED_SLASHES);
+    $base = preg_replace('/[^a-z0-9]+/i', '-', $navId);
+    $fm = "procedure_id: {$navId}\nkind: tool_schema\nmodule: {$module}\n"
+        ."version: 5\nactive: true\neffective_from: '2026-01-01'\n";
+    file_put_contents("{$kindDir}/{$base}.md", "---\n{$fm}---\n\n```json\n{$schema}\n```\n");
+
+    // toolsFromCorpus is private; invoke the navigation assembly via reflection
+    // (the codebase's established pattern for exercising private AI internals —
+    // see EpisodePersistenceTest invoking persistEpisode). This is the smallest
+    // deterministic path that calls toolsFromCorpus(self::ORDER['navigation']).
+    $defs = app(AiToolDefinitions::class);
+    $r = new ReflectionMethod($defs, 'toolsFromCorpus');
+    $r->setAccessible(true);
+    $tools = $r->invoke($defs, [$navId]);
+
+    expect($tools)->not->toBe([]);
+    expect(app(ProceduralVersionHolder::class)->all())->toContain("{$navId}@5");
 
     File::deleteDirectory($corpus);
 });
