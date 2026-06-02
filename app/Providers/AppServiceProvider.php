@@ -12,6 +12,7 @@ use App\Observers\InsightArticleObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
+use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandlerRegistry;
@@ -88,6 +89,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Request-scoped semantic-snapshot holder — assembler stamps, persistEpisode reads.
         $this->app->scoped(SemanticSnapshotHolder::class);
+
+        // Request-scoped procedural-contribution accumulator (Phase 4c) — the
+        // assembler records overlay/fca_block procedures it injected; Phase 4e
+        // reads it at persistEpisode time. One instance per request, reset per turn.
+        $this->app->scoped(ProceduralContributionCollector::class);
 
         // Procedural corpus loader — singleton so the in-memory corpus + 60s
         // re-stat throttle persist within a request (and across requests under Octane).
