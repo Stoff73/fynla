@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use Illuminate\Support\Facades\File;
+use RuntimeException;
 
 beforeEach(function (): void {
     $this->corpus = sys_get_temp_dir().'/proc-'.uniqid();
@@ -60,4 +61,73 @@ it('ignores the pointers/ sibling and README/_TEMPLATE files', function (): void
     file_put_contents("{$this->corpus}/tool_schema/retirement/README.md", "---\nx: y\n---\nreadme\n");
 
     expect(app(ProceduralCorpusLoader::class)->loadStrict()->all())->toHaveCount(1);
+});
+
+it('rejects a missing mandatory field', function (): void {
+    $fm = validFrontmatter();
+    unset($fm['version']);
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', $fm);
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, "missing 'version'");
+});
+
+it('rejects an unknown kind in frontmatter', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter(['kind' => 'nonsense']));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, "unknown kind 'nonsense'");
+});
+
+it('rejects a frontmatter kind that disagrees with the path', function (): void {
+    writeProc($this->corpus, 'workflow', 'retirement', 'x', validFrontmatter(['kind' => 'tool_schema']));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, 'disagrees with path kind');
+});
+
+it('rejects a frontmatter module that disagrees with the path', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter(['module' => 'estate']));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, 'disagrees with path module');
+});
+
+it('rejects version < 1', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter(['version' => 0]));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, 'version must be >= 1');
+});
+
+it('rejects a non-boolean active', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter(['active' => 'yes']));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, "'active' must be a boolean");
+});
+
+it('rejects duplicate (procedure_id, version)', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'a', validFrontmatter(['active' => true]));
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'b', validFrontmatter(['active' => false]));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, 'duplicate retirement.tool.create_dc_pension@1');
+});
+
+it('rejects more than one active version of the same procedure_id', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'a', validFrontmatter(['version' => 1, 'active' => true]));
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'b', validFrontmatter(['version' => 2, 'active' => true]));
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, 'multiple active versions');
+});
+
+it('accepts multiple inactive versions plus one active', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'v1', validFrontmatter(['version' => 1, 'active' => false]));
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'v2', validFrontmatter(['version' => 2, 'active' => true]));
+
+    $corpus = app(ProceduralCorpusLoader::class)->loadStrict();
+    expect($corpus->versions('retirement.tool.create_dc_pension'))->toHaveCount(2)
+        ->and($corpus->active('retirement.tool.create_dc_pension')?->version)->toBe(2);
 });
