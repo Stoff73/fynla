@@ -95,6 +95,14 @@ class AppServiceProvider extends ServiceProvider
         // reads it at persistEpisode time. One instance per request, reset per turn.
         $this->app->scoped(ProceduralContributionCollector::class);
 
+        // Request-scoped procedural-version holder (Phase 4e) — the tool-schema
+        // assembler (4b), prompt-overlay assembler (4c) and onboarding director
+        // (4d) record each active procedure_id@version they resolved; Phase 4e
+        // reads it at persistEpisode time and stamps it onto the episode blob,
+        // the ai_messages.procedural_version column and the audit attestation.
+        // One instance per request, reset per turn alongside the holders above.
+        $this->app->scoped(ProceduralVersionHolder::class);
+
         // Procedural corpus loader — singleton so the in-memory corpus + 60s
         // re-stat throttle persist within a request (and across requests under Octane).
         $this->app->singleton(ProceduralCorpusLoader::class);
