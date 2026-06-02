@@ -10,6 +10,8 @@ use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynTurnContext;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\Onboarding\OnboardingChatDirector;
+use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -184,6 +186,66 @@ it('AiToolDefinitions records each assembled tool_schema procedure into the hold
 
     expect($tools)->not->toBe([]);
     expect(app(ProceduralVersionHolder::class)->all())->toContain("{$navId}@5");
+
+    File::deleteDirectory($corpus);
+});
+
+it('OnboardingChatDirector records nothing when the corpus has no active workflow', function (): void {
+    $corpus = sys_get_temp_dir().'/proc-onb-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    OnboardingStateMachine::flushTransitionTableCache();
+
+    $user = User::factory()->create();
+    $user->forceFill([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PATH_CHOICE,
+    ])->save();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    $director = app(OnboardingChatDirector::class);
+    iterator_to_array($director->handleUserMessage($user, $conv, 'Start from scratch'));
+
+    expect(app(ProceduralVersionHolder::class)->all())->toBe([]);
+
+    File::deleteDirectory($corpus);
+});
+
+it('OnboardingChatDirector records the active workflow procedure when the corpus supplies it', function (): void {
+    $corpus = sys_get_temp_dir().'/proc-onb-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    OnboardingStateMachine::flushTransitionTableCache();
+
+    // Write a workflow procedure the director can resolve by id. The director
+    // records the id@version whenever corpus->active(...) returns a procedure;
+    // it does NOT require the full merge to succeed (that is transitionTable's
+    // concern). A minimal valid-frontmatter workflow .md is enough to be the
+    // active procedure for 'onboarding.workflow.fyn-onboarding'.
+    $dir = "{$corpus}/workflow/onboarding";
+    @mkdir($dir, 0777, true);
+    $fm = "procedure_id: onboarding.workflow.fyn-onboarding\nkind: workflow\n"
+        ."module: onboarding\nversion: 7\nactive: true\neffective_from: '2026-01-01'\n";
+    file_put_contents("{$dir}/fyn-onboarding.md", "---\n{$fm}---\n\n```json\n{}\n```\n");
+
+    $user = User::factory()->create();
+    $user->forceFill([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PATH_CHOICE,
+    ])->save();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    $director = app(OnboardingChatDirector::class);
+    iterator_to_array($director->handleUserMessage($user, $conv, 'Start from scratch'));
+
+    expect(app(ProceduralVersionHolder::class)->all())
+        ->toContain('onboarding.workflow.fyn-onboarding@7');
 
     File::deleteDirectory($corpus);
 });

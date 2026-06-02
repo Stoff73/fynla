@@ -514,6 +514,17 @@ final class OnboardingStateMachine
     }
 
     /**
+     * Test/deploy hook — clear the memoised transition table so the next
+     * states() / transitionTable() call re-reads the corpus. Used by the 4e
+     * stamping tests (each drives its own temp corpus) and after a corpus
+     * hot-reload. Idempotent and side-effect-free in production.
+     */
+    public static function flushTransitionTableCache(): void
+    {
+        self::$transitionTableCache = null;
+    }
+
+    /**
      * Overlay the corpus DATA fields onto the in-code base, in the in-code key
      * order. PHP-only fields are never overwritten:
      *   - `skip_if` is ignored entirely (not present in the corpus).

@@ -16,9 +16,12 @@ use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Loop\FynLoop;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\ValueObjects\CaptureContext;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -58,6 +61,7 @@ final class OnboardingChatDirector
         private readonly MemoryRetrieverService $memory,
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly FynLoop $fynLoop,
+        private readonly ProceduralVersionHolder $proceduralVersions,
     ) {}
 
     /**
@@ -138,6 +142,13 @@ final class OnboardingChatDirector
 
             return;
         }
+
+        // Phase 4e — stamp the active onboarding workflow procedure version onto
+        // the turn so persistEpisode can bind it onto the episode. Recorded only
+        // when the corpus actually supplies the workflow procedure (the merge
+        // path transitionTable() takes); empty corpus → records nothing → null
+        // stamp, matching the in-code-table fallback. Never breaks the turn.
+        $this->recordActiveWorkflowVersion();
 
         // Asset capture is the delegated turn. Both the journey/focus
         // STATE_ASSET_CAPTURE and the SaveTax campaign STATE_CAMPAIGN_*
@@ -2657,5 +2668,25 @@ PROMPT;
         }
 
         return $focuses;
+    }
+
+    /**
+     * Resolve and record the active onboarding workflow procedure_id@version
+     * into the request-scoped ProceduralVersionHolder. Degrades silently — a
+     * missing/malformed corpus records nothing and never throws.
+     */
+    private function recordActiveWorkflowVersion(): void
+    {
+        try {
+            $procedure = app(ProceduralCorpusLoader::class)
+                ->load()
+                ->active('onboarding.workflow.fyn-onboarding', Carbon::now());
+
+            if ($procedure !== null) {
+                $this->proceduralVersions->add($procedure->procedureId, $procedure->version);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }
