@@ -83,7 +83,7 @@ it('merged corpus-backed table deep-equals the in-code states() table', function
 
 it('the corpus state-id set exactly equals the in-code state-id set', function (): void {
     $corpus = app(ProceduralCorpusLoader::class)->load();
-    $proc = $corpus->active('onboarding.workflow.fyn-onboarding', Carbon::now());
+    $proc = $corpus->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
     expect($proc)->not->toBeNull();
 
     $parsed = OnboardingWorkflowTable::fromProcedure($proc);

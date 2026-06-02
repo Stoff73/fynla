@@ -39,13 +39,16 @@ final class ProceduralCorpus
         return $matches;
     }
 
-    /** The active version effective on $asOf (default now); highest version wins ties. */
-    public function active(string $procedureId, ?Carbon $asOf = null): ?Procedure
+    /** The active version effective on $asOf (default now) for $provider; highest version wins ties. */
+    public function active(string $procedureId, string $provider = 'anthropic', ?Carbon $asOf = null): ?Procedure
     {
         $asOf ??= Carbon::now();
         $candidates = array_values(array_filter(
             $this->procedures,
-            fn (Procedure $p): bool => $p->procedureId === $procedureId && $p->active && $p->effectiveOn($asOf),
+            fn (Procedure $p): bool => $p->procedureId === $procedureId
+                && $p->provider === $provider
+                && $p->active
+                && $p->effectiveOn($asOf),
         ));
         if ($candidates === []) {
             return null;
