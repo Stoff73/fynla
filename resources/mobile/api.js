@@ -59,7 +59,7 @@ export async function apiGet(path, token) {
  * resolves with the full accumulated text. Falls back to a one-shot read when
  * the platform has no streaming body (older WebViews).
  */
-export async function apiStream(path, body, token, onDelta) {
+export async function apiStream(path, body, token, onDelta, onEvent) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     credentials: 'omit', // Bearer-only — see apiPost.
@@ -79,6 +79,9 @@ export async function apiStream(path, body, token, onDelta) {
     if (!line.startsWith('data: ')) return false;
     let data;
     try { data = JSON.parse(line.slice(6)); } catch (e) { return false; }
+    // Surface the full parsed event so callers can handle non-text turns
+    // (onboarding quick_replies + bubbles, conversation_created, etc.).
+    if (onEvent) onEvent(data);
     const t = data.type;
     if (t === 'content' || t === 'token' || t === 'content_block_delta' || t === 'text') {
       const piece = data.delta ?? data.content ?? data.text ?? '';
