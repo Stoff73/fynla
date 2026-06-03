@@ -185,6 +185,14 @@
       </template>
     </main>
 
+    <!-- Onboarding nudge — gently points a funnel/incomplete user to finish
+         their personalised tax plan with Fyn. Tapping opens Fyn; "Later"
+         dismisses it for the session. Hidden once Fyn is open or onboarded. -->
+    <div v-if="showFynNudge" class="md-fyn-nudge">
+      <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Finish your personalised tax plan with Fyn</button>
+      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="nudgeDismissed = true">Later</button>
+    </div>
+
     <!-- Docked Fyn bar -->
     <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
@@ -250,10 +258,23 @@
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p>{{ m.text || (sending && i === messages.length - 1 ? '…' : '') }}</p>
+          <!-- Onboarding bubble choices (quick_replies). Tapping sends the
+               label, which the director matches back to the bubble. -->
+          <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
+            <button
+              v-for="b in m.bubbles"
+              :key="b.id"
+              type="button"
+              class="md-fyn__bubble"
+              :disabled="sending"
+              @click="chooseBubble(b)"
+            >{{ b.label }}</button>
+          </div>
         </div>
       </div>
 
-      <div v-if="suggestions.length" class="md-fyn__prompts" aria-label="Suggested questions">
+      <!-- Advice prompt chips — only outside onboarding (onboarding uses bubbles). -->
+      <div v-if="suggestions.length && !onboardingActive" class="md-fyn__prompts" aria-label="Suggested questions">
         <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" @click="send(s)">{{ s }}</button>
       </div>
 
@@ -320,8 +341,10 @@ export default {
       drawerMounted: false,
       fynOpen: false,
       fynMounted: false,
+      fynStarted: false,
+      nudgeDismissed: false,
       conversationId: null,
-      messages: [{ role: 'fyn', text: 'Hi there. What would you like to look at?' }],
+      messages: [],
       draft: '',
       sending: false,
       cats: [
@@ -345,6 +368,14 @@ export default {
     },
     userEmail() {
       return store.user?.email || '';
+    },
+    // Onboarding is "active" only when explicitly not completed (null/undefined
+    // — e.g. user not yet loaded — must not trigger the onboarding chat).
+    onboardingActive() {
+      return store.user?.onboarding_completed === false;
+    },
+    showFynNudge() {
+      return this.onboardingActive && !this.fynOpen && !this.nudgeDismissed;
     },
     navLinks() {
       return [
@@ -618,11 +649,65 @@ export default {
       this.$nextTick(() => {
         this.fynOpen = true;
         this.scrollFyn();
+        this.initFyn();
       });
     },
     closeFyn() {
       this.fynOpen = false;
       window.setTimeout(() => { this.fynMounted = false; }, 320);
+    },
+    // First-open initialiser: onboarding-incomplete users (incl. funnel
+    // arrivals) start the onboarding conversation — Fyn greets, recaps their
+    // funnel answers and asks for the rest via bubbles. Everyone else gets a
+    // short greeting and free chat.
+    initFyn() {
+      if (this.fynStarted) return;
+      this.fynStarted = true;
+      if (this.onboardingActive) {
+        this.startOnboarding();
+      } else if (!this.messages.length) {
+        this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
+      }
+    },
+    async startOnboarding() {
+      if (this.sending) return;
+      this.sending = true;
+      const reply = { role: 'fyn', text: '', bubbles: [] };
+      this.messages.push(reply);
+      this.$nextTick(this.scrollFyn);
+      try {
+        await apiStream(
+          '/api/ai-chat/onboarding/start',
+          {},
+          store.token,
+          (piece) => { reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (ev) => this.handleFynEvent(reply, ev),
+        );
+        if (!reply.text && !(reply.bubbles && reply.bubbles.length)) {
+          reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
+        }
+      } catch (e) {
+        reply.text = 'Sorry, I had trouble starting just now. Please try again.';
+      } finally {
+        this.sending = false;
+        this.$nextTick(this.scrollFyn);
+      }
+    },
+    // Non-text onboarding SSE events (text arrives via the onDelta path):
+    // capture the conversation id and render bubble choices.
+    handleFynEvent(reply, ev) {
+      if (!ev || !ev.type) return;
+      if (ev.type === 'conversation_created' && ev.conversation_id) {
+        this.conversationId = ev.conversation_id;
+      } else if (ev.type === 'quick_replies') {
+        if (ev.prompt_text) reply.text = ev.prompt_text;
+        reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
+        this.$nextTick(this.scrollFyn);
+      }
+    },
+    chooseBubble(bubble) {
+      if (this.sending || !bubble) return;
+      this.send(bubble.label || bubble.id);
     },
     openRecChat(rec) {
       this.openFyn();
@@ -639,8 +724,10 @@ export default {
       if (!text || this.sending) return;
       this.sending = true;
       this.draft = '';
+      // Prior bubbles are now answered — remove them so they can't be re-tapped.
+      this.messages.forEach((m) => { if (m.bubbles) m.bubbles = []; });
       this.messages.push({ role: 'user', text });
-      const reply = { role: 'fyn', text: '' };
+      const reply = { role: 'fyn', text: '', bubbles: [] };
       this.messages.push(reply);
       this.$nextTick(this.scrollFyn);
       try {
@@ -656,9 +743,10 @@ export default {
           (piece) => {
             reply.text += piece;
             this.$nextTick(this.scrollFyn);
-          }
+          },
+          (ev) => this.handleFynEvent(reply, ev),
         );
-        if (!reply.text) reply.text = 'Sorry, I had trouble responding just now.';
+        if (!reply.text && !(reply.bubbles && reply.bubbles.length)) reply.text = 'Sorry, I had trouble responding just now.';
       } catch (e) {
         reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {

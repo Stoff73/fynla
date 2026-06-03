@@ -1582,3 +1582,64 @@
 .md-accordion__card:not(.is-active):hover .md-accordion__icon {
   color: var(--horizon-500);
 }
+
+/* ===================================================================
+   FYN ONBOARDING — bubble choices (quick_replies) + dashboard nudge
+   =================================================================== */
+.md-fyn__bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.md-fyn__bubble {
+  background: var(--white);
+  border: 1px solid var(--raspberry-500);
+  color: var(--raspberry-500);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.md-fyn__bubble:hover { background: var(--raspberry-500); color: var(--white); }
+.md-fyn__bubble:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Nudge — sits just above the docked Fyn bar, points the user into Fyn. */
+.md-fyn-nudge {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--horizon-500);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 0.625rem 0.75rem;
+  box-shadow: 0 6px 20px rgba(31, 42, 68, 0.25);
+}
+.md-fyn-nudge__cta {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--white);
+  font-family: var(--font-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.md-fyn-nudge__later {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
