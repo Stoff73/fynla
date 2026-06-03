@@ -10,7 +10,7 @@
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
-  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=4" />
+  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=8" />
 </head>
 <body>
 
@@ -34,13 +34,15 @@
 
           <!-- Savings figure — moved directly under the title -->
           <div class="sp4-savings sp4-savings--hero" aria-label="Your potential tax saving">
-            <p class="sp4-savings__up-to">Up to</p>
-            <p class="sp4-savings__figure" id="savings-figure">£3,100</p>
-            <p class="sp4-savings__label">in estimated tax savings each year</p>
+            <p class="sp4-savings__row">
+              <span class="sp4-savings__up-to">Up to</span>
+              <span class="sp4-savings__figure" id="savings-figure">£3,100</span>
+            </p>
+            <p class="sp4-savings__label">estimated tax savings each year</p>
           </div>
 
           <p class="campaign-hero__subtext" id="hero-subtext">
-            This is what you could save based on your situation. Register for free and Fyn will build your personalised tax strategy — and remember what you've told us so far.
+            This is what you could save based on your situation. Register for free and Fyn will build your personal tax strategy, and remember what you've told us so far.
           </p>
         </div>
 
