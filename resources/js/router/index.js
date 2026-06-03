@@ -3,6 +3,7 @@ import store from '@/store';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
 import { capabilityForRoute, isRouteGated } from '@/constants/tierAccess';
+import { getTokenSync } from '@/services/tokenStorage';
 import { hasConsent } from '@/utils/cookieConsent';
 import { shouldLoadAwin, loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag } from '@/utils/awinTracking';
 
@@ -1452,6 +1453,31 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
+  // Mobile-view handoff: the /m mobile view hosts the responsive funnel in a
+  // same-origin iframe. Once the user is authenticated and lands on an app
+  // (requiresAuth) route, swap the whole frame to the isolated mobile SPA
+  // (/m/app) instead of showing the desktop SPA inside the frame. Only the
+  // mobile view ever frames this app, so desktop is unaffected. `self !== top`
+  // is the cross-origin-safe "am I framed?" check (window.frameElement throws
+  // on a cross-origin parent; this never does).
+  let inMobileFrame = false;
+  try { inMobileFrame = window.self !== window.top; } catch (e) { inMobileFrame = true; }
+  if (inMobileFrame
+      && store.getters['auth/isAuthenticated']
+      && to.matched.some(r => r.meta.requiresAuth)) {
+    // Bridge auth across the two same-origin SPAs: the desktop app keeps its
+    // Sanctum bearer token in sessionStorage('auth_token'); the isolated mobile
+    // SPA reads localStorage('m_scaffold_token'). Copy it so /m/app lands
+    // authenticated instead of bouncing to the mobile login. localStorage is
+    // shared same-origin; both are the same Sanctum bearer token.
+    const token = getTokenSync();
+    if (token) {
+      try { localStorage.setItem('m_scaffold_token', token); } catch (e) { /* private mode */ }
+    }
+    window.location.replace(routerBase + 'm/app');
+    return next(false); // cancel the in-frame SPA nav; the frame is reloading into /m/app
+  }
+
   const isAuthenticated = store.getters['auth/isAuthenticated'];
   const isAdmin = store.getters['auth/isAdmin'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
