@@ -160,7 +160,13 @@
               :class="`md-panel--${p.tone}`"
               @click.prevent="goto(p.route)"
             >
-              <div class="md-panel__viz" :style="{ '--progress': p.progress }" aria-hidden="true">
+              <div v-if="p.viz === 'bar'" class="md-panel__viz md-panel__viz--bar" aria-hidden="true">
+                <div class="md-panel__bar">
+                  <div class="md-panel__bar-fill" :style="{ width: p.barFill + '%' }"></div>
+                </div>
+                <p class="md-panel__bar-label"><strong>{{ p.barValue }}</strong> {{ p.barUnit }}</p>
+              </div>
+              <div v-else class="md-panel__viz" :style="{ '--progress': p.progress }" aria-hidden="true">
                 <div class="md-panel__viz-inner">
                   <span class="md-panel__viz-num">{{ p.vizNum }}</span>
                   <span class="md-panel__viz-cap">{{ p.vizCap }}</span>
@@ -407,37 +413,63 @@ export default {
     },
     finances() {
       const d = this.data || {};
-      const mods = Array.isArray(d.modules) ? d.modules : [];
-      const find = (k) => mods.find((m) => m.key === k) || {};
+      const modsRaw = d.modules || {};
+      // Modules may arrive as an array (keyed by .key) or as an object map.
+      const find = (k) => {
+        if (Array.isArray(modsRaw)) return modsRaw.find((m) => m.key === k) || {};
+        return modsRaw[k] || {};
+      };
+      const num = (v) => Number(v) || 0;
       const nw = d.net_worth || {};
       const prot = find('protection');
       const sav = find('savings');
       const ret = find('retirement');
-      const trend = Number(nw.trend) || 0;
+      const trend = num(nw.trend);
+
+      // Savings — emergency-fund runway as a bar (out of a 6-month target).
+      const efMonths = num(sav.emergency_fund_months);
+      const efTarget = 6;
+      const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
+
+      // Retirement — projected income vs target as a bar.
+      const projected = num(ret.projected_income);
+      const target = num(ret.target_income);
+      const retPct = target > 0 ? Math.min(100, Math.round((projected / target) * 100)) : 0;
+      const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
+
       return [
         {
           key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth,
           value: this.fmt(nw.total), route: '/module/net_worth',
+          viz: 'donut',
           progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend',
           caption: this.fmt(nw.assets) + ' assets',
         },
         {
           key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield,
-          value: this.fmt(prot.value), route: '/module/protection',
-          progress: prot.value > 0 ? 85 : 0, vizNum: prot.value > 0 ? 'Active' : 'None', vizCap: 'Cover',
-          caption: prot.summary || prot.status || 'Cover in place',
+          value: this.fmt(prot.value != null ? prot.value : prot.total_coverage), route: '/module/protection',
+          viz: 'donut',
+          progress: (prot.value || prot.total_coverage) > 0 ? 85 : 0,
+          vizNum: (prot.value || prot.total_coverage) > 0 ? 'Active' : 'None', vizCap: 'Cover',
+          caption: (prot.value || prot.total_coverage) > 0 ? 'Cover in place' : 'Add your cover',
         },
         {
           key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card,
-          value: this.fmt(sav.value), route: '/module/savings',
-          progress: 70, vizNum: '', vizCap: '',
-          caption: sav.summary || sav.status || 'Cash savings',
+          value: this.fmt(savValue), route: '/module/savings',
+          viz: 'bar',
+          barFill: efTarget > 0 ? Math.min(100, Math.round((efMonths / efTarget) * 100)) : 0,
+          barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0',
+          barUnit: '/ ' + efTarget + ' months',
+          caption: efMonths >= efTarget ? 'Emergency fund on track' : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund'),
         },
         {
           key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock,
-          value: this.fmt(ret.value), route: '/module/retirement',
-          progress: 58, vizNum: '', vizCap: '',
-          caption: ret.summary || ret.status || 'Pensions',
+          value: this.fmt(retValue), route: '/module/retirement',
+          viz: 'bar',
+          barFill: retPct,
+          barValue: retPct + '%',
+          barUnit: 'of target',
+          caption: target > 0 ? 'Towards your target' : 'Plan your retirement',
         },
       ];
     },
