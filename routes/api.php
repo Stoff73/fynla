@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\ProceduralCorpusController;
 use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
 use App\Http\Controllers\Api\Admin\TierConfigurationController;
 use App\Http\Controllers\Api\AdminController;
@@ -1166,6 +1167,11 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         Route::get('/episodes/{id}', [AiAuditController::class, 'episode']);
         Route::post('/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
+
+    // CoALA Phase 4f — read-only procedural-memory corpus viewer (admin).
+    Route::get('/procedural-corpus', [ProceduralCorpusController::class, 'index']);
+    Route::get('/procedural-corpus/{procedureId}', [ProceduralCorpusController::class, 'show'])
+        ->where('procedureId', '.*');
 
     // Database backup - list (read-only, no rate limit)
     Route::middleware(['permission:admin.backup'])->group(function () {
