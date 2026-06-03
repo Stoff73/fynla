@@ -343,6 +343,7 @@ export default {
       fynMounted: false,
       fynStarted: false,
       nudgeDismissed: false,
+      resumeId: null,
       conversationId: null,
       messages: [],
       draft: '',
@@ -672,6 +673,7 @@ export default {
     async startOnboarding() {
       if (this.sending) return;
       this.sending = true;
+      this.resumeId = null;
       const reply = { role: 'fyn', text: '', bubbles: [] };
       this.messages.push(reply);
       this.$nextTick(this.scrollFyn);
@@ -683,7 +685,10 @@ export default {
           (piece) => { reply.text += piece; this.$nextTick(this.scrollFyn); },
           (ev) => this.handleFynEvent(reply, ev),
         );
-        if (!reply.text && !(reply.bubbles && reply.bubbles.length)) {
+        if (this.resumeId) {
+          // Mid-onboarding resume — replace the placeholder with the transcript.
+          await this.loadConversation(this.resumeId);
+        } else if (!reply.text && !(reply.bubbles && reply.bubbles.length)) {
           reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
       } catch (e) {
@@ -697,13 +702,33 @@ export default {
     // capture the conversation id and render bubble choices.
     handleFynEvent(reply, ev) {
       if (!ev || !ev.type) return;
-      if (ev.type === 'conversation_created' && ev.conversation_id) {
+      if ((ev.type === 'conversation_created' || ev.type === 'resume') && ev.conversation_id) {
         this.conversationId = ev.conversation_id;
+        // 'resume' means the user is mid-onboarding from a prior session —
+        // startOnboarding loads the existing transcript instead of a first turn.
+        if (ev.type === 'resume') this.resumeId = ev.conversation_id;
       } else if (ev.type === 'quick_replies') {
         if (ev.prompt_text) reply.text = ev.prompt_text;
         reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
         this.$nextTick(this.scrollFyn);
       }
+    },
+    // Load an existing onboarding conversation's transcript (resume). Only the
+    // last assistant turn keeps its bubbles — earlier turns are already answered.
+    async loadConversation(id) {
+      try {
+        const res = await apiGet(`/api/ai-chat/conversations/${id}`, store.token);
+        const list = res.data?.data?.messages || res.data?.messages || [];
+        const mapped = list.map((m) => ({
+          role: m.role === 'user' ? 'user' : 'fyn',
+          text: m.content || '',
+          bubbles: (m.metadata && Array.isArray(m.metadata.bubbles)) ? m.metadata.bubbles : [],
+        }));
+        let lastFyn = -1;
+        mapped.forEach((m, i) => { if (m.role === 'fyn') lastFyn = i; });
+        mapped.forEach((m, i) => { if (i !== lastFyn) m.bubbles = []; });
+        if (mapped.length) this.messages = mapped;
+      } catch (e) { /* keep whatever is shown */ }
     },
     chooseBubble(bubble) {
       if (this.sending || !bubble) return;
