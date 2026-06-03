@@ -149,6 +149,7 @@ final class AuditChainService
                 'blob_md_path' => $event['blob_md_path'] ?? null,
                 'semantic_snapshot_id' => $snapshotId,
                 'provenance_digest' => $provDigest,
+                'procedural_version' => $event['procedural_version'] ?? null,
             ];
 
             $payload = [
