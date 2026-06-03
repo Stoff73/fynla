@@ -9,10 +9,11 @@ it('serves the mobile host page with a same-origin iframe', function () {
 
     $res->assertOk();
     $res->assertSee('<iframe', false);
-    // Blade renders {{ url('/m/app') }}, which is absolute in test/dev/prod
-    // (subdir-aware: csjones.co/fynla/m/app, fynla.org/m/app). Assert on the
-    // url() output so this stays accurate regardless of host or APP_URL.
-    $res->assertSee('src="'.url('/m/app').'"', false);
+    // Blade renders {{ url('/m/landing') }} — the host iframes the landing
+    // first, which then navigates the iframe to /m/app on "Get started".
+    // Absolute in test/dev/prod (subdir-aware: csjones.co/fynla/m/landing). Assert
+    // on the url() output so this stays accurate regardless of host or APP_URL.
+    $res->assertSee('src="'.url('/m/landing').'"', false);
 });
 
 it('serves the mobile app shell at /m/app and nested paths', function () {
