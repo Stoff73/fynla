@@ -60,6 +60,15 @@ class RedirectPhoneToMobile
         if (! str_contains((string) $request->header('Accept'), 'text/html')) {
             return false;
         }
+        // Never redirect a document being loaded INSIDE the mobile-view iframe.
+        // /m hosts the real responsive funnel (homepage → /savetax → register)
+        // in a same-origin iframe; without this the in-frame load of '/' would
+        // itself 302 to /m and loop. iOS Safari + Chromium send
+        // Sec-Fetch-Dest: iframe for framed document loads.
+        $fetchDest = strtolower((string) $request->header('Sec-Fetch-Dest'));
+        if ($fetchDest === 'iframe' || $fetchDest === 'frame') {
+            return false;
+        }
         foreach (self::EXCLUDED_PREFIXES as $prefix) {
             if ($request->is($prefix)) {
                 return false;
