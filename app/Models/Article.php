@@ -23,7 +23,7 @@ class Article extends Model
 
     public function assets(): HasMany
     {
-        return $this->hasMany(Asset::class);
+        return $this->hasMany(PipelineAsset::class);
     }
 
     public function approvals(): HasMany
@@ -40,6 +40,7 @@ class Article extends Model
     {
         $this->status = $status;
         $this->save();
+
         return $this;
     }
 }

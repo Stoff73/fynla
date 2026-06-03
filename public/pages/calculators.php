@@ -46,8 +46,8 @@
   }
   </script>
 
-  <!-- Chart.js from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
+  <!-- Chart.js self-hosted (same-origin, satisfies CSP script-src 'self'; base-path rewritten on subdir deploys) -->
+  <script src="/pages/js/vendor/chart.umd.min.js" defer></script>
 
   <!-- Blocking CSS — same-server, negligible render penalty, prevents FOUC -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
@@ -57,7 +57,7 @@
 
 <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-<?php include __DIR__ . '/partials/nav.php'; ?>
+<?php include __DIR__.'/partials/nav.php'; ?>
 
 <main id="main-content">
 
@@ -1240,7 +1240,7 @@
 
 </main>
 
-<?php include __DIR__ . '/partials/footer.php'; ?>
+<?php include __DIR__.'/partials/footer.php'; ?>
 
 <script src="/pages/js/site.js?v=5" defer></script>
 <script src="/pages/js/calculators.js?v=1" defer></script>

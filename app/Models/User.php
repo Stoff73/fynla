@@ -247,16 +247,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is currently on a trial.
-     */
-    public function onTrial(): bool
-    {
-        $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
-
-        return $subscription && $subscription->isTrialing();
-    }
-
-    /**
      * Check if user has an active (paid) plan.
      */
     public function hasActivePlan(): bool
@@ -264,16 +254,6 @@ class User extends Authenticatable
         $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
 
         return $subscription && $subscription->isActive();
-    }
-
-    /**
-     * Get number of days remaining in trial.
-     */
-    public function trialDaysRemaining(): int
-    {
-        $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
-
-        return $subscription ? $subscription->daysLeftInTrial() : 0;
     }
 
     /**

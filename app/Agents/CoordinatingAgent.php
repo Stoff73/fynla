@@ -56,7 +56,9 @@ use App\Services\PrerequisiteGateService;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
@@ -2201,7 +2203,7 @@ class CoordinatingAgent extends BaseAgent
         };
 
         $isaType = match ($accountType) {
-            'stocks_shares_isa' => 'stocks_shares',
+            'stocks_shares_isa' => 'stocks_and_shares',
             'lifetime_isa' => 'lifetime',
             default => null,
         };
@@ -2277,7 +2279,24 @@ class CoordinatingAgent extends BaseAgent
             $payload['employer_is_listed'] = (bool) $input['employer_is_listed'];
         }
 
-        $account = DB::transaction(fn () => InvestmentAccount::create($payload));
+        $canonical = InvestmentAccountNormaliser::fromFyn($payload, $user);
+
+        try {
+            $account = app(InvestmentAccountStore::class)->create($canonical, $user, IngestSource::FYN_AI);
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for investment account.',
+            ];
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_exceeded',
+                'message' => "You've reached the investment account limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
+            ];
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2287,7 +2306,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'investment_account',
             'entity_id' => $account->id,
             'name' => $account->account_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys(array_diff_key($canonical, ['user_id' => null])),
             'message' => "I've added your \"{$account->account_name}\" investment account.",
         ];
     }

@@ -294,13 +294,14 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/letter-to-spouse/spouse', [LetterToSpouseController::class, 'showSpouse']);
     Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update'])->middleware('feature:standard');
 
-    // Family Members CRUD
+    // Family Members CRUD — household/spouse linking is never tier-gated
+    // (SP2 spec firm rule: family_module=full at every tier, including Free).
     Route::prefix('family-members')->group(function () {
         Route::get('/', [FamilyMembersController::class, 'index']);
-        Route::post('/', [FamilyMembersController::class, 'store'])->middleware('feature:family');
+        Route::post('/', [FamilyMembersController::class, 'store']);
         Route::get('/{id}', [FamilyMembersController::class, 'show']);
-        Route::put('/{id}', [FamilyMembersController::class, 'update'])->middleware('feature:family');
-        Route::delete('/{id}', [FamilyMembersController::class, 'destroy'])->middleware('feature:family');
+        Route::put('/{id}', [FamilyMembersController::class, 'update']);
+        Route::delete('/{id}', [FamilyMembersController::class, 'destroy']);
     });
 
     // Personal Accounts (P&L, Cashflow, Balance Sheet)
@@ -369,7 +370,9 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
 });
 
 // Property routes (Phase 4)
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('properties')->group(function () {
+// Free-tier module (capability_matrix: property=full). The free count cap
+// (3 properties) is enforced in PropertyStore via DbTierGate, not by a route gate.
+Route::middleware(['auth:sanctum'])->prefix('properties')->group(function () {
     // Property CRUD
     Route::get('/', [PropertyController::class, 'index']);
     Route::post('/', [PropertyController::class, 'store']);
@@ -392,7 +395,8 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('properties')->g
 });
 
 // Mortgage routes (Phase 4)
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('mortgages')->group(function () {
+// Free-tier (sits under Property). Free count cap (10) enforced in MortgageStore.
+Route::middleware(['auth:sanctum'])->prefix('mortgages')->group(function () {
     Route::get('/{id}', [MortgageController::class, 'show']);
     Route::put('/{id}', [MortgageController::class, 'update']);
     Route::delete('/{id}', [MortgageController::class, 'destroy']);
@@ -400,8 +404,8 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('mortgages')->gr
     Route::post('/calculate-payment', [MortgageController::class, 'calculatePayment']);
 });
 
-// Business Interest routes
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('business-interests')->group(function () {
+// Business Interest routes — Free-tier module (CSJ 2026-05-29; not count-gated).
+Route::middleware(['auth:sanctum'])->prefix('business-interests')->group(function () {
     Route::get('/', [BusinessInterestController::class, 'index']);
     Route::post('/', [BusinessInterestController::class, 'store']);
     Route::get('/{id}', [BusinessInterestController::class, 'show']);
@@ -412,7 +416,8 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('business-intere
 });
 
 // Chattel routes (personal property / chattels & valuables)
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('chattels')->group(function () {
+// Free-tier module (capability_matrix: chattels=full; not count-gated).
+Route::middleware(['auth:sanctum'])->prefix('chattels')->group(function () {
     Route::get('/', [ChattelController::class, 'index']);
     Route::post('/', [ChattelController::class, 'store']);
     Route::get('/{id}', [ChattelController::class, 'show']);
@@ -843,7 +848,9 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 });
 
 // Estate Liabilities (standard tier — part of Finances/Net Worth, not estate-only)
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('estate/liabilities')->group(function () {
+// Liabilities is a Free-tier module (capability_matrix: liabilities=full),
+// surfaced under Net Worth. Not count-gated.
+Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(function () {
     Route::post('/', [EstateController::class, 'storeLiability']);
     Route::put('/{id}', [EstateController::class, 'updateLiability']);
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
@@ -1169,7 +1176,6 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
 
     // User Metrics
     Route::get('/user-metrics/snapshot', [UserMetricsController::class, 'snapshot']);
-    Route::get('/user-metrics/trials', [UserMetricsController::class, 'trials']);
     Route::get('/user-metrics/plans', [UserMetricsController::class, 'plans']);
     Route::get('/user-metrics/activity', [UserMetricsController::class, 'activity']);
     Route::get('/user-metrics/engagement', [UserMetricsController::class, 'engagement']);

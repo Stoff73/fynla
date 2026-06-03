@@ -25,6 +25,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\PensionStore;
@@ -237,9 +238,13 @@ class ChrisUserSeeder extends Seeder
         );
 
         // ── Investment Account: Vanguard S&S ISA ──────────────
-        $investmentAccount = InvestmentAccount::updateOrCreate(
-            ['user_id' => $userId, 'provider' => 'Vanguard', 'account_type' => 'isa'],
-            [
+        // Match on (provider, account_type) — NOT account_name, which is nullable
+        // and NULL on rows seeded before account_name existed. Matching account_name
+        // would miss those rows and insert a duplicate on reseed.
+        $investmentAccount = app(InvestmentAccountStore::class)->updateOrCreate(
+            match: ['provider' => 'Vanguard', 'account_type' => 'isa'],
+            data: [
+                'account_name' => 'Vanguard Stocks & Shares ISA',
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100.00,
                 'company_country' => 'United Kingdom',
@@ -264,7 +269,9 @@ class ChrisUserSeeder extends Seeder
                 'include_in_retirement' => false,
                 'scheme_status' => 'active',
                 'grant_currency' => 'GBP',
-            ]
+            ],
+            user: $chris,
+            source: IngestSource::SEEDER,
         );
 
         // Holdings (only active — skip soft-deleted)

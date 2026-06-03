@@ -24,6 +24,7 @@ use App\Services\Savings\FSCSAssessor;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\PSACalculator;
 use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\SavingsStore;

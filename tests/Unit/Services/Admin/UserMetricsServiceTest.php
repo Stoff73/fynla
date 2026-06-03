@@ -53,129 +53,21 @@ describe('getSnapshot', function () {
         expect($snapshot['active_subscribers'])->toBe(1);
     });
 
-    it('correctly counts trialing users', function () {
-        $trialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $trialUser->id,
-            'trial_ends_at' => now()->addDays(7),
-        ]);
-
-        // Expired trial (trial_ends_at in the past, but status still trialing)
-        $expiredTrialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $expiredTrialUser->id,
-            'trial_ends_at' => now()->subDay(),
-        ]);
-
-        $snapshot = $this->service->getSnapshot();
-
-        expect($snapshot['on_trial'])->toBe(1);
-    });
-
     it('correctly counts never-paid users', function () {
         // 5 real users total
         $users = User::factory()->count(5)->create(['is_preview_user' => false]);
 
-        // 1 active subscriber
+        // 1 active subscriber; the other 4 have no active subscription =
+        // never_paid (pure freemium: a user is "paid" only with an active sub).
         Subscription::factory()->create([
             'user_id' => $users[0]->id,
             'status' => 'active',
         ]);
 
-        // 1 trialing user
-        Subscription::factory()->trialing()->create([
-            'user_id' => $users[1]->id,
-        ]);
-
-        // 3 users with no subscription at all = never_paid
         $snapshot = $this->service->getSnapshot();
 
         expect($snapshot['total_registered'])->toBe(5)
-            ->and($snapshot['never_paid'])->toBe(3);
-    });
-});
-
-// =========================================================================
-// getTrialBreakdown
-// =========================================================================
-
-describe('getTrialBreakdown', function () {
-    it('buckets trial users by days remaining', function () {
-        // 4+ days
-        $user1 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user1->id,
-            'trial_ends_at' => now()->addDays(5),
-        ]);
-
-        // 3 days bucket (between now+2d and now+3d)
-        $user2 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user2->id,
-            'trial_ends_at' => now()->addDays(2)->addHours(12),
-        ]);
-
-        // 2 days bucket (between now+1d and now+2d)
-        $user3 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user3->id,
-            'trial_ends_at' => now()->addDays(1)->addHours(12),
-        ]);
-
-        // 1 day bucket (between now and now+1d)
-        $user4 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user4->id,
-            'trial_ends_at' => now()->addHours(12),
-        ]);
-
-        $breakdown = $this->service->getTrialBreakdown();
-
-        expect($breakdown['four_plus_days'])->toBe(1)
-            ->and($breakdown['three_days'])->toBe(1)
-            ->and($breakdown['two_days'])->toBe(1)
-            ->and($breakdown['one_day'])->toBe(1);
-    });
-
-    it('counts expired trials correctly', function () {
-        // Expired trial (trialing with trial_ends_at in the past, no active sub)
-        $user1 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user1->id,
-            'trial_ends_at' => now()->subDays(2),
-        ]);
-
-        // Explicitly expired status
-        $user2 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->expired()->create([
-            'user_id' => $user2->id,
-            'trial_ends_at' => now()->subDays(5),
-        ]);
-
-        // User with expired trial but also an active sub (should NOT count as expired)
-        // Note: hasOne relationship means one subscription per user, so this user's
-        // subscription is active — they shouldn't appear in expired
-        $user3 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->create([
-            'user_id' => $user3->id,
-            'status' => 'active',
-        ]);
-
-        $breakdown = $this->service->getTrialBreakdown();
-
-        expect($breakdown['expired'])->toBe(2);
-    });
-
-    it('excludes preview users from trial breakdown', function () {
-        $previewUser = User::factory()->create(['is_preview_user' => true]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $previewUser->id,
-            'trial_ends_at' => now()->addDays(5),
-        ]);
-
-        $breakdown = $this->service->getTrialBreakdown();
-
-        expect($breakdown['four_plus_days'])->toBe(0);
+            ->and($snapshot['never_paid'])->toBe(4);
     });
 });
 

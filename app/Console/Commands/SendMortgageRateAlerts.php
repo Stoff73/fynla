@@ -15,6 +15,17 @@ class SendMortgageRateAlerts extends Command
 
     protected $description = 'Send push notifications for fixed rate mortgages expiring at 90/60/30 days';
 
+    /**
+     * System-scope read — iterates ALL users' fixed-rate mortgages by rate-expiry
+     * date to dispatch push notifications. MortgageStore's contract is user-scoped
+     * (every read method takes a User), so it cannot express "every fixed-rate
+     * mortgage in the system whose rate_fix_end_date is on $targetDate". Keeping
+     * this as a raw Eloquent read matches the cross-link KEEP precedent in
+     * CrossModuleAssetAggregator::getMortgages (PR 5b).
+     *
+     * Reads are not policed by MortgageStoreBoundaryTest (writes only), so this
+     * raw read does not require an allowlist entry.
+     */
     public function handle(PushNotificationService $pushService): int
     {
         $thresholds = [90, 60, 30];

@@ -11,9 +11,12 @@ use App\Events\Mortgage\MortgageRestored;
 use App\Events\Mortgage\MortgageUpdated;
 use App\Models\AuditLog;
 use App\Models\Mortgage;
+use App\Models\MortgageValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\Recalc\MortgageDerivedColumnCalculator;
+use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -28,9 +31,9 @@ use Illuminate\Support\Facades\Validator;
  *
  * Tier-cap key: 'mortgage' (free=10 by default, tier1+=null).
  *
- * Cross-store recalc (PR 6, deferred): writes will fire events consumed by a
- * PropertyStore listener that recomputes properties.outstanding_mortgage from
- * the canonical mortgages sum.
+ * Cross-store recalc (PR 6): writes fire events consumed by
+ * RecalculatePropertyOutstandingMortgage listener which recomputes
+ * properties.outstanding_mortgage from the canonical mortgages sum.
  */
 class MortgageStore
 {
@@ -38,6 +41,8 @@ class MortgageStore
 
     public function __construct(
         private readonly TierGate $tierGate,
+        private readonly MortgageDerivedColumnCalculator $calculator,
+        private readonly SnapshotPolicies $snapshotPolicies,
     ) {}
 
     // ─── READ METHODS ──────────────────────────────────────────────────────
@@ -98,7 +103,10 @@ class MortgageStore
         $mortgage = AuditLog::withContext(
             ['ingest_source' => $source->value],
             fn () => DB::transaction(function () use ($canonical) {
-                return Mortgage::create($canonical);
+                $mortgage = Mortgage::create($canonical);
+                $this->recalculateDerived($mortgage, null);
+
+                return $mortgage;
             })
         );
 
@@ -118,14 +126,19 @@ class MortgageStore
         $result = AuditLog::withContext(
             ['ingest_source' => $source->value],
             fn () => DB::transaction(function () use ($mortgage, $canonical) {
+                $previous = $mortgage->replicate();
+                $previous->setRawAttributes($mortgage->getOriginal(), true);
+
                 $mortgage->fill($canonical);
                 $changes = [];
                 foreach ($mortgage->getDirty() as $field => $newValue) {
                     $changes[$field] = [$mortgage->getOriginal($field), $newValue];
                 }
                 $mortgage->save();
+                $fresh = $mortgage->fresh();
+                $this->recalculateDerived($fresh, $previous);
 
-                return ['fresh' => $mortgage->fresh(), 'changes' => $changes];
+                return ['fresh' => $fresh, 'changes' => $changes];
             })
         );
 
@@ -152,6 +165,9 @@ class MortgageStore
                     ->first();
 
                 if ($existing) {
+                    $previous = $existing->replicate();
+                    $previous->setRawAttributes($existing->getOriginal(), true);
+
                     $existing->fill($canonical);
                     $changes = [];
                     foreach ($existing->getDirty() as $field => $newValue) {
@@ -159,6 +175,7 @@ class MortgageStore
                     }
                     $existing->save();
                     $fresh = $existing->fresh();
+                    $this->recalculateDerived($fresh, $previous);
                     event(new MortgageUpdated($fresh, $changes, $user, $source));
 
                     return $fresh;
@@ -166,6 +183,7 @@ class MortgageStore
 
                 $this->enforceTierCap($user);
                 $mortgage = Mortgage::create($canonical);
+                $this->recalculateDerived($mortgage, null);
                 event(new MortgageCreated($mortgage, $user, $source));
 
                 return $mortgage;
@@ -205,6 +223,53 @@ class MortgageStore
         event(new MortgageRestored($fresh, $user, $source));
 
         return $fresh;
+    }
+
+    // ─── DERIVED COLUMNS + SNAPSHOTS ───────────────────────────────────────
+
+    /**
+     * Recompute canonical derived columns and emit snapshots when the
+     * configured policies trigger.
+     *
+     * Cross-store recalc invariant: this method does not dispatch Property
+     * events. The Property reconciliation is driven by the Mortgage events
+     * emitted by create/update/delete/restore and handled by
+     * RecalculatePropertyOutstandingMortgage.
+     */
+    private function recalculateDerived(Mortgage $mortgage, ?Mortgage $previous): void
+    {
+        $oldBalance = $previous !== null && $previous->outstanding_balance !== null
+            ? (float) $previous->outstanding_balance
+            : null;
+        $oldRate = $previous !== null && $previous->interest_rate !== null
+            ? (float) $previous->interest_rate
+            : null;
+
+        $this->calculator->recalculate($mortgage);
+
+        $now = now();
+
+        $balancePolicy = $this->snapshotPolicies->mortgageBalance();
+        $newBalance = (float) ($mortgage->outstanding_balance ?? 0);
+        if ($balancePolicy->shouldSnapshot($oldBalance, $newBalance)) {
+            MortgageValueSnapshot::create([
+                'mortgage_id' => $mortgage->id,
+                'snapshot_type' => 'mortgageBalance',
+                'value' => $newBalance,
+                'snapshotted_at' => $now,
+            ]);
+        }
+
+        $ratePolicy = $this->snapshotPolicies->mortgageRate();
+        $newRate = $mortgage->interest_rate !== null ? (float) $mortgage->interest_rate : null;
+        if ($newRate !== null && $ratePolicy->shouldSnapshot($oldRate, $newRate)) {
+            MortgageValueSnapshot::create([
+                'mortgage_id' => $mortgage->id,
+                'snapshot_type' => 'mortgageRate',
+                'value' => $newRate,
+                'snapshotted_at' => $now,
+            ]);
+        }
     }
 
     // ─── INTERNAL ──────────────────────────────────────────────────────────

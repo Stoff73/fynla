@@ -166,7 +166,7 @@
   }
 
   function fetchAllowances() {
-    fetch('/api/public/tax-allowances', {
+    fetch((window.FYNLA_BASE||'')+'/api/public/tax-allowances', {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     })

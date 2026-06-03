@@ -9,9 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Metric | Count |
 |--------|-------|
 | Vue Components | 666 |
-| PHP Services | 331 |
+| PHP Services | 340 |
 | Controllers | 118 |
-| Models | 114 |
+| Models | 119 |
 | Vuex Stores | 34 |
 | Agents | 9 |
 

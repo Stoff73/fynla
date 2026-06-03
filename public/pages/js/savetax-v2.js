@@ -84,7 +84,7 @@
     if (idx < seq.length - 1) {
       goTo(seq[idx + 1], 'forward');
     } else {
-      window.location.href = '/savetax/plan?from=savetax';
+      window.location.href = (window.FYNLA_BASE||'')+'/savetax/plan?from=savetax';
     }
   }
 
@@ -144,7 +144,7 @@
   // Continue button
   continueBtn.addEventListener('click', function () {
     if (current === 'assets') {
-      window.location.href = '/savetax/plan?from=savetax';
+      window.location.href = (window.FYNLA_BASE||'')+'/savetax/plan?from=savetax';
     } else {
       advance();
     }

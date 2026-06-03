@@ -170,7 +170,36 @@ class PropertyStore
 
     // ---------- Derived columns + snapshots ----------
 
-    private function recalculateDerived(Property $property, User $user, IngestSource $source, string $reason): void
+    /**
+     * Public recalc entry point — called by cross-store recalc listeners
+     * (e.g. RecalculatePropertyOutstandingMortgage). System-context: no
+     * user scoping required because recalc is a back-end operation.
+     *
+     * Loop-prevention invariant (Pass 5 PR 6): this method MUST NOT dispatch
+     * Property events that could feed back into the Mortgage event chain.
+     * The internal `recalculateDerived` persists via `saveQuietly`, which
+     * bypasses Eloquent events.
+     */
+    public function recalculateDerivedForPropertyId(int $propertyId): void
+    {
+        $property = Property::find($propertyId);
+        if ($property === null) {
+            return;
+        }
+
+        $this->recalculateDerived($property, null, null, 'cross_store_recalc');
+    }
+
+    /**
+     * Persists derived columns via `forceFill + saveQuietly`. Observer-dedup
+     * note: NetWorthCacheObserver / RecommendationCacheObserver / PropertyRiskObserver
+     * already fire from the originating store write (create/update) OR from the
+     * originating Mortgage write that triggered the cross-store listener. The
+     * derived-column write is a second persistence step that must NOT re-trigger
+     * those observers — `saveQuietly` enforces that. Cache invalidation is not
+     * lost because the originating write already fired the relevant observers.
+     */
+    private function recalculateDerived(Property $property, ?User $user, ?IngestSource $source, string $reason): void
     {
         $derived = $this->derivedCalc->calculate($property, $user);
         $now = now();
@@ -180,14 +209,27 @@ class PropertyStore
             'equity_gbp' => $property->equity_gbp !== null ? (float) $property->equity_gbp : null,
         ];
 
-        $property->fill([
+        // Pass 5 PR 6 — persist via saveQuietly to avoid firing Property events
+        // during cross-store recalc. Loop-prevention invariant + observer dedup
+        // (see method docblock).
+        $property->forceFill([
             'current_value_gbp' => $derived['current_value_gbp'],
             'current_value_gbp_calculated_at' => $now,
             'equity_gbp' => $derived['equity_gbp'],
             'equity_gbp_calculated_at' => $now,
             'loan_to_value_pct' => $derived['loan_to_value_pct'],
             'loan_to_value_pct_calculated_at' => $now,
-        ])->save();
+            'outstanding_mortgage' => $derived['outstanding_mortgage'],
+            'outstanding_mortgage_calculated_at' => $now,
+        ])->saveQuietly();
+
+        // Cross-store recalc (source === null) skips snapshot writes — the
+        // originating Mortgage write already produced its own audit trail and
+        // the property-side metric movement is implicit. A user-driven property
+        // write (source !== null) still captures the snapshot.
+        if ($source === null) {
+            return;
+        }
 
         $policies = [
             'current_value_gbp' => $this->snapshotPolicies->propertyValue(),

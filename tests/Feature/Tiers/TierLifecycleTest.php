@@ -29,8 +29,8 @@ afterEach(function () {
 // ── PR5 review CRITICAL (symmetric REVOKE): subscription end clears tier ───
 //
 // Grant (confirmPayment/webhook) sets users.tier. The terminal "subscription
-// ended → plan reset to free" transitions (TrialService::expireTrials,
-// expireCancelledSubscriptions, RetentionPurgeService::purgeUser) must
+// ended → plan reset to free" transitions (TrialService::expireCancelledSubscriptions,
+// RetentionPurgeService::purgeUser) must
 // also clear users.tier or a paying customer who cancels keeps tier access
 // forever after their access period expires — an entitlement/revenue leak.
 // tier => null means "resolve via TierResolver" → resolves to 'free'.
@@ -69,28 +69,6 @@ it('revokes tier access when a cancelled tier2 subscription expires past its per
         ->and(app(TierGate::class)->canCreate($fresh, 'savings_account', 3))->toBeFalse();
 });
 
-it('revokes tier access when a tier3 trial expires', function () {
-    $user = User::factory()->create(['plan' => 'tier3', 'tier' => 'tier3']);
-    Subscription::factory()->plan('tier3')->billingCycle('monthly')->create([
-        'user_id' => $user->id,
-        'status' => 'trialing',
-        'trial_ends_at' => now()->subHour(), // trial already over
-        'amount' => 2999,
-    ]);
-
-    expect(app(TierResolver::class)->resolve($user->fresh()))->toBe('tier3');
-
-    $count = app(TrialService::class)->expireTrials();
-
-    expect($count)->toBe(1);
-
-    $fresh = $user->fresh();
-    expect($fresh->plan)->toBe('free')
-        ->and($fresh->tier)->toBeNull()
-        ->and(app(TierResolver::class)->resolve($fresh))->toBe('free')
-        ->and(app(TierGate::class)->hardLimit($fresh, 'savings_account'))->toBe(3);
-});
-
 it('does NOT revoke an active tier2 subscriber during the cancelled-expiry sweep', function () {
     // Active tier2 subscriber — must be untouched by the terminal sweep.
     $active = User::factory()->create(['plan' => 'tier2', 'tier' => 'tier2']);
@@ -119,21 +97,6 @@ it('does NOT revoke an active tier2 subscriber during the cancelled-expiry sweep
         ->and(app(TierResolver::class)->resolve($active->fresh()))->toBe('tier2')
         ->and($cancelledNotExpired->fresh()->tier)->toBe('tier2')
         ->and(app(TierResolver::class)->resolve($cancelledNotExpired->fresh()))->toBe('tier2');
-});
-
-it('does NOT revoke an active tier3 trialing subscriber during the trial-expiry sweep', function () {
-    $activeTrial = User::factory()->create(['plan' => 'tier3', 'tier' => 'tier3']);
-    Subscription::factory()->plan('tier3')->billingCycle('monthly')->create([
-        'user_id' => $activeTrial->id,
-        'status' => 'trialing',
-        'trial_ends_at' => now()->addDays(5), // trial still running
-        'amount' => 2999,
-    ]);
-
-    app(TrialService::class)->expireTrials();
-
-    expect($activeTrial->fresh()->tier)->toBe('tier3')
-        ->and(app(TierResolver::class)->resolve($activeTrial->fresh()))->toBe('tier3');
 });
 
 // ── Upgrade-path coverage the reviewer noted (tier1 → tier2) ───────────────

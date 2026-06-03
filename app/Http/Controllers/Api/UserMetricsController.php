@@ -20,11 +20,6 @@ class UserMetricsController extends Controller
         return response()->json($this->metricsService->getSnapshot());
     }
 
-    public function trials(): JsonResponse
-    {
-        return response()->json($this->metricsService->getTrialBreakdown());
-    }
-
     public function plans(): JsonResponse
     {
         return response()->json($this->metricsService->getPlanBreakdown());

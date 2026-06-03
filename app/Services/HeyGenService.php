@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Article;
-use App\Models\Asset;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  */
 class HeyGenService
 {
-    public function generateVideo(Article $article, string $script): Asset
+    public function generateVideo(Article $article, string $script): PipelineAsset
     {
         $apiKey = config('services.heygen.api_key');
         $avatar = $this->pickAvatar();
@@ -31,7 +30,7 @@ class HeyGenService
             'video_inputs' => [[
                 'character' => [
                     'type' => $avatar['type'], // 'avatar' or 'talking_photo'
-                    $avatar['type'] . '_id' => $avatar['avatar_id'],
+                    $avatar['type'].'_id' => $avatar['avatar_id'],
                 ],
                 'voice' => [
                     'type' => 'text',
@@ -46,7 +45,7 @@ class HeyGenService
             ->withHeaders(['x-api-key' => $apiKey])
             ->post('https://api.heygen.com/v2/video/generate', $payload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \Exception("HeyGen submit failed: HTTP {$response->status()} — {$response->body()}");
         }
 
@@ -66,7 +65,7 @@ class HeyGenService
             'avatar_used' => $avatar['avatar_id'],
         ]);
 
-        return Asset::create([
+        return PipelineAsset::create([
             'article_id' => $article->id,
             'kind' => 'video',
             'template_type' => 'video_full',
@@ -88,7 +87,7 @@ class HeyGenService
                 return $r->json('data.video_url');
             }
             if ($status === 'failed') {
-                throw new \Exception("HeyGen render failed: " . $r->json('data.error.message', 'unknown'));
+                throw new \Exception('HeyGen render failed: '.$r->json('data.error.message', 'unknown'));
             }
             sleep(15);
         }
@@ -119,7 +118,7 @@ class HeyGenService
         }
 
         if (empty($entries)) {
-            throw new \Exception("No HeyGen avatars configured.");
+            throw new \Exception('No HeyGen avatars configured.');
         }
 
         // Round-robin via least-recently-used in the articles table
@@ -127,6 +126,7 @@ class HeyGenService
             $e['id'] => Article::where('avatar_used', $e['avatar_id'])->count(),
         ]);
         $leastId = $usage->sort()->keys()->first();
+
         return collect($entries)->firstWhere('id', $leastId);
     }
 
@@ -135,6 +135,7 @@ class HeyGenService
         if (str_contains($entry, '|')) {
             return explode('|', $entry, 2);
         }
+
         return [$entry, config('services.heygen.voice_default')];
     }
 }

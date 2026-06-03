@@ -92,3 +92,12 @@
 - Branch: dev (tip c972fff → handover commit d2b4b1c)
 - WIP commit: none (tree clean after PR 8 merge)
 - Pick up at: update spec doc for Pass 4 close-out, then start Pass 5 (Liabilities) — brainstorm vs plan-write CSJ decision
+
+## 2026-05-29 — session 1 (context-clear)
+- Handover: [[handover-2026-05-29-session-1-clear]]
+- Branch: pureFreemium (off dev)
+- Parallel to SP1 Pass 6. Two tracks this session:
+  1. Revolut checkout spinner — FIXED + DEPLOYED to prod+dev (root cause: prod config uncached → forge/no-password DB fallback). PR #421 (dev), #422 (main).
+  2. Pure freemium signup — spec + plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*.md`), NO code yet. Awaiting execution-approach choice.
+- Commits this session: 4 (2 Revolut fix, 2 freemium docs).
+- Next: CSJ picks execution approach for the freemium plan → start PR1 (registration → tier='free', no trial).

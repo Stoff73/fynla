@@ -39,7 +39,9 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
@@ -891,27 +893,41 @@ class PreviewUserSeeder extends Seeder
                 $isaSubscription = $account['isa_subscription_current_year'] ?? $annualContribution;
             }
 
-            $investmentAccount = InvestmentAccount::create([
-                'user_id' => $owner->id,
-                'account_name' => $account['account_name'] ?? null,
-                'provider' => $account['provider_name'] ?? '',
-                'account_type' => $accountType,
-                'current_value' => $totalValue, // FULL value
-                'contributions_ytd' => $annualContribution,
-                'monthly_contribution_amount' => $account['monthly_contribution_amount'] ?? null,
-                'contribution_frequency' => $account['contribution_frequency'] ?? 'monthly',
-                'planned_lump_sum_amount' => $account['planned_lump_sum_amount'] ?? null,
-                'planned_lump_sum_date' => isset($account['planned_lump_sum_date']) ? $account['planned_lump_sum_date'] : null,
-                'isa_subscription_current_year' => $isaSubscription,
-                'tax_year' => '2025/26',
-                'ownership_type' => $account['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $isJoint ? 50 : 100,
-                'joint_owner_id' => $jointOwnerId,
-                'platform_fee_percent' => $account['platform_fee_percent'] ?? 0,
-                'advisor_fee_percent' => $account['advisor_fee_percent'] ?? 0,
-                'risk_preference' => $account['risk_preference'] ?? null,
-                'has_custom_risk' => ! empty($account['has_custom_risk']),
-            ]);
+            // A Lifetime ISA is an ISA variant: the canonical schema models it as
+            // account_type='isa' + isa_type='lifetime'. Personas carry the legacy
+            // 'lisa' shorthand which the InvestmentAccount enum does not accept.
+            $isaType = $accountType === 'isa' ? 'stocks_and_shares' : null;
+            if ($accountType === 'lisa') {
+                $accountType = 'isa';
+                $isaType = 'lifetime';
+            }
+
+            $investmentAccount = app(InvestmentAccountStore::class)->create(
+                app(InvestmentAccountNormaliser::class)->fromForm([
+                    'user_id' => $owner->id,
+                    'account_name' => $account['account_name'] ?? null,
+                    'provider' => $account['provider_name'] ?? '',
+                    'account_type' => $accountType,
+                    'isa_type' => $isaType,
+                    'current_value' => $totalValue, // FULL value
+                    'contributions_ytd' => $annualContribution,
+                    'monthly_contribution_amount' => $account['monthly_contribution_amount'] ?? null,
+                    'contribution_frequency' => $account['contribution_frequency'] ?? 'monthly',
+                    'planned_lump_sum_amount' => $account['planned_lump_sum_amount'] ?? null,
+                    'planned_lump_sum_date' => isset($account['planned_lump_sum_date']) ? $account['planned_lump_sum_date'] : null,
+                    'isa_subscription_current_year' => $isaSubscription,
+                    'tax_year' => '2025/26',
+                    'ownership_type' => $account['ownership_type'] ?? 'individual',
+                    'ownership_percentage' => $isJoint ? 50 : 100,
+                    'joint_owner_id' => $jointOwnerId,
+                    'platform_fee_percent' => $account['platform_fee_percent'] ?? 0,
+                    'advisor_fee_percent' => $account['advisor_fee_percent'] ?? 0,
+                    'risk_preference' => $account['risk_preference'] ?? null,
+                    'has_custom_risk' => ! empty($account['has_custom_risk']),
+                ], $owner),
+                $owner,
+                IngestSource::SEEDER
+            );
 
             // Create holdings for the account (FULL values)
             foreach ($account['holdings'] ?? [] as $holding) {

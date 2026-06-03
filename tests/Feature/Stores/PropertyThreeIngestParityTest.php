@@ -60,6 +60,7 @@ declare(strict_types=1);
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\PropertyStore;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -80,6 +81,22 @@ it('persists field-identical canonical rows for the same individual property via
     $normaliser = new PropertyNormaliser;
     $store = app(PropertyStore::class);
 
+    // Pass 5 PR 6: outstanding_mortgage is canonically derived from MortgageStore.
+    // Seed a mortgage for each property via the store so the cross-store recalc
+    // reconciles equity_gbp / loan_to_value_pct identically across the three paths.
+    $seedMortgage = function (Property $property) use ($user) {
+        app(MortgageStore::class)->create([
+            'property_id' => $property->id,
+            'user_id' => $user->id,
+            'lender_name' => 'Test Bank',
+            'mortgage_type' => 'repayment',
+            'outstanding_balance' => 100000,
+            'monthly_payment' => 600,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+        ], $user, IngestSource::FORM);
+    };
+
     // Form ingest — HTTP form-request validated payload.
     $form = $store->create($normaliser->fromForm([
         'property_type' => 'main_residence',
@@ -92,6 +109,7 @@ it('persists field-identical canonical rows for the same individual property via
         'current_value' => 350000,
         'outstanding_mortgage' => 100000,
     ]), $user, IngestSource::FORM);
+    $seedMortgage($form);
 
     // Fyn ingest — uses fromFyn pre-split-field vocabulary. Note: when
     // `address` shorthand is passed alongside city/postcode, fromFyn only
@@ -111,6 +129,7 @@ it('persists field-identical canonical rows for the same individual property via
         'value' => 350000,
         'outstanding_mortgage' => 100000,
     ]), $user, IngestSource::FYN_AI);
+    $seedMortgage($fyn);
 
     // Upload ingest — document-extraction shape via DocumentProcessor + PropertyMapper.
     $upload = $store->create($normaliser->fromUpload([
@@ -124,6 +143,7 @@ it('persists field-identical canonical rows for the same individual property via
         'current_value' => 350000,
         'outstanding_mortgage' => 100000,
     ]), $user, IngestSource::UPLOAD);
+    $seedMortgage($upload);
 
     $snap = fn (Property $p) => [
         'property_type' => $p->property_type,

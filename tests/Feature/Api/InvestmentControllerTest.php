@@ -6,12 +6,14 @@ use App\Models\Household;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 
     $this->household = Household::factory()->create();
 
@@ -144,10 +146,17 @@ describe('POST /api/investment/accounts', function () {
 
 describe('PUT /api/investment/accounts/{id}', function () {
     it('updates an investment account', function () {
+        // Pin account_type/ownership_type: the factory randomises both, and an
+        // isa + joint combo makes updateAccount correctly 422 (joint ISAs are
+        // illegal). This test exercises the happy-path update only, so the
+        // fixture must be deterministic and not hostage to Faker RNG state.
         $account = InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'provider' => 'Original Provider',
             'current_value' => 20000,
+            'account_type' => 'gia',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
         ]);
 
         $response = $this->putJson("/api/investment/accounts/{$account->id}", [

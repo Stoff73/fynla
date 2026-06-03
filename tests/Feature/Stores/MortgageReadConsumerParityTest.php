@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -264,6 +265,36 @@ it('LetterEstateValidationService mortgage count is primary-only (matches $user-
     // Post-PR-5a: forUserPrimaryOnly must match
     $postRefactorCount = app(MortgageStore::class)->forUserPrimaryOnly($user)->count();
     expect($postRefactorCount)->toBe(2);
+});
+
+it('CrossModuleAssetAggregator::getMortgages includes mortgages on user properties even when owned by a third party (cross-link)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $other = User::factory()->create(['is_preview_user' => false]);
+
+    // User's own property (no joint owner)
+    $property = Property::factory()->create(['user_id' => $user->id]);
+
+    // Mortgage on the user's property held by a different party — neither user_id
+    // nor joint_owner_id is $user. Original two-leg query intentionally surfaced
+    // this cross-link mortgage; the canonical store contract cannot express it,
+    // so CrossModuleAssetAggregator keeps a raw Eloquent read for this leg.
+    Mortgage::factory()->create([
+        'user_id' => $other->id,
+        'property_id' => $property->id,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+        'outstanding_balance' => 175000,
+    ]);
+
+    $aggregator = app(CrossModuleAssetAggregator::class);
+
+    $mortgages = $aggregator->getMortgages($user->id);
+
+    // forUser alone returns nothing (mortgage owner is $other) — joint-aware
+    // store query does not match. The cross-link leg MUST add this mortgage.
+    expect(app(MortgageStore::class)->forUser($user))->toHaveCount(0);
+    expect($mortgages)->toHaveCount(1);
+    expect((float) $mortgages->first()->outstanding_balance)->toBe(175000.0);
 });
 
 it('EstateDataReadinessService mortgage-exists check is primary-only (matches $user->mortgages()->exists() HasMany)', function () {

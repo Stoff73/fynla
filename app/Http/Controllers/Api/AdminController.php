@@ -146,7 +146,6 @@ class AdminController extends Controller
     {
         try {
             $stats = [
-                'trialing' => Subscription::where('status', 'trialing')->count(),
                 'active' => Subscription::where('status', 'active')->count(),
                 'expired' => Subscription::where('status', 'expired')->count(),
                 'cancelled' => Subscription::where('status', 'cancelled')->count(),
@@ -171,7 +170,7 @@ class AdminController extends Controller
             $request->validate([
                 'per_page' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|nullable|string|max:100',
-                'status' => 'sometimes|nullable|string|in:trialing,active,expired,cancelled,past_due',
+                'status' => 'sometimes|nullable|string|in:active,expired,cancelled,past_due',
             ]);
 
             $perPage = min((int) $request->query('per_page', 15), 100);

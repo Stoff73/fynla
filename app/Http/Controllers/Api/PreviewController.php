@@ -16,7 +16,9 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
@@ -512,9 +514,11 @@ class PreviewController extends Controller
             $holdings = $accountData['holdings'] ?? [];
             unset($accountData['holdings']);
 
-            $account = InvestmentAccount::create(array_merge($accountData, [
-                'user_id' => $user->id,
-            ]));
+            $account = app(InvestmentAccountStore::class)->create(
+                InvestmentAccountNormaliser::fromForm(array_merge($accountData, ['user_id' => $user->id]), $user),
+                $user,
+                IngestSource::SEEDER
+            );
 
             // Seed holdings (map JSON field names to database field names)
             foreach ($holdings as $holding) {

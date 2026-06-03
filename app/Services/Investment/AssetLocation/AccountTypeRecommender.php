@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Investment\AssetLocation;
 
 use App\Models\Investment\Holding;
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
+use App\Services\Stores\InvestmentAccountStore;
 
 /**
  * Account Type Recommender
@@ -27,7 +28,8 @@ use App\Models\Investment\InvestmentAccount;
 class AccountTypeRecommender
 {
     public function __construct(
-        private TaxDragCalculator $taxDragCalculator
+        private TaxDragCalculator $taxDragCalculator,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -39,9 +41,16 @@ class AccountTypeRecommender
      */
     public function generateRecommendations(int $userId, array $userTaxProfile): array
     {
-        $accounts = InvestmentAccount::where('user_id', $userId)
-            ->with('holdings')
-            ->get();
+        // Primary-only — matches pre-PR-5a where('user_id') semantics
+        $user = User::find($userId);
+        if (! $user) {
+            return [
+                'success' => true,
+                'recommendations' => [],
+                'message' => 'No holdings found',
+            ];
+        }
+        $accounts = $this->investmentAccountStore->forUserPrimaryOnly($user)->load('holdings');
 
         $allHoldings = collect();
         foreach ($accounts as $account) {

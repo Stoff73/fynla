@@ -13,10 +13,10 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -42,6 +42,7 @@ class HouseholdPlanningService
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -456,8 +457,7 @@ class HouseholdPlanningService
         $userId = $user->id;
 
         // Mortgages
-        $mortgages = Mortgage::forUserOrJoint($userId)
-            ->get();
+        $mortgages = $this->mortgageStore->forUser($user);
         $mortgageTotal = $mortgages->sum(fn ($m) => $this->calculateUserMortgageShare($m, $userId));
 
         // Other liabilities (loans, credit cards, etc.)
@@ -880,8 +880,7 @@ class HouseholdPlanningService
         }
 
         // Mortgage protection
-        $mortgages = Mortgage::forUserOrJoint($deceased->id)
-            ->get();
+        $mortgages = $this->mortgageStore->forUser($deceased);
         $totalMortgage = $mortgages->sum('outstanding_balance');
 
         if ($totalMortgage > 0) {
