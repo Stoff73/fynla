@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Models\UserSession;
 use App\Services\Audit\AuditService;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\SessionService;
@@ -542,6 +543,11 @@ class AuthController extends Controller
 
             // is_admin is intentionally NOT set here. The User model defaults
             // it to false and admin promotion is granted only via /admin/users.
+
+            // Seed the profile from the /savetax funnel answers so Fyn's
+            // onboarding starts from what the user already told us (employment
+            // + marital status); the income band is confirmed conversationally.
+            app(FunnelAnswersMapper::class)->mapToProfile($user);
 
             Log::info('User created from pending registration', [
                 'user_id' => $user->id,
