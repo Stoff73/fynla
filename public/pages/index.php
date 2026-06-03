@@ -59,7 +59,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -77,7 +77,7 @@
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/register" class="btn-cta-primary">Get started for free</a>
+          <a href="/savetax" class="btn-cta-primary">Get started for free</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
@@ -579,7 +579,7 @@
     </div>
   </div>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
   <script src="/pages/js/site.js?v=112" defer></script>
