@@ -31,13 +31,6 @@ class RedirectPhoneToMobile
 
     public function handle(Request $request, Closure $next): Response
     {
-        // Disabled by default: the public marketing site is now fully responsive,
-        // so phones get a first-class landing without the /m iframe scaffold.
-        // Set MOBILE_PHONE_REDIRECT=true to restore the SP3 scaffold redirect.
-        if (! config('mobile.phone_redirect')) {
-            return $next($request);
-        }
-
         // Escape hatch: ?full=1 pins the visitor to the full web app via cookie.
         if ($request->query('full') === '1') {
             return $next($request)->withCookie(
