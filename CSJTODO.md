@@ -1,5 +1,22 @@
 # CSJTODO — Fynla
 
+*Last updated: 2026-06-03 — end-of-day — **Mobile acquisition funnel + Fyn onboarding shipped to dev/csjones (PRs #452–#460)**. Top section below; SP1 Pass 6 backlog preserved beneath.*
+
+## 2026-06-03 — Mobile funnel + Fyn onboarding (dev/csjones; NOT prod)
+
+**Shipped (PRs #452–#460):** `/m` hosts the real responsive homepage funnel (Sec-Fetch-Dest iframe handling); authed handoff to `/m/app` (Sanctum token bridge; mobile API now Bearer-only); homepage CTA → `/savetax` funnel; funnel answers persist through registration; "Register for free" creates a real account; Fyn pre-fills employment/marital + greets + recaps + skips-known + runs the savetax campaign onboarding; mobile Fyn dock wired to onboarding (bubbles + resume) + dashboard nudge; CLAUDE.md Rules #17–19 folded.
+
+### Outstanding (mobile/funnel)
+- [ ] **Walk the mobile onboarding to the `/tax-strategy` terminal** in the Fyn dock + confirm the tax-optimisation advice renders acceptably in the mobile surface (TOP priority — see `June/June4Updates/handover-2026-06-04-session-1.md`).
+- [ ] Browser-verify the **desktop** Fyn funnel recap (backend verified; desktop UI not walked).
+- [ ] Refresh **`Current State/Auth.md`** (16 days stale; mobile auth/onboarding/registration changed this session).
+- [ ] Optional cleanup: remove csjones staging test users `Funnel Tester` #72 + `Cleo` #73.
+- [ ] `dev → main` release is CSJ's call (dev is +41 / -7 vs main; main still carries the context-watch tripwire + lacks Rules #17–19).
+
+---
+
+## SP1 Pass 6 (Investments) — earlier track (backlog preserved)
+
 *Last updated: 2026-05-28 — session 2 — **SP1 Pass 6 (Investments) — PRs 1-5a SHIPPED (5 PRs)**. Write-path COMPLETE (1-4) + first read cluster + parity contract (5a). PR 1 `15f6673` (#415), PR 2 `babcd53` (#416), PR 3 `10c4603` (#417), PR 4 `df1de8f` (#418), PR 5a `5ad4a91` (#419). All InvestmentAccount writes route through the store (boundary ready to LOCK in PR 12); InvestmentReadConsumerParityTest established as the 5b-5e contract. **NEXT SESSION: PR 5b** (Goals/ModelPortfolio/Performance reads) — follow the I-1 convention (prefer `User $user` signatures over in-method `User::find`+guards; see PR #419 note). 5 pre-existing follow-ups logged below. dev tip after this session's docs commit; csjones NOT redeployed (still pre-Pass-4-PR6 per deploy gate).*
 
 ---

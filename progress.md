@@ -101,3 +101,10 @@
   2. Pure freemium signup — spec + plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*.md`), NO code yet. Awaiting execution-approach choice.
 - Commits this session: 4 (2 Revolut fix, 2 freemium docs).
 - Next: CSJ picks execution approach for the freemium plan → start PR1 (registration → tier='free', no trial).
+
+## 2026-06-03 — end-of-day (mobile funnel + Fyn onboarding)
+- Handover: [[handover-2026-06-04-session-1]]
+- Branch: dev (csjones @ 6d30719)
+- Shipped: PRs #452–#460 — /m responsive funnel + authed handoff (token bridge) + homepage CTA → /savetax + funnel-answer persistence + real account creation from the funnel + Fyn pre-fill/greet/recap/skip-known + mobile Fyn dock onboarding (bubbles + resume) + nudge + CLAUDE.md Rules #17–19.
+- Verified live on csjones end-to-end; nothing to production.
+- Next: walk mobile onboarding to /tax-strategy terminal in the Fyn dock + confirm tax advice renders on mobile; browser-verify desktop recap; refresh Current State/Auth.md.
