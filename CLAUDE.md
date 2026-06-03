@@ -272,6 +272,18 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 
 **Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
 
+### 17. Build to the Agreed Spec — Never Invent or Substitute
+
+When a feature has been specced, planned, and agreed, implement exactly that. Do not invent design decisions that were never agreed (e.g. an "upgrade" CTA in the side menu, greying-out nav items). Do not substitute a cheaper approximation for the agreed approach (e.g. an iframe shell where a real UI with working drill-downs was specced). Do not change which behaviours or tiers were agreed. If you believe the spec is wrong or a deviation is warranted, STOP and ask CSJ before deviating — never ship the deviation and explain afterwards. Before claiming a spec change is done (screens removed, flows gated), verify it is actually reflected in the live UI.
+
+### 18. Lean PR / Test Cadence
+
+Don't run the full test suite or full process ceremony after every single PR when CSJ has signalled "lean" or is iterating on prompts, evals, or a multi-PR refactor — queue several PRs and do one consolidated test pass. This is a speed concession for low-risk iteration only. It does **not** weaken Rule #15: every BS-NN browser scenario, and any change CSJ has pointed at and said "make this work", still requires the full diagnose → fix → live-browser-verify loop per its plan before it is called done. When unsure whether a change is "lean-eligible" or needs full per-change verification, ASK CSJ.
+
+### 19. Internalise Agreed Plans — Don't Make CSJ Re-Explain
+
+When CSJ has explained an architecture or plan, or explicitly deferred an issue ("we'll do this after the refactor", "this doesn't need to come up every time"), internalise it and act on it. Do not re-raise a settled or deferred decision on every turn, and do not make CSJ re-explain the same already-agreed design repeatedly. If a detail is genuinely unclear, re-read the spec, the canonical contract, and the relevant memory files first; only ask once you've exhausted those and the question is one they have not already answered.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**
