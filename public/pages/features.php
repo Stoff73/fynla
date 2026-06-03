@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
     .feat-hero__cta:hover{background:var(--raspberry-600);}
     @media(min-width:1024px){.feat-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
-  <link rel="stylesheet" href="/pages/css/global.css?v=3"    />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113"    />
   <link rel="stylesheet" href="/pages/css/features.css?v=1"  />
 </head>
 <body>

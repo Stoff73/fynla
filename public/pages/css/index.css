@@ -38,13 +38,44 @@
 .hero__sublink:hover { color: var(--spring-400); }
 .hero__sublink-sep { color: var(--white-40); }
 
-/* Mobile caption panels */
-.hero__mobile-panels { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; padding-bottom: 1.5rem; }
+/* Mobile hero — translucent brain card that overlaps an eggshell tray, mirroring
+   the level card on /m-mockup/dashboard. */
+.hero__mobile-panels { display: flex; flex-direction: column; margin-top: 1.5rem; }
+/* Translucent white card holding the Fynla Brain. The gradient shows faintly
+   through the top; it straddles down onto the eggshell tray below. */
+.hero__brain-card {
+  background: var(--white);
+  border: 1px solid var(--white);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  /* Fixed height so the brain image can fill it edge-to-edge. */
+  height: 14rem;
+  /* Pull the card down so it overlaps the eggshell tray (negative margin =
+     overlap depth, same technique as .md-level on the mockup). */
+  margin-bottom: -3.5rem;
+}
+/* Image fills the panel height. */
+.hero__brain-card img { height: 100%; width: auto; max-width: 100%; display: block; }
+
+/* Eggshell tray — full-bleed band at the bottom of the hero that the brain card
+   overlaps onto; holds the three value-prop panels. */
+.hero__mobile-eggshell {
+  background: var(--eggshell-500);
+  /* Top padding clears the brain card's downward overlap (-3.5rem) plus a gap. */
+  padding: 5rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 .hero__panel         { background: var(--white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm); }
 .hero__panel-title   { font-size: 1.125rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.25rem; }
 .hero__panel-body    { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.25; }
-.hero__panel--brain  { display: flex; justify-content: center; }
-.hero__panel--brain img { width: 7rem; border-radius: var(--radius-md); }
 
 /* Desktop composite */
 .hero__desktop-composite {
@@ -327,9 +358,10 @@
    RESPONSIVE — page-specific breakpoints
    =================================================================== */
 @media (min-width: 640px) {
-  .hero__mobile-panels  { display: none; }
-  .journey-stages__grid { grid-template-columns: repeat(2, 1fr); }
-  .insights-static      { grid-template-columns: repeat(3, 1fr); }
+  .hero__mobile-panels   { display: none; }
+  .hero__mobile-eggshell { display: none; }
+  .journey-stages__grid  { grid-template-columns: repeat(2, 1fr); }
+  .insights-static       { grid-template-columns: repeat(3, 1fr); }
 }
 @media (min-width: 768px) {
   .feature-grid__cards            { grid-template-columns: repeat(2, 1fr); }

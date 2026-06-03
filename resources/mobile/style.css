@@ -1,7 +1,74 @@
+/* Mobile SPA styling.
+ *
+ * Design tokens: the mobile bundle does NOT load the web app's global.css, so the
+ * Fynla palette tokens that dashboard.css consumes (var(--raspberry-500) etc.)
+ * must be defined here. Values mirror fynlaDesignGuide.md v1.2.0 / global.css :root.
+ */
+:root {
+  /* Raspberry — CTAs, errors, highlights */
+  --raspberry-300: #F472B6;
+  --raspberry-400: #EC4899;
+  --raspberry-500: #E83E6D;
+  --raspberry-600: #DB2777;
+  --raspberry-50:  #FDF0F4;
+
+  /* Horizon — text, nav, headings */
+  --horizon-100: #F1F5F9;
+  --horizon-200: #E2E8F0;
+  --horizon-300: #CBD5E1;
+  --horizon-400: #94A3B8;
+  --horizon-500: #1F2A44;
+  --horizon-600: #0F172A;
+
+  /* Spring — success */
+  --spring-400: #34D399;
+  --spring-500: #20B486;
+  --spring-600: #059669;
+
+  /* Violet — warnings, focus */
+  --violet-500: #5854E6;
+
+  /* Savannah — hover, subtle backgrounds */
+  --savannah-100: #FDFAF7;
+
+  /* Eggshell — page background */
+  --eggshell-500: #F7F6F4;
+
+  /* Neutrals + utility */
+  --neutral-400: #9CA3AF;
+  --neutral-500: #717171;
+  --neutral-600: #4B5563;
+  --light-gray: #EEEEEE;
+  --light-blue-100: #DDE2EF;
+  --light-pink-50:  #FDF0F4;
+  --light-pink-100: #FAD6E0;
+  --light-pink-200: #F5B3C5;
+  --white: #FFFFFF;
+
+  /* Typography + radii used by dashboard.css */
+  --font-primary: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-full: 9999px;
+}
+
 /* SP3 scaffold styling — DISPOSABLE. The future mobile redesign replaces this wholesale. */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F4; color: #1F2A44; }
-#m-app { max-width: 420px; margin: 0 auto; min-height: 100vh; padding: 24px 20px 40px; }
+/* Auth/scaffold screens (Login/Verify) keep the boxed card layout; the dashboard
+   phone-frame is constrained to mobile-app width and centred in the viewport. */
+#m-app { min-height: 100vh; }
+/* Centre the phone-frame so the dashboard sits at mobile-app width (max 430px)
+   in the middle of the screen rather than left-aligned, with a neutral backdrop. */
+#m-app:has(.phone-frame) {
+  display: flex;
+  justify-content: center;
+  background: var(--horizon-100);
+}
+#m-app:has(.m-card) { max-width: 420px; margin: 0 auto; padding: 24px 20px 40px; }
 .m-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
 .m-field { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 16px; }
 .m-btn { width: 100%; padding: 14px; background: #E83E6D; color: #fff; border: 0; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }

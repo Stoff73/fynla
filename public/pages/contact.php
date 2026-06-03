@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -65,7 +65,7 @@
     @media(min-width:1024px){.contact-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
 
-  <link rel="stylesheet" href="/pages/css/global.css?v=1"   />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113"   />
   <link rel="stylesheet" href="/pages/css/contact.css?v=1"  />
 </head>
 <body>

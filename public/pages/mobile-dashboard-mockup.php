@@ -34,8 +34,8 @@
     }
   </style>
 
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
-  <link rel="stylesheet" href="/pages/css/mobile-dashboard-mockup.css?v=28" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
+  <link rel="stylesheet" href="/pages/css/mobile-dashboard-mockup.css?v=49" />
 </head>
 <body>
   <a href="#main-content" class="skip-nav">Skip to main content</a>
@@ -70,117 +70,96 @@
             </svg>
             <div class="md-level__pie-inner">
               <p class="md-level__pie-label">Level</p>
-              <p class="md-level__pie-num">2</p>
+              <p class="md-level__pie-num" id="md-level-num">1</p>
             </div>
           </div>
           <div class="md-level__copy">
-            <h2 class="md-level__heading" id="md-level-heading">3 of 5 actions complete</h2>
-            <p class="md-level__sub">Finish the list below to reach <strong>Level 3</strong>.</p>
+            <h2 class="md-level__heading" id="md-level-heading">0 of 3 actions complete</h2>
+            <p class="md-level__sub" id="md-level-sub">Complete actions to reach <strong>Level 2</strong>.</p>
           </div>
         </section>
       </div>
 
-
       <!-- ============================================================
-           CALLOUT — raspberry rank statement
+           CALLOUT — two halves: rank statement (top) + light-pink
+           carousel + per-category recommendations (bottom).
            ============================================================ -->
       <div class="md-callout" role="note">
-        <p class="md-callout__lead">You're ahead of <strong>57% of people</strong> in the UK</p>
-        <p class="md-callout__sub">Complete your actions below to get further ahead and change your financial future</p>
-      </div>
 
-      <!-- ============================================================
-           RECOMMENDATIONS — list with tick boxes (collapsible, open by default)
-           ============================================================ -->
-      <section class="md-recs is-open" aria-labelledby="md-recs-heading" id="md-recs-section">
-        <button type="button" class="md-section-head md-section-head--toggle" id="md-recs-toggle" aria-expanded="true" aria-controls="md-recs-list">
-          <h3 class="md-section-head__title" id="md-recs-heading">Recommendations</h3>
-          <span class="md-section-head__right">
-            <span class="md-section-head__count" id="md-recs-count">3 / 5</span>
-            <svg class="md-section-head__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </span>
-        </button>
-
-        <div class="md-recs__body" id="md-recs-body">
-        <ul class="md-recs__list" id="md-recs-list">
-          <!-- Pending first -->
-          <li class="md-rec" data-done="false">
-            <button type="button" class="md-rec__check-btn" aria-label="Mark complete" aria-pressed="false">
-              <span class="md-rec__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              </span>
-            </button>
-            <a href="#" class="md-rec__action">
-              <span class="md-rec__text">
-                <span class="md-rec__title">Add life cover for your family</span>
-                <span class="md-rec__meta">Protection</span>
-              </span>
-              <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-          </li>
-          <li class="md-rec" data-done="false">
-            <button type="button" class="md-rec__check-btn" aria-label="Mark complete" aria-pressed="false">
-              <span class="md-rec__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              </span>
-            </button>
-            <a href="#" class="md-rec__action">
-              <span class="md-rec__text">
-                <span class="md-rec__title">Nominate your pension beneficiary</span>
-                <span class="md-rec__meta">Retirement</span>
-              </span>
-              <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-          </li>
-          <!-- Completed at the bottom -->
-          <li class="md-rec is-done" data-done="true">
-            <button type="button" class="md-rec__check-btn" aria-label="Mark as not done" aria-pressed="true">
-              <span class="md-rec__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              </span>
-            </button>
-            <a href="#" class="md-rec__action">
-              <span class="md-rec__text">
-                <span class="md-rec__title">Set your emergency fund target</span>
-                <span class="md-rec__meta">Cash &amp; Savings</span>
-              </span>
-              <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-          </li>
-          <li class="md-rec is-done" data-done="true">
-            <button type="button" class="md-rec__check-btn" aria-label="Mark as not done" aria-pressed="true">
-              <span class="md-rec__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              </span>
-            </button>
-            <a href="#" class="md-rec__action">
-              <span class="md-rec__text">
-                <span class="md-rec__title">Review your ISA allowance</span>
-                <span class="md-rec__meta">Investment</span>
-              </span>
-              <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-          </li>
-          <li class="md-rec is-done" data-done="true">
-            <button type="button" class="md-rec__check-btn" aria-label="Mark as not done" aria-pressed="true">
-              <span class="md-rec__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              </span>
-            </button>
-            <a href="#" class="md-rec__action">
-              <span class="md-rec__text">
-                <span class="md-rec__title">Confirm your retirement age</span>
-                <span class="md-rec__meta">Retirement</span>
-              </span>
-              <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-          </li>
-        </ul>
+        <!-- Top half: LEVEL UP heading (left) + rank statement (right) -->
+        <div class="md-callout__top">
+          <p class="md-callout__levelup">LEVEL<br>UP</p>
+          <div class="md-callout__top-copy">
+            <p class="md-callout__lead">You're ahead of <strong id="md-percentile">57%</strong> of people</p>
+            <p class="md-callout__sub">Complete your actions to get further ahead, level up and change your financial future</p>
+          </div>
         </div>
-      </section>
+
+        <!-- Bottom half: light-pink horizontal accordion + recommendations -->
+        <div class="md-callout__carousel" id="md-carousel">
+
+          <!-- Horizontal accordion — active card expands (light pink),
+               inactive cards collapse to a grey icon (eggshell). -->
+          <div class="md-accordion" id="md-accordion" role="tablist" aria-label="Focus areas">
+
+            <button type="button" class="md-accordion__card is-active" data-index="0" role="tab" aria-selected="true" aria-label="Save tax">
+              <span class="md-accordion__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+              <span class="md-accordion__content">
+                <span class="md-callout__slide-stat">£2,400</span>
+                <span class="md-callout__slide-area">Save tax</span>
+                <span class="md-callout__slide-info">You could save this much a year by using your full ISA and pension allowances.</span>
+              </span>
+            </button>
+
+            <button type="button" class="md-accordion__card" data-index="1" role="tab" aria-selected="false" aria-label="Retirement">
+              <span class="md-accordion__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+              <span class="md-accordion__content">
+                <span class="md-callout__slide-stat">£4,200</span>
+                <span class="md-callout__slide-area">Retirement</span>
+                <span class="md-callout__slide-info">Your projected monthly income gap. Small increases now close it faster.</span>
+              </span>
+            </button>
+
+            <button type="button" class="md-accordion__card" data-index="2" role="tab" aria-selected="false" aria-label="Savings">
+              <span class="md-accordion__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></span>
+              <span class="md-accordion__content">
+                <span class="md-callout__slide-stat">4.2 months</span>
+                <span class="md-callout__slide-area">Savings</span>
+                <span class="md-callout__slide-info">Your emergency fund covers this long. Aim for six months of essential spending.</span>
+              </span>
+            </button>
+
+          </div>
+
+          <!-- Dots — alternative navigation for the accordion -->
+          <div class="md-callout__dots" id="md-carousel-dots" role="tablist" aria-label="Focus area navigation">
+            <button type="button" class="md-callout__dot is-active" data-index="0" aria-label="Save tax" aria-selected="true"></button>
+            <button type="button" class="md-callout__dot" data-index="1" aria-label="Retirement" aria-selected="false"></button>
+            <button type="button" class="md-callout__dot" data-index="2" aria-label="Savings" aria-selected="false"></button>
+          </div>
+
+          <!-- Recommendations — collapsible, list rendered by JS per category -->
+          <section class="md-recs is-open" aria-labelledby="md-recs-heading" id="md-recs-section">
+            <button type="button" class="md-section-head md-section-head--toggle" id="md-recs-toggle" aria-expanded="true" aria-controls="md-recs-body">
+              <h3 class="md-section-head__title" id="md-recs-heading">Recommendations</h3>
+              <span class="md-section-head__right">
+                <span class="md-section-head__count" id="md-recs-count">0 / 0</span>
+                <svg class="md-section-head__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </span>
+            </button>
+
+            <div class="md-recs__body" id="md-recs-body">
+              <ul class="md-recs__list" id="md-recs-list" aria-live="polite"></ul>
+              <a href="#" class="md-recs__view-all">View all recommendations</a>
+            </div>
+          </section>
+
+        </div><!-- /.md-callout__carousel -->
+
+      </div><!-- /.md-callout -->
 
       <!-- ============================================================
-           4-PANEL GRID — key dashboard attributes (no icons, Rule #16)
+           4-PANEL GRID — key dashboard attributes
            ============================================================ -->
       <section class="md-panels" aria-labelledby="md-panels-heading">
         <div class="md-section-head">
@@ -189,8 +168,7 @@
 
         <div class="md-panels__list">
 
-          <!-- Net worth — donut showing % growth this year (7%) -->
-          <article class="md-panel md-panel--horizon">
+          <a href="#net-worth" class="md-panel md-panel--horizon">
             <div class="md-panel__viz" style="--progress: 72;" aria-hidden="true">
               <div class="md-panel__viz-inner">
                 <span class="md-panel__viz-num">+7%</span>
@@ -204,8 +182,7 @@
             </div>
           </article>
 
-          <!-- Protection — donut showing coverage adequacy (85%) -->
-          <article class="md-panel md-panel--raspberry">
+          <a href="#protection" class="md-panel md-panel--raspberry">
             <div class="md-panel__viz" style="--progress: 85;" aria-hidden="true">
               <div class="md-panel__viz-inner">
                 <span class="md-panel__viz-num">85%</span>
@@ -217,10 +194,9 @@
               <p class="md-panel__value">£350,000</p>
               <p class="md-panel__caption">3 policies active</p>
             </div>
-          </article>
+          </a>
 
-          <!-- Savings — progress bar (4.2 of 6 months emergency fund) -->
-          <article class="md-panel md-panel--spring">
+          <a href="#savings" class="md-panel md-panel--spring">
             <div class="md-panel__viz md-panel__viz--bar" aria-hidden="true">
               <div class="md-panel__bar">
                 <div class="md-panel__bar-fill" style="width: 70%;"></div>
@@ -232,10 +208,9 @@
               <p class="md-panel__value">£18,900</p>
               <p class="md-panel__caption">Emergency fund on track</p>
             </div>
-          </article>
+          </a>
 
-          <!-- Retirement — progress bar (years funded vs needed) -->
-          <article class="md-panel md-panel--violet">
+          <a href="#retirement" class="md-panel md-panel--violet">
             <div class="md-panel__viz md-panel__viz--bar" aria-hidden="true">
               <div class="md-panel__bar">
                 <div class="md-panel__bar-fill" style="width: 58%;"></div>
@@ -247,7 +222,8 @@
               <p class="md-panel__value">£4,200</p>
               <p class="md-panel__caption">Monthly income gap</p>
             </div>
-          </article>
+          </a>
+
         </div>
       </section>
 
@@ -256,9 +232,10 @@
     </main>
 
     <!-- ============================================================
-         FYN DOCK — full-width docked button. Tap → overlay slides up.
+         FYN DOCK — docked chat input (matches authenticated Fyn chat).
+         Tapping the input (or send) opens the full overlay.
          ============================================================ -->
-    <button type="button" class="md-fyn-dock" id="md-fyn-open" aria-label="Ask Fyn">
+    <button type="button" class="md-fyn-dock md-fyn-dock--bar" id="md-fyn-open" aria-label="Chat with Fyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
@@ -404,10 +381,13 @@
         <button type="button" class="md-fyn__prompt">What should I do next?</button>
       </div>
 
+      <!-- Chat input — only present in the expanded overlay (matches the
+           authenticated Fyn composer). The collapsed state is just the dock bar. -->
       <form class="md-fyn__compose" onsubmit="event.preventDefault();">
+        <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
         <label for="md-fyn-input" class="visually-hidden">Ask Fyn a question</label>
-        <input type="text" id="md-fyn-input" class="md-fyn__input" placeholder="Ask Fyn anything…" autocomplete="off" />
-        <button type="submit" class="md-fyn__send" aria-label="Send">
+        <input type="text" id="md-fyn-input" class="md-fyn-dock__input" placeholder="Ask Fyn anything..." autocomplete="off" />
+        <button type="submit" class="md-fyn-dock__send" aria-label="Send to Fyn">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>
       </form>
@@ -415,6 +395,6 @@
 
   </div><!-- /.phone-frame -->
 
-  <script src="/pages/js/mobile-dashboard-mockup.js?v=7" defer></script>
+  <script src="/pages/js/mobile-dashboard-mockup.js?v=19" defer></script>
 </body>
 </html>
