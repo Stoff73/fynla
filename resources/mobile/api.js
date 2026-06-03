@@ -5,13 +5,20 @@
 //   use the absolute URL baked at build time (`VITE_API_BASE_URL=https://fynla.org`
 //   via deploy/mobile/build-ios.sh) so requests reach the production API.
 // - Web (origin = whatever host serves /m, e.g. localhost:8000, csjones.co,
-//   fynla.org): same-origin, relative `/api/*` works and satisfies CSP `'self'`.
+//   fynla.org): same-origin. On subdirectory deploys (csjones serves the whole
+//   app at /fynla/) a bare relative `/api/*` resolves to the DOMAIN ROOT
+//   (csjones.co/api/*) and 404s, so the web base must carry the subdirectory
+//   prefix. Derive it from VITE_ROUTER_BASE — the same var router.js uses for
+//   MOBILE_ROUTER_BASE. '/fynla/' -> '/fynla'; '/' or unset -> '' (root deploys
+//   and localhost keep the existing same-origin relative behaviour). Stays
+//   CSP `'self'`-compliant (same-origin path, not an absolute URL).
 //
 // Runtime detection picks the right base regardless of how the bundle was built.
 // `window.Capacitor.isNativePlatform()` is auto-injected by the Capacitor runtime
 // inside the WebView; absent in any browser.
 const isNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
-const BASE = isNative ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org') : '';
+const WEB_BASE = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
+const BASE = isNative ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org') : WEB_BASE;
 
 export async function apiPost(path, body, token = null) {
   const res = await fetch(`${BASE}${path}`, {
