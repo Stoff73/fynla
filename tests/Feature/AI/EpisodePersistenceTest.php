@@ -8,6 +8,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
@@ -44,6 +45,43 @@ it('persists the episode blob + provenance + __episode__ attestation', function 
     expect($event)->not->toBeNull()
         ->and((int) $event->hash_scheme)->toBe(2)
         ->and($event->result_summary['blob_md_sha256'])->toBe($assistant->blob_md_sha256);
+});
+
+it('stamps the request-scoped semantic snapshot id onto the blob + attestation', function (): void {
+    $user = User::factory()->create();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+    $assistant = AiMessage::factory()->create(['conversation_id' => $conv->id, 'role' => 'assistant']);
+
+    $snapshot = 'a'.str_repeat('0', 63); // 64-char hex, as the assembler would stamp
+    app(SemanticSnapshotHolder::class)->set($snapshot);
+
+    $agent = app(CoordinatingAgent::class);
+    $m = new ReflectionMethod($agent, 'persistEpisode');
+    $m->setAccessible(true);
+    $m->invoke($agent, $assistant, $conv, $user, 'SYS', 'CTX', 'grok-4', null, null);
+
+    $assistant->refresh();
+
+    $blob = Storage::disk('local')->get($assistant->blob_md_path);
+    expect($blob)->toContain("semantic_snapshot_id: {$snapshot}");
+
+    $event = AiAuditEvent::where('tool_name', '__episode__')->where('entity_id', $assistant->id)->first();
+    expect($event)->not->toBeNull()
+        ->and($event->result_summary['semantic_snapshot_id'])->toBe($snapshot);
+});
+
+it('records a null semantic snapshot id when the holder is empty', function (): void {
+    $user = User::factory()->create();
+    $conv = AiConversation::factory()->create(['user_id' => $user->id]);
+    $assistant = AiMessage::factory()->create(['conversation_id' => $conv->id, 'role' => 'assistant']);
+
+    $agent = app(CoordinatingAgent::class);
+    $m = new ReflectionMethod($agent, 'persistEpisode');
+    $m->setAccessible(true);
+    $m->invoke($agent, $assistant, $conv, $user, 'SYS', 'CTX', 'grok-4', null, null);
+
+    $event = AiAuditEvent::where('tool_name', '__episode__')->where('entity_id', $assistant->fresh()->id)->first();
+    expect($event->result_summary['semantic_snapshot_id'])->toBeNull();
 });
 
 it('does not throw when the blob write fails (resilient)', function (): void {

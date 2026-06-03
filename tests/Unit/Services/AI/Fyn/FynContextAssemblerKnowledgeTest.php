@@ -5,8 +5,11 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynTurnContext;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
+use App\Services\AI\Memory\SemanticRetriever;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 
 uses(RefreshDatabase::class);
@@ -41,6 +44,42 @@ it('emits a <knowledge> block when the corpus matches the user message', functio
     expect($out)->toContain('<knowledge>')
         ->and($out)->toContain('Defined benefit transfer')
         ->and($out)->toContain('almost always needs regulated advice');
+});
+
+it('stamps the semantic snapshot id into the request scope when the corpus matches', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Should I do a defined benefit pension transfer?',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'general'],
+    );
+
+    app(FynContextAssembler::class)->build($ctx);
+
+    $retriever = app(SemanticRetriever::class);
+    $expected = $retriever->snapshotId($retriever->retrieve($ctx->message, Carbon::now()));
+
+    expect($expected)->toHaveLength(64)
+        ->and(app(SemanticSnapshotHolder::class)->get())->toBe($expected);
+});
+
+it('leaves the semantic snapshot id null when nothing matches', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'hello there',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'general'],
+    );
+
+    app(FynContextAssembler::class)->build($ctx);
+
+    expect(app(SemanticSnapshotHolder::class)->get())->toBeNull();
 });
 
 it('omits <knowledge> when nothing matches', function (): void {

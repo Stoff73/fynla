@@ -56,5 +56,6 @@ return [
         'semantic_index' => storage_path('app/memory/semantic/index.json'),
         'semantic_top_k' => (int) env('FYN_SEMANTIC_TOP_K', 4),
         'pointers_path' => base_path('fyn-memory/procedural/pointers'),
+        'procedural_reload_interval' => (int) env('FYN_PROCEDURAL_RELOAD_INTERVAL', 60),
     ],
 ];

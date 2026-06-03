@@ -6,6 +6,7 @@ namespace App\Services\AI\Fyn;
 
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\AI\Memory\SemanticFact;
 use App\Services\AI\Memory\SemanticRetriever;
@@ -92,6 +93,12 @@ final class FynContextAssembler
             report($e);
             $knowledgeFacts = [];
         }
+        // Stamp the request-scoped snapshot id (read at persist time, bound into the
+        // v2 episode attestation). Explicit null when no facts — overwrites any stale
+        // value if a scoped instance is reused across turns (eval harness).
+        app(SemanticSnapshotHolder::class)->set(
+            $knowledgeFacts !== [] ? $this->semantic->snapshotId($knowledgeFacts) : null
+        );
         if ($knowledgeFacts !== []) {
             $blocks = array_map(
                 static function (SemanticFact $f): string {
