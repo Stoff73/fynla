@@ -39,3 +39,32 @@ it('respects effective_to when set', function (): void {
     expect($p->effectiveOn(Carbon::parse('2026-12-31')))->toBeTrue()
         ->and($p->effectiveOn(Carbon::parse('2027-01-01')))->toBeFalse();
 });
+
+it('defaults provider to anthropic when not supplied', function (): void {
+    $proc = new Procedure(
+        procedureId: 'x.tool.y',
+        kind: 'tool_schema',
+        module: 'x',
+        version: 1,
+        active: true,
+        effectiveFrom: Carbon::parse('2026-06-02'),
+        effectiveTo: null,
+        body: 'body',
+    );
+    expect($proc->provider)->toBe('anthropic');
+});
+
+it('accepts an explicit provider', function (): void {
+    $proc = new Procedure(
+        procedureId: 'x.tool.y',
+        kind: 'tool_schema',
+        module: 'x',
+        version: 1,
+        active: true,
+        effectiveFrom: Carbon::parse('2026-06-02'),
+        effectiveTo: null,
+        body: 'body',
+        provider: 'xai',
+    );
+    expect($proc->provider)->toBe('xai');
+});

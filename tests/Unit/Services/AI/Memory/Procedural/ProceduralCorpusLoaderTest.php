@@ -124,6 +124,32 @@ it('rejects more than one active version of the same procedure_id', function ():
         ->toThrow(RuntimeException::class, 'multiple active versions');
 });
 
+it('allows two actives with the same procedure_id under different providers', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'anth', validFrontmatter(['version' => 1, 'active' => true]), "```json\n{}\n```");
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'xai', validFrontmatter(['version' => 1, 'active' => true, 'provider' => 'xai']), "```json\n{}\n```");
+
+    $corpus = app(ProceduralCorpusLoader::class)->loadStrict();
+
+    expect($corpus->active('retirement.tool.create_dc_pension', 'anthropic'))->not->toBeNull()
+        ->and($corpus->active('retirement.tool.create_dc_pension', 'anthropic')->provider)->toBe('anthropic')
+        ->and($corpus->active('retirement.tool.create_dc_pension', 'xai'))->not->toBeNull()
+        ->and($corpus->active('retirement.tool.create_dc_pension', 'xai')->provider)->toBe('xai');
+});
+
+it('rejects an out-of-range provider', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter(['provider' => 'openai']), "```json\n{}\n```");
+
+    expect(fn () => app(ProceduralCorpusLoader::class)->loadStrict())
+        ->toThrow(RuntimeException::class, "unknown provider 'openai'");
+});
+
+it('defaults provider to anthropic when omitted', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter(), "```json\n{}\n```");
+
+    $corpus = app(ProceduralCorpusLoader::class)->loadStrict();
+    expect($corpus->all()[0]->provider)->toBe('anthropic');
+});
+
 it('accepts multiple inactive versions plus one active', function (): void {
     writeProc($this->corpus, 'tool_schema', 'retirement', 'v1', validFrontmatter(['version' => 1, 'active' => false]));
     writeProc($this->corpus, 'tool_schema', 'retirement', 'v2', validFrontmatter(['version' => 2, 'active' => true]));

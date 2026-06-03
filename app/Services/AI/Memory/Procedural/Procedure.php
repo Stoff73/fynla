@@ -22,6 +22,7 @@ final class Procedure
         public readonly Carbon $effectiveFrom,
         public readonly ?Carbon $effectiveTo,
         public readonly string $body,
+        public readonly string $provider = 'anthropic',
     ) {}
 
     /** True when this version is in force on $on. */

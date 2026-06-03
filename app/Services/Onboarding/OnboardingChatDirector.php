@@ -2680,7 +2680,7 @@ PROMPT;
         try {
             $procedure = app(ProceduralCorpusLoader::class)
                 ->load()
-                ->active('onboarding.workflow.fyn-onboarding', Carbon::now());
+                ->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
 
             if ($procedure !== null) {
                 $this->proceduralVersions->add($procedure->procedureId, $procedure->version);

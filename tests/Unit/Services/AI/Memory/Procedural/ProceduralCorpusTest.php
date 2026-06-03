@@ -47,12 +47,12 @@ it('resolves the active version effective on a date', function (): void {
         proc('a', 1, false, '2025-01-01', '2025-12-31'),
         proc('a', 2, true, '2026-01-01'),
     ]);
-    expect($corpus->active('a', Carbon::parse('2026-06-02'))?->version)->toBe(2);
+    expect($corpus->active('a', asOf: Carbon::parse('2026-06-02'))?->version)->toBe(2);
 });
 
 it('returns null when no active version is effective on the date', function (): void {
     $corpus = new ProceduralCorpus([proc('a', 2, true, '2027-01-01')]);
-    expect($corpus->active('a', Carbon::parse('2026-06-02')))->toBeNull();
+    expect($corpus->active('a', asOf: Carbon::parse('2026-06-02')))->toBeNull();
 });
 
 it('returns the highest-version active when several qualify', function (): void {
@@ -60,5 +60,21 @@ it('returns the highest-version active when several qualify', function (): void 
         proc('a', 1, true, '2025-01-01'),
         proc('a', 3, true, '2026-01-01'),
     ]);
-    expect($corpus->active('a', Carbon::parse('2026-06-02'))?->version)->toBe(3);
+    expect($corpus->active('a', asOf: Carbon::parse('2026-06-02'))?->version)->toBe(3);
+});
+
+it('resolves the active version per provider', function (): void {
+    $anth = new Procedure(
+        procedureId: 'a', kind: 'tool_schema', module: 'retirement', version: 1, active: true,
+        effectiveFrom: Carbon::parse('2026-01-01'), effectiveTo: null, body: 'anth', provider: 'anthropic',
+    );
+    $xai = new Procedure(
+        procedureId: 'a', kind: 'tool_schema', module: 'retirement', version: 1, active: true,
+        effectiveFrom: Carbon::parse('2026-01-01'), effectiveTo: null, body: 'xai', provider: 'xai',
+    );
+    $corpus = new ProceduralCorpus([$anth, $xai]);
+
+    expect($corpus->active('a')?->body)->toBe('anth')           // defaults to anthropic
+        ->and($corpus->active('a', 'anthropic')?->body)->toBe('anth')
+        ->and($corpus->active('a', 'xai')?->body)->toBe('xai');
 });

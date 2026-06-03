@@ -490,7 +490,7 @@ final class OnboardingStateMachine
 
         try {
             $corpus = app(ProceduralCorpusLoader::class)->load();
-            $procedure = $corpus->active('onboarding.workflow.fyn-onboarding', Carbon::now());
+            $procedure = $corpus->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
             if ($procedure === null) {
                 return self::$transitionTableCache = $base;
             }
