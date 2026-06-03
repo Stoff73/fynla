@@ -191,6 +191,8 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
+**Carve-out — gamification by design (CSJ-specified, not LLM/agent-chosen).** This rule exists to stop an LLM or agent inserting scores at every corner; it does **not** ban a gamification, progress, or engagement mechanic that CSJ has explicitly designed or approved — e.g. an engagement "level" driven by completed actions, a progress bar toward a target, or a "you're ahead of X% of people" percentile on the mobile dashboard. These are allowed when they are part of an approved design. What stays banned regardless: any score, rating, or percentile an LLM/agent introduces on its own initiative, and any numerical financial-quality rating ("X/100" adequacy / diversification / portfolio-health) anywhere. When unsure whether something is CSJ-designed gamification or an agent-invented score, ASK CSJ.
+
 ### 14. All Pages Must Wrap in AppLayout
 Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
 
@@ -265,6 +267,8 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 - When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
 - When editing code on a banned surface, you may remove existing violations as part of your change ONLY if CSJ has specifically asked. Otherwise leave them alone (the grandfathering clause above).
 - When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
+
+**Carve-out — icons by design (CSJ-specified, not LLM/agent-chosen).** Like Rule #13, this rule exists to stop an LLM or agent sprinkling decorative icons everywhere. It does **not** ban icons that are part of a design CSJ has explicitly specified or approved (e.g. the iconography in an approved mobile-dashboard or landing-page redesign) — those are allowed even on otherwise-banned surfaces when they are an intentional part of the approved design. What stays banned regardless: any icon an LLM/agent adds on its own initiative to fill space, add personality, or because a label "feels bare". When unsure whether an icon is CSJ-designed or agent-invented, ASK CSJ. This carve-out was added by CSJ direction (2026-06-03).
 
 **Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
 
