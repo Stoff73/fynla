@@ -296,26 +296,127 @@
   }
 
   // --- Compact register form (mockup behaviour) ---------------------------
+  // --- Real account creation from the compact funnel form ----------------
+  // Base path (subdirectory-aware: '/fynla' on csjones, '' at root).
+  function base() { return window.FYNLA_BASE || ''; }
+
+  function readCookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  // Persist the funnel answers only when the user actually came through the
+  // funnel (real localStorage answers) — never the demo persona.
+  function realFunnelAnswers() {
+    try {
+      var raw = localStorage.getItem('savetax_answers');
+      if (raw) { var a = JSON.parse(raw); if (a && typeof a === 'object') return a; }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function showRegError(msg) {
+    var el = document.getElementById('reg-error');
+    if (!el) {
+      var btn = document.getElementById('register-btn');
+      if (!btn) return;
+      el = document.createElement('p');
+      el.id = 'reg-error';
+      el.setAttribute('role', 'alert');
+      el.style.cssText = 'color:#A93257;font-size:13px;line-height:1.4;margin:8px 0 0;';
+      btn.parentNode.insertBefore(el, btn);
+    }
+    el.textContent = msg || '';
+    el.style.display = msg ? 'block' : 'none';
+  }
+
   function wireRegister() {
     var form = document.getElementById('register-form');
     if (!form) return;
-    form.addEventListener('submit', function (e) {
+
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      // Mockup: in the real build this creates the account, stores the answers
-      // against the user, and redirects to /dashboard with Fyn open for
-      // onboarding (carrying the savetax answers into the conversation).
       var btn = document.getElementById('register-btn');
-      if (btn) {
-        btn.textContent = 'Taking you to your dashboard…';
-        btn.disabled = true;
+      var firstName = ((document.getElementById('reg-first-name') || {}).value || '').trim();
+      var lastName = ((document.getElementById('reg-last-name') || {}).value || '').trim();
+      var email = ((document.getElementById('reg-email') || {}).value || '').trim();
+      var password = (document.getElementById('reg-password') || {}).value || '';
+
+      showRegError('');
+      if (!firstName || !lastName || !email || !password) {
+        showRegError('Please enter your name, email and a password.');
+        return;
       }
-      window.setTimeout(function () {
-        alert('Mockup: account created.\n\nNext (real build): redirect to /dashboard with Fyn open for onboarding — Fyn already knows:\n• ' +
-          [EMP[ans.employment], INC[ans.income], (ans.spouse === 'yes' ? 'Has a partner' : 'No partner')]
-            .concat(ans.assets.map(function (k) { return ASSET[k]; }))
-            .filter(Boolean).join('\n• '));
-        if (btn) { btn.textContent = 'Register & meet Fyn'; btn.disabled = false; }
-      }, 600);
+
+      var orig = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Creating your account…'; }
+
+      try {
+        // Stateful same-origin request → prime the CSRF cookie first.
+        await fetch(base() + '/sanctum/csrf-cookie', { credentials: 'include' });
+
+        var res = await fetch(base() + '/api/auth/register', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': readCookie('XSRF-TOKEN') || '',
+          },
+          body: JSON.stringify({
+            first_name: firstName,
+            surname: lastName,
+            email: email,
+            password: password,
+            password_confirmation: password,
+            funnel_answers: realFunnelAnswers(),
+          }),
+        });
+        var data = await res.json().catch(function () { return {}; });
+
+        if (!res.ok) {
+          if (data.email_exists) {
+            showRegError('That email already has an account — please sign in instead.');
+          } else if (data.errors) {
+            var firstKey = Object.keys(data.errors)[0];
+            showRegError((data.errors[firstKey] && data.errors[firstKey][0]) || 'Please check your details and try again.');
+          } else {
+            showRegError(data.message || 'Registration failed. Please try again.');
+          }
+          if (btn) { btn.disabled = false; btn.textContent = orig; }
+          return;
+        }
+
+        // Soft-deleted but restorable — let the full /register page handle restore.
+        if (data.account_deleted_restorable) {
+          window.location.href = base() + '/register';
+          return;
+        }
+
+        // Account pending + code emailed. Hand to the EXISTING /register
+        // verification screen (reuses the tested Vue verify UI). Stash the
+        // pending id + email same-origin so Register.vue opens the code modal
+        // directly. from=savetax → after verifying, the user is routed to the
+        // dashboard; inside the /m mobile iframe the auth handoff then shows
+        // the mobile dashboard (/m/app).
+        if (data.requires_verification && data.data) {
+          try {
+            sessionStorage.setItem('fynla_pending_verify', JSON.stringify({
+              pending_id: data.data.pending_id,
+              email: data.data.email,
+            }));
+          } catch (err) { /* private mode — Register.vue falls back to its form */ }
+          window.location.href = base() + '/register?from=savetax';
+          return;
+        }
+
+        // Unexpected shape — fall back to the full register page.
+        window.location.href = base() + '/register?from=savetax';
+      } catch (err) {
+        showRegError('Network error. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = orig; }
+      }
     });
   }
 

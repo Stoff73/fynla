@@ -154,6 +154,7 @@ class User extends Authenticatable
         'onboarding_completed_at' => 'datetime',
         'onboarding_asset_flags' => 'array',
         'onboarding_fyn_context' => 'array',
+        'funnel_answers' => 'array',
         'journey_states' => 'array',
         'journey_selections' => 'array',
         'life_stage_completed_steps' => 'array',

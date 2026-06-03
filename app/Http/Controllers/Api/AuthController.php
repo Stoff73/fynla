@@ -99,6 +99,7 @@ class AuthController extends Controller
             'billing_cycle' => $request->billing_cycle ?? null,
             'referral_code' => $request->referral_code ?? null,
             'signup_source' => $request->validated('signup_source'),
+            'funnel_answers' => $request->validated('funnel_answers'),
         ]);
 
         Log::info('Pending registration created', [
@@ -536,6 +537,7 @@ class AuthController extends Controller
                 'role_id' => $role?->id,
                 'referred_by_code' => $pending->referral_code,
                 'signup_source' => $pending->signup_source,
+                'funnel_answers' => $pending->funnel_answers,
             ]);
 
             // is_admin is intentionally NOT set here. The User model defaults
