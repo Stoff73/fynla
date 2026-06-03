@@ -262,6 +262,28 @@ export default {
     const selectedBilling = route.query.billing || null;
     const referralCode = route.query.ref || null;
 
+    // Funnel hand-off: /savetax/plan's compact "Register for free" creates the
+    // pending account itself, then sends the user here with the pending id +
+    // email stashed in sessionStorage (same-origin). Open the verification
+    // modal directly so they only enter the emailed code — no re-entering the
+    // form. On success, completeRegistration() routes onward (and inside the
+    // /m mobile iframe the auth handoff shows the mobile dashboard).
+    onMounted(() => {
+      let stashed = null;
+      try {
+        const raw = sessionStorage.getItem('fynla_pending_verify');
+        if (raw) {
+          stashed = JSON.parse(raw);
+          sessionStorage.removeItem('fynla_pending_verify');
+        }
+      } catch (e) { /* ignore */ }
+      if (stashed && stashed.pending_id) {
+        pendingId.value = stashed.pending_id;
+        pendingEmail.value = stashed.email || '';
+        showVerificationModal.value = true;
+      }
+    });
+
     const handleRegister = async () => {
       // Guard against double submission
       if (isSubmitting.value) {

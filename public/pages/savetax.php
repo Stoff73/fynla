@@ -351,6 +351,6 @@
 
   </div><!-- /.qr-card -->
 
-  <script src="/pages/js/savetax.js?v=5" defer></script>
+  <script src="/pages/js/savetax.js?v=6" defer></script>
 </body>
 </html>

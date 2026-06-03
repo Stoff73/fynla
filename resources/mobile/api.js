@@ -23,6 +23,11 @@ const BASE = isNative ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org
 export async function apiPost(path, body, token = null) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
+    // Bearer-only: never send cookies. The mobile SPA authenticates purely by
+    // token, so a stale same-origin web-app session cookie must not override the
+    // Bearer (Sanctum's stateful guard would otherwise authenticate the cookie's
+    // user). Also required for Capacitor cross-origin (WKWebView).
+    credentials: 'omit',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -36,6 +41,7 @@ export async function apiPost(path, body, token = null) {
 
 export async function apiGet(path, token) {
   const res = await fetch(`${BASE}${path}`, {
+    credentials: 'omit', // Bearer-only — see apiPost.
     headers: {
       'Accept': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -56,6 +62,7 @@ export async function apiGet(path, token) {
 export async function apiStream(path, body, token, onDelta) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
+    credentials: 'omit', // Bearer-only — see apiPost.
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
