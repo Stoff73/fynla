@@ -643,6 +643,21 @@ final class OnboardingStateMachine
         $hasDob = ! empty($user->date_of_birth);
         $hasMarital = ! empty($user->marital_status);
 
+        // Funnel arrivals: greet + recap what they told us in the /savetax
+        // funnel, acknowledge the profile we've pre-filled from it, then ask for
+        // the first still-missing field (date of birth). Fires only on the first
+        // base_personal turn (DOB unset); once DOB is captured the standard
+        // branches below take over. This is what makes Fyn open with "here's what
+        // you told us" instead of asking everything cold.
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && ! $hasDob) {
+            $firstName = trim((string) ($user->first_name ?? '')) !== ''
+                ? trim((string) $user->first_name)
+                : 'there';
+
+            return self::buildFunnelRecapPrompt($firstName, $funnel);
+        }
+
         // Campaign welcome — fires only on the very first base_personal turn
         // for users who arrived via config('onboarding.campaign_map'). The
         // welcome is prepended to the existing grouped DOB+marital question
@@ -682,6 +697,70 @@ final class OnboardingStateMachine
         };
 
         return "Thanks — I have you noted as {$maritalWord}. Could you share your date of birth? Something like 12 January 1985 is fine.";
+    }
+
+    /**
+     * First-turn greeting for /savetax funnel arrivals: recap the answers they
+     * gave in the funnel, acknowledge that we've started their profile from
+     * those answers, and ask for the first still-missing field (date of birth).
+     * The exact income, expenditure and holdings are gathered by the base/
+     * campaign states that follow. Plain text only (Rule #16).
+     */
+    private static function buildFunnelRecapPrompt(string $firstName, array $funnel): string
+    {
+        $bits = [];
+
+        $employmentLabel = [
+            'full-time' => 'working full-time',
+            'part-time' => 'working part-time',
+            'self-employed' => 'self-employed',
+            'retired' => 'retired',
+            'not-employed' => 'not currently employed',
+        ][$funnel['employment'] ?? ''] ?? null;
+        if ($employmentLabel) {
+            $bits[] = $employmentLabel;
+        }
+
+        $incomeLabel = [
+            'personal-allowance' => 'earning up to the personal allowance',
+            'basic' => 'a basic-rate taxpayer',
+            'higher' => 'a higher-rate taxpayer',
+            'additional' => 'an additional-rate taxpayer',
+        ][$funnel['income'] ?? ''] ?? null;
+        if ($incomeLabel) {
+            $bits[] = $incomeLabel;
+        }
+
+        if (($funnel['spouse'] ?? '') === 'yes') {
+            $bits[] = 'with a spouse or partner';
+        }
+
+        $assetMap = [
+            'bank' => 'bank accounts', 'savings' => 'savings', 'pension' => 'a pension',
+            'property' => 'property', 'isa' => 'an ISA', 'investments' => 'investments',
+        ];
+        $assets = array_values(array_filter(array_map(
+            fn ($a) => $assetMap[$a] ?? null,
+            is_array($funnel['assets'] ?? null) ? $funnel['assets'] : []
+        )));
+
+        $recap = $bits === [] ? '' : ' You told us you\'re '.self::joinWithAnd($bits).'.';
+        $assetsLine = $assets === [] ? '' : ' You also mentioned '.self::joinWithAnd($assets).'.';
+
+        return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
+            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details. "
+            ."Let's start with the basics: what's your date of birth?";
+    }
+
+    /** Join a list into "a, b and c". */
+    private static function joinWithAnd(array $items): string
+    {
+        if (count($items) <= 1) {
+            return (string) ($items[0] ?? '');
+        }
+        $last = array_pop($items);
+
+        return implode(', ', $items).' and '.$last;
     }
 
     /**
