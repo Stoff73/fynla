@@ -377,6 +377,17 @@ class AiChatController extends Controller
         $matchedCampaign = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
+        // Funnel fallback: a user who arrived via the /savetax funnel carries
+        // durable funnel_answers. The transient `from=savetax` query is lost
+        // across the mobile handoff (the iframe is replaced with /m/app), so
+        // key the savetax campaign off funnel_answers too — both mobile and
+        // desktop funnel users then get the campaign onboarding (greet + recap).
+        if ($matchedCampaign === null && $matchedJourney === null
+            && ! empty($user->funnel_answers)
+            && isset($campaignMap['savetax'])) {
+            $matchedCampaign = $campaignMap['savetax'];
+        }
+
         if ($matchedCampaign !== null) {
             $user->onboarding_fyn_path = 'campaign';
             $user->onboarding_fyn_selection = $matchedCampaign;

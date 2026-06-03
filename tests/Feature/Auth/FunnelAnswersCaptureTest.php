@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\PendingRegistration;
 use App\Models\User;
+use App\Services\Auth\FunnelAnswersMapper;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -74,7 +75,33 @@ it('copies funnel_answers from pending_registrations onto the user when verified
     expect($user)->not->toBeNull();
     expect($user->funnel_answers)->toEqual($answers);
 
+    // Pre-fill: the clean maps are seeded onto the profile (income band is a
+    // range, confirmed conversationally, so it is intentionally NOT pre-filled).
+    expect($user->employment_status)->toBe('full_time'); // funnel 'full-time'
+    expect($user->marital_status)->toBe('married');       // funnel spouse 'yes'
+
     $this->assertDatabaseMissing('pending_registrations', ['email' => $email]);
+});
+
+it('maps funnel employment + spouse variants onto the profile', function () {
+    $svc = new FunnelAnswersMapper;
+
+    $selfEmployed = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null,
+        'funnel_answers' => ['employment' => 'self-employed', 'spouse' => 'no'],
+    ]);
+    $svc->mapToProfile($selfEmployed);
+    expect($selfEmployed->fresh()->employment_status)->toBe('self_employed');
+    expect($selfEmployed->fresh()->marital_status)->toBe('single');
+
+    // Never overwrites a value already set.
+    $existing = User::factory()->create([
+        'employment_status' => 'retired', 'marital_status' => 'widowed',
+        'funnel_answers' => ['employment' => 'full-time', 'spouse' => 'yes'],
+    ]);
+    $svc->mapToProfile($existing);
+    expect($existing->fresh()->employment_status)->toBe('retired');
+    expect($existing->fresh()->marital_status)->toBe('widowed');
 });
 
 it('accepts registration when funnel_answers is omitted (direct signup)', function () {
