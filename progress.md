@@ -108,3 +108,10 @@
 - Shipped: PRs #452–#460 — /m responsive funnel + authed handoff (token bridge) + homepage CTA → /savetax + funnel-answer persistence + real account creation from the funnel + Fyn pre-fill/greet/recap/skip-known + mobile Fyn dock onboarding (bubbles + resume) + nudge + CLAUDE.md Rules #17–19.
 - Verified live on csjones end-to-end; nothing to production.
 - Next: walk mobile onboarding to /tax-strategy terminal in the Fyn dock + confirm tax advice renders on mobile; browser-verify desktop recap; refresh Current State/Auth.md.
+
+## 2026-06-04 — session 2 (context-clear)
+- Handover: [[handover-2026-06-04-session-2-clear]]
+- Branch: dev
+- Commits this session: 1 (`05b1e8e` docs(claude): lean CLAUDE.md + Fyn two→one transition)
+- Status: clean (only untracked docs/mobile/designer-brief.pdf, not ours)
+- Next: resume mobile /m work — build against the single shared /api/ai-chat dispatch (Fyn converging to one); reconcile 00-canonical.md when coala merges to dev.

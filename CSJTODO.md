@@ -1,6 +1,14 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-03 — end-of-day — **Mobile acquisition funnel + Fyn onboarding shipped to dev/csjones (PRs #452–#460)**. Top section below; SP1 Pass 6 backlog preserved beneath.*
+*Last updated: 2026-06-04 — context-clear session 2 — **CLAUDE.md leaned (579→~450 lines) + Fyn canonical section reframed "two→one" (transition note)**; committed `05b1e8e` on dev. Mobile funnel section (2026-06-03) + SP1 Pass 6 backlog preserved beneath.*
+
+## 2026-06-04 — CLAUDE.md lean + Fyn two→one (session 2, dev `05b1e8e`)
+
+Leaned all 6 CLAUDE.md files: duplication → pointers (deploy runbook → new `deploy/DEPLOY.md`; design rules → `./fynlaDesignGuide.md`; mobile/Pest → sub-files). CSJ-owned laws kept (Rule 14 verbatim; 12/15/browser-testing lightly tightened, clauses preserved). Reframed the canonical Fyn section to "one prompt, two write states, converging to one Fyn" + a "where we are vs where we're heading" note. MEMORY.md rule numbers resynced; `project_coala_phase5_progress.md` gained the 2026-06-04 one-Fyn direction.
+
+- [ ] **When `coala` merges to dev, reconcile `April/April24Updates/spec/00-canonical.md`** — it's the source of truth CLAUDE.md points to; CLAUDE.md is ahead of it by exactly the one transition note.
+- [ ] Mobile `/m` work: build single-Fyn-compatible (one shared `/api/ai-chat` dispatch; no onboarding-vs-advice split client-side).
+
 
 ## 2026-06-03 — Mobile funnel + Fyn onboarding (dev/csjones; NOT prod)
 
