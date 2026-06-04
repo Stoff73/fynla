@@ -472,14 +472,14 @@ export default {
       return [
         {
           key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth,
-          value: this.fmt(nw.total), route: '/module/net_worth',
+          value: this.fmt(nw.total), route: '/net-worth',
           viz: 'donut',
           progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend',
           caption: this.fmt(nw.assets) + ' assets',
         },
         {
           key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield,
-          value: this.fmt(prot.value != null ? prot.value : prot.total_coverage), route: '/module/protection',
+          value: this.fmt(prot.value != null ? prot.value : prot.total_coverage), route: '/protection',
           viz: 'donut',
           progress: (prot.value || prot.total_coverage) > 0 ? 85 : 0,
           vizNum: (prot.value || prot.total_coverage) > 0 ? 'Active' : 'None', vizCap: 'Cover',
@@ -487,7 +487,7 @@ export default {
         },
         {
           key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card,
-          value: this.fmt(savValue), route: '/module/savings',
+          value: this.fmt(savValue), route: '/savings',
           viz: 'bar',
           barFill: efTarget > 0 ? Math.min(100, Math.round((efMonths / efTarget) * 100)) : 0,
           barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0',
@@ -496,7 +496,7 @@ export default {
         },
         {
           key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock,
-          value: this.fmt(retValue), route: '/module/retirement',
+          value: this.fmt(retValue), route: '/retirement',
           viz: 'bar',
           barFill: retPct,
           barValue: retPct + '%',
@@ -674,42 +674,71 @@ export default {
       if (this.sending) return;
       this.sending = true;
       this.resumeId = null;
-      const reply = { role: 'fyn', text: '', bubbles: [] };
-      this.messages.push(reply);
+      const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
+      this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
       try {
         await apiStream(
           '/api/ai-chat/onboarding/start',
           {},
           store.token,
-          (piece) => { reply.text += piece; this.$nextTick(this.scrollFyn); },
-          (ev) => this.handleFynEvent(reply, ev),
+          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.resumeId) {
           // Mid-onboarding resume — replace the placeholder with the transcript.
           await this.loadConversation(this.resumeId);
-        } else if (!reply.text && !(reply.bubbles && reply.bubbles.length)) {
-          reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
+        } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+          cursor.reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
       } catch (e) {
-        reply.text = 'Sorry, I had trouble starting just now. Please try again.';
+        cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
       }
     },
-    // Non-text onboarding SSE events (text arrives via the onDelta path):
-    // capture the conversation id and render bubble choices.
-    handleFynEvent(reply, ev) {
+    // Non-text onboarding SSE events. Text arrives via the onDelta path into
+    // `cursor.reply`. A single user message can stream MULTIPLE onboarding turns
+    // (a capture acknowledgement, then the next prompt) separated by an
+    // `onboarding_advance` event — so we split into a fresh bubble on each
+    // advance, otherwise the ack and the next question merge into one message.
+    handleFynEvent(cursor, ev) {
       if (!ev || !ev.type) return;
       if ((ev.type === 'conversation_created' || ev.type === 'resume') && ev.conversation_id) {
         this.conversationId = ev.conversation_id;
         // 'resume' means the user is mid-onboarding from a prior session —
         // startOnboarding loads the existing transcript instead of a first turn.
         if (ev.type === 'resume') this.resumeId = ev.conversation_id;
-      } else if (ev.type === 'quick_replies') {
-        if (ev.prompt_text) reply.text = ev.prompt_text;
-        reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
+        return;
+      }
+      if (ev.type === 'onboarding_advance') {
+        // New onboarding turn — open a fresh bubble so the just-streamed
+        // acknowledgement and the upcoming prompt render as separate messages
+        // (matching how a resumed transcript renders them).
+        if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+          cursor.reply = { role: 'fyn', text: '', bubbles: [] };
+          this.messages.push(cursor.reply);
+        }
+        return;
+      }
+      if (ev.type === 'navigation' && ev.route_path) {
+        // Terminal turn (e.g. campaign → /tax-strategy). Captured here; the
+        // caller decides how the mobile surface presents it after the stream.
+        cursor.navigation = ev.route_path;
+        return;
+      }
+      if (ev.type === 'quick_replies') {
+        // A bubbles turn. If the current bubble already carries streamed text
+        // (an acknowledgement from the prior capture), open a fresh bubble for
+        // the prompt + choices.
+        if (cursor.reply.text) {
+          cursor.reply = { role: 'fyn', text: '', bubbles: [] };
+          this.messages.push(cursor.reply);
+        }
+        cursor.got = true;
+        if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
+        cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
         this.$nextTick(this.scrollFyn);
       }
     },
@@ -752,13 +781,13 @@ export default {
       // Prior bubbles are now answered — remove them so they can't be re-tapped.
       this.messages.forEach((m) => { if (m.bubbles) m.bubbles = []; });
       this.messages.push({ role: 'user', text });
-      const reply = { role: 'fyn', text: '', bubbles: [] };
-      this.messages.push(reply);
+      const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
+      this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
       try {
         const cid = await this.ensureConversation();
         if (!cid) {
-          reply.text = 'Sorry, I could not start a conversation just now.';
+          cursor.reply.text = 'Sorry, I could not start a conversation just now.';
           return;
         }
         await apiStream(
@@ -766,18 +795,39 @@ export default {
           { message: text, current_route: '/dashboard' },
           store.token,
           (piece) => {
-            reply.text += piece;
+            if (piece) cursor.got = true;
+            cursor.reply.text += piece;
             this.$nextTick(this.scrollFyn);
           },
-          (ev) => this.handleFynEvent(reply, ev),
+          (ev) => this.handleFynEvent(cursor, ev),
         );
-        if (!reply.text && !(reply.bubbles && reply.bubbles.length)) reply.text = 'Sorry, I had trouble responding just now.';
+        if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+          cursor.reply.text = 'Sorry, I had trouble responding just now.';
+        } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+          // Trailing empty bubble (e.g. an advance opened one but the turn ended
+          // on a navigation) — drop it so no blank message lingers.
+          const idx = this.messages.indexOf(cursor.reply);
+          if (idx !== -1) this.messages.splice(idx, 1);
+        }
+        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
       } catch (e) {
-        reply.text = 'Sorry, something went wrong. Please try again.';
+        cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
       }
+    },
+    // Terminal onboarding navigation (e.g. the savetax campaign → /tax-strategy).
+    // The campaign terminal completes onboarding and asks to "show your tax
+    // position"; route the user to the mobile Tax Strategy view. Close the Fyn
+    // overlay first so the view is in front. Unknown desktop-only routes are
+    // ignored (the chat thread still carries the result).
+    handleOnboardingNavigation(routePath) {
+      if (routePath !== '/tax-strategy') return;
+      this.closeFyn();
+      this.$nextTick(() => {
+        if (this.$route.path !== '/tax-strategy') this.$router.push('/tax-strategy');
+      });
     },
     scrollFyn() {
       const b = this.$refs.fynBody;
