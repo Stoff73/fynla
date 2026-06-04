@@ -1743,6 +1743,14 @@ PROMPT;
                 $restrictedPrompt,
                 $allowedTools,
                 persistUserMessage: false, // already saved at top of handleUserMessage
+                // May18 tripled-ack Fix A only fires under the data_capture
+                // persona (HasAiChat::captureTurnCompleteDirective gates on it).
+                // This IS a capture turn, so opt in — otherwise the xai model
+                // re-narrates "Got it — recording those now." on every agent-loop
+                // continuation and the ack stacks ×N. personaOverride only tags
+                // the assistant message + enables the directive; tool gating and
+                // the prompt come from the override args above, so it is safe here.
+                personaOverride: 'data_capture',
             );
 
             // FR-M14 — buffered sentence-level content filter.
@@ -1810,10 +1818,14 @@ PROMPT;
                 }
 
                 if ($type === 'done') {
-                    // Flush the buffered content just before the delegated
-                    // stream's terminal marker so the frontend sees ack
-                    // text immediately before the done event it uses to
-                    // close out the assistant message.
+                    // Flush the buffered ack content now, but DON'T forward the
+                    // delegated chat's own `done` — the director emits the next
+                    // turn (emitTurnForState / emitTerminalNavigationTurn) after
+                    // this method advances state, and that turn carries the single
+                    // terminal `done`. Forwarding this inner done emits TWO dones
+                    // in one SSE stream; SSE consumers (mobile apiStream, desktop)
+                    // stop at the FIRST done, so the next state's prompt was never
+                    // rendered. Mirrors the grouped_extract path's done-swallow.
                     $flushEvent = $flushBuffer();
                     if ($flushEvent !== null) {
                         yield $flushEvent;
@@ -1823,8 +1835,6 @@ PROMPT;
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
                     yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
-
-                    yield $event;
 
                     continue;
                 }
