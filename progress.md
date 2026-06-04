@@ -115,3 +115,11 @@
 - Commits this session: 1 (`05b1e8e` docs(claude): lean CLAUDE.md + Fyn two→one transition)
 - Status: clean (only untracked docs/mobile/designer-brief.pdf, not ours)
 - Next: resume mobile /m work — build against the single shared /api/ai-chat dispatch (Fyn converging to one); reconcile 00-canonical.md when coala merges to dev.
+
+## 2026-06-04 — session (end-of-day)
+- Handover: [[handover-2026-06-05-session-1]]
+- Branch: dev
+- Commits this session: 2 code (`06937fc` fix(fyn) streaming+soft-degrade, `7dce0e2` feat(mobile) tax-strategy + module drill-downs) + session-end docs
+- Built: real mobile `/m/app` Tax Strategy view (incl. married/joint household) + Net Worth/Protection/Savings/Retirement/Investment overview + drill-down views; dock streaming fixes; provider-aware Fyn soft-degrade. All browser-verified.
+- Status: working tree clean
+- Next: deploy to csjones per June5Updates/deploy-2026-06-05.md (mobile bundle rebuild for /fynla/ base); optionally click a tax-strategy next-step CTA with a qualifying user.

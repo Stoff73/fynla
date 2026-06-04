@@ -1,6 +1,17 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-04 — context-clear session 2 — **CLAUDE.md leaned (579→~450 lines) + Fyn canonical section reframed "two→one" (transition note)**; committed `05b1e8e` on dev. Mobile funnel section (2026-06-03) + SP1 Pass 6 backlog preserved beneath.*
+*Last updated: 2026-06-04 — end-of-day — **mobile `/m/app` made real**: Fyn-dock onboarding walked to `/tax-strategy` (single + married/joint); real mobile Tax Strategy view + Net Worth/Protection/Savings/Retirement/Investment detail + drill-down views; Fyn streaming + provider-aware soft-degrade fixes. dev `06937fc`, `7dce0e2`. NOT deployed. Prior sections preserved beneath.*
+
+## 2026-06-04 — Mobile detail views + Fyn fixes (end-of-day, dev `06937fc`+`7dce0e2`)
+
+Walked the mobile Fyn-dock savetax onboarding to the `/tax-strategy` terminal (single + both married/joint household modes). Fixed: tripled ack, dropped next-prompt (double-`done` SSE), dock bubble-merge, provider-blind soft-degrade (broke chat under xAI). Built real mobile Tax Strategy view (incl. household) + 10 module detail/drill-down views (Net Worth, Protection, Savings, Retirement, Investment) fetching web `/api/*` via Bearer; wired dashboard finance blocks + tax-strategy next-steps; tidied `/module/savings` → `/savings`. All browser-verified with real data. Tech-debt: `tech-debt-report.md` (3 minor, 1 fixed).
+
+### Outstanding
+- [ ] **Deploy to csjones** — per `June/June5Updates/deploy-2026-06-05.md`: `git pull origin dev`, `config:cache`, rebuild `public/m-build` for the `/fynla/` base + upload (local m-build is LOCAL-base — don't upload). CSJ's call.
+- [ ] Tax-strategy next-step **CTA** click is code-verified only — no seeded user triggered a next-step recommendation. Optionally engineer a qualifying user to click it live.
+- [ ] CLAUDE.md metrics drift (pre-existing): PHP Services 340→345, Models 119→123 — update if/when convenient.
+- [ ] Optional: extract a shared `resources/mobile/format.js` (9 views duplicate `formatCurrency`); add mobile-view tests.
+- [ ] Optional cleanup: local test users (`mobiletax`, `mobiletax2`, `mobilemarried`, `mobilemarried2`) + AiDailyUsage resets.
 
 ## 2026-06-04 — CLAUDE.md lean + Fyn two→one (session 2, dev `05b1e8e`)
 
@@ -15,7 +26,7 @@ Leaned all 6 CLAUDE.md files: duplication → pointers (deploy runbook → new `
 **Shipped (PRs #452–#460):** `/m` hosts the real responsive homepage funnel (Sec-Fetch-Dest iframe handling); authed handoff to `/m/app` (Sanctum token bridge; mobile API now Bearer-only); homepage CTA → `/savetax` funnel; funnel answers persist through registration; "Register for free" creates a real account; Fyn pre-fills employment/marital + greets + recaps + skips-known + runs the savetax campaign onboarding; mobile Fyn dock wired to onboarding (bubbles + resume) + dashboard nudge; CLAUDE.md Rules #17–19 folded.
 
 ### Outstanding (mobile/funnel)
-- [ ] **Walk the mobile onboarding to the `/tax-strategy` terminal** in the Fyn dock + confirm the tax-optimisation advice renders acceptably in the mobile surface (TOP priority — see `June/June4Updates/handover-2026-06-04-session-1.md`).
+- [x] **Walk the mobile onboarding to the `/tax-strategy` terminal** — DONE 2026-06-04 (single + married/joint), real mobile Tax Strategy view built.
 - [ ] Browser-verify the **desktop** Fyn funnel recap (backend verified; desktop UI not walked).
 - [ ] Refresh **`Current State/Auth.md`** (16 days stale; mobile auth/onboarding/registration changed this session).
 - [ ] Optional cleanup: remove csjones staging test users `Funnel Tester` #72 + `Cleo` #73.
