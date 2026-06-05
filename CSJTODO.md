@@ -1,6 +1,20 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-04 — end-of-day — **mobile `/m/app` made real**: Fyn-dock onboarding walked to `/tax-strategy` (single + married/joint); real mobile Tax Strategy view + Net Worth/Protection/Savings/Retirement/Investment detail + drill-down views; Fyn streaming + provider-aware soft-degrade fixes. dev `06937fc`, `7dce0e2`. NOT deployed. Prior sections preserved beneath.*
+*Last updated: 2026-06-05 — end-of-day — **`/m` pathway completed + deployed to csjones**: dashboard wired to all dedicated surfaces, savetax campaign reachable inside `/m` (landing CTA → real funnel + deep-link preservation), canonical auth screens (scaffold login/verify retired), milestone infra + share, token rotation/revoke, cache-coherence, arch-debt cleanup. PRs #461–#475, dev `52e5f06`. Deployed to csjones + verified end-to-end (funnel → onboarding recap → resume). Prod NOT deployed. Prior sections preserved beneath.*
+
+## 2026-06-05 — `/m` pathway completion (end-of-day, dev `52e5f06`; deployed to csjones)
+
+Completed the `/m` mobile-web connection sequence (rows 1–7), made savetax reachable inside `/m`, switched `/m` to canonical auth, cleaned arch-debt, deployed to csjones, and verified the full funnel + onboarding-recap + logout/resume live. Patch notes: `June/June5Updates/patch-notes-2026-06-05-m-pathway.md`. PRs #461–#475.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. dev is ~77 ahead / 7 behind main. Includes the `user_milestones` migration + `public/m-build`.
+- [ ] **One unbroken `/m` iframe chain re-test** — sign-out → in-frame canonical login → verify → bridge → `/m/app` → resume (verified in links this session, not one continuous click-through).
+- [ ] **Refresh docs/memory** — `reference_mobile_phone_entry_responsive.md` (deep-links now preserved via `/m?to=`; canonical auth replaced scaffold) + `savetaxFix.md` T8/T9.
+- [ ] Optional cleanup: staging user `mflow0605@example.com` (id 74, mid-onboarding on csjones); orphaned `store.challengeToken`/`maskedEmail` in `resources/mobile/store.js`.
+- [ ] Decide: "Save tax" CTA on shared homepage (shows on desktop) vs `/m`-only.
+
+### Tech debt deferred
+- [ ] `strict_types` added to 8 untested subsystems (HeyGen/video-pipeline/article-scraper) — verified via lint + arch suite, not live runtime.
 
 ## 2026-06-04 — Mobile detail views + Fyn fixes (end-of-day, dev `06937fc`+`7dce0e2`)
 
