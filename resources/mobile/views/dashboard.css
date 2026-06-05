@@ -1660,3 +1660,35 @@
   color: var(--neutral-600);
   margin: 0.25rem 0 0;
 }
+
+/* Milestone celebration toast — a financial milestone just crossed, with a
+   Share action. Floats at the top of the phone frame (absolute, like the Fyn
+   nudge), dismissable, plain text (no icons). */
+.md-milestone {
+  position: absolute;
+  /* Sits just below the fixed header (~3.125rem + safe-area) so it never
+     overlays the hamburger / header controls. */
+  top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, var(--spring-500) 0%, var(--spring-600) 100%);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 0.875rem;
+  box-shadow: 0 8px 24px rgba(32, 180, 134, 0.32);
+  animation: md-milestone-in 0.32s ease;
+}
+@keyframes md-milestone-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.md-milestone__body { flex: 1; min-width: 0; }
+.md-milestone__title { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; margin: 0; }
+.md-milestone__label { font-size: 0.875rem; font-weight: 700; line-height: 1.35; margin: 0.125rem 0 0; }
+.md-milestone__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 0.375rem; flex-shrink: 0; }
+.md-milestone__share { background: var(--white); color: var(--spring-600); border: 0; border-radius: var(--radius-full); padding: 0.375rem 0.875rem; font-family: var(--font-primary); font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
+.md-milestone__dismiss { background: none; border: 0; color: rgba(255, 255, 255, 0.85); font-family: var(--font-primary); font-size: 0.6875rem; cursor: pointer; padding: 0.125rem; }

@@ -194,6 +194,19 @@
       </template>
     </main>
 
+    <!-- Milestone celebration — a financial milestone the user just crossed,
+         with a Share action. Plain text, dismissable, one at a time. -->
+    <div v-if="milestoneToast" class="md-milestone" role="status" aria-live="polite">
+      <div class="md-milestone__body">
+        <p class="md-milestone__title">Milestone reached</p>
+        <p class="md-milestone__label">{{ milestoneToast.label }}</p>
+      </div>
+      <div class="md-milestone__actions">
+        <button type="button" class="md-milestone__share" @click="shareMilestone">Share</button>
+        <button type="button" class="md-milestone__dismiss" aria-label="Dismiss" @click="milestoneToast = null">Dismiss</button>
+      </div>
+    </div>
+
     <!-- Onboarding nudge — gently points a funnel/incomplete user to finish
          their personalised tax plan with Fyn. Tapping opens Fyn; "Later"
          dismisses it for the session. Hidden once Fyn is open or onboarded. -->
@@ -241,6 +254,10 @@
           </a>
         </div>
         <div class="md-drawer__section md-drawer__section--account">
+          <a href="#" class="md-drawer__link" @click.prevent="shareReferral">
+            <span class="md-drawer__icon" aria-hidden="true" v-html="shareIcon"></span>
+            <span class="md-drawer__label">Share Fynla</span>
+          </a>
           <a href="#" class="md-drawer__link md-drawer__link--signout" @click.prevent="signOut">
             <span class="md-drawer__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
             <span class="md-drawer__label">Sign out</span>
@@ -324,6 +341,7 @@ const NAV_ICON = {
   retirement: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
   estate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3"/></svg>',
   goals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118L2.36 10.8c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.518-4.674z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>',
 };
 
 const CONFETTI_COLORS = ['#E83E6D', '#F472B6', '#20B486', '#5854E6', '#E6C9A8', '#FBBF24'];
@@ -346,6 +364,7 @@ export default {
       basePercentile: 57,
       pulsing: false,
       // drawer / fyn
+      milestoneToast: null,
       drawerOpen: false,
       drawerMounted: false,
       fynOpen: false,
@@ -455,6 +474,9 @@ export default {
     },
     fynInsight() {
       return this.data?.fyn_insight || '';
+    },
+    shareIcon() {
+      return NAV_ICON.share;
     },
     finances() {
       const d = this.data || {};
@@ -568,6 +590,15 @@ export default {
         // Seed level baseline so percentile climbs from the server figure.
         this.basePercentile = d.percentile ?? 57;
         this.baseLevel = this.level;   // level computed from seeded done flags
+
+        // Surface the single most significant newly-crossed milestone (each
+        // fires once server-side). Highest net-worth threshold, else highest goal.
+        const ms = d.new_milestones || [];
+        if (ms.length) {
+          const nw = ms.filter((m) => m.type === 'net_worth').sort((a, b) => b.threshold - a.threshold);
+          const goal = ms.filter((m) => m.type === 'goal').sort((a, b) => b.threshold - a.threshold);
+          this.milestoneToast = nw[0] || goal[0] || ms[0];
+        }
       } catch (e) {
         this.error = 'Network error. Please try again.';
       } finally {
@@ -645,6 +676,29 @@ export default {
     goto(route) {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
+    },
+    // Share via the native share sheet (navigator.share) with a clipboard
+    // fallback. Content comes from /api/v1/mobile/share/{type} — generic,
+    // no monetary values (Rule #12). Silent no-op if the user cancels.
+    async doShare(shareType) {
+      try {
+        const { ok, data } = await apiGet(`/api/v1/mobile/share/${shareType}`, store.token);
+        if (!ok) return;
+        const c = data?.data || data || {};
+        const payload = { title: c.title || 'Fynla', text: c.text || '', url: c.url || 'https://fynla.org' };
+        if (navigator.share) {
+          await navigator.share(payload);
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(`${payload.text} ${payload.url}`.trim());
+        }
+      } catch (e) { /* user cancelled / unsupported — no-op */ }
+    },
+    shareMilestone() {
+      if (this.milestoneToast) this.doShare(this.milestoneToast.share_type);
+    },
+    shareReferral() {
+      this.closeDrawer();
+      this.doShare('app_referral');
     },
     async signOut() {
       // Revoke the bearer token server-side before clearing local state. /m is
