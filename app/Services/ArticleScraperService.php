@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Article;
-use fivefilters\Readability\Readability;
 use fivefilters\Readability\Configuration;
+use fivefilters\Readability\Readability;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
@@ -32,14 +34,14 @@ class ArticleScraperService
 
         // Step 2 — if too short, fall back to Playwright
         if (strlen($body) < 200) {
-            Log::channel('pipeline')->info("Plain fetch yielded only " . strlen($body) . " chars. Falling back to Playwright.");
+            Log::channel('pipeline')->info('Plain fetch yielded only '.strlen($body).' chars. Falling back to Playwright.');
             $html = $this->fetchWithPlaywright($article->source_url);
             [$title, $body] = $this->extractContent($html, $article->source_url);
         }
 
         if (strlen($body) < 200) {
             Log::channel('pipeline')->error("All strategies failed for {$article->source_url} ({$body})");
-            throw new \Exception("Could not extract article body. Site markup may need a custom selector.");
+            throw new \Exception('Could not extract article body. Site markup may need a custom selector.');
         }
 
         $article->update([
@@ -48,7 +50,8 @@ class ArticleScraperService
             'status' => 'scraped',
         ]);
 
-        Log::channel('pipeline')->info("Scraped \"{$title}\" (" . strlen($body) . " chars)");
+        Log::channel('pipeline')->info("Scraped \"{$title}\" (".strlen($body).' chars)');
+
         return $article->fresh();
     }
 
@@ -61,9 +64,10 @@ class ArticleScraperService
                 'Accept-Language' => 'en-GB,en;q=0.9',
             ])
             ->get($url);
-        if (!$r->successful()) {
+        if (! $r->successful()) {
             throw new \Exception("Plain fetch failed: HTTP {$r->status()}");
         }
+
         return $r->body();
     }
 
@@ -77,9 +81,10 @@ class ArticleScraperService
         ]);
         $process->setTimeout(60);
         $process->run();
-        if (!$process->isSuccessful()) {
-            throw new \Exception("Playwright render failed: " . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new \Exception('Playwright render failed: '.$process->getErrorOutput());
         }
+
         return $process->getOutput();
     }
 
@@ -88,12 +93,13 @@ class ArticleScraperService
     {
         // Strategy 1 — Readability.php
         try {
-            $r = new Readability(new Configuration());
+            $r = new Readability(new Configuration);
             $r->parse($html);
             $body = $this->cleanText($r->getContent() ?? '');
             $title = $r->getTitle();
             if (strlen($body) >= 200) {
-                Log::channel('pipeline')->info("Readability: " . strlen($body) . " chars");
+                Log::channel('pipeline')->info('Readability: '.strlen($body).' chars');
+
                 return [$title, $body];
             }
         } catch (\Throwable $e) {
@@ -103,7 +109,7 @@ class ArticleScraperService
         // Strategy 2 — common article selectors
         $crawler = new Crawler($html, $sourceUrl);
         $title = $crawler->filter('title')->count() ? trim($crawler->filter('title')->text()) : null;
-        if (!$title && $crawler->filter('h1')->count()) {
+        if (! $title && $crawler->filter('h1')->count()) {
             $title = trim($crawler->filter('h1')->first()->text());
         }
 
@@ -126,7 +132,8 @@ class ArticleScraperService
                 if ($node->count() > 0) {
                     $body = $this->cleanText($node->html());
                     if (strlen($body) >= 200) {
-                        Log::channel('pipeline')->info("Selector '{$sel}': " . strlen($body) . " chars");
+                        Log::channel('pipeline')->info("Selector '{$sel}': ".strlen($body).' chars');
+
                         return [$title, $body];
                     }
                 }
@@ -141,7 +148,8 @@ class ArticleScraperService
             $crawler2 = new Crawler($stripped);
             if ($crawler2->filter('body')->count()) {
                 $body = $this->cleanText($crawler2->filter('body')->html());
-                Log::channel('pipeline')->info("Body fallback: " . strlen($body) . " chars");
+                Log::channel('pipeline')->info('Body fallback: '.strlen($body).' chars');
+
                 return [$title, $body];
             }
         } catch (\Throwable $e) {
@@ -156,6 +164,7 @@ class ArticleScraperService
         $text = strip_tags($html);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = preg_replace('/\s+/', ' ', $text);
+
         return trim($text);
     }
 }
