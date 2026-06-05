@@ -140,7 +140,7 @@
                     >Skip</button>
                   </li>
                 </ul>
-                <a href="#" class="md-recs__view-all" @click.prevent="goto('/module/' + cats[activeCat].slug)">View all recommendations</a>
+                <a href="#" class="md-recs__view-all" @click.prevent="goto(cats[activeCat].route)">View all recommendations</a>
               </div>
             </section>
           </div>
@@ -226,7 +226,7 @@
         </div>
         <div class="md-drawer__section">
           <p class="md-drawer__group">Finances</p>
-          <a v-for="link in navLinks" :key="link.slug" href="#" class="md-drawer__link" @click.prevent="goto('/module/' + link.slug)">
+          <a v-for="link in navLinks" :key="link.slug" href="#" class="md-drawer__link" @click.prevent="goto(link.route)">
             <span class="md-drawer__icon" aria-hidden="true" v-html="link.icon"></span>
             <span class="md-drawer__label">{{ link.label }}</span>
           </a>
@@ -349,9 +349,9 @@ export default {
       draft: '',
       sending: false,
       cats: [
-        { key: 'save_tax', slug: 'investment', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
-        { key: 'retirement', slug: 'retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
-        { key: 'savings', slug: 'savings', label: 'Savings', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
+        { key: 'save_tax', slug: 'investment', route: '/investment', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
+        { key: 'retirement', slug: 'retirement', route: '/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
+        { key: 'savings', slug: 'savings', route: '/savings', label: 'Savings', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
       ],
     };
   },
@@ -379,14 +379,18 @@ export default {
       return this.onboardingActive && !this.fynOpen && !this.nudgeDismissed;
     },
     navLinks() {
+      // Route to the dedicated mobile module views for the surfaces that have
+      // one (net-worth/protection/savings/investment/retirement). Estate + Goals
+      // have no dedicated mobile view yet, so they fall back to the generic
+      // /module/{slug} drill-down until those screens are built (Phase 2).
       return [
-        { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth },
-        { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection },
-        { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings },
-        { slug: 'investment', label: 'Investment', icon: NAV_ICON.investment },
-        { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement },
-        { slug: 'estate', label: 'Estate', icon: NAV_ICON.estate },
-        { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals },
+        { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
+        { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
+        { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
+        { slug: 'investment', label: 'Investment', icon: NAV_ICON.investment, route: '/investment' },
+        { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
+        { slug: 'estate', label: 'Estate', icon: NAV_ICON.estate, route: '/module/estate' },
+        { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/module/goals' },
       ];
     },
     // Total completed actions across all categories drive the level wheel.
