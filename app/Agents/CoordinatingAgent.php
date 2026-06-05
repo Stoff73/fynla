@@ -44,6 +44,7 @@ use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
@@ -124,6 +125,21 @@ class CoordinatingAgent extends BaseAgent
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
     ) {}
+
+    /**
+     * After any Fyn write (the ~10 capture handlers below all call this), clear
+     * the full set of the user's caches — not just this agent's. The mobile /m
+     * surface is served entirely from CacheInvalidationService-managed keys
+     * (mobile_dashboard_*, mobile_module_*, mobile_level_actions_*), and the Fyn
+     * capture path is its ONLY writer, so a Fyn write must invalidate them or the
+     * /m dashboard + drill-downs stay stale for up to 24h. BaseAgent's version
+     * only clears v1_{agent}_* keys.
+     */
+    public function invalidateUserCache(int $userId, array $additionalKeys = []): void
+    {
+        parent::invalidateUserCache($userId, $additionalKeys);
+        app(CacheInvalidationService::class)->invalidateForUser($userId);
+    }
 
     /**
      * Analyze user data and generate insights (BaseAgent requirement)
