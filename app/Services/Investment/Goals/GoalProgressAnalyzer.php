@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Goals;
 
-use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\InvestmentAccountStore;
 
 /**
  * Goal Progress Analyzer
@@ -24,7 +24,8 @@ class GoalProgressAnalyzer
 {
     public function __construct(
         private GoalProbabilityCalculator $probabilityCalculator,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -194,7 +195,11 @@ class GoalProgressAnalyzer
     {
         // If goal has specific accounts linked
         if ($goal->account_id) {
-            $account = InvestmentAccount::find($goal->account_id);
+            // Owner-scoped read via the store (joint-aware). The goal carries its
+            // authoritative owner, so a goal can only count an account that owner
+            // actually holds. NOTE: investment_goals has no account_id column —
+            // this branch is pre-existing dead code (see PR 5b adjacent finding).
+            $account = $this->investmentAccountStore->find((int) $goal->account_id, $goal->user);
 
             return $account ? $account->total_value : 0;
         }
