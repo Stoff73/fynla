@@ -726,7 +726,9 @@ export default {
         if (store.token) await apiPost('/api/auth/logout', {}, store.token);
       } catch (e) { /* best-effort — proceed to local clear regardless */ }
       store.logout();
-      this.$router.push('/login');
+      // Return to the CANONICAL funnel login (framed in /m), not a scaffold
+      // screen. Full navigation so the main app's login renders in-frame.
+      window.location.href = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
     },
     openDrawer() {
       this.drawerMounted = true;

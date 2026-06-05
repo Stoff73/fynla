@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { store } from './store.js';
-import Login from './views/Login.vue';
-import Verify from './views/Verify.vue';
 import Dashboard from './views/Dashboard.vue';
 import ModuleDetail from './views/ModuleDetail.vue';
 import TaxStrategy from './views/TaxStrategy.vue';
@@ -23,12 +21,16 @@ import MobileGoals from './views/modules/Goals.vue';
 // (the same var the parent SPA's router uses). Defaults to '/' for iOS / unset.
 const MOBILE_ROUTER_BASE = (import.meta.env.VITE_ROUTER_BASE || '/') + 'm/app/';
 
+// The CANONICAL login is the funnel login (main app /login), framed inside /m.
+// /m/app is post-auth only — it has no login screen of its own; unauthenticated
+// access (incl. after sign-out) goes here, where it loads in-frame via the
+// Sec-Fetch-Dest:iframe redirect-skip.
+const CANONICAL_LOGIN = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
+
 const router = createRouter({
   history: createWebHistory(MOBILE_ROUTER_BASE),
   routes: [
-    { path: '/', redirect: '/login' },
-    { path: '/login', name: 'login', component: Login },
-    { path: '/verify', name: 'verify', component: Verify },
+    { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { auth: true } },
     { path: '/module/:slug', name: 'module-detail', component: ModuleDetail, props: true, meta: { auth: true } },
     { path: '/tax-strategy', name: 'tax-strategy', component: TaxStrategy, meta: { auth: true } },
@@ -48,8 +50,12 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  if (to.meta.auth && !store.token) return { name: 'login' };
-  if (to.name === 'login' && store.token) return { name: 'dashboard' };
+  // Unauthenticated → the canonical funnel login (framed in /m), never a
+  // bespoke scaffold screen.
+  if (to.meta.auth && !store.token) {
+    window.location.href = CANONICAL_LOGIN;
+    return false;
+  }
   return true;
 });
 
