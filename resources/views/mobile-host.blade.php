@@ -19,9 +19,18 @@
          /savetax → /savetax/plan → register), then the isolated mobile app at
          /m/app once authenticated. Pages load inside this same-origin iframe;
          RedirectPhoneToMobile skips the phone→/m redirect for Sec-Fetch-Dest
-         iframe loads so the funnel runs in-frame without looping. --}}
+         iframe loads so the funnel runs in-frame without looping.
+
+         Campaign deep-links: a phone hitting /savetax is redirected to
+         /m?to=/savetax; we frame that validated campaign path so the ad lands on
+         the campaign funnel inside /m (not the generic homepage). The ?to= value
+         is open-redirect-guarded to known campaign paths only. --}}
+    @php
+        $to = request()->query('to');
+        $framePath = (is_string($to) && \App\Http\Middleware\RedirectPhoneToMobile::isFramableTo($to)) ? $to : '/';
+    @endphp
     <div class="m-frame-wrap">
-        <iframe src="{{ url('/') }}" title="Fynla" allow="clipboard-read; clipboard-write"></iframe>
+        <iframe src="{{ url($framePath) }}" title="Fynla" allow="clipboard-read; clipboard-write"></iframe>
     </div>
 </body>
 </html>
