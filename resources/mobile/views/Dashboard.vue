@@ -379,18 +379,15 @@ export default {
       return this.onboardingActive && !this.fynOpen && !this.nudgeDismissed;
     },
     navLinks() {
-      // Route to the dedicated mobile module views for the surfaces that have
-      // one (net-worth/protection/savings/investment/retirement). Estate + Goals
-      // have no dedicated mobile view yet, so they fall back to the generic
-      // /module/{slug} drill-down until those screens are built (Phase 2).
+      // Every module now routes to its dedicated mobile view.
       return [
         { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
         { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
         { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
         { slug: 'investment', label: 'Investment', icon: NAV_ICON.investment, route: '/investment' },
         { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
-        { slug: 'estate', label: 'Estate', icon: NAV_ICON.estate, route: '/module/estate' },
-        { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/module/goals' },
+        { slug: 'estate', label: 'Estate', icon: NAV_ICON.estate, route: '/estate' },
+        { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
       ];
     },
     // Total completed actions across all categories drive the level wheel.
