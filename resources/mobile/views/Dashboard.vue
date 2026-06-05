@@ -166,7 +166,7 @@
               :key="p.key"
               href="#"
               class="md-panel"
-              :class="`md-panel--${p.tone}`"
+              :class="[`md-panel--${p.tone}`, { 'md-panel--wide': p.wide }]"
               @click.prevent="goto(p.route)"
             >
               <div v-if="p.viz === 'bar'" class="md-panel__viz md-panel__viz--bar" aria-hidden="true">
@@ -331,6 +331,7 @@ const ICON = {
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
   card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  investment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>',
 };
 
 const NAV_ICON = {
@@ -504,6 +505,12 @@ export default {
       const retPct = target > 0 ? Math.min(100, Math.round((projected / target) * 100)) : 0;
       const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
 
+      // Investment — portfolio value as a full-width donut tile (5th panel).
+      const inv = find('investment');
+      const invValue = num(inv.portfolio_value != null ? inv.portfolio_value : inv.value);
+      const invAccounts = num(inv.accounts_count);
+      const invHoldings = num(inv.holdings_count);
+
       return [
         {
           key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth,
@@ -537,6 +544,15 @@ export default {
           barValue: retPct + '%',
           barUnit: 'of target',
           caption: target > 0 ? 'Towards your target' : 'Plan your retirement',
+        },
+        {
+          key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true,
+          value: this.fmt(invValue), route: '/investment',
+          viz: 'donut',
+          progress: invValue > 0 ? 72 : 0,
+          vizNum: invValue > 0 ? String(invAccounts) : '0',
+          vizCap: invAccounts === 1 ? 'Account' : 'Accounts',
+          caption: invValue > 0 ? `${invHoldings} ${invHoldings === 1 ? 'holding' : 'holdings'}` : 'Add your investments',
         },
       ];
     },

@@ -773,6 +773,11 @@
   color: var(--violet-500);
   background: linear-gradient(135deg, rgba(88, 84, 230, 0.14) 0%, rgba(88, 84, 230, 0.02) 100%);
 }
+/* Full-width tile — the 5th (Investment) panel spans both grid columns so the
+   2-col grid reads as 2×2 + 1 banner rather than leaving a lone half-tile. */
+.md-panel--wide {
+  grid-column: 1 / -1;
+}
 
 .md-bottom-pad {
   /* Clears the fixed Fyn dock so the last finance panels scroll fully clear.
