@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Middleware\RedirectPhoneToMobile;
 
 use function Pest\Laravel\get;
 
@@ -96,4 +97,40 @@ it('honours the ?full=1 desktop escape hatch and pins via cookie', function () {
     $this->withUnencryptedCookie('m_full_site', '1')
         ->get('/', ['User-Agent' => PHONE_UA])
         ->assertOk();
+});
+
+// --- Campaign deep-link preservation (savetaxFix.md) -------------------------
+
+it('preserves a campaign deep-link path through /m for phones', function () {
+    get('/savetax', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fsavetax');
+    get('/savetax/plan', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fsavetax%2Fplan');
+    get('/biggerpension', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fbiggerpension');
+});
+
+it('preserves a campaign query string in the ?to= param', function () {
+    get('/savetax?utm_source=ad', ['User-Agent' => PHONE_UA])
+        ->assertRedirect('/m?to=%2Fsavetax%3Futm_source%3Dad');
+});
+
+it('does not preserve non-campaign paths (plain /m)', function () {
+    get('/', ['User-Agent' => PHONE_UA])->assertRedirect('/m');
+    get('/dashboard', ['User-Agent' => PHONE_UA])->assertRedirect('/m');
+    get('/pricing', ['User-Agent' => PHONE_UA])->assertRedirect('/m');
+});
+
+it('open-redirect guard: only same-origin campaign paths are framable', function () {
+    $guard = [RedirectPhoneToMobile::class, 'isFramableTo'];
+
+    // Allowed
+    expect($guard('/savetax'))->toBeTrue()
+        ->and($guard('/savetax/plan'))->toBeTrue()
+        ->and($guard('/biggerpension'))->toBeTrue();
+
+    // Rejected
+    expect($guard('//evil.com'))->toBeFalse()
+        ->and($guard('https://evil.com'))->toBeFalse()
+        ->and($guard('/admin'))->toBeFalse()
+        ->and($guard('/savetaxevil'))->toBeFalse()   // prefix-bypass guard
+        ->and($guard('/'))->toBeFalse()
+        ->and($guard('savetax'))->toBeFalse();        // must be rooted
 });
