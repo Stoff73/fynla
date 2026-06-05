@@ -1643,3 +1643,20 @@
   cursor: pointer;
   padding: 0.25rem;
 }
+
+/* Today's insight — Fyn's daily insight surfaced from the dashboard payload
+   (fyn_insight). Plain-text card; sits between the level callout and the
+   finance grid as a direct child of .md-main (inherits its column gap). */
+.md-insight {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 1rem 1.125rem;
+  box-shadow: 0 2px 10px rgba(31, 42, 68, 0.06);
+  flex-shrink: 0;
+}
+.md-insight__text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--neutral-600);
+  margin: 0.25rem 0 0;
+}

@@ -146,6 +146,15 @@
           </div>
         </div>
 
+        <!-- Today's insight (Fyn) — surfaced from the dashboard payload's
+             fyn_insight (no extra request). Plain text, no icons. -->
+        <section v-if="fynInsight" class="md-insight" aria-labelledby="md-insight-heading">
+          <div class="md-section-head">
+            <h3 class="md-section-head__title" id="md-insight-heading">Today's insight</h3>
+          </div>
+          <p class="md-insight__text">{{ fynInsight }}</p>
+        </section>
+
         <!-- 4-panel finance grid -->
         <section class="md-panels" aria-labelledby="md-panels-heading">
           <div class="md-section-head">
@@ -443,6 +452,9 @@ export default {
       const all = this.visible.flat().filter((r) => !r.done);
       all.sort((a, b) => (b.value || 0) - (a.value || 0));
       return all.slice(0, 3).map((r) => `How do I "${r.title}"?`);
+    },
+    fynInsight() {
+      return this.data?.fyn_insight || '';
     },
     finances() {
       const d = this.data || {};
