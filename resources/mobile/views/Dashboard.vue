@@ -634,7 +634,15 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    signOut() {
+    async signOut() {
+      // Revoke the bearer token server-side before clearing local state. /m is
+      // bearer-only (no biometric here, native not shipping), so the usual
+      // "local-only mobile logout" caveat does not apply — a full sign-out should
+      // invalidate the Sanctum token on the server too. Best-effort: still clear
+      // local state + redirect even if the call fails (expired token / offline).
+      try {
+        if (store.token) await apiPost('/api/auth/logout', {}, store.token);
+      } catch (e) { /* best-effort — proceed to local clear regardless */ }
       store.logout();
       this.$router.push('/login');
     },
