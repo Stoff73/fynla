@@ -1,5 +1,14 @@
 <template>
   <AppLayout>
+    <!-- Gamification level-up celebration (fixed-position overlay) -->
+    <GamificationCelebration
+      v-if="celebration"
+      :level="celebration.level"
+      :level-name="celebration.level_name"
+      :next-actions="celebration.next_actions"
+      @dismiss="onCelebrationDismiss"
+    />
+
     <!-- Journey blur overlay (desktop only, from Quick Start with Fyn registration) -->
     <div
       v-if="journeyBlurActive"
@@ -7,6 +16,8 @@
     ></div>
 
     <div class="py-2 sm:py-3">
+      <!-- Gamification level + progress card -->
+      <LevelCard class="mb-6" />
       <!-- 2FA Security Reminder Notification -->
       <div
         v-if="showMFABanner"
@@ -917,6 +928,8 @@ import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
 import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
+import LevelCard from '@/components/Gamification/LevelCard.vue';
+import GamificationCelebration from '@/components/Gamification/GamificationCelebration.vue';
 
 import logger from '@/utils/logger';
 export default {
@@ -932,6 +945,8 @@ export default {
     JourneyProgressHero,
     LifeTimelineCard,
     DashboardSparkline,
+    LevelCard,
+    GamificationCelebration,
   },
 
   mixins: [currencyMixin],
@@ -1540,6 +1555,9 @@ export default {
     ...mapState('estate', { willInfo: 'willInfo' }),
     ...mapState('trusts', { trusts: 'trusts' }),
 
+    // Gamification celebration overlay
+    ...mapState('gamification', { celebration: 'pendingCelebration' }),
+
     estateData() {
       return {
         taxableEstate: this.taxableEstate || 0,
@@ -1886,6 +1904,10 @@ export default {
     ...mapActions('goals', ['fetchDashboardOverview', 'fetchProjection']),
     ...mapActions('retirement', ['fetchRequiredCapital']),
 
+    onCelebrationDismiss() {
+      this.$store.dispatch('gamification/acknowledge');
+    },
+
     /**
      * Card visibility — always show cards that have data.
      * Life stage only affects the onboarding wizard steps, not what's
@@ -2136,6 +2158,9 @@ export default {
     // Always refresh journey progress when returning to dashboard
     // (e.g. after onboarding, adding data via Fyn, etc.)
     this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
+
+    // Refresh gamification status (level, progress, any pending celebration).
+    this.$store.dispatch('gamification/fetchStatus').catch(() => {});
 
     // Meta Pixel: StartTrial — first dashboard visit after registration
     // Skip for preview/admin/test users
