@@ -161,8 +161,11 @@ class UserProfileService
 
     /**
      * Sum of all annual gross income sources on a user.
+     *
+     * Public so the gamification backfill can detect "income is set" with the
+     * exact same logic the live first-capture award uses (dedup-key parity).
      */
-    private function totalGrossAnnualIncome(User $user): float
+    public function totalGrossAnnualIncome(User $user): float
     {
         return (float) ($user->annual_employment_income ?? 0)
             + (float) ($user->annual_self_employment_income ?? 0)
