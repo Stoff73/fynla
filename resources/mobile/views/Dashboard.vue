@@ -332,7 +332,11 @@
 <script>
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
-import GamificationCelebration from '@/components/Gamification/GamificationCelebration.vue';
+// Mirrors resources/js/components/Gamification/GamificationCelebration.vue. The
+// isolated mobile build (vite.mobile.config.js) aliases only '@m' -> resources/mobile
+// (deliberately no '@' coupling to web code, for iOS-safety), so the /m bundle keeps
+// its own copy. Keep the two in sync if the celebration changes.
+import GamificationCelebration from '@m/components/GamificationCelebration.vue';
 
 const MAX_VISIBLE = 5;
 
