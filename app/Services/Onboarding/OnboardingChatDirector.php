@@ -2465,6 +2465,34 @@ PROMPT;
             }
         }
 
+        // Gamification: the inline-capture path (advice-mode write handoff, incl.
+        // the savetax campaign onboarding) is the seam recordProgress does NOT
+        // run through, so without this the per-answer onboarding award never
+        // fires for savetax users (they have onboarding_fyn_step = null and so
+        // never enter the bubble flow). Created records already award via the
+        // AwardsDataEntryPoints model observers; this covers the profile-field
+        // answers (date of birth, marital status, income, etc.) that update
+        // users.* and so emit no created event. Award once per distinct captured
+        // answer — dedup on a content signature so a retry of the same answer
+        // does not re-award, while each new answer levels the user up "as they
+        // go". PointsService::award is preview-safe and never throws.
+        if ($llmEmittedFills !== [] || $recordsCreated !== []) {
+            $capturedSignature = md5((string) json_encode([
+                'fills' => $llmEmittedFills,
+                'records' => array_map(
+                    static fn (array $r): string => ($r['type'] ?? '').':'.($r['id'] ?? ''),
+                    $recordsCreated,
+                ),
+            ]));
+            app(PointsService::class)->award(
+                $user,
+                'onboarding',
+                "onboarding:inline:{$capturedSignature}",
+                (int) config('gamification.points.onboarding_answer'),
+                ['inline' => true],
+            );
+        }
+
         yield from $this->emitGapFillFromCaptureContext(
             $user,
             $conversation,
