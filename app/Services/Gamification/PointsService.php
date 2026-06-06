@@ -75,4 +75,53 @@ class PointsService
             return AwardResult::noop();
         }
     }
+
+    /**
+     * Award data-entry points: a one-time first-in-category bonus, then a small
+     * per-record award capped per category. Idempotent per record id.
+     */
+    public function awardDataEntry(User $user, string $category, int $recordId): void
+    {
+        $cfg = config('gamification.points');
+
+        // First-in-category (once ever). The triggering record id is stored in
+        // meta so it is never also paid as an extra below.
+        $first = $this->award($user, 'data', "data:{$category}:first", (int) $cfg['data_first_in_category'], [
+            'category' => $category,
+            'record_id' => $recordId,
+        ]);
+
+        // If this IS the first-in-category award we just made, don't also pay an extra for it.
+        if ($first->awarded) {
+            return;
+        }
+
+        // Extra records, capped per category.
+        if ($user->is_preview_user) {
+            return;
+        }
+
+        // The record that earned the first-in-category bonus must never also be
+        // paid as an extra (it is the same physical record).
+        $firstAward = PointAward::where('user_id', $user->id)
+            ->where('dedup_key', "data:{$category}:first")
+            ->first();
+        if ($firstAward && (int) ($firstAward->meta['record_id'] ?? 0) === $recordId) {
+            return;
+        }
+
+        $cap = (int) $cfg['data_extra_cap_per_category'];
+        $extrasSoFar = PointAward::where('user_id', $user->id)
+            ->where('source_type', 'data')
+            ->where('dedup_key', 'like', "data:{$category}:rec:%")
+            ->count();
+        if ($extrasSoFar >= $cap) {
+            return;
+        }
+
+        $this->award($user, 'data', "data:{$category}:rec:{$recordId}", (int) $cfg['data_extra_record'], [
+            'category' => $category,
+            'record_id' => $recordId,
+        ]);
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Estate;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Document;
 use App\Models\User;
 use App\Traits\Auditable;
@@ -16,7 +17,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LastingPowerOfAttorney extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'estate';
+    }
 
     protected $table = 'lasting_powers_of_attorney';
 
