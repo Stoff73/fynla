@@ -124,4 +124,56 @@ class PointsService
             'record_id' => $recordId,
         ]);
     }
+
+    /**
+     * Record a login: a once-per-calendar-day award plus a consecutive-day
+     * streak with milestone bonuses. Preview-safe and never throws — a
+     * gamification failure must not break the login.
+     */
+    public function recordLogin(User $user): void
+    {
+        if ($user->is_preview_user) {
+            return;
+        }
+
+        try {
+            $today = now()->toDateString();
+            $g = UserGamification::firstOrCreate(['user_id' => $user->id]);
+
+            // last_login_award_date is cast to a Carbon date; normalise to a
+            // Y-m-d string for comparison (a raw cast yields a full datetime).
+            $lastAward = $g->last_login_award_date?->toDateString();
+
+            if ($lastAward === $today) {
+                return; // already counted today
+            }
+
+            // Streak: consecutive day continues, otherwise reset.
+            $yesterday = now()->subDay()->toDateString();
+            if ($lastAward === $yesterday) {
+                $g->login_streak_days += 1;
+            } else {
+                $g->login_streak_days = 1;
+                $g->streak_started_on = $today;
+            }
+            $g->last_login_award_date = $today;
+            $g->save();
+
+            // Daily login award.
+            $this->award($user, 'login', "login:{$today}", (int) config('gamification.points.daily_login'));
+
+            // Streak bonus, once per run length.
+            $bonuses = config('gamification.points.streak');
+            $n = $g->login_streak_days;
+            if (isset($bonuses[$n])) {
+                $runStart = $g->streak_started_on?->toDateString() ?? $today;
+                $this->award($user, 'streak', "streak:{$n}:{$runStart}", (int) $bonuses[$n], ['streak_days' => $n]);
+            }
+        } catch (Throwable $e) {
+            $this->logError('Gamification recordLogin failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 }

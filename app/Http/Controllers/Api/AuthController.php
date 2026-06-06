@@ -23,6 +23,7 @@ use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\SessionService;
+use App\Services\Gamification\PointsService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Payment\ReferralService;
@@ -601,6 +602,10 @@ class AuthController extends Controller
 
             $authResult = $this->createAuthTokenWithSession($user);
 
+            // Gamification: count this as today's login. Preview-safe and
+            // never throws — a failure must not break account creation.
+            app(PointsService::class)->recordLogin($user);
+
             return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
         }
 
@@ -645,6 +650,10 @@ class AuthController extends Controller
         ]);
 
         $authResult = $this->createAuthTokenWithSession($user);
+
+        // Gamification: record today's login + streak. Preview-safe and never
+        // throws — a failure must not break the login.
+        app(PointsService::class)->recordLogin($user);
 
         return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Verification successful');
     }
