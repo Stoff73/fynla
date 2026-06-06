@@ -6,6 +6,7 @@ namespace App\Services\Mobile;
 
 use App\Models\User;
 use App\Models\UserMilestone;
+use App\Services\Gamification\PointsService;
 use Illuminate\Support\Carbon;
 
 /**
@@ -29,6 +30,10 @@ class MilestoneDetectionService
 
     /** Goal-progress thresholds in percent. */
     private const GOAL_THRESHOLDS = [25, 50, 75, 100];
+
+    public function __construct(
+        private readonly PointsService $points,
+    ) {}
 
     /**
      * Detect net-worth milestones newly crossed at the given total.
@@ -55,6 +60,14 @@ class MilestoneDetectionService
             );
 
             if ($record->wasRecentlyCreated) {
+                $this->points->award(
+                    $user,
+                    'milestone',
+                    "milestone:net_worth:0:{$threshold}",
+                    (int) config('gamification.points.milestone'),
+                    ['threshold' => $threshold],
+                );
+
                 $new[] = [
                     'type' => 'net_worth',
                     'threshold' => $threshold,
@@ -92,6 +105,14 @@ class MilestoneDetectionService
             );
 
             if ($record->wasRecentlyCreated) {
+                $this->points->award(
+                    $user,
+                    'milestone',
+                    "milestone:goal:{$goalId}:{$threshold}",
+                    (int) config('gamification.points.milestone'),
+                    ['goal_id' => $goalId, 'threshold' => $threshold],
+                );
+
                 $label = $threshold >= 100
                     ? sprintf('You\'ve reached your goal: %s.', $goalName)
                     : sprintf('You\'re %d%% of the way to %s.', $threshold, $goalName);
