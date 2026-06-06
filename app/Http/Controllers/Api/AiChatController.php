@@ -9,9 +9,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
+use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
 use App\Services\Eval\EvalTraceCollector;
+use App\Services\Gamification\LevelService;
+use App\Services\Gamification\LevelUpCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -132,6 +135,28 @@ class AiChatController extends Controller
     }
 
     /**
+     * Build the terminal `level_up` SSE frame from the request-scoped collector,
+     * or null if no level-up occurred this turn.
+     */
+    public static function levelUpFrame(
+        LevelUpCollector $collector,
+        LevelService $levels,
+        User $user,
+    ): ?array {
+        if (! $collector->hasLevelUp()) {
+            return null;
+        }
+        $top = $collector->highest();
+
+        return [
+            'type' => 'level_up',
+            'level' => $top['level'],
+            'level_name' => $top['level_name'],
+            'next_actions' => $levels->nextActions($user),
+        ];
+    }
+
+    /**
      * Send a message and stream the response via SSE.
      *
      * POST /api/ai-chat/conversations/{id}/messages
@@ -223,6 +248,19 @@ class AiChatController extends Controller
 
                     echo 'data: '.json_encode($event)."\n\n";
 
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+
+                $frame = self::levelUpFrame(
+                    app(LevelUpCollector::class),
+                    app(LevelService::class),
+                    $user,
+                );
+                if ($frame !== null) {
+                    echo 'data: '.json_encode($frame)."\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
                     }
@@ -513,6 +551,19 @@ class AiChatController extends Controller
                 foreach ($generator as $event) {
                     echo 'data: '.json_encode($event)."\n\n";
 
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+
+                $frame = self::levelUpFrame(
+                    app(LevelUpCollector::class),
+                    app(LevelService::class),
+                    $user,
+                );
+                if ($frame !== null) {
+                    echo 'data: '.json_encode($frame)."\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
                     }
