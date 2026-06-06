@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Investment\Holding;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,7 +20,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class DCPension extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'pension';
+    }
 
     protected $auditExcludeFields = ['updated_at', 'created_at'];
 

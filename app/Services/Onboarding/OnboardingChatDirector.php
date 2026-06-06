@@ -17,6 +17,7 @@ use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
+use App\Services\Gamification\PointsService;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -2310,6 +2311,21 @@ PROMPT;
                 'completed' => true,
                 'completed_at' => now(),
             ]);
+
+            // Gamification: award points once per completed onboarding/savetax
+            // step. recordProgress is the single persistence seam every path
+            // (interpret, skip, parking-hydrate, grouped extract, asset
+            // capture, terminal, done) funnels through, so awarding here covers
+            // every persisted answer. Dedup key onboarding:{stateId} ensures
+            // re-answering the same step does not re-award. PointsService::award
+            // is preview-safe and never throws.
+            app(PointsService::class)->award(
+                $user,
+                'onboarding',
+                "onboarding:{$stateId}",
+                (int) config('gamification.points.onboarding_answer'),
+                ['step' => $stateId],
+            );
         } catch (\Throwable $e) {
             // Progress logging is best-effort — never break the flow
             Log::warning('[OnboardingChatDirector] Progress record failed', [

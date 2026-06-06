@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Estate\Trust;
 use App\Services\Property\PropertyCalculationService;
 use App\Traits\Auditable;
@@ -16,7 +17,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Property extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'property';
+    }
 
     protected $fillable = [
         'user_id',

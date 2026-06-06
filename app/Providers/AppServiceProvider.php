@@ -7,8 +7,10 @@ namespace App\Providers;
 use Anthropic\Client;
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
+use App\Models\RecommendationTracking;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
+use App\Observers\RecommendationTrackingObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\XaiClient;
 use App\Services\Gamification\LevelUpCollector;
@@ -94,6 +96,7 @@ class AppServiceProvider extends ServiceProvider
 
         InsightArticle::observe(InsightArticleObserver::class);
         DocumentArticle::observe(DocumentArticleObserver::class);
+        RecommendationTracking::observe(RecommendationTrackingObserver::class);
     }
 
     /**
