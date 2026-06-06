@@ -613,6 +613,11 @@ class User extends Authenticatable
         return $this->hasOne(TaxStrategyHouseholdInput::class);
     }
 
+    public function gamification(): HasOne
+    {
+        return $this->hasOne(UserGamification::class);
+    }
+
     /**
      * Get the user's savings accounts.
      */
