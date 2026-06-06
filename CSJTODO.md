@@ -1,6 +1,20 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-05 — end-of-day — **`/m` pathway completed + deployed to csjones**: dashboard wired to all dedicated surfaces, savetax campaign reachable inside `/m` (landing CTA → real funnel + deep-link preservation), canonical auth screens (scaffold login/verify retired), milestone infra + share, token rotation/revoke, cache-coherence, arch-debt cleanup. PRs #461–#475, dev `52e5f06`. Deployed to csjones + verified end-to-end (funnel → onboarding recap → resume). Prod NOT deployed. Prior sections preserved beneath.*
+*Last updated: 2026-06-06 — end-of-day — **Gamification engine built + deployed to csjones + verified live** (PRs #477–485): points ledger + 10 named levels (points hidden), award hooks across data/onboarding/recommendations/milestones/logins/streaks, fireworks celebration on web + `/m`, Fyn-chat interrupt, cross-surface delivery, quiet backfill. 3 bugs found+fixed via browser testing. Verified across 3 user types (existing via john, new non-campaign, new savetax-campaign). Prod NOT deployed. Patch notes `June/June6Updates/`; prod runbook `June/June7Updates/deploy-2026-06-07.md`. Prior sections preserved beneath.*
+
+## 2026-06-06 — Gamification engine (end-of-day, dev; deployed to csjones)
+
+Built the full points-and-levels gamification engine end-to-end (brainstorm → spec → plan → multi-agent workflow → live browser verification). PRs #477–485 merged to `dev`, deployed to csjones + backfilled, verified live. Patch notes: `June/June6Updates/patch-notes-2026-06-06-gamification-engine.md`. Memory: `reference_gamification_engine_architecture.md`.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +114 / -7 vs `main`. Full runbook: `June/June7Updates/deploy-2026-06-07.md` (2 new migrations, config, both rebuilt bundles, `gamification:backfill` after `migrate --force`).
+- [ ] **chris@fynla.org existing-user pass** — blocked: safety guard won't let me reset his csjones password. CSJ to reset; then add the chris web+/m pass (john was the proxy ✅).
+- [ ] Optional: add the inline-capture onboarding-award unit test (PR #484 verified live, not unit-tested — needs LLM-stream mock).
+- [ ] Optional cleanup: staging test users `gamifyweb@example.com`, `gamifysavetax@example.com` (id 76); john carries test recs/points (L3).
+
+### Done this session (was outstanding from 2026-06-05)
+- [x] Refreshed `reference_mobile_phone_entry_responsive.md` + `savetaxFix.md` T8/T9 (deep-links via `/m?to=`, canonical auth).
+- [x] Removed orphaned `store.challengeToken`/`maskedEmail` from `resources/mobile/store.js` (PR #477).
 
 ## 2026-06-05 — `/m` pathway completion (end-of-day, dev `52e5f06`; deployed to csjones)
 
