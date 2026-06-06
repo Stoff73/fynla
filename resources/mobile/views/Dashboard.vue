@@ -646,6 +646,22 @@ export default {
           rec.completing = false;
         }, 320);
       }, 450);
+      // Persist the completion so the shared gamification engine awards points
+      // (mark-done -> RecommendationTracking::markAsCompleted -> observer ->
+      // PointsService), then refresh status to surface any level-up celebration
+      // and sync the wheel. Never throws — gamification must not break the toggle.
+      if (rec.id && store.token) {
+        apiPost(`/api/recommendations/${rec.id}/mark-done`, {
+          module: rec.module || 'general',
+          recommendation_text: rec.title || '',
+        }, store.token)
+          .then(() => store.fetchStatus())
+          .then(() => {
+            this.level = store.gamification.level;
+            this.progressPercent = store.gamification.progressPercent;
+          })
+          .catch(() => { /* non-fatal */ });
+      }
     },
     skipRec(idx) {
       const rec = this.visible[this.activeCat][idx];
