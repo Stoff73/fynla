@@ -80,14 +80,19 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     let data;
     try { data = JSON.parse(line.slice(6)); } catch (e) { return false; }
     // Surface the full parsed event so callers can handle non-text turns
-    // (onboarding quick_replies + bubbles, conversation_created, etc.).
+    // (onboarding quick_replies + bubbles, conversation_created, level_up, etc.).
+    // ALL typed frames pass through to onEvent — including the gamification
+    // `level_up` frame the backend emits strictly AFTER `done`.
     if (onEvent) onEvent(data);
     const t = data.type;
     if (t === 'content' || t === 'token' || t === 'content_block_delta' || t === 'text') {
       const piece = data.delta ?? data.content ?? data.text ?? '';
       if (piece) { state.acc += piece; if (onDelta) onDelta(piece); }
     }
-    if (t === 'done') { state.done = true; }
+    // `done` marks the end of the assistant reply, but the backend may emit a
+    // trailing `level_up` frame after it. Record completion without halting the
+    // reader so that post-`done` frame is still parsed and forwarded to onEvent.
+    if (t === 'done') { state.replyDone = true; }
     if (t === 'error') { state.error = data.message ?? 'error'; state.done = true; }
     return state.done;
   };
@@ -95,7 +100,7 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
   // Fallback: no streaming body available.
   if (!res.body || !res.body.getReader) {
     const raw = await res.text();
-    const state = { acc: '', done: false, error: null };
+    const state = { acc: '', done: false, replyDone: false, error: null };
     raw.split('\n').forEach((l) => consumeLine(l, state));
     return { ok: !state.error, status: res.status, text: state.acc };
   }
@@ -103,7 +108,7 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  const state = { acc: '', done: false, error: null };
+  const state = { acc: '', done: false, replyDone: false, error: null };
   while (!state.done) {
     const { done, value } = await reader.read();
     if (done) break;

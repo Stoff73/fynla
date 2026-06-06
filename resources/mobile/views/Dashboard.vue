@@ -33,7 +33,7 @@
               </div>
             </div>
             <div class="md-level__copy">
-              <h2 class="md-level__heading" id="md-level-heading">{{ actionsInLevel }} of {{ actionsForNext }} actions complete</h2>
+              <h2 class="md-level__heading" id="md-level-heading">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</h2>
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
           </section>
@@ -207,6 +207,18 @@
       </div>
     </div>
 
+    <!-- Level-up celebration — shared fireworks takeover (Rule #12 carve-out).
+         Driven by the gamification store's pendingCelebration: set after a
+         level_up SSE frame (post-reply) or a missed celebration on next open. -->
+    <GamificationCelebration
+      v-if="celebration"
+      :key="celebration.level"
+      :level="celebration.level"
+      :level-name="celebration.level_name"
+      :next-actions="celebration.next_actions"
+      @dismiss="onCelebrationDismiss"
+    />
+
     <!-- Onboarding nudge — gently points a funnel/incomplete user to finish
          their personalised tax plan with Fyn. Tapping opens Fyn; "Later"
          dismisses it for the session. Hidden once Fyn is open or onboarded. -->
@@ -320,6 +332,7 @@
 <script>
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
+import GamificationCelebration from '@/components/Gamification/GamificationCelebration.vue';
 
 const MAX_VISIBLE = 5;
 
@@ -345,10 +358,9 @@ const NAV_ICON = {
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>',
 };
 
-const CONFETTI_COLORS = ['#E83E6D', '#F472B6', '#20B486', '#5854E6', '#E6C9A8', '#FBBF24'];
-
 export default {
   name: 'MobileDashboard',
+  components: { GamificationCelebration },
   data() {
     return {
       loading: true,
@@ -360,9 +372,14 @@ export default {
       poolCursor: [0, 0, 0],
       activeCat: 0,
       doneCounter: 0,
-      // level (client-side, driven by completed actions per the goal)
-      baseLevel: 1,
-      basePercentile: 57,
+      // Level wheel — fed from the gamification engine via the dashboard payload
+      // (d.level.* + d.percentile). Single source of truth; no client recompute.
+      level: 1,
+      levelName: 'Starter',
+      progressPercent: 0,
+      actionsCompleted: 0,
+      actionsTotal: 0,
+      percentile: 57,
       pulsing: false,
       // drawer / fyn
       milestoneToast: null,
@@ -399,6 +416,11 @@ export default {
     userEmail() {
       return store.user?.email || '';
     },
+    // Drives the shared fireworks takeover. Set from a level_up SSE frame
+    // (after Fyn's reply) or a missed celebration delivered by fetchStatus.
+    celebration() {
+      return store.pendingCelebration;
+    },
     // Onboarding is "active" only when explicitly not completed (null/undefined
     // — e.g. user not yet loaded — must not trigger the onboarding chat).
     onboardingActive() {
@@ -419,39 +441,9 @@ export default {
         { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
       ];
     },
-    // Total completed actions across all categories drive the level wheel.
-    totalDone() {
-      return this.visible.reduce((sum, list) => sum + list.filter((r) => r.done).length, 0);
-    },
-    level() {
-      let remaining = this.totalDone;
-      let level = 1;
-      while (remaining >= this.actionsForLevel(level)) {
-        remaining -= this.actionsForLevel(level);
-        level += 1;
-      }
-      return level;
-    },
-    actionsInLevel() {
-      let remaining = this.totalDone;
-      let level = 1;
-      while (remaining >= this.actionsForLevel(level)) {
-        remaining -= this.actionsForLevel(level);
-        level += 1;
-      }
-      return remaining;
-    },
-    actionsForNext() {
-      return this.actionsForLevel(this.level);
-    },
-    progressPercent() {
-      return Math.round((this.actionsInLevel / this.actionsForNext) * 100);
-    },
-    percentile() {
-      // Server-derived baseline (from the customer-base level distribution),
-      // climbing as the user gains levels in-session.
-      return Math.min(99, this.basePercentile + (this.level - this.baseLevel) * 4);
-    },
+    // The level wheel reads engine-fed values directly from the dashboard
+    // payload (see load()). The "X of Y actions complete" heading binds to
+    // actionsCompleted / actionsTotal — a CLAUDE.md Rule #12-approved display.
     orderedRecs() {
       const list = this.visible[this.activeCat] || [];
       return list
@@ -559,15 +551,15 @@ export default {
   },
   watch: {
     level(newLevel, oldLevel) {
-      if (newLevel > oldLevel) this.celebrate(newLevel);
+      // Pulse the wheel when the engine-fed level climbs (e.g. on a fresh load
+      // after a level-up). The full fireworks takeover is driven separately by
+      // the shared GamificationCelebration via store.pendingCelebration.
+      if (newLevel > oldLevel) this.pulseWheel();
     },
   },
   methods: {
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
-    },
-    actionsForLevel(level) {
-      return Math.min(10, 3 + (level - 1) * 2);
     },
     statFor(ci) {
       const list = this.visible[ci] || [];
@@ -603,9 +595,17 @@ export default {
           this.visible[ci] = list.slice(0, MAX_VISIBLE);
           this.poolCursor[ci] = this.visible[ci].length;
         });
-        // Seed level baseline so percentile climbs from the server figure.
-        this.basePercentile = d.percentile ?? 57;
-        this.baseLevel = this.level;   // level computed from seeded done flags
+        // Level wheel — read engine-fed values from the dashboard payload
+        // (the single source of truth; MobileLevelService -> points engine).
+        // d.level.* feeds the ring + the "X of Y actions complete" heading;
+        // d.percentile feeds the "ahead of X% of people" rank statement.
+        const lv = d.level || {};
+        this.level = lv.level ?? 1;
+        this.levelName = lv.level_name ?? 'Starter';
+        this.progressPercent = lv.progress_percent ?? 0;
+        this.actionsCompleted = lv.actions_completed ?? 0;
+        this.actionsTotal = lv.actions_total ?? 0;
+        this.percentile = d.percentile ?? 57;
 
         // Surface the single most significant newly-crossed milestone (each
         // fires once server-side). Highest net-worth threshold, else highest goal.
@@ -661,33 +661,17 @@ export default {
         }
       }, 260);
     },
-    celebrate(level) {
+    // Brief pulse on the level wheel. The full-screen fireworks takeover is
+    // handled by the shared GamificationCelebration component (Rule #12 carve-out).
+    pulseWheel() {
       this.pulsing = false;
       this.$nextTick(() => { this.pulsing = true; });
       window.setTimeout(() => { this.pulsing = false; }, 900);
-      const frame = this.$refs.root;
-      if (!frame) return;
-      const layer = document.createElement('div');
-      layer.className = 'md-confetti';
-      const pieces = 80;
-      for (let i = 0; i < pieces; i += 1) {
-        const s = document.createElement('span');
-        s.className = 'md-confetti__piece';
-        s.style.left = Math.round((i / pieces) * 100) + '%';
-        s.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
-        s.style.animationDelay = ((i % 10) * 40) + 'ms';
-        s.style.animationDuration = (1400 + (i % 7) * 180) + 'ms';
-        s.style.setProperty('--drift', (((i % 11) - 5) * 14) + 'px');
-        s.style.setProperty('--rot', ((i % 2 ? 1 : -1) * (180 + (i % 5) * 120)) + 'deg');
-        if (i % 3 === 0) s.style.borderRadius = '50%';
-        layer.appendChild(s);
-      }
-      const banner = document.createElement('div');
-      banner.className = 'md-confetti__banner';
-      banner.textContent = 'Level ' + level + '!';
-      layer.appendChild(banner);
-      frame.appendChild(layer);
-      window.setTimeout(() => { layer.remove(); }, 2600);
+    },
+    // Dismissing the celebration acknowledges it server-side so it isn't
+    // redelivered on next open.
+    onCelebrationDismiss() {
+      store.ack();
     },
     goto(route) {
       this.closeDrawer();
@@ -784,6 +768,11 @@ export default {
         } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
+        // Celebrate after the onboarding turn renders (level_up arrives post-`done`).
+        if (cursor.levelUp) {
+          store.queueCelebration(cursor.levelUp);
+          this.pulseWheel();
+        }
       } catch (e) {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
@@ -819,6 +808,17 @@ export default {
         // Terminal turn (e.g. campaign → /tax-strategy). Captured here; the
         // caller decides how the mobile surface presents it after the stream.
         cursor.navigation = ev.route_path;
+        return;
+      }
+      if (ev.type === 'level_up') {
+        // A write this turn crossed a level threshold. The frame arrives AFTER
+        // `done`, so the reply is already on screen. Stash it; the caller fires
+        // the celebration once the stream settles so we never interrupt mid-reply.
+        cursor.levelUp = {
+          level: ev.level,
+          level_name: ev.level_name,
+          next_actions: ev.next_actions || [],
+        };
         return;
       }
       if (ev.type === 'quick_replies') {
@@ -903,6 +903,13 @@ export default {
           if (idx !== -1) this.messages.splice(idx, 1);
         }
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
+        // Celebrate AFTER the reply has rendered (the level_up frame arrives
+        // after `done`). Queueing here, post-stream, guarantees the fireworks
+        // never interrupt Fyn mid-reply — the completed reply stays beneath.
+        if (cursor.levelUp) {
+          store.queueCelebration(cursor.levelUp);
+          this.pulseWheel();
+        }
       } catch (e) {
         cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
@@ -944,6 +951,9 @@ export default {
   mounted() {
     this.loadUser();
     this.load();
+    // Deliver any celebration missed since last open (server-persisted
+    // pending_celebration_level surfaced via GET /api/gamification/status).
+    store.fetchStatus();
   },
 };
 </script>
