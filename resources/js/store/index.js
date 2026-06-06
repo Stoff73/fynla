@@ -36,6 +36,7 @@ import documentArticles from './modules/documentArticles';
 import savingsMarketRates from './modules/savingsMarketRates';
 import actuarialLifeTables from './modules/actuarialLifeTables';
 import currencyRates from './modules/currencyRates';
+import gamification from './modules/gamification';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -95,6 +96,7 @@ const store = createStore({
     savingsMarketRates,
     actuarialLifeTables,
     currencyRates,
+    gamification,
   },
   plugins: [
     createPersistedState({
