@@ -98,18 +98,18 @@ Keep the device-frame host, but honour the requested URL.
 - [ ] **T5.** Confirm non-excluded phone navigations (`/`, `/dashboard`) still redirect to `/m` (no over-exclusion).
 - [ ] **T6.** Verify the register → authed → `/m/app` handoff when the user entered via the standalone campaign page (NOT framed). If the `self !== top` auth-bridge in `resources/js/router/index.js` no longer fires, decide: (a) also bridge on a query flag/cookie, or (b) have the campaign register flow set `m_scaffold_token` directly.
 
-### If Option B
-- [ ] **T1.** `RedirectPhoneToMobile`: redirect to `/m?to=<path>` with a strict allowlist (campaign + public prefixes only).
-- [ ] **T2.** `mobile-host.blade.php`: read validated `to`, set iframe `src` accordingly; default `url('/')`.
-- [ ] **T3.** Open-redirect test: `/m?to=//evil.com` and `/m?to=/admin` must fall back to homepage.
-- [ ] **T4.** Phone-UA browser test: `/savetax` → `302 /m?to=/savetax` → iframe shows savetax → complete funnel → register.
-- [ ] **T5.** Confirm in-frame funnel navigation (homepage → savetax → register) still skips the redirect (Sec-Fetch-Dest iframe rule intact).
-- [ ] **T6.** Same post-funnel `/m/app` handoff check as Option A T6.
+### Option B — SHIPPED (PR #472, dev `52e5f06`, deployed to csjones + verified)
+- [x] **T1.** `RedirectPhoneToMobile::mobileRedirectTarget` redirects to `/m?to=<urlencoded path>` (utm/attribution query preserved) for the `EXCLUDED_PREFIXES` campaign list (`savetax`, `biggerpension`, `paymortgage`, `managedebt`, `wealth`).
+- [x] **T2.** `mobile-host.blade.php` reads `request()->query('to')`, validates via `RedirectPhoneToMobile::isFramableTo()`, frames it; defaults to `url('/')`.
+- [x] **T3.** Open-redirect guard is `isFramableTo()` — `//evil.com`, `/admin`, protocol-relative, and non-allowlisted paths fall back to the homepage.
+- [x] **T4.** Phone-UA flow `/savetax` → `302 /m?to=/savetax` → in-frame savetax → complete funnel → register verified live on csjones.
+- [x] **T5.** In-frame funnel navigation still skips the redirect (Sec-Fetch-Dest iframe rule intact).
+- [x] **T6.** Post-funnel `/m/app` handoff verified (register → authed → dashboard → resume).
 
 ### Shared follow-ups (either option)
-- [ ] **T7.** Decide whether the homepage should *also* link to `/savetax` (independent of the redirect fix) so the funnel is discoverable, not only ad-deep-linked.
-- [ ] **T8.** Update the companion `m-pathway-connection-delta.md` (§1.1 currently states public/campaign surfaces are "NOT CONNECTED by design — funnel is the responsive pages"; once fixed, savetax becomes genuinely reachable on mobile and that note should change).
-- [ ] **T9.** Update the `reference_mobile_phone_entry_responsive.md` memory — it currently asserts `/m` "iframes the REAL responsive funnel (homepage → savetax → register)"; that is the intent, not the verified behaviour for campaign deep-links until this fix lands.
+- [x] **T7.** Homepage "Save tax" CTA links to the real server-rendered `/savetax` funnel (`<a href>`, not a SPA route — PRs #471/#473). *Open optional:* CTA currently lives on the shared `LandingPage.vue` so it shows on desktop too; making it `/m`-only is unresolved.
+- [x] **T8.** Companion `m-pathway-connection-delta.md` §1.1 updated (2026-06-06) — savetax/campaign deep-links now genuinely reachable on mobile via `/m?to=`; "NOT CONNECTED" reframed to "not part of the SPA, but reachable via the responsive funnel".
+- [x] **T9.** `reference_mobile_phone_entry_responsive.md` memory refreshed (2026-06-06) — deep-link preservation via `/m?to=` + canonical auth (scaffold removed) documented.
 
 ---
 

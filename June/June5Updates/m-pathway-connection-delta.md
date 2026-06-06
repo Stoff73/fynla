@@ -96,7 +96,9 @@ TAX        GET  /api/tax-strategy
 
 None of the ~85 public surfaces (Home, Calculators, Security, About, Pricing, Features, FAQ, How-it-works, Advisors, Contact, Sitemap, QuickStart, Privacy/Terms/Editorial, 5 campaign landings, 5 life-stage explainers, 7 feature deep-dives, 4 Why-Fynla, 6 compare, ~24 Learn, 8+ Insights, News, 404) have a `/m/app` equivalent.
 
-> The **public marketing funnel** for mobile is handled *outside* the SPA — by the responsive `/savetax*` Blade funnel + `/m` host iframe (see companion report §3). The `/m/app` SPA begins at login. So "public surface parity" is intentionally **not** the SPA's job. Status: **NOT CONNECTED (by design — funnel is the responsive web pages, not the SPA).**
+> The **public marketing funnel** for mobile is handled *outside* the SPA — by the responsive `/savetax*` Blade funnel + `/m` host iframe (see companion report §3). The `/m/app` SPA begins at login. So "public surface parity" is intentionally **not** the SPA's job. Status: **NOT CONNECTED to the SPA (by design — funnel is the responsive web pages, not the SPA).**
+>
+> **Update (2026-06-05, PR #472 — savetax now genuinely reachable on mobile):** campaign deep-links are no longer collapsed to the generic homepage. A phone hitting `/savetax` (and the other campaign prefixes — `biggerpension`, `paymortgage`, `managedebt`, `wealth`) is redirected to `/m?to=/savetax` (utm/attribution query preserved), and the `/m` host frames that validated campaign path so the ad lands on the campaign funnel inside `/m`. The `?to=` value is open-redirect-guarded (`RedirectPhoneToMobile::isFramableTo()` — same-origin campaign/public paths only). So while these surfaces are still **not part of the SPA**, they ARE reachable on mobile via the responsive funnel inside `/m`. The "Save tax" CTA on the `/m` landing also links straight to the real server-rendered funnel (`<a href>`, not a SPA route — PRs #471/#473).
 
 ## 1.2 Authentication & onboarding
 
