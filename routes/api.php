@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\Estate\WillDocumentController;
 use App\Http\Controllers\Api\EstateController;
 use App\Http\Controllers\Api\EvalAuthController;
 use App\Http\Controllers\Api\FamilyMembersController;
+use App\Http\Controllers\Api\GamificationController;
 use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\GoalsController;
 use App\Http\Controllers\Api\HolisticPlanningController;
@@ -1066,6 +1067,12 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::post('/{id}/in-progress', [RecommendationsController::class, 'markInProgress']);
     Route::post('/{id}/dismiss', [RecommendationsController::class, 'dismiss']);
     Route::patch('/{id}/notes', [RecommendationsController::class, 'updateNotes']);
+});
+
+// Gamification routes (points-and-levels engine)
+Route::middleware('auth:sanctum')->prefix('gamification')->group(function () {
+    Route::get('/status', [GamificationController::class, 'status']);
+    Route::post('/celebration/ack', [GamificationController::class, 'ackCelebration']);
 });
 
 // Tax Product Information routes (Tax status for products)
