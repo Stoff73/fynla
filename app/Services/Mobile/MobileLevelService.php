@@ -4,60 +4,68 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
-use App\Models\User;
+use App\Models\RecommendationTracking;
+use App\Models\UserGamification;
+use App\Services\Gamification\LevelService;
 use App\Traits\StructuredLogging;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Computes a user's gamification "level" from completed financial actions and a
- * dynamic percentile ("you're ahead of X% of people") derived from the level
- * distribution across the whole customer base.
+ * Thin reader over the gamification engine for the /m dashboard wheel.
  *
- * Level thresholds: L1→2 needs 3 actions, L2→3 needs 5, L3→4 needs 7 … i.e.
- * actionsForLevel(n) = min(10, 3 + (n-1)*2). Completed actions are counted
- * across every recommendation in every module (any accordion card).
+ * The user's LEVEL + ring progress come from the points engine
+ * (user_gamification.total_points -> LevelService), the single source of truth.
+ * The wheel's "X of Y actions complete" heading (a CSJ-approved gamification
+ * element — CLAUDE.md Rule #12) is fed from real recommendation completion
+ * (completed vs open+completed), NOT from points. The "you're ahead of X% of
+ * people" percentile is derived from the points-based level distribution.
  */
 class MobileLevelService
 {
     use StructuredLogging;
 
     private const PERCENTILE_CACHE_TTL = 3600;  // 1 hour — distribution is slow-moving
-    private const LEVEL_CACHE_TTL = 300;        // 5 min — recompute after actions change
 
-    /** Actions required to advance FROM the given level to the next. */
-    public function actionsForLevel(int $level): int
-    {
-        return min(10, 3 + max(0, $level - 1) * 2);
-    }
+    public function __construct(private readonly LevelService $levels) {}
 
     /**
-     * Resolve a user's level + progress from their completed-action count.
+     * Resolve a user's level + progress from the points engine, plus the
+     * recommendation-completion counts that feed the "X of Y actions complete"
+     * heading. Returns a superset of the legacy keys so any consumer keeps working.
      *
-     * @return array{level:int, actions_completed:int, actions_in_level:int, actions_for_next:int, progress_percent:int}
+     * @return array{level:int, level_name:string, next_level_name:?string,
+     *               progress_percent:int, actions_completed:int, actions_total:int,
+     *               actions_in_level:int, actions_for_next:int}
      */
     public function levelFor(int $userId): array
     {
-        $completed = $this->completedActionCount($userId);
+        $points = (int) (UserGamification::where('user_id', $userId)->value('total_points') ?? 0);
+        $progress = $this->levels->progress($points);
 
-        $level = 1;
-        $remaining = $completed;
-        while ($remaining >= $this->actionsForLevel($level)) {
-            $remaining -= $this->actionsForLevel($level);
-            $level++;
-        }
-        $need = $this->actionsForLevel($level);
+        $completed = RecommendationTracking::where('user_id', $userId)
+            ->where('status', 'completed')
+            ->count();
+        $total = RecommendationTracking::where('user_id', $userId)
+            ->whereIn('status', ['pending', 'in_progress', 'completed'])
+            ->count();
 
         return [
-            'level' => $level,
+            'level' => $progress['level'],
+            'level_name' => $progress['level_name'],
+            'next_level_name' => $progress['next_level_name'],
+            'progress_percent' => $progress['progress_percent'],
+            // "X of Y actions complete" heading (Rule #12-approved display).
             'actions_completed' => $completed,
-            'actions_in_level' => $remaining,
-            'actions_for_next' => $need,
-            'progress_percent' => $need > 0 ? (int) round(($remaining / $need) * 100) : 0,
+            'actions_total' => $total,
+            // Legacy aliases so the pre-Phase-5 /m bundle never reads an undefined key.
+            'actions_in_level' => $completed,
+            'actions_for_next' => $total,
         ];
     }
 
     /**
-     * Percentile: the share of customers whose level is <= this user's level.
+     * Percentile: the share of customers strictly below this user's level.
      * "You're ahead of X% of people." Bounded 1–99 so it never reads 0% or 100%.
      */
     public function percentile(int $userId): int
@@ -70,74 +78,35 @@ class MobileLevelService
             return 57; // sensible default for an empty/single-user base
         }
 
-        $atOrBelow = 0;
+        $below = 0;
         foreach ($distribution as $level => $count) {
-            if ($level <= $userLevel) {
-                $atOrBelow += $count;
+            if ($level < $userLevel) {
+                $below += $count;
             }
         }
 
-        // Ahead-of = everyone strictly below this user's bucket, as a percentage.
-        $below = $atOrBelow - ($distribution[$userLevel] ?? 0);
         $pct = (int) round(($below / $total) * 100);
 
         return max(1, min(99, $pct));
     }
 
     /**
-     * Count completed financial actions for a user. Completion is currently
-     * derived from engagement signals (modules configured + goals completed)
-     * since there is no persisted per-recommendation completion store yet.
-     * This keeps the level real and data-driven, and is the single seam to
-     * swap for a `user_recommendation_actions` table when that lands.
-     */
-    public function completedActionCount(int $userId): int
-    {
-        return (int) Cache::remember("mobile_level_actions_{$userId}", self::LEVEL_CACHE_TTL, function () use ($userId) {
-            $user = User::withCount([
-                'savingsAccounts',
-                'investmentAccounts',
-                'properties',
-                'dcPensions',
-                'dbPensions',
-                'goals',
-            ])->find($userId);
-
-            if (! $user) {
-                return 0;
-            }
-
-            // Each configured area is a "completed action" toward levelling up.
-            $count = 0;
-            $count += $user->savings_accounts_count > 0 ? 1 : 0;
-            $count += $user->investment_accounts_count > 0 ? 1 : 0;
-            $count += $user->properties_count > 0 ? 1 : 0;
-            $count += ($user->dc_pensions_count + $user->db_pensions_count) > 0 ? 1 : 0;
-            $count += (int) $user->goals_count;   // each goal set counts
-
-            return $count;
-        });
-    }
-
-    /**
-     * Level distribution across the whole customer base, cached. Sampled to
-     * keep it cheap on large bases.
+     * Level distribution across the whole (non-preview) customer base, read
+     * directly from the points-based user_gamification.level column.
      *
      * @return array<int,int> [level => user_count]
      */
     private function levelDistribution(): array
     {
         return Cache::remember('mobile_level_distribution', self::PERCENTILE_CACHE_TTL, function () {
-            $dist = [];
-            User::query()
-                ->where('is_preview_user', false)
-                ->select('id')
-                ->chunk(500, function ($users) use (&$dist) {
-                    foreach ($users as $u) {
-                        $level = $this->levelFor($u->id)['level'];
-                        $dist[$level] = ($dist[$level] ?? 0) + 1;
-                    }
-                });
+            $dist = UserGamification::query()
+                ->join('users', 'users.id', '=', 'user_gamification.user_id')
+                ->where('users.is_preview_user', false)
+                ->select('user_gamification.level', DB::raw('COUNT(*) as c'))
+                ->groupBy('user_gamification.level')
+                ->pluck('c', 'level')
+                ->map(fn ($c) => (int) $c)
+                ->toArray();
 
             return $dist ?: [1 => 1];
         });
@@ -145,6 +114,6 @@ class MobileLevelService
 
     public function clearCache(int $userId): void
     {
-        Cache::forget("mobile_level_actions_{$userId}");
+        Cache::forget('mobile_level_distribution');
     }
 }
