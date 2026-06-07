@@ -1,6 +1,16 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-06 — end-of-day — **Gamification engine built + deployed to csjones + verified live** (PRs #477–485): points ledger + 10 named levels (points hidden), award hooks across data/onboarding/recommendations/milestones/logins/streaks, fireworks celebration on web + `/m`, Fyn-chat interrupt, cross-surface delivery, quiet backfill. 3 bugs found+fixed via browser testing. Verified across 3 user types (existing via john, new non-campaign, new savetax-campaign). Prod NOT deployed. Patch notes `June/June6Updates/`; prod runbook `June/June7Updates/deploy-2026-06-07.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-07 — end-of-day — Closed the gamification inline-capture award unit test (#487) and fixed the **missing "Save tax" CTA on the public landing** (#488): it had been added to the Vue SPA `LandingPage.vue`, but logged-out visitors (and the `/m` iframe) are served the server-rendered `public/pages/index.php` — fixed there, deployed + verified on csjones. Prod still NOT deployed (`dev` +120/-7 vs main). Prior sections preserved beneath.*
+
+## 2026-06-07 — Save tax CTA fix + gamification test (end-of-day, dev; #488 deployed to csjones)
+
+PR #487 (inline-capture onboarding-award unit test) and PR #488 (Save tax CTA on the real server-rendered homepage) merged to `dev`. #488 deployed to csjones + verified live. Memory: `reference_public_homepage_is_server_rendered_not_spa.md` (the public homepage is `public/pages/index.php`, NOT the Vue SPA `LandingPage.vue`).
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +120 / -7 vs `main`. Gamification runbook: `June/June7Updates/deploy-2026-06-07.md`. Today's #487 (test, inert in prod) + #488 (`public/pages/index.php` + `index.css`, no-build upload) ride along in the same diff.
+- [ ] **chris@fynla.org existing-user pass** — blocked: safety guard won't let me reset his csjones password. CSJ to reset, then add the chris web+/m gamification pass (john was the proxy ✅).
+- [x] Inline-capture onboarding-award unit test — DONE (#487).
+- [ ] Optional: purge staging test users `gamifyweb@example.com` / `gamifysavetax@example.com` (id 76) on csjones.
 
 ## 2026-06-06 — Gamification engine (end-of-day, dev; deployed to csjones)
 

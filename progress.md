@@ -123,3 +123,11 @@
 - Built: real mobile `/m/app` Tax Strategy view (incl. married/joint household) + Net Worth/Protection/Savings/Retirement/Investment overview + drill-down views; dock streaming fixes; provider-aware Fyn soft-degrade. All browser-verified.
 - Status: working tree clean
 - Next: deploy to csjones per June5Updates/deploy-2026-06-05.md (mobile bundle rebuild for /fynla/ base); optionally click a tax-strategy next-step CTA with a qualifying user.
+
+## 2026-06-07 — session (end-of-day)
+- Handover: [[handover-2026-06-08-session-1]] (target 2026-06-08)
+- Branch: dev
+- Commits this session: 4 (PRs #487 test, #488 fix)
+- Status: 0 uncommitted (working tree clean)
+- Shipped: #487 inline-capture onboarding-award unit test; #488 Save tax CTA on server-rendered public/pages/index.php (deployed+verified csjones)
+- Next: production release decision (dev +120/-7 vs main); chris existing-user pass (blocked on password reset)
