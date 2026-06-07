@@ -77,7 +77,8 @@
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/savetax" class="btn-cta-primary">Get started for free</a>
+          <a href="/register" class="btn-cta-primary">Get started</a>
+          <a href="/savetax" class="btn-cta-secondary">Save tax</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
