@@ -30,6 +30,14 @@
   transition: background-color 0.15s ease; white-space: nowrap;
 }
 .btn-cta-primary:hover { background: var(--spring-600); }
+.btn-cta-secondary {
+  display: inline-block; padding: 0.625rem 4rem;
+  font-size: 1.125rem; font-weight: 500;
+  color: var(--horizon-500); background: var(--white);
+  border-radius: var(--radius-button); border: none;
+  transition: background-color 0.15s ease; white-space: nowrap;
+}
+.btn-cta-secondary:hover { background: var(--white-90); }
 .hero__sublinks {
   font-size: 0.875rem; color: var(--white-70);
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
