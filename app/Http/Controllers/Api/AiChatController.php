@@ -429,8 +429,13 @@ class AiChatController extends Controller
         if ($matchedCampaign !== null) {
             $user->onboarding_fyn_path = 'campaign';
             $user->onboarding_fyn_selection = $matchedCampaign;
-            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_PERSONAL;
-            $startStateId = OnboardingStateMachine::STATE_BASE_PERSONAL;
+            // SaveTax campaign is section-led: lead with income (most relevant to
+            // the tax goal). Employment is already known from the funnel, so we
+            // open at base_work (income details) with the recap greeting; DOB is
+            // deferred to the pensions section. Sequence is driven by
+            // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
+            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_WORK;
+            $startStateId = OnboardingStateMachine::STATE_BASE_WORK;
         } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;

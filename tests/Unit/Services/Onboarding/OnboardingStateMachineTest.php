@@ -33,6 +33,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_DONE,
             // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign)
             OnboardingStateMachine::STATE_CAMPAIGN_INTRO,
+            OnboardingStateMachine::STATE_CAMPAIGN_DOB,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
@@ -44,6 +45,11 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
             OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL,
+            OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME,
+            OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SAVINGS,
+            OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
+            OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
+            OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
         ];
 
         foreach ($expected as $id) {
@@ -55,7 +61,7 @@ describe('OnboardingStateMachine::states', function () {
 
     it('only uses known turn_types', function () {
         foreach (OnboardingStateMachine::states() as $id => $state) {
-            expect($state['turn_type'])->toBeIn(['bubbles', 'free_text', 'delegated', 'terminal', 'grouped_extract'])
+            expect($state['turn_type'])->toBeIn(['bubbles', 'free_text', 'delegated', 'terminal', 'grouped_extract', 'advice'])
                 ->and($id)->toBeString();
         }
     });

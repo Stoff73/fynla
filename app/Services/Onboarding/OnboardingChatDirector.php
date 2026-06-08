@@ -18,6 +18,7 @@ use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\Gamification\PointsService;
+use App\Services\Tax\TaxStrategyCalculator;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -551,6 +552,16 @@ final class OnboardingChatDirector
         bool $includeTransitionHeader = true
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
+
+        // Advice turns are read-only and auto-advancing: Fyn relays the relevant
+        // tax-engine recommendation for the section just completed, then we
+        // continue straight to the next section's prompt in the same response.
+        if ($turnType === 'advice') {
+            yield from $this->emitAdviceTurn($user, $conversation, $stateId, $state);
+
+            return;
+        }
+
         $promptText = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
         $layoutMode = (string) ($state['layout'] ?? 'wide');
         $skipLink = $state['skip_link'] ?? null;
@@ -619,6 +630,110 @@ final class OnboardingChatDirector
             'type' => 'done',
             'message_id' => $assistantMessage->id,
         ];
+    }
+
+    /**
+     * Emit a per-section advice turn: relay the relevant tax-engine
+     * recommendation for the section just completed, then auto-advance to the
+     * next section's prompt in the same SSE response (no user input required).
+     */
+    private function emitAdviceTurn(User $user, AiConversation $conversation, string $stateId, array $state): \Generator
+    {
+        $section = (string) ($state['advice_section'] ?? '');
+        $text = $this->buildSectionAdvice($user, $section);
+
+        if ($text !== null && $text !== '') {
+            yield ['type' => 'content', 'text' => $text];
+            $this->saveMessage($conversation, 'assistant', $text, [
+                'metadata' => ['onboarding_step' => $stateId, 'advice_section' => $section],
+            ]);
+        }
+
+        $nextStateId = OnboardingStateMachine::getNextStateId($stateId, '', $user->refresh());
+        if ($nextStateId === null) {
+            yield $this->errorEvent('Onboarding reached a dead end after advice.');
+
+            return;
+        }
+
+        $user->onboarding_fyn_step = $nextStateId;
+
+        if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
+            yield from $this->emitDoneTurn($user, $conversation);
+
+            return;
+        }
+
+        $user->save();
+
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState === null) {
+            yield $this->errorEvent('Unknown next state after advice: '.$nextStateId);
+
+            return;
+        }
+
+        yield ['type' => 'onboarding_advance', 'from_step' => $stateId, 'to_step' => $nextStateId];
+
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Build the conversational advice for a completed section by running the
+     * canonical TaxStrategyCalculator and surfacing the top recommendations
+     * relevant to that section. Numbers come from the engine (Rule #2); Fyn
+     * only phrases them. Returns null when there's nothing relevant to say.
+     */
+    private function buildSectionAdvice(User $user, string $section): ?string
+    {
+        $map = [
+            'income' => ['intro' => "Here's where you stand on income tax.", 'types' => ['pa_taper_rescue', 'additional_rate_avoidance'], 'categories' => ['income_band']],
+            'savings' => ['intro' => 'On your savings and cash:', 'types' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'], 'categories' => []],
+            'investments' => ['intro' => 'On your investments:', 'types' => ['dividend_allowance_harvest', 'bed_and_isa'], 'categories' => []],
+            'pensions' => ['intro' => 'On pensions:', 'types' => ['salary_sacrifice_ni', 'pension_aa_carry_forward', 'tapered_annual_allowance', 'non_earner_spouse_pension'], 'categories' => []],
+            'spouse' => ['intro' => 'As a couple:', 'types' => [], 'categories' => ['household']],
+        ];
+        $conf = $map[$section] ?? null;
+        if ($conf === null) {
+            return null;
+        }
+
+        try {
+            $recs = app(TaxStrategyCalculator::class)->calculate($user->refresh())->recommendations;
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Section advice calculation failed', [
+                'user_id' => $user->id,
+                'section' => $section,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $relevant = array_values(array_filter($recs, fn (array $r): bool => in_array($r['type'] ?? '', $conf['types'], true)
+            || in_array($r['category'] ?? '', $conf['categories'], true)));
+        if ($relevant === []) {
+            return null;
+        }
+
+        usort($relevant, fn (array $a, array $b): int => (int) ($b['estimated_annual_tax_saved'] ?? 0) <=> (int) ($a['estimated_annual_tax_saved'] ?? 0));
+
+        $parts = [];
+        foreach (array_slice($relevant, 0, 2) as $r) {
+            $saving = (float) ($r['estimated_annual_tax_saved'] ?? 0);
+            $savingStr = $saving > 0 ? ' — around £'.number_format($saving).' a year' : '';
+            $title = trim((string) ($r['title'] ?? ''));
+            $desc = trim((string) ($r['description'] ?? ''));
+            $parts[] = rtrim($title.$savingStr, '. ').'.'.($desc !== '' ? ' '.$desc : '');
+        }
+
+        return $conf['intro'].' '.implode(' ', $parts);
     }
 
     /**
