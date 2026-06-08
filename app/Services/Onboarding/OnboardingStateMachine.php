@@ -722,10 +722,10 @@ final class OnboardingStateMachine
         }
 
         $incomeLabel = [
-            'personal-allowance' => 'earning up to the personal allowance',
-            'basic' => 'a basic-rate taxpayer',
-            'higher' => 'a higher-rate taxpayer',
-            'additional' => 'an additional-rate taxpayer',
+            'upto_50270' => 'earning up to £50,270',
+            '50271_100000' => 'a higher-rate taxpayer',
+            '100001_130000' => 'in the £100k Personal Allowance taper band',
+            'over_130000' => 'an additional-rate taxpayer',
         ][$funnel['income'] ?? ''] ?? null;
         if ($incomeLabel) {
             $bits[] = $incomeLabel;
