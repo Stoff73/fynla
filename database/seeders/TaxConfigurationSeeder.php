@@ -1323,8 +1323,14 @@ class TaxConfigurationSeeder extends Seeder
 
         // ==============================================================
         // Savings - Premium Bonds prize fund rate reduced to 3.3%
+        // FSCS deposit protection raised from £85,000 to £120,000 (PRA,
+        // effective 1 December 2025); joint accounts and temporary high
+        // balance scale accordingly. Base (2025/26 and earlier) stays £85,000.
         // ==============================================================
         $config['savings']['premium_bonds_prize_fund_rate'] = 0.033;
+        $config['savings']['fscs_deposit_protection'] = 120000;          // £120,000 per eligible person per institution
+        $config['savings']['fscs_joint_protection'] = 240000;            // £240,000 for joint accounts
+        $config['savings']['fscs_temporary_high_balance'] = 1400000;     // £1,400,000 temporary high balance protection
 
         // ==============================================================
         // Pension - State Pension uprated 4.8%, NLW/NMW uprated
