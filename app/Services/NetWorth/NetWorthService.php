@@ -476,7 +476,7 @@ class NetWorthService
                     'description' => $property->address_line_1,
                     'value' => $property->current_value,
                     'ownership_percentage' => $property->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $property->joint_owner_display_name,
                 ];
             });
 
@@ -491,7 +491,7 @@ class NetWorthService
                     'description' => $investment->provider.' - '.$investment->account_type,
                     'value' => $investment->current_value,
                     'ownership_percentage' => $investment->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $investment->jointOwner?->name,
                 ];
             });
 
@@ -521,7 +521,7 @@ class NetWorthService
                     'description' => $business->business_name,
                     'value' => $business->current_valuation,
                     'ownership_percentage' => $business->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $business->jointOwner?->name,
                 ];
             });
 
@@ -536,7 +536,7 @@ class NetWorthService
                     'description' => $chattel->name,
                     'value' => $chattel->current_value,
                     'ownership_percentage' => $chattel->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $chattel->jointOwner?->name ?? $chattel->joint_owner_name,
                 ];
             });
 
