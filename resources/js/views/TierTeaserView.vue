@@ -20,7 +20,7 @@
             Back to dashboard
           </router-link>
           <router-link
-            to="/settings?tab=subscription"
+            :to="{ path: '/teaser', query: { ...$route.query, openPricing: '1' } }"
             class="inline-flex justify-center rounded-button px-4 py-2 text-sm font-medium text-white bg-raspberry-600 hover:bg-raspberry-700"
           >
             See plans and upgrade
