@@ -31,9 +31,12 @@ class SaveTaxEstimateService
         'zero' => 0,
         'upto_50270' => 50270,
         '50271_100000' => 100000,
-        '100001_130000' => 130000,
-        'over_130000' => 150000,
+        '100001_125140' => 125140,
+        'over_125140' => 150000,
     ];
+
+    /** The income band that sits inside the £100k Personal Allowance taper. */
+    private const TRAP_BAND = '100001_125140';
 
     public function __construct(private readonly TaxConfigService $taxConfig) {}
 
@@ -60,7 +63,7 @@ class SaveTaxEstimateService
         // Only when the user has no pension yet. Band C clears the 60% trap
         // (contribute down to £100k); other bands assume 10% of upper income.
         if (! $has('pension')) {
-            $contribution = $incomeBand === '100001_130000'
+            $contribution = $incomeBand === self::TRAP_BAND
                 ? max(0, $income - $this->taperThreshold())
                 : (int) round($income * 0.10);
 
@@ -70,7 +73,7 @@ class SaveTaxEstimateService
                     'key' => 'pension',
                     'label' => 'Pension contribution',
                     'amount' => $relief,
-                    'reason' => $incomeBand === '100001_130000'
+                    'reason' => $incomeBand === self::TRAP_BAND
                         ? 'Contributing '.$this->money($contribution).' to a pension reclaims your Personal Allowance — relief of up to 60% in this band.'
                         : 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($rate).' tax relief.',
                 ];
@@ -181,7 +184,7 @@ class SaveTaxEstimateService
         $aa = (int) $this->taxConfig->getPensionAllowances()['annual_allowance'];
         $items = [];
 
-        $items[] = ['key' => 'personal_allowance', 'label' => 'Personal Allowance', 'amount' => (int) round($this->personalAllowance($income)), 'on' => true];
+        $items[] = $this->personalAllowanceItem('personal_allowance', 'Personal Allowance', $income);
         $items[] = ['key' => 'isa', 'label' => 'ISA Allowance', 'amount' => $isa, 'on' => true];
         $items[] = ['key' => 'pension_aa', 'label' => 'Pension Annual Allowance', 'amount' => $aa, 'on' => true];
 
@@ -200,7 +203,7 @@ class SaveTaxEstimateService
 
             // Spouse's own per-person allowances (household view).
             $spouseIncome = $spouseBand !== null ? self::BAND_INCOME[$spouseBand] : 0;
-            $items[] = ['key' => 'spouse_pa', 'label' => "Spouse's Personal Allowance", 'amount' => (int) round($this->personalAllowance($spouseIncome)), 'on' => true];
+            $items[] = $this->personalAllowanceItem('spouse_pa', "Spouse's Personal Allowance", $spouseIncome);
             $items[] = ['key' => 'spouse_isa', 'label' => "Spouse's ISA Allowance", 'amount' => $isa, 'on' => true];
             $items[] = ['key' => 'spouse_pension_aa', 'label' => "Spouse's Pension Annual Allowance", 'amount' => $aa, 'on' => true];
         }
@@ -213,6 +216,27 @@ class SaveTaxEstimateService
         }
 
         return ['items' => $items, 'total' => $total];
+    }
+
+    /**
+     * Build a Personal Allowance allowance-row, flagging the £100k taper so the
+     * page can show "tapered to £X" instead of a bare figure.
+     *
+     * @return array<string,mixed>
+     */
+    private function personalAllowanceItem(string $key, string $label, int $income): array
+    {
+        $amount = (int) round($this->personalAllowance($income));
+        $item = ['key' => $key, 'label' => $label, 'amount' => $amount, 'on' => true];
+
+        if ($income > $this->taperThreshold()) {
+            $item['label'] = $label.' (tapered)';
+            $item['note'] = $amount > 0
+                ? 'Tapered down from '.$this->money($this->personalAllowanceBase()).' because income is over '.$this->money($this->taperThreshold()).'. A pension contribution can restore it.'
+                : 'Tapered to £0 because income is over '.$this->money($this->taperThreshold()).'. A pension contribution can restore it.';
+        }
+
+        return $item;
     }
 
     // --- Tax engine ----------------------------------------------------------

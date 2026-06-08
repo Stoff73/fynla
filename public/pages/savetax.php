@@ -178,8 +178,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="100001_130000" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 to £130,000</span>
+          <button type="button" class="qr-opt" data-value="100001_125140" aria-pressed="false">
+            <span class="qr-opt__label">£100,001 to £125,140</span>
             <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -188,8 +188,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="over_130000" aria-pressed="false">
-            <span class="qr-opt__label">Above £130,000</span>
+          <button type="button" class="qr-opt" data-value="over_125140" aria-pressed="false">
+            <span class="qr-opt__label">Above £125,140</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -260,8 +260,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="100001_130000" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 to £130,000</span>
+          <button type="button" class="qr-opt" data-value="100001_125140" aria-pressed="false">
+            <span class="qr-opt__label">£100,001 to £125,140</span>
             <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -270,8 +270,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="over_130000" aria-pressed="false">
-            <span class="qr-opt__label">Above £130,000</span>
+          <button type="button" class="qr-opt" data-value="over_125140" aria-pressed="false">
+            <span class="qr-opt__label">Above £125,140</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>

@@ -67,8 +67,8 @@
   var INC = {
     'upto_50270': 'income up to £50,270',
     '50271_100000': 'higher-rate income',
-    '100001_130000': 'income in the £100k tax-trap',
-    'over_130000': 'additional-rate income',
+    '100001_125140': 'income in the £100k tax-trap',
+    'over_125140': 'additional-rate income',
   };
   var ASSET = {
     bank: 'Bank accounts', savings: 'Savings', pension: 'Pension',
@@ -110,6 +110,9 @@
       reasonHtml = '<p class="sp4-alw__reason"><strong>Could save ' + fmt(saving.amount) + '/yr.</strong> ' + esc(saving.reason) + '</p>';
     } else if (saving && saving.reason) {
       reasonHtml = '<p class="sp4-alw__reason">' + esc(saving.reason) + '</p>';
+    } else if (a.note) {
+      // e.g. Personal Allowance taper explanation.
+      reasonHtml = '<p class="sp4-alw__reason">' + esc(a.note) + '</p>';
     }
     return (
       '<div class="' + cls + '">' +
