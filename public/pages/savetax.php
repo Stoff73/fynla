@@ -160,10 +160,8 @@
         <h2 class="qr-q" id="q2-heading" tabindex="-1">What is your annual income?</h2>
         <p class="qr-q-sub">Your gross income before tax, including salary, self-employment, and pension income.</p>
         <div class="qr-options" role="group" aria-label="Annual income options">
-
-          <button type="button" class="qr-opt" data-value="personal-allowance" aria-pressed="false">
-            <span class="qr-opt__label">Up to £12,570</span>
-            <span class="qr-opt__badge">Up to personal allowance</span>
+          <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
+            <span class="qr-opt__label">Up to £50,270</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -171,9 +169,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="basic" aria-pressed="false">
-            <span class="qr-opt__label">£12,571 – £50,270</span>
-            <span class="qr-opt__badge">Basic rate</span>
+          <button type="button" class="qr-opt" data-value="50271_100000" aria-pressed="false">
+            <span class="qr-opt__label">£50,271 to £100,000</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -181,9 +178,9 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="higher" aria-pressed="false">
-            <span class="qr-opt__label">£50,271 – £100,000</span>
-            <span class="qr-opt__badge">Higher rate</span>
+          <button type="button" class="qr-opt" data-value="100001_130000" aria-pressed="false">
+            <span class="qr-opt__label">£100,001 to £130,000</span>
+            <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -191,9 +188,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="additional" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 or more</span>
-            <span class="qr-opt__badge">Additional rate</span>
+          <button type="button" class="qr-opt" data-value="over_130000" aria-pressed="false">
+            <span class="qr-opt__label">Above £130,000</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -201,6 +197,7 @@
             </span>
           </button>
 
+        
         </div>
       </section>
 
@@ -236,10 +233,8 @@
         <h2 class="qr-q" id="q4-heading" tabindex="-1">What is your spouse or partner's annual income?</h2>
         <p class="qr-q-sub">Their gross income before tax. This helps us identify allowance transfer opportunities.</p>
         <div class="qr-options" role="group" aria-label="Spouse or partner annual income options">
-
-          <button type="button" class="qr-opt" data-value="personal-allowance" aria-pressed="false">
-            <span class="qr-opt__label">Up to £12,570</span>
-            <span class="qr-opt__badge">Up to personal allowance</span>
+          <button type="button" class="qr-opt" data-value="zero" aria-pressed="false">
+            <span class="qr-opt__label">No income</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -247,9 +242,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="basic" aria-pressed="false">
-            <span class="qr-opt__label">£12,571 – £50,270</span>
-            <span class="qr-opt__badge">Basic rate</span>
+          <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
+            <span class="qr-opt__label">Up to £50,270</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -257,9 +251,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="higher" aria-pressed="false">
-            <span class="qr-opt__label">£50,271 – £100,000</span>
-            <span class="qr-opt__badge">Higher rate</span>
+          <button type="button" class="qr-opt" data-value="50271_100000" aria-pressed="false">
+            <span class="qr-opt__label">£50,271 to £100,000</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -267,9 +260,9 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="additional" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 or more</span>
-            <span class="qr-opt__badge">Additional rate</span>
+          <button type="button" class="qr-opt" data-value="100001_130000" aria-pressed="false">
+            <span class="qr-opt__label">£100,001 to £130,000</span>
+            <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -277,6 +270,16 @@
             </span>
           </button>
 
+          <button type="button" class="qr-opt" data-value="over_130000" aria-pressed="false">
+            <span class="qr-opt__label">Above £130,000</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+        
         </div>
       </section>
 
@@ -351,6 +354,6 @@
 
   </div><!-- /.qr-card -->
 
-  <script src="/pages/js/savetax.js?v=6" defer></script>
+  <script src="/pages/js/savetax.js?v=7" defer></script>
 </body>
 </html>

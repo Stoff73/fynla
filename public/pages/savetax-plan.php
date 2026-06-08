@@ -1,3 +1,34 @@
+<?php
+
+use App\Services\Marketing\SaveTaxEstimateService;
+
+// Compute the personalised tax estimate server-side from the funnel answers
+// (passed as query params by /savetax). All tax values come from
+// TaxConfigService via SaveTaxEstimateService — never hard-coded here.
+$savetaxAnswers = [
+    'income' => $_GET['income'] ?? null,
+    'spouse' => $_GET['spouse'] ?? null,
+    'spouseIncome' => $_GET['spouseIncome'] ?? null,
+    'assets' => (isset($_GET['assets']) && $_GET['assets'] !== '')
+        ? array_slice(array_map('trim', explode(',', (string) $_GET['assets'])), 0, 12)
+        : [],
+];
+// Representative default for direct visits (no funnel params) so the page is
+// never empty for SEO / shared links.
+if (empty($savetaxAnswers['income'])) {
+    $savetaxAnswers = [
+        'income' => '50271_100000',
+        'spouse' => 'no',
+        'spouseIncome' => null,
+        'assets' => ['savings', 'pension', 'isa'],
+    ];
+}
+try {
+    $savetaxEstimate = app(SaveTaxEstimateService::class)->estimate($savetaxAnswers);
+} catch (Throwable $e) {
+    $savetaxEstimate = null;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,7 +80,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content" class="campaign-body sp4-body">
 
@@ -169,10 +200,11 @@
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
+  <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/savetax-plan-v4.js?v=5" defer></script>
+  <script src="/pages/js/savetax-plan-v4.js?v=6" defer></script>
 
 </body>
 </html>

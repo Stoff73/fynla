@@ -9,7 +9,15 @@
   // can be carried into registration. Then go to the personalised plan.
   function persistAndGoToPlan() {
     try { localStorage.setItem('savetax_answers', JSON.stringify(answers)); } catch (e) { /* private mode */ }
-    window.location.href = (window.FYNLA_BASE || '') + '/savetax/plan?from=savetax';
+    // Also pass the answers as query params so the plan page can compute the
+    // personalised tax figures server-side (SaveTaxEstimateService).
+    var qs = 'from=savetax'
+      + '&employment=' + encodeURIComponent(answers.employment || '')
+      + '&income=' + encodeURIComponent(answers.income || '')
+      + '&spouse=' + encodeURIComponent(answers.spouse || '')
+      + '&spouseIncome=' + encodeURIComponent(answers.spouseIncome || '')
+      + '&assets=' + encodeURIComponent((answers.assets || []).join(','));
+    window.location.href = (window.FYNLA_BASE || '') + '/savetax/plan?' + qs;
   }
 
   function sequence() {
@@ -24,8 +32,15 @@
 
   var backBtn      = document.getElementById('qr-back-btn');
   var continueBtn  = document.getElementById('qr-continue-btn');
+  var footerArea   = document.getElementById('qr-footer-area');
   var stepLabel    = document.getElementById('qr-step-label');
   var progressFill = document.getElementById('qr-progress-fill');
+
+  // Single-select screens auto-advance on selection; only the final
+  // multi-select (assets) screen shows the Continue button.
+  function updateFooter() {
+    if (footerArea) footerArea.style.display = (current === 'assets') ? '' : 'none';
+  }
 
   function updateProgressTicks(total) {
     var bar = progressFill.parentElement;
@@ -98,6 +113,7 @@
     current = targetId;
     updateHeader();
     updateContinue();
+    updateFooter();
 
     // Move focus to the screen heading for keyboard / screen-reader users
     var heading = toEl.querySelector('[tabindex="-1"]');
@@ -145,9 +161,12 @@
       btn.setAttribute('aria-pressed', sel ? 'true' : 'false');
     });
 
-    // Selection recorded — Continue button will enable.
-    // User must click Continue to move to the next question (no auto-advance).
     updateContinue();
+
+    // Auto-advance to the next question after a brief highlight so the user
+    // sees their choice register. Back re-shows this screen with the choice
+    // still highlighted (the .sel state persists in the DOM).
+    window.setTimeout(advance, 220);
   }
 
   function toggleAsset(btn) {
@@ -221,5 +240,6 @@
   // Initialise header + continue state
   updateHeader();
   updateContinue();
+  updateFooter();
 
 }());
