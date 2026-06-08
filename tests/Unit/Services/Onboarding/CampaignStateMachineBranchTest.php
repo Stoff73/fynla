@@ -116,9 +116,10 @@ describe('STATE_CAMPAIGN_SPOUSE_WORK routing', function () {
             ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
     });
 
-    it('advances to the next section (expenditure) when household_calculation_mode is unset', function () {
+    it('routes through the spouse advice turn when household_calculation_mode is unset', function () {
         // Previously fell through to TERMINAL; now the section-ordered campaign
-        // flow carries on to the next section instead of dead-ending.
+        // flow shows the spouse advice (which then carries on to the next
+        // section) instead of dead-ending.
         $user = User::factory()->create([
             'household_calculation_mode' => null,
             'marital_status' => 'married',
@@ -126,7 +127,7 @@ describe('STATE_CAMPAIGN_SPOUSE_WORK routing', function () {
         ]);
 
         expect(OnboardingStateMachine::nextFromSpouseWork('', $user))
-            ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE);
     });
 });
 

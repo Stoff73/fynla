@@ -107,6 +107,19 @@ final class OnboardingStateMachine
     // only matters once we reach pensions/retirement).
     public const STATE_CAMPAIGN_DOB = 'campaign_dob';
 
+    // Per-section advice turns (turn_type 'advice'): auto-advancing read-only
+    // messages where Fyn relays the relevant tax-engine recommendation for the
+    // section just completed, before moving to the next section.
+    public const STATE_CAMPAIGN_ADVICE_INCOME = 'campaign_advice_income';
+
+    public const STATE_CAMPAIGN_ADVICE_SAVINGS = 'campaign_advice_savings';
+
+    public const STATE_CAMPAIGN_ADVICE_INVESTMENTS = 'campaign_advice_investments';
+
+    public const STATE_CAMPAIGN_ADVICE_PENSIONS = 'campaign_advice_pensions';
+
+    public const STATE_CAMPAIGN_ADVICE_SPOUSE = 'campaign_advice_spouse';
+
     /**
      * SaveTax campaign section order — THE single source of truth for the
      * campaign question sequence. To reorder the journey, reorder this array;
@@ -410,14 +423,14 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
+                'next' => self::STATE_CAMPAIGN_ADVICE_SAVINGS,
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'turn_type' => 'delegated',
                 'prompt_text' => 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
+                'next' => self::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
@@ -447,7 +460,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_pension_history',
                 'retry_text' => 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.',
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
+                'next' => self::STATE_CAMPAIGN_ADVICE_PENSIONS,
             ],
             // ── Giving section ────────────────────────────────────────────
             self::STATE_CAMPAIGN_CHARITABLE_GIVING => [
@@ -488,7 +501,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_household_data',
                 'retry_text' => 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?',
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
+                'next' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
                 'skip_if' => [self::class, 'skipIfNotDualEarner'],
             ],
             self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => [
@@ -497,7 +510,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_non_working_assets',
                 'retry_text' => 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".',
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
+                'next' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
                 'skip_if' => [self::class, 'skipIfNotSingleEarnerCouple'],
             ],
             // Terminal state for the campaign branch. turn_type=terminal mirrors
@@ -509,6 +522,39 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'navigate_to' => '/tax-strategy',
                 'next' => self::STATE_DONE,
+            ],
+            // ── Per-section advice (auto-advancing) ───────────────────────
+            // Each fires after its section's capture, relays the relevant
+            // tax-engine recommendation, then continues to the next section.
+            self::STATE_CAMPAIGN_ADVICE_INCOME => [
+                'turn_type' => 'advice',
+                'advice_section' => 'income',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('income', $user),
+            ],
+            self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
+                'turn_type' => 'advice',
+                'advice_section' => 'savings',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
+            ],
+            self::STATE_CAMPAIGN_ADVICE_INVESTMENTS => [
+                'turn_type' => 'advice',
+                'advice_section' => 'investments',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
+            ],
+            self::STATE_CAMPAIGN_ADVICE_PENSIONS => [
+                'turn_type' => 'advice',
+                'advice_section' => 'pensions',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
+            ],
+            self::STATE_CAMPAIGN_ADVICE_SPOUSE => [
+                'turn_type' => 'advice',
+                'advice_section' => 'spouse',
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
             ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',
@@ -702,10 +748,11 @@ final class OnboardingStateMachine
             return self::STATE_BASE_EMPLOYMENT;
         }
 
-        // End of the income section. The savetax campaign continues through its
-        // reordered section flow; the standard flow goes to expenditure.
+        // End of the income section. The savetax campaign shows its income
+        // advice (which then continues through the reordered section flow);
+        // the standard flow goes to expenditure.
         if ($user->onboarding_fyn_path === 'campaign') {
-            return self::nextCampaignSection('income', $user);
+            return self::STATE_CAMPAIGN_ADVICE_INCOME;
         }
 
         return self::STATE_BASE_EXPENDITURE;
@@ -1108,7 +1155,7 @@ final class OnboardingStateMachine
         return match ($user->household_calculation_mode) {
             'dual_earner' => self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             'single_earner_couple' => self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
-            default => self::nextCampaignSection('spouse', $user),
+            default => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
         };
     }
 

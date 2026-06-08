@@ -92,6 +92,33 @@ it('drops the recap and asks the plain income question once income is captured',
     expect(SM::buildWorkPrompt('', $u))->not->toContain('thanks for those answers');
 });
 
+it('inserts a per-section advice turn between a section and the next', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['savings', 'investments', 'pension']]]);
+
+    // Savings' last capture (bank accounts) → savings advice → investments entry.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_SAVINGS)
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+
+    // Pensions' last capture (history) → pensions advice → next section.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_PENSIONS);
+
+    // Income end (employment-more "no") → income advice → savings entry.
+    expect(SM::nextFromEmploymentMore('No', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_INCOME)
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS);
+});
+
+it('marks every advice state as an auto-advancing advice turn with a section', function () {
+    foreach ([
+        SM::STATE_CAMPAIGN_ADVICE_INCOME, SM::STATE_CAMPAIGN_ADVICE_SAVINGS,
+        SM::STATE_CAMPAIGN_ADVICE_INVESTMENTS, SM::STATE_CAMPAIGN_ADVICE_PENSIONS,
+        SM::STATE_CAMPAIGN_ADVICE_SPOUSE,
+    ] as $id) {
+        $state = SM::getState($id);
+        expect($state['turn_type'])->toBe('advice')
+            ->and($state['advice_section'] ?? null)->not->toBeNull();
+    }
+});
+
 it('section order matches the single source-of-truth array', function () {
     expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
         'income', 'savings', 'investments', 'pensions', 'giving', 'spouse', 'expenditure',
