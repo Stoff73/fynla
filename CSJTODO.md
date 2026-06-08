@@ -1,6 +1,16 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-08 — context-clear, session 3 — Big savetax day: auth throttle fix (#489), joint co-owner name (#490), full savetax dynamic-tax engine + funnel rework (#492), accurate £125,140 bands + tapered-PA (#493), Marriage Allowance gating + exhaustive test (#494), 60% trap as a distinct item (#495), section-led configurable onboarding with per-section tax-engine advice (#498), dashboard-blur removal (#499). All merged to dev + deployed/verified on csjones (incl. SPA rebuild). Prod NOT deployed (`dev` ~149/-7 vs main). Prior sections preserved beneath.*
+*Last updated: 2026-06-08 — end-of-day, session 4 — Freemium tier-pricing modal (#501) + `/m` router cold-boot fix (#500) merged to dev + deployed/verified on csjones. Earlier today: savetax suite + onboarding rework (#489–499). `dev` now +158/-7 vs main. Prod NOT released. Prior sections preserved beneath.*
+
+## 2026-06-08 — Freemium tier-pricing modal + deploy (end-of-day, session 4; dev, deployed + verified on csjones)
+
+Handover: `June/June9Updates/handover-2026-06-09-session-1.md`. Deploy note: `June/June9Updates/deploy-2026-06-09.md`. PRs #500 (`/m` router cold-boot) + #501 (freemium tier-pricing modal + remove trial timer) merged to `dev`, built, deployed to csjones, live-verified (`/pricing` = Free+Tier1/2/3, penny prices, billing toggle, `<title>` mojibake fixed; upgrade modal tier-sourced, no trial timer; checkout resolves Tier 2 £14.99). Resumed after a laptop freeze mid-session — freemium code was already committed; this session re-verified end-to-end + merged + deployed.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +158 / -7 vs `main`. **#489 auth throttle is the priority reason** — prod MFA password reset is broken until released. Full prod runbook + freemium adds: `June/June9Updates/deploy-2026-06-09.md` (base: `June/June7Updates/deploy-2026-06-07.md`).
+- [ ] **Set real tier prices** in the admin Tier Configuration screen — `tier_configurations` currently holds placeholders (£4.99/£14.99/£29.99 monthly); modal + checkout + public `/pricing` read them live.
+- [ ] Optional: align `TestUsersSeeder` to `tier='free'` — it recreates `trialing` subs on every `db:seed` (pure-freemium artifact).
+- [ ] Optional: sweep orphaned csjones `public/build/assets` chunks (~1009 after preserve-old-chunks accumulation).
 
 ## 2026-06-08 — SaveTax suite + onboarding rework (context-clear, dev; deployed + verified on csjones)
 

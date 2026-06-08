@@ -131,3 +131,11 @@
 - Status: 0 uncommitted (working tree clean)
 - Shipped: #487 inline-capture onboarding-award unit test; #488 Save tax CTA on server-rendered public/pages/index.php (deployed+verified csjones)
 - Next: production release decision (dev +120/-7 vs main); chris existing-user pass (blocked on password reset)
+
+## 2026-06-09 — session 1 (end-of-day)
+- Handover: [[handover-2026-06-09-session-1]]
+- Branch: dev
+- Commits this session: 3 (b4a8029 mojibake fix + 2 merges aa4569d/87f2e4d)
+- Status: 0 uncommitted (working tree clean)
+- Shipped: freemium tier-pricing modal #501 + router cold-boot #500 merged to dev, deployed + live-verified on csjones. Public /pricing rewritten to Free+Tier1/2/3, trial copy stripped, <title> mojibake fixed.
+- Next: prod release (dev→main, +158/-7) is CSJ's call — #489 auth throttle is the priority reason (prod MFA reset broken). Set real tier prices in admin Tier Configuration.
