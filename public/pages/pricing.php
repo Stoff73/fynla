@@ -4,20 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing â€” Simple, Transparent Plans | Fynla</title>
-  <meta name="description" content="Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required to start." />
+  <meta name="description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />
   <link rel="canonical" href="https://fynla.org/pricing" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:title"       content="Pricing â€” Simple, Transparent Plans | Fynla" />
-  <meta property="og:description" content="Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required to start." />
+  <meta property="og:description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />
   <meta property="og:image"       content="https://fynla.org/images/og/pricing.jpg" />
   <meta property="og:url"         content="https://fynla.org/pricing" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="Pricing â€” Simple, Transparent Plans | Fynla" />
-  <meta name="twitter:description" content="Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required to start." />
+  <meta name="twitter:description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/pricing.jpg" />
 
   <!-- hreflang -->
@@ -31,7 +31,7 @@
     "@type": "WebPage",
     "name": "Pricing â€” Simple, Transparent Plans",
     "url": "https://fynla.org/pricing",
-    "description": "Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required to start.",
+    "description": "Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required.",
     "publisher": {
       "@type": "Organization",
       "name": "Fynla",
@@ -75,7 +75,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -90,7 +90,7 @@
           Pricing
         </h1>
         <p class="pricing-hero__subtext">
-          Start with a 7-day free trial on any plan. No credit card required.
+          Start free, then upgrade whenever you're ready. No credit card required.
         </p>
       </div>
     </section>
@@ -108,221 +108,173 @@
           <button class="billing-toggle__btn" id="btn-monthly" aria-pressed="false">Monthly</button>
           <button class="billing-toggle__btn billing-toggle__btn--active" id="btn-yearly" aria-pressed="true">
             Yearly
-            <span class="billing-toggle__save" id="save-label">Save up to 37%</span>
+            <span class="billing-toggle__save" id="save-label">Save with yearly billing</span>
           </button>
-        </div>
-
-        <!-- Launch offer banner -->
-        <div class="launch-banner" role="note" aria-label="Limited time offer">
-          <p class="launch-banner__title">Limited Time Offer</p>
-          <p class="launch-banner__sub">Lock in discounted pricing today for your first 12 months</p>
         </div>
 
         <!-- Plan cards grid -->
         <div class="plan-grid">
 
-          <!-- Student Plan -->
-          <article class="plan-card" aria-labelledby="plan-student-heading">
+          <!-- Free tier -->
+          <article class="plan-card" aria-labelledby="plan-free-heading">
             <div class="plan-card__header">
-              <h3 id="plan-student-heading" class="plan-card__name">Student</h3>
+              <h3 id="plan-free-heading" class="plan-card__name">Free</h3>
               <p class="plan-card__tagline">Get started with the essentials</p>
             </div>
 
             <div class="plan-card__price">
               <div class="plan-card__price-row">
-                <span class="plan-card__full-price" id="student-full" aria-label="Original price">Â£4.99</span>
-                <span class="plan-card__launch-price" id="student-launch" aria-label="Launch price">Â£3.99</span>
-                <span class="plan-card__period" id="student-period">/month</span>
+                <span class="plan-card__launch-price" aria-label="Price">Free</span>
               </div>
-              <p class="plan-card__equiv" id="student-equiv" hidden>Â£2.50/mo &mdash; save 37%</p>
             </div>
 
-            <div class="plan-card__trial">
-              7-day free trial
-            </div>
-
-            <ul class="plan-card__features" aria-label="Student plan features">
+            <ul class="plan-card__features" aria-label="Free tier features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Full financial dashboard
+                Financial dashboard
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Protection module
+                Income and expenditure tracking
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Savings module
+                Property, protection and liabilities
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Goal tracking
+                Savings, investments and pensions
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Investment module
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Retirement module
-              </li>
-            </ul>
-
-            <a href="/register?plan=student&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-student">
-              Start Free Trial
-            </a>
-          </article>
-
-          <!-- Standard Plan -->
-          <article class="plan-card" aria-labelledby="plan-standard-heading">
-            <div class="plan-card__header">
-              <h3 id="plan-standard-heading" class="plan-card__name">Standard</h3>
-              <p class="plan-card__tagline">Full platform access</p>
-            </div>
-
-            <div class="plan-card__price">
-              <div class="plan-card__price-row">
-                <span class="plan-card__full-price" id="standard-full" aria-label="Original price">Â£14.99</span>
-                <span class="plan-card__launch-price" id="standard-launch" aria-label="Launch price">Â£10.99</span>
-                <span class="plan-card__period" id="standard-period">/month</span>
-              </div>
-              <p class="plan-card__equiv" id="standard-equiv" hidden>Â£8.33/mo &mdash; save 24%</p>
-            </div>
-
-            <div class="plan-card__trial">
-              7-day free trial
-            </div>
-
-            <ul class="plan-card__features" aria-label="Standard plan features">
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Everything in Student
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Personal Valuables
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Business
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Property
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Letter to Spouse / Expression of Wishes
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Coordination module
-              </li>
-            </ul>
-
-            <a href="/register?plan=standard&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-standard">
-              Start Free Trial
-            </a>
-          </article>
-
-          <!-- Family Plan (Most Popular) -->
-          <article class="plan-card plan-card--featured" aria-labelledby="plan-family-heading">
-            <div class="plan-card__badge" aria-label="Most popular plan">Most Popular</div>
-            <div class="plan-card__header">
-              <h3 id="plan-family-heading" class="plan-card__name">Family</h3>
-              <p class="plan-card__tagline">Plan together as a household</p>
-            </div>
-
-            <div class="plan-card__price">
-              <div class="plan-card__price-row">
-                <span class="plan-card__full-price" id="family-full" aria-label="Original price">Â£21.99</span>
-                <span class="plan-card__launch-price" id="family-launch" aria-label="Launch price">Â£14.99</span>
-                <span class="plan-card__period" id="family-period">/month</span>
-              </div>
-              <p class="plan-card__equiv" id="family-equiv" hidden>Â£12.50/mo &mdash; save 17%</p>
-            </div>
-
-            <div class="plan-card__trial">
-              7-day free trial
-            </div>
-
-            <ul class="plan-card__features" aria-label="Family plan features">
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Everything in Standard
+                Goals and life events
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 Family module
               </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Parents included
-              </li>
-              <li class="plan-card__feature">
-                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Children for free
-              </li>
             </ul>
 
-            <a href="/register?plan=family&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-family">
-              Start Free Trial
+            <a href="/register" class="plan-card__cta plan-card__cta--spring" id="cta-free">
+              Get started free
             </a>
           </article>
 
-          <!-- Pro Plan -->
-          <article class="plan-card" aria-labelledby="plan-pro-heading">
+          <!-- Tier 1 -->
+          <article class="plan-card" aria-labelledby="plan-tier1-heading">
             <div class="plan-card__header">
-              <h3 id="plan-pro-heading" class="plan-card__name">Pro</h3>
-              <p class="plan-card__tagline">For power users who need it all</p>
+              <h3 id="plan-tier1-heading" class="plan-card__name">Tier 1</h3>
+              <p class="plan-card__tagline">More capabilities and higher limits</p>
             </div>
 
             <div class="plan-card__price">
               <div class="plan-card__price-row">
-                <span class="plan-card__full-price" id="pro-full" aria-label="Original price">Â£29.99</span>
-                <span class="plan-card__launch-price" id="pro-launch" aria-label="Launch price">Â£19.99</span>
-                <span class="plan-card__period" id="pro-period">/month</span>
+                <span class="plan-card__launch-price" id="tier1-price" aria-label="Price">&hellip;</span>
+                <span class="plan-card__period" id="tier1-period">/year</span>
               </div>
-              <p class="plan-card__equiv" id="pro-equiv" hidden>Â£16.67/mo &mdash; save 17%</p>
+              <p class="plan-card__equiv" id="tier1-equiv"></p>
             </div>
 
-            <div class="plan-card__trial">
-              7-day free trial
-            </div>
-
-            <ul class="plan-card__features" aria-label="Pro plan features">
+            <ul class="plan-card__features" aria-label="Tier 1 features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Full access to all features
+                Everything in Free
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Estate Planning
+                Unlimited savings, investments and pensions
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Letter to Spouse / Expression of Wishes
+              </li>
+            </ul>
+
+            <a href="/register?plan=tier1&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-tier1">
+              Choose Tier 1
+            </a>
+          </article>
+
+          <!-- Tier 2 (Most Popular) -->
+          <article class="plan-card plan-card--featured" aria-labelledby="plan-tier2-heading">
+            <div class="plan-card__badge" aria-label="Most popular tier">Most Popular</div>
+            <div class="plan-card__header">
+              <h3 id="plan-tier2-heading" class="plan-card__name">Tier 2</h3>
+              <p class="plan-card__tagline">Our most popular tier</p>
+            </div>
+
+            <div class="plan-card__price">
+              <div class="plan-card__price-row">
+                <span class="plan-card__launch-price" id="tier2-price" aria-label="Price">&hellip;</span>
+                <span class="plan-card__period" id="tier2-period">/year</span>
+              </div>
+              <p class="plan-card__equiv" id="tier2-equiv"></p>
+            </div>
+
+            <ul class="plan-card__features" aria-label="Tier 2 features">
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Everything in Tier 1
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Estate Planning &mdash; Wills, Trusts and Powers of Attorney
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Inheritance tax planning
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                What If Scenarios
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 Holistic Plan
               </li>
+            </ul>
+
+            <a href="/register?plan=tier2&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-tier2">
+              Choose Tier 2
+            </a>
+          </article>
+
+          <!-- Tier 3 -->
+          <article class="plan-card" aria-labelledby="plan-tier3-heading">
+            <div class="plan-card__header">
+              <h3 id="plan-tier3-heading" class="plan-card__name">Tier 3</h3>
+              <p class="plan-card__tagline">More capabilities and higher limits</p>
+            </div>
+
+            <div class="plan-card__price">
+              <div class="plan-card__price-row">
+                <span class="plan-card__launch-price" id="tier3-price" aria-label="Price">&hellip;</span>
+                <span class="plan-card__period" id="tier3-period">/year</span>
+              </div>
+              <p class="plan-card__equiv" id="tier3-equiv"></p>
+            </div>
+
+            <ul class="plan-card__features" aria-label="Tier 3 features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Wills, Powers of Attorney, Trusts
+                Everything in Tier 2
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                AI document extraction
+                More document uploads and storage
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Advanced projections
+                Higher Fyn AI allowance
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Priority support
+                Longer history and projections
               </li>
             </ul>
 
-            <a href="/register?plan=pro&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-pro">
-              Start Free Trial
+            <a href="/register?plan=tier3&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-tier3">
+              Choose Tier 3
             </a>
           </article>
 
@@ -339,8 +291,8 @@
         <div class="trust-grid">
 
           <div class="trust-item">
-            <h3 class="trust-item__title">7-Day Free Trial</h3>
-            <p class="trust-item__body">Try any plan risk-free. No credit card required to start.</p>
+            <h3 class="trust-item__title">Free to Start</h3>
+            <p class="trust-item__body">Begin on the Free tier and upgrade whenever you like. No credit card required.</p>
           </div>
 
           <div class="trust-item">
@@ -367,62 +319,62 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'pricing-faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'What happens when my free trial ends?',
-          'a' => "You'll be prompted to choose a plan. If you don't subscribe, your account remains accessible in read-only mode â€” you won't lose any data. You can subscribe at any time to regain full access.",
+        'id' => 'pricing-faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'Is there a free trial?',
+                'a' => "There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.",
+            ],
+            [
+                'q' => 'Can I change plans?',
+                'a' => 'Yes, upgrade or downgrade at any time. Changes take effect from your next billing cycle.',
+            ],
+            [
+                'q' => 'What payment methods do you accept?',
+                'a' => 'We accept all major credit and debit cards. Payments are processed securely through Stripe.',
+            ],
+            [
+                'q' => 'Is my financial data safe?',
+                'a' => "Yes. Your data is encrypted in transit and at rest using industry-standard encryption. We don't share your data with third parties, don't sell data to advertisers, and don't earn commission from financial product providers.",
+            ],
+            [
+                'q' => 'What is the difference between the tiers?',
+                'a' => 'The Free tier covers your dashboard, income and expenditure, property, protection, savings, investments and pensions. Tier 1 unlocks unlimited savings, investment and pension accounts plus the Letter to Spouse. Tier 2 adds Estate Planning — Wills, Trusts, Powers of Attorney and Inheritance Tax — along with What If Scenarios and the Holistic Plan. Tier 3 adds higher document, storage and Fyn allowances.',
+            ],
+            [
+                'q' => 'What if I cancel?',
+                'a' => 'You can export your data at any time. Cancel monthly plans any time; annual plans run to the end of the 12-month period. Your data is retained for 30 days after cancellation, then permanently deleted.',
+            ],
         ],
-        [
-          'q' => 'Can I change plans?',
-          'a' => 'Yes, upgrade or downgrade at any time. Changes take effect from your next billing cycle.',
-        ],
-        [
-          'q' => 'What payment methods do you accept?',
-          'a' => 'We accept all major credit and debit cards. Payments are processed securely through Stripe.',
-        ],
-        [
-          'q' => 'Is my financial data safe?',
-          'a' => "Yes. Your data is encrypted in transit and at rest using industry-standard encryption. We don't share your data with third parties, don't sell data to advertisers, and don't earn commission from financial product providers.",
-        ],
-        [
-          'q' => 'What is the difference between the plans?',
-          'a' => 'Each tier adds more depth. Student covers budgeting, savings, and basic pension tracking. Standard adds full retirement projections, property, investments, and protection analysis. Pro adds Estate Planning, Wills, Powers of Attorney, Trusts, AI document extraction, and advanced scenario modelling.',
-        ],
-        [
-          'q' => 'What if I cancel?',
-          'a' => 'You can export your data at any time. Cancel monthly plans any time; annual plans run to the end of the 12-month period. Your data is retained for 30 days after cancellation, then permanently deleted.',
-        ],
-      ],
     ];
-    include __DIR__ . '/partials/modules/faq.php';
-    ?>
+  include __DIR__.'/partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          CTA BAND  [id=pricing-cta]
          Module: partials/modules/cta-band.php
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'pricing-cta',
+  $module = [
+      'id' => 'pricing-cta',
       'heading' => 'Ready to take control of your finances?',
-      'subtext' => 'Start your 7-day free trial today. No credit card required.',
+      'subtext' => 'Start free today. No credit card required.',
       'actions' => [
-        ['text' => 'Get started free', 'href' => '/register', 'primary' => true],
-        ['text' => 'See how it works', 'href' => '/how-it-works', 'primary' => false],
+          ['text' => 'Get started free', 'href' => '/register', 'primary' => true],
+          ['text' => 'See how it works', 'href' => '/how-it-works', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
-  <script src="/pages/js/pricing.js?v=1" defer></script>
+  <script src="/pages/js/pricing.js?v=2" defer></script>
 
 </body>
 </html>
