@@ -35,15 +35,15 @@ it('computes pension relief per band (no existing pension)', function () {
 
     expect(lineAmount($this->service->estimate(['income' => 'upto_50270', 'assets' => $assets]), 'pension'))->toBe(1005)
         ->and(lineAmount($this->service->estimate(['income' => '50271_100000', 'assets' => $assets]), 'pension'))->toBe(4000)
-        ->and(lineAmount($this->service->estimate(['income' => 'over_130000', 'assets' => $assets]), 'pension'))->toBe(6750);
+        ->and(lineAmount($this->service->estimate(['income' => 'over_125140', 'assets' => $assets]), 'pension'))->toBe(6750);
 });
 
-it('computes the exact 60% trap relief for the £100k-£130k band', function () {
-    // £130k income, contribute £30k to clear to £100k: 20% at source (£6,000)
-    // + income-tax fall (£11,271) = £17,271.
-    $result = $this->service->estimate(['income' => '100001_130000', 'assets' => ['savings']]);
+it('computes the exact 60% trap relief for the £100k-£125,140 band', function () {
+    // £125,140 income, contribute £25,140 to clear to £100k: 20% at source
+    // (£5,028) + income-tax fall (£10,056) = £15,084.
+    $result = $this->service->estimate(['income' => '100001_125140', 'assets' => ['savings']]);
 
-    expect(lineAmount($result, 'pension'))->toBe(17271);
+    expect(lineAmount($result, 'pension'))->toBe(15084);
 });
 
 it('omits the pension line when the user already has a pension', function () {
@@ -65,7 +65,7 @@ it('computes ISA, PSA, dividend and CGT savings for a higher-rate saver-investor
 });
 
 it('drops the Personal Savings Allowance saving at additional rate', function () {
-    $result = $this->service->estimate(['income' => 'over_130000', 'assets' => ['savings']]);
+    $result = $this->service->estimate(['income' => 'over_125140', 'assets' => ['savings']]);
 
     expect(lineAmount($result, 'psa'))->toBe(0);
 });
