@@ -1479,7 +1479,6 @@ router.beforeEach(async (to, from, next) => {
   }
 
   const isAuthenticated = store.getters['auth/isAuthenticated'];
-  const isAdmin = store.getters['auth/isAdmin'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
   // Use to.matched.some() rather than to.meta — child routes do NOT inherit
   // parent meta in Vue Router. /preview/net-worth has nested children that
@@ -1522,6 +1521,28 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
+  // Cold-boot role hydration. The user-derived getters (isAdmin/isAdvisor) read
+  // state.auth.user, which is populated either synchronously from persisted
+  // state (vuex-persistedstate path 'auth.user') or asynchronously by App.vue's
+  // fetchUser on mount. On a first-ever boot of the desktop SPA in a context
+  // that has a bearer token but no persisted user — e.g. tapping "Admin Panel"
+  // in the /m drawer, which does a top-window full-page load of /admin where
+  // only the token is bridged — neither source has populated the user yet when
+  // this guard first runs, so isAdmin is falsely false and an admin is bounced
+  // to /dashboard on the first hop (reachable only on the next nav). If a token
+  // is present but the user hasn't hydrated and this route gates on a
+  // user-derived role, fetch the user once before deciding. Mirrors the
+  // capability-matrix hydration below; runs at most once per page load.
+  if (isAuthenticated && !isPreviewMode && !store.state.auth.user
+      && to.matched.some(r => r.meta.requiresAdmin || r.meta.requiresAdvisor)) {
+    try {
+      await store.dispatch('auth/fetchUser');
+    } catch (e) {
+      // Token invalid/expired — leave state as-is; the requiresAuth / requiresAdmin
+      // branches below still apply (and API 401s force a re-login).
+    }
+  }
+
   // Allow access to authenticated routes when in preview mode
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   if (requiresAuth && !isAuthenticated && !isPreviewMode) {
@@ -1532,7 +1553,7 @@ router.beforeEach(async (to, from, next) => {
     // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
     // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
-  } else if (to.matched.some(r => r.meta.requiresAdmin) && !isAdmin) {
+  } else if (to.matched.some(r => r.meta.requiresAdmin) && !store.getters['auth/isAdmin']) {
     // Redirect to dashboard if route requires admin access (preview mode cannot access admin).
     // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
     // REVIEW.md §4 High #27.
