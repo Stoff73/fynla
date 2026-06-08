@@ -1,6 +1,16 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-07 — end-of-day — Closed the gamification inline-capture award unit test (#487) and fixed the **missing "Save tax" CTA on the public landing** (#488): it had been added to the Vue SPA `LandingPage.vue`, but logged-out visitors (and the `/m` iframe) are served the server-rendered `public/pages/index.php` — fixed there, deployed + verified on csjones. Prod still NOT deployed (`dev` +120/-7 vs main). Prior sections preserved beneath.*
+*Last updated: 2026-06-08 — context-clear, session 3 — Big savetax day: auth throttle fix (#489), joint co-owner name (#490), full savetax dynamic-tax engine + funnel rework (#492), accurate £125,140 bands + tapered-PA (#493), Marriage Allowance gating + exhaustive test (#494), 60% trap as a distinct item (#495), section-led configurable onboarding with per-section tax-engine advice (#498), dashboard-blur removal (#499). All merged to dev + deployed/verified on csjones (incl. SPA rebuild). Prod NOT deployed (`dev` ~149/-7 vs main). Prior sections preserved beneath.*
+
+## 2026-06-08 — SaveTax suite + onboarding rework (context-clear, dev; deployed + verified on csjones)
+
+Handover: `June/June8Updates/handover-2026-06-08-session-3-clear.md`. PRs #489, #490, #492, #493, #494, #495, #498, #499 merged to `dev`, deployed to csjones, verified live (savetax onboarding walked end-to-end on local + csjones; taxconfig save + /m admin-link fixes verified; dashboard blur gone). Memory added: `reference_inline_throttle_shares_per_ip_bucket.md`.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is ~149 / -7 vs `main`. The **auth throttle fix #489 is genuinely prod-relevant** (MFA password reset is broken on prod until released). Savetax SPA changes need a prod build; gamification runbook still `June/June7Updates/deploy-2026-06-07.md`.
+- [ ] Optional: `/m` Admin link lands on `/dashboard` not `/admin` on the first hop (auth-guard cold-boot race; reachable on next nav) — small follow-up fix if wanted.
+- [ ] Optional: sweep 4 stale unreferenced `AppLayout-*.js` chunks on csjones `public/build` (accumulated from deploys; harmless).
+- [ ] **chris@fynla.org existing-user pass** — still blocked: safety guard won't reset his csjones password. (Not needed 2026-06-08 — browser held his session.)
 
 ## 2026-06-07 — Save tax CTA fix + gamification test (end-of-day, dev; #488 deployed to csjones)
 
