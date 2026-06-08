@@ -20,6 +20,9 @@
       <p class="property-location">
         {{ property.city }}, {{ property.postcode }}
       </p>
+      <p v-if="isSharedOwnership && property.joint_owner_name" class="property-coowner">
+        {{ ownershipLabel }} with {{ property.joint_owner_name }}
+      </p>
 
       <div class="property-details">
         <!-- Fixed height container for value rows -->
@@ -91,6 +94,10 @@ export default {
 
     isSharedOwnership() {
       return this.isJoint || this.isTenantsInCommon;
+    },
+
+    ownershipLabel() {
+      return this.isTenantsInCommon ? 'Tenants in common' : 'Joint';
     },
 
     fullPropertyValue() {
@@ -247,6 +254,12 @@ export default {
 .property-location {
   font-size: 14px;
   @apply text-neutral-500;
+  margin: 0;
+}
+
+.property-coowner {
+  font-size: 13px;
+  @apply text-horizon-500;
   margin: 0;
 }
 
