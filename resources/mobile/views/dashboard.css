@@ -1,8 +1,8 @@
 /**
  * mobile-dashboard-mockup.css — design mockup for /m-mockup/dashboard
  *
- * Mobile-first; max-width 430px centred on desktop so the mockup looks
- * like a phone preview when viewed in a browser. Fynla palette only —
+ * Mobile-first; full-bleed at every width (fills the viewport like the module
+ * views — no centred phone-frame cap). Fynla palette only —
  * no purple from the reference imagery. Rule #16: no decorative icons
  * on cards. Functional icons (hamburger, close X, recommendation tick)
  * are allowed.
@@ -18,7 +18,9 @@
    =================================================================== */
 .phone-frame {
   width: 100%;
-  max-width: 430px;   /* full width on a phone; capped at mobile width on desktop */
+  /* Full-bleed at every width — the dashboard fills the viewport just like the
+     module views (which use no phone-frame). On a phone this is the screen; on
+     wider viewports it uses the whole width rather than a centred 430px column. */
   background: var(--eggshell-500);
   height: 100vh;   /* fallback */
   height: 100svh;

@@ -258,11 +258,18 @@
             <span class="md-drawer__label">Dashboard</span>
           </a>
         </div>
-        <div class="md-drawer__section">
-          <p class="md-drawer__group">Finances</p>
-          <a v-for="link in navLinks" :key="link.slug" href="#" class="md-drawer__link" @click.prevent="goto(link.route)">
+        <div v-for="section in navSections" :key="section.group" class="md-drawer__section">
+          <p class="md-drawer__group">{{ section.group }}</p>
+          <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" @click.prevent="goto(link.route)">
             <span class="md-drawer__icon" aria-hidden="true" v-html="link.icon"></span>
             <span class="md-drawer__label">{{ link.label }}</span>
+          </a>
+        </div>
+        <div v-if="isAdmin" class="md-drawer__section">
+          <p class="md-drawer__group">Admin</p>
+          <a href="#" class="md-drawer__link" @click.prevent="gotoAdmin">
+            <span class="md-drawer__icon" aria-hidden="true" v-html="adminIcon"></span>
+            <span class="md-drawer__label">Admin Panel</span>
           </a>
         </div>
         <div class="md-drawer__section md-drawer__section--account">
@@ -360,6 +367,8 @@ const NAV_ICON = {
   estate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3"/></svg>',
   goals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118L2.36 10.8c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.518-4.674z"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>',
+  tax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
+  admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
 };
 
 export default {
@@ -433,17 +442,35 @@ export default {
     showFynNudge() {
       return this.onboardingActive && !this.fynOpen && !this.nudgeDismissed;
     },
-    navLinks() {
-      // Every module now routes to its dedicated mobile view.
+    // Drawer nav grouped to mirror the web sidebar's sections. Only modules
+    // that have a dedicated mobile view are linked (the web sidebar's other
+    // items have no mobile screen yet). Labels match the web wording.
+    navSections() {
       return [
-        { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
-        { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
-        { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
-        { slug: 'investment', label: 'Investment', icon: NAV_ICON.investment, route: '/investment' },
-        { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
-        { slug: 'estate', label: 'Estate', icon: NAV_ICON.estate, route: '/estate' },
-        { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
+        { group: 'Finances', links: [
+          { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
+          { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
+          { slug: 'investment', label: 'Investments', icon: NAV_ICON.investment, route: '/investment' },
+          { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
+        ] },
+        { group: 'Family', links: [
+          { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
+          { slug: 'estate', label: 'Estate Planning', icon: NAV_ICON.estate, route: '/estate' },
+        ] },
+        { group: 'Planning', links: [
+          { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
+          { slug: 'tax', label: 'Tax Strategy', icon: NAV_ICON.tax, route: '/tax-strategy' },
+        ] },
       ];
+    },
+    // Admin section — only for admin users (matches the web sidebar's gated
+    // Admin section). The link opens the desktop Admin Panel, which has no
+    // mobile equivalent; `admin/*` is exempt from the phone→/m redirect.
+    isAdmin() {
+      return store.user?.is_admin === true;
+    },
+    adminIcon() {
+      return NAV_ICON.admin;
     },
     // The level wheel reads engine-fed values directly from the dashboard
     // payload (see load()). The "X of Y actions complete" heading binds to
@@ -696,6 +723,14 @@ export default {
     goto(route) {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
+    },
+    // Leave the mobile SPA for the desktop Admin Panel (no mobile equivalent).
+    // Uses the same base as the mobile router (VITE_ROUTER_BASE → /fynla/ on
+    // csjones, / elsewhere); window.top handles the case where /m/app is framed.
+    gotoAdmin() {
+      this.closeDrawer();
+      const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
+      try { window.top.location.href = url; } catch (e) { window.location.href = url; }
     },
     // Share via the native share sheet (navigator.share) with a clipboard
     // fallback. Content comes from /api/v1/mobile/share/{type} — generic,

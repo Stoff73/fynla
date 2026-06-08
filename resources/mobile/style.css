@@ -59,14 +59,12 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F4; color: #1F2A44; }
 /* Auth/scaffold screens (Login/Verify) keep the boxed card layout; the dashboard
-   phone-frame is constrained to mobile-app width and centred in the viewport. */
+   phone-frame is full-bleed and fills the viewport at every width. */
 #m-app { min-height: 100vh; }
-/* Centre the phone-frame so the dashboard sits at mobile-app width (max 430px)
-   in the middle of the screen rather than left-aligned, with a neutral backdrop. */
+/* The dashboard phone-frame has no width cap, so it fills #m-app edge-to-edge —
+   no centring, no contrasting backdrop (which would have shown as side margins). */
 #m-app:has(.phone-frame) {
-  display: flex;
-  justify-content: center;
-  background: var(--horizon-100);
+  background: var(--eggshell-500);
 }
 #m-app:has(.m-card) { max-width: 420px; margin: 0 auto; padding: 24px 20px 40px; }
 .m-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
