@@ -102,11 +102,11 @@ try {
               <span class="sp4-savings__up-to">Up to</span>
               <span class="sp4-savings__figure" id="savings-figure">£3,100</span>
             </p>
-            <p class="sp4-savings__label">estimated tax savings each year</p>
+            <p class="sp4-savings__label">average estimated saving each year</p>
           </div>
 
           <p class="campaign-hero__subtext" id="hero-subtext">
-            This is what you could save based on your situation. Register for free and Fyn will build your personal tax strategy, and remember what you've told us so far.
+            This is an <strong>average</strong> based on the answers you gave — not your personal tax saving. To get your personal tax strategy, register for free and continue with Fyn, who'll work it out from your full situation and remember everything you've told us so far.
           </p>
         </div>
 
@@ -202,7 +202,7 @@ try {
 
   <?php include __DIR__.'/partials/footer.php'; ?>
 
-  <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
+  <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/savetax-plan-v4.js?v=6" defer></script>
 

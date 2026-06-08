@@ -51,6 +51,13 @@
   var ans = readAnswers();
   var has = function (k) { return ans.assets.indexOf(k) !== -1; };
   var fmt = function (n) { return '£' + Number(n).toLocaleString('en-GB'); };
+  // HTML-escape any string before it goes into innerHTML (defense in depth —
+  // estimate strings are server-generated, but never trust-interpolate).
+  var esc = function (s) {
+    var d = document.createElement('div');
+    d.textContent = String(s == null ? '' : s);
+    return d.innerHTML;
+  };
 
   // --- Human-readable labels for the "remembered" chips -------------------
   var EMP = {
@@ -100,16 +107,16 @@
     var saving = on ? savingByKey(SAVING_FOR[a.key]) : null;
     var reasonHtml = '';
     if (saving && saving.amount > 0) {
-      reasonHtml = '<p class="sp4-alw__reason"><strong>Could save ' + fmt(saving.amount) + '/yr.</strong> ' + saving.reason + '</p>';
+      reasonHtml = '<p class="sp4-alw__reason"><strong>Could save ' + fmt(saving.amount) + '/yr.</strong> ' + esc(saving.reason) + '</p>';
     } else if (saving && saving.reason) {
-      reasonHtml = '<p class="sp4-alw__reason">' + saving.reason + '</p>';
+      reasonHtml = '<p class="sp4-alw__reason">' + esc(saving.reason) + '</p>';
     }
     return (
       '<div class="' + cls + '">' +
         '<span class="sp4-alw__check" aria-hidden="true">' + mark + '</span>' +
         '<div class="sp4-alw__body">' +
           '<div class="sp4-alw__row">' +
-            '<span class="sp4-alw__label">' + a.label + '</span>' +
+            '<span class="sp4-alw__label">' + esc(a.label) + '</span>' +
             '<span class="sp4-alw__amount">' + fmt(a.amount) + '</span>' +
           '</div>' +
           reasonHtml +
