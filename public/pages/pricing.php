@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pricing â€” Simple, Transparent Plans | Fynla</title>
+  <title>Pricing — Simple, Transparent Plans | Fynla</title>
   <meta name="description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />
   <link rel="canonical" href="https://fynla.org/pricing" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Pricing â€” Simple, Transparent Plans | Fynla" />
+  <meta property="og:title"       content="Pricing — Simple, Transparent Plans | Fynla" />
   <meta property="og:description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />
   <meta property="og:image"       content="https://fynla.org/images/og/pricing.jpg" />
   <meta property="og:url"         content="https://fynla.org/pricing" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Pricing â€” Simple, Transparent Plans | Fynla" />
+  <meta name="twitter:title"       content="Pricing — Simple, Transparent Plans | Fynla" />
   <meta name="twitter:description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/pricing.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Pricing â€” Simple, Transparent Plans",
+    "name": "Pricing — Simple, Transparent Plans",
     "url": "https://fynla.org/pricing",
     "description": "Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required.",
     "publisher": {
@@ -40,7 +40,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
        Everything below the fold lives in the external files. -->
   <style>
     /* tokens */
@@ -60,7 +60,7 @@
     /* nav skeleton */
     .site-header{position:sticky;top:0;z-index:50;background:var(--white);box-shadow:var(--shadow-sm);border-bottom:1px solid var(--light-gray);}
     .nav-primary__inner{max-width:80rem;margin:0 auto;padding:0 1rem;display:flex;align-items:center;justify-content:flex-start;height:4rem;position:relative;}
-    /* pricing hero â€” above fold */
+    /* pricing hero — above fold */
     .pricing-hero{background:linear-gradient(to right,var(--horizon-500),var(--raspberry-500));overflow:hidden;}
     .pricing-hero__inner{max-width:80rem;margin:0 auto;padding:2.5rem 1rem;}
     .pricing-hero__heading{font-size:clamp(2rem,8vw,4rem);font-weight:900;line-height:1.1;color:var(--white);margin-bottom:0.75rem;}
