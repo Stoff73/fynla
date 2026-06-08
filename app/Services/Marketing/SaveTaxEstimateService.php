@@ -149,12 +149,17 @@ class SaveTaxEstimateService
                 'amount' => (int) round($startingRate * $rate),
                 'reason' => 'With no other income, your spouse can earn up to '.$this->money($startingRate).' of savings interest tax-free.',
             ];
-            $savings[] = [
-                'key' => 'marriage_allowance',
-                'label' => 'Marriage Allowance',
-                'amount' => (int) round($marriage * 0.20),
-                'reason' => 'A separate route: your spouse can transfer '.$this->money($marriage).' of their Personal Allowance to you.',
-            ];
+            // Formal Marriage Allowance only applies when the recipient is a
+            // basic-rate taxpayer — higher/additional earners are not eligible.
+            // (The full-PA transfer lever above works at any rate.)
+            if ($this->isBasicRate($income)) {
+                $savings[] = [
+                    'key' => 'marriage_allowance',
+                    'label' => 'Marriage Allowance',
+                    'amount' => (int) round($marriage * 0.20),
+                    'reason' => 'As a basic-rate taxpayer you qualify: your spouse can transfer '.$this->money($marriage).' of their Personal Allowance to you.',
+                ];
+            }
         }
 
         $savingsTotal = array_sum(array_column($savings, 'amount'));
@@ -199,7 +204,10 @@ class SaveTaxEstimateService
 
         if ($married) {
             $marriage = (int) $this->taxConfig->get('income_tax.marriage_allowance.amount', 1260);
-            $items[] = ['key' => 'marriage_allowance', 'label' => 'Marriage Allowance', 'amount' => $marriage, 'on' => true];
+            // Eligible only when the non-earning spouse (£0) pairs with a
+            // basic-rate recipient. Shown greyed for ineligible married couples.
+            $marriageEligible = $spouseBand === 'zero' && $this->isBasicRate($income);
+            $items[] = ['key' => 'marriage_allowance', 'label' => 'Marriage Allowance', 'amount' => $marriage, 'on' => $marriageEligible];
 
             // Spouse's own per-person allowances (household view).
             $spouseIncome = $spouseBand !== null ? self::BAND_INCOME[$spouseBand] : 0;
@@ -319,6 +327,12 @@ class SaveTaxEstimateService
             'higher' => $rate('Higher', 0.40),
             'additional' => $rate('Additional', 0.45),
         ];
+    }
+
+    /** True when the assumed income falls in the basic-rate band. */
+    private function isBasicRate(int $income): bool
+    {
+        return $income <= (int) $this->taxConfig->get('income_tax.higher_rate_threshold', 50270);
     }
 
     /** Marginal income-tax rate at the assumed income. */

@@ -81,7 +81,15 @@ it('adds spouse-transfer levers when the spouse earns nothing', function () {
     expect(lineAmount($result, 'spouse_pa'))->toBe(5028)            // £12,570 × 40%
         ->and(lineAmount($result, 'spouse_psa'))->toBe(400)        // £1,000 × 40%
         ->and(lineAmount($result, 'spouse_starting_rate'))->toBe(2000) // £5,000 × 40%
-        ->and(lineAmount($result, 'marriage_allowance'))->toBe(252);    // £1,260 × 20%
+        ->and(lineAmount($result, 'marriage_allowance'))->toBe(0);     // higher-rate recipient is NOT eligible
+});
+
+it('offers Marriage Allowance only to a basic-rate recipient with a £0 spouse', function () {
+    $basic = $this->service->estimate(['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+    expect(lineAmount($basic, 'marriage_allowance'))->toBe(252); // £1,260 × 20%
+
+    $higher = $this->service->estimate(['income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+    expect(lineAmount($higher, 'marriage_allowance'))->toBe(0);
 });
 
 it('does not add spouse levers when there is no spouse', function () {
@@ -102,12 +110,139 @@ it('builds the allowances-available total and doubles per-person allowances when
         'spouseIncome' => 'zero',
         'assets' => ['savings', 'investments'],
     ]);
-    // + Marriage 1,260 + spouse PA 12,570 + spouse ISA 20,000 + spouse AA 60,000 = 190,400
-    expect($married['allowances']['total'])->toBe(190400);
+    // Higher-rate primary → Marriage Allowance NOT eligible (excluded).
+    // + spouse PA 12,570 + spouse ISA 20,000 + spouse AA 60,000 = 189,140
+    expect($married['allowances']['total'])->toBe(189140);
 });
 
 it('reports the active tax year from config', function () {
     $result = $this->service->estimate(['income' => 'upto_50270', 'assets' => []]);
 
     expect($result['tax_year'])->toBe('2026/27');
+});
+
+function itemOn(array $result, string $key): ?bool
+{
+    foreach ($result['allowances']['items'] as $i) {
+        if ($i['key'] === $key) {
+            return $i['on'];
+        }
+    }
+
+    return null;
+}
+
+function hasSaving(array $result, string $key): bool
+{
+    foreach ($result['savings'] as $s) {
+        if ($s['key'] === $key) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+it('highlights the correct allowances and keeps the math consistent for every possible answer', function () {
+    $bands = [
+        'upto_50270' => 50270,
+        '50271_100000' => 100000,
+        '100001_125140' => 125140,
+        'over_125140' => 150000,
+    ];
+    $spouseOptions = [null, 'zero', 'upto_50270', '50271_100000', '100001_125140', 'over_125140'];
+    $assetKeys = ['bank', 'savings', 'pension', 'property', 'isa', 'investments'];
+
+    $combos = 0;
+
+    foreach ($bands as $incomeBand => $income) {
+        $primaryBasic = $income <= 50270;
+        $psaBand = $income > 125140 ? 0 : ($income > 50270 ? 500 : 1000);
+        $expectedPa = (int) round(max(0.0, min(12570.0, 12570.0 - max(0, $income - 100000) * 0.5)));
+
+        foreach ($spouseOptions as $spouseOpt) {
+            $married = $spouseOpt !== null;
+
+            for ($mask = 0; $mask < 64; $mask++) {
+                $assets = [];
+                foreach ($assetKeys as $bit => $key) {
+                    if ($mask & (1 << $bit)) {
+                        $assets[] = $key;
+                    }
+                }
+                $combos++;
+
+                $has = fn (string ...$k): bool => (bool) array_intersect($k, $assets);
+                $hasFinancial = $has('isa', 'savings', 'investments', 'bank');
+
+                $r = $this->service->estimate([
+                    'income' => $incomeBand,
+                    'spouse' => $married ? 'yes' : 'no',
+                    'spouseIncome' => $spouseOpt,
+                    'assets' => $assets,
+                ]);
+
+                $label = "income={$incomeBand} spouse=".($spouseOpt ?? 'none').' assets='.implode(',', $assets);
+
+                // --- Structural / math invariants ---
+                $sumSavings = array_sum(array_column($r['savings'], 'amount'));
+                expect($r['savings_total'])->toBe($sumSavings, "savings_total != sum [$label]");
+
+                $sumOnAllowances = 0;
+                foreach ($r['allowances']['items'] as $i) {
+                    expect($i['amount'])->toBeGreaterThanOrEqual(0, "negative allowance [$label:{$i['key']}]");
+                    if ($i['on']) {
+                        $sumOnAllowances += $i['amount'];
+                    }
+                }
+                expect($r['allowances']['total'])->toBe($sumOnAllowances, "allowances total != sum of on [$label]");
+                foreach ($r['savings'] as $s) {
+                    expect($s['amount'])->toBeGreaterThanOrEqual(0, "negative saving [$label:{$s['key']}]");
+                }
+
+                // --- Allowance highlighting (on/off) correctness ---
+                expect(itemOn($r, 'personal_allowance'))->toBeTrue("PA must always show [$label]");
+                expect(itemOn($r, 'isa'))->toBeTrue("ISA must always show [$label]");
+                expect(itemOn($r, 'pension_aa'))->toBeTrue("Pension AA must always show [$label]");
+                expect(itemOn($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA on/off wrong [$label]");
+                expect(itemOn($r, 'dividend'))->toBe($has('investments'), "Dividend on/off wrong [$label]");
+                expect(itemOn($r, 'cgt'))->toBe($has('investments', 'property'), "CGT on/off wrong [$label]");
+
+                // PA amount = correct taper
+                $paAmount = null;
+                foreach ($r['allowances']['items'] as $i) {
+                    if ($i['key'] === 'personal_allowance') {
+                        $paAmount = $i['amount'];
+                    }
+                }
+                expect($paAmount)->toBe($expectedPa, "PA taper amount wrong [$label]");
+
+                // Marriage Allowance: only present (and only "on") when married,
+                // spouse earns £0, and the recipient is basic-rate.
+                $marriageEligible = $married && $spouseOpt === 'zero' && $primaryBasic;
+                if ($married) {
+                    expect(itemOn($r, 'marriage_allowance'))->toBe($marriageEligible, "MA eligibility wrong [$label]");
+                    expect(itemOn($r, 'spouse_pa'))->toBeTrue("spouse PA item missing [$label]");
+                } else {
+                    expect(itemOn($r, 'marriage_allowance'))->toBeNull("MA shown for single [$label]");
+                    expect(itemOn($r, 'spouse_pa'))->toBeNull("spouse PA shown for single [$label]");
+                }
+
+                // --- Saving-line presence correctness ---
+                expect(hasSaving($r, 'pension'))->toBe(! $has('pension'), "pension saving presence wrong [$label]");
+                expect(hasSaving($r, 'isa'))->toBe($hasFinancial, "ISA saving presence wrong [$label]");
+                expect(hasSaving($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA saving presence wrong [$label]");
+                expect(hasSaving($r, 'dividend'))->toBe($has('investments'), "dividend saving presence wrong [$label]");
+                expect(hasSaving($r, 'cgt'))->toBe($has('investments', 'property'), "CGT saving presence wrong [$label]");
+
+                $spouseZero = $married && $spouseOpt === 'zero';
+                expect(hasSaving($r, 'spouse_pa'))->toBe($spouseZero, "spouse_pa saving presence wrong [$label]");
+                expect(hasSaving($r, 'spouse_psa'))->toBe($spouseZero, "spouse_psa saving presence wrong [$label]");
+                expect(hasSaving($r, 'spouse_starting_rate'))->toBe($spouseZero, "spouse_starting_rate presence wrong [$label]");
+                expect(hasSaving($r, 'marriage_allowance'))->toBe($marriageEligible, "MA saving presence wrong [$label]");
+            }
+        }
+    }
+
+    expect($combos)->toBe(4 * 6 * 64); // 1,536 combinations exercised
 });
