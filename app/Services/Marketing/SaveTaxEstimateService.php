@@ -59,22 +59,25 @@ class SaveTaxEstimateService
 
         $savings = [];
 
-        // --- Pension ---------------------------------------------------------
-        // Only when the user has no pension yet. Band C clears the 60% trap
-        // (contribute down to £100k); other bands assume 10% of upper income.
+        // --- Pension / 60% tax trap -----------------------------------------
+        // Only when the user has no pension yet. In the trap band the
+        // contribution clears income down to £100k (reclaiming the Personal
+        // Allowance, ~60% effective relief) and is surfaced as its own "60% Tax
+        // Trap" line; other bands assume 10% of upper income.
+        $isTrap = $incomeBand === self::TRAP_BAND;
         if (! $has('pension')) {
-            $contribution = $incomeBand === self::TRAP_BAND
+            $contribution = $isTrap
                 ? max(0, $income - $this->taperThreshold())
                 : (int) round($income * 0.10);
 
             if ($contribution > 0) {
                 $relief = (int) round($this->pensionRelief($income, $contribution));
                 $savings[] = [
-                    'key' => 'pension',
-                    'label' => 'Pension contribution',
+                    'key' => $isTrap ? 'tax_trap_60' : 'pension',
+                    'label' => $isTrap ? '60% Tax Trap' : 'Pension contribution',
                     'amount' => $relief,
-                    'reason' => $incomeBand === self::TRAP_BAND
-                        ? 'Contributing '.$this->money($contribution).' to a pension reclaims your Personal Allowance — relief of up to 60% in this band.'
+                    'reason' => $isTrap
+                        ? "You're in the 60% tax trap. Contributing ".$this->money($contribution).' to a pension reclaims your Personal Allowance — relief of up to 60% on that contribution.'
                         : 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($rate).' tax relief.',
                 ];
             }
@@ -170,7 +173,7 @@ class SaveTaxEstimateService
             'marginal_rate' => $rate,
             'savings' => $savings,
             'savings_total' => $savingsTotal,
-            'allowances' => $this->allowances($income, $married, $spouseBand, $assets),
+            'allowances' => $this->allowances($income, $married, $spouseBand, $assets, $isTrap),
         ];
     }
 
@@ -181,7 +184,7 @@ class SaveTaxEstimateService
      * @param  array<int,string>  $assets
      * @return array<string,mixed>
      */
-    private function allowances(int $income, bool $married, ?string $spouseBand, array $assets): array
+    private function allowances(int $income, bool $married, ?string $spouseBand, array $assets, bool $isTrap = false): array
     {
         $has = fn (string ...$keys): bool => (bool) array_intersect($keys, $assets);
         $pa = $this->personalAllowanceBase();
@@ -190,6 +193,20 @@ class SaveTaxEstimateService
         $items = [];
 
         $items[] = $this->personalAllowanceItem('personal_allowance', 'Personal Allowance', $income);
+
+        // The 60% tax trap is a distinct, highlighted item for the £100k–£125,140
+        // band: the £12,570 Personal Allowance you can reclaim via a pension
+        // contribution. The saving callout (tax_trap_60) attaches when relevant.
+        if ($isTrap) {
+            $items[] = [
+                'key' => 'tax_trap_60',
+                'label' => '60% Tax Trap',
+                'amount' => $pa,
+                'on' => true,
+                'note' => 'Income between '.$this->money($this->taperThreshold()).' and '.$this->money((int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140)).' loses the Personal Allowance at an effective 60% rate — a pension contribution reclaims it.',
+            ];
+        }
+
         $items[] = ['key' => 'isa', 'label' => 'ISA Allowance', 'amount' => $isa, 'on' => true];
         $items[] = ['key' => 'pension_aa', 'label' => 'Pension Annual Allowance', 'amount' => $aa, 'on' => true];
 
