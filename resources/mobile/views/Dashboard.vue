@@ -725,12 +725,24 @@ export default {
       if (this.$route.path !== route) this.$router.push(route);
     },
     // Leave the mobile SPA for the desktop Admin Panel (no mobile equivalent).
-    // Uses the same base as the mobile router (VITE_ROUTER_BASE → /fynla/ on
-    // csjones, / elsewhere); window.top handles the case where /m/app is framed.
+    // The /m mobile SPA runs inside the same-origin /m iframe and holds the
+    // Sanctum bearer token in localStorage('m_scaffold_token'); the desktop SPA
+    // reads it from sessionStorage('auth_token'). Without bridging it, the top
+    // window boots /admin unauthenticated and the router bounces to the landing
+    // page. Seed the TOP window's sessionStorage (same-origin, so accessible)
+    // with the token, then navigate the top window to the desktop Admin Panel.
     gotoAdmin() {
       this.closeDrawer();
       const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
-      try { window.top.location.href = url; } catch (e) { window.location.href = url; }
+      try {
+        const topWin = window.top || window;
+        const token = store.token || localStorage.getItem('m_scaffold_token');
+        if (token) topWin.sessionStorage.setItem('auth_token', token);
+        topWin.location.href = url;
+      } catch (e) {
+        // Cross-origin / private mode — fall back to a plain same-window nav.
+        window.location.href = url;
+      }
     },
     // Share via the native share sheet (navigator.share) with a clipboard
     // fallback. Content comes from /api/v1/mobile/share/{type} — generic,
