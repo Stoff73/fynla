@@ -29,30 +29,10 @@
           </button>
 
         <div class="hidden sm:flex sm:items-center space-x-4">
-          <!-- Trial info (inline — only during free trial, not for active subscribers) -->
-          <div v-if="trialData && trialData.status === 'trialing'" class="flex items-center gap-3">
-            <div>
-              <p class="text-xs font-medium text-horizon-500">
-                Free trial ends in {{ trialData.days_remaining }} {{ trialData.days_remaining === 1 ? 'day' : 'days' }}
-              </p>
-              <div class="mt-1 w-full bg-white/50 rounded-full h-1">
-                <div
-                  class="bg-violet-500 h-1 rounded-full transition-all duration-500"
-                  :style="{ width: trialData.progress + '%' }"
-                ></div>
-              </div>
-            </div>
-            <button
-              @click="$emit('open-plan-modal')"
-              class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
-            >
-              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-              Choose a Plan
-            </button>
-          </div>
-
+          <!-- Pure freemium: there are no trials, so no "free trial ends" timer
+               ever shows. Free users upgrade via the gated-module teaser →
+               PlanSelectionModal; paid subscribers see the Upgrade Now button
+               below. -->
           <router-link
             v-if="isAdvisor"
             to="/advisor"
