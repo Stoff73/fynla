@@ -374,7 +374,7 @@
   <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
-  <script src="/pages/js/pricing.js?v=2" defer></script>
+  <script src="/pages/js/pricing.js?v=3" defer></script>
 
 </body>
 </html>

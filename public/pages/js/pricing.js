@@ -54,7 +54,7 @@
           ? fmt(Math.round(t.yearly / 12)) + '/mo billed yearly'
           : '';
       }
-      if (elCta) elCta.href = '/register?plan=' + key + '&billing=' + cycle;
+      if (elCta) elCta.href = BASE + '/register?plan=' + key + '&billing=' + cycle;
     });
 
     btnMonthly.setAttribute('aria-pressed', isYearly ? 'false' : 'true');
