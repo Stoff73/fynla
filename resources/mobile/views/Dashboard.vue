@@ -724,25 +724,25 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    // Leave the mobile SPA for the desktop Admin Panel (no mobile equivalent).
-    // The /m mobile SPA runs inside the same-origin /m iframe and holds the
-    // Sanctum bearer token in localStorage('m_scaffold_token'); the desktop SPA
-    // reads it from sessionStorage('auth_token'). Without bridging it, the top
-    // window boots /admin unauthenticated and the router bounces to the landing
-    // page. Seed the TOP window's sessionStorage (same-origin, so accessible)
-    // with the token, then navigate the top window to the desktop Admin Panel.
+    // Leave the /m mobile SPA for the desktop Admin Panel (no mobile equivalent).
+    // The desktop SPA reads its Sanctum token from sessionStorage('auth_token');
+    // the /m app holds it in localStorage('m_scaffold_token'). The reliable
+    // bridge is on the desktop side (mScaffoldBridge.js adopts the shared
+    // localStorage token at boot) — iOS partitions cross-context sessionStorage,
+    // so the seed below is only a best-effort fast-path for desktop browsers.
+    // Navigation must ALWAYS target the TOP window: navigating the iframe would
+    // load /admin inside the /m frame, where the in-frame guard bounces it back
+    // to /m/app.
     gotoAdmin() {
       this.closeDrawer();
       const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
       try {
-        const topWin = window.top || window;
         const token = store.token || localStorage.getItem('m_scaffold_token');
-        if (token) topWin.sessionStorage.setItem('auth_token', token);
-        topWin.location.href = url;
-      } catch (e) {
-        // Cross-origin / private mode — fall back to a plain same-window nav.
-        window.location.href = url;
-      }
+        if (token && window.top && window.top !== window) {
+          window.top.sessionStorage.setItem('auth_token', token);
+        }
+      } catch (e) { /* iOS partitioned storage — the desktop boot bridge covers it */ }
+      (window.top || window).location.href = url;
     },
     // Share via the native share sheet (navigator.share) with a clipboard
     // fallback. Content comes from /api/v1/mobile/share/{type} — generic,
