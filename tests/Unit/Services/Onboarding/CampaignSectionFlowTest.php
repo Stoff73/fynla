@@ -67,6 +67,31 @@ it('resolves the pensions entry past DOB once a date of birth is known', functio
     expect(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
 });
 
+it('opens the income-first entry with the funnel recap greeting', function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'annual_self_employment_income' => null,
+        'funnel_answers' => ['employment' => 'full-time', 'income' => '100001_125140', 'assets' => ['savings']],
+    ]);
+
+    $prompt = SM::buildWorkPrompt('', $u);
+    expect($prompt)->toContain('thanks for those answers')   // greeting
+        ->and($prompt)->toContain('income')                  // leads into income
+        ->and($prompt)->not->toContain('date of birth');     // DOB deferred
+});
+
+it('drops the recap and asks the plain income question once income is captured', function () {
+    $u = campaignUser([
+        'employment_status' => 'full_time',
+        'annual_employment_income' => 60000,
+        'funnel_answers' => ['assets' => ['savings']],
+    ]);
+
+    expect(SM::buildWorkPrompt('', $u))->not->toContain('thanks for those answers');
+});
+
 it('section order matches the single source-of-truth array', function () {
     expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
         'income', 'savings', 'investments', 'pensions', 'giving', 'spouse', 'expenditure',
