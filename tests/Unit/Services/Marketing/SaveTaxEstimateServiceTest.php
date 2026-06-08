@@ -43,7 +43,17 @@ it('computes the exact 60% trap relief for the £100k-£125,140 band', function 
     // (£5,028) + income-tax fall (£10,056) = £15,084.
     $result = $this->service->estimate(['income' => '100001_125140', 'assets' => ['savings']]);
 
-    expect(lineAmount($result, 'pension'))->toBe(15084);
+    // Surfaced as a distinct "60% Tax Trap" line (not the generic pension line).
+    expect(lineAmount($result, 'tax_trap_60'))->toBe(15084)
+        ->and(lineAmount($result, 'pension'))->toBe(0);
+});
+
+it('shows the 60% Tax Trap as a distinct allowance row for the trap band only', function () {
+    $trap = $this->service->estimate(['income' => '100001_125140', 'assets' => ['savings']]);
+    $other = $this->service->estimate(['income' => '50271_100000', 'assets' => ['savings']]);
+
+    expect(itemOn($trap, 'tax_trap_60'))->toBeTrue()
+        ->and(itemOn($other, 'tax_trap_60'))->toBeNull();
 });
 
 it('omits the pension line when the user already has a pension', function () {
@@ -157,6 +167,7 @@ it('highlights the correct allowances and keeps the math consistent for every po
 
     foreach ($bands as $incomeBand => $income) {
         $primaryBasic = $income <= 50270;
+        $isTrap = $incomeBand === '100001_125140';
         $psaBand = $income > 125140 ? 0 : ($income > 50270 ? 500 : 1000);
         $expectedPa = (int) round(max(0.0, min(12570.0, 12570.0 - max(0, $income - 100000) * 0.5)));
 
@@ -228,8 +239,17 @@ it('highlights the correct allowances and keeps the math consistent for every po
                     expect(itemOn($r, 'spouse_pa'))->toBeNull("spouse PA shown for single [$label]");
                 }
 
+                // 60% Tax Trap: distinct allowance row for the trap band only.
+                if ($isTrap) {
+                    expect(itemOn($r, 'tax_trap_60'))->toBeTrue("trap row must show in trap band [$label]");
+                } else {
+                    expect(itemOn($r, 'tax_trap_60'))->toBeNull("trap row shown outside trap band [$label]");
+                }
+
                 // --- Saving-line presence correctness ---
-                expect(hasSaving($r, 'pension'))->toBe(! $has('pension'), "pension saving presence wrong [$label]");
+                // In the trap band the pension lever is surfaced as tax_trap_60.
+                expect(hasSaving($r, 'pension'))->toBe(! $isTrap && ! $has('pension'), "pension saving presence wrong [$label]");
+                expect(hasSaving($r, 'tax_trap_60'))->toBe($isTrap && ! $has('pension'), "trap saving presence wrong [$label]");
                 expect(hasSaving($r, 'isa'))->toBe($hasFinancial, "ISA saving presence wrong [$label]");
                 expect(hasSaving($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA saving presence wrong [$label]");
                 expect(hasSaving($r, 'dividend'))->toBe($has('investments'), "dividend saving presence wrong [$label]");
