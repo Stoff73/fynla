@@ -45,6 +45,32 @@ class RouteServiceProvider extends ServiceProvider
             });
         });
 
+        // Per-endpoint limiters for the unauthenticated auth surface
+        // (login, register, code/MFA verification, account restore, password reset).
+        //
+        // These MUST be named, not inline `throttle:N,1`. Laravel keys inline
+        // throttles for unauthenticated requests by sha1("$domain|$ip") with an
+        // EMPTY prefix — the route path and the limit are not part of the key — so
+        // every inline-throttled auth route on one IP shares ONE counter. A
+        // multi-step flow then throttles itself: e.g. an MFA password reset
+        // (request -> verify-email -> verify-mfa -> reset) exhausts the budget
+        // before /reset and 429s a genuine first attempt (fatal for MFA users).
+        // A login attempt also poisons the same bucket for a later reset.
+        //
+        // Keying each named limiter by "$path|$ip" gives every endpoint its own
+        // bucket, so no auth step can ever throttle another. The numeric suffix is
+        // the per-minute allowance; pick the closest band per route below.
+        $authThrottleResponse = fn () => response()->json([
+            'success' => false,
+            'message' => 'Too many attempts. Please wait a moment and try again.',
+        ], 429);
+
+        foreach ([3, 5, 10] as $perMinute) {
+            RateLimiter::for("auth-{$perMinute}", function (Request $request) use ($perMinute, $authThrottleResponse) {
+                return Limit::perMinute($perMinute)->by($request->path().'|'.$request->ip())->response($authThrottleResponse);
+            });
+        }
+
         // Rate limit for data export (expensive operation)
         RateLimiter::for('export', function (Request $request) {
             return Limit::perHour(3)->by($request->user()?->id ?: $request->ip())->response(function () {
