@@ -102,6 +102,83 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_TERMINAL = 'campaign_terminal';
 
+    // Date of birth, captured inside the pensions section for the savetax
+    // campaign (it's irrelevant to the income-tax advice the user came for, and
+    // only matters once we reach pensions/retirement).
+    public const STATE_CAMPAIGN_DOB = 'campaign_dob';
+
+    /**
+     * SaveTax campaign section order — THE single source of truth for the
+     * campaign question sequence. To reorder the journey, reorder this array;
+     * nothing else needs to change. Each section maps to an entry state and an
+     * optional whole-section skip predicate (see campaignSections()).
+     *
+     * The journey is section-led: lead with income (most relevant to the tax
+     * goal), defer date of birth to the pensions section, and skip whole
+     * sections the funnel says the user doesn't have.
+     */
+    public const CAMPAIGN_SECTION_ORDER = [
+        'income',
+        'savings',
+        'investments',
+        'pensions',
+        'giving',
+        'spouse',
+        'expenditure',
+    ];
+
+    /**
+     * Section id → entry state + optional whole-section skip predicate.
+     * The resolver (nextCampaignSection) walks CAMPAIGN_SECTION_ORDER and
+     * returns the entry state of the first non-skipped section.
+     *
+     * @return array<string, array{entry:string, skip:?callable}>
+     */
+    public static function campaignSections(): array
+    {
+        return [
+            'income' => ['entry' => self::STATE_BASE_EMPLOYMENT, 'skip' => null],
+            'savings' => ['entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS, 'skip' => [self::class, 'skipSectionIfNoCash']],
+            'investments' => ['entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'skip' => [self::class, 'skipSectionIfNoInvestments']],
+            'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB, 'skip' => null],
+            'giving' => ['entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING, 'skip' => null],
+            'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
+            'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],
+        ];
+    }
+
+    /**
+     * Resolve the entry state of the next non-skipped campaign section after
+     * the given section. Returns STATE_CAMPAIGN_TERMINAL when none remain.
+     * This is what makes the sequence reorderable from one array.
+     */
+    public static function nextCampaignSection(string $afterSection, User $user): string
+    {
+        $order = self::CAMPAIGN_SECTION_ORDER;
+        $sections = self::campaignSections();
+        $idx = array_search($afterSection, $order, true);
+        if ($idx === false) {
+            return self::STATE_CAMPAIGN_TERMINAL;
+        }
+
+        for ($i = $idx + 1; $i < count($order); $i++) {
+            $section = $sections[$order[$i]] ?? null;
+            if ($section === null) {
+                continue;
+            }
+            $skip = $section['skip'];
+            if (is_callable($skip) && $skip($user)) {
+                continue;
+            }
+
+            // Honour per-state skip_if on the entry too (e.g. occupational
+            // scheme skips when not employed), transitively.
+            return self::applySkipRules($section['entry'], $user) ?? self::STATE_CAMPAIGN_TERMINAL;
+        }
+
+        return self::STATE_CAMPAIGN_TERMINAL;
+    }
+
     /**
      * Complete state table. See fynOnboardFix.md §5.2 for the reference
      * table this was built from.
@@ -272,7 +349,12 @@ final class OnboardingStateMachine
                 'prompt_text' => JourneyFieldResolver::getFynPrompt('monthly_expenditure'),
                 'capture_field' => 'monthly_expenditure',
                 'value_parser' => 'parseExpenditureAmount',
-                'next' => self::STATE_PROFILE_REVIEW_EXPENDITURE,
+                // Path-aware: the savetax campaign runs expenditure near the end
+                // of its reordered section flow, then heads to the holistic
+                // terminal; the standard flow keeps the profile-review pause.
+                'next' => fn (string $answer, User $user): string => $user->onboarding_fyn_path === 'campaign'
+                    ? self::nextCampaignSection('expenditure', $user)
+                    : self::STATE_PROFILE_REVIEW_EXPENDITURE,
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
             // Phase 10 — profile-review pause after expenditure. Shows the
@@ -317,13 +399,7 @@ final class OnboardingStateMachine
             // existing create_* tools (create_savings_account, create_pension,
             // create_investment_account, capture_salary_sacrifice, etc.) to
             // populate the user's tax position from natural-language input.
-            self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
-                'turn_type' => 'delegated',
-                'prompt_text' => "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on.",
-                'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_ISA_HOLDINGS,
-                'skip_if' => [self::class, 'skipIfNotEmployed'],
-            ],
+            // ── Savings section (entry: ISA) ──────────────────────────────
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
                 'turn_type' => 'delegated',
                 'prompt_text' => "Let's look at your ISAs. Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?",
@@ -334,13 +410,30 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
             ],
+            // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'turn_type' => 'delegated',
                 'prompt_text' => 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
                 'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
+            ],
+            // ── Pensions section (entry: DOB — only now is it relevant) ────
+            self::STATE_CAMPAIGN_DOB => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.",
+                'extraction_tool' => 'capture_personal_details',
+                'retry_text' => 'Could you give me your date of birth — for example 12 January 1985?',
+                'next' => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+                'skip_if' => [self::class, 'skipIfDobSet'],
+            ],
+            self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
+                'turn_type' => 'delegated',
+                'prompt_text' => "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on.",
+                'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_PENSION_CONTRIBS,
+                'skip_if' => [self::class, 'skipIfNotEmployed'],
             ],
             self::STATE_CAMPAIGN_PENSION_CONTRIBS => [
                 'turn_type' => 'delegated',
@@ -354,15 +447,16 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_pension_history',
                 'retry_text' => 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.',
-                'next' => self::STATE_CAMPAIGN_CHARITABLE_GIVING,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
             ],
+            // ── Giving section ────────────────────────────────────────────
             self::STATE_CAMPAIGN_CHARITABLE_GIVING => [
                 'turn_type' => 'grouped_extract',
                 'prompt_text' => 'One more — do you make any charitable donations through Gift Aid? If you donate at the higher or additional rate, there\'s extra relief you can reclaim. Roughly how much per year? Say "none" if you don\'t donate.',
                 'capture_field' => null,
                 'extraction_tool' => 'capture_charitable_giving',
                 'retry_text' => 'Just an annual figure works — e.g. "about £500" or "none".',
-                'next' => self::STATE_CAMPAIGN_SPOUSE_WORK,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('giving', $user),
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
@@ -394,7 +488,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_household_data',
                 'retry_text' => 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?',
-                'next' => self::STATE_CAMPAIGN_TERMINAL,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
                 'skip_if' => [self::class, 'skipIfNotDualEarner'],
             ],
             self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => [
@@ -403,7 +497,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_non_working_assets',
                 'retry_text' => 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".',
-                'next' => self::STATE_CAMPAIGN_TERMINAL,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
                 'skip_if' => [self::class, 'skipIfNotSingleEarnerCouple'],
             ],
             // Terminal state for the campaign branch. turn_type=terminal mirrors
@@ -601,11 +695,17 @@ final class OnboardingStateMachine
         return self::STATE_PROFILE_REVIEW_FAMILY;
     }
 
-    public static function nextFromEmploymentMore(string $answer): string
+    public static function nextFromEmploymentMore(string $answer, User $user): string
     {
         $normalised = mb_strtolower(trim($answer));
         if (str_starts_with($normalised, 'yes')) {
             return self::STATE_BASE_EMPLOYMENT;
+        }
+
+        // End of the income section. The savetax campaign continues through its
+        // reordered section flow; the standard flow goes to expenditure.
+        if ($user->onboarding_fyn_path === 'campaign') {
+            return self::nextCampaignSection('income', $user);
         }
 
         return self::STATE_BASE_EXPENDITURE;
@@ -749,7 +849,7 @@ final class OnboardingStateMachine
 
         return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
             ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details. "
-            ."Let's start with the basics: what's your date of birth?";
+            ."Let's start with your income — your employer or business, your role, and your gross annual income.";
     }
 
     /** Join a list into "a, b and c". */
@@ -805,6 +905,20 @@ final class OnboardingStateMachine
     public static function buildWorkPrompt(string $answer, User $user): string
     {
         $status = $user->employment_status ?? 'employed';
+
+        // SaveTax campaign funnel arrivals open here (income-first). On the first
+        // work turn — before any income is captured — greet with the funnel recap
+        // (which leads straight into the income question). Employment is already
+        // known from the funnel, so we never re-ask it.
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
+        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && $noIncomeYet) {
+            $firstName = trim((string) ($user->first_name ?? '')) !== ''
+                ? trim((string) $user->first_name)
+                : 'there';
+
+            return self::buildFunnelRecapPrompt($firstName, $funnel);
+        }
 
         if ($status === 'self_employed') {
             return 'Brilliant. Let me know your trade or business name, your main role, and your gross annual self-employment income — all in one go is fine.';
@@ -866,6 +980,35 @@ final class OnboardingStateMachine
     public static function skipIfPersonalComplete(User $user): bool
     {
         return ! empty($user->date_of_birth) && ! empty($user->marital_status);
+    }
+
+    /** Skip the campaign DOB capture when we already have a date of birth. */
+    public static function skipIfDobSet(User $user): bool
+    {
+        return ! empty($user->date_of_birth);
+    }
+
+    /**
+     * Whole-section skip helpers for the savetax campaign, keyed off the funnel
+     * answers (assets the user told us they hold). If they said they have no
+     * cash/savings/ISA, skip the savings section entirely, etc.
+     */
+    public static function skipSectionIfNoCash(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['savings', 'bank', 'isa']);
+    }
+
+    public static function skipSectionIfNoInvestments(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['investments']);
+    }
+
+    /** True if the user's funnel answers list at least one of the given assets. */
+    private static function funnelHasAnyAsset(User $user, array $assets): bool
+    {
+        $held = (array) (($user->funnel_answers['assets'] ?? []));
+
+        return (bool) array_intersect($assets, $held);
     }
 
     public static function skipIfEmploymentSet(User $user): bool
@@ -965,7 +1108,7 @@ final class OnboardingStateMachine
         return match ($user->household_calculation_mode) {
             'dual_earner' => self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             'single_earner_couple' => self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
-            default => self::STATE_CAMPAIGN_TERMINAL,
+            default => self::nextCampaignSection('spouse', $user),
         };
     }
 

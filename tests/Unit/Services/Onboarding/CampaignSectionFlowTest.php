@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\User;
+use App\Services\Onboarding\OnboardingStateMachine as SM;
+
+/**
+ * The savetax campaign question sequence is driven by a single ordered list
+ * (SM::CAMPAIGN_SECTION_ORDER) walked by nextCampaignSection(). These tests
+ * lock the section ordering + funnel-aware skipping so the flow can be
+ * reordered safely from that one array.
+ */
+function campaignUser(array $attrs = []): User
+{
+    return User::factory()->make(array_merge([
+        'onboarding_fyn_path' => 'campaign',
+        'marital_status' => 'single',
+        'date_of_birth' => null,
+        'monthly_expenditure' => 0,
+        'household_calculation_mode' => null,
+        'funnel_answers' => ['assets' => []],
+    ], $attrs));
+}
+
+it('walks every section in order for a fully-loaded married dual-earner', function () {
+    $u = campaignUser([
+        'marital_status' => 'married',
+        'household_calculation_mode' => 'dual_earner',
+        'funnel_answers' => ['assets' => ['savings', 'investments', 'pension']],
+    ]);
+
+    expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)       // savings
+        ->and(SM::nextCampaignSection('savings', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS) // investments
+        ->and(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_DOB)        // pensions (DOB first)
+        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING) // giving
+        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_WORK)     // spouse
+        ->and(SM::nextCampaignSection('spouse', $u))->toBe(SM::STATE_BASE_EXPENDITURE)         // expenditure
+        ->and(SM::nextCampaignSection('expenditure', $u))->toBe(SM::STATE_CAMPAIGN_TERMINAL);  // done
+});
+
+it('skips savings, investments and spouse sections for a single user with no cash/investments', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['pension']]]);
+
+    // income → (savings skip, investments skip) → pensions
+    expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_DOB)
+        // pensions → giving → (spouse skip: single) → expenditure
+        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING)
+        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
+});
+
+it('keeps savings when the user holds an ISA (cash-like asset)', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['isa']]]);
+
+    expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS);
+});
+
+it('resolves the pensions entry past DOB once a date of birth is known', function () {
+    $u = campaignUser([
+        'date_of_birth' => '1985-01-12',
+        'employment_status' => 'full_time',
+        'funnel_answers' => ['assets' => []],
+    ]);
+
+    // pensions entry is DOB, but skipIfDobSet → transitively advances to the
+    // workplace-pension capture (employed, so it isn't skipped).
+    expect(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+});
+
+it('section order matches the single source-of-truth array', function () {
+    expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
+        'income', 'savings', 'investments', 'pensions', 'giving', 'spouse', 'expenditure',
+    ]);
+});
