@@ -724,13 +724,25 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    // Leave the mobile SPA for the desktop Admin Panel (no mobile equivalent).
-    // Uses the same base as the mobile router (VITE_ROUTER_BASE → /fynla/ on
-    // csjones, / elsewhere); window.top handles the case where /m/app is framed.
+    // Leave the /m mobile SPA for the desktop Admin Panel (no mobile equivalent).
+    // The desktop SPA reads its Sanctum token from sessionStorage('auth_token');
+    // the /m app holds it in localStorage('m_scaffold_token'). The reliable
+    // bridge is on the desktop side (mScaffoldBridge.js adopts the shared
+    // localStorage token at boot) — iOS partitions cross-context sessionStorage,
+    // so the seed below is only a best-effort fast-path for desktop browsers.
+    // Navigation must ALWAYS target the TOP window: navigating the iframe would
+    // load /admin inside the /m frame, where the in-frame guard bounces it back
+    // to /m/app.
     gotoAdmin() {
       this.closeDrawer();
       const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
-      try { window.top.location.href = url; } catch (e) { window.location.href = url; }
+      try {
+        const token = store.token || localStorage.getItem('m_scaffold_token');
+        if (token && window.top && window.top !== window) {
+          window.top.sessionStorage.setItem('auth_token', token);
+        }
+      } catch (e) { /* iOS partitioned storage — the desktop boot bridge covers it */ }
+      (window.top || window).location.href = url;
     },
     // Share via the native share sheet (navigator.share) with a clipboard
     // fallback. Content comes from /api/v1/mobile/share/{type} — generic,

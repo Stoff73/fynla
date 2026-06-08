@@ -1,3 +1,7 @@
+// MUST be first — adopts the /m mobile token into sessionStorage before the
+// Vuex store reads it synchronously on init. See mScaffoldBridge.js.
+import './mScaffoldBridge';
+
 import './bootstrap';
 
 // Unregister any stale service workers from previous PWA-enabled builds.
