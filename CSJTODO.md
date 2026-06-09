@@ -1,6 +1,20 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-09 — context-clear, session 2 — three bug fixes merged to dev + deployed/verified on csjones: #502 (/m Save tax CTA base-path), #503 (withBase() helper + 6 more base-path sites), #504 (Fyn campaign_advice_spouse self-loop — 17,509-message runaway — fixed + guarded + conv 66 cleaned). `dev` now +165/-7 vs main. Prod NOT released. Prior sections preserved beneath.*
+*Last updated: 2026-06-09 — end-of-day wrap (handover dated 2026-06-10 session 1). Built the GitHub bug auto-resolver loop end-to-end (PRs #505–518) + in-app bug CTA in the Fyn chat with session capture (#516), then used it on a real bug: fixed the duplicated "Welcome back" resume greeting (#522) and made mobile resume summary-only (#523). All on `dev` + csjones, browser-verified. `dev` now +187/-15 vs main. Prod NOT released. Prior sections preserved beneath.*
+
+## 2026-06-09 — GitHub bug auto-resolver loop + Fyn resume fixes (end-of-day; dev, deployed + verified on csjones)
+
+Handover: `June/June10Updates/handover-2026-06-10-session-1.md`. Deploy: `June/June10Updates/deploy-2026-06-10.md`. Memory: `reference_github_bug_autoresolver_loop.md` (new).
+- **Bug auto-resolver loop** (#505/#506/#508/#509/#511/#514/#518) — in-app report → `GithubIssueService` GitHub issue → `.github/workflows/claude.yml` Action (on **main**, armed) fixes on `dev` → PR (policy 8a). Auth = Max OAuth token; trust gate; `bypassPermissions`; `--max-turns 25`. Proved end-to-end (autonomous PR #513).
+- **#516** — "Report a problem" reachable in the Fyn chat header + captures the conversation transcript (ownership-scoped, IDOR-tested).
+- **#522** — fixed duplicated "Welcome back" on startup (web resume persisted `is_resume_greeting` per open without pruning; mobile rendered all). Prune-prior fix + regression test; 350 onboarding tests green.
+- **#523** — mobile resume shows summary + Continue/Something else only (not the full transcript replay); wired the resume action + action bubbles on mobile.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +187 / -15 vs `main`. #489 auth throttle still the priority reason. Runbook: `June/June10Updates/deploy-2026-06-10.md` (base `June/June9Updates/deploy-2026-06-09.md`).
+- [ ] **Decide prod bug-reporter state** — `GITHUB_BUG_ISSUE_ENABLED=false` by default; enabling on prod means real users file GitHub issues / trigger the autonomous loop.
+- [ ] **Rotate tokens** — `CLAUDE_CODE_OAUTH_TOKEN` + `GITHUB_BUG_ISSUE_TOKEN` passed through chat.
+- [ ] Optional: remove orphaned `loadConversation()` in `resources/mobile/views/Dashboard.vue` (caller replaced in #523).
 
 ## 2026-06-09 — Base-path bug class + Fyn advice-loop fix (context-clear, session 2; dev, deployed + verified on csjones)
 
