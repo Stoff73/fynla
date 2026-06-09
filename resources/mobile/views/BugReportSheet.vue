@@ -107,6 +107,9 @@ export default {
           screen_size: typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : null,
           viewport_size: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : null,
           client_timestamp: new Date().toISOString(),
+          // Set when the sheet was opened from the Fyn chat header — the backend
+          // attaches the conversation transcript so we can see what Fyn did.
+          conversation_id: store.bugReport.conversationId,
           ...diagnostics,
         };
 

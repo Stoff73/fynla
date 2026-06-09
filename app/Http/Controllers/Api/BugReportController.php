@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\BugReportMail;
+use App\Models\AiConversation;
 use App\Services\Integrations\GithubIssueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,6 +57,7 @@ class BugReportController extends Controller
             'os_version' => 'nullable|string|max:100',
             'platform' => 'nullable|string|max:20',
             'route' => 'nullable|string|max:200',
+            'conversation_id' => 'nullable|integer',
         ]);
 
         $user = $request->user();
@@ -90,6 +92,10 @@ class BugReportController extends Controller
             'os_version' => isset($validated['os_version']) ? strip_tags($validated['os_version']) : null,
             'platform' => isset($validated['platform']) ? strip_tags($validated['platform']) : null,
             'route' => isset($validated['route']) ? strip_tags($validated['route']) : null,
+            // Fyn conversation transcript, when the report was filed from the
+            // chat. Ownership-scoped (forUser) so a user can only attach their
+            // own conversation — never another user's by guessing an id.
+            'fyn_transcript' => $this->captureTranscript($user->id, $validated['conversation_id'] ?? null),
         ];
 
         try {
@@ -122,5 +128,46 @@ class BugReportController extends Controller
                 'message' => 'Failed to submit bug report. Please try again later.',
             ], 500);
         }
+    }
+
+    /**
+     * Build a plain-text transcript of a Fyn conversation to attach to the bug
+     * report, so a bug filed from the chat carries what Fyn actually did
+     * (e.g. a duplicated startup message).
+     *
+     * Ownership-scoped via `forUser` — a user can only ever attach their own
+     * conversation; a guessed/foreign id resolves to null, never another user's
+     * data. Capped to the most recent turns to bound the payload.
+     */
+    private function captureTranscript(int $userId, ?int $conversationId): ?string
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $conversation = AiConversation::forUser($userId)->find($conversationId);
+        if ($conversation === null) {
+            return null;
+        }
+
+        $messages = $conversation->messages()
+            ->whereIn('role', ['user', 'assistant'])
+            ->orderByDesc('created_at')
+            ->limit(40)
+            ->get(['role', 'content'])
+            ->reverse();
+
+        if ($messages->isEmpty()) {
+            return null;
+        }
+
+        $lines = $messages->map(function ($m) {
+            $who = $m->role === 'user' ? 'User' : 'Fyn';
+
+            return $who.': '.trim((string) $m->content);
+        })->implode("\n");
+
+        // Bound the size — the rest is truncated by GithubIssueService too.
+        return mb_substr($lines, 0, 8000);
     }
 }

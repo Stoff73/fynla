@@ -154,6 +154,25 @@ it('neutralises leading markdown structure in the user description', function ()
     });
 });
 
+it('renders an attached Fyn transcript in a fenced section', function () {
+    Http::fake([
+        'api.github.com/*' => Http::response(['number' => 1, 'html_url' => 'x'], 201),
+    ]);
+
+    $service = new GithubIssueService(token: 'tok', repo: 'Stoff73/fynla', enabled: true, labels: ['bug']);
+    $service->createBugIssue(makeReport([
+        'fyn_transcript' => "Fyn: Hi there.\nFyn: Hi there.\nUser: it repeated",
+    ]));
+
+    Http::assertSent(function ($request) {
+        $body = $request->data()['body'];
+
+        return str_contains($body, '### Fyn conversation transcript')
+            && str_contains($body, 'Fyn: Hi there.')
+            && str_contains($body, 'User: it repeated');
+    });
+});
+
 it('neutralises @-mentions folded into the issue title', function () {
     Http::fake([
         'api.github.com/*' => Http::response(['number' => 1, 'html_url' => 'x'], 201),

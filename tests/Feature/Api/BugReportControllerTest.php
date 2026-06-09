@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Mail\BugReportMail;
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
@@ -90,6 +92,54 @@ it('requires a description', function () {
         ->assertJsonValidationErrors(['description']);
 
     Mail::assertNothingQueued();
+});
+
+it('attaches the Fyn transcript when reporting from your own conversation', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Hi there. What would you like to look at?',
+    ]);
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Hi there. What would you like to look at?',
+    ]);
+
+    $this->postJson('/api/bug-report', [
+        'description' => 'Fyn repeated its greeting on startup.',
+        'conversation_id' => $conversation->id,
+    ])->assertOk();
+
+    Mail::assertQueued(BugReportMail::class, function (BugReportMail $mail) {
+        return str_contains((string) $mail->bugReport['fyn_transcript'], 'Fyn: Hi there.')
+            && substr_count((string) $mail->bugReport['fyn_transcript'], 'Fyn: Hi there.') === 2;
+    });
+});
+
+it('never attaches another user\'s conversation (ownership-scoped)', function () {
+    $owner = User::factory()->create();
+    $attacker = User::factory()->create();
+    $conversation = AiConversation::factory()->create(['user_id' => $owner->id]);
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Private financial detail.',
+    ]);
+
+    Sanctum::actingAs($attacker);
+    $this->postJson('/api/bug-report', [
+        'description' => 'Trying to read someone else\'s chat.',
+        'conversation_id' => $conversation->id,
+    ])->assertOk();
+
+    Mail::assertQueued(BugReportMail::class, function (BugReportMail $mail) {
+        return $mail->bugReport['fyn_transcript'] === null;
+    });
 });
 
 it('rate-limits to 5 bug reports per hour per user', function () {

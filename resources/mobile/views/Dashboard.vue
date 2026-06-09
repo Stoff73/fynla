@@ -295,9 +295,12 @@
             <p class="md-fyn__status">Your financial companion</p>
           </div>
         </div>
-        <button type="button" class="md-fyn__close" aria-label="Close Fyn chat" @click="closeFyn">
-          <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
+        <div class="md-fyn__head-actions">
+          <button type="button" class="md-fyn__report" @click="reportFynProblem">Report a problem</button>
+          <button type="button" class="md-fyn__close" aria-label="Close Fyn chat" @click="closeFyn">
+            <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
       </header>
 
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
@@ -800,6 +803,11 @@ export default {
     closeFyn() {
       this.fynOpen = false;
       window.setTimeout(() => { this.fynMounted = false; }, 320);
+    },
+    // Open the bug-report sheet from the Fyn chat, carrying the active
+    // conversation so the report captures the transcript (e.g. a startup repeat).
+    reportFynProblem() {
+      store.openBugReport(this.conversationId);
     },
     // First-open initialiser: onboarding-incomplete users (incl. funnel
     // arrivals) start the onboarding conversation — Fyn greets, recaps their
