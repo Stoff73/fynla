@@ -20,15 +20,18 @@ name: Claude Auto Bug Fix
 #                        rotate. (To bill against the metered API instead, swap
 #                        `claude_code_oauth_token` for `anthropic_api_key:
 #                        ${{ secrets.ANTHROPIC_API_KEY }}`.)
-#   CLAUDE_BOT_TOKEN   – GitHub App installation token (preferred) or a
+#   CLAUDE_BOT_TOKEN   – OPTIONAL. GitHub App installation token (preferred) or a
 #                        fine-grained PAT with contents:write + pull-requests:write.
-#                        For the chosen zero-touch policy (8b) this identity must
-#                        be on the `dev` branch-protection bypass list so it can
-#                        auto-merge without CODEOWNERS review. The default
-#                        GITHUB_TOKEN CANNOT bypass CODEOWNERS — do not use it here.
-#
-# ⚠️ Until the bypass is configured, auto-merge will stall on CODEOWNERS and the
-#    PR simply waits for @Stoff73's approval (degrades safely to policy 8a).
+#                        Only needed for the zero-touch policy (8b): this identity
+#                        must be on the `dev` branch-protection bypass list so it
+#                        can auto-merge without CODEOWNERS review. The default
+#                        GITHUB_TOKEN CANNOT bypass CODEOWNERS.
+#                        If UNSET, the action falls back to the built-in
+#                        `github.token` (see github_token below), which can open a
+#                        PR but not auto-merge — i.e. it degrades safely to 8a
+#                        (PR waits for @Stoff73's approval). The built-in token can
+#                        only create PRs because repo setting "Allow GitHub Actions
+#                        to create and approve pull requests" is enabled.
 #
 # NOTE: pin `anthropics/claude-code-action` to a release SHA before relying on
 #       this in anger, and re-confirm the input names against the current action
@@ -85,7 +88,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ secrets.CLAUDE_BOT_TOKEN }}
+          github_token: ${{ secrets.CLAUDE_BOT_TOKEN || github.token }}
           prompt: |
             You are resolving an in-app bug report filed as this GitHub issue.
 
