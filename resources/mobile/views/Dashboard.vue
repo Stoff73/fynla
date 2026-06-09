@@ -315,7 +315,7 @@
               type="button"
               class="md-fyn__bubble"
               :disabled="sending"
-              @click="chooseBubble(b)"
+              @click="chooseBubble(b, m)"
             >{{ b.label }}</button>
           </div>
         </div>
@@ -838,8 +838,10 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.resumeId) {
-          // Mid-onboarding resume — replace the placeholder with the transcript.
-          await this.loadConversation(this.resumeId);
+          // Mid-onboarding resume — show the welcome-back re-engagement (a short
+          // summary of where they left off + Continue / Something else), NOT the
+          // full transcript. Streams the resume action into the same placeholder.
+          await this.streamFynAction(this.resumeId, 'resume', cursor);
         } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
@@ -850,6 +852,45 @@ export default {
         }
       } catch (e) {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
+      } finally {
+        this.sending = false;
+        this.$nextTick(this.scrollFyn);
+      }
+    },
+    // Stream a director action (resume / continue / something_else) into the
+    // given cursor's reply, rendering the turn it produces — e.g. the welcome-
+    // back summary + Continue / Something else bubbles on resume, or the next
+    // onboarding state on continue. Mobile resume uses this instead of replaying
+    // the full transcript so a returning user sees a summary, not a wall of
+    // historical answers.
+    async streamFynAction(conversationId, action, cursor) {
+      cursor.got = false;
+      cursor.reply.text = '';
+      cursor.reply.bubbles = [];
+      try {
+        await apiStream(
+          `/api/ai-chat/conversations/${conversationId}/action`,
+          { action },
+          store.token,
+          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (ev) => this.handleFynEvent(cursor, ev),
+        );
+      } catch (e) {
+        if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+          cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
+        }
+      }
+    },
+    // Run a resume action bubble (Continue / Something else): stream the turn it
+    // produces into a fresh Fyn message.
+    async runFynAction(action) {
+      if (this.sending || !this.conversationId) return;
+      this.sending = true;
+      const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+      this.messages.push(cursor.reply);
+      this.$nextTick(this.scrollFyn);
+      try {
+        await this.streamFynAction(this.conversationId, action, cursor);
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
@@ -907,6 +948,10 @@ export default {
         cursor.got = true;
         if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
         cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
+        // Resume re-engagement bubbles (Continue / Something else) are director
+        // actions, not onboarding answers — flag them so chooseBubble routes
+        // them to the action endpoint instead of sending the label as a message.
+        cursor.reply.actionBubbles = ev.action_bubbles === true;
         this.$nextTick(this.scrollFyn);
       }
     },
@@ -927,8 +972,16 @@ export default {
         if (mapped.length) this.messages = mapped;
       } catch (e) { /* keep whatever is shown */ }
     },
-    chooseBubble(bubble) {
+    chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
+      // Resume re-engagement bubbles (Continue / Something else) are director
+      // actions — route to the action endpoint and consume the bubbles so they
+      // can't be re-tapped. Regular onboarding bubbles send their label.
+      if (message && message.actionBubbles) {
+        message.bubbles = [];
+        this.runFynAction(bubble.id);
+        return;
+      }
       this.send(bubble.label || bubble.id);
     },
     openRecChat(rec) {
