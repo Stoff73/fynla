@@ -362,6 +362,16 @@ final class OnboardingChatDirector
         $stateLabel = $this->describeStep($currentStateId, $user);
         $greeting = "Welcome back, {$firstName}. Last time we were {$stateLabel}. Would you like to continue from where we left off, or is there something else I can help with?";
 
+        // A resume greeting is a transient re-engagement prompt, not an
+        // onboarding turn — only the latest should exist. The web resume flow
+        // calls this on every chat open, so without pruning, prior greetings
+        // pile up and the mobile resume (which renders the full transcript
+        // verbatim via loadConversation) shows a repeated "Welcome back" on
+        // startup. Remove any earlier ones before persisting this one.
+        $conversation->messages()
+            ->where('metadata->is_resume_greeting', true)
+            ->delete();
+
         $message = $this->saveMessage($conversation, 'assistant', $greeting, [
             'metadata' => [
                 'onboarding_step' => $currentStateId,
