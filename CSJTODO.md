@@ -1,6 +1,19 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-08 — end-of-day, session 4 — Freemium tier-pricing modal (#501) + `/m` router cold-boot fix (#500) merged to dev + deployed/verified on csjones. Earlier today: savetax suite + onboarding rework (#489–499). `dev` now +158/-7 vs main. Prod NOT released. Prior sections preserved beneath.*
+*Last updated: 2026-06-09 — context-clear, session 2 — three bug fixes merged to dev + deployed/verified on csjones: #502 (/m Save tax CTA base-path), #503 (withBase() helper + 6 more base-path sites), #504 (Fyn campaign_advice_spouse self-loop — 17,509-message runaway — fixed + guarded + conv 66 cleaned). `dev` now +165/-7 vs main. Prod NOT released. Prior sections preserved beneath.*
+
+## 2026-06-09 — Base-path bug class + Fyn advice-loop fix (context-clear, session 2; dev, deployed + verified on csjones)
+
+Handover: `June/June9Updates/handover-2026-06-09-session-2-clear.md`. Memory: `reference_onboarding_advice_autoadvance_loop.md` (new), `reference_mobile_phone_entry_responsive.md` (corrected: `/m` iframe serves the SPA, not index.php).
+- **#502** — `/m` "Save tax" CTA 404'd on csjones (hardcoded `<a href="/savetax">` missing the `/fynla` base; the `/m` iframe serves the SPA `LandingPage.vue`). Browser-verified: `GET /fynla/savetax => 200`, campaign funnel loads.
+- **#503** — full SPA sweep found 6 more raw root-relative navigations 404ing under `/fynla/`. New shared `resources/js/utils/basePath.js` → `withBase()` (honours `VITE_ROUTER_BASE`); applied to `WillInfoStep`, `ArticleEditor`, `preview.js`, `SitemapPage`, `NewsHubPage`, `Version`. Browser-verified sitemap/news links resolve to `/fynla/...` (200).
+- **#504** — Fyn looped, persisting the same message 17,509× (~41/sec) for user 79 (conv 66). Root cause: `STATE_CAMPAIGN_ADVICE_SPOUSE` `next => itself` + advice turns auto-advance with no user input. Fixed (advances via `nextCampaignSection`) + `MAX_ADVICE_CHAIN=6` guard + regression test (34 onboarding tests green). Conv 66 cleaned: 17,488 dupes deleted, 34 real messages kept.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +165 / -7 vs `main`. **#489 auth throttle is the priority reason** — prod MFA password reset broken until released. Today's #502/#503/#504 ride along. Runbook: `June/June9Updates/deploy-2026-06-09.md`. **Note:** #504 (the Fyn loop) is a prod-relevant class — would hit prod identically.
+- [ ] **Set real tier prices** in the admin Tier Configuration screen — placeholders (£4.99/£14.99/£29.99 monthly) currently live.
+- [ ] Optional: align `TestUsersSeeder` to `tier='free'` (recreates `trialing` subs each `db:seed`). **Note:** interacts with the upgrade-modal verification path — re-verify the modal after.
+- [ ] Optional: sweep orphaned csjones `public/build/assets` chunks (~1240 after this session's two preserve-old-chunks deploys).
 
 ## 2026-06-08 — Freemium tier-pricing modal + deploy (end-of-day, session 4; dev, deployed + verified on csjones)
 

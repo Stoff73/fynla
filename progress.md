@@ -139,3 +139,11 @@
 - Status: 0 uncommitted (working tree clean)
 - Shipped: freemium tier-pricing modal #501 + router cold-boot #500 merged to dev, deployed + live-verified on csjones. Public /pricing rewritten to Free+Tier1/2/3, trial copy stripped, <title> mojibake fixed.
 - Next: prod release (dev→main, +158/-7) is CSJ's call — #489 auth throttle is the priority reason (prod MFA reset broken). Set real tier prices in admin Tier Configuration.
+
+## 2026-06-09 — session 2 (context-clear)
+- Handover: [[handover-2026-06-09-session-2-clear]]
+- Branch: dev @ faa86d6 (+165/-7 vs main)
+- Commits this session: 6 (PRs #502, #503, #504 merged to dev)
+- Status: clean (one pre-existing untracked PDF)
+- Shipped: #502 /m Save tax CTA base-path; #503 withBase() helper + 6 base-path sites; #504 onboarding advice self-loop fix + MAX_ADVICE_CHAIN guard + conv 66 cleanup (17,488 rows deleted)
+- Next: prod release (dev→main) is CSJ's call; #489 auth-throttle is the priority reason
