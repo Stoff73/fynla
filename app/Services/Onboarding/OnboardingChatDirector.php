@@ -50,6 +50,17 @@ use Illuminate\Support\Facades\Log;
  */
 final class OnboardingChatDirector
 {
+    /**
+     * Hard cap on how many advice turns may auto-advance within a single
+     * response. Advice turns chain with no user input between them, so a
+     * state-table cycle would otherwise recurse without bound (see the
+     * campaign_advice_spouse self-edge incident: 17,509 identical messages
+     * persisted at ~41/sec before the worker died). Normal flows chain at most
+     * one advice turn before hitting a capture state, so 6 is a generous
+     * ceiling that only ever trips on a genuine cycle.
+     */
+    private const MAX_ADVICE_CHAIN = 6;
+
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingPromptBuilder $promptBuilder,
@@ -549,7 +560,8 @@ final class OnboardingChatDirector
         AiConversation $conversation,
         string $stateId,
         array $state,
-        bool $includeTransitionHeader = true
+        bool $includeTransitionHeader = true,
+        int $adviceDepth = 0
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
 
@@ -557,7 +569,7 @@ final class OnboardingChatDirector
         // tax-engine recommendation for the section just completed, then we
         // continue straight to the next section's prompt in the same response.
         if ($turnType === 'advice') {
-            yield from $this->emitAdviceTurn($user, $conversation, $stateId, $state);
+            yield from $this->emitAdviceTurn($user, $conversation, $stateId, $state, $adviceDepth);
 
             return;
         }
@@ -637,7 +649,7 @@ final class OnboardingChatDirector
      * recommendation for the section just completed, then auto-advance to the
      * next section's prompt in the same SSE response (no user input required).
      */
-    private function emitAdviceTurn(User $user, AiConversation $conversation, string $stateId, array $state): \Generator
+    private function emitAdviceTurn(User $user, AiConversation $conversation, string $stateId, array $state, int $adviceDepth = 0): \Generator
     {
         $section = (string) ($state['advice_section'] ?? '');
         $text = $this->buildSectionAdvice($user, $section);
@@ -652,6 +664,27 @@ final class OnboardingChatDirector
         $nextStateId = OnboardingStateMachine::getNextStateId($stateId, '', $user->refresh());
         if ($nextStateId === null) {
             yield $this->errorEvent('Onboarding reached a dead end after advice.');
+
+            return;
+        }
+
+        // Defense-in-depth against an advice auto-advance cycle. Advice turns
+        // chain with no user input between them, so a state whose `next` resolves
+        // back to itself (or a longer cycle) would recurse without bound,
+        // persisting an identical message each pass until the worker dies. A
+        // self-transition or an over-long chain is always a state-table bug —
+        // log it loudly and complete onboarding gracefully instead of spinning.
+        if ($nextStateId === $stateId || $adviceDepth + 1 > self::MAX_ADVICE_CHAIN) {
+            Log::error('[OnboardingChatDirector] Advice auto-advance cycle detected — forcing completion', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'state' => $stateId,
+                'next_state' => $nextStateId,
+                'advice_depth' => $adviceDepth,
+            ]);
+            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_DONE;
+            $user->save();
+            yield from $this->emitDoneTurn($user, $conversation);
 
             return;
         }
@@ -681,7 +714,7 @@ final class OnboardingChatDirector
             return;
         }
 
-        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState, true, $adviceDepth + 1);
     }
 
     /**

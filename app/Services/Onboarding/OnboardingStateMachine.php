@@ -554,7 +554,12 @@ final class OnboardingStateMachine
                 'turn_type' => 'advice',
                 'advice_section' => 'spouse',
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
+                // Advance past the spouse section like every other advice state
+                // (nextCampaignSection returns STATE_CAMPAIGN_TERMINAL once the
+                // sections are exhausted). This MUST NOT point back at itself —
+                // advice turns auto-advance with no user input, so a self-edge
+                // recurses forever, persisting an identical message each pass.
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
             ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',

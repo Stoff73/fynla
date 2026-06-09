@@ -119,6 +119,31 @@ it('marks every advice state as an auto-advancing advice turn with a section', f
     }
 });
 
+it('never lets a campaign advice state auto-advance back into itself', function () {
+    // Regression: STATE_CAMPAIGN_ADVICE_SPOUSE had next => itself. Advice turns
+    // auto-advance with no user input, so the self-edge recursed without bound —
+    // 17,509 identical "As a couple…" messages were persisted at ~41/sec before
+    // the worker died. Every advice state MUST resolve to a different state.
+    $u = campaignUser([
+        'marital_status' => 'married',
+        'household_calculation_mode' => 'dual_earner',
+        'funnel_answers' => ['assets' => ['savings', 'investments', 'pension']],
+    ]);
+
+    foreach ([
+        SM::STATE_CAMPAIGN_ADVICE_INCOME, SM::STATE_CAMPAIGN_ADVICE_SAVINGS,
+        SM::STATE_CAMPAIGN_ADVICE_INVESTMENTS, SM::STATE_CAMPAIGN_ADVICE_PENSIONS,
+        SM::STATE_CAMPAIGN_ADVICE_SPOUSE,
+    ] as $id) {
+        expect(SM::getNextStateId($id, '', $u))->not->toBe($id);
+    }
+
+    // Spouse advice (the last advice section) continues to the expenditure
+    // section, matching the nextCampaignSection('spouse') contract above.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SPOUSE, '', $u))
+        ->toBe(SM::STATE_BASE_EXPENDITURE);
+});
+
 it('section order matches the single source-of-truth array', function () {
     expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
         'income', 'savings', 'investments', 'pensions', 'giving', 'spouse', 'expenditure',
