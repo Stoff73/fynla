@@ -19,7 +19,7 @@
         <!-- CTA -->
         <div class="relative z-10 flex flex-col items-start gap-3 mb-0">
           <router-link to="/register" class="px-16 py-2.5 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all" @click="trackGA('cta_click', 'get_started')">Get started</router-link>
-          <a href="/savetax" class="px-16 py-2.5 text-lg bg-white text-horizon-500 rounded-button font-medium hover:bg-white/90 transition-all" @click="trackGA('cta_click', 'save_tax')">Save tax</a>
+          <a :href="saveTaxUrl" class="px-16 py-2.5 text-lg bg-white text-horizon-500 rounded-button font-medium hover:bg-white/90 transition-all" @click="trackGA('cta_click', 'save_tax')">Save tax</a>
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
             <a href="#meet-fyn" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToMeetFyn">Meet Fyn</a>
             <span class="text-white/40">|</span>
@@ -557,6 +557,15 @@ export default {
     ...mapGetters('preview', ['availablePersonas']),
     ...mapGetters('insights', { insightsFeatured: 'featured', insightsSupporting: 'supporting' }),
     staticInsights() { return STATIC_INSIGHTS; },
+
+    // /savetax is a server-rendered campaign route, so the CTA must be a
+    // full-page <a href> (not a router-link). Honour VITE_ROUTER_BASE so the
+    // csjones subdirectory deploy (/fynla/) doesn't 404 — mirrors the
+    // base-aware navigation in DataRetentionOverlay.
+    saveTaxUrl() {
+      const base = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
+      return `${base}/savetax`;
+    },
   },
 
   async mounted() {
