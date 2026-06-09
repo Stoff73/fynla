@@ -2,11 +2,13 @@
   <div id="m-app">
     <router-view />
 
-    <!-- Persistent bug reporter — only once authenticated (needs a token to post). -->
-    <button v-if="canReport" class="m-report-fab" type="button" @click="sheetOpen = true">
+    <!-- Persistent bug reporter — only once authenticated (needs a token to post).
+         Hidden while the sheet is open; the Fyn chat header has its own
+         "Report a problem" control (the chat overlay covers this FAB). -->
+    <button v-if="canReport && !store.bugReport.open" class="m-report-fab" type="button" @click="store.openBugReport()">
       Report a problem
     </button>
-    <BugReportSheet :show="sheetOpen" @close="sheetOpen = false" />
+    <BugReportSheet :show="store.bugReport.open" @close="store.closeBugReport()" />
   </div>
 </template>
 
@@ -18,7 +20,7 @@ export default {
   name: 'MobileScaffoldApp',
   components: { BugReportSheet },
   data() {
-    return { store, sheetOpen: false };
+    return { store };
   },
   computed: {
     canReport() {

@@ -117,7 +117,7 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 }
 .m-report-fab:active { transform: scale(0.97); }
 
-.m-sheet-root { position: fixed; inset: 0; z-index: 50; }
+.m-sheet-root { position: fixed; inset: 0; z-index: 60; } /* above the Fyn chat overlay (z-index 50) */
 .m-sheet-overlay { position: absolute; inset: 0; background: rgba(31, 42, 68, 0.5); }
 .m-sheet {
   position: absolute;

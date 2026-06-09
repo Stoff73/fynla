@@ -17,6 +17,19 @@ export const store = reactive({
     nextActions: [],
   },
   pendingCelebration: null, // { level, level_name, next_actions } | null
+  // Bug-report sheet context. Opened from the floating FAB (no conversation) or
+  // from the Fyn chat header (carries the active conversationId so the report
+  // captures the transcript). Shared here because the sheet lives in App.vue
+  // while the chat lives in Dashboard.vue.
+  bugReport: { open: false, conversationId: null },
+  openBugReport(conversationId = null) {
+    this.bugReport.conversationId = conversationId ?? null;
+    this.bugReport.open = true;
+  },
+  closeBugReport() {
+    this.bugReport.open = false;
+    this.bugReport.conversationId = null;
+  },
   setToken(t) {
     this.token = t;
     if (t) localStorage.setItem(KEY, t);
