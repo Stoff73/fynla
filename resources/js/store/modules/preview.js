@@ -14,6 +14,7 @@
 import api from '../../services/api';
 import { getToken, removeToken, setToken as storageSetToken, setItem, getItem, removeItem } from '../../services/tokenStorage';
 import logger from '../../utils/logger';
+import { withBase } from '../../utils/basePath';
 
 // Import full persona data from JSON files
 import youngFamilyData from '../../data/personas/young_family.json';
@@ -263,7 +264,7 @@ const actions = {
                     router.push('/dashboard');
                 } else {
                     logger.info('[Preview] Fallback navigate to /dashboard');
-                    window.location.href = '/dashboard';
+                    window.location.href = withBase('/dashboard');
                 }
 
                 return response.data;
