@@ -12,7 +12,7 @@
 A user reports a bug from the mobile (`/m`) app. The report:
 
 1. Is captured with **auto-diagnostics** (route, app version, device, OS) + **recent console/error logs** + the user's **description, category and severity**.
-2. Is written to the GitHub repo `stoff73/fynla` as a **GitHub Issue** prefixed with **`@claude`**.
+2. Is written to the GitHub repo `Stoff73/fynla` as a **GitHub Issue** prefixed with **`@claude`**.
 3. Triggers Anthropic's **native Claude Code GitHub Action** (event-driven, runs in GitHub Actions — no polling, no `/loop` session needed).
 4. The Action runs a **well-defined skill chain** (systematic-debugging → fix → test → browser-verify) and resolves the bug end-to-end.
 
@@ -67,7 +67,7 @@ BugReportController@store  (Laravel)
    ├─ validate + sanitize (existing)
    ├─ Mail::queue(BugReportMail)               ← existing, kept
    └─ GithubIssueService::createBugIssue(...)  ← NEW
-          │  Guzzle POST https://api.github.com/repos/stoff73/fynla/issues
+          │  Guzzle POST https://api.github.com/repos/Stoff73/fynla/issues
           │  title:  "@claude [bug][<severity>] <short>"
           │  body:   structured markdown (see §6)
           │  labels: ["bug","from-mobile","claude-auto"]
@@ -101,7 +101,7 @@ BugReportController@store  (Laravel)
   - Reads token + repo from config (§9). **Never throws into the request path** — failure is logged and the email path still succeeds.
 - **`BugReportController@store`** — accept new optional fields (`category`, `severity`, `app_version`, `device_model`, `os_version`, `platform`, `route`); after queueing mail, call `GithubIssueService::createBugIssue()`; include `issue_url` in the JSON response when created.
 - **`config/services.php`** — add `github` block (`token`, `repo`, `default_labels`, `enabled`).
-- **`.env` templates** (`deploy/*/.env.production`) — document `GITHUB_BUG_ISSUE_TOKEN`, `GITHUB_BUG_ISSUE_REPO=stoff73/fynla`, `GITHUB_BUG_ISSUE_ENABLED`. **Real token lives only on the server `.env`, never in the repo.**
+- **`.env` templates** (`deploy/*/.env.production`) — document `GITHUB_BUG_ISSUE_TOKEN`, `GITHUB_BUG_ISSUE_REPO=Stoff73/fynla`, `GITHUB_BUG_ISSUE_ENABLED`. **Real token lives only on the server `.env`, never in the repo.**
 - **`bugReportService.js` (web)** — optionally pass the new fields too (web has no device/category today; can default). Out of scope unless you want web parity — flag.
 
 ### C. GitHub config — `.github/`
@@ -169,7 +169,7 @@ This overrides the documented rule (`CODEOWNERS: * @Stoff73`; `CLAUDE.md`: "only
 1. **Branch protection on `dev`:** add a bypass for the bot identity, OR enable "Allow specified actors to bypass required pull requests" scoped to the GitHub App / bot account the Action runs as. Without this, auto-merge will stall on CODEOWNERS.
 2. **Bot token:** a GitHub App installation token (preferred) or a fine-grained PAT with `contents: write` + `pull-requests: write` that is in the CODEOWNERS bypass list. Stored as repo secret (e.g. `CLAUDE_BOT_TOKEN`). The default `GITHUB_TOKEN` **cannot** bypass CODEOWNERS.
 3. **`ANTHROPIC_API_KEY`** repo secret for the Action.
-4. **`GITHUB_BUG_ISSUE_TOKEN`** on each server `.env` (Issues: write on `stoff73/fynla`).
+4. **`GITHUB_BUG_ISSUE_TOKEN`** on each server `.env` (Issues: write on `Stoff73/fynla`).
 
 The workflow (`claude.yml`) will be written to enable auto-merge, but it is inert until steps 1–2 are done. Until then, behaviour degrades safely to 8a (PR sits awaiting your approval).
 
@@ -181,13 +181,13 @@ The workflow (`claude.yml`) will be written to enable auto-merge, but it is iner
 // config/services.php
 'github' => [
     'token'   => env('GITHUB_BUG_ISSUE_TOKEN'),
-    'repo'    => env('GITHUB_BUG_ISSUE_REPO', 'stoff73/fynla'),
+    'repo'    => env('GITHUB_BUG_ISSUE_REPO', 'Stoff73/fynla'),
     'enabled' => env('GITHUB_BUG_ISSUE_ENABLED', false),
     'labels'  => ['bug', 'from-mobile', 'claude-auto'],
 ],
 ```
 
-- Fine-grained PAT or GitHub App token with **Issues: write** on `stoff73/fynla` only.
+- Fine-grained PAT or GitHub App token with **Issues: write** on `Stoff73/fynla` only.
 - `ANTHROPIC_API_KEY` as a **repo secret** for the Action.
 - Default `enabled=false` so nothing fires until the token is provisioned.
 

@@ -30,6 +30,7 @@ export NODE_ENV=production
 export VITE_BASE_PATH=/fynla/build/
 export VITE_ROUTER_BASE=/fynla/
 export VITE_APP_NAME="Fynla"
+export VITE_APP_VERSION="1.0-staging-$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
 export VITE_API_BASE_URL=https://csjones.co/fynla
 
 # Awin affiliate tracking — staging defaults to disabled. Flip to true here

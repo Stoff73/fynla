@@ -99,6 +99,47 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-state .m-tag { margin-bottom: 8px; }
 .m-state .m-sub { margin-bottom: 0; }
 
+/* Bug report — floating button + bottom sheet */
+.m-report-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  background: #E83E6D;
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(31, 42, 68, 0.25);
+  cursor: pointer;
+}
+.m-report-fab:active { transform: scale(0.97); }
+
+.m-sheet-root { position: fixed; inset: 0; z-index: 50; }
+.m-sheet-overlay { position: absolute; inset: 0; background: rgba(31, 42, 68, 0.5); }
+.m-sheet {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-width: 420px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 -4px 24px rgba(31, 42, 68, 0.2);
+}
+.m-sheet-handle { width: 40px; height: 4px; border-radius: 999px; background: #E5E7EB; margin: 6px auto 12px; }
+.m-sheet-label { display: block; font-size: 13px; font-weight: 600; color: #6B7280; margin: 12px 0 2px; }
+.m-textarea { resize: vertical; font-family: inherit; }
+.m-sheet-actions { display: flex; gap: 10px; margin-top: 16px; }
+.m-sheet-actions .m-btn-ghost { flex: 0 0 auto; }
+.m-sheet-actions .m-btn { flex: 1 1 auto; }
+.m-sheet-done { text-align: center; padding: 20px 0 8px; }
+.m-sheet-done .m-sub { margin-bottom: 16px; }
+
 /* Module detail */
 .m-detail-header { padding-top: 16px; }
 .m-back { background: transparent; border: 0; color: #E83E6D; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; margin-bottom: 12px; cursor: pointer; }
