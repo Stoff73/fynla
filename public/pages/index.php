@@ -56,7 +56,7 @@ try {
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=120" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=122" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -100,7 +100,7 @@ try {
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/register" class="btn-cta-primary">Get started</a>
+          <a href="/register" class="btn-cta-primary">Get started for free</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
