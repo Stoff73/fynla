@@ -195,7 +195,7 @@
         <!-- XML Sitemap Note -->
         <div class="mt-12 text-center">
           <p class="text-sm text-neutral-500">
-            For search engines: <a href="/sitemap.xml" class="text-violet-600 hover:underline">sitemap.xml</a>
+            For search engines: <a :href="withBase('/sitemap.xml')" class="text-violet-600 hover:underline">sitemap.xml</a>
           </p>
         </div>
       </div>
@@ -205,12 +205,17 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { withBase } from '@/utils/basePath';
 
 export default {
   name: 'SitemapPage',
 
   components: {
     PublicLayout,
+  },
+
+  methods: {
+    withBase,
   },
 
   mounted() {
