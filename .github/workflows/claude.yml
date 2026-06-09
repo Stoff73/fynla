@@ -133,9 +133,10 @@ jobs:
           # Bash/Edit/Write to actually diagnose, run pest and open the PR. Blast
           # radius is bounded by the trust gate (only OWNER/MEMBER/COLLABORATOR
           # issues trigger) + github.token (cannot bypass CODEOWNERS or reach
-          # prod) + 8a review. max-turns 30 gives room for a real fix; raise if
-          # bugs routinely hit the cap (watch Max-subscription usage).
+          # prod) + 8a review. max-turns 10 keeps Max-subscription usage low;
+          # with permission prompts no longer auto-denying, 10 turns is enough
+          # for a small fix (raise only if bugs routinely hit the cap).
           claude_args: |
             --model claude-opus-4-8
-            --max-turns 30
+            --max-turns 10
             --permission-mode bypassPermissions
