@@ -30,6 +30,7 @@ export NODE_ENV=production
 export VITE_BASE_PATH=/build/
 export VITE_ROUTER_BASE=/
 export VITE_APP_NAME="Fynla"
+export VITE_APP_VERSION="1.0-$(git rev-parse --short HEAD 2>/dev/null || echo prod)"
 export VITE_API_BASE_URL=https://fynla.org
 
 # Awin affiliate tracking — production is always enabled. Flip to false here

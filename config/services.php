@@ -70,4 +70,14 @@ return [
         'project_id' => env('FCM_PROJECT_ID'),
     ],
 
+    // GitHub issue creation for in-app bug reports. The token needs only
+    // Issues: write on the target repo, lives on the server .env, and is
+    // disabled by default so nothing fires until provisioned.
+    'github' => [
+        'token' => env('GITHUB_BUG_ISSUE_TOKEN'),
+        'repo' => env('GITHUB_BUG_ISSUE_REPO', 'Stoff73/fynla'),
+        'enabled' => env('GITHUB_BUG_ISSUE_ENABLED', false),
+        'labels' => ['bug', 'from-mobile', 'claude-auto'],
+    ],
+
 ];

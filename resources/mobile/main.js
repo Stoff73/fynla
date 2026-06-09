@@ -3,7 +3,11 @@ import App from './App.vue';
 import router from './router.js';
 import { store } from './store.js';
 import { apiPost } from './api.js';
+import consoleCapture from '../js/services/consoleCapture.js';
 import './style.css';
+
+// Capture console output + unhandled errors so bug reports carry diagnostics.
+consoleCapture.startCapture();
 
 // Boot-time token rotation (short-TTL + refresh rotation, on the existing
 // Sanctum bearer channel). The bridge hands /m a copy of the user's bearer; on

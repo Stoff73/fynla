@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\BugReportMail;
+use App\Services\Integrations\GithubIssueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -48,6 +49,13 @@ class BugReportController extends Controller
             'screen_size' => 'nullable|string|max:50',
             'viewport_size' => 'nullable|string|max:50',
             'client_timestamp' => 'nullable|string|max:50',
+            'category' => 'nullable|string|max:50',
+            'severity' => 'nullable|string|max:20',
+            'app_version' => 'nullable|string|max:50',
+            'device_model' => 'nullable|string|max:100',
+            'os_version' => 'nullable|string|max:100',
+            'platform' => 'nullable|string|max:20',
+            'route' => 'nullable|string|max:200',
         ]);
 
         $user = $request->user();
@@ -75,19 +83,33 @@ class BugReportController extends Controller
             'ip_address' => $request->ip(),
             'client_timestamp' => $validated['client_timestamp'] ?? null,
             'server_timestamp' => now()->toIso8601String(),
+            'category' => isset($validated['category']) ? strip_tags($validated['category']) : null,
+            'severity' => isset($validated['severity']) ? strip_tags($validated['severity']) : null,
+            'app_version' => isset($validated['app_version']) ? strip_tags($validated['app_version']) : null,
+            'device_model' => isset($validated['device_model']) ? strip_tags($validated['device_model']) : null,
+            'os_version' => isset($validated['os_version']) ? strip_tags($validated['os_version']) : null,
+            'platform' => isset($validated['platform']) ? strip_tags($validated['platform']) : null,
+            'route' => isset($validated['route']) ? strip_tags($validated['route']) : null,
         ];
 
         try {
             Mail::to('chris@fynla.org')->queue(new BugReportMail($bugReportData));
 
+            // Best-effort: also raise a GitHub issue so the autonomous Claude
+            // workflow can pick it up. Never lets a GitHub failure break the
+            // request — the email above is the source of truth.
+            $issue = GithubIssueService::fromConfig()->createBugIssue($bugReportData);
+
             Log::info('Bug report submitted', [
                 'user_id' => $user->id,
                 'ip' => $request->ip(),
+                'github_issue' => $issue['number'] ?? null,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Bug report submitted successfully. Thank you for your feedback!',
+                'issue_url' => $issue['html_url'] ?? null,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send bug report email', [
