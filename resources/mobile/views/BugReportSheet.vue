@@ -5,8 +5,8 @@
       <div class="m-sheet-handle"></div>
 
       <div v-if="submitted" class="m-sheet-done">
-        <h2 class="m-h1">Thank you</h2>
-        <p class="m-sub">Your report has been sent. We'll look into it.</p>
+        <h2 class="m-h1">Report logged</h2>
+        <p class="m-sub">Your report has been logged and sent to our team, with technical details attached. We'll look into it.</p>
         <button class="m-btn" type="button" @click="close">Done</button>
       </div>
 
