@@ -163,7 +163,7 @@
           <!-- Tier 1 -->
           <article class="plan-card" aria-labelledby="plan-tier1-heading">
             <div class="plan-card__header">
-              <h3 id="plan-tier1-heading" class="plan-card__name">Tier 1</h3>
+              <h3 id="plan-tier1-heading" class="plan-card__name">Bronze</h3>
               <p class="plan-card__tagline">More capabilities and higher limits</p>
             </div>
 
@@ -175,7 +175,7 @@
               <p class="plan-card__equiv" id="tier1-equiv"></p>
             </div>
 
-            <ul class="plan-card__features" aria-label="Tier 1 features">
+            <ul class="plan-card__features" aria-label="Bronze features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 Everything in Free
@@ -191,7 +191,7 @@
             </ul>
 
             <a href="/register?plan=tier1&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-tier1">
-              Choose Tier 1
+              Choose Bronze
             </a>
           </article>
 
@@ -199,7 +199,7 @@
           <article class="plan-card plan-card--featured" aria-labelledby="plan-tier2-heading">
             <div class="plan-card__badge" aria-label="Most popular tier">Most Popular</div>
             <div class="plan-card__header">
-              <h3 id="plan-tier2-heading" class="plan-card__name">Tier 2</h3>
+              <h3 id="plan-tier2-heading" class="plan-card__name">Silver</h3>
               <p class="plan-card__tagline">Our most popular tier</p>
             </div>
 
@@ -211,10 +211,10 @@
               <p class="plan-card__equiv" id="tier2-equiv"></p>
             </div>
 
-            <ul class="plan-card__features" aria-label="Tier 2 features">
+            <ul class="plan-card__features" aria-label="Silver features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Everything in Tier 1
+                Everything in Bronze
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
@@ -235,14 +235,14 @@
             </ul>
 
             <a href="/register?plan=tier2&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-tier2">
-              Choose Tier 2
+              Choose Silver
             </a>
           </article>
 
           <!-- Tier 3 -->
           <article class="plan-card" aria-labelledby="plan-tier3-heading">
             <div class="plan-card__header">
-              <h3 id="plan-tier3-heading" class="plan-card__name">Tier 3</h3>
+              <h3 id="plan-tier3-heading" class="plan-card__name">Gold</h3>
               <p class="plan-card__tagline">More capabilities and higher limits</p>
             </div>
 
@@ -254,10 +254,10 @@
               <p class="plan-card__equiv" id="tier3-equiv"></p>
             </div>
 
-            <ul class="plan-card__features" aria-label="Tier 3 features">
+            <ul class="plan-card__features" aria-label="Gold features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Everything in Tier 2
+                Everything in Silver
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
@@ -274,7 +274,7 @@
             </ul>
 
             <a href="/register?plan=tier3&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring" id="cta-tier3">
-              Choose Tier 3
+              Choose Gold
             </a>
           </article>
 
@@ -374,7 +374,7 @@
   <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
-  <script src="/pages/js/pricing.js?v=3" defer></script>
+  <script src="/pages/js/pricing.js?v=4" defer></script>
 
 </body>
 </html>

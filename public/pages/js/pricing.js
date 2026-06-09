@@ -47,12 +47,16 @@
       var elEquiv  = document.getElementById(key + '-equiv');
       var elCta    = document.getElementById('cta-' + key);
 
-      if (elPrice)  elPrice.textContent  = fmt(isYearly ? t.yearly : t.monthly);
-      if (elPeriod) elPeriod.textContent = isYearly ? '/year' : '/month';
-      if (elEquiv) {
-        elEquiv.textContent = (isYearly && t.yearly)
-          ? fmt(Math.round(t.yearly / 12)) + '/mo billed yearly'
-          : '';
+      // Yearly: show the monthly-equivalent as the big price, with the total
+      // billed annually underneath. Monthly: show the monthly price directly.
+      if (isYearly && t.yearly) {
+        if (elPrice)  elPrice.textContent  = fmt(Math.round(t.yearly / 12));
+        if (elPeriod) elPeriod.textContent = '/month';
+        if (elEquiv)  elEquiv.textContent  = fmt(t.yearly) + ' billed yearly';
+      } else {
+        if (elPrice)  elPrice.textContent  = fmt(t.monthly);
+        if (elPeriod) elPeriod.textContent = '/month';
+        if (elEquiv)  elEquiv.textContent  = '';
       }
       if (elCta) elCta.href = BASE + '/register?plan=' + key + '&billing=' + cycle;
     });
