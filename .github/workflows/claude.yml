@@ -8,7 +8,18 @@ name: Claude Auto Bug Fix
 # investigates, fixes, tests and opens a PR against `dev`.
 #
 # ── Required secrets (set in repo settings → Secrets and variables → Actions) ──
-#   ANTHROPIC_API_KEY  – Claude API key for the action.
+#   CLAUDE_CODE_OAUTH_TOKEN – OAuth token minted from a Claude Pro/Max
+#                        subscription via `claude setup-token` (run locally,
+#                        needs Claude Code v1.0.44+). The action authenticates
+#                        against the subscription — NO separate Anthropic API
+#                        key is needed. NOTE: runs draw down the SAME Max
+#                        rate-limit pool as your interactive Claude Code usage,
+#                        so a burst of bug reports competes with your own
+#                        sessions — hence --max-turns is kept low (see below).
+#                        The token expires periodically; re-run setup-token to
+#                        rotate. (To bill against the metered API instead, swap
+#                        `claude_code_oauth_token` for `anthropic_api_key:
+#                        ${{ secrets.ANTHROPIC_API_KEY }}`.)
 #   CLAUDE_BOT_TOKEN   – GitHub App installation token (preferred) or a
 #                        fine-grained PAT with contents:write + pull-requests:write.
 #                        For the chosen zero-touch policy (8b) this identity must
@@ -73,7 +84,7 @@ jobs:
       - name: Claude bug fix
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.CLAUDE_BOT_TOKEN }}
           prompt: |
             You are resolving an in-app bug report filed as this GitHub issue.
@@ -116,4 +127,4 @@ jobs:
             and stop — do not guess at a fix.
           claude_args: |
             --model claude-opus-4-8
-            --max-turns 50
+            --max-turns 10

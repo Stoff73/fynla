@@ -105,7 +105,7 @@ BugReportController@store  (Laravel)
 - **`bugReportService.js` (web)** — optionally pass the new fields too (web has no device/category today; can default). Out of scope unless you want web parity — flag.
 
 ### C. GitHub config — `.github/`
-- **`workflows/claude.yml`** (NEW) — Claude Code Action, triggered on `issues: [opened, labeled]` filtered to the `claude-auto` label (and/or `@claude` in the body). Needs repo secret `ANTHROPIC_API_KEY`. Permissions: `contents: write`, `pull-requests: write`, `issues: write`.
+- **`workflows/claude.yml`** (NEW) — Claude Code Action, triggered on `issues: [opened, labeled]` filtered to the `claude-auto` label (and/or `@claude` in the body). Needs repo secret `CLAUDE_CODE_OAUTH_TOKEN` (Max-subscription OAuth token from `claude setup-token`). Permissions: `contents: write`, `pull-requests: write`, `issues: write`.
 - **`ISSUE_TEMPLATE/bug_from_mobile.md`** (NEW, optional) — documents the structured format for humans filing manually.
 - **Labels** (created once via API/UI): `bug`, `from-mobile`, `claude-auto`.
 
@@ -168,7 +168,7 @@ This overrides the documented rule (`CODEOWNERS: * @Stoff73`; `CLAUDE.md`: "only
 
 1. **Branch protection on `dev`:** add a bypass for the bot identity, OR enable "Allow specified actors to bypass required pull requests" scoped to the GitHub App / bot account the Action runs as. Without this, auto-merge will stall on CODEOWNERS.
 2. **Bot token:** a GitHub App installation token (preferred) or a fine-grained PAT with `contents: write` + `pull-requests: write` that is in the CODEOWNERS bypass list. Stored as repo secret (e.g. `CLAUDE_BOT_TOKEN`). The default `GITHUB_TOKEN` **cannot** bypass CODEOWNERS.
-3. **`ANTHROPIC_API_KEY`** repo secret for the Action.
+3. **`CLAUDE_CODE_OAUTH_TOKEN`** repo secret for the Action — minted from the Claude Pro/Max subscription via `claude setup-token` (no separate Anthropic API key needed). Runs draw down the same Max rate-limit pool as interactive Claude Code usage, so `--max-turns` is kept low (10); the token expires periodically and is rotated by re-running `setup-token`. (Swap to `ANTHROPIC_API_KEY` + `anthropic_api_key:` in the workflow to bill against the metered API instead.)
 4. **`GITHUB_BUG_ISSUE_TOKEN`** on each server `.env` (Issues: write on `Stoff73/fynla`).
 
 The workflow (`claude.yml`) will be written to enable auto-merge, but it is inert until steps 1–2 are done. Until then, behaviour degrades safely to 8a (PR sits awaiting your approval).
@@ -188,7 +188,7 @@ The workflow (`claude.yml`) will be written to enable auto-merge, but it is iner
 ```
 
 - Fine-grained PAT or GitHub App token with **Issues: write** on `Stoff73/fynla` only.
-- `ANTHROPIC_API_KEY` as a **repo secret** for the Action.
+- `CLAUDE_CODE_OAUTH_TOKEN` as a **repo secret** for the Action (from `claude setup-token`; uses the Max subscription, not a metered API key).
 - Default `enabled=false` so nothing fires until the token is provisioned.
 
 ---
