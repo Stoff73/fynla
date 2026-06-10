@@ -321,14 +321,15 @@ describe('Protection Analysis', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(35),
             'annual_employment_income' => 50000,
+            'marital_status' => 'single',
         ]);
 
         $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/analyze');
 
+        // Without a protection profile, the readiness gate blocks the analysis
+        // (the protection_profile blocking check fails) so it cannot proceed.
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => false,
-            ]);
+            ->assertJsonPath('data.can_proceed', false);
     });
 });
 

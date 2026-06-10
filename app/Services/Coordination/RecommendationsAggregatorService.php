@@ -87,21 +87,21 @@ class RecommendationsAggregatorService
             }
         }
 
-        // Retirement module
+        // Retirement module — real recs come from the action-definition engine
+        // via generateRecommendations(analyze data), NOT from an analyze() key.
         if ($this->moduleGateOpen('retirement', $user)) {
             try {
                 $retirementAnalysis = $this->retirementAgent->analyze($userId);
                 $retirementData = $retirementAnalysis['data'] ?? $retirementAnalysis;
-                $retirementRecs = $retirementData['recommendations'] ?? [];
-                // Extract actionable items from income projection shortfall
-                $summary = $retirementData['summary'] ?? [];
-                if (isset($summary['shortfall']) && $summary['shortfall'] > 0) {
-                    $retirementRecs[] = [
-                        'recommendation_text' => 'Your projected retirement income has a shortfall of £'.number_format($summary['shortfall']).' per year. Consider increasing pension contributions.',
-                        'priority_score' => 80,
-                        'category' => 'income_shortfall',
+                $generated = $this->retirementAgent->generateRecommendations($retirementData);
+                $retirementRecs = array_map(static function (array $r): array {
+                    return [
+                        'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? '',
+                        'priority_score' => isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 60,
+                        'category' => $r['category'] ?? 'retirement',
+                        'potential_benefit' => is_numeric($r['available_annual_headroom'] ?? null) ? $r['available_annual_headroom'] : null,
                     ];
-                }
+                }, $generated['recommendations'] ?? []);
                 $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($retirementRecs, 'retirement'));
             } catch (\Exception $e) {
                 Log::warning("Failed to get retirement recommendations for user {$userId}: ".$e->getMessage());
