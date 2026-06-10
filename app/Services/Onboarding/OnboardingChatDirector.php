@@ -1459,6 +1459,14 @@ final class OnboardingChatDirector
         $captureDetails = [];
         $captureError = null;
 
+        // A1 — answer-the-user-first on a grouped_extract turn. When the
+        // user's message contains a question, buffer the model's prose so a
+        // definitional answer can be delivered alongside the scripted re-ask
+        // when no extraction lands. Without a question the prose is swallowed
+        // exactly as before (the extraction tool is meant to fire silently).
+        $userAskedQuestion = str_contains($message, '?');
+        $answerBuffer = '';
+
         try {
             $generator = $this->coordinatingAgent->chatWithPromptOverride(
                 $user,
@@ -1523,7 +1531,15 @@ final class OnboardingChatDirector
                 // Claude emit chatty text alongside the tool call. Letting
                 // that text through stacks two assistant messages (model
                 // text + director retry) on the user on failed captures.
+                //
+                // A1 — exception: when the user asked a question, keep the
+                // prose in $answerBuffer so a definitional answer can be
+                // emitted before the re-ask if no extraction lands.
                 if (($event['type'] ?? '') === 'content') {
+                    if ($userAskedQuestion) {
+                        $answerBuffer .= (string) ($event['text'] ?? '');
+                    }
+
                     continue;
                 }
 
@@ -1561,6 +1577,23 @@ final class OnboardingChatDirector
                 'state' => $currentStateId,
                 'tool' => $toolName,
             ]);
+
+            // A1 — the user asked a question that yielded no extraction.
+            // Deliver the definitional answer (personal figures stripped)
+            // before the scripted re-ask so the question is not ignored.
+            if ($userAskedQuestion && $answerBuffer !== '') {
+                $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
+                if ($answer !== '') {
+                    $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
+                        'metadata' => [
+                            'onboarding_step' => $currentStateId,
+                            'is_question_answer' => true,
+                        ],
+                    ]);
+                    yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
+                }
+            }
+
             yield from $this->emitRetry($conversation, $state, $currentStateId);
 
             return;
@@ -1929,6 +1962,16 @@ PROMPT;
             $contentBuffer = '';
             $flushed = false;
 
+            // A1 — answer-the-user-first. When the user's message contains a
+            // question, the capture turn is allowed to answer it before
+            // resuming capture (QUESTION EXCEPTION). That changes two things:
+            // (1) a zero-tool-call turn must NOT drop its buffer — the answer
+            //     is the whole point of the turn; and
+            // (2) the off-script filter runs in allowAnswer mode so a
+            //     definitional answer survives, while personal figures are
+            //     still stripped.
+            $userAskedQuestion = str_contains($message, '?');
+
             // B-1 gap-check — track the fields dict of every fill_form the
             // LLM emitted so we can compare it to the deterministic entity
             // extractor's view of the user message and fill in any gaps
@@ -1937,14 +1980,14 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection, $userAskedQuestion) {
                 $flushed = true;
-                if ($toolCallsSeen === 0 || $contentBuffer === '') {
+                if ($contentBuffer === '' || ($toolCallsSeen === 0 && ! $userAskedQuestion)) {
                     $contentBuffer = '';
 
                     return null;
                 }
-                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection);
+                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection, allowAnswer: $userAskedQuestion);
                 $contentBuffer = '';
                 if ($cleaned === '') {
                     return null;
@@ -2336,8 +2379,19 @@ PROMPT;
      *
      * Returns the rejoined surviving sentences, or '' when nothing
      * survived the filter.
+     *
+     * A1 — when $allowAnswer is true the user asked a direct question, so the
+     * model is permitted to answer it before resuming capture (QUESTION
+     * EXCEPTION). On an answer turn the question-mark and off-script-topic
+     * strips are relaxed (a definitional answer legitimately re-asks the
+     * capture question and may mention income/pension concepts), but the
+     * personal-figures rule stays ACTIVE: the model must never quote or
+     * compute the user's own numbers in a capture turn. With $allowAnswer
+     * false (the default) behaviour is byte-identical to the original
+     * FR-M14 filter — the personal-figures rule does not run, so the
+     * established off-script path is unchanged.
      */
-    private function filterOffScriptContent(string $text, string $selection): string
+    private function filterOffScriptContent(string $text, string $selection, bool $allowAnswer = false): string
     {
         if ($text === '') {
             return '';
@@ -2360,12 +2414,27 @@ PROMPT;
                 continue;
             }
 
-            // Questions are never legitimate on an asset_capture turn.
-            if (str_contains($trimmed, '?')) {
+            // A1 — personal-figures rule. Even inside the QUESTION EXCEPTION
+            // the model must never quote/compute the user's own numbers in a
+            // capture turn (FCA — no figures-based personal advice mid-capture).
+            // A sentence carrying a currency amount (£) is a personal-figure
+            // breach and is dropped regardless of $allowAnswer.
+            if ($allowAnswer && preg_match('/£\s?\d/u', $trimmed) === 1) {
                 continue;
             }
 
-            if (! $allowOffScriptTerms && preg_match(
+            // Questions are never legitimate on an asset_capture turn — UNLESS
+            // the user asked one, in which case the answer turn may re-ask the
+            // capture question (QUESTION EXCEPTION).
+            if (! $allowAnswer && str_contains($trimmed, '?')) {
+                continue;
+            }
+
+            // Off-script topics (property/mortgage/income/…) are stripped on a
+            // normal capture turn, but a definitional answer to the user's
+            // question may legitimately reference those concepts, so the rule
+            // is relaxed on an answer turn.
+            if (! $allowAnswer && ! $allowOffScriptTerms && preg_match(
                 '/\b(propert(?:y|ies)|mortgages?|rents?|incomes?|homes?|address(?:es)?|ownership|valuations?)\b/i',
                 $trimmed
             ) === 1) {
