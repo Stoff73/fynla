@@ -195,14 +195,17 @@ class AnnualAllowanceChecker
      * allowance from TaxConfigService. TaxConfigService only holds the active
      * tax year's figure; a per-historical-year lookup is not available.
      *
+     * Only rows inside the exact HMRC 3-prior-years window count — stale
+     * rows from older captures are ignored, never summed as eligible.
+     *
      * @return float Total carry forward available
      */
     public function getCarryForward(int $userId, string $taxYear): float
     {
+        $priorYears = $this->getPrevious3TaxYears($taxYear);
+
         $history = PensionInputHistory::where('user_id', $userId)
-            ->where('tax_year', '!=', $taxYear)
-            ->orderByDesc('tax_year')
-            ->limit(3)
+            ->whereIn('tax_year', $priorYears)
             ->get();
 
         if ($history->isNotEmpty()) {
@@ -220,13 +223,11 @@ class AnnualAllowanceChecker
             return 0.0;
         }
 
-        $priorYears = $profile->prior_year_unused_allowance;
+        $manualUnused = $profile->prior_year_unused_allowance;
         $carryForward = 0.0;
 
-        $previousYears = $this->getPrevious3TaxYears($taxYear);
-
-        foreach ($previousYears as $year) {
-            $carryForward += (float) ($priorYears[$year] ?? 0);
+        foreach ($priorYears as $year) {
+            $carryForward += (float) ($manualUnused[$year] ?? 0);
         }
 
         return $carryForward;
@@ -235,9 +236,12 @@ class AnnualAllowanceChecker
     /**
      * Get the previous 3 tax year strings for carry forward lookback.
      *
+     * Public so PensionAACarryForwardStrategy shares the exact same HMRC
+     * window arithmetic — one source of truth for which years are eligible.
+     *
      * @return array e.g. ['2022/23', '2023/24', '2024/25'] for current year '2025/26'
      */
-    private function getPrevious3TaxYears(string $currentTaxYear): array
+    public function getPrevious3TaxYears(string $currentTaxYear): array
     {
         $startYear = (int) substr($currentTaxYear, 0, 4);
 

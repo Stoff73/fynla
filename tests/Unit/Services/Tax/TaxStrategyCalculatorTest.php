@@ -12,7 +12,9 @@ use App\Models\PensionInputHistory;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Tax\TaxStrategyCalculator;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -923,12 +925,20 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
 });
 
 describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
+    beforeEach(function () {
+        // Exact HMRC window labels derived from the seeded active tax year.
+        // The strategy now enforces the 3-prior-years window, so hardcoded
+        // year labels would rot as the active tax year advances.
+        $this->priorYears = app(AnnualAllowanceChecker::class)
+            ->getPrevious3TaxYears(app(TaxConfigService::class)->getTaxYear());
+    });
+
     it('does not fire for basic-rate users', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 30000,
         ]);
-        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+        foreach ($this->priorYears as $year) {
             PensionInputHistory::create([
                 'user_id' => $user->id,
                 'tax_year' => $year,
@@ -951,7 +961,7 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             'user_id' => $user->id,
             'monthly_contribution_amount' => 6000, // £72k/yr — over the £60k AA
         ]);
-        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+        foreach ($this->priorYears as $year) {
             PensionInputHistory::create([
                 'user_id' => $user->id,
                 'tax_year' => $year,
@@ -982,7 +992,7 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
         ]);
-        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+        foreach ($this->priorYears as $year) {
             PensionInputHistory::create([
                 'user_id' => $user->id,
                 'tax_year' => $year,
@@ -1009,7 +1019,7 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             'current_balance' => 200000,
             'interest_rate' => 0,
         ]);
-        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+        foreach ($this->priorYears as $year) {
             PensionInputHistory::create([
                 'user_id' => $user->id,
                 'tax_year' => $year,
@@ -1048,7 +1058,7 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             'current_balance' => 250000,
             'interest_rate' => 0,
         ]);
-        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+        foreach ($this->priorYears as $year) {
             PensionInputHistory::create([
                 'user_id' => $user->id,
                 'tax_year' => $year,
@@ -1064,7 +1074,7 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             ->and($rec['estimated_annual_tax_saved'])->toBe(54000.0);
     });
 
-    it('only counts the most recent 3 history entries', function () {
+    it('only counts history entries inside the HMRC 3-prior-years window', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
@@ -1074,19 +1084,22 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             'current_balance' => 100000,
             'interest_rate' => 0,
         ]);
-        // 4 years of history; oldest one (2021/22) must be ignored
-        foreach (['2024/25', '2023/24', '2022/23', '2021/22'] as $year) {
+        // 4 years of history; the stale one (4 years back, outside the window)
+        // must be ignored — its zero input would otherwise add a full £60k.
+        $staleStart = ((int) substr($this->priorYears[0], 0, 4)) - 1;
+        $staleYear = $staleStart.'/'.substr((string) ($staleStart + 1), -2);
+        foreach ([...$this->priorYears, $staleYear] as $year) {
             PensionInputHistory::create([
                 'user_id' => $user->id,
                 'tax_year' => $year,
-                'pension_input_amount' => $year === '2021/22' ? 0 : 30000,
+                'pension_input_amount' => $year === $staleYear ? 0 : 30000,
             ]);
         }
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
         $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
-        // 3 × (60k - 30k) = 90k unused; the 60k from 2021/22 is dropped
+        // 3 × (60k - 30k) = 90k unused; the stale year's 60k is dropped
         expect($rec)->not->toBeNull()
             ->and($rec['unused_carry_forward_total'])->toBe(90000.0);
     });
