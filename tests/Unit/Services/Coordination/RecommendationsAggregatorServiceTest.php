@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Agents\GoalsAgent;
+use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
@@ -9,7 +11,7 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Estate\ComprehensiveEstatePlanService;
-use App\Services\Investment\PortfolioAnalyzer;
+use App\Services\PrerequisiteGateService;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -17,19 +19,32 @@ beforeEach(function () {
     // Mock all the services with correct types matching the constructor
     $this->protectionEngine = Mockery::mock(ProtectionAgent::class);
     $this->savingsCalculator = Mockery::mock(SavingsAgent::class);
-    $this->investmentAnalyzer = Mockery::mock(PortfolioAnalyzer::class);
+    $this->investmentAgent = Mockery::mock(InvestmentAgent::class);
     $this->retirementAgent = Mockery::mock(RetirementAgent::class);
     $this->estatePlanService = Mockery::mock(ComprehensiveEstatePlanService::class);
+    $this->goalsAgent = Mockery::mock(GoalsAgent::class);
     $this->personaliser = Mockery::mock(RecommendationPersonaliser::class);
     $this->personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
+
+    // Gate open for every module so existing module assertions remain valid
+    $this->gate = Mockery::mock(PrerequisiteGateService::class);
+    $this->gate->shouldReceive('enforce')->andReturn(['can_proceed' => true]);
+
+    // Investment and goals agents return no recommendations by default
+    $this->investmentAgent->shouldReceive('analyze')->andReturn(['data' => []]);
+    $this->investmentAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []]);
+    $this->goalsAgent->shouldReceive('analyze')->andReturn(['data' => []]);
+    $this->goalsAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []]);
 
     $this->service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
-        $this->investmentAnalyzer,
+        $this->investmentAgent,
         $this->retirementAgent,
         $this->estatePlanService,
-        $this->personaliser
+        $this->goalsAgent,
+        $this->personaliser,
+        $this->gate
     );
 });
 
@@ -417,10 +432,12 @@ it('handles non-numeric iht_saving gracefully during aggregation', function () {
     $service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
-        $this->investmentAnalyzer,
+        $this->investmentAgent,
         $this->retirementAgent,
         $this->estatePlanService,
-        $personaliser
+        $this->goalsAgent,
+        $personaliser,
+        $this->gate
     );
 
     $recommendations = $service->aggregateRecommendations($this->user->id);
