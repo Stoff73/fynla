@@ -661,9 +661,11 @@ export default {
     onActionTap(item) {
       if (!item) return;
       if (item.type === 'unlock') {
+        // KYC gap → Fyn collects the missing details (the user's choice).
         this.openFynForCapture(item.module);
-      } else {
-        this.openRecChat({ title: item.title });
+      } else if (item.action && item.action.kind === 'navigate' && item.action.payload) {
+        // Recommendation → deep-link to the module screen where it's actioned.
+        this.goto(item.action.payload);
       }
     },
     openFynForCapture(module) {

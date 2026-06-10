@@ -157,9 +157,27 @@ class NextActionsService
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
                 'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
                 'done' => in_array($id, $completedIds, true),
-                'action' => ['kind' => 'rec_chat', 'payload' => (string) ($rec['recommendation_text'] ?? '')],
+                // Tapping a recommendation deep-links to the module screen where
+                // the user actions it (NOT a templated Fyn message).
+                'action' => ['kind' => 'navigate', 'payload' => $this->moduleRoute((string) ($rec['module'] ?? 'general'))],
             ];
         }, $all);
+    }
+
+    /**
+     * The in-app /m route for a module — where a recommendation is actioned.
+     */
+    private function moduleRoute(string $module): string
+    {
+        return match ($module) {
+            'protection' => '/protection',
+            'savings' => '/savings',
+            'investment' => '/investment',
+            'retirement' => '/retirement',
+            'estate' => '/estate',
+            'goals' => '/goals',
+            default => '/net-worth',
+        };
     }
 
     /**
