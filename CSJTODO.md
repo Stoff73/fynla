@@ -1,6 +1,24 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-09 — end-of-day wrap (handover dated 2026-06-10 session 1). Built the GitHub bug auto-resolver loop end-to-end (PRs #505–518) + in-app bug CTA in the Fyn chat with session capture (#516), then used it on a real bug: fixed the duplicated "Welcome back" resume greeting (#522) and made mobile resume summary-only (#523). All on `dev` + csjones, browser-verified. `dev` now +187/-15 vs main. Prod NOT released. Prior sections preserved beneath.*
+*Last updated: 2026-06-10 — context-clear wrap, session 2. Built the whole `/m` gamification + recommendations rework on branch `m-gamification-recommendations` (23 commits, deployed + browser-verified on csjones, NOT merged to dev/main, NOT on prod). Handover: `June/June10Updates/handover-2026-06-10-session-2-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-10 — /m gamification + recommendations rework (context-clear; branch m-gamification-recommendations, deployed + verified on csjones)
+
+Spec/plan: `docs/superpowers/specs/2026-06-10-m-gamification-recommendations-design.md`, `docs/superpowers/plans/2026-06-10-m-gamification-recommendations.md`. Branch `m-gamification-recommendations` (off dev), 23 commits, pushed, deployed to csjones, NOT on dev/main/prod.
+
+Built + verified on csjones: KYC-gated recommendations across all 6 modules (investment + goals added to the aggregator), unified ≤4 `focus_areas` one-card swipe carousel, planning-progress percentile, achievements + milestones panel + API, varied preview-persona gamification seeding, recommendations deep-link to module screens.
+
+**LAWS established this session (see handover):** (1) `/m` is verified on csjones, not locally (serves built `m-build`, no HMR; the `ssh-fynla` MCP tool = PROD, don't use for csjones). (2) Every module shows real recs OR the KYC info needed — NEVER "On track"/empty. (3) Recommendations deep-link to the correct module screen, not a Fyn message.
+
+Engine bugs fixed (all real): estate unconditional £130k trust rec → gated on IHT liability; retirement 0 recs → wired generateRecommendations; protection title-key dropped + gate didn't require profile → both fixed; investment lazy-load violation on csjones strict mode → query instead of lazy relation.
+
+### Outstanding
+- [ ] **Browser-verify G2 (Fyn unlock bubble)** on csjones — code shipped, unverified. Many cards are now KYC-prompts so it's testable (tap locked card / bubble → pre-seeded Fyn).
+- [ ] **Browser-verify G3 (milestone banner lowered)** — needs a new milestone to fire.
+- [ ] **Estate will/LPA recs for sub-NRB users** — CSJ's call; sub-NRB estate currently shows the KYC prompt, not will/LPA recs.
+- [ ] Optional: make the gate-open-but-empty KYC prompt field-specific (from readiness warnings) instead of generic "complete your <module> details".
+- [ ] Final code-review gate + merge `m-gamification-recommendations` → dev (CSJ's call), eventually prod.
+- [ ] `tech-debt-session` audit + full `vault-sync` not run this session (deferred from the context-clear).
 
 ## 2026-06-09 — GitHub bug auto-resolver loop + Fyn resume fixes (end-of-day; dev, deployed + verified on csjones)
 
