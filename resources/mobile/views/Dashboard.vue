@@ -955,23 +955,6 @@ export default {
         this.$nextTick(this.scrollFyn);
       }
     },
-    // Load an existing onboarding conversation's transcript (resume). Only the
-    // last assistant turn keeps its bubbles — earlier turns are already answered.
-    async loadConversation(id) {
-      try {
-        const res = await apiGet(`/api/ai-chat/conversations/${id}`, store.token);
-        const list = res.data?.data?.messages || res.data?.messages || [];
-        const mapped = list.map((m) => ({
-          role: m.role === 'user' ? 'user' : 'fyn',
-          text: m.content || '',
-          bubbles: (m.metadata && Array.isArray(m.metadata.bubbles)) ? m.metadata.bubbles : [],
-        }));
-        let lastFyn = -1;
-        mapped.forEach((m, i) => { if (m.role === 'fyn') lastFyn = i; });
-        mapped.forEach((m, i) => { if (i !== lastFyn) m.bubbles = []; });
-        if (mapped.length) this.messages = mapped;
-      } catch (e) { /* keep whatever is shown */ }
-    },
     chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
       // Resume re-engagement bubbles (Continue / Something else) are director
