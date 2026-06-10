@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ExpenditureProfile;
 use App\Models\User;
 use App\Services\Mobile\PlanningProgressService;
 use Illuminate\Support\Facades\Cache;
@@ -38,4 +39,29 @@ it('ranks a more-complete user above a blank one in the same cohort', function (
     $svc = app(PlanningProgressService::class);
 
     expect($svc->scoreFor($rich))->toBeGreaterThan($svc->scoreFor($blank));
+});
+
+it('counts expenditure entered via ExpenditureProfile even when the raw column is null', function () {
+    // No expenditure anywhere.
+    $without = User::factory()->create([
+        'is_preview_user' => false,
+        'monthly_expenditure' => null,
+    ]);
+
+    // Expenditure only via the canonical ExpenditureProfile source.
+    $withProfile = User::factory()->create([
+        'is_preview_user' => false,
+        'monthly_expenditure' => null,
+    ]);
+    ExpenditureProfile::factory()->create([
+        'user_id' => $withProfile->id,
+        'total_monthly_expenditure' => 1800,
+    ]);
+
+    $svc = app(PlanningProgressService::class);
+
+    // The only difference between the two users is the ExpenditureProfile, so
+    // the profile user must score strictly higher (the expenditure flag fires
+    // via ResolvesExpenditure, not the null raw column).
+    expect($svc->scoreFor($withProfile))->toBeGreaterThan($svc->scoreFor($without));
 });

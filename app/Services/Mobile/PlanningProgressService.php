@@ -8,6 +8,7 @@ use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\PrerequisiteGateService;
+use App\Traits\ResolvesExpenditure;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Cache;
  */
 class PlanningProgressService
 {
+    use ResolvesExpenditure;
+
     private const DISTRIBUTION_TTL = 3600; // 1 hour — slow-moving
 
     private const W_MODULES = 40;
@@ -56,7 +59,7 @@ class PlanningProgressService
         $universal += $user->marital_status ? 1 : 0;
         $universal += $user->employment_status ? 1 : 0;
         $universal += $this->totalIncome($user) > 0 ? 1 : 0;
-        $universal += ((float) ($user->monthly_expenditure ?? 0)) > 0 ? 1 : 0;
+        $universal += $this->resolveMonthlyExpenditure($user)['amount'] > 0 ? 1 : 0;
         $universalScore = ($universal / 5) * self::W_UNIVERSAL;
 
         return (int) round($moduleScore + $recScore + $milestoneScore + $universalScore);
