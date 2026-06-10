@@ -150,7 +150,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 number_format((int) $uplift),
             ),
             description: sprintf(
-                'Your spouse earns £%s, which counts as relevant UK earnings for pension purposes. Contributing the full £%s gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
+                'Your spouse earns £%s, which counts as relevant UK earnings for pension purposes. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
                 number_format((int) $spouseIncome),
                 number_format((int) $netCost),
                 number_format((int) $grossCapacity),
