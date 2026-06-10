@@ -56,7 +56,7 @@ try {
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=122" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=123" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
