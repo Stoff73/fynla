@@ -14,7 +14,9 @@ use App\Services\Tax\TaxStrategyCalculator;
  * eligible recommendations with catalogue metadata, and derives the locked
  * list — enabled strategy rows whose required_data are not all available
  * and which produced no recommendation. Locked strategies are surfaced as
- * unlock prompts, never silently skipped.
+ * unlock prompts, never silently skipped. A strategy whose required_data are
+ * all present but which still produced no recommendation was assessed and
+ * found inapplicable — it appears in neither items nor locked.
  */
 final class ComposedTaxPlanService
 {

@@ -698,6 +698,27 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             ->and($rec['employer_ni_rebate_saving'])->toBe(0.0);
     });
 
+    it('emits salary_sacrifice_ni for a full_time user (profile-form status value)', function () {
+        // Regression: the savetax bubble writes 'employed' but the profile form
+        // writes 'full_time' — the gate must accept the whole employed family.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'employment_status' => 'full_time',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        DCPension::factory()->for($user)->create([
+            'monthly_contribution_amount' => 500,
+            'salary_sacrifice' => false,
+            'employer_ni_rebate_pct' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'salary_sacrifice_ni'))
+            ->not->toBeNull();
+    });
+
     it('adds the employer NI rebate saving on top when employer_ni_rebate_pct is set', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
