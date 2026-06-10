@@ -147,3 +147,11 @@
 - Status: clean (one pre-existing untracked PDF)
 - Shipped: #502 /m Save tax CTA base-path; #503 withBase() helper + 6 base-path sites; #504 onboarding advice self-loop fix + MAX_ADVICE_CHAIN guard + conv 66 cleanup (17,488 rows deleted)
 - Next: prod release (dev→main) is CSJ's call; #489 auth-throttle is the priority reason
+
+## 2026-06-10 — session 3 (context-clear)
+- Handover: [[handover-2026-06-10-session-3-clear]]
+- Branch: dev @ a75af48 (PRs #525 + #526 merged via pushed merge commits; gh CLI merge endpoint 401s — needs `gh auth refresh`)
+- Commits this session: 7 (5 finding-fixes + 2 PR merges); 345-test sweep green pre-push
+- Status: working tree clean (two pre-existing untracked docs)
+- Shipped: branch verification (9/9 acceptance criteria), six finding-fixes (stable rec IDs, retirement earnings cap + age gates, goals copy, assets caption, bubble dismissal persistence, persona onboarding seed), csjones back on dev + live-verified, 94 remote + 4 local merged branches deleted
+- Next: estate will/LPA recs decision (CSJ); dev → main release when CSJ decides

@@ -1,6 +1,21 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-10 — context-clear wrap, session 2. Built the whole `/m` gamification + recommendations rework on branch `m-gamification-recommendations` (23 commits, deployed + browser-verified on csjones, NOT merged to dev/main, NOT on prod). Handover: `June/June10Updates/handover-2026-06-10-session-2-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-10 — context-clear wrap, session 3. The `/m` gamification + recommendations rework is verified (all 9 acceptance criteria), six finding-fixes landed, **merged to dev (PRs #525 + #526) and live on csjones at merge head `a75af48`**. NOT on prod. 94 remote + 4 local merged branches deleted. Handover: `June/June10Updates/handover-2026-06-10-session-3-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-10 — Session 3: verification, finding-fixes, merge to dev, branch cleanup (context-clear; dev @ a75af48)
+
+Handover: `June/June10Updates/handover-2026-06-10-session-3-clear.md`.
+- Verified the branch end-to-end on csjones (incl. session-2's open G2 bubble + G3 banner items); fixed all six findings TDD'd: stable `sha1(module|text)` recommendation IDs, retirement headroom earnings-cap (£3,600 non-earner floor, no recs from 75, no retirement-age rec for retired users), goals pluralisation + praise-rec removal, assets caption from breakdown, session-persistent bubble dismissal, retired_couple seeded onboarding-complete. Repaired 7 stale aggregator tests.
+- PRs #525 + #526 merged to dev via pushed merge commits; csjones back on dev, bundles rebuilt + rsynced, verified live.
+- Branch cleanup: 94 remote + 4 local merged branches deleted (kept coala, brett-dev1, email-onboarding-video, python-agent-sidecar #249, fix/coala-test-stabilisation, fix/public-pages-base-path, gamification-dashboard, rss-feed #237-closed).
+
+### Outstanding
+- [ ] **gh CLI merge endpoint 401s on this machine** — run `gh auth refresh -h github.com -s repo` before the next admin-merge (PR create/read work; merge calls never do; workaround = local merge commit + push).
+- [ ] **Estate will/LPA recs for sub-NRB users** — CSJ's call (carried from session 2).
+- [ ] Optional: field-specific KYC prompts for gate-open-but-empty modules (carried).
+- [ ] `fix/public-pages-base-path` kept — one stray 29-May handover-doc commit; CSJ to decide whether to delete.
+- [ ] Minor debt: `openRecChat` in mobile `Dashboard.vue` now unused.
+- [ ] dev → main release PR when CSJ decides to ship.
 
 ## 2026-06-10 — /m gamification + recommendations rework (context-clear; branch m-gamification-recommendations, deployed + verified on csjones)
 
@@ -13,12 +28,12 @@ Built + verified on csjones: KYC-gated recommendations across all 6 modules (inv
 Engine bugs fixed (all real): estate unconditional £130k trust rec → gated on IHT liability; retirement 0 recs → wired generateRecommendations; protection title-key dropped + gate didn't require profile → both fixed; investment lazy-load violation on csjones strict mode → query instead of lazy relation.
 
 ### Outstanding
-- [ ] **Browser-verify G2 (Fyn unlock bubble)** on csjones — code shipped, unverified. Many cards are now KYC-prompts so it's testable (tap locked card / bubble → pre-seeded Fyn).
-- [ ] **Browser-verify G3 (milestone banner lowered)** — needs a new milestone to fire.
-- [ ] **Estate will/LPA recs for sub-NRB users** — CSJ's call; sub-NRB estate currently shows the KYC prompt, not will/LPA recs.
-- [ ] Optional: make the gate-open-but-empty KYC prompt field-specific (from readiness warnings) instead of generic "complete your <module> details".
-- [ ] Final code-review gate + merge `m-gamification-recommendations` → dev (CSJ's call), eventually prod.
-- [ ] `tech-debt-session` audit + full `vault-sync` not run this session (deferred from the context-clear).
+- [x] **Browser-verify G2 (Fyn unlock bubble)** — verified session 3 (appears, dismisses session-persistently, tap opens pre-seeded Fyn).
+- [x] **Browser-verify G3 (milestone banner lowered)** — verified session 3 (fired live for Patricia, all four sides visible).
+- [ ] **Estate will/LPA recs for sub-NRB users** — carried to session-3 Outstanding above.
+- [ ] Optional: field-specific KYC prompts — carried to session-3 Outstanding above.
+- [x] Final review + merge `m-gamification-recommendations` → dev — merged session 3 (PR #526).
+- [x] `vault-sync` — run session 3; tech-debt audit folded into the session-3 verification findings.
 
 ## 2026-06-09 — GitHub bug auto-resolver loop + Fyn resume fixes (end-of-day; dev, deployed + verified on csjones)
 
