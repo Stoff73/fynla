@@ -76,6 +76,30 @@ it('marks a recommendation item done when a matching completed tracking row exis
         ->and($item['done'])->toBeTrue();
 });
 
+it('builds focus-area cards: a Top card first, then one per module', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $areas = app(NextActionsService::class)->focusAreas($user->id);
+
+    // First card is always "Top actions".
+    expect($areas[0]['key'])->toBe('top')
+        ->and($areas[0]['label'])->toBe('Top actions')
+        ->and($areas[0]['locked'])->toBeFalse();
+
+    // One card per module, in the canonical order.
+    $keys = array_column($areas, 'key');
+    foreach (['retirement', 'protection', 'savings', 'investment', 'estate', 'goals'] as $module) {
+        expect($keys)->toContain($module);
+    }
+
+    // A fresh user's modules are KYC-gated → those cards are locked with a single
+    // unlock action.
+    $estate = collect($areas)->firstWhere('key', 'estate');
+    expect($estate['locked'])->toBeTrue()
+        ->and($estate['actions'])->toHaveCount(1)
+        ->and($estate['actions'][0]['type'])->toBe('unlock');
+});
+
 afterEach(function () {
     Mockery::close();
 });

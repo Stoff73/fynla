@@ -34,11 +34,92 @@ class NextActionsService
     {
         $user = User::findOrFail($userId);
 
-        $items = array_merge(
+        return $this->rank(array_merge(
             $this->recommendationItems($userId),
             $this->unlockItems($user),
-        );
+        ));
+    }
 
+    /**
+     * Per-area focus cards for the /m carousel: a "Top actions" card (the unified
+     * <=4 across all areas) followed by one card per module — real recommendations
+     * when the module's KYC gate is open, or a locked "unlock" card when it is
+     * gated. Selecting a card drives the actions list shown below it. Computed
+     * from a single recommendation aggregation.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function focusAreas(int $userId): array
+    {
+        $user = User::findOrFail($userId);
+
+        $recItems = $this->recommendationItems($userId);
+        $unlocks = $this->unlockItems($user);
+
+        // Top card = the unified <=4 (recs + unlocks), same ranking as build().
+        $top = $this->rank(array_merge($recItems, $unlocks));
+
+        // Group real recommendations by module for the per-area cards.
+        $byModule = [];
+        foreach ($recItems as $item) {
+            $byModule[$item['module']][] = $item;
+        }
+        foreach ($byModule as &$list) {
+            usort($list, static fn (array $a, array $b): int => $b['value'] <=> $a['value']);
+        }
+        unset($list);
+
+        $unlockByModule = [];
+        foreach ($unlocks as $unlock) {
+            $unlockByModule[$unlock['module']] = $unlock;
+        }
+
+        $areas = [[
+            'key' => 'top',
+            'label' => 'Top actions',
+            'locked' => false,
+            'stat' => count($top).' action'.(count($top) === 1 ? '' : 's'),
+            'actions' => $top,
+        ]];
+
+        foreach (self::UNLOCK_MODULES as $module) {
+            $label = ucfirst($this->moduleLabel($module));
+
+            if (isset($unlockByModule[$module])) {
+                $unlock = $unlockByModule[$module];
+                $areas[] = [
+                    'key' => $module,
+                    'label' => $label,
+                    'locked' => true,
+                    'stat' => (string) $unlock['meta'],
+                    'actions' => [$unlock],
+                ];
+
+                continue;
+            }
+
+            // KYC gate open → this module's real recommendations (may be empty).
+            $items = array_slice($byModule[$module] ?? [], 0, self::MAX_ITEMS);
+            $areas[] = [
+                'key' => $module,
+                'label' => $label,
+                'locked' => false,
+                'stat' => $items !== [] ? (string) ($items[0]['meta'] ?? (count($items).' actions')) : 'On track',
+                'actions' => $items,
+            ];
+        }
+
+        return $areas;
+    }
+
+    /**
+     * Rank by value descending (module name tie-break) and cap at MAX_ITEMS.
+     *
+     * @param  array<int,array<string,mixed>>  $items
+     * @return array<int,array<string,mixed>>
+     */
+    private function rank(array $items): array
+    {
         usort($items, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
         });

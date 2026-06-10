@@ -44,9 +44,16 @@ class MobileDashboardController extends Controller
 
             $data = $this->aggregator->getAggregatedDashboard($userId);
 
-            // Unified next-actions: the SAME <=4 list drives the wheel box and
-            // the recommendations list below (spec decision B).
-            $actions = $this->nextActions->build($userId);
+            // Per-area focus cards for the carousel: a "Top actions" card (the
+            // unified <=4) plus one card per module (real recs when the KYC gate
+            // is open, a locked unlock card when gated). One aggregation.
+            $focusAreas = $this->nextActions->focusAreas($userId);
+            $data['focus_areas'] = $focusAreas;
+
+            // The Top card's actions ARE the unified <=4 list that feeds the wheel
+            // "X of Y actions" heading (spec decision B). Derive it from the cards
+            // so we don't aggregate a second time.
+            $actions = $focusAreas[0]['actions'] ?? [];
             $data['next_actions'] = $actions;
 
             // Level ring + "X of Y actions" derived from that list.
