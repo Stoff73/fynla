@@ -42,7 +42,7 @@ it('reports which catalogue data points are available for a user', function () {
 });
 
 it('returns exactly the 13 canonical vocabulary keys', function () {
-    // Bare user — no income, no assets, single; confirms false paths don't throw
+    // Only asserts the key set — values vary with factory defaults (e.g. marital_status defaults to 'single' = available).
     $user = User::factory()->create([
         'annual_employment_income' => null,
         'annual_self_employment_income' => null,

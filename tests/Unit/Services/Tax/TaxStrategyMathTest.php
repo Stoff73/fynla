@@ -59,6 +59,33 @@ describe('bandRateFor', function () {
     });
 });
 
+/**
+ * bandRateFromIncome prices a marginal rate from an arbitrary income figure
+ * without a User model — used by HouseholdFinancialContext to derive a
+ * dual-earner spouse's rate from the household input's spouse_annual_income.
+ */
+describe('bandRateFromIncome', function () {
+    it('returns basic-rate for income under £50,270', function () {
+        expect($this->math->bandRateFromIncome(30000.0))->toBe(0.20);
+    });
+
+    it('returns higher-rate for income between £50,270 and £125,140', function () {
+        expect($this->math->bandRateFromIncome(65000.0))->toBe(0.40);
+    });
+
+    it('returns additional-rate for income above £125,140', function () {
+        expect($this->math->bandRateFromIncome(130000.0))->toBe(0.45);
+    });
+
+    it('agrees with bandRateFor when the user has only employment income', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 50000, // no dividends, no savings
+        ]);
+
+        expect($this->math->bandRateFromIncome(50000.0))->toBe($this->math->bandRateFor($user));
+    });
+});
+
 describe('estimateIsaSubscriptionsThisYear', function () {
     it('counts ISAs opened in the current tax year', function () {
         $user = User::factory()->create();

@@ -39,6 +39,8 @@ final class HouseholdFinancialContext
      */
     public function availability(User $user): array
     {
+        $hasDcPension = $this->hasDcPension($user);
+
         return [
             'annual_income' => $this->hasAnnualIncome($user),
             'charitable_giving' => $user->annual_charitable_donations !== null,
@@ -48,11 +50,11 @@ final class HouseholdFinancialContext
             'gia_holdings' => $this->hasGiaHoldings($user),
             'isa_subscriptions_ytd' => $this->hasIsaAccount($user),
             'marital_status' => filled($user->marital_status),
-            'pension_contributions' => $this->hasDcPension($user),
+            'pension_contributions' => $hasDcPension,
             'pension_input_history' => PensionInputHistory::where('user_id', $user->id)->exists(),
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
-            'workplace_pension' => $this->hasDcPension($user),
+            'workplace_pension' => $hasDcPension,
         ];
     }
 
