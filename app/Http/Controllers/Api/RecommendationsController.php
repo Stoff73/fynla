@@ -30,7 +30,7 @@ class RecommendationsController extends Controller
 
         // Validate query parameters
         $request->validate([
-            'module' => 'sometimes|string|in:protection,savings,investment,retirement,estate,property',
+            'module' => 'sometimes|string|in:protection,savings,investment,retirement,estate,property,tax',
             'priority' => 'sometimes|string|in:high,medium,low',
             'timeline' => 'sometimes|string|in:immediate,short_term,medium_term,long_term',
             'status' => 'sometimes|string|in:pending,in_progress,completed,dismissed',
