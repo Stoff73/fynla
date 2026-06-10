@@ -98,18 +98,58 @@ class NextActionsService
                 continue;
             }
 
-            // KYC gate open → this module's real recommendations (may be empty).
+            // KYC gate open → this module's real recommendations.
             $items = array_slice($byModule[$module] ?? [], 0, self::MAX_ITEMS);
+
+            if ($items === []) {
+                // Gate open but no recommendations means we don't yet have enough
+                // data to advise on this module. Show the KYC prompt for what's
+                // needed — NEVER an "On track"/empty placeholder. A module says
+                // either real recommendations or the data still needed to make them.
+                $needed = $this->dataNeededItem($module);
+                $areas[] = [
+                    'key' => $module,
+                    'label' => $label,
+                    'locked' => true,
+                    'stat' => (string) $needed['meta'],
+                    'actions' => [$needed],
+                ];
+
+                continue;
+            }
+
             $areas[] = [
                 'key' => $module,
                 'label' => $label,
                 'locked' => false,
-                'stat' => $items !== [] ? (string) ($items[0]['meta'] ?? (count($items).' actions')) : 'On track',
+                'stat' => (string) ($items[0]['meta'] ?? (count($items).' actions')),
                 'actions' => $items,
             ];
         }
 
         return $areas;
+    }
+
+    /**
+     * KYC prompt for a module whose gate is open but which can't yet produce
+     * recommendations (not enough data). Same shape as a gate-closed unlock.
+     *
+     * @return array<string,mixed>
+     */
+    private function dataNeededItem(string $module): array
+    {
+        $label = $this->moduleLabel($module);
+
+        return [
+            'id' => 'unlock:'.$module,
+            'type' => 'unlock',
+            'module' => $module,
+            'title' => 'Complete your '.$label.' details',
+            'meta' => 'A few more details so we can give you '.$label.' recommendations',
+            'value' => 0.0,
+            'done' => false,
+            'action' => ['kind' => 'fyn_capture', 'payload' => $module],
+        ];
     }
 
     /**
