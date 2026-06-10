@@ -390,17 +390,13 @@
    Horizontal, swipeable (scroll-snap) and tappable; selecting a card swaps
    the actions list below it. Replaces the old fixed 3-category accordion.
    =================================================================== */
+/* True carousel: ONE card per view, swipe (scroll-snap) to the next. */
 .md-focus {
   display: flex;
-  gap: 0.625rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   padding: 0.25rem 0 0.125rem;
-  /* full-bleed so cards run to the carousel's side edges */
-  margin: 0 -1.125rem;
-  padding-left: 1.125rem;
-  padding-right: 1.125rem;
   /* hide the horizontal scrollbar (no global .scrollbar-hide in /m) */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -408,35 +404,35 @@
 .md-focus::-webkit-scrollbar { display: none; }
 
 .md-focus__card {
-  scroll-snap-align: start;
-  flex: 0 0 auto;
-  min-width: 6.5rem;
-  max-width: 11rem;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  flex: 0 0 100%;
+  min-width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1875rem;
-  padding: 0.625rem 0.875rem;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
   border: 1px solid var(--horizon-100);
   border-radius: var(--radius-lg);
   background: var(--white);
   color: var(--horizon-600);
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   font-family: var(--font-primary);
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .md-focus__label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   color: var(--horizon-600);
-  white-space: nowrap;
 }
 .md-focus__stat {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1.2;
   color: var(--neutral-500);
   white-space: nowrap;
   overflow: hidden;

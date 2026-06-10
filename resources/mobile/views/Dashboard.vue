@@ -51,7 +51,7 @@
 
           <div class="md-callout__carousel">
             <!-- Focus-area cards: swipeable (scroll-snap) + tappable -->
-            <div class="md-focus" role="tablist" aria-label="Focus areas">
+            <div class="md-focus" ref="focusStrip" role="tablist" aria-label="Focus areas" @scroll.passive="onFocusScroll">
               <button
                 v-for="(area, ai) in focusAreas"
                 :key="area.key"
@@ -634,6 +634,24 @@ export default {
     },
     selectArea(i) {
       this.activeArea = i;
+      // Slide the carousel to the chosen card (dots / card tap).
+      const strip = this.$refs.focusStrip;
+      const el = strip && strip.children[i];
+      if (el) strip.scrollTo({ left: el.offsetLeft, behavior: 'smooth' });
+    },
+    // Sync the active card to the swipe position (one card per view).
+    onFocusScroll() {
+      const strip = this.$refs.focusStrip;
+      if (!strip) return;
+      const center = strip.scrollLeft + strip.clientWidth / 2;
+      let best = 0;
+      let bestDist = Infinity;
+      Array.from(strip.children).forEach((el, i) => {
+        const elCenter = el.offsetLeft + el.offsetWidth / 2;
+        const dist = Math.abs(elCenter - center);
+        if (dist < bestDist) { bestDist = dist; best = i; }
+      });
+      if (best !== this.activeArea) this.activeArea = best;
     },
     goToAchievements() {
       this.$router.push('/achievements');
