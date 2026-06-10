@@ -1543,6 +1543,16 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
+  // Authenticated users never see the public marketing / landing pages — those
+  // exist only to convert guests; the user lives behind the auth wall in the
+  // app. Bounce them to the dashboard. Preview personas are exempt so they can
+  // still reach the landing-page persona selector. Mirrors the server-side
+  // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+    next({ name: 'Dashboard' });
+    return;
+  }
+
   // Allow access to authenticated routes when in preview mode
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   if (requiresAuth && !isAuthenticated && !isPreviewMode) {
