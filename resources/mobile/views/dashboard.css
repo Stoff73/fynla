@@ -408,14 +408,15 @@
 .md-focus::-webkit-scrollbar { display: none; }
 
 .md-focus__card {
-  scroll-snap-align: center;
-  flex: 0 0 70%;
-  min-width: 70%;
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  min-width: 6.5rem;
+  max-width: 11rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
-  padding: 1rem 1.125rem;
+  gap: 0.1875rem;
+  padding: 0.625rem 0.875rem;
   border: 1px solid var(--horizon-100);
   border-radius: var(--radius-lg);
   background: var(--white);
@@ -428,15 +429,15 @@
 .md-focus__label {
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--horizon-500);
+  letter-spacing: 0.04em;
+  color: var(--horizon-600);
+  white-space: nowrap;
 }
 .md-focus__stat {
-  font-size: 1.1875rem;
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--horizon-600);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--neutral-500);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -473,6 +474,15 @@
 .md-focus__card.is-locked.is-active {
   border-color: var(--raspberry-500);
   opacity: 1;
+}
+
+/* Slim done-count above the action list (the active card already labels it) */
+.md-recs__count {
+  margin: 0.25rem 0 0.5rem;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--neutral-500);
 }
 
 /* Dot navigation */

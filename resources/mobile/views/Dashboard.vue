@@ -83,13 +83,8 @@
             </div>
 
             <!-- Actions for the selected card -->
-            <section class="md-recs is-open" aria-labelledby="md-recs-heading">
-              <div class="md-section-head md-section-head--toggle">
-                <h3 class="md-section-head__title" id="md-recs-heading">{{ activeCard.label }}</h3>
-                <span v-if="!activeCard.locked && activeRecCount" class="md-section-head__right">
-                  <span class="md-section-head__count">{{ activeDoneCount }} / {{ activeRecCount }}</span>
-                </span>
-              </div>
+            <section class="md-recs is-open" :aria-label="activeCard.label + ' actions'">
+              <p v-if="!activeCard.locked && activeRecCount" class="md-recs__count">{{ activeDoneCount }} of {{ activeRecCount }} done</p>
 
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
