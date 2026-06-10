@@ -876,11 +876,60 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
         expect(collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension'))->toBeNull();
     });
 
-    it('skips non_earner_spouse_pension in dual_earner mode', function () {
+    it('skips non_earner_spouse_pension in dual_earner mode when spouse has no income', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 80000,
             'marital_status' => 'married',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension'))->toBeNull();
+    });
+
+    /**
+     * Dual_earner mode with a low-earning spouse (below twice the Personal
+     * Allowance — the "modest-earner heuristic"). These are often the strongest
+     * spouse-pension cases: basic-rate relief at source on their relevant
+     * earnings, unused Personal Allowance in retirement, and a separate 25%
+     * tax-free lump sum. The recommendation is framed on ACTUAL earnings, not
+     * the flat £2,880/£720 non-earner numbers.
+     */
+    it('fires an earnings-based pension recommendation for a low-earning spouse in dual_earner mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 110000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 8000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('household')
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['description'])->not->toContain('£2,880')   // non-earner flat framing must NOT appear
+            ->and($rec['description'])->toContain('£8,000')        // actual earnings must be framed
+            ->and($rec['estimated_annual_tax_saved'])->toBe(1600.0) // £8,000 × 20%
+            ->and($rec['spouse_annual_income'])->toBe(8000.0)
+            ->and($rec['gross_capacity'])->toBe(8000.0)
+            ->and($rec['net_cost'])->toBe(6400.0);                  // £8,000 × (1 − 0.20)
+    });
+
+    it('does not fire the earnings-based path for a high-earning spouse in dual_earner mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 110000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 60000, // clearly above PA×2 — not a modest earner
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
