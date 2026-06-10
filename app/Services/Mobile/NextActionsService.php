@@ -139,6 +139,10 @@ class NextActionsService
             ->pluck('recommendation_id')
             ->all();
 
+        // Drop recommendations with no human-readable text — a blank rec renders
+        // as an empty row / "How do I ''?" and is worse than showing nothing.
+        $all = array_filter($all, static fn (array $rec): bool => trim((string) ($rec['recommendation_text'] ?? '')) !== '');
+
         return array_map(function (array $rec) use ($completedIds): array {
             $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
@@ -150,12 +154,22 @@ class NextActionsService
                 'title' => (string) ($rec['recommendation_text'] ?? ''),
                 'meta' => $benefit !== null
                     ? 'You could save £'.number_format($benefit)
-                    : ucfirst(str_replace('_', ' ', (string) ($rec['category'] ?? 'Recommended'))),
+                    : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
                 'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
                 'done' => in_array($id, $completedIds, true),
                 'action' => ['kind' => 'rec_chat', 'payload' => (string) ($rec['recommendation_text'] ?? '')],
             ];
         }, $all);
+    }
+
+    /**
+     * Human-readable category label, preserving "ISA" casing (Rule #9).
+     */
+    private function categoryLabel(string $category): string
+    {
+        $label = ucwords(str_replace('_', ' ', $category));
+
+        return preg_replace('/\bIsa\b/', 'ISA', $label) ?? $label;
     }
 
     /**
