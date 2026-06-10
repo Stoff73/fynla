@@ -114,6 +114,16 @@ class ProtectionDataReadinessService
                 message: 'Marital status is required to determine household protection needs.',
                 formLink: '/profile/personal',
             ),
+            $this->check(
+                key: 'protection_profile',
+                level: self::LEVEL_BLOCKING,
+                // Protection needs (dependants, cover target, employer benefits)
+                // are held on the protection profile; the analysis cannot compute
+                // a coverage gap without it. Mirrors ProtectionAgent::analyze().
+                passed: ($user->relationLoaded('protectionProfile') ? $user->protectionProfile : $user->protectionProfile()->first()) !== null,
+                message: 'Set up your protection details so we can assess your cover needs and gaps.',
+                formLink: '/protection',
+            ),
         ];
     }
 

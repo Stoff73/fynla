@@ -483,6 +483,12 @@ class RetirementActionDefinitionService
             'explanation' => $userName.' is '.$employmentStatus.' with a gross annual income of £'.number_format($grossIncome, 0).'.',
         ];
 
+        // Personal pension contributions stop attracting tax relief at age 75 —
+        // recommending increased contributions past that point is not actionable.
+        if ($age !== null && $age >= 75) {
+            return [];
+        }
+
         // Step 2: Retirement target
         $targetRetirementAge = (int) ($profile->target_retirement_age ?? $user?->target_retirement_age ?? 67);
         $targetIncome = (float) ($profile->target_retirement_income ?? 0);
@@ -562,6 +568,16 @@ class RetirementActionDefinitionService
         $carryForward = (float) ($analysisData['annual_allowance']['carry_forward_available'] ?? 0);
         $availableHeadroom = $remainingAllowance + $carryForward;
 
+        // Tax-relievable personal contributions are capped at relevant UK
+        // earnings (employment + self-employment), with a £3,600 gross floor
+        // for non-earners (£2,880 net + basic-rate uplift). Without this cap a
+        // low earner would be told the full allowance is usable — it isn't.
+        $relevantEarnings = (float) ($user?->annual_employment_income ?? 0)
+            + (float) ($user?->annual_self_employment_income ?? 0);
+        $nonEarnerGross = (float) (TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION + TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT);
+        $taxRelievableCap = max($relevantEarnings, $nonEarnerGross);
+        $availableHeadroom = min($availableHeadroom, $taxRelievableCap);
+
         $trace[] = [
             'question' => 'How much Pension Annual Allowance is available?',
             'data_field' => 'Pension Annual Allowance',
@@ -569,6 +585,15 @@ class RetirementActionDefinitionService
             'threshold' => '£'.number_format($annualAllowance, 0).' annual limit',
             'passed' => $availableHeadroom > 0,
             'explanation' => '£'.number_format($availableHeadroom, 0).' total headroom available for additional pension contributions'.($carryForward > 0 ? ' (including £'.number_format($carryForward, 0).' carry forward from previous years)' : '').'.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much of that headroom is tax-relievable for this user?',
+            'data_field' => 'Relevant earnings cap',
+            'data_value' => 'Relevant earnings £'.number_format($relevantEarnings, 0).', minimum gross contribution floor £'.number_format($nonEarnerGross, 0),
+            'threshold' => 'Personal contributions capped at the greater of relevant earnings or £'.number_format($nonEarnerGross, 0),
+            'passed' => $availableHeadroom > 0,
+            'explanation' => 'Tax relief on personal contributions is limited to relevant UK earnings, so usable headroom is £'.number_format($availableHeadroom, 0).'.',
         ];
 
         // Step 6: Income gap assessment
@@ -1061,6 +1086,13 @@ class RetirementActionDefinitionService
         // Step 2: Retirement target
         $targetIncome = (float) ($analysisData['summary']['target_retirement_income'] ?? 0);
         $retirementAge = (int) ($analysisData['summary']['target_retirement_age'] ?? 0);
+
+        // Delaying retirement is only actionable BEFORE retirement: never
+        // suggest it to someone already retired or already at/past their
+        // target retirement age.
+        if ($employmentStatus === 'retired' || ($age !== null && $retirementAge > 0 && $age >= $retirementAge)) {
+            return [];
+        }
         $yearsToRetirement = (int) ($analysisData['summary']['years_to_retirement'] ?? 0);
         $projectedIncome = (float) ($analysisData['summary']['projected_retirement_income'] ?? 0);
         $totalDCValue = (float) ($analysisData['summary']['total_dc_value'] ?? $analysisData['summary']['current_dc_value'] ?? 0);

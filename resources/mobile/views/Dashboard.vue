@@ -21,7 +21,7 @@
       <template v-else>
         <!-- Gradient hero + level wheel -->
         <div class="md-scroll-hero">
-          <section class="md-level" aria-labelledby="md-level-heading">
+          <button type="button" class="md-level md-level--button" aria-labelledby="md-level-heading" @click="goToAchievements">
             <div class="md-level__pie" :class="{ 'is-levelup': pulsing }" role="img" :aria-label="`Level ${level}, ${progressPercent} percent complete`">
               <svg class="md-level__pie-svg" viewBox="0 0 100 100" aria-hidden="true">
                 <circle class="md-level__pie-track" cx="50" cy="50" r="44" />
@@ -36,10 +36,10 @@
               <h2 class="md-level__heading" id="md-level-heading">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</h2>
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
-          </section>
+          </button>
         </div>
 
-        <!-- Callout: rank statement + accordion + recommendations -->
+        <!-- Callout: rank statement + focus-area carousel + actions -->
         <div class="md-callout" role="note">
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
@@ -50,97 +50,73 @@
           </div>
 
           <div class="md-callout__carousel">
-            <!-- Horizontal accordion -->
-            <div class="md-accordion" role="tablist" aria-label="Focus areas">
+            <!-- Focus-area cards: swipeable (scroll-snap) + tappable -->
+            <div class="md-focus" ref="focusStrip" role="tablist" aria-label="Focus areas" @scroll.passive="onFocusScroll">
               <button
-                v-for="(cat, ci) in cats"
-                :key="cat.key"
+                v-for="(area, ai) in focusAreas"
+                :key="area.key"
                 type="button"
-                class="md-accordion__card"
-                :class="{ 'is-active': activeCat === ci }"
+                class="md-focus__card"
+                :class="{ 'is-active': activeArea === ai, 'is-locked': area.locked }"
                 role="tab"
-                :aria-selected="activeCat === ci ? 'true' : 'false'"
-                :aria-label="cat.label"
-                @click="selectCard(ci)"
+                :aria-selected="activeArea === ai ? 'true' : 'false'"
+                @click="selectArea(ai)"
               >
-                <span class="md-accordion__icon" aria-hidden="true" v-html="cat.icon"></span>
-                <span class="md-accordion__content">
-                  <span class="md-callout__slide-stat">{{ statFor(ci) }}</span>
-                  <span class="md-callout__slide-area">{{ cat.label }}</span>
-                  <span class="md-callout__slide-info">{{ cat.info }}</span>
-                </span>
+                <span class="md-focus__label">{{ area.label }}</span>
+                <span class="md-focus__stat">{{ area.stat }}</span>
+                <span v-if="area.locked" class="md-focus__lock">Locked</span>
               </button>
             </div>
 
             <!-- Dots -->
             <div class="md-callout__dots" role="tablist" aria-label="Focus area navigation">
               <button
-                v-for="(cat, ci) in cats"
-                :key="cat.key"
+                v-for="(area, ai) in focusAreas"
+                :key="area.key"
                 type="button"
                 class="md-callout__dot"
-                :class="{ 'is-active': activeCat === ci }"
-                :aria-label="cat.label"
-                :aria-selected="activeCat === ci ? 'true' : 'false'"
-                @click="selectCard(ci)"
+                :class="{ 'is-active': activeArea === ai }"
+                :aria-label="area.label"
+                :aria-selected="activeArea === ai ? 'true' : 'false'"
+                @click="selectArea(ai)"
               ></button>
             </div>
 
-            <!-- Recommendations -->
-            <section class="md-recs is-open" aria-labelledby="md-recs-heading">
-              <div class="md-section-head md-section-head--toggle">
-                <h3 class="md-section-head__title" id="md-recs-heading">Recommendations</h3>
-                <span class="md-section-head__right">
-                  <span class="md-section-head__count">{{ doneCount }} / {{ totalCount }}</span>
-                </span>
-              </div>
+            <!-- Actions for the selected card -->
+            <section class="md-recs is-open" :aria-label="activeCard.label + ' actions'">
+              <p v-if="!activeCard.locked && activeRecCount" class="md-recs__count">{{ activeDoneCount }} of {{ activeRecCount }} done</p>
 
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
-                  <li v-if="!orderedRecs.length" class="md-rec md-rec--empty">
-                    <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">No recommendations here right now.</span></span></span>
+                  <li v-if="!activeActions.length" class="md-rec md-rec--empty">
+                    <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">Nothing to action right now — add more details to unlock your next actions.</span></span></span>
                   </li>
                   <li
-                    v-for="item in orderedRecs"
-                    :key="item.rec.id"
+                    v-for="item in activeActions"
+                    :key="item.id"
                     class="md-rec"
-                    :class="{ 'is-done': item.rec.done, 'is-completing': item.rec.completing, 'is-skipping': item.rec.skipping, 'is-entering': item.rec.entering }"
+                    :class="{ 'is-done': item.done, 'is-unlock': item.type === 'unlock' }"
                   >
                     <button
+                      v-if="item.type === 'recommendation'"
                       type="button"
                       class="md-rec__check-btn"
-                      :aria-pressed="item.rec.done ? 'true' : 'false'"
-                      :aria-label="item.rec.done ? 'Mark as not done' : 'Mark complete'"
-                      @click="toggleRec(item.idx)"
+                      :aria-pressed="item.done ? 'true' : 'false'"
+                      :aria-label="item.done ? 'Mark as not done' : 'Mark complete'"
+                      @click="toggleRec(item)"
                     >
                       <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
                     </button>
-                    <a href="#" class="md-rec__action" @click.prevent="openRecChat(item.rec)">
+                    <a href="#" class="md-rec__action" @click.prevent="onActionTap(item)">
                       <span class="md-rec__text">
-                        <span class="md-rec__title">{{ item.rec.title }}</span>
-                        <span class="md-rec__meta">{{ item.rec.meta }}</span>
+                        <span class="md-rec__title">{{ item.title }}</span>
+                        <span class="md-rec__meta">{{ item.meta }}</span>
                       </span>
                       <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                     </a>
-                    <button
-                      v-if="item.rec.done"
-                      type="button"
-                      class="md-rec__skip md-rec__skip--refresh"
-                      aria-label="Replace with a new recommendation"
-                      @click="skipRec(item.idx)"
-                    >
-                      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    </button>
-                    <button
-                      v-else
-                      type="button"
-                      class="md-rec__skip"
-                      aria-label="Skip this recommendation"
-                      @click="skipRec(item.idx)"
-                    >Skip</button>
                   </li>
                 </ul>
-                <a href="#" class="md-recs__view-all" @click.prevent="goto(cats[activeCat].route)">View all recommendations</a>
+                <a v-if="activeCard.key !== 'top' && !activeCard.locked" href="#" class="md-recs__view-all" @click.prevent="goto('/' + (activeCard.key === 'estate' ? 'estate' : activeCard.key))">View all {{ activeCard.label.toLowerCase() }}</a>
               </div>
             </section>
           </div>
@@ -225,6 +201,14 @@
     <div v-if="showFynNudge" class="md-fyn-nudge">
       <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Finish your personalised tax plan with Fyn</button>
       <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="nudgeDismissed = true">Later</button>
+    </div>
+
+    <!-- Fyn unlock nudge: when a high-value area is KYC-gated, Fyn offers to
+         collect the missing details. Dismissible; tapping opens the chat
+         pre-seeded (the user's choice). Plain text only — Rule #15. -->
+    <div v-if="showUnlockBubble" class="md-fyn-nudge md-fyn-nudge--unlock">
+      <button type="button" class="md-fyn-nudge__cta" @click="openFynForCapture(topUnlock.module)">{{ unlockBubbleText }}</button>
+      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="dismissUnlockBubble">Not now</button>
     </div>
 
     <!-- Docked Fyn bar -->
@@ -348,8 +332,6 @@ import { store } from '../store.js';
 // its own copy. Keep the two in sync if the celebration changes.
 import GamificationCelebration from '@m/components/GamificationCelebration.vue';
 
-const MAX_VISIBLE = 5;
-
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
   retirement: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -382,12 +364,10 @@ export default {
       loading: true,
       error: '',
       data: null,
-      // recommendations
-      pools: [[], [], []],        // full lists per category
-      visible: [[], [], []],      // visible (up to MAX_VISIBLE) per category
-      poolCursor: [0, 0, 0],
-      activeCat: 0,
-      doneCounter: 0,
+      // Focus-area carousel — one card per focus area (Top actions + modules),
+      // each with its own action list. activeArea indexes the selected card.
+      focusAreas: [],
+      activeArea: 0,
       // Level wheel — fed from the gamification engine via the dashboard payload
       // (d.level.* + d.percentile). Single source of truth; no client recompute.
       level: 1,
@@ -405,16 +385,17 @@ export default {
       fynMounted: false,
       fynStarted: false,
       nudgeDismissed: false,
+      // "Not now" holds for the whole browsing session (spec decision D — the
+      // bubble must not re-nag on every navigation back to the dashboard), so
+      // the flag lives in sessionStorage, not just component state.
+      unlockBubbleDismissed: (() => {
+        try { return sessionStorage.getItem('m_unlock_bubble_dismissed') === '1'; } catch (e) { return false; }
+      })(),
       resumeId: null,
       conversationId: null,
       messages: [],
       draft: '',
       sending: false,
-      cats: [
-        { key: 'save_tax', slug: 'investment', route: '/investment', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
-        { key: 'retirement', slug: 'retirement', route: '/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
-        { key: 'savings', slug: 'savings', route: '/savings', label: 'Savings', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
-      ],
     };
   },
   computed: {
@@ -444,6 +425,23 @@ export default {
     },
     showFynNudge() {
       return this.onboardingActive && !this.fynOpen && !this.nudgeDismissed;
+    },
+    // First KYC-gated area's unlock action (locked cards carry exactly one).
+    topUnlock() {
+      for (const area of this.focusAreas) {
+        if (area.locked && area.actions && area.actions[0] && area.actions[0].type === 'unlock') {
+          return area.actions[0];
+        }
+      }
+      const top = (this.focusAreas[0] && this.focusAreas[0].actions) || [];
+      return top.find((a) => a.type === 'unlock') || null;
+    },
+    showUnlockBubble() {
+      return !this.onboardingActive && !this.fynOpen && !this.showFynNudge
+        && !this.unlockBubbleDismissed && !!this.topUnlock;
+    },
+    unlockBubbleText() {
+      return this.topUnlock ? `${this.topUnlock.meta} — Fyn can help` : '';
     },
     // Drawer nav grouped to mirror the web sidebar's sections. Only modules
     // that have a dedicated mobile view are linked (the web sidebar's other
@@ -478,26 +476,26 @@ export default {
     // The level wheel reads engine-fed values directly from the dashboard
     // payload (see load()). The "X of Y actions complete" heading binds to
     // actionsCompleted / actionsTotal — a CLAUDE.md Rule #12-approved display.
-    orderedRecs() {
-      const list = this.visible[this.activeCat] || [];
-      return list
-        .map((rec, idx) => ({ rec, idx }))
-        .sort((a, b) => {
-          if (a.rec.done !== b.rec.done) return a.rec.done ? 1 : -1;
-          if (a.rec.done) return (b.rec.doneAt || 0) - (a.rec.doneAt || 0);
-          return (b.rec.value || 0) - (a.rec.value || 0);
-        });
+    // The selected focus-area card (Top actions or a per-module card). Falls
+    // back to an empty Top card so the template never reads from undefined.
+    activeCard() {
+      return this.focusAreas[this.activeArea] || { key: 'top', label: 'Top actions', locked: false, actions: [] };
     },
-    totalCount() {
-      return (this.visible[this.activeCat] || []).length;
+    activeActions() {
+      return this.activeCard.actions || [];
     },
-    doneCount() {
-      return (this.visible[this.activeCat] || []).filter((r) => r.done).length;
+    activeDoneCount() {
+      return this.activeActions.filter((a) => a.type === 'recommendation' && a.done).length;
+    },
+    activeRecCount() {
+      return this.activeActions.filter((a) => a.type === 'recommendation').length;
     },
     suggestions() {
-      const all = this.visible.flat().filter((r) => !r.done);
-      all.sort((a, b) => (b.value || 0) - (a.value || 0));
-      return all.slice(0, 3).map((r) => `How do I "${r.title}"?`);
+      const top = (this.focusAreas[0] && this.focusAreas[0].actions) || [];
+      return top
+        .filter((a) => a.type === 'recommendation' && !a.done)
+        .slice(0, 3)
+        .map((a) => `How do I "${a.title}"?`);
     },
     fynInsight() {
       return this.data?.fyn_insight || '';
@@ -515,6 +513,10 @@ export default {
       };
       const num = (v) => Number(v) || 0;
       const nw = d.net_worth || {};
+      // Total assets live under net_worth.breakdown.assets (per-class map) —
+      // there is no flat nw.assets field in the payload.
+      const assetsTotal = Object.values((nw.breakdown && nw.breakdown.assets) || {})
+        .reduce((sum, v) => sum + num(v), 0);
       const prot = find('protection');
       const sav = find('savings');
       const ret = find('retirement');
@@ -543,7 +545,7 @@ export default {
           value: this.fmt(nw.total), route: '/net-worth',
           viz: 'donut',
           progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend',
-          caption: this.fmt(nw.assets) + ' assets',
+          caption: this.fmt(assetsTotal) + ' assets',
         },
         {
           key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield,
@@ -595,11 +597,6 @@ export default {
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
-    statFor(ci) {
-      const list = this.visible[ci] || [];
-      const top = list.filter((r) => !r.done).sort((a, b) => (b.value || 0) - (a.value || 0))[0];
-      return top && top.value ? this.fmt(top.value) : '—';
-    },
     async load() {
       this.loading = true;
       this.error = '';
@@ -611,24 +608,13 @@ export default {
         }
         const d = res.data?.data || res.data || {};
         this.data = d;
-        const recs = d.recommendations || {};
-        this.cats.forEach((cat, ci) => {
-          const list = (recs[cat.key] || []).map((r) => ({
-            id: r.id,
-            title: r.title,
-            meta: r.meta,
-            value: Number(r.value) || 0,
-            module: r.module,
-            done: !!r.done,
-            doneAt: 0,
-            completing: false,
-            skipping: false,
-            entering: false,
-          }));
-          this.pools[ci] = list;
-          this.visible[ci] = list.slice(0, MAX_VISIBLE);
-          this.poolCursor[ci] = this.visible[ci].length;
-        });
+        this.focusAreas = Array.isArray(d.focus_areas)
+          ? d.focus_areas.map((area) => ({
+              ...area,
+              actions: (area.actions || []).map((a) => ({ ...a, done: !!a.done, busy: false })),
+            }))
+          : [];
+        if (this.activeArea >= this.focusAreas.length) this.activeArea = 0;
         // Level wheel — read engine-fed values from the dashboard payload
         // (the single source of truth; MobileLevelService -> points engine).
         // d.level.* feeds the ring + the "X of Y actions complete" heading;
@@ -655,61 +641,77 @@ export default {
         this.loading = false;
       }
     },
-    selectCard(ci) {
-      this.activeCat = ci;
+    selectArea(i) {
+      this.activeArea = i;
+      // Slide the carousel to the chosen card (dots / card tap).
+      const strip = this.$refs.focusStrip;
+      const el = strip && strip.children[i];
+      if (el) strip.scrollTo({ left: el.offsetLeft, behavior: 'smooth' });
     },
-    toggleRec(idx) {
-      const rec = this.visible[this.activeCat][idx];
-      if (!rec) return;
-      if (rec.done) {
-        rec.done = false;
-        rec.doneAt = 0;
-        return;
+    // Sync the active card to the swipe position (one card per view).
+    onFocusScroll() {
+      const strip = this.$refs.focusStrip;
+      if (!strip) return;
+      const center = strip.scrollLeft + strip.clientWidth / 2;
+      let best = 0;
+      let bestDist = Infinity;
+      Array.from(strip.children).forEach((el, i) => {
+        const elCenter = el.offsetLeft + el.offsetWidth / 2;
+        const dist = Math.abs(elCenter - center);
+        if (dist < bestDist) { bestDist = dist; best = i; }
+      });
+      if (best !== this.activeArea) this.activeArea = best;
+    },
+    goToAchievements() {
+      this.$router.push('/achievements');
+    },
+    // Tapping an action row: an unlock card sends the user into Fyn to capture
+    // the missing module data; a recommendation opens a Fyn chat about it.
+    onActionTap(item) {
+      if (!item) return;
+      if (item.type === 'unlock') {
+        // KYC gap → Fyn collects the missing details (the user's choice).
+        this.openFynForCapture(item.module);
+      } else if (item.action && item.action.kind === 'navigate' && item.action.payload) {
+        // Recommendation → deep-link to the module screen where it's actioned.
+        this.goto(item.action.payload);
       }
-      // Show the tick, hold, then fade + re-order.
-      rec.done = true;
-      rec.doneAt = ++this.doneCounter;
-      rec.completing = false;
-      window.setTimeout(() => {
-        rec.completing = true;
-        window.setTimeout(() => {
-          rec.completing = false;
-        }, 320);
-      }, 450);
-      // Persist the completion so the shared gamification engine awards points
-      // (mark-done -> RecommendationTracking::markAsCompleted -> observer ->
-      // PointsService), then refresh status to surface any level-up celebration
-      // and sync the wheel. Never throws — gamification must not break the toggle.
-      if (rec.id && store.token) {
-        apiPost(`/api/recommendations/${rec.id}/mark-done`, {
-          module: rec.module || 'general',
-          recommendation_text: rec.title || '',
+    },
+    dismissUnlockBubble() {
+      this.unlockBubbleDismissed = true;
+      try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+    },
+    openFynForCapture(module) {
+      const prompts = {
+        protection: 'Help me add my protection cover details',
+        savings: 'Help me add my savings details',
+        investment: 'Help me add my investment details',
+        retirement: 'Help me add my pension details',
+        estate: 'Help me add my estate planning details',
+        goals: 'Help me set a financial goal',
+      };
+      this.openFyn();
+      this.send(prompts[module] || 'Help me add my financial details');
+    },
+    // Mark / unmark a recommendation action complete. Optimistic toggle, then
+    // persist so the shared gamification engine awards points (mark-done ->
+    // RecommendationTracking::markAsCompleted -> observer -> PointsService);
+    // refresh status to sync the wheel. Reverts the toggle if the call fails.
+    toggleRec(item) {
+      if (!item || item.type !== 'recommendation') return;
+      item.done = !item.done;
+      if (item.id && store.token) {
+        apiPost(`/api/recommendations/${item.id}/mark-done`, {
+          module: item.module || 'general',
+          recommendation_text: item.title || '',
         }, store.token)
           .then(() => store.fetchStatus())
           .then(() => {
             this.level = store.gamification.level;
             this.progressPercent = store.gamification.progressPercent;
           })
-          .catch(() => { /* non-fatal */ });
+          .catch(() => { item.done = !item.done; });
       }
-    },
-    skipRec(idx) {
-      const rec = this.visible[this.activeCat][idx];
-      if (!rec) return;
-      rec.skipping = true;
-      window.setTimeout(() => {
-        const pool = this.pools[this.activeCat];
-        const cursor = this.poolCursor[this.activeCat];
-        if (cursor < pool.length) {
-          const next = pool[cursor];
-          next.entering = true;
-          this.visible[this.activeCat].splice(idx, 1, next);
-          this.poolCursor[this.activeCat] = cursor + 1;
-          window.setTimeout(() => { next.entering = false; }, 360);
-        } else {
-          this.visible[this.activeCat].splice(idx, 1);
-        }
-      }, 260);
     },
     // Brief pulse on the level wheel. The full-screen fireworks takeover is
     // handled by the shared GamificationCelebration component (Rule #12 carve-out).

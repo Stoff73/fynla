@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Agents\GoalsAgent;
+use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Models\User;
 use App\Services\Estate\ComprehensiveEstatePlanService;
-use App\Services\Investment\PortfolioAnalyzer;
+use App\Services\PrerequisiteGateService;
 use Illuminate\Support\Facades\Log;
 
 class RecommendationsAggregatorService
@@ -17,10 +19,12 @@ class RecommendationsAggregatorService
     public function __construct(
         private readonly ProtectionAgent $protectionEngine,
         private readonly SavingsAgent $savingsCalculator,
-        private readonly PortfolioAnalyzer $investmentAnalyzer,
+        private readonly InvestmentAgent $investmentAgent,
         private readonly RetirementAgent $retirementAgent,
         private readonly ComprehensiveEstatePlanService $estatePlanService,
-        private readonly RecommendationPersonaliser $personaliser
+        private readonly GoalsAgent $goalsAgent,
+        private readonly RecommendationPersonaliser $personaliser,
+        private readonly PrerequisiteGateService $gate,
     ) {}
 
     /**
@@ -32,93 +36,153 @@ class RecommendationsAggregatorService
         $allRecommendations = [];
 
         // Protection module
-        try {
-            $protectionAnalysis = $this->protectionEngine->analyze($userId);
-            $protectionRecs = $protectionAnalysis['data']['recommendations'] ?? [];
-            // Also extract coverage gaps as recommendations
-            $gaps = $protectionAnalysis['data']['gaps'] ?? [];
-            foreach ($gaps as $gap) {
-                if (is_array($gap) && isset($gap['recommendation'])) {
-                    $protectionRecs[] = [
-                        'recommendation_text' => $gap['recommendation'],
-                        'priority_score' => 70,
-                        'category' => $gap['type'] ?? 'coverage_gap',
+        if ($this->moduleGateOpen('protection', $user)) {
+            try {
+                $protectionAnalysis = $this->protectionEngine->analyze($userId);
+                $rawRecs = $protectionAnalysis['data']['recommendations'] ?? [];
+                // Protection recs use a 'title'/'action' key (not 'recommendation_text')
+                // and a 1-5 'priority' (not 'priority_score') — map them like the other
+                // modules, passing through any explicit fields untouched so
+                // formatRecommendations keeps its normalisation contract.
+                $protectionRecs = array_map(static function (array $r): array {
+                    return [
+                        'recommendation_id' => $r['recommendation_id'] ?? $r['id'] ?? null,
+                        'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? $r['recommendation_text'] ?? '',
+                        'priority_score' => isset($r['priority_score'])
+                            ? (float) $r['priority_score']
+                            : (isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 70),
+                        'category' => $r['category'] ?? null,
+                        'estimated_cost' => $r['estimated_cost'] ?? null,
+                        'potential_benefit' => $r['potential_benefit'] ?? null,
                     ];
+                }, is_array($rawRecs) ? $rawRecs : []);
+                // Also extract coverage gaps as recommendations.
+                $gaps = $protectionAnalysis['data']['gaps'] ?? [];
+                foreach ((is_array($gaps) ? $gaps : []) as $gap) {
+                    if (is_array($gap) && ! empty($gap['recommendation'])) {
+                        $protectionRecs[] = [
+                            'recommendation_text' => $gap['recommendation'],
+                            'priority_score' => 70,
+                            'category' => $gap['type'] ?? 'coverage_gap',
+                        ];
+                    }
                 }
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($protectionRecs, 'protection'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get protection recommendations for user {$userId}: ".$e->getMessage());
             }
-            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($protectionRecs, 'protection'));
-        } catch (\Exception $e) {
-            Log::warning("Failed to get protection recommendations for user {$userId}: ".$e->getMessage());
         }
 
         // Savings module
-        try {
-            $savingsAnalysis = $this->savingsCalculator->analyze($userId);
-            $savingsRecs = [];
-            // Emergency fund recommendation
-            $ef = $savingsAnalysis['emergency_fund'] ?? [];
-            if (! empty($ef['recommendation']) && strtolower($ef['category'] ?? '') !== 'excellent') {
-                $savingsRecs[] = [
-                    'recommendation_text' => $ef['recommendation'],
-                    'priority_score' => ($ef['category'] ?? '') === 'critical' ? 90 : 60,
-                    'category' => 'emergency_fund',
-                ];
+        if ($this->moduleGateOpen('savings', $user)) {
+            try {
+                $savingsAnalysis = $this->savingsCalculator->analyze($userId);
+                $savingsRecs = [];
+                // Emergency fund recommendation
+                $ef = $savingsAnalysis['emergency_fund'] ?? [];
+                if (! empty($ef['recommendation']) && strtolower($ef['category'] ?? '') !== 'excellent') {
+                    $savingsRecs[] = [
+                        'recommendation_text' => $ef['recommendation'],
+                        'priority_score' => ($ef['category'] ?? '') === 'critical' ? 90 : 60,
+                        'category' => 'emergency_fund',
+                    ];
+                }
+                // ISA allowance recommendation
+                $isa = $savingsAnalysis['isa_allowance'] ?? [];
+                $remaining = $isa['remaining'] ?? 0;
+                if ($remaining > 0) {
+                    $savingsRecs[] = [
+                        'recommendation_text' => 'You have £'.number_format($remaining).' of ISA allowance remaining this tax year. Consider maximising your tax-free savings.',
+                        'priority_score' => 55,
+                        'category' => 'isa_allowance',
+                    ];
+                }
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($savingsRecs, 'savings'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get savings recommendations for user {$userId}: ".$e->getMessage());
             }
-            // ISA allowance recommendation
-            $isa = $savingsAnalysis['isa_allowance'] ?? [];
-            $remaining = $isa['remaining'] ?? 0;
-            if ($remaining > 0) {
-                $savingsRecs[] = [
-                    'recommendation_text' => 'You have £'.number_format($remaining).' of ISA allowance remaining this tax year. Consider maximising your tax-free savings.',
-                    'priority_score' => 55,
-                    'category' => 'isa_allowance',
-                ];
-            }
-            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($savingsRecs, 'savings'));
-        } catch (\Exception $e) {
-            Log::warning("Failed to get savings recommendations for user {$userId}: ".$e->getMessage());
         }
 
-        // Retirement module
-        try {
-            $retirementAnalysis = $this->retirementAgent->analyze($userId);
-            $retirementData = $retirementAnalysis['data'] ?? $retirementAnalysis;
-            $retirementRecs = $retirementData['recommendations'] ?? [];
-            // Extract actionable items from income projection shortfall
-            $summary = $retirementData['summary'] ?? [];
-            if (isset($summary['shortfall']) && $summary['shortfall'] > 0) {
-                $retirementRecs[] = [
-                    'recommendation_text' => 'Your projected retirement income has a shortfall of £'.number_format($summary['shortfall']).' per year. Consider increasing pension contributions.',
-                    'priority_score' => 80,
-                    'category' => 'income_shortfall',
-                ];
+        // Retirement module — real recs come from the action-definition engine
+        // via generateRecommendations(analyze data), NOT from an analyze() key.
+        if ($this->moduleGateOpen('retirement', $user)) {
+            try {
+                $retirementAnalysis = $this->retirementAgent->analyze($userId);
+                $retirementData = $retirementAnalysis['data'] ?? $retirementAnalysis;
+                $generated = $this->retirementAgent->generateRecommendations($retirementData);
+                $retirementRecs = array_map(static function (array $r): array {
+                    return [
+                        'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? '',
+                        'priority_score' => isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 60,
+                        'category' => $r['category'] ?? 'retirement',
+                        'potential_benefit' => is_numeric($r['available_annual_headroom'] ?? null) ? $r['available_annual_headroom'] : null,
+                    ];
+                }, $generated['recommendations'] ?? []);
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($retirementRecs, 'retirement'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get retirement recommendations for user {$userId}: ".$e->getMessage());
             }
-            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($retirementRecs, 'retirement'));
-        } catch (\Exception $e) {
-            Log::warning("Failed to get retirement recommendations for user {$userId}: ".$e->getMessage());
+        }
+
+        // Investment module
+        if ($this->moduleGateOpen('investment', $user)) {
+            try {
+                $investmentAnalysis = $this->investmentAgent->analyze($userId);
+                $generated = $this->investmentAgent->generateRecommendations($investmentAnalysis['data'] ?? $investmentAnalysis);
+                $investmentRecs = array_map(static function (array $r): array {
+                    return [
+                        'recommendation_text' => $r['title'] ?? $r['recommendation'] ?? $r['action'] ?? '',
+                        'priority_score' => isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 55,
+                        'category' => $r['category'] ?? 'investment',
+                    ];
+                }, $generated['recommendations'] ?? []);
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($investmentRecs, 'investment'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get investment recommendations for user {$userId}: ".$e->getMessage());
+            }
         }
 
         // Estate module — extract from implementation_timeline
-        try {
-            $estatePlan = $this->estatePlanService->generateComprehensiveEstatePlan($user);
-            $estateRecs = [];
-            // Extract actions from implementation_timeline
-            $timeline = $estatePlan['implementation_timeline'] ?? [];
-            foreach ($timeline as $item) {
-                if (is_array($item) && isset($item['action'])) {
-                    $priority = ($item['priority'] ?? 2) === 1 ? 85 : 60;
-                    $estateRecs[] = [
-                        'recommendation_text' => $item['action'].(! empty($item['timeframe']) ? " ({$item['timeframe']})" : ''),
-                        'priority_score' => $priority,
-                        'category' => $item['category'] ?? 'estate_planning',
-                        'estimated_cost' => $item['cost'] ?? null,
-                        'potential_benefit' => is_numeric($item['iht_saving'] ?? null) ? $item['iht_saving'] : null,
-                    ];
+        if ($this->moduleGateOpen('estate', $user)) {
+            try {
+                $estatePlan = $this->estatePlanService->generateComprehensiveEstatePlan($user);
+                $estateRecs = [];
+                // Extract actions from implementation_timeline
+                $timeline = $estatePlan['implementation_timeline'] ?? [];
+                foreach ($timeline as $item) {
+                    if (is_array($item) && isset($item['action'])) {
+                        $priority = ($item['priority'] ?? 2) === 1 ? 85 : 60;
+                        $estateRecs[] = [
+                            'recommendation_text' => $item['action'].(! empty($item['timeframe']) ? " ({$item['timeframe']})" : ''),
+                            'priority_score' => $priority,
+                            'category' => $item['category'] ?? 'estate_planning',
+                            'estimated_cost' => $item['cost'] ?? null,
+                            'potential_benefit' => is_numeric($item['iht_saving'] ?? null) ? $item['iht_saving'] : null,
+                        ];
+                    }
                 }
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($estateRecs, 'estate'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get estate recommendations for user {$userId}: ".$e->getMessage());
             }
-            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($estateRecs, 'estate'));
-        } catch (\Exception $e) {
-            Log::warning("Failed to get estate recommendations for user {$userId}: ".$e->getMessage());
+        }
+
+        // Goals module
+        if ($this->moduleGateOpen('goals', $user)) {
+            try {
+                $goalsAnalysis = $this->goalsAgent->analyze($userId);
+                $generated = $this->goalsAgent->generateRecommendations($goalsAnalysis['data'] ?? $goalsAnalysis);
+                $goalsRecs = array_map(static function (array $r): array {
+                    return [
+                        'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? '',
+                        'priority_score' => isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 50,
+                        'category' => $r['category'] ?? 'goals',
+                    ];
+                }, $generated['recommendations'] ?? []);
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($goalsRecs, 'goals'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get goals recommendations for user {$userId}: ".$e->getMessage());
+            }
         }
 
         // Personalise recommendations with user-specific context
@@ -133,6 +197,15 @@ class RecommendationsAggregatorService
     }
 
     /**
+     * True when the named module's KYC prerequisites are satisfied for the user.
+     * Modules map 1:1 to PrerequisiteGateService actions.
+     */
+    private function moduleGateOpen(string $module, User $user): bool
+    {
+        return $this->gate->enforce($module, $user)['can_proceed'] === true;
+    }
+
+    /**
      * Format recommendations to ensure consistent structure.
      */
     private function formatRecommendations(array $recommendations, string $module): array
@@ -143,10 +216,16 @@ class RecommendationsAggregatorService
         });
 
         return array_map(function ($rec) use ($module) {
+            $text = $rec['recommendation_text'] ?? $rec['recommendation'] ?? $rec['text'] ?? '';
+
             return [
-                'recommendation_id' => $rec['recommendation_id'] ?? $rec['id'] ?? uniqid("{$module}_"),
+                // Content-derived STABLE id: recommendation_tracking rows (mark-done)
+                // and the gamification award dedup key (recommendation:{id}) both key
+                // on this — it must be identical across requests for the same
+                // logical recommendation, so never uniqid()/random.
+                'recommendation_id' => $rec['recommendation_id'] ?? $rec['id'] ?? $module.'_'.substr(sha1($module.'|'.$text), 0, 16),
                 'module' => $module,
-                'recommendation_text' => $rec['recommendation_text'] ?? $rec['recommendation'] ?? $rec['text'] ?? '',
+                'recommendation_text' => $text,
                 'priority_score' => $rec['priority_score'] ?? $rec['priority'] ?? 50.0,
                 'timeline' => $rec['timeline'] ?? $this->determineTimeline($rec['priority_score'] ?? 50.0),
                 'category' => $rec['category'] ?? $this->determineCategory($rec, $module),
@@ -191,6 +270,7 @@ class RecommendationsAggregatorService
             'investment' => 'growth_optimization',
             'retirement' => 'retirement_planning',
             'estate' => 'tax_optimization',
+            'goals' => 'goal_planning',
             default => 'general',
         };
     }
@@ -275,6 +355,7 @@ class RecommendationsAggregatorService
                 'investment' => 0,
                 'retirement' => 0,
                 'estate' => 0,
+                'goals' => 0,
                 'property' => 0,
             ],
             'by_timeline' => [

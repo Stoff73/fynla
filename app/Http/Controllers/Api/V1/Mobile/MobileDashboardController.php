@@ -8,10 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
 use App\Models\User;
-use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\Mobile\MobileLevelService;
+use App\Services\Mobile\NextActionsService;
+use App\Services\Mobile\PlanningProgressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,8 @@ class MobileDashboardController extends Controller
     public function __construct(
         private readonly MobileDashboardAggregator $aggregator,
         private readonly MobileLevelService $levelService,
-        private readonly RecommendationsAggregatorService $recommendations,
+        private readonly NextActionsService $nextActions,
+        private readonly PlanningProgressService $planningProgress,
         private readonly MilestoneDetectionService $milestones,
     ) {}
 
@@ -31,8 +33,9 @@ class MobileDashboardController extends Controller
      * Get aggregated mobile dashboard data.
      *
      * Returns module summaries, net worth, Fyn insight (cached 24h), plus the
-     * user's gamification level, dynamic percentile, and recommendation list
-     * (their own shorter TTLs) for the redesigned dashboard.
+     * user's gamification level, planning-progress percentile, and a unified
+     * next-actions list (recommendations and KYC-unlock prompts, max 4) for the
+     * redesigned dashboard.
      */
     public function index(Request $request): JsonResponse
     {
@@ -41,12 +44,23 @@ class MobileDashboardController extends Controller
 
             $data = $this->aggregator->getAggregatedDashboard($userId);
 
-            // Level + dynamic percentile (own caches inside the service).
-            $data['level'] = $this->levelService->levelFor($userId);
-            $data['percentile'] = $this->levelService->percentile($userId);
+            // Per-area focus cards for the carousel: a "Top actions" card (the
+            // unified <=4) plus one card per module (real recs when the KYC gate
+            // is open, a locked unlock card when gated). One aggregation.
+            $focusAreas = $this->nextActions->focusAreas($userId);
+            $data['focus_areas'] = $focusAreas;
 
-            // Recommendations for the accordion + Fyn suggestions.
-            $data['recommendations'] = $this->mobileRecommendations($userId);
+            // The Top card's actions ARE the unified <=4 list that feeds the wheel
+            // "X of Y actions" heading (spec decision B). Derive it from the cards
+            // so we don't aggregate a second time.
+            $actions = $focusAreas[0]['actions'] ?? [];
+            $data['next_actions'] = $actions;
+
+            // Level ring + "X of Y actions" derived from that list.
+            $data['level'] = $this->levelService->levelFor($userId, $actions);
+
+            // Planning-progress percentile (cohort = viewer's preview class).
+            $data['percentile'] = $this->planningProgress->percentileFor($request->user());
 
             // Milestone detection runs here (not in the 24h-cached aggregator)
             // and only on this mobile-only endpoint, so a web read can't consume
@@ -92,53 +106,5 @@ class MobileDashboardController extends Controller
 
             return [];
         }
-    }
-
-    /**
-     * Shape the aggregated recommendations into the per-category buckets the
-     * mobile accordion expects (save-tax / retirement / savings), each item
-     * carrying a title, a "You can save/earn: £X" meta, and a value for sort.
-     *
-     * @return array<string,array<int,array<string,mixed>>>
-     */
-    private function mobileRecommendations(int $userId): array
-    {
-        $all = $this->recommendations->aggregateRecommendations($userId);
-
-        // Module → accordion category mapping.
-        $categoryFor = static function (array $rec): string {
-            return match ($rec['module'] ?? '') {
-                'retirement' => 'retirement',
-                'savings' => 'savings',
-                default => 'save_tax',   // protection/estate/investment/general
-            };
-        };
-
-        $buckets = ['save_tax' => [], 'retirement' => [], 'savings' => []];
-
-        foreach ($all as $rec) {
-            $cat = $categoryFor($rec);
-            $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
-            $verb = $cat === 'savings' ? 'earn' : 'save';
-            $meta = $benefit !== null
-                ? 'You can '.$verb.': £'.number_format($benefit)
-                : ucfirst(str_replace('_', ' ', (string) ($rec['category'] ?? 'Recommended')));
-
-            $buckets[$cat][] = [
-                'id' => $rec['recommendation_id'] ?? uniqid('rec_'),
-                'title' => $rec['recommendation_text'] ?? '',
-                'meta' => $meta,
-                'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
-                'module' => $rec['module'] ?? 'general',
-                'done' => ($rec['status'] ?? 'pending') === 'completed',
-            ];
-        }
-
-        // Sort each bucket by value desc (matches the mockup ordering).
-        foreach ($buckets as &$list) {
-            usort($list, static fn ($a, $b) => $b['value'] <=> $a['value']);
-        }
-
-        return $buckets;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Investment\Recommendation;
 
 use App\Events\Eval\GateChecked;
+use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
@@ -369,8 +370,10 @@ class DataReadinessService
      */
     private function hasExpenditureData(User $user): bool
     {
-        // Check expenditure profile (preferred source)
-        $profile = $user->expenditureProfile;
+        // Check expenditure profile (preferred source). Query explicitly rather
+        // than via the lazy relation so this is safe under preventLazyLoading
+        // (the mobile dashboard calls this gate for every cohort user).
+        $profile = ExpenditureProfile::where('user_id', $user->id)->first();
         if ($profile !== null && ($profile->total_monthly_expenditure ?? 0) > 0) {
             return true;
         }
