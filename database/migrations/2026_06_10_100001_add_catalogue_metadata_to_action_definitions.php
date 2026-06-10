@@ -46,12 +46,21 @@ return new class extends Migration
     public function down(): void
     {
         foreach (self::TABLES as $table) {
-            Schema::table($table, function (Blueprint $t) {
-                $t->dropColumn(['claim_tier', 'required_data', 'sequencing']);
+            Schema::table($table, function (Blueprint $t) use ($table) {
+                $cols = array_values(array_filter(
+                    ['claim_tier', 'required_data', 'sequencing'],
+                    fn (string $c): bool => Schema::hasColumn($table, $c)
+                ));
+                if ($cols !== []) {
+                    $t->dropColumn($cols);
+                }
             });
         }
+
         Schema::table('tax_action_definitions', function (Blueprint $t) {
-            $t->dropColumn('strategy_type');
+            if (Schema::hasColumn('tax_action_definitions', 'strategy_type')) {
+                $t->dropColumn('strategy_type');
+            }
         });
     }
 };
