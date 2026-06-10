@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-10-recommendation-insight-quality-design.md`
 
+**Canonical strategy reference:** `/Users/CSJ/Desktop/fynlaBrain/April/April30Updates/savetax-strategy-catalogue.md` (v0.2, CSJ-redlined) defines the 18-strategy catalogue with triggers, mechanisms, priorities, and copy. Seeder metadata (Task 3) takes priorities from it; Tasks 13/14 verify against its #10/#8 "already implemented" notes before creating anything. The vault (`/Users/CSJ/Desktop/fynlaBrain/`) also holds session handovers (June8Updates–June10Updates) and `June8Updates/savetax-math-spec.md` — consult when a task's surrounding history is unclear.
+
 **Verified anchors (do not re-derive):**
 - `TaxActionDefinitionService::evaluateActions` is orphaned (zero callers).
 - `FinancialPlanningKnowledge` reaches only the legacy path via `AdvicePromptBuilder::buildKnowledgeBlock` (`app/Services/AI/AdvicePromptBuilder.php:189`, `:1113`); `FynContextAssembler` has no knowledge layer.
@@ -291,7 +293,6 @@ foreach ($this->strategyMetadata() as $meta) {
             'title_template' => $meta['strategy_type'],   // display copy comes from the strategy DTO
             'description_template' => 'Computed by '.$meta['strategy_type'].' strategy class.',
             'category' => $meta['category'],
-            'priority' => 'high',
             'scope' => 'portfolio',
             'is_enabled' => true,
             'sort_order' => 100,
@@ -304,7 +305,7 @@ foreach ($this->strategyMetadata() as $meta) {
 TaxActionDefinition::where('source', 'agent')->update(['is_enabled' => false]);
 ```
 
-And the metadata method (adjust `strategy_type` strings to the grep results from Step 1; data-point keys are the canonical vocabulary consumed by Task 7):
+And the metadata method (adjust `strategy_type` strings to the grep results from Step 1; data-point keys are the canonical vocabulary consumed by Task 7; **`priority` values come from the canonical catalogue** `/Users/CSJ/Desktop/fynlaBrain/April/April30Updates/savetax-strategy-catalogue.md` — add `'priority' => '<value>'` to each entry: income_band_position high, lifecycle_allowances medium, joint_savings_psa low, isa_topup_vs_psa high, dividend_allowance_harvest low, salary_sacrifice_ni medium, bed_and_isa medium, pension_aa_carry_forward medium, gift_aid_higher_rate medium, tapered_annual_allowance high, non_earner_spouse_pension medium, cross_spouse_bundle high, asset_shifting_bundle high):
 
 ```php
 /** @return list<array<string,mixed>> */
@@ -1299,10 +1300,14 @@ git add -A && git commit -m "feat(api): tax-strategy endpoint returns the compos
 ### Task 13: `SpouseIsaAfterGiftStrategy`
 
 **Files:**
-- Create: `app/Services/Tax/Strategies/SpouseIsaAfterGiftStrategy.php`
+- Create: `app/Services/Tax/Strategies/SpouseIsaAfterGiftStrategy.php` (only if Step 0 confirms the gap)
 - Modify: `app/Services/Tax/TaxStrategyCalculator.php` (constructor + `$strategies` registry, lines ~31-83)
 - Modify: `database/seeders/TaxActionDefinitionSeeder.php` (metadata row)
 - Test: `tests/Unit/Services/Tax/Strategies/SpouseIsaAfterGiftStrategyTest.php`
+
+- [ ] **Step 0: Verify against the canonical catalogue (do NOT duplicate)**
+
+Catalogue #10 ("ISA Top-Up in Spouse's Name") was marked "already implemented (buildAssetShiftingSuggestions, line 290)" in April, pre-refactor. Read `app/Services/Tax/Strategies/AssetShiftingBundleStrategy.php` fully and list every `StrategyRecommendation` type it emits. If a spouse-ISA recommendation already emits as its own typed item with an `estimatedAnnualTaxSaved`, SKIP creating the new class — instead ensure its type has a Task 3 seeder metadata row and is mapped in Task 17's `SECTION_STRATEGY_TYPES['spouse']`, then adapt the test below to assert on the existing type. If it emits only as part of a merged bundle item (or not at all), proceed with the new class as specified.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1462,10 +1467,14 @@ git add -A && git commit -m "feat(tax): SpouseIsaAfterGiftStrategy — household
 ### Task 14: `MarriageAllowanceStrategy` (eligibility-aware)
 
 **Files:**
-- Create: `app/Services/Tax/Strategies/MarriageAllowanceStrategy.php`
+- Create: `app/Services/Tax/Strategies/MarriageAllowanceStrategy.php` (only if Step 0 confirms the gap)
 - Modify: `app/Services/Tax/TaxStrategyCalculator.php` (register)
 - Modify: `database/seeders/TaxActionDefinitionSeeder.php` (metadata row)
 - Test: `tests/Unit/Services/Tax/Strategies/MarriageAllowanceStrategyTest.php`
+
+- [ ] **Step 0: Verify against the canonical catalogue (do NOT duplicate)**
+
+Catalogue #8 ("Marriage Allowance Transfer", £1,260 transfer, £252 saving, recipient must be basic-rate) was marked "already implemented (buildAssetShiftingSuggestions, line 244)" in April, pre-refactor. Read `AssetShiftingBundleStrategy.php` (and `CrossSpouseBundleStrategy.php`) and check whether a marriage-allowance recommendation already emits with the strict recipient-band gate. If yes: skip the new class, verify the gate matches catalogue #8 (basic-rate recipient only — fix the gate in place if it fires for higher-rate users, keeping its existing type string), add its seeder metadata row, and adapt the test to the existing type. If no: proceed with the new class as specified.
 
 - [ ] **Step 1: Write the failing test**
 
