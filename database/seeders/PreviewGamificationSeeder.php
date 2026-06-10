@@ -60,7 +60,7 @@ class PreviewGamificationSeeder extends Seeder
         $extra = (int) $cfg['data_extra_record'];
         $cap = (int) $cfg['data_extra_cap_per_category'];
 
-        User::where('is_preview_user', true)->get()->each(function (User $user) use ($levels, $first, $extra, $cap) {
+        User::where('is_preview_user', true)->get()->each(function (User $user) use ($levels, $profiles, $first, $extra, $cap) {
             $points = 0;
 
             // Count records per category across all models that map to it.
