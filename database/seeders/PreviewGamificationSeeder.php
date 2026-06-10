@@ -53,6 +53,7 @@ class PreviewGamificationSeeder extends Seeder
     public function run(): void
     {
         $levels = app(LevelService::class);
+        $profiles = app(UserProfileService::class);
         $cfg = config('gamification.points');
         $first = (int) $cfg['data_first_in_category'];
         $extra = (int) $cfg['data_extra_record'];
@@ -71,7 +72,6 @@ class PreviewGamificationSeeder extends Seeder
             }
 
             // First-in-category (20) + capped extras (5 each, up to cap) per category.
-            $idx = 0;
             foreach ($countByCategory as $category => $n) {
                 PointAward::updateOrCreate(
                     ['user_id' => $user->id, 'dedup_key' => "data:{$category}:first"],
@@ -82,16 +82,15 @@ class PreviewGamificationSeeder extends Seeder
                 $extras = min(max($n - 1, 0), $cap);
                 for ($i = 0; $i < $extras; $i++) {
                     PointAward::updateOrCreate(
-                        ['user_id' => $user->id, 'dedup_key' => "data:{$category}:rec:seed{$idx}_{$i}"],
+                        ['user_id' => $user->id, 'dedup_key' => "data:{$category}:rec:seed{$i}"],
                         ['source_type' => 'data', 'points' => $extra, 'meta' => ['category' => $category, 'seeded' => true]],
                     );
                     $points += $extra;
                 }
-                $idx++;
             }
 
             // Income first-capture if the persona has any income.
-            if ($this->totalIncome($user) > 0) {
+            if ($profiles->totalGrossAnnualIncome($user) > 0) {
                 PointAward::updateOrCreate(
                     ['user_id' => $user->id, 'dedup_key' => 'data:income:first'],
                     ['source_type' => 'data', 'points' => $first, 'meta' => ['category' => 'income', 'seeded' => true]],
@@ -109,16 +108,5 @@ class PreviewGamificationSeeder extends Seeder
                 ],
             );
         });
-    }
-
-    private function totalIncome(User $user): float
-    {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
     }
 }
