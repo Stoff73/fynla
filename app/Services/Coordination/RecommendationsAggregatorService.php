@@ -39,11 +39,20 @@ class RecommendationsAggregatorService
         if ($this->moduleGateOpen('protection', $user)) {
             try {
                 $protectionAnalysis = $this->protectionEngine->analyze($userId);
-                $protectionRecs = $protectionAnalysis['data']['recommendations'] ?? [];
-                // Also extract coverage gaps as recommendations
+                $rawRecs = $protectionAnalysis['data']['recommendations'] ?? [];
+                // Protection recs use a 'title' key (not 'recommendation_text') —
+                // map them like the other modules so the text isn't dropped.
+                $protectionRecs = array_map(static function (array $r): array {
+                    return [
+                        'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? $r['recommendation_text'] ?? '',
+                        'priority_score' => isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 70,
+                        'category' => $r['category'] ?? 'protection',
+                    ];
+                }, is_array($rawRecs) ? $rawRecs : []);
+                // Also extract coverage gaps as recommendations.
                 $gaps = $protectionAnalysis['data']['gaps'] ?? [];
-                foreach ($gaps as $gap) {
-                    if (is_array($gap) && isset($gap['recommendation'])) {
+                foreach ((is_array($gaps) ? $gaps : []) as $gap) {
+                    if (is_array($gap) && ! empty($gap['recommendation'])) {
                         $protectionRecs[] = [
                             'recommendation_text' => $gap['recommendation'],
                             'priority_score' => 70,
