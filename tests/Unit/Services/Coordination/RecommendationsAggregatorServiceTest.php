@@ -8,6 +8,7 @@ use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Estate\ComprehensiveEstatePlanService;
@@ -40,6 +41,13 @@ beforeEach(function () {
     // default to none — tests that need retirement recs override this stub.
     $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []])->byDefault();
 
+    // ComposedTaxPlanService is final and cannot be Mockery-mocked — use the
+    // real service. The gate mock opens every module (including
+    // tax_optimisation), but a bare factory user (no income, no accounts,
+    // empty tax_action_definitions table) fires no strategies, so the tax
+    // block contributes no recommendations to these fixtures.
+    $this->taxPlan = app(ComposedTaxPlanService::class);
+
     $this->service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
@@ -48,7 +56,8 @@ beforeEach(function () {
         $this->estatePlanService,
         $this->goalsAgent,
         $this->personaliser,
-        $this->gate
+        $this->gate,
+        $this->taxPlan
     );
 });
 
@@ -453,7 +462,8 @@ it('handles non-numeric iht_saving gracefully during aggregation', function () {
         $this->estatePlanService,
         $this->goalsAgent,
         $personaliser,
-        $this->gate
+        $this->gate,
+        $this->taxPlan
     );
 
     $recommendations = $service->aggregateRecommendations($this->user->id);
