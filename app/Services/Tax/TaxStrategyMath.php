@@ -96,6 +96,16 @@ final class TaxStrategyMath
     }
 
     /**
+     * Marginal income-tax rate for an arbitrary gross income figure, without
+     * needing a User model. Used by HouseholdFinancialContext to price a
+     * dual-earner spouse's rate from the household input's spouse_annual_income.
+     */
+    public function bandRateFromIncome(float $income): float
+    {
+        return $this->bandRateForBand($this->bandFromIncome($income));
+    }
+
+    /**
      * Marginal income-tax rate for a given band ('basic' / 'higher' /
      * 'additional'), sourced from TaxConfigService['income_tax']['bands'].
      * Falls back to HMRC 2025/26 defaults only if the band can't be matched
