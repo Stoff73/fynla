@@ -1,3 +1,26 @@
+<?php
+
+use App\Services\Marketing\SaveTaxEstimateService;
+
+// Headline "save tax" figure for the How-Fyn-can-help teaser. Uses the same
+// representative default persona as /savetax/plan for a direct visit, so the
+// number shown here matches the savetax landing page. All tax values come from
+// TaxConfigService via SaveTaxEstimateService — never hard-coded.
+$homeSaveTaxFigure = null;
+try {
+    $homeSaveTaxEstimate = app(SaveTaxEstimateService::class)->estimate([
+        'income' => '50271_100000',
+        'spouse' => 'no',
+        'spouseIncome' => null,
+        'assets' => ['savings', 'pension', 'isa'],
+    ]);
+    if (! empty($homeSaveTaxEstimate['savings_total'])) {
+        $homeSaveTaxFigure = '£'.number_format((int) $homeSaveTaxEstimate['savings_total']);
+    }
+} catch (Throwable $e) {
+    $homeSaveTaxFigure = null;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,7 +56,7 @@
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=116" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=122" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -77,8 +100,7 @@
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/register" class="btn-cta-primary">Get started</a>
-          <a href="/savetax" class="btn-cta-secondary">Save tax</a>
+          <a href="/register" class="btn-cta-primary">Get started for free</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
@@ -199,6 +221,27 @@
       <div class="feature-grid__inner">
         <h2 id="features-heading" class="feature-grid__heading">How Fyn can help you</h2>
         <p class="feature-grid__intro">We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.</p>
+
+        <!-- Save-tax highlight — headline saving + CTA into the savetax funnel.
+             The figure counts up to its value when scrolled into view (JS). -->
+        <div class="feature-savetax">
+          <p class="feature-savetax__headline">You could save tax today</p>
+          <?php if ($homeSaveTaxFigure): ?>
+            <p
+              class="feature-savetax__figure"
+              id="savetax-counter"
+              data-count-to="<?= (int) ($homeSaveTaxEstimate['savings_total'] ?? 0) ?>"
+              data-count-prefix="£"
+            >£0</p>
+          <?php endif; ?>
+          <p class="feature-savetax__sub">
+            <?php if ($homeSaveTaxFigure): ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php endif; ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
+          </p>
+          <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
+        </div>
+
+        <h3 class="feature-grid__subheading">Other ways Fyn can help you</h3>
+
         <div class="feature-grid__cards">
           <article class="feature-card" aria-label="Protection">
             <div class="feature-card__icon-wrap feature-card__icon-wrap--raspberry" aria-hidden="true">
@@ -585,7 +628,7 @@
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
   <script src="/pages/js/site.js?v=112" defer></script>
   <!-- Page-specific interactions (carousel, video, accordion, insights, demo modal) -->
-  <script src="/pages/js/index.js?v=112" defer></script>
+  <script src="/pages/js/index.js?v=113" defer></script>
 
 </body>
 </html>

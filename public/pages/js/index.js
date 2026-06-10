@@ -49,6 +49,7 @@
     wireSmoothScroll();
     fetchInsights();
     wireDemoModal();
+    wireSaveTaxCounter();
   });
 
   window.addEventListener('resize', debounce(refreshNavHeight, 150));
@@ -430,6 +431,52 @@
           });
       });
     });
+  }
+
+  /* ----------------------------------------------------------------
+     SAVE-TAX COUNTER
+     Fast count-up animation on the "How Fyn can help you" save-tax
+     figure when it scrolls into view. Honours reduced-motion.
+     ---------------------------------------------------------------- */
+  function wireSaveTaxCounter() {
+    var el = document.getElementById('savetax-counter');
+    if (!el) return;
+
+    var target = parseInt(el.getAttribute('data-count-to'), 10) || 0;
+    var prefix = el.getAttribute('data-count-prefix') || '';
+    if (target <= 0) return;
+
+    var fmt = function (n) { return prefix + Math.round(n).toLocaleString('en-GB'); };
+    var done = false;
+
+    function run() {
+      if (done) return;
+      done = true;
+      var duration = 1200;
+      var start = null;
+      function step(ts) {
+        if (start === null) start = ts;
+        var p = Math.min((ts - start) / duration, 1);
+        var eased = 1 - Math.pow(1 - p, 3); // easeOutCubic — fast then settle
+        el.textContent = fmt(target * eased);
+        if (p < 1) { requestAnimationFrame(step); } else { el.textContent = fmt(target); }
+      }
+      requestAnimationFrame(step);
+    }
+
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) {
+      el.textContent = fmt(target);
+    } else if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) { run(); io.disconnect(); }
+        });
+      }, { threshold: 0.4 });
+      io.observe(el);
+    } else {
+      run();
+    }
   }
 
 })();
