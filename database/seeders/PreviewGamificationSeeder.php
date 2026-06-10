@@ -21,6 +21,7 @@ use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Models\UserGamification;
 use App\Services\Gamification\LevelService;
+use App\Services\UserProfile\UserProfileService;
 use Illuminate\Database\Seeder;
 
 /**
