@@ -5,8 +5,24 @@
     <div v-else-if="error" class="gd-loading">{{ error }}</div>
 
     <template v-else>
+      <!-- ===================== EMPTY STATE (no data yet) ===================== -->
+      <div v-if="isEmpty" class="gd-empty">
+        <section class="gd-header">
+          <div class="gd-header__top">
+            <span class="gd-header__level">Level {{ level }}</span>
+            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</span>
+          </div>
+          <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
+        </section>
+        <div class="gd-empty__cta">
+          <h2 class="gd-empty__title">Let's build your plan</h2>
+          <p class="gd-empty__sub">Fyn will ask a few quick questions and set up your personalised recommendations.</p>
+          <button type="button" class="gd-empty__btn" @click="openFyn">Get your personalised recommendations</button>
+        </div>
+      </div>
+
       <!-- ===================== MOBILE (mirrors the mobile app) ===================== -->
-      <div class="gd-mobile">
+      <div v-if="!isEmpty" class="gd-mobile">
         <div class="md-scroll-hero">
           <section class="md-level" aria-labelledby="gdm-level-h">
             <div class="md-level__pie" role="img" :aria-label="`Level ${level}, ${progressPercent} percent complete`">
@@ -83,7 +99,7 @@
                   <button type="button" class="md-rec__skip" aria-label="Skip this recommendation" @click="skipRec(rec)">Skip</button>
                 </li>
               </ul>
-              <a href="#" class="md-recs__view-all" @click.prevent="goto(cats[activeCat].route)">View all recommendations</a>
+              <a href="#" class="md-recs__view-all" @click.prevent="openFyn">Get more recommendations</a>
             </section>
           </div>
         </div>
@@ -110,13 +126,13 @@
       </div>
 
       <!-- ===================== DESKTOP (expanded) ===================== -->
-      <div class="gd-desktop">
+      <div v-if="!isEmpty" class="gd-desktop">
         <section class="gd-header">
           <div class="gd-header__top">
             <span class="gd-header__level">Level {{ level }}</span>
             <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions complete — reach <strong>Level {{ level + 1 }}</strong></span>
           </div>
-          <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: Math.max(progressPercent, 3) + '%' }"></div></div>
+          <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
           <div class="gd-header__levelup">
             <span class="gd-header__lu-badge">LEVEL UP</span>
             <div>
@@ -163,6 +179,7 @@
                 <button type="button" class="md-rec__skip" aria-label="Skip this recommendation" @click="skipRec(rec)">Skip</button>
               </li>
             </ul>
+            <a href="#" class="md-recs__view-all" @click.prevent="openFyn">Get more recommendations</a>
           </div>
         </section>
 
@@ -215,14 +232,11 @@ export default {
       activeCat: 0,
       buckets: { save_tax: [], retirement: [], savings: [] },
       level: 1,
-      progressPercent: 0,
-      actionsCompleted: 0,
-      actionsTotal: 0,
       percentile: 57,
       cats: [
         { key: 'save_tax', route: '/tax-strategy', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
-        { key: 'retirement', route: '/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
-        { key: 'savings', route: '/savings', label: 'Savings', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
+        { key: 'retirement', route: '/net-worth/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
+        { key: 'savings', route: '/net-worth/cash', label: 'Savings', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
       ],
     };
   },
@@ -236,38 +250,74 @@ export default {
     doneCount() {
       return this.activeRecs.filter((r) => r.done).length;
     },
+    // The level "actions" are the recommendations across all focus areas, so the
+    // progress bar and "X of Y actions complete" move live as the user checks /
+    // unchecks them (no server round-trip — instant, and works both ways).
+    allRecs() {
+      return [].concat(this.buckets.save_tax, this.buckets.retirement, this.buckets.savings);
+    },
+    actionsTotal() {
+      return this.allRecs.length;
+    },
+    actionsCompleted() {
+      return this.allRecs.filter((r) => r.done).length;
+    },
+    progressPercent() {
+      return this.actionsTotal > 0 ? Math.round((this.actionsCompleted / this.actionsTotal) * 100) : 0;
+    },
+    // Empty = no recommendations and no net worth → show a focused "get started"
+    // state (level bar + a single CTA into Fyn) instead of zeroed cards.
+    isEmpty() {
+      const net = Number((this.data && this.data.net_worth && this.data.net_worth.total) || 0);
+      const assets = Number((this.data && this.data.net_worth && this.data.net_worth.breakdown && this.data.net_worth.breakdown.total_assets) || 0);
+      return this.actionsTotal === 0 && net === 0 && assets === 0;
+    },
     finances() {
       const d = this.data || {};
       const modsRaw = d.modules || {};
       const find = (k) => (Array.isArray(modsRaw) ? (modsRaw.find((m) => m.key === k) || {}) : (modsRaw[k] || {}));
       const num = (v) => Number(v) || 0;
-      const nw = d.net_worth || {};
-      const prot = find('protection');
-      const sav = find('savings');
-      const ret = find('retirement');
-      const inv = find('investment');
-      const trend = num(nw.trend);
+      const clampPct = (v) => Math.max(0, Math.min(100, Math.round(v)));
 
+      // Net worth — payload is { total, breakdown: { total_assets, total_liabilities, ... } }.
+      const nw = d.net_worth || {};
+      const bd = nw.breakdown || {};
+      const net = num(nw.total);
+      const totalAssets = num(bd.total_assets);
+      // Equity ratio = share of your assets owned outright (net of liabilities). 0 with no assets.
+      const equityPct = totalAssets > 0 ? clampPct((net / totalAssets) * 100) : 0;
+
+      // Protection — total_coverage drives a covered / not-covered ring.
+      const prot = find('protection');
+      const protVal = num(prot.value != null ? prot.value : prot.total_coverage);
+      const covered = protVal > 0;
+
+      // Savings — emergency-fund runway out of a 6-month target.
+      const sav = find('savings');
       const efMonths = num(sav.emergency_fund_months);
       const efTarget = 6;
       const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
 
+      // Retirement — projected income vs target.
+      const ret = find('retirement');
       const projected = num(ret.projected_income);
       const target = num(ret.target_income);
-      const retPct = target > 0 ? Math.min(100, Math.round((projected / target) * 100)) : 0;
+      const retPct = target > 0 ? clampPct((projected / target) * 100) : 0;
       const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
 
+      // Investment — value + how much of total assets it represents.
+      const inv = find('investment');
       const invValue = num(inv.portfolio_value != null ? inv.portfolio_value : inv.value);
       const invAccounts = num(inv.accounts_count);
       const invHoldings = num(inv.holdings_count);
-      const protVal = prot.value != null ? prot.value : prot.total_coverage;
+      const invPct = totalAssets > 0 ? clampPct((invValue / totalAssets) * 100) : (invValue > 0 ? 100 : 0);
 
       return [
-        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(nw.total), route: '/net-worth', viz: 'donut', progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend', caption: this.fmt(nw.assets) + ' assets' },
-        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: this.fmt(protVal), route: '/protection', viz: 'donut', progress: protVal > 0 ? 85 : 0, vizNum: protVal > 0 ? 'Active' : 'None', vizCap: 'Cover', caption: protVal > 0 ? 'Cover in place' : 'Add your cover' },
-        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(savValue), route: '/savings', viz: 'bar', barFill: efTarget > 0 ? Math.min(100, Math.round((efMonths / efTarget) * 100)) : 0, barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0', barUnit: '/ ' + efTarget + ' months', caption: efMonths >= efTarget ? 'Emergency fund on track' : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund') },
-        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retValue), route: '/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: target > 0 ? 'Towards your target' : 'Plan your retirement' },
-        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(invValue), route: '/investment', viz: 'donut', progress: invValue > 0 ? 72 : 0, vizNum: invValue > 0 ? String(invAccounts) : '0', vizCap: invAccounts === 1 ? 'Account' : 'Accounts', caption: invValue > 0 ? `${invHoldings} ${invHoldings === 1 ? 'holding' : 'holdings'}` : 'Add your investments' },
+        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(net), route: '/net-worth/wealth-summary', viz: 'donut', progress: equityPct, vizNum: equityPct + '%', vizCap: 'Equity', caption: this.fmt(totalAssets) + ' assets' },
+        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: covered ? this.fmt(protVal) : '£0', route: '/protection', viz: 'donut', progress: covered ? 100 : 0, vizNum: covered ? 'Active' : 'None', vizCap: 'Cover', caption: covered ? 'Cover in place' : 'Add your cover' },
+        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(savValue), route: '/net-worth/cash', viz: 'bar', barFill: efTarget > 0 ? clampPct((efMonths / efTarget) * 100) : 0, barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0', barUnit: '/ ' + efTarget + ' months', caption: efMonths >= efTarget ? 'Emergency fund on track' : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund') },
+        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retValue), route: '/net-worth/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: target > 0 ? 'Towards your target' : 'Plan your retirement' },
+        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(invValue), route: '/net-worth/investments', viz: 'donut', progress: invPct, vizNum: invValue > 0 ? String(invAccounts) : '0', vizCap: invAccounts === 1 ? 'Account' : 'Accounts', caption: invValue > 0 ? `${invHoldings} ${invHoldings === 1 ? 'holding' : 'holdings'}` : 'Add your investments' },
       ];
     },
   },
@@ -285,6 +335,11 @@ export default {
     },
     openRec(rec) {
       // Open Fyn with the recommendation as a question (mirrors mobile).
+      this.openFyn();
+    },
+    // Open the docked Fyn chat (expands it if collapsed). Mirrors how the
+    // dashboard's mounted openFyn=journey flow opens the panel.
+    openFyn() {
       this.$store.dispatch('aiChat/open');
       window.dispatchEvent(new Event('fyn-open-chat'));
     },
@@ -322,9 +377,6 @@ export default {
         });
         const lv = d.level || {};
         this.level = lv.level ?? 1;
-        this.progressPercent = lv.progress_percent ?? 0;
-        this.actionsCompleted = lv.actions_completed ?? 0;
-        this.actionsTotal = lv.actions_total ?? 0;
         this.percentile = d.percentile ?? 57;
       } catch (e) {
         logger.error?.('[GamifiedDashboard] load failed', e);

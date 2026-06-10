@@ -10,7 +10,7 @@
       <div class="celebrate-body" @click.stop>
         <p class="kicker">LEVEL UP</p>
         <div class="ring-wrap">
-          <svg width="140" height="140" class="ring">
+          <svg width="140" height="140" class="lvl-ring">
             <circle cx="70" cy="70" r="62" class="ring-track" />
             <circle cx="70" cy="70" r="62" class="ring-fill" />
           </svg>
@@ -80,7 +80,7 @@ export default {
 .celebrate { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; color: #fff; overflow: hidden; background: linear-gradient(165deg, #141a2e 0%, #1F2A44 35%, #2c2466 72%, #5854E6 100%); }
 .kicker { letter-spacing: 3px; font-size: 13px; font-weight: 700; color: #A7F3D0; }
 .ring-wrap { position: relative; width: 140px; height: 140px; margin: 14px auto 6px; display: flex; align-items: center; justify-content: center; animation: pop .7s cubic-bezier(.2,.9,.3,1.4) both; }
-.ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+.lvl-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ring-track { fill: none; stroke: rgba(255,255,255,.15); stroke-width: 9; }
 .ring-fill { fill: none; stroke: #20B486; stroke-width: 9; stroke-linecap: round; stroke-dasharray: 389; stroke-dashoffset: 389; animation: ring 1.3s ease-out .4s both; }
 .lvl-num { font-size: 50px; font-weight: 900; }

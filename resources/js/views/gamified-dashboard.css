@@ -34,6 +34,9 @@
 @media (min-width: 1024px) {
   .gamified-dash .gd-mobile { display: none; }
   .gamified-dash .gd-desktop { display: flex; flex-direction: column; gap: 1.25rem; }
+  /* Clear the right-docked Fyn chat strip (collapsed = 40px) so cards/boxes
+     are fully visible when chat is closed, without touching the chat bar. */
+  .gamified-dash { padding-right: 3rem; }
 }
 
 .gamified-dash .gd-loading { padding: 3rem 1rem; text-align: center; color: var(--neutral-500); font-size: 0.9375rem; }
@@ -158,10 +161,14 @@
 
 .gamified-dash .gd-card { background: #fff; border: 1px solid var(--horizon-100); border-radius: var(--radius-2xl); padding: 0.5rem 1.5rem 1.5rem; }
 .gamified-dash .gd-tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--horizon-100); }
-.gamified-dash .gd-tab { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; padding: 1rem 1rem 0.875rem; border: none; background: none; border-bottom: 3px solid transparent; cursor: pointer; font-family: var(--font-primary); text-align: left; }
+/* Inactive tabs sit "set back" on a grey surface with a hover state; the active
+   tab is raised (white) with a raspberry underline so it reads as selected. */
+.gamified-dash .gd-tab { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; padding: 1rem 1rem 0.875rem; border: none; background: var(--horizon-100); border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 3px solid transparent; cursor: pointer; font-family: var(--font-primary); text-align: left; transition: background 0.15s ease; }
+.gamified-dash .gd-tab:hover { background: var(--horizon-200); }
 .gamified-dash .gd-tab__stat { font-size: 1.35rem; font-weight: 900; color: var(--horizon-400); line-height: 1; }
 .gamified-dash .gd-tab__area { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--neutral-400); }
-.gamified-dash .gd-tab.is-active { border-bottom-color: var(--raspberry-500); }
+.gamified-dash .gd-tab.is-active { background: #fff; border-bottom-color: var(--raspberry-500); }
+.gamified-dash .gd-tab.is-active:hover { background: #fff; }
 .gamified-dash .gd-tab.is-active .gd-tab__stat { color: var(--raspberry-600); }
 .gamified-dash .gd-tab.is-active .gd-tab__area { color: var(--horizon-500); }
 .gamified-dash .gd-recs { margin-top: 1.25rem; }
@@ -173,3 +180,13 @@
 .gamified-dash .gd-section-head h2 { font-size: 1.125rem; font-weight: 800; color: var(--horizon-600); margin: 0; }
 .gamified-dash .gd-finances__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; }
 .gamified-dash .gd-finances__grid .md-panel--wide { grid-column: auto; }
+
+/* ===================================================================
+   EMPTY STATE — level bar + a single CTA into Fyn
+   =================================================================== */
+.gamified-dash .gd-empty { display: flex; flex-direction: column; gap: 1.5rem; }
+.gamified-dash .gd-empty__cta { background: #fff; border: 1px solid var(--horizon-100); border-radius: var(--radius-2xl); padding: 2.5rem 1.5rem; text-align: center; }
+.gamified-dash .gd-empty__title { font-size: 1.25rem; font-weight: 800; color: var(--horizon-600); margin: 0 0 0.5rem; }
+.gamified-dash .gd-empty__sub { font-size: 0.9375rem; color: var(--neutral-500); margin: 0 auto 1.25rem; max-width: 28rem; line-height: 1.5; }
+.gamified-dash .gd-empty__btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.875rem 1.75rem; background: var(--raspberry-500); color: #fff; font-weight: 700; font-size: 1rem; border: none; border-radius: var(--radius-md); cursor: pointer; transition: background 0.15s ease; }
+.gamified-dash .gd-empty__btn:hover { background: var(--raspberry-600); }
