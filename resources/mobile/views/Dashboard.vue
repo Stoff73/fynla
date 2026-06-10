@@ -89,7 +89,7 @@
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
                   <li v-if="!activeActions.length" class="md-rec md-rec--empty">
-                    <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">You're on track here — nothing to action right now.</span></span></span>
+                    <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">Nothing to action right now — add more details to unlock your next actions.</span></span></span>
                   </li>
                   <li
                     v-for="item in activeActions"
@@ -208,7 +208,7 @@
          pre-seeded (the user's choice). Plain text only — Rule #15. -->
     <div v-if="showUnlockBubble" class="md-fyn-nudge md-fyn-nudge--unlock">
       <button type="button" class="md-fyn-nudge__cta" @click="openFynForCapture(topUnlock.module)">{{ unlockBubbleText }}</button>
-      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="unlockBubbleDismissed = true">Not now</button>
+      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="dismissUnlockBubble">Not now</button>
     </div>
 
     <!-- Docked Fyn bar -->
@@ -385,7 +385,12 @@ export default {
       fynMounted: false,
       fynStarted: false,
       nudgeDismissed: false,
-      unlockBubbleDismissed: false,
+      // "Not now" holds for the whole browsing session (spec decision D — the
+      // bubble must not re-nag on every navigation back to the dashboard), so
+      // the flag lives in sessionStorage, not just component state.
+      unlockBubbleDismissed: (() => {
+        try { return sessionStorage.getItem('m_unlock_bubble_dismissed') === '1'; } catch (e) { return false; }
+      })(),
       resumeId: null,
       conversationId: null,
       messages: [],
@@ -508,6 +513,10 @@ export default {
       };
       const num = (v) => Number(v) || 0;
       const nw = d.net_worth || {};
+      // Total assets live under net_worth.breakdown.assets (per-class map) —
+      // there is no flat nw.assets field in the payload.
+      const assetsTotal = Object.values((nw.breakdown && nw.breakdown.assets) || {})
+        .reduce((sum, v) => sum + num(v), 0);
       const prot = find('protection');
       const sav = find('savings');
       const ret = find('retirement');
@@ -536,7 +545,7 @@ export default {
           value: this.fmt(nw.total), route: '/net-worth',
           viz: 'donut',
           progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend',
-          caption: this.fmt(nw.assets) + ' assets',
+          caption: this.fmt(assetsTotal) + ' assets',
         },
         {
           key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield,
@@ -667,6 +676,10 @@ export default {
         // Recommendation → deep-link to the module screen where it's actioned.
         this.goto(item.action.payload);
       }
+    },
+    dismissUnlockBubble() {
+      this.unlockBubbleDismissed = true;
+      try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
     },
     openFynForCapture(module) {
       const prompts = {
