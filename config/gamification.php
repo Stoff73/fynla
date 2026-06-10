@@ -29,4 +29,8 @@ return [
         'daily_login' => 5,
         'streak' => [3 => 15, 7 => 30, 14 => 50, 30 => 100],
     ],
+
+    // Sort weight given to a KYC "unlock" action when interleaved with real
+    // recommendations in the mobile next-actions list (tunable).
+    'unlock_action_weight' => 65,
 ];
