@@ -20,6 +20,9 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TaxActionDefinitionSeeder::class);
 
+    // The seeder disables orphaned agent rows by design; these unit tests exercise the evaluators directly, so re-enable.
+    TaxActionDefinition::where('source', 'agent')->update(['is_enabled' => true]);
+
     $this->service = app(TaxActionDefinitionService::class);
 
     $this->user = User::factory()->create([

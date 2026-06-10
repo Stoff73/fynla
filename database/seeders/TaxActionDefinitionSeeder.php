@@ -171,7 +171,7 @@ class TaxActionDefinitionSeeder extends Seeder
                 'strategy_type' => 'gia_to_spouse',
                 'category' => 'household',
                 'priority' => 'high',
-                'claim_tier' => 'mechanical',
+                'claim_tier' => 'judgement',
                 'required_data' => ['marital_status', 'gia_holdings', 'dividend_income', 'spouse_income'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => []],
             ],
