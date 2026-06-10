@@ -218,6 +218,79 @@ describe('Path C — single_earner_couple', function () {
         expect($shift)->not->toBeNull();
         expect($shift['suggested_transfer_amount'])->toBeLessThan(600000);
     });
+
+    /**
+     * Canonical pin — Tasks 13+14.
+     * HMRC: the RECIPIENT (the earning spouse) must be a basic-rate taxpayer.
+     * An additional-rate earner (£110,000) is ineligible regardless of the
+     * marriage_allowance_eligible flag.
+     */
+    it('does not recommend marriage allowance to a higher-rate recipient (additional-rate £110k)', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 110000,
+            'marital_status' => 'married',
+            'marriage_allowance_eligible' => true,
+        ]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'marriage_allowance_transfer'))
+            ->toBeNull('marriage_allowance_transfer must NOT fire for a £110k additional-rate recipient');
+    });
+
+    /**
+     * Canonical pin — Tasks 13+14.
+     * Positive case: basic-rate earner (£35,000) with a non-earning spouse.
+     * marriage_allowance_transfer must fire and the saving must be config-derived
+     * (roughly transferable 10% of PA × basic rate ≈ £252 for 2026/27).
+     */
+    it('recommends marriage allowance to a basic-rate recipient with a non-earning spouse', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 35000,
+            'marital_status' => 'married',
+            'marriage_allowance_eligible' => true,
+        ]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $ma = collect($output->recommendations)->firstWhere('type', 'marriage_allowance_transfer');
+        expect($ma)->not->toBeNull('marriage_allowance_transfer must fire for a £35k basic-rate recipient');
+        // Saving = transferable amount × basic rate — both from TaxConfigService.
+        // For 2026/27: £1,260 × 20% = £252. Allow a ±£10 tolerance for config drift.
+        expect($ma['estimated_annual_tax_saved'])->toBeGreaterThan(230.0);
+        expect($ma['estimated_annual_tax_saved'])->toBeLessThan(280.0);
+        expect($ma['amount_transferred'])->toBeGreaterThan(0.0);
+    });
+
+    /**
+     * Canonical pin — Tasks 13+14.
+     * When the spouse's ISA is already at the annual allowance (£20,000),
+     * isa_topup_spouse must stay silent — there is no remaining capacity.
+     */
+    it('stays silent on spouse ISA capacity when the spouse ISA is at the allowance', function () {
+        $taxConfig = app(TaxConfigService::class);
+        $isaAllowance = (float) ($taxConfig->getISAAllowances()['annual_allowance'] ?? 20000);
+
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'married',
+            'marriage_allowance_eligible' => false,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_isa_balance' => $isaAllowance, // fully subscribed
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'isa_topup_spouse'))
+            ->toBeNull('isa_topup_spouse must NOT fire when spouse ISA is fully subscribed');
+    });
 });
 
 describe('benchmark', function () {
