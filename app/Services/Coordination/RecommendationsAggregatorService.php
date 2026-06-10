@@ -40,13 +40,20 @@ class RecommendationsAggregatorService
             try {
                 $protectionAnalysis = $this->protectionEngine->analyze($userId);
                 $rawRecs = $protectionAnalysis['data']['recommendations'] ?? [];
-                // Protection recs use a 'title' key (not 'recommendation_text') —
-                // map them like the other modules so the text isn't dropped.
+                // Protection recs use a 'title'/'action' key (not 'recommendation_text')
+                // and a 1-5 'priority' (not 'priority_score') — map them like the other
+                // modules, passing through any explicit fields untouched so
+                // formatRecommendations keeps its normalisation contract.
                 $protectionRecs = array_map(static function (array $r): array {
                     return [
+                        'recommendation_id' => $r['recommendation_id'] ?? $r['id'] ?? null,
                         'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? $r['recommendation_text'] ?? '',
-                        'priority_score' => isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 70,
-                        'category' => $r['category'] ?? 'protection',
+                        'priority_score' => isset($r['priority_score'])
+                            ? (float) $r['priority_score']
+                            : (isset($r['priority']) ? max(40, 90 - ((int) $r['priority'] * 5)) : 70),
+                        'category' => $r['category'] ?? null,
+                        'estimated_cost' => $r['estimated_cost'] ?? null,
+                        'potential_benefit' => $r['potential_benefit'] ?? null,
                     ];
                 }, is_array($rawRecs) ? $rawRecs : []);
                 // Also extract coverage gaps as recommendations.
@@ -209,10 +216,16 @@ class RecommendationsAggregatorService
         });
 
         return array_map(function ($rec) use ($module) {
+            $text = $rec['recommendation_text'] ?? $rec['recommendation'] ?? $rec['text'] ?? '';
+
             return [
-                'recommendation_id' => $rec['recommendation_id'] ?? $rec['id'] ?? uniqid("{$module}_"),
+                // Content-derived STABLE id: recommendation_tracking rows (mark-done)
+                // and the gamification award dedup key (recommendation:{id}) both key
+                // on this — it must be identical across requests for the same
+                // logical recommendation, so never uniqid()/random.
+                'recommendation_id' => $rec['recommendation_id'] ?? $rec['id'] ?? $module.'_'.substr(sha1($module.'|'.$text), 0, 16),
                 'module' => $module,
-                'recommendation_text' => $rec['recommendation_text'] ?? $rec['recommendation'] ?? $rec['text'] ?? '',
+                'recommendation_text' => $text,
                 'priority_score' => $rec['priority_score'] ?? $rec['priority'] ?? 50.0,
                 'timeline' => $rec['timeline'] ?? $this->determineTimeline($rec['priority_score'] ?? 50.0),
                 'category' => $rec['category'] ?? $this->determineCategory($rec, $module),

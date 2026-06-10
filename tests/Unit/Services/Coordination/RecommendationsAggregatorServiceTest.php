@@ -36,6 +36,10 @@ beforeEach(function () {
     $this->goalsAgent->shouldReceive('analyze')->andReturn(['data' => []]);
     $this->goalsAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []]);
 
+    // Retirement recommendations come from generateRecommendations(analyze data);
+    // default to none — tests that need retirement recs override this stub.
+    $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []])->byDefault();
+
     $this->service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
@@ -129,6 +133,13 @@ it('sorts aggregated recommendations by priority score descending', function () 
             'summary' => ['shortfall' => 5000],
         ],
     ]);
+    // Retirement recs come from the action-definition engine via
+    // generateRecommendations; priority 2 maps to score 80.
+    $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn([
+        'recommendations' => [
+            ['title' => 'Increase Pension Contributions', 'priority' => 2],
+        ],
+    ]);
 
     $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
         'implementation_timeline' => [],
@@ -138,7 +149,7 @@ it('sorts aggregated recommendations by priority score descending', function () 
 
     expect($recommendations)->toHaveCount(3);
     expect($recommendations[0]['priority_score'])->toBe(90); // Savings critical
-    expect($recommendations[1]['priority_score'])->toBe(80); // Retirement shortfall
+    expect($recommendations[1]['priority_score'])->toBe(80); // Retirement contribution increase
     expect($recommendations[2]['priority_score'])->toBe(50.0); // Protection
 });
 
@@ -393,6 +404,11 @@ it('assigns correct category based on module', function () {
         'data' => [
             'recommendations' => [],
             'summary' => ['shortfall' => 5000],
+        ],
+    ]);
+    $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn([
+        'recommendations' => [
+            ['title' => 'Close pension shortfall', 'priority' => 2, 'category' => 'income_shortfall'],
         ],
     ]);
 
