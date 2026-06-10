@@ -10,14 +10,19 @@ use App\DataTransferObjects\StrategyRecommendation;
  * Composes eligible strategy recommendations into ONE ordered, conflict-aware plan:
  *
  *   - Sequencing: do_before edges respected via bounded bubble-sort passes.
- *   - Conflicts: both strategies are kept in the plan; the lower-saving member of
- *     each mutually-exclusive pair carries a conflict_note naming its preferred
- *     alternative. When both sides have EQUAL savings, both carry notes — that is
- *     intentional (a genuine coin-flip; the user should choose).
- *   - Combined total: counts ONLY the preferred member of each conflict pair
- *     (the one whose savings >= the alternative). This gives a realistic
- *     upper-bound on realisable annual savings; counting the excluded alternative
- *     would overstate it.
+ *   - Conflicts (graph-aware): both strategies are kept in the plan. Conflict
+ *     pairs are resolved in descending order of each pair's higher saving: the
+ *     lower-saving member is excluded from the combined total and carries a
+ *     conflict_note naming its preferred alternative — UNLESS that alternative
+ *     is itself already excluded by a stronger pair, in which case the lower
+ *     member stays realisable and carries no note from that pair. (Chain
+ *     A=300 ↔ B=200 ↔ C=100 excludes only B: C's sole conflict is already out,
+ *     so C still counts.) When both sides have EQUAL savings, both carry notes
+ *     (a genuine coin-flip; the user should choose) and only one — the earlier
+ *     in plan order — counts toward the total.
+ *   - Combined total: sums every non-excluded item with a non-null saving, so
+ *     mutually-exclusive alternatives are never double-counted and chains are
+ *     never over-excluded.
  *   - Claim tier: attached from metadata for downstream voicing; defaults to
  *     'judgement' when metadata is absent.
  *
@@ -71,71 +76,96 @@ final class StrategyPlanComposer
             }
         }
 
-        // 3. Resolve conflicts: identify which member of each pair is excluded from the total.
-        //    The lower-saving member is excluded. On a tie, both are excluded (both carry notes).
-        //    We build a set of excluded types first, then assign conflict_note and total.
+        // 3. Resolve conflicts graph-aware. Collect unique undirected pairs
+        //    where BOTH members are in the plan, then process them in
+        //    descending order of each pair's higher saving: the lower-saving
+        //    member is excluded and noted — unless the winner is already
+        //    excluded by a stronger pair, in which case the loser stays
+        //    realisable with no note from that pair.
         $savingByType = [];
-        foreach ($items as $rec) {
+        $orderIndex = [];
+        foreach ($items as $i => $rec) {
             $savingByType[$rec->type] = $rec->estimatedAnnualTaxSaved;
+            $orderIndex[$rec->type] = $i;
         }
 
-        // Collect all conflict edges (undirected), resolve preferred/excluded per pair.
-        $excludedTypes = [];
-        $conflictNoteFor = []; // type => the preferred alternative type
-
-        $visited = [];
+        $pairs = [];
         foreach ($items as $rec) {
             foreach (($metadata[$rec->type]['sequencing']['conflicts_with'] ?? []) as $other) {
-                $normalised = collect([$rec->type, $other])->sort()->join('|');
-                if (isset($visited[$normalised])) {
+                // array_key_exists, NOT isset: a present-but-null saving still
+                // means the strategy is in the plan and its pair must resolve.
+                if ($other === $rec->type || ! array_key_exists($other, $savingByType)) {
                     continue;
                 }
-                $visited[$normalised] = true;
-
-                // Only process if the other type exists in our recommendation list.
-                if (! isset($savingByType[$other])) {
-                    continue;
-                }
-
-                $thisSaving = $savingByType[$rec->type] ?? 0.0;
-                $otherSaving = $savingByType[$other] ?? 0.0;
-
-                if ($thisSaving < $otherSaving) {
-                    // rec->type is the excluded (lower) side.
-                    $excludedTypes[$rec->type] = true;
-                    $conflictNoteFor[$rec->type] = $other;
-                } elseif ($otherSaving < $thisSaving) {
-                    // other is the excluded (lower) side.
-                    $excludedTypes[$other] = true;
-                    $conflictNoteFor[$other] = $rec->type;
-                } else {
-                    // Equal savings — both carry notes; neither is clearly preferred.
-                    $excludedTypes[$rec->type] = true;
-                    $excludedTypes[$other] = true;
-                    $conflictNoteFor[$rec->type] = $other;
-                    $conflictNoteFor[$other] = $rec->type;
-                }
+                $key = collect([$rec->type, $other])->sort()->join('|');
+                $pairs[$key] = [$rec->type, $other];
             }
         }
 
-        // 4. Build output items with annotations.
+        $pairList = array_values($pairs);
+        usort($pairList, function (array $x, array $y) use ($savingByType, $orderIndex): int {
+            $maxX = max($savingByType[$x[0]] ?? 0.0, $savingByType[$x[1]] ?? 0.0);
+            $maxY = max($savingByType[$y[0]] ?? 0.0, $savingByType[$y[1]] ?? 0.0);
+
+            return $maxX === $maxY
+                ? min($orderIndex[$x[0]], $orderIndex[$x[1]]) <=> min($orderIndex[$y[0]], $orderIndex[$y[1]])
+                : $maxY <=> $maxX;
+        });
+
+        $excluded = [];
+        $noteFor = []; // type => the preferred alternative it should name
+
+        foreach ($pairList as [$a, $b]) {
+            $savingA = $savingByType[$a] ?? 0.0;
+            $savingB = $savingByType[$b] ?? 0.0;
+
+            $tie = $savingA === $savingB;
+            if ($tie) {
+                // Coin-flip pair: the earlier item in plan order counts toward
+                // the total; both carry notes so the user compares.
+                [$winner, $loser] = $orderIndex[$a] <= $orderIndex[$b] ? [$a, $b] : [$b, $a];
+            } else {
+                [$winner, $loser] = $savingA > $savingB ? [$a, $b] : [$b, $a];
+            }
+
+            if (isset($excluded[$winner])) {
+                // The preferred alternative is itself excluded by a stronger
+                // pair — the loser stays realisable, no note from this pair.
+                continue;
+            }
+
+            if (! isset($excluded[$loser])) {
+                $excluded[$loser] = true;
+                // First note wins: if a stronger pair already named an
+                // alternative, keep that one.
+                $noteFor[$loser] = $winner;
+            }
+
+            if ($tie && ! isset($noteFor[$winner])) {
+                $noteFor[$winner] = $loser;
+            }
+        }
+
+        // 4. Build output items with annotations. array_merge (NOT the + union
+        //    operator): composer-owned fields must win over any same-named keys
+        //    leaking in from the DTO's extra[] via toArray().
         $out = [];
         foreach ($items as $index => $rec) {
-            $conflictNote = isset($conflictNoteFor[$rec->type])
-                ? "Alternative to {$conflictNoteFor[$rec->type]} — compare before doing both."
+            $conflictNote = isset($noteFor[$rec->type])
+                ? "Alternative to {$noteFor[$rec->type]} — compare before doing both."
                 : null;
 
-            $out[] = $rec->toArray() + [
+            $out[] = array_merge($rec->toArray(), [
                 'claim_tier' => $metadata[$rec->type]['claim_tier'] ?? 'judgement',
                 'sequence_position' => $index + 1,
                 'conflict_note' => $conflictNote,
-            ];
+            ]);
         }
 
         // 5. Combined annual saving: sum of all items EXCEPT excluded conflict alternatives.
         $total = 0.0;
         foreach ($items as $rec) {
-            if (! isset($excludedTypes[$rec->type]) && $rec->estimatedAnnualTaxSaved !== null) {
+            if (! isset($excluded[$rec->type]) && $rec->estimatedAnnualTaxSaved !== null) {
                 $total += $rec->estimatedAnnualTaxSaved;
             }
         }

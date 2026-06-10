@@ -62,6 +62,85 @@ it('lists locked strategies with their missing data points', function () {
         ->and($plan['combined_annual_saving'])->toBe(0.0);
 });
 
+it('lets composer-owned fields win over clashing keys in extra', function () {
+    // The DTO merges extra[] into the top level on toArray(); if extra carries
+    // a key the composer also writes (claim_tier, sequence_position,
+    // conflict_note), the composer's value must win.
+    $recs = [
+        new StrategyRecommendation('sneaky_type', StrategyCategory::Allowance, StrategyPriority::High,
+            't', 'd', 25.0, false, [
+                'claim_tier' => 'from_extra',
+                'sequence_position' => 999,
+                'conflict_note' => 'bogus note from extra',
+            ]),
+    ];
+
+    $metadata = [
+        'sneaky_type' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => []]],
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+
+    expect($plan['items'][0]['claim_tier'])->toBe('mechanical')
+        ->and($plan['items'][0]['sequence_position'])->toBe(1)
+        ->and($plan['items'][0]['conflict_note'])->toBeNull();
+});
+
+it('notes the null-saving member of a mutual conflict pair', function () {
+    // A (null saving) and B (50.0) MUTUALLY conflict: A must carry the note
+    // naming B, B carries none, and the total counts only B.
+    $recs = [
+        new StrategyRecommendation('null_saver', StrategyCategory::Household, StrategyPriority::High,
+            'A', 'desc', null),
+        new StrategyRecommendation('valued_saver', StrategyCategory::Household, StrategyPriority::High,
+            'B', 'desc', 50.0),
+    ];
+
+    $metadata = [
+        'null_saver' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['valued_saver']]],
+        'valued_saver' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['null_saver']]],
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+
+    $nullSaver = collect($plan['items'])->firstWhere('type', 'null_saver');
+    $valuedSaver = collect($plan['items'])->firstWhere('type', 'valued_saver');
+
+    expect($nullSaver['conflict_note'])->toContain('valued_saver')
+        ->and($valuedSaver['conflict_note'])->toBeNull()
+        ->and($plan['combined_annual_saving'])->toBe(50.0);
+});
+
+it('keeps the chain tail realisable when its only conflict is itself excluded', function () {
+    // Chain: A=300 ↔ B=200 ↔ C=100. B loses to A and is excluded; C's only
+    // conflict (B) is itself excluded, so C stays realisable. Total = A + C = 400.
+    $recs = [
+        new StrategyRecommendation('strategy_a', StrategyCategory::Household, StrategyPriority::High,
+            'A', 'desc', 300.0),
+        new StrategyRecommendation('strategy_b', StrategyCategory::Household, StrategyPriority::High,
+            'B', 'desc', 200.0),
+        new StrategyRecommendation('strategy_c', StrategyCategory::Household, StrategyPriority::High,
+            'C', 'desc', 100.0),
+    ];
+
+    $metadata = [
+        'strategy_a' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_b']]],
+        'strategy_b' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_a', 'strategy_c']]],
+        'strategy_c' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_b']]],
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+
+    $a = collect($plan['items'])->firstWhere('type', 'strategy_a');
+    $b = collect($plan['items'])->firstWhere('type', 'strategy_b');
+    $c = collect($plan['items'])->firstWhere('type', 'strategy_c');
+
+    expect($plan['combined_annual_saving'])->toBe(400.0)
+        ->and($b['conflict_note'])->toContain('strategy_a')
+        ->and($c['conflict_note'])->toBeNull()
+        ->and($a['conflict_note'])->toBeNull();
+});
+
 it('handles null savings and keeps ordering stable', function () {
     // Recs with null estimatedAnnualTaxSaved sort after valued ones;
     // combined total ignores nulls; sequence_positions remain 1-based and contiguous.
