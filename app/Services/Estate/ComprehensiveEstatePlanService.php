@@ -952,36 +952,45 @@ class ComprehensiveEstatePlanService
         $totalIHTSaving = 0;
         $totalCosts = 0;
 
-        // Priority 1: Immediate actions (Annual exemption + Trust within NRB)
+        // Priority 1: Immediate actions (Annual exemption + Trust within NRB).
+        // ONLY when the estate actually has an IHT liability. A sub-NRB estate
+        // owes no IHT, so trust/gifting mitigation would save nothing — it must
+        // not be recommended (otherwise every user is told to "save NRB x rate"
+        // regardless of their real position). Savings are capped to the actual
+        // liability: you cannot save more IHT than is due.
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $giftingConfig = $this->taxConfig->getGiftingExemptions();
         $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? 3000);
         $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
-        $annualExemptionIHTSaving = $annualExemption * $ihtRate;
         $availableNRB = $profile->available_nrb ?? $ihtConfig['nil_rate_band'];
 
-        $recommendations[] = [
-            'priority' => 1,
-            'category' => 'Immediate Actions (Year 1)',
-            'actions' => [
-                [
-                    'action' => 'Start using annual gifting exemption',
-                    'details' => 'Gift £'.number_format($annualExemption, 0).' per year to beneficiaries using annual exemption',
-                    'iht_saving' => $annualExemptionIHTSaving,
-                    'cost' => 0,
-                    'timeframe' => 'Annual',
-                ],
-                [
-                    'action' => 'Establish discretionary trust within NRB',
-                    'details' => 'Transfer £'.number_format($availableNRB, 0).' to discretionary trust',
-                    'iht_saving' => $availableNRB * $ihtRate,
-                    'cost' => 0,
-                    'timeframe' => 'Once-off (Year 1)',
-                ],
-            ],
-        ];
+        if ($currentIHTLiability > 0) {
+            $annualExemptionIHTSaving = min($annualExemption * $ihtRate, $currentIHTLiability);
+            $trustIHTSaving = min($availableNRB * $ihtRate, $currentIHTLiability);
 
-        $totalIHTSaving += $annualExemptionIHTSaving + ($availableNRB * $ihtRate);
+            $recommendations[] = [
+                'priority' => 1,
+                'category' => 'Immediate Actions (Year 1)',
+                'actions' => [
+                    [
+                        'action' => 'Start using annual gifting exemption',
+                        'details' => 'Gift £'.number_format($annualExemption, 0).' per year to beneficiaries using annual exemption',
+                        'iht_saving' => $annualExemptionIHTSaving,
+                        'cost' => 0,
+                        'timeframe' => 'Annual',
+                    ],
+                    [
+                        'action' => 'Establish discretionary trust within NRB',
+                        'details' => 'Transfer £'.number_format($availableNRB, 0).' to discretionary trust',
+                        'iht_saving' => $trustIHTSaving,
+                        'cost' => 0,
+                        'timeframe' => 'Once-off (Year 1)',
+                    ],
+                ],
+            ];
+
+            $totalIHTSaving += $annualExemptionIHTSaving + $trustIHTSaving;
+        }
 
         // Priority 2: Medium-term strategy (PET cycles)
         if ($giftingPlan['summary']['total_gifted'] > 0) {
