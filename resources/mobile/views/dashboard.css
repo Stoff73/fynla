@@ -215,6 +215,24 @@
   margin: 0;
 }
 
+/* The level wheel is a button (taps through to the achievements panel) — strip
+   native button chrome but keep the translucent card look from .md-level. */
+.md-level--button {
+  width: 100%;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.md-level--button:active {
+  transform: scale(0.99);
+}
+.md-level--button:focus-visible {
+  outline: 2px solid var(--raspberry-500);
+  outline-offset: 2px;
+}
+
 .md-level__copy {
   width: 100%;
 }
@@ -365,6 +383,96 @@
   margin: 0;
   line-height: 1.4;
   color: var(--neutral-600);
+}
+
+/* ===================================================================
+   FOCUS-AREA CAROUSEL — per-user cards (Top actions + one per module).
+   Horizontal, swipeable (scroll-snap) and tappable; selecting a card swaps
+   the actions list below it. Replaces the old fixed 3-category accordion.
+   =================================================================== */
+.md-focus {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem 0 0.125rem;
+  /* full-bleed so cards run to the carousel's side edges */
+  margin: 0 -1.125rem;
+  padding-left: 1.125rem;
+  padding-right: 1.125rem;
+  /* hide the horizontal scrollbar (no global .scrollbar-hide in /m) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.md-focus::-webkit-scrollbar { display: none; }
+
+.md-focus__card {
+  scroll-snap-align: center;
+  flex: 0 0 70%;
+  min-width: 70%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--horizon-100);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--horizon-600);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-primary);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.md-focus__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--horizon-500);
+}
+.md-focus__stat {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--horizon-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.md-focus__lock {
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+  background: var(--eggshell-500);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+/* Active — raspberry accent border + tint, stat goes raspberry */
+.md-focus__card.is-active {
+  border-color: var(--raspberry-500);
+  background: var(--light-pink-50);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+.md-focus__card.is-active .md-focus__label { color: var(--raspberry-500); }
+.md-focus__card.is-active .md-focus__stat { color: var(--raspberry-600); }
+
+/* Locked — muted / desaturated until the module's data is captured */
+.md-focus__card.is-locked {
+  background: var(--eggshell-500);
+  border-color: var(--horizon-100);
+  opacity: 0.85;
+}
+.md-focus__card.is-locked .md-focus__stat { color: var(--neutral-600); }
+.md-focus__card.is-locked.is-active {
+  border-color: var(--raspberry-500);
+  opacity: 1;
 }
 
 /* Dot navigation */
@@ -535,6 +643,14 @@
   color: var(--horizon-400);
   text-decoration: line-through;
 }
+
+/* Unlock action — a module with no data yet. Distinct dashed accent so it
+   reads as "add details to unlock" rather than a completable recommendation. */
+.md-rec.is-unlock {
+  background: var(--eggshell-500);
+  border-left: 3px dashed var(--horizon-200);
+}
+.md-rec.is-unlock .md-rec__title { color: var(--horizon-500); }
 
 .md-rec__action {
   display: flex;
@@ -1693,11 +1809,13 @@
    nudge), dismissable, plain text (no icons). */
 .md-milestone {
   position: absolute;
-  /* Sits just below the fixed header (~3.125rem + safe-area) so it never
-     overlays the hamburger / header controls. */
-  top: calc(3.5rem + env(safe-area-inset-top, 0px));
-  left: 0.75rem;
-  right: 0.75rem;
+  /* Sits clear below the gradient hero (not tucked under the header) so the
+     whole banner — all four sides — is visible and never clipped. */
+  top: calc(8.5rem + env(safe-area-inset-top, 0px));
+  left: 1rem;
+  right: 1rem;
+  max-width: 26rem;
+  margin: 0 auto;
   z-index: 8;
   display: flex;
   align-items: center;

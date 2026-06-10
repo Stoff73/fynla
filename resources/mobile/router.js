@@ -3,6 +3,7 @@ import { store } from './store.js';
 import Dashboard from './views/Dashboard.vue';
 import ModuleDetail from './views/ModuleDetail.vue';
 import TaxStrategy from './views/TaxStrategy.vue';
+import Achievements from './views/Achievements.vue';
 import MobileNetWorth from './views/modules/NetWorth.vue';
 import MobileNetWorthCategory from './views/modules/NetWorthCategory.vue';
 import MobileProtection from './views/modules/Protection.vue';
@@ -34,6 +35,7 @@ const router = createRouter({
     { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { auth: true } },
     { path: '/module/:slug', name: 'module-detail', component: ModuleDetail, props: true, meta: { auth: true } },
     { path: '/tax-strategy', name: 'tax-strategy', component: TaxStrategy, meta: { auth: true } },
+    { path: '/achievements', name: 'm-achievements', component: Achievements, meta: { auth: true } },
     { path: '/net-worth', name: 'm-net-worth', component: MobileNetWorth, meta: { auth: true } },
     { path: '/net-worth/:category', name: 'm-net-worth-category', component: MobileNetWorthCategory, props: true, meta: { auth: true } },
     { path: '/protection', name: 'm-protection', component: MobileProtection, meta: { auth: true } },
