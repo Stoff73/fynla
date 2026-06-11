@@ -396,6 +396,7 @@ Don't suggest browser cache clearing - user tests in incognito.
 | Error | Fix |
 |-------|-----|
 | Blank page with 127.0.0.1:5173 | `rm public/hot` on server |
+| Public homepage / `/m` landing shows the old SPA design instead of the server-rendered page | `php artisan route:clear` on the server. **NEVER `php artisan optimize` / `route:cache` on this app** — the compiled matcher lets the SPA catch-all shadow `/` (and the `/m` iframe loads `/`). Re-cache config only: `config:cache`. |
 | MIME type errors (web) | Rebuild with `./deploy/fynla-org/build.sh` |
 | iOS blank screen / `'image/png' is not a valid JavaScript MIME type'` | Check `vite.config.js`: remove any `external` from `rollupOptions`, ensure `transformAssetUrls: false` in vue() plugin. Run `grep -r 'import("/images' public/build/assets/` to verify no image imports in built JS. Delete app from device, clean build in Xcode. |
 | 500 DirectoryMatch error | Upload `deploy/fynla-org/.htaccess` |

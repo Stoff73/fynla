@@ -42,10 +42,18 @@ ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
 cd ~/www/csjones.co/fynla-app
 git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
 php artisan migrate --force
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan config:cache
 ```
 
-6. Smoke test `https://csjones.co/fynla`
+**NEVER `php artisan optimize` or `route:cache` on this app.** The compiled route
+matcher lets the SPA catch-all shadow the server-rendered `/` homepage (despite the
+`.+` constraint), so guests — and the `/m` iframe, which loads `/` — get the bare
+SPA shell instead of `public/pages/index.php`. Found live 2026-06-11: the public
+landing "regressed" to the old SPA `LandingPage.vue` design. Config caching is
+still required (SiteGround .env re-parse races — see prod notes) which is why the
+chain ends with an explicit `config:cache`, never `optimize`.
+
+6. Smoke test `https://csjones.co/fynla` — **check content, not just 200**: `curl -s https://csjones.co/fynla/ | grep -c "Get started for free"` must be ≥1 (server-rendered homepage, not the SPA shell).
 7. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh`)
 
 **Why this works without clobbering env config:**
