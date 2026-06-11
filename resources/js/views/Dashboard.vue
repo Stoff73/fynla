@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <AppLayout>
     <!-- Gamification level-up celebration (fixed-position overlay) -->
     <GamificationCelebration
@@ -39,7 +39,7 @@
                 to="/settings/security"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-button border border-spring-300 text-spring-800 bg-white hover:bg-spring-50 transition-colors"
               >
-                Enable Two-Factor Authentication â†’
+                Enable Two-Factor Authentication →
               </router-link>
             </div>
           </div>
@@ -78,21 +78,21 @@
                 :disabled="savingKnowledgeLevel"
                 class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
               >
-                Beginner â€” I'm new to investing
+                Beginner — I'm new to investing
               </button>
               <button
                 @click="setKnowledgeLevel('intermediate')"
                 :disabled="savingKnowledgeLevel"
                 class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
               >
-                Intermediate â€” I understand the basics
+                Intermediate — I understand the basics
               </button>
               <button
                 @click="setKnowledgeLevel('experienced')"
                 :disabled="savingKnowledgeLevel"
                 class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
               >
-                Experienced â€” I'm confident with investments
+                Experienced — I'm confident with investments
               </button>
             </div>
           </div>
@@ -327,10 +327,10 @@ export default {
       const user = this.currentUser;
       if (!user) return false;
       if (user.is_preview_user) return false;
-      // Already answered â€” never ask again (check actual data, not just localStorage)
+      // Already answered — never ask again (check actual data, not just localStorage)
       const riskProfile = this.$store.state.investment?.riskProfile;
       if (riskProfile?.knowledge_level) return false;
-      // Dismissed this session â€” don't pester
+      // Dismissed this session — don't pester
       if (this.knowledgeNudgeDismissed) return false;
       // Only show if user has investment or pension accounts
       const hasInvestments = this.$store.getters['completeness/hasModuleData']?.('investment') || this.$store.getters['completeness/hasModuleData']?.('retirement');
@@ -448,11 +448,11 @@ export default {
     netWorthChartColors() {
       // Fixed rotating palette: dark blue, pink, mid blue, green, light blue
       const palette = [
-        '#1F2A44', // Horizon 500 â€” dark blue
-        '#E83E6D', // Raspberry 500 â€” pink
-        '#5854E6', // Violet 500 â€” mid blue
-        '#20B486', // Spring 500 â€” green
-        '#6C83BC', // Light Blue 500 â€” light blue
+        '#1F2A44', // Horizon 500 — dark blue
+        '#E83E6D', // Raspberry 500 — pink
+        '#5854E6', // Violet 500 — mid blue
+        '#20B486', // Spring 500 — green
+        '#6C83BC', // Light Blue 500 — light blue
       ];
       return this.netWorthChartCategories.map((_, idx) => palette[idx % palette.length]);
     },
@@ -819,7 +819,7 @@ export default {
       return goals.length > 0;
     },
 
-    // ISA Allowance computed â€” uses server-calculated tracking data
+    // ISA Allowance computed — uses server-calculated tracking data
     // Lifetime ISA eligibility: under 40 and no main residence property
     lisaEligible() {
       if (this.userAge === null) return false;
@@ -832,7 +832,7 @@ export default {
       if (!this.lisaEligible) return null;
 
       const lisaLimit = 4000;
-      const maxBonus = 1000; // 25% of Â£4,000
+      const maxBonus = 1000; // 25% of £4,000
 
       // Find LISA contributions from investment accounts
       const lisaAccounts = (this.investmentAccounts || []).filter(a => {
@@ -942,7 +942,7 @@ export default {
       if (!this.pensionAllowanceData?.isTapered) return '';
       const details = this.annualAllowance?.tapering_details;
       if (details) {
-        return `Your adjusted income of ${this.formatCurrency(details.adjusted_income)} exceeds the threshold, reducing your Annual Allowance by ${this.formatCurrency(details.reduction)} from Â£60,000 to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
+        return `Your adjusted income of ${this.formatCurrency(details.adjusted_income)} exceeds the threshold, reducing your Annual Allowance by ${this.formatCurrency(details.reduction)} from £60,000 to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
       }
       return `Your income exceeds the adjusted income threshold, so your Annual Allowance is reduced to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
     },
@@ -1078,7 +1078,7 @@ export default {
         plotOptions: { bar: { horizontal: false, columnWidth: this.investmentBarData.length === 1 ? '35%' : '55%', borderRadius: 4, distributed: true } },
         colors: ['#5854E6', '#6C83BC', '#20B486', '#E83E6D', '#E6C9A8', '#1F2A44'],
         xaxis: {
-          categories: this.investmentBarData.map(d => d.name.length > 12 ? d.name.substring(0, 12) + 'â€¦' : d.name),
+          categories: this.investmentBarData.map(d => d.name.length > 12 ? d.name.substring(0, 12) + '…' : d.name),
           labels: { style: { fontSize: '10px', colors: '#6B7280' }, trim: false },
           axisBorder: { show: false },
           axisTicks: { show: false },
@@ -1087,7 +1087,7 @@ export default {
           show: true,
           labels: {
             style: { fontSize: '9px', colors: ['#6B7280'] },
-            formatter: (val) => val >= 1000 ? 'Â£' + Math.round(val / 1000) + 'k' : 'Â£' + val,
+            formatter: (val) => val >= 1000 ? '£' + Math.round(val / 1000) + 'k' : '£' + val,
           },
           axisBorder: { show: false },
           axisTicks: { show: false },
@@ -1127,7 +1127,7 @@ export default {
     },
 
     /**
-     * Card visibility â€” always show cards that have data.
+     * Card visibility — always show cards that have data.
      * Life stage only affects the onboarding wizard steps, not what's
      * displayed on the dashboard. If the user has data, show the card.
      */
@@ -1380,7 +1380,7 @@ export default {
     // Refresh gamification status (level, progress, any pending celebration).
     this.$store.dispatch('gamification/fetchStatus').catch(() => {});
 
-    // Meta Pixel: StartTrial â€” first dashboard visit after registration
+    // Meta Pixel: StartTrial — first dashboard visit after registration
     // Skip for preview/admin/test users
     if (this.$route.query.newUser === '1') {
       const user = this.$store.state.auth?.user;
@@ -1395,7 +1395,7 @@ export default {
 
     // Handle openFyn=journey from the "Quick start with Fyn" CTA.
     // Directly dispatches the Fyn onboarding flow and opens the chat
-    // panel â€” the backend director streams turn 1 via SSE.
+    // panel — the backend director streams turn 1 via SSE.
     if (this.$route.query.openFyn === 'journey') {
       // Blur dashboard background on desktop until user interacts with chat.
       if (window.innerWidth >= 1024) {
@@ -1414,7 +1414,7 @@ export default {
       // Populate the store BEFORE opening the panel so onOpen() sees the
       // active conversation and skips its own initialisation path.
       const expandDockedChat = () => {
-        // Docked chat on desktop starts collapsed â€” force-expand it.
+        // Docked chat on desktop starts collapsed — force-expand it.
         window.dispatchEvent(new Event('fyn-open-chat'));
         // And open the floating/mobile chat panel.
         this.$store.dispatch('aiChat/open');
@@ -1447,7 +1447,7 @@ export default {
           this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
           this.loadAllData();
         } else if (user && oldUser && user.id !== oldUser.id) {
-          // User changed (e.g. preview persona switch) â€” reload all data
+          // User changed (e.g. preview persona switch) — reload all data
           this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
           this.loadAllData();
         }
