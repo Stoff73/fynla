@@ -1,6 +1,30 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-11 — context-clear wrap, session 2. **Suite GREEN (4,541 / 0), both session-1 chips done, Rule #19 (/m parity) codified, route:cache permanently banned (it was shadowing the public homepage — the "/m landing regression"), PR #527 gamified web dashboard merged with two in-merge repairs. dev @ `857ea2a`, deployed + verified on csjones (both bundles).** NOT on prod. Handover: `June/June11Updates/handover-2026-06-11-session-2-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-11 — context-clear wrap, session 3. **SaveTax `/savetax/plan` allowance-card corrections complete + deployed + verified on csjones /m (dev @ `b7dfa96`): 60% trap merged into tapered PA card; PA gated (greyed for workers, ON only for £0/£100k–£125,140); Pension AA always shown (£60k worker / £3,600 non-earner); full spouse per-person parity (PSA/Dividend/CGT); ISA cards now plain "tax-free account" description, no figures. 16 tests / 92,853 assertions.** Track 2 coala spec at v4 awaiting CSJ review. NOT on prod. Handover: `June/June11Updates/handover-2026-06-11-session-3-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-11 — Session 3: SaveTax allowance-card corrections (context-clear; dev @ b7dfa96)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-3-clear.md`.
+- Public `/savetax/plan` result-page cards (server-rendered, web + /m iframe share the page): merged the 60% Tax Trap card into the tapered PA card (`fb98583`); spouse per-person parity — added Spouse PSA/Dividend/CGT (`2a7220d`); **corrected PA-vs-Pension-AA gating** — PA greyed for workers / shown only £0 or £100k–£125,140; Pension AA always shown (£60k / £3,600 non-earner) (`dc46864`); ISA cards plain "tax-free account" description (`b7dfa96`). New TaxConfig key `pension.relevant_earnings_minimum=3600`.
+
+### Outstanding
+- [ ] **Track 2 (coala) — spec v4 awaiting CSJ review** (`docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md`, built on CSJ's canonical agent flow — see `feedback_coala_agent_flow_canonical.md`). On approval → `superpowers:writing-plans`. Do NOT start build before approval.
+- [ ] **SaveTax work is direct-on-dev, no PR** — GitHub branch protection hard-rejects force-push on `dev`, so a retroactive PR is impossible. Branch-first going forward for savetax-type work. (Local `savetax-allowance-cards` branch = `b7dfa96`, unpushed, as a record.)
+- [ ] **CSJ re-test the Azlan journey on csjones** (carried — the acceptance moment).
+- [ ] **CSJ eyeball the gamified web dashboard** (`/dashboard` on csjones): two flagged design notes — only Save tax/Retirement/Savings have tabs; unlock rows open the Fyn dock with no preset capture message. Accept or redirect.
+- [ ] **Insights featured judgement call**: test realigned to the May fallback contract (1dba112) over the April no-fallback decision (5d3ac7f) — flip controller+test together if the April behaviour was intended.
+- [ ] Tech debt: legacy deploy docs (`deploy/DEPLOYMENT_v0.6.2.md`, `deploy/DEPLOYMENT_FYNLA_ORG.md`) still instruct `route:cache`/`optimize` — superseded by DEPLOY.md; prune or banner.
+- [ ] Tech debt: `MEMORY.md` over the 24.4KB load budget (now 26.4KB) — shorten index lines / archive stale entries.
+- [ ] Vault: `UKTaxes.md` Current State doc stale (2026-05-06) and touched by savetax work (flagged by vault-sync).
+
+## 2026-06-11 — Session 2: chips, /m parity law, route:cache incident, PR #527 (context-clear; dev @ 857ea2a)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-2-clear.md`. Deploy note: `June/June11Updates/deploy-2026-06-11.md` (3 addenda today).
+- 24 pre-existing failures cleared (incl. REAL NetWorthService joint-assets lazy-load 500 fix); GiftFactory enums aligned; CLAUDE.md Rule #19 added; PR #528 /m parity gaps fixed (tax deep-link + capture prompt); route:cache→catch-all-shadows-homepage root-caused + banned (DEPLOY.md, build scripts, Troubleshooting, memory); PR #527 merged with repairs (dead `recommendations` payload key → focus_areas rewire; CP1252 mojibake → iconv).
+
+### Session-2 Outstanding (superseded items folded into session-3 list above)
+- [ ] Tech debt: gamified web dashboard unlock rows render a no-op checkbox + Skip (cosmetic); web Fyn dock has no programmatic send so unlock taps can't pre-fill a capture message (parity nicety vs /m).
+- [ ] Deferred polish + isa_subscription_amount caveat (carried from session 1).
 
 ## 2026-06-11 — Session 2: chips, /m parity law, route:cache incident, PR #527 (context-clear; dev @ 857ea2a)
 
