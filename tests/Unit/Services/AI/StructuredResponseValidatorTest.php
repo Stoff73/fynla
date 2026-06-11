@@ -109,6 +109,27 @@ describe('StructuredResponseValidator', function () {
             $result = $this->validator->validate('I have added your savings account.', $classification);
             expect(collect($result['violations'])->pluck('rule'))->not->toContain('missing_amounts');
         });
+
+        it('does not flag missing_amounts for a data_capture ack with £ amounts', function () {
+            // Capture-turn acks that DO contain amounts must not be flagged — belt-and-braces.
+            $classification = ['primary' => QuerySchemas::RETIREMENT_CONTRIBUTION, 'related' => [], 'modules' => ['retirement']];
+            $result = $this->validator->validate('Recorded — two ISAs totalling £22,000.', $classification, 'data_capture');
+            expect(collect($result['violations'])->pluck('rule'))->not->toContain('missing_amounts');
+        });
+
+        it('does not flag missing_amounts for a data_capture no-amount ack ("Noted.")', function () {
+            // Short capture acks without £ figures are the primary false-positive source.
+            $classification = ['primary' => QuerySchemas::RETIREMENT_CONTRIBUTION, 'related' => [], 'modules' => ['retirement']];
+            $result = $this->validator->validate('Noted.', $classification, 'data_capture');
+            expect(collect($result['violations'])->pluck('rule'))->not->toContain('missing_amounts');
+        });
+
+        it('still flags missing_amounts for an advice response with no £ amounts', function () {
+            // Persona defaults to advice — confirm the rule still fires for non-capture turns.
+            $classification = ['primary' => QuerySchemas::RETIREMENT_CONTRIBUTION, 'related' => [], 'modules' => ['retirement']];
+            $result = $this->validator->validate('Noted.', $classification, 'advice');
+            expect(collect($result['violations'])->pluck('rule'))->toContain('missing_amounts');
+        });
     });
 
     describe('HTML injection detection', function () {
