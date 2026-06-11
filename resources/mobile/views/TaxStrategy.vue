@@ -16,49 +16,8 @@
     </div>
 
     <template v-else>
-      <!-- Headroom hero -->
-      <div class="m-card m-hero">
-        <p class="m-sub m-label">Allowance headroom available</p>
-        <p class="m-metric">{{ fmt(totalHeadroom) }}</p>
-        <p class="m-hero-sub">Across {{ headroomCount }} {{ headroomCount === 1 ? 'allowance' : 'allowances' }} you haven't fully used this year.</p>
-      </div>
-
-      <!-- User allowances -->
-      <div class="m-card">
-        <p class="m-section-label" style="margin-top:0">{{ isHousehold ? 'Your allowances' : 'Allowances' }}</p>
-        <div v-for="a in userAllowances" :key="a.key" class="mts-allow">
-          <div class="mts-allow__head">
-            <span class="mts-allow__label">{{ a.label }}</span>
-            <span class="mts-allow__cap">of {{ fmt(a.amount) }}</span>
-          </div>
-          <div class="mts-bar">
-            <div class="mts-bar__fill" :class="`mts-bar__fill--${a.status}`" :style="{ width: barWidth(a) }"></div>
-          </div>
-          <div class="mts-allow__foot">
-            <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span class="mts-allow__used">{{ fmt(a.used) }} used</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Spouse allowances (household mode) -->
-      <div v-if="isHousehold && spouseAllowances && spouseAllowances.length" class="m-card">
-        <p class="m-section-label" style="margin-top:0">Your spouse's allowances</p>
-        <div v-for="a in spouseAllowances" :key="a.key" class="mts-allow">
-          <div class="mts-allow__head">
-            <span class="mts-allow__label">{{ a.label }}</span>
-            <span class="mts-allow__cap">of {{ fmt(a.amount) }}</span>
-          </div>
-          <div class="mts-bar">
-            <div class="mts-bar__fill" :class="`mts-bar__fill--${a.status}`" :style="{ width: barWidth(a) }"></div>
-          </div>
-          <div class="mts-allow__foot">
-            <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span class="mts-allow__used">{{ fmt(a.used) }} used</span>
-          </div>
-        </div>
-      </div>
-
+      <!-- Strategies first: household coordination, then recommended actions.
+           Allowance detail (headroom + per-allowance bars) sits below. -->
       <!-- Household coordination (married / joint — only in household mode) -->
       <div v-if="isHousehold && householdRecommendations.length" class="m-card mts-household">
         <p class="m-section-label" style="margin-top:0">{{ householdHeading }}</p>
@@ -105,6 +64,49 @@
               <span v-if="rec.requires_advice" class="mts-rec__advice">Speak to an adviser</span>
             </div>
           </article>
+        </div>
+      </div>
+
+      <!-- Headroom hero -->
+      <div class="m-card m-hero">
+        <p class="m-sub m-label">Allowance headroom available</p>
+        <p class="m-metric">{{ fmt(totalHeadroom) }}</p>
+        <p class="m-hero-sub">Across {{ headroomCount }} {{ headroomCount === 1 ? 'allowance' : 'allowances' }} you haven't fully used this year.</p>
+      </div>
+
+      <!-- User allowances -->
+      <div class="m-card">
+        <p class="m-section-label" style="margin-top:0">{{ isHousehold ? 'Your allowances' : 'Allowances' }}</p>
+        <div v-for="a in userAllowances" :key="a.key" class="mts-allow">
+          <div class="mts-allow__head">
+            <span class="mts-allow__label">{{ a.label }}</span>
+            <span class="mts-allow__cap">of {{ fmt(a.amount) }}</span>
+          </div>
+          <div class="mts-bar">
+            <div class="mts-bar__fill" :class="`mts-bar__fill--${a.status}`" :style="{ width: barWidth(a) }"></div>
+          </div>
+          <div class="mts-allow__foot">
+            <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
+            <span class="mts-allow__used">{{ fmt(a.used) }} used</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spouse allowances (household mode) -->
+      <div v-if="isHousehold && spouseAllowances && spouseAllowances.length" class="m-card">
+        <p class="m-section-label" style="margin-top:0">Your spouse's allowances</p>
+        <div v-for="a in spouseAllowances" :key="a.key" class="mts-allow">
+          <div class="mts-allow__head">
+            <span class="mts-allow__label">{{ a.label }}</span>
+            <span class="mts-allow__cap">of {{ fmt(a.amount) }}</span>
+          </div>
+          <div class="mts-bar">
+            <div class="mts-bar__fill" :class="`mts-bar__fill--${a.status}`" :style="{ width: barWidth(a) }"></div>
+          </div>
+          <div class="mts-allow__foot">
+            <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
+            <span class="mts-allow__used">{{ fmt(a.used) }} used</span>
+          </div>
         </div>
       </div>
     </template>
