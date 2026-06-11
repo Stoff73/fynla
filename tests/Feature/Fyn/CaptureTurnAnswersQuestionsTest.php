@@ -91,6 +91,35 @@ it('keeps the unified and legacy capture templates in lockstep', function () {
     expect($extract($unified))->toBe($extract($legacy));
 });
 
+it('keeps the A2 ack-hygiene block in lockstep across both templates', function () {
+    // A2 — the ack-hygiene sentence ("states WHAT was recorded …" / silence
+    // on zero tools) is slot-free, so it must be byte-identical in the
+    // unified and legacy capture templates. It already falls inside the
+    // QUESTION EXCEPTION lockstep window above, but a dedicated second
+    // extraction window pins its parity explicitly so a later edit that
+    // shrinks the primary window cannot silently desync the ack block.
+    $unified = FynCaptureTurnInstructions::render('SaveTax', 'create_savings_account');
+
+    $builder = app(OnboardingPromptBuilder::class);
+    $legacy = $builder->buildAssetCapturePrompt(
+        User::factory()->create(['onboarding_fyn_selection' => 'savetax']),
+        'savetax'
+    );
+
+    $extractAck = function (string $text): string {
+        $startMarker = 'Keep your text output to a single short confirmation sentence';
+        $endMarker = 'the user\'s question (QUESTION EXCEPTION above) or stay silent.';
+        $start = strpos($text, $startMarker);
+        $end = strpos($text, $endMarker);
+        expect($start)->not->toBeFalse();
+        expect($end)->not->toBeFalse();
+
+        return substr($text, $start, ($end - $start) + strlen($endMarker));
+    };
+
+    expect($extractAck($unified))->toBe($extractAck($legacy));
+});
+
 // ─── Director wiring (A1) ──────────────────────────────────────────────────
 
 afterEach(function () {

@@ -55,8 +55,10 @@ answer with tools AND answer the question in the same turn.
 
 Do NOT greet, do NOT summarise, do NOT navigate,
 do NOT analyse, do NOT reference any financial figures beyond what the user just
-provided. Keep your text output to a single short confirmation sentence like
-"Got it — recording those now."
+provided. Keep your text output to a single short confirmation sentence
+that states WHAT was recorded, e.g. "Recorded — two ISAs totalling £22,000."
+If you call no tools (nothing to record), output NO confirmation text at all —
+either answer the user's question (QUESTION EXCEPTION above) or stay silent.
 
 Off-script guardrail (FR-M14): Your acknowledgment text MUST be EXACTLY ONE
 sentence of 15 words or fewer, or empty. Outside the QUESTION EXCEPTION above, do NOT ask any question — not with
