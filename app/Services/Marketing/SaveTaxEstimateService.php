@@ -195,7 +195,7 @@ class SaveTaxEstimateService
         // card is removed; the saving callout attaches to this card in the JS).
         $items[] = $this->personalAllowanceItem('personal_allowance', 'Personal Allowance', $income);
 
-        $items[] = ['key' => 'isa', 'label' => 'ISA Allowance', 'amount' => $isa, 'on' => true];
+        $items[] = ['key' => 'isa', 'label' => 'ISA Allowance', 'amount' => $isa, 'on' => true, 'note' => 'A tax-free account — your savings and investments grow free of tax.'];
         // Pension Annual Allowance — shown as a live lever only for a non-earner
         // (£3,600 route) or someone in the £100k–£125,140 taper; greyed otherwise.
         $items[] = $this->pensionAaItem('pension_aa', 'Pension Annual Allowance', $income);
@@ -241,7 +241,7 @@ class SaveTaxEstimateService
             }
             $items[] = $spousePsaItem;
 
-            $items[] = ['key' => 'spouse_isa', 'label' => "Spouse's ISA Allowance", 'amount' => $isa, 'on' => true];
+            $items[] = ['key' => 'spouse_isa', 'label' => "Spouse's ISA Allowance", 'amount' => $isa, 'on' => true, 'note' => 'A tax-free account — your savings and investments grow free of tax.'];
             $items[] = $this->pensionAaItem('spouse_pension_aa', "Spouse's Pension Annual Allowance", $spouseIncome);
 
             // Dividend and CGT allowances are also per person — held in the

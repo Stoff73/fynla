@@ -87,8 +87,10 @@
   // Allowance key → matching saving line (for the "could save" callout + reason).
   // The 60% tax-trap saving now attaches to the (tapered) Personal Allowance card
   // — the standalone trap card has been merged into it.
+  // ISA is intentionally absent — its card shows a plain "tax-free account"
+  // description (its note) rather than a figure-laden "could save" callout.
   var SAVING_FOR = {
-    isa: 'isa', pension_aa: 'pension', psa: 'psa', dividend: 'dividend',
+    pension_aa: 'pension', psa: 'psa', dividend: 'dividend',
     cgt: 'cgt', marriage_allowance: 'marriage_allowance', spouse_pa: 'spouse_pa',
     personal_allowance: 'tax_trap_60',
   };
