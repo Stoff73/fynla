@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
-use App\Models\DCPension;
-use App\Models\Investment\InvestmentAccount;
-use App\Models\PensionInputHistory;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 
@@ -51,7 +50,7 @@ final class HouseholdFinancialContext
             'isa_subscriptions_ytd' => $this->hasIsaAccount($user),
             'marital_status' => filled($user->marital_status),
             'pension_contributions' => $hasDcPension,
-            'pension_input_history' => PensionInputHistory::where('user_id', $user->id)->exists(),
+            'pension_input_history' => collect(app(PensionStore::class)->pensionInputHistory($user))->isNotEmpty(),
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
             'workplace_pension' => $hasDcPension,
@@ -136,12 +135,10 @@ final class HouseholdFinancialContext
      */
     private function hasGiaHoldings(User $user): bool
     {
-        return InvestmentAccount::query()
-            ->where('user_id', $user->id)
-            ->where(function ($q) {
-                $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
-            })
-            ->exists();
+        return app(InvestmentAccountStore::class)->forUser($user)
+            ->filter(fn ($a) => (int) $a->user_id === (int) $user->id
+                && ($a->account_type === null || $a->account_type !== 'isa'))
+            ->isNotEmpty();
     }
 
     /**
@@ -176,7 +173,7 @@ final class HouseholdFinancialContext
      */
     private function hasDcPension(User $user): bool
     {
-        return DCPension::where('user_id', $user->id)->exists();
+        return app(PensionStore::class)->forUserByType($user, 'dc')->isNotEmpty();
     }
 
     /**

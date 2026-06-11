@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\PensionInputHistory;
 use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
@@ -204,9 +203,14 @@ class AnnualAllowanceChecker
     {
         $priorYears = $this->getPrevious3TaxYears($taxYear);
 
-        $history = PensionInputHistory::where('user_id', $userId)
-            ->whereIn('tax_year', $priorYears)
-            ->get();
+        // Store-mediated read (store-boundary architecture rule): the pensions
+        // canonical set owns PensionInputHistory access.
+        $user = User::find($userId);
+        $history = $user === null
+            ? collect()
+            : collect(app(PensionStore::class)->pensionInputHistory($user))
+                ->whereIn('tax_year', $priorYears)
+                ->values();
 
         if ($history->isNotEmpty()) {
             $standard = (float) ($this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
