@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Fyn;
 
+use App\Constants\FinancialPlanningKnowledge;
+use App\Constants\QuerySchemas;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\MemoryRetrieverService;
@@ -96,6 +98,19 @@ final class FynContextAssembler
                 $lines[] = "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
             }
 
+            // "How do I start saving?" is a generic getting-started question, so
+            // QueryClassifier rightly leaves it GENERAL (the savings keyword
+            // table is deliberately narrow so "save tax" / "save for retirement"
+            // are not swallowed). But a GENERAL classification injects no
+            // knowledge, so Fyn answers with bare budgeting and skips the one
+            // thing that must come first — the emergency-fund buffer. Inject the
+            // affordability ordering for this shape so the factual answer leads
+            // with the safety net before any ISA/pension push.
+            $gettingStarted = $this->savingsGettingStartedDirective($ctx);
+            if ($gettingStarted !== null) {
+                $lines[] = $gettingStarted;
+            }
+
             $lines[] = $this->voicingRules();
         }
 
@@ -135,6 +150,48 @@ final class FynContextAssembler
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * When a GENERAL-classified turn is a generic "how do I start saving?"
+     * question, return a focused affordability block that puts the emergency
+     * fund first; otherwise null.
+     *
+     * Gated to GENERAL so it never competes with a real savings/tax/retirement
+     * classification (those carry their own knowledge). The topic guard then
+     * excludes "save tax", "save for retirement", "invest", etc. — those use
+     * the word "save" but are not the getting-started-with-a-buffer question,
+     * and forcing emergency-fund framing onto them would be wrong.
+     */
+    private function savingsGettingStartedDirective(FynTurnContext $ctx): ?string
+    {
+        if (($ctx->classification['primary'] ?? null) !== QuerySchemas::GENERAL) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+
+        // Must be a getting-started-with-saving shape.
+        $isGettingStarted = preg_match(
+            '/\b(start|begin|started|get into|getting into|better at|new to|how (do|to|can) i)\b.{0,30}\bsav(e|ing)\b/i',
+            $message
+        ) === 1
+            || preg_match('/\bsav(e|ing)\b.{0,20}\b(properly|better|for the first time|from scratch)\b/i', $message) === 1;
+
+        if (! $isGettingStarted) {
+            return null;
+        }
+
+        // Topic guard — a "save" question that is really about tax, pensions,
+        // investments, ISAs, or mortgages is not the emergency-fund question.
+        if (preg_match('/\b(tax|pension|retire|retirement|invest|isa|mortgage|gia)\b/i', $message) === 1) {
+            return null;
+        }
+
+        return "<savings_getting_started>\n"
+            ."The user is asking how to start saving. Lead with the affordability ordering below — name the emergency-fund buffer (around three to six months of essential outgoings, more if self-employed) as the FIRST priority, before any Individual Savings Account or pension contribution. Then cover high-interest debt, then regular saving into the right wrapper.\n\n"
+            .FinancialPlanningKnowledge::getAffordabilityRules()."\n"
+            .'</savings_getting_started>';
     }
 
     private function resolveFirstName(User $user): string
