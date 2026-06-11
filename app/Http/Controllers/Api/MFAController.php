@@ -14,6 +14,7 @@ use App\Models\UserSession;
 use App\Services\Audit\AuditService;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
+use App\Services\Gamification\PointsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -213,6 +214,10 @@ class MFAController extends Controller
         if ($accessToken) {
             UserSession::createForToken($user, $accessToken);
         }
+
+        // Gamification: record today's login + streak. Preview-safe and never
+        // throws — a failure must not break the login.
+        app(PointsService::class)->recordLogin($user);
 
         return response()->json([
             'success' => true,

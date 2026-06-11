@@ -33,6 +33,9 @@ arch('TierConfiguration is only mutated inside the canonical set')
         'App\Services\Tiers\DbTierGate',            // read-only (added PR 3)
         'App\Services\Tiers\TeaserGate',            // read-only (added PR 7)
         'App\Http\Resources\TierConfigurationResource', // read-only (added PR 4)
+        // Read-only type hints on tierFeatureBullets(); instances come from
+        // TierConfigurationStore — no query or mutation.
+        'App\Http\Controllers\Api\PaymentController',
         'Database\Seeders\TierConfigurationSeeder',
         'Database\Factories\TierConfigurationFactory',
         'App\Models\\',

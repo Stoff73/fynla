@@ -137,6 +137,32 @@
             </div>
         </div>
 
+        {{-- Report Classification (mobile reporter) --}}
+        @if(!empty($bugReport['category']) || !empty($bugReport['severity']) || !empty($bugReport['platform']))
+        <div class="section">
+            <div class="section-title">Classification</div>
+            <div class="info-grid">
+                <span class="info-label">Category:</span>
+                <span class="info-value">{{ $bugReport['category'] ?? 'N/A' }}</span>
+
+                <span class="info-label">Severity:</span>
+                <span class="info-value">{{ $bugReport['severity'] ?? 'N/A' }}</span>
+
+                <span class="info-label">Platform:</span>
+                <span class="info-value">{{ $bugReport['platform'] ?? 'web' }}</span>
+
+                <span class="info-label">App Version:</span>
+                <span class="info-value">{{ $bugReport['app_version'] ?? 'N/A' }}</span>
+
+                <span class="info-label">Device:</span>
+                <span class="info-value">{{ $bugReport['device_model'] ?? 'N/A' }}</span>
+
+                <span class="info-label">OS:</span>
+                <span class="info-value">{{ $bugReport['os_version'] ?? 'N/A' }}</span>
+            </div>
+        </div>
+        @endif
+
         {{-- Bug Description --}}
         <div class="section">
             <div class="section-title">Bug Description</div>

@@ -59,13 +59,8 @@
 - R4 → R3 → R2 → R1 all locked at `[Store, Factory]` for greenfield entities, or `[Store, AuditModel, Factory]` for entities with a model-on-model audit relation (R1 is the only one with this — `TaxConfigurationAudit::belongsTo(TaxConfiguration::class)`). Pattern is now stable.
 - `TaxConfigService` was the unique R1 challenge — it has a typed property + typed return on `getModel()`, so just removing `TaxConfiguration::` static calls wasn't enough. Removing the dead `getModel()` method + its property finished the migration.
 
-## 2026-05-28 — flaky audit-context test (InvestmentAccountHttpIntegrationTest)
-- Symptom: ~30–50% null CREATED audit row in the FULL Unit+Feature suite only; `tests/Feature/` alone and `tests/Unit/ + target` always pass. Deterministic test order → true non-determinism.
-- RULED OUT (via temporary probe in Auditable.php, captured in a failing run): listener-detached (created event DID fire on real Dispatcher), config-leak (`audit.in_tests`=true at fire), preview-leak (auth user null, not preview). shouldAudit SHOULD return true yet row absent.
-- LEADING THEORY: leaked duplicate `Hargreaves Lansdown` account (factory default provider) → test's `InvestmentAccount::where('provider','Hargreaves Lansdown')->first()` (no orderBy) returns wrong id whose CREATED audit doesn't exist. Probe v2 (hl_count/hl_first_id) staged but not yet reproduced. Full repro recipe in May/May29Updates/handover-2026-05-29-session-1.md.
-- Gotcha reinforced: never run two `pest` processes concurrently (shared `laravel_testing` DB corruption); `--testsuite=Unit,Feature` reproduces full-suite ordering minus Eval/Browser.
-
-## 2026-06-01 — CoALA Phase 2 + pointer registry
-- **Versioned audit-hash-chain pattern:** to add per-turn blob tamper-evidence to an existing per-tool-dispatch chain (`ai_audit_events`) without breaking it, add a `hash_scheme` column + a NEW v2 event type (`tool_name='__episode__'`) whose hash binds extra fields; keep v1 serialisation byte-identical (extract a shared `serialiseForHash`, never add fields to the v1 input). `verifyChain` selects scheme per row. Self-contained verification: store everything needed to re-derive on the row's own `result_summary`, never join to a mutable table.
-- **GDPR must span both media on EVERY erasure path.** The scheduled `RetentionPurgeService::purgeUser` → `FynMemoryStore::forget` only cleared the Phase-5 markdown store, not Phase-2 blobs (hot+cold). Fixed via shared `EpisodeBlobLocator::eraseForUser()` called by both the manual command and the scheduled purge. Lesson: when adding a new storage medium, audit ALL deletion paths, not just the one you're building.
-- **`operation` is an enum on `ai_audit_events`** — adding a new operation value (`persist`) needs a migration, not just a string.
+## 2026-06-11 session 4 — savetax campaign E2E findings
+- The campaign's two memory systems can desync: `users.funnel_answers` (greetings, section skips) vs profile routing columns (`household_calculation_mode`). Any funnel answer that maps cleanly to a routing column needs an explicit `FunnelAnswersMapper` line — there's no automatic inference (PR #529 root cause).
+- `create_investment_account` silently dropped any user-stated fact without a schema field (the £800 dividends case) — when iterating on captures, diff the recorded `tool_calls` in `ai_messages` against the user's verbatim message to spot dropped facts (PR #531).
+- `buildCaptureAck` is a state-keyed table covering only base states; campaign grouped_extract states need explicit entries — delegated turns ack via LLM, grouped_extract turns don't.
+- csjones `php artisan cache:clear` invalidates live user tokens — every deploy needs re-login in browser tests.

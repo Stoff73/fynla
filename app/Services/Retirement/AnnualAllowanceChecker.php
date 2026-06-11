@@ -181,27 +181,57 @@ class AnnualAllowanceChecker
     /**
      * Get carry forward allowance from previous 3 tax years.
      *
-     * Uses user-entered prior year unused allowance data from RetirementProfile.
-     * Returns 0 when no data is entered (conservative default to prevent
-     * users unknowingly exceeding their allowance).
+     * Primary path: reads captured PensionInputHistory rows (written by the
+     * savetax onboarding flow via CoordinatingAgent → PensionStore::captureInputHistory).
+     * Per-year unused = max(0, annual_allowance − pension_input_amount) so an
+     * over-contributed year contributes zero, never a negative.
+     *
+     * Fallback: manually-entered RetirementProfile.prior_year_unused_allowance
+     * JSON field (existing behaviour, unchanged). Returns 0 when neither source
+     * is present (conservative default).
+     *
+     * Note: prior-year allowances are valued at the current standard annual
+     * allowance from TaxConfigService. TaxConfigService only holds the active
+     * tax year's figure; a per-historical-year lookup is not available.
+     *
+     * Only rows inside the exact HMRC 3-prior-years window count — stale
+     * rows from older captures are ignored, never summed as eligible.
      *
      * @return float Total carry forward available
      */
     public function getCarryForward(int $userId, string $taxYear): float
     {
+        $priorYears = $this->getPrevious3TaxYears($taxYear);
+
+        // Store-mediated read (store-boundary architecture rule): the pensions
+        // canonical set owns PensionInputHistory access.
+        $user = User::find($userId);
+        $history = $user === null
+            ? collect()
+            : collect(app(PensionStore::class)->pensionInputHistory($user))
+                ->whereIn('tax_year', $priorYears)
+                ->values();
+
+        if ($history->isNotEmpty()) {
+            $standard = (float) ($this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
+
+            return (float) $history->sum(
+                fn ($row) => max(0.0, $standard - (float) $row->pension_input_amount)
+            );
+        }
+
+        // Fallback: manually-entered RetirementProfile.prior_year_unused_allowance.
         $profile = RetirementProfile::where('user_id', $userId)->first();
 
         if (! $profile || ! $profile->prior_year_unused_allowance) {
             return 0.0;
         }
 
-        $priorYears = $profile->prior_year_unused_allowance;
+        $manualUnused = $profile->prior_year_unused_allowance;
         $carryForward = 0.0;
 
-        $previousYears = $this->getPrevious3TaxYears($taxYear);
-
-        foreach ($previousYears as $year) {
-            $carryForward += (float) ($priorYears[$year] ?? 0);
+        foreach ($priorYears as $year) {
+            $carryForward += (float) ($manualUnused[$year] ?? 0);
         }
 
         return $carryForward;
@@ -210,9 +240,12 @@ class AnnualAllowanceChecker
     /**
      * Get the previous 3 tax year strings for carry forward lookback.
      *
+     * Public so PensionAACarryForwardStrategy shares the exact same HMRC
+     * window arithmetic — one source of truth for which years are eligible.
+     *
      * @return array e.g. ['2022/23', '2023/24', '2024/25'] for current year '2025/26'
      */
-    private function getPrevious3TaxYears(string $currentTaxYear): array
+    public function getPrevious3TaxYears(string $currentTaxYear): array
     {
         $startYear = (int) substr($currentTaxYear, 0, 4);
 

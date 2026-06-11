@@ -25,17 +25,14 @@ class GiftFactory extends Factory
             'gift_date' => $giftDate,
             'recipient' => fake()->name(),
             'gift_type' => fake()->randomElement([
-                'outright_gift',
-                'gift_into_trust',
-                'gift_with_reservation',
-                'potentially_exempt_transfer',
-                'small_gift_exemption',
+                'pet',
+                'clt',
+                'exempt',
+                'small_gift',
                 'annual_exemption',
-                'wedding_gift',
-                'normal_expenditure',
             ]),
             'gift_value' => fake()->randomFloat(2, 250, 100000),
-            'status' => fake()->randomElement(['active', 'exempt', 'taper_eligible', 'expired']),
+            'status' => $yearsAgo >= 7 ? 'survived_7_years' : 'within_7_years',
             'taper_relief_applicable' => $yearsAgo >= 3,
             'notes' => fake()->optional(0.3)->sentence(),
         ];
@@ -48,7 +45,19 @@ class GiftFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'gift_date' => fake()->dateTimeBetween('-6 years', '-1 month'),
-            'status' => 'active',
+            'status' => 'within_7_years',
+        ]);
+    }
+
+    /**
+     * A gift the donor survived by 7+ years (outside IHT scope).
+     */
+    public function survivedSevenYears(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'gift_date' => fake()->dateTimeBetween('-15 years', '-7 years -1 day'),
+            'status' => 'survived_7_years',
+            'taper_relief_applicable' => false,
         ]);
     }
 
@@ -60,7 +69,7 @@ class GiftFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'gift_date' => fake()->dateTimeBetween('-7 years', '-3 years'),
             'taper_relief_applicable' => true,
-            'status' => 'taper_eligible',
+            'status' => 'within_7_years',
         ]);
     }
 
@@ -72,7 +81,7 @@ class GiftFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'gift_type' => 'annual_exemption',
             'gift_value' => 3000.00,
-            'status' => 'exempt',
+            'status' => 'within_7_years',
             'taper_relief_applicable' => false,
         ]);
     }
@@ -83,9 +92,9 @@ class GiftFactory extends Factory
     public function smallGift(): static
     {
         return $this->state(fn (array $attributes) => [
-            'gift_type' => 'small_gift_exemption',
+            'gift_type' => 'small_gift',
             'gift_value' => fake()->randomFloat(2, 50, 250),
-            'status' => 'exempt',
+            'status' => 'within_7_years',
             'taper_relief_applicable' => false,
         ]);
     }
@@ -96,9 +105,9 @@ class GiftFactory extends Factory
     public function largePET(): static
     {
         return $this->state(fn (array $attributes) => [
-            'gift_type' => 'potentially_exempt_transfer',
+            'gift_type' => 'pet',
             'gift_value' => fake()->randomFloat(2, 50000, 500000),
-            'status' => 'active',
+            'status' => 'within_7_years',
         ]);
     }
 }

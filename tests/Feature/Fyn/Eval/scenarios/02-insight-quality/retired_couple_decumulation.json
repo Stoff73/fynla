@@ -1,0 +1,64 @@
+{
+  "id": "retired_couple_decumulation",
+  "category": "02-insight-quality",
+  "persona": "retired_couple",
+  "is_mutating": false,
+  "notes": "Golden persona scenario — decumulation, no accumulation strategies. A retired couple asking about withdrawal order must not get salary sacrifice / carry-forward (accumulation-only); judgement-tier voicing throughout; FCA signpost present.",
+  "description": "Patricia & Harold Bennett ask whether they are drawing their money in the right order. The reply must address withdrawal sequencing for decumulation and must NOT surface accumulation-only strategies (salary sacrifice, carry-forward) that do not apply to a retired couple, must hedge judgement-tier content, and must signpost a qualified financial adviser.",
+  "input": {
+    "turns": [
+      {"user": "are we drawing our money in the right order?", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "general",
+    "related": [],
+    "modules": []
+  },
+  "expected_response_mode": "factual",
+  "expected_engine_call_level": "factual",
+  "expected_kyc_state": "bypass",
+  "expected_tool_calls": [],
+  "expected_tool_calls_absent": [
+    "create_record",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["content", "done"],
+    "must_emit_exactly_once": ["done"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "qualified financial adviser"
+    ],
+    "must_contain_at_least_one_of": [
+      ["order", "sequence", "withdraw", "drawdown", "first"]
+    ],
+    "must_not_contain_substrings": ["salary sacrifice", "carry forward", "carry-forward", "I think you should", "you should definitely"],
+    "minimum_length_chars": 200
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["users", "ai_conversations"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"success": 12000},
+    "xai": {"success": 30000}
+  },
+  "tags": ["golden", "insight-quality", "recommendation-mode", "retirement", "retired_couple", "decumulation", "happy-path"]
+}

@@ -12,6 +12,11 @@ it('every scenario binds to a known preview persona', function () use ($root): v
         'young_saver',
         'retired_couple',
         'student',
+        // Dedicated mid-campaign savetax persona (Task 23 golden scenario).
+        // Created by `eval:setup-azlan`, not PreviewUserSeeder — still a
+        // preview-flagged user, just positioned mid-onboarding so the savetax
+        // write journey can be exercised end-to-end.
+        'azlan_savetax',
     ];
 
     $files = glob($root.'/tests/Feature/Fyn/Eval/scenarios/*/*.json') ?: [];

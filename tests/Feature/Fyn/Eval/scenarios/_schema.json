@@ -28,6 +28,7 @@
       "type": "string",
       "enum": [
         "01-query-types",
+        "02-insight-quality",
         "02-preview-personas",
         "03-multi-entity",
         "04-handoffs",
@@ -46,8 +47,17 @@
         "entrepreneur",
         "young_saver",
         "retired_couple",
-        "student"
+        "student",
+        "azlan_savetax"
       ]
+    },
+    "setup_command": {
+      "type": "string",
+      "description": "Optional artisan command run before login to position a dedicated preview persona mid-flow (e.g. eval:setup-azlan). Must match [A-Za-z0-9:_-]+.",
+      "pattern": "^[A-Za-z0-9:_-]+$"
+    },
+    "notes": {
+      "type": "string"
     },
     "is_mutating": {
       "type": "boolean"
@@ -173,6 +183,34 @@
         "minimum_length_chars": {"type": "integer", "minimum": 0},
         "maximum_length_chars": {"type": "integer", "minimum": 0},
         "exact_match": {"type": "string"}
+      }
+    },
+    "turn_assertions": {
+      "type": "array",
+      "description": "Per-turn assistant-text rules for multi-turn scenarios. Each entry targets a 1-based turn and carries the same keys as expected_assistant_text. Evaluated by AssertionHelpers::assertTurnAssistantTextRules.",
+      "items": {
+        "type": "object",
+        "required": ["turn"],
+        "properties": {
+          "turn": {"type": "integer", "minimum": 1},
+          "must_contain_substrings": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "must_contain_at_least_one_of": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          },
+          "must_not_contain_substrings": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "minimum_length_chars": {"type": "integer", "minimum": 0},
+          "maximum_length_chars": {"type": "integer", "minimum": 0}
+        }
       }
     },
     "expected_db_writes": {

@@ -10,6 +10,7 @@ use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -47,7 +48,9 @@ use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
@@ -56,6 +59,7 @@ use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
@@ -127,6 +131,21 @@ class CoordinatingAgent extends BaseAgent
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
     ) {}
+
+    /**
+     * After any Fyn write (the ~10 capture handlers below all call this), clear
+     * the full set of the user's caches — not just this agent's. The mobile /m
+     * surface is served entirely from CacheInvalidationService-managed keys
+     * (mobile_dashboard_*, mobile_module_*, mobile_level_actions_*), and the Fyn
+     * capture path is its ONLY writer, so a Fyn write must invalidate them or the
+     * /m dashboard + drill-downs stay stale for up to 24h. BaseAgent's version
+     * only clears v1_{agent}_* keys.
+     */
+    public function invalidateUserCache(int $userId, array $additionalKeys = []): void
+    {
+        parent::invalidateUserCache($userId, $additionalKeys);
+        app(CacheInvalidationService::class)->invalidateForUser($userId);
+    }
 
     /**
      * Analyze user data and generate insights (BaseAgent requirement)
@@ -955,7 +974,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_work_status' => $this->handleCaptureSpouseWorkStatus($input, $user, $isPreviewUser),
                 'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
                 'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
-                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser),
+                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser, $conversationId),
                 'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
@@ -1861,6 +1880,9 @@ class CoordinatingAgent extends BaseAgent
             'recommendations' => $analysis['ranked_recommendations'] ?? [],
             'total' => count($analysis['ranked_recommendations'] ?? []),
             'surplus' => $analysis['available_surplus'] ?? 0,
+            // Ordered, conflict-resolved tax plan with claim tiers + locked strategies —
+            // the presentation contract lives in the tool description.
+            'composed_tax_plan' => app(ComposedTaxPlanService::class)->forUser($user),
         ];
     }
 
@@ -2180,6 +2202,7 @@ class CoordinatingAgent extends BaseAgent
             'is_isa' => 'nullable|boolean',
             'is_emergency_fund' => 'nullable|boolean',
             'regular_contribution_amount' => 'nullable|numeric|min:0',
+            'isa_subscription_amount' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;
@@ -2240,6 +2263,7 @@ class CoordinatingAgent extends BaseAgent
             'provider' => 'nullable|string|max:255',
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+            'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -2357,6 +2381,20 @@ class CoordinatingAgent extends BaseAgent
                 'error_type' => 'tier_limit_exceeded',
                 'message' => "You've reached the investment account limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
             ];
+        }
+
+        // Taxable dividend income feeds the user-level figure the tax-strategy
+        // engine reads (Dividend Allowance usage, composed taxable income).
+        // ISA dividends are tax-free, so they never touch it. Accumulates
+        // across accounts; the duplicate check above prevents double-counting
+        // a re-captured account.
+        if ($dbAccountType !== 'isa'
+            && isset($input['annual_dividend_income']) && is_numeric($input['annual_dividend_income'])
+            && (float) $input['annual_dividend_income'] > 0) {
+            $user->update([
+                'annual_dividend_income' => (float) ($user->annual_dividend_income ?? 0)
+                    + (float) $input['annual_dividend_income'],
+            ]);
         }
 
         $this->invalidateUserCache($user->id);
@@ -4132,7 +4170,7 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview): array
+    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview, ?int $conversationId = null): array
     {
         if ($isPreview) {
             return $this->previewBlocked('pension');
@@ -4141,6 +4179,45 @@ class CoordinatingAgent extends BaseAgent
         $history = $input['history'] ?? null;
         if (! is_array($history) || $history === []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'history must be a non-empty array.'];
+        }
+
+        // Carry-forward disambiguation guard. The user is asked for their gross
+        // pension input "in each of the last 3 tax years"; when they reply with
+        // ONE lump figure (e.g. "Around £90,000") and no per-year breakdown,
+        // the figure is fatally ambiguous — £90k spread across three years is
+        // unused allowance to top up, but £90k PER YEAR is an annual-allowance
+        // charge. Whatever split the model invents to satisfy the per-year tool
+        // schema is fabricated financial data. So when the source message
+        // carries a single figure with no per-year structure, write nothing and
+        // ask the clarifying question; emitTerminalError voices the message
+        // verbatim and keeps the user on STATE_CAMPAIGN_PENSION_HISTORY so their
+        // next reply re-enters this handler with the disambiguated figures.
+        $sourceMessage = $this->latestUserMessageText($conversationId);
+        if ($sourceMessage !== null && $this->pensionHistoryIsAmbiguousSingleFigure($sourceMessage)) {
+            return [
+                'onboarding_capture_error' => true,
+                'field_group' => 'campaign_pension_history',
+                'error_type' => 'pension_history_ambiguous',
+                'message' => 'Just to be sure I read that correctly — is that the total across all three tax years, or roughly that amount per year? It changes whether you have unused allowance to top up.',
+            ];
+        }
+
+        // "In total across the three years" + a single entry → distribute the
+        // total evenly across the prior-3 window. Writing the total into ONE
+        // year fabricates an annual-allowance excess in that year and
+        // overstates carry-forward (live-browser finding 2026-06-11: £90k
+        // landed in 2024/25 alone → £120k "unused" instead of £90k).
+        $distributed = false;
+        if (count($history) === 1 && $sourceMessage !== null
+            && preg_match('/\b(total|across|altogether|combined|in all)\b/i', $sourceMessage) === 1) {
+            $taxYear = app(TaxConfigService::class)->getTaxYear();
+            $priorYears = app(AnnualAllowanceChecker::class)->getPrevious3TaxYears($taxYear);
+            $perYear = round(((float) (reset($history)['pension_input_amount'] ?? 0)) / 3, 2);
+            $history = array_map(
+                fn (string $year): array => ['tax_year' => $year, 'pension_input_amount' => $perYear],
+                $priorYears
+            );
+            $distributed = true;
         }
 
         $canonical = app(PensionNormaliser::class)->fromFynInputHistory(['history' => $history]);
@@ -4158,9 +4235,110 @@ class CoordinatingAgent extends BaseAgent
         return [
             'onboarding_capture' => true,
             'field_group' => 'campaign_pension_history',
-            'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
+            'summary' => $distributed
+                ? sprintf('Captured pension history — the total split evenly across the last three tax years (%s per year).', '£'.number_format($perYear, 2))
+                : sprintf('Captured %d year(s) of pension history.', count($written)),
             'details' => $written,
         ];
+    }
+
+    /**
+     * Fetch the verbatim text of the most recent user message in the
+     * conversation — the in-flight turn that triggered the current tool call.
+     * Used by capture handlers that must reason about the user's actual words
+     * (e.g. detecting an ambiguous single figure) rather than trusting the
+     * post-hoc structure the model put into the tool arguments.
+     */
+    private function latestUserMessageText(?int $conversationId): ?string
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $message = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'user')
+            ->orderByDesc('id')
+            ->first();
+
+        $text = $message?->content;
+
+        return is_string($text) && $text !== '' ? $text : null;
+    }
+
+    /**
+     * Detect whether a pension-history reply gives a SINGLE monetary figure for
+     * the three-year window with no per-year structure — the catastrophic
+     * total-vs-per-year ambiguity. Returns false when the reply is per-year
+     * shaped ("about 5,000 each year"), lists multiple figures ("30k, 25k,
+     * 20k"), labels distinct tax years, or carries no monetary figure at all
+     * (e.g. "zero" / "none", which capture cleanly as no contributions).
+     */
+    private function pensionHistoryIsAmbiguousSingleFigure(string $message): bool
+    {
+        $figureCount = $this->countMonetaryFigures($message);
+        if ($figureCount !== 1) {
+            // Zero figures ("none"/"nothing") capture as no contributions;
+            // two or more figures are already per-year and unambiguous.
+            return false;
+        }
+
+        $lower = mb_strtolower($message);
+
+        // Disambiguating cues — the user has already told us whether the figure
+        // is annual (per-year) or the whole-window total. Either resolves the
+        // ambiguity, so capture rather than re-ask.
+        $resolvingCues = [
+            // per-year
+            'each year', 'per year', 'a year', 'every year', 'each of', 'each tax year',
+            'per annum', 'annually', '/yr', 'p.a.', 'pa ', 'each of the', 'for each',
+            'first year', 'second year', 'third year', 'last year', 'year before',
+            // whole-window total
+            'in total', 'total of', 'altogether', 'across', 'combined', 'between them',
+            'all three', 'over the three', 'over three', 'spread', 'split',
+        ];
+        foreach ($resolvingCues as $cue) {
+            if (str_contains($lower, $cue)) {
+                return false;
+            }
+        }
+
+        // Explicit per-year tax-year labelling (e.g. "2024/25") means the user
+        // attributed the figure to a specific year, not the whole window.
+        if (preg_match('/\b20\d{2}\s*\/\s*\d{2}\b/', $message) === 1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Count distinct monetary figures in a free-text message. Handles
+     * £-prefixed and bare numbers, thousands separators, and the "k"/"m"
+     * shorthand (90k, 1.2m). Used to tell a single lump figure apart from a
+     * per-year list.
+     */
+    private function countMonetaryFigures(string $message): int
+    {
+        $matches = [];
+        // £90,000 / 90000 / 90k / 1.2m / £3,250.50 — optional £ prefix, optional
+        // k|m shorthand suffix; the trailing negative lookahead stops a figure
+        // running into an adjacent digit/decimal so "90000" counts once.
+        preg_match_all('/£?\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m)?(?![\d.])/iu', $message, $matches);
+
+        $figures = array_filter(
+            array_map('trim', $matches[0] ?? []),
+            // Drop bare year-like tokens that are not really amounts on their
+            // own (a 4-digit 19xx/20xx with no £, k, m, comma or decimal).
+            static function (string $tok): bool {
+                $hasMoneyMarker = (bool) preg_match('/[£,km.]/i', $tok);
+                $isYearLike = (bool) preg_match('/^(?:19|20)\d{2}$/', preg_replace('/[^\d]/', '', $tok) ?? '');
+
+                return $hasMoneyMarker || ! $isYearLike;
+            }
+        );
+
+        return count($figures);
     }
 
     private function handleCaptureCharitableGiving(array $input, User $user, bool $isPreview): array

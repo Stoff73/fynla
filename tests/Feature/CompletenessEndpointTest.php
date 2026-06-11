@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ProtectionProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 
@@ -86,12 +87,15 @@ describe('GET /api/life-stage/completeness', function () {
             'employment_status' => 'employed',
         ]);
 
+        // Protection blocks on a protection profile too (cover needs live there).
+        ProtectionProfile::factory()->create(['user_id' => $user->id]);
+
         $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk();
 
         $protection = $response->json('data.modules.protection');
-        // Protection needs: date_of_birth, income, marital_status — all present
+        // Protection needs: date_of_birth, income, marital_status, protection profile — all present
         expect($protection['can_advise'])->toBeTrue();
         expect($protection['missing'])->toBeEmpty();
     });

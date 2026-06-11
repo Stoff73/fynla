@@ -416,4 +416,118 @@ describe('AssertionHelpers — new YAML key support (S1.2.l)', function () {
         });
     });
 
+    // ─── Per-turn assertions (Task 23 — golden multi-turn scenarios) ──
+    //
+    // Multi-turn golden scenarios (e.g. the Azlan savetax journey) need to
+    // assert against a SPECIFIC turn's assistant text, not the whole-run
+    // aggregate. assembleContentByTurn turns the driver's per-turn event
+    // lists into per-turn text; assertTurnAssistantTextRules evaluates a
+    // list of {turn: N (1-based), ...rules} against those texts.
+
+    describe('assembleContentByTurn', function () {
+        it('assembles content events into one string per turn', function () {
+            $eventsByTurn = [
+                [ // turn 1
+                    ['type' => 'content', 'text' => 'Hello '],
+                    ['type' => 'tool_use', 'tool' => 'list_records'],
+                    ['type' => 'content', 'text' => 'world.'],
+                    ['type' => 'done'],
+                ],
+                [ // turn 2
+                    ['type' => 'content', 'text' => 'Second turn.'],
+                    ['type' => 'done'],
+                ],
+            ];
+
+            $texts = AssertionHelpers::assembleContentByTurn($eventsByTurn);
+            expect($texts)->toBe(['Hello world.', 'Second turn.']);
+        });
+
+        it('returns an empty string for a turn with no content events', function () {
+            $eventsByTurn = [
+                [['type' => 'done']],
+                [['type' => 'content', 'text' => 'only here']],
+            ];
+            $texts = AssertionHelpers::assembleContentByTurn($eventsByTurn);
+            expect($texts)->toBe(['', 'only here']);
+        });
+
+        it('returns an empty list for no turns', function () {
+            expect(AssertionHelpers::assembleContentByTurn([]))->toBe([]);
+        });
+    });
+
+    describe('assertTurnAssistantTextRules', function () {
+        it('passes when every turn rule matches its 1-based turn text', function () {
+            $perTurnTexts = [
+                'I have a cash ISA and a stocks and shares ISA.',
+                'Premium bonds and £81,000 savings. With an ISA Wrap you could shelter more.',
+                'Salary sacrifice means your pension contributions come out before tax.',
+            ];
+            $turnRules = [
+                ['turn' => 1, 'must_contain_at_least_one_of' => [['cash ISA', 'stocks and shares']]],
+                ['turn' => 2, 'must_contain_at_least_one_of' => [['Wrap', 'ISA']]],
+                ['turn' => 3, 'must_contain_at_least_one_of' => [['salary sacrifice']], 'must_not_contain_substrings' => ['recording those now']],
+            ];
+
+            [$ok, $msg] = AssertionHelpers::assertTurnAssistantTextRules($turnRules, $perTurnTexts);
+            expect($ok)->toBeTrue()->and($msg)->toBe('');
+        });
+
+        it('fails when a turn rule\'s required group has no hit, naming the turn', function () {
+            $perTurnTexts = [
+                'Got it — recording those now.',
+                'Some other text.',
+            ];
+            $turnRules = [
+                ['turn' => 1, 'must_contain_at_least_one_of' => [['salary sacrifice']]],
+            ];
+
+            [$ok, $msg] = AssertionHelpers::assertTurnAssistantTextRules($turnRules, $perTurnTexts);
+            expect($ok)->toBeFalse();
+            expect($msg)->toContain('turn 1');
+            expect($msg)->toContain('none of group');
+        });
+
+        it('fails when a turn rule\'s forbidden substring is present, naming the turn', function () {
+            $perTurnTexts = [
+                'First turn fine.',
+                'Got it — recording those now.',
+            ];
+            $turnRules = [
+                ['turn' => 2, 'must_not_contain_substrings' => ['recording those now']],
+            ];
+
+            [$ok, $msg] = AssertionHelpers::assertTurnAssistantTextRules($turnRules, $perTurnTexts);
+            expect($ok)->toBeFalse();
+            expect($msg)->toContain('turn 2');
+            expect($msg)->toContain('forbidden substring');
+        });
+
+        it('fails when a turn index exceeds the captured turns', function () {
+            $perTurnTexts = ['only one turn'];
+            $turnRules = [['turn' => 3, 'must_contain_substrings' => ['x']]];
+
+            [$ok, $msg] = AssertionHelpers::assertTurnAssistantTextRules($turnRules, $perTurnTexts);
+            expect($ok)->toBeFalse();
+            expect($msg)->toContain('turn 3');
+            expect($msg)->toContain('only 1 turn');
+        });
+
+        it('rejects a non-positive or missing turn number', function () {
+            [$ok, $msg] = AssertionHelpers::assertTurnAssistantTextRules([['turn' => 0]], ['x']);
+            expect($ok)->toBeFalse();
+            expect($msg)->toContain('turn');
+
+            [$ok2, $msg2] = AssertionHelpers::assertTurnAssistantTextRules([['must_contain_substrings' => ['x']]], ['x']);
+            expect($ok2)->toBeFalse();
+            expect($msg2)->toContain('turn');
+        });
+
+        it('passes with an empty rule list', function () {
+            [$ok] = AssertionHelpers::assertTurnAssistantTextRules([], ['anything']);
+            expect($ok)->toBeTrue();
+        });
+    });
+
 });

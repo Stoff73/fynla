@@ -19,9 +19,11 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Models\UserSession;
 use App\Services\Audit\AuditService;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\SessionService;
+use App\Services\Gamification\PointsService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Payment\ReferralService;
@@ -99,6 +101,7 @@ class AuthController extends Controller
             'billing_cycle' => $request->billing_cycle ?? null,
             'referral_code' => $request->referral_code ?? null,
             'signup_source' => $request->validated('signup_source'),
+            'funnel_answers' => $request->validated('funnel_answers'),
         ]);
 
         Log::info('Pending registration created', [
@@ -536,10 +539,16 @@ class AuthController extends Controller
                 'role_id' => $role?->id,
                 'referred_by_code' => $pending->referral_code,
                 'signup_source' => $pending->signup_source,
+                'funnel_answers' => $pending->funnel_answers,
             ]);
 
             // is_admin is intentionally NOT set here. The User model defaults
             // it to false and admin promotion is granted only via /admin/users.
+
+            // Seed the profile from the /savetax funnel answers so Fyn's
+            // onboarding starts from what the user already told us (employment
+            // + marital status); the income band is confirmed conversationally.
+            app(FunnelAnswersMapper::class)->mapToProfile($user);
 
             Log::info('User created from pending registration', [
                 'user_id' => $user->id,
@@ -593,6 +602,10 @@ class AuthController extends Controller
 
             $authResult = $this->createAuthTokenWithSession($user);
 
+            // Gamification: count this as today's login. Preview-safe and
+            // never throws — a failure must not break account creation.
+            app(PointsService::class)->recordLogin($user);
+
             return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
         }
 
@@ -637,6 +650,10 @@ class AuthController extends Controller
         ]);
 
         $authResult = $this->createAuthTokenWithSession($user);
+
+        // Gamification: record today's login + streak. Preview-safe and never
+        // throws — a failure must not break the login.
+        app(PointsService::class)->recordLogin($user);
 
         return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Verification successful');
     }

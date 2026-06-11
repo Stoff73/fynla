@@ -92,10 +92,12 @@ describe('Phase 03 Architecture Tests', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
             $constructor = $reflection->getConstructor();
 
-            // NetWorthService uses CrossModuleAssetAggregator for cross-module data.
-            // Assert the dependency is present by type — resilient to additional store
-            // deps the SP1 canonical-store migration injects (e.g. PropertyStore).
+            // NetWorthService injects CrossModuleAssetAggregator (cross-module data)
+            // plus PropertyStore (SP1 Pass 4). Assert the aggregator dependency is
+            // present by type rather than a brittle exact param count, so adding
+            // further injected stores doesn't falsely fail this convention check.
             expect($constructor)->not->toBeNull();
+            expect($constructor->getNumberOfParameters())->toBeGreaterThanOrEqual(1);
             $paramTypes = array_map(
                 fn ($p) => $p->getType()?->getName(),
                 $constructor->getParameters()
@@ -177,12 +179,13 @@ describe('Phase 03 Architecture Tests', function () {
             $filePath = $reflection->getFileName();
             $contents = file_get_contents($filePath);
 
-            // Should import model classes directly or use a Store / CrossModuleAssetAggregator
+            // Should import model classes directly or read them via a store/aggregator.
+            // Property is now read through PropertyStore (SP1 Pass 4); the rest remain
+            // direct model imports; cash/mortgage go via CrossModuleAssetAggregator.
             expect($contents)->toContain('use App\Services\Stores\PropertyStore'); // Property via PropertyStore (SP1 Pass 4)
             expect($contents)->toContain('use App\Models\Investment\InvestmentAccount');
             expect($contents)->toContain('use App\Models\BusinessInterest');
             expect($contents)->toContain('use App\Models\Chattel');
-            // Property via PropertyStore; Cash and Mortgage via CrossModuleAssetAggregator
             expect($contents)->toContain('CrossModuleAssetAggregator');
         });
     });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class DBPension extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'pension';
+    }
 
     protected $table = 'db_pensions';
 

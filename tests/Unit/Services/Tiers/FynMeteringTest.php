@@ -44,8 +44,8 @@ it('reads the weekly budget from the tier store, not the legacy plan array', fun
     expect($harness()->weeklyExceeded($u))->toBeFalse(); // 84k < 100k
 });
 
-it('soft-degrades the model when the weekly budget is exceeded', function () use ($harness) {
-    config(['services.anthropic.chat_model' => null]); // let the trait choose
+it('soft-degrades to the Anthropic cheap model under the anthropic provider', function () use ($harness) {
+    config(['services.ai_provider' => 'anthropic', 'services.anthropic.chat_model' => null]); // let the trait choose
     $u = User::factory()->create(['tier' => 'free']);
     foreach (range(0, 6) as $d) {
         AiDailyUsage::create(['user_id' => $u->id, 'usage_date' => now()->subDays($d)->toDateString(), 'tokens_used' => 30_000]);
@@ -55,6 +55,23 @@ it('soft-degrades the model when the weekly budget is exceeded', function () use
     expect($h->weeklyExceeded($u))->toBeTrue()
         ->and($degraded)->toBe($h->softDegradeModel())
         ->and($degraded)->toBe('claude-haiku-4-5-20251001'); // literal anchor — catches a constant-value regression
+});
+
+it('soft-degrades to a valid xAI model under the xai provider (never an Anthropic model)', function () use ($harness) {
+    // Regression guard: the soft-degrade model MUST be provider-appropriate.
+    // Returning the Anthropic SOFT_DEGRADE_MODEL under AI_PROVIDER=xai sends an
+    // invalid model name to the xAI endpoint and BREAKS chat instead of
+    // degrading it. The degrade must stay on the xAI side so chat stays open.
+    config(['services.ai_provider' => 'xai', 'services.xai.chat_model' => null, 'services.xai.degrade_chat_model' => null]);
+    $u = User::factory()->create(['tier' => 'free']);
+    foreach (range(0, 6) as $d) {
+        AiDailyUsage::create(['user_id' => $u->id, 'usage_date' => now()->subDays($d)->toDateString(), 'tokens_used' => 30_000]);
+    } // 210k > 100k weekly
+    $h = $harness();
+    $degraded = $h->model($u, 'complex');
+    expect($h->weeklyExceeded($u))->toBeTrue()
+        ->and($degraded)->toBe('grok-4.3') // DEFAULT_MODEL_XAI — keeps chat open on xAI
+        ->and($degraded)->not->toBe($h->softDegradeModel()); // never the Anthropic model
 });
 
 it('never meters or soft-degrades preview personas, regardless of usage', function () use ($harness) {

@@ -63,9 +63,13 @@ class StructuredResponseValidator
     /**
      * Validate an AI response and return violations.
      *
+     * @param  string  $persona  'advice' (default) or 'data_capture' — capture-turn acks skip
+     *                           the missing_amounts rule because short confirmations ("Noted.",
+     *                           "Recorded — two ISAs totalling £22,000.") contain no advice £
+     *                           figures by design and would otherwise flood violation telemetry.
      * @return array{valid: bool, violations: array<array{rule: string, detail: string, severity: string}>}
      */
-    public function validate(string $response, ?array $classification = null): array
+    public function validate(string $response, ?array $classification = null, string $persona = 'advice'): array
     {
         if (trim($response) === '') {
             return ['valid' => true, 'violations' => []];
@@ -134,8 +138,11 @@ class StructuredResponseValidator
             }
         }
 
-        // For advice responses, check for £ amounts (should have specific figures)
-        if ($classification !== null
+        // For advice responses, check for £ amounts (should have specific figures).
+        // Capture-turn acks ("Noted.", "Recorded.") are exempt — they are confirmation
+        // messages, not advice, and flagging them pollutes the violation telemetry.
+        if ($persona !== 'data_capture'
+            && $classification !== null
             && QuerySchemas::isAdviceType($classification['primary'] ?? '')
             && ! preg_match('/£[\d,]+/', $response)) {
             $violations[] = [
@@ -172,9 +179,9 @@ class StructuredResponseValidator
     /**
      * Validate and log any violations. Returns the violations array.
      */
-    public function validateAndLog(string $response, ?array $classification = null, ?int $userId = null, ?int $messageId = null): array
+    public function validateAndLog(string $response, ?array $classification = null, ?int $userId = null, ?int $messageId = null, string $persona = 'advice'): array
     {
-        $result = $this->validate($response, $classification);
+        $result = $this->validate($response, $classification, $persona);
 
         if (! $result['valid']) {
             $highSeverity = array_filter($result['violations'], fn ($v) => in_array($v['severity'], ['critical', 'high']));

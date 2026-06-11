@@ -1,0 +1,192 @@
+/**
+ * gamified-dashboard.css — styling for GamifiedDashboard.vue (web /dashboard).
+ *
+ * The web SPA uses Tailwind utilities, not CSS custom properties, so the Fynla
+ * palette tokens are defined here scoped to .gamified-dash (they do not leak
+ * globally). Mobile layout mirrors the mobile app (resources/mobile/views/
+ * dashboard.css) adapted for in-flow rendering inside AppLayout — no phone
+ * frame, fixed header, drawer, overlay or docked Fyn bar (AppLayout owns nav
+ * + chat). Desktop is the expanded layout. Loaded unscoped so the md-/gd-
+ * class names (specific to this feature) carry the tokens via the wrapper.
+ */
+
+/* ===================================================================
+   TOKENS — scoped to the dashboard wrapper
+   =================================================================== */
+.gamified-dash {
+  --raspberry-300: #F472B6; --raspberry-400: #EC4899; --raspberry-500: #E83E6D; --raspberry-600: #DB2777;
+  --horizon-100: #F1F5F9; --horizon-200: #E2E8F0; --horizon-300: #CBD5E1; --horizon-400: #94A3B8;
+  --horizon-500: #1F2A44; --horizon-600: #0F172A; --horizon-700: #020617;
+  --spring-400: #34D399; --spring-500: #20B486; --spring-600: #059669;
+  --violet-500: #5854E6; --savannah-100: #FDFAF7; --eggshell-500: #F7F6F4;
+  --neutral-400: #9CA3AF; --neutral-500: #717171; --neutral-600: #4B5563;
+  --light-blue-100: #DDE2EF; --light-pink-50: #FDF0F4; --light-pink-100: #FAD6E0; --light-pink-200: #F5B3C5;
+  --light-gray: #EEEEEE; --white: #FFFFFF;
+  --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 0.75rem; --radius-2xl: 1rem; --radius-full: 9999px;
+  --font-primary: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
+  color: var(--horizon-600);
+}
+
+/* Responsive view switch — mobile-styled below lg, expanded desktop at lg+ */
+.gamified-dash .gd-mobile { display: flex; flex-direction: column; gap: 1.25rem; }
+.gamified-dash .gd-desktop { display: none; }
+@media (min-width: 1024px) {
+  .gamified-dash .gd-mobile { display: none; }
+  .gamified-dash .gd-desktop { display: flex; flex-direction: column; gap: 1.25rem; }
+  /* Clear the right-docked Fyn chat strip (collapsed = 40px) so cards/boxes
+     are fully visible when chat is closed, without touching the chat bar. */
+  .gamified-dash { padding-right: 3rem; }
+}
+
+.gamified-dash .gd-loading { padding: 3rem 1rem; text-align: center; color: var(--neutral-500); font-size: 0.9375rem; }
+
+/* ===================================================================
+   SHARED — recommendation rows + finance tiles (mobile + desktop)
+   =================================================================== */
+.gamified-dash .md-recs__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.gamified-dash .md-rec { display: flex; align-items: stretch; width: 100%; background: var(--white); border: 1px solid var(--horizon-100); border-radius: var(--radius-lg); overflow: hidden; transition: border-color 0.15s ease, background 0.15s ease; }
+.gamified-dash .md-rec:hover { border-color: var(--horizon-200); }
+.gamified-dash .md-rec__check-btn { display: flex; align-items: center; justify-content: center; width: 3.25rem; padding: 0 0.5rem; background: transparent; border: none; border-right: 1px solid var(--horizon-100); cursor: pointer; flex-shrink: 0; }
+.gamified-dash .md-rec__check { width: 1.5rem; height: 1.5rem; border-radius: var(--radius-full); background: var(--horizon-100); border: 2px solid var(--horizon-200); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s ease, border-color 0.15s ease; }
+.gamified-dash .md-rec__check svg { display: block; opacity: 0; transform: scale(0.4); transition: opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gamified-dash .md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg { opacity: 1; transform: scale(1); }
+.gamified-dash .md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path { stroke: var(--neutral-400); }
+.gamified-dash .md-rec.is-done { background: var(--savannah-100); border-color: var(--spring-400); }
+.gamified-dash .md-rec.is-done .md-rec__check-btn { border-right-color: var(--spring-400); }
+.gamified-dash .md-rec.is-done .md-rec__check { background: var(--spring-500); border-color: var(--spring-500); }
+.gamified-dash .md-rec.is-done .md-rec__check svg { opacity: 1; transform: scale(1); }
+.gamified-dash .md-rec.is-done .md-rec__title { color: var(--horizon-400); text-decoration: line-through; }
+.gamified-dash .md-rec__action { display: flex; align-items: center; gap: 0.75rem; flex: 1; padding: 0.875rem 1rem; color: inherit; text-decoration: none; min-width: 0; cursor: pointer; }
+.gamified-dash .md-rec__action:hover { background: var(--horizon-100); }
+.gamified-dash .md-rec__text { display: flex; flex-direction: column; flex: 1; min-width: 0; text-align: left; }
+.gamified-dash .md-rec__title { font-size: 0.9375rem; font-weight: 600; color: var(--horizon-600); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gamified-dash .md-rec__meta { font-size: 0.75rem; color: var(--horizon-400); margin-top: 0.125rem; }
+.gamified-dash .md-rec__chevron { color: var(--raspberry-500); flex-shrink: 0; }
+.gamified-dash .md-rec__skip { align-self: stretch; display: flex; align-items: center; border: none; background: transparent; color: var(--neutral-400); padding: 0 0.875rem; font-family: var(--font-primary); font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+.gamified-dash .md-rec__skip:hover { background: var(--horizon-100); color: var(--horizon-600); }
+.gamified-dash .md-rec--empty .md-rec__action { cursor: default; }
+.gamified-dash .md-rec--empty .md-rec__action:hover { background: none; }
+
+/* Finance tiles */
+.gamified-dash .md-panel { display: flex; flex-direction: column; align-items: center; gap: 0.625rem; border: none; border-radius: var(--radius-xl); padding: 0.875rem; text-align: center; height: 100%; justify-content: center; text-decoration: none; transition: transform 0.15s ease, box-shadow 0.2s ease; }
+.gamified-dash .md-panel:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); }
+.gamified-dash .md-panel__viz { --progress: 0; width: 68px; height: 68px; flex-shrink: 0; border-radius: var(--radius-full); background: conic-gradient(currentColor 0deg, currentColor calc(var(--progress) * 3.6deg), var(--horizon-100) calc(var(--progress) * 3.6deg), var(--horizon-100) 360deg); display: flex; align-items: center; justify-content: center; }
+.gamified-dash .md-panel__viz-inner { width: 52px; height: 52px; background: var(--white); border-radius: var(--radius-full); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.gamified-dash .md-panel__viz-num { font-size: 0.75rem; font-weight: 800; color: var(--horizon-600); line-height: 1; }
+.gamified-dash .md-panel__viz-cap { font-size: 0.5rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--horizon-400); margin-top: 0.125rem; }
+.gamified-dash .md-panel__viz--bar { --progress: 0; width: 100%; height: auto; border-radius: 0; background: none; flex-direction: column; align-items: stretch; gap: 0.375rem; padding: 0.25rem 0.5rem 0; }
+.gamified-dash .md-panel__bar { width: 100%; height: 8px; background: var(--horizon-100); border-radius: var(--radius-full); overflow: hidden; }
+.gamified-dash .md-panel__bar-fill { height: 100%; background: currentColor; border-radius: var(--radius-full); }
+.gamified-dash .md-panel__bar-label { font-size: 0.6875rem; color: var(--horizon-500); margin: 0; text-align: center; line-height: 1.2; }
+.gamified-dash .md-panel__bar-label strong { color: var(--horizon-600); font-weight: 800; font-size: 0.8125rem; }
+.gamified-dash .md-panel__body { width: 100%; display: flex; flex-direction: column; gap: 0.125rem; }
+.gamified-dash .md-panel__label { display: flex; align-items: center; justify-content: center; gap: 0.3125rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--horizon-400); margin: 0; }
+.gamified-dash .md-panel__title-icon { display: inline-flex; flex-shrink: 0; color: var(--horizon-400); }
+.gamified-dash .md-panel__title-icon svg { display: block; }
+.gamified-dash .md-panel__value { font-size: 1.125rem; font-weight: 800; color: var(--horizon-600); margin: 0; line-height: 1.1; }
+.gamified-dash .md-panel__caption { font-size: 0.6875rem; color: var(--horizon-500); margin: 0; line-height: 1.3; }
+.gamified-dash .md-panel--horizon { color: var(--horizon-500); background: linear-gradient(135deg, rgba(31,42,68,0.12) 0%, rgba(31,42,68,0.02) 100%); }
+.gamified-dash .md-panel--raspberry { color: var(--raspberry-500); background: linear-gradient(135deg, rgba(232,62,109,0.14) 0%, rgba(232,62,109,0.02) 100%); }
+.gamified-dash .md-panel--spring { color: var(--spring-500); background: linear-gradient(135deg, rgba(32,180,134,0.14) 0%, rgba(32,180,134,0.02) 100%); }
+.gamified-dash .md-panel--violet { color: var(--violet-500); background: linear-gradient(135deg, rgba(88,84,230,0.14) 0%, rgba(88,84,230,0.02) 100%); }
+
+.gamified-dash .md-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.625rem; }
+.gamified-dash .md-section-head__title { font-size: 1rem; font-weight: 700; color: var(--horizon-600); margin: 0; }
+.gamified-dash .md-section-head__count { font-size: 0.8125rem; font-weight: 600; color: var(--raspberry-500); }
+
+/* ===================================================================
+   MOBILE LAYOUT (mirrors the mobile app)
+   =================================================================== */
+.gamified-dash .md-scroll-hero { background-image: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%); border-radius: var(--radius-2xl); padding: 1.5rem 1.25rem 1.25rem; }
+.gamified-dash .md-level { background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); color: var(--horizon-600); border-radius: var(--radius-2xl); padding: 1.75rem 1.5rem 1.5rem; box-shadow: 0 14px 32px rgba(15,23,42,0.18); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+.gamified-dash .md-level__pie { width: 140px; height: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+.gamified-dash .md-level__pie-svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.gamified-dash .md-level__pie-track { fill: none; stroke: var(--horizon-100); stroke-width: 10; }
+.gamified-dash .md-level__pie-arc { fill: none; stroke: var(--raspberry-500); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 276.46; stroke-dashoffset: calc(276.46 * (1 - var(--progress, 0) / 100)); transition: stroke-dashoffset 0.45s cubic-bezier(0.4,0,0.2,1); }
+.gamified-dash .md-level__pie-inner { position: relative; z-index: 1; width: 100px; height: 100px; background: var(--horizon-600); border-radius: var(--radius-full); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; }
+.gamified-dash .md-level__pie-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin: 0; }
+.gamified-dash .md-level__pie-num { font-size: 2.625rem; font-weight: 900; color: var(--white); line-height: 1; margin: 0; }
+.gamified-dash .md-level__heading { font-size: 1.125rem; font-weight: 800; color: var(--horizon-600); margin: 0 0 0.375rem; line-height: 1.25; }
+.gamified-dash .md-level__sub { font-size: 0.875rem; color: var(--horizon-500); margin: 0; line-height: 1.4; }
+.gamified-dash .md-level__sub strong { color: var(--raspberry-600); font-weight: 700; }
+
+.gamified-dash .md-callout { background: linear-gradient(135deg, var(--raspberry-500) 0%, var(--raspberry-600) 100%); color: var(--white); border-radius: var(--radius-xl); box-shadow: 0 6px 18px rgba(232,62,109,0.28); text-align: center; overflow: hidden; }
+.gamified-dash .md-callout__top { display: flex; align-items: center; gap: 1rem; text-align: left; padding: 1.125rem 1.125rem 1rem; }
+.gamified-dash .md-callout__levelup { flex-shrink: 0; margin: 0; font-size: 1.6rem; font-weight: 900; line-height: 1; letter-spacing: 0.02em; color: var(--white); }
+.gamified-dash .md-callout__top-copy { flex: 1; min-width: 0; }
+.gamified-dash .md-callout__lead { font-size: 1rem; font-weight: 700; margin: 0; line-height: 1.3; }
+.gamified-dash .md-callout__lead strong { font-weight: 900; }
+.gamified-dash .md-callout__sub { font-size: 0.8125rem; margin: 0; line-height: 1.35; opacity: 0.92; }
+.gamified-dash .md-callout__carousel { background: var(--light-pink-50); color: var(--horizon-600); padding: 1.125rem 1.125rem 0.875rem; }
+.gamified-dash .md-accordion { display: flex; gap: 0; align-items: stretch; margin: -1.125rem -1.125rem 0; height: 9.5rem; }
+.gamified-dash .md-accordion__card { display: flex; align-items: flex-start; border: none; border-radius: 0; cursor: pointer; font-family: var(--font-primary); text-align: left; overflow: hidden; padding: 0; flex: 0 0 3rem; background: var(--eggshell-500); height: 100%; transition: flex-grow 0.45s cubic-bezier(0.4,0,0.2,1), flex-basis 0.45s cubic-bezier(0.4,0,0.2,1), background 0.3s ease; }
+.gamified-dash .md-accordion__card + .md-accordion__card { box-shadow: -1px 0 0 0 var(--light-pink-50); }
+.gamified-dash .md-accordion__card:not(.is-active):hover { background: var(--horizon-100); }
+.gamified-dash .md-accordion__icon { flex-shrink: 0; width: 3rem; display: flex; align-items: center; justify-content: center; padding-top: 1.125rem; color: var(--neutral-500); }
+.gamified-dash .md-accordion__icon svg { display: block; }
+.gamified-dash .md-accordion__content { display: none; flex-direction: column; padding: 1.125rem 1.125rem 1.125rem 0.25rem; min-width: 0; height: 100%; overflow: hidden; justify-content: flex-start; }
+.gamified-dash .md-accordion__card.is-active { flex: 1 1 0; background: var(--light-pink-50); }
+.gamified-dash .md-accordion__card.is-active .md-accordion__icon { color: var(--raspberry-500); }
+.gamified-dash .md-accordion__card.is-active .md-accordion__content { display: flex; }
+.gamified-dash .md-callout__slide-stat { font-size: 1.6rem; font-weight: 900; margin: 0; line-height: 1.05; color: var(--raspberry-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.gamified-dash .md-callout__slide-area { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin: 0.25rem 0 0.375rem; color: var(--horizon-500); }
+.gamified-dash .md-callout__slide-info { font-size: 0.8125rem; margin: 0; line-height: 1.4; color: var(--neutral-600); }
+.gamified-dash .md-callout__dots { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.875rem; }
+.gamified-dash .md-callout__dot { width: 0.5rem; height: 0.5rem; padding: 0; border: none; border-radius: var(--radius-full); background: var(--light-pink-200); cursor: pointer; transition: background 0.2s ease, width 0.2s ease; }
+.gamified-dash .md-callout__dot.is-active { background: var(--raspberry-500); width: 1.25rem; }
+.gamified-dash .md-callout .md-recs { background: var(--light-pink-50); padding: 0.25rem 1.125rem 1.125rem; margin-top: 1.25rem; }
+.gamified-dash .md-callout .md-recs .md-section-head { color: var(--horizon-600); }
+.gamified-dash .md-recs__view-all { display: inline-block; margin-top: 0.75rem; font-size: 0.8125rem; font-weight: 700; color: var(--raspberry-600); text-decoration: none; }
+.gamified-dash .md-recs__view-all:hover { text-decoration: underline; }
+
+.gamified-dash .md-panels__list { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 0.625rem; }
+.gamified-dash .md-panel--wide { grid-column: 1 / -1; }
+
+/* ===================================================================
+   DESKTOP LAYOUT (expanded)
+   =================================================================== */
+.gamified-dash .gd-header { background: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%); color: #fff; border-radius: var(--radius-2xl); padding: 1.5rem 1.75rem; box-shadow: 0 10px 28px rgba(232,62,109,0.20); }
+.gamified-dash .gd-header__top { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+.gamified-dash .gd-header__level { font-size: 1rem; font-weight: 800; }
+.gamified-dash .gd-header__meta { font-size: 0.875rem; color: rgba(255,255,255,0.85); }
+.gamified-dash .gd-header__meta strong { font-weight: 800; }
+.gamified-dash .gd-bar { height: 10px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; }
+.gamified-dash .gd-bar__fill { height: 100%; background: #fff; border-radius: 999px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.gamified-dash .gd-header__levelup { display: flex; align-items: center; gap: 1rem; margin-top: 1.125rem; padding-top: 1.125rem; border-top: 1px solid rgba(255,255,255,0.2); }
+.gamified-dash .gd-header__lu-badge { font-size: 1.4rem; font-weight: 900; line-height: 1; flex-shrink: 0; letter-spacing: 0.02em; }
+.gamified-dash .gd-header__lu-lead { font-size: 1rem; font-weight: 700; margin: 0; }
+.gamified-dash .gd-header__lu-lead strong { font-weight: 900; }
+.gamified-dash .gd-header__lu-sub { font-size: 0.8125rem; opacity: 0.9; margin: 0.125rem 0 0; }
+
+.gamified-dash .gd-card { background: #fff; border: 1px solid var(--horizon-100); border-radius: var(--radius-2xl); padding: 0.5rem 1.5rem 1.5rem; }
+.gamified-dash .gd-tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--horizon-100); }
+/* Inactive tabs sit "set back" on a grey surface with a hover state; the active
+   tab is raised (white) with a raspberry underline so it reads as selected. */
+.gamified-dash .gd-tab { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; padding: 1rem 1rem 0.875rem; border: none; background: var(--horizon-100); border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 3px solid transparent; cursor: pointer; font-family: var(--font-primary); text-align: left; transition: background 0.15s ease; }
+.gamified-dash .gd-tab:hover { background: var(--horizon-200); }
+.gamified-dash .gd-tab__stat { font-size: 1.35rem; font-weight: 900; color: var(--horizon-400); line-height: 1; }
+.gamified-dash .gd-tab__area { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--neutral-400); }
+.gamified-dash .gd-tab.is-active { background: #fff; border-bottom-color: var(--raspberry-500); }
+.gamified-dash .gd-tab.is-active:hover { background: #fff; }
+.gamified-dash .gd-tab.is-active .gd-tab__stat { color: var(--raspberry-600); }
+.gamified-dash .gd-tab.is-active .gd-tab__area { color: var(--horizon-500); }
+.gamified-dash .gd-recs { margin-top: 1.25rem; }
+.gamified-dash .gd-recs__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.625rem; }
+.gamified-dash .gd-recs__head h3 { font-size: 1rem; font-weight: 700; color: var(--horizon-600); margin: 0; }
+.gamified-dash .gd-recs__head .count { font-size: 0.8125rem; font-weight: 600; color: var(--raspberry-500); }
+.gamified-dash .gd-recs__info { font-size: 0.85rem; color: var(--neutral-500); margin: 0 0 0.75rem; line-height: 1.4; }
+.gamified-dash .gd-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem; }
+.gamified-dash .gd-section-head h2 { font-size: 1.125rem; font-weight: 800; color: var(--horizon-600); margin: 0; }
+.gamified-dash .gd-finances__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; }
+.gamified-dash .gd-finances__grid .md-panel--wide { grid-column: auto; }
+
+/* ===================================================================
+   EMPTY STATE — level bar + a single CTA into Fyn
+   =================================================================== */
+.gamified-dash .gd-empty { display: flex; flex-direction: column; gap: 1.5rem; }
+.gamified-dash .gd-empty__cta { background: #fff; border: 1px solid var(--horizon-100); border-radius: var(--radius-2xl); padding: 2.5rem 1.5rem; text-align: center; }
+.gamified-dash .gd-empty__title { font-size: 1.25rem; font-weight: 800; color: var(--horizon-600); margin: 0 0 0.5rem; }
+.gamified-dash .gd-empty__sub { font-size: 0.9375rem; color: var(--neutral-500); margin: 0 auto 1.25rem; max-width: 28rem; line-height: 1.5; }
+.gamified-dash .gd-empty__btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.875rem 1.75rem; background: var(--raspberry-500); color: #fff; font-weight: 700; font-size: 1rem; border: none; border-radius: var(--radius-md); cursor: pointer; transition: background 0.15s ease; }
+.gamified-dash .gd-empty__btn:hover { background: var(--raspberry-600); }

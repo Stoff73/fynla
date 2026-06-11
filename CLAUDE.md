@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 666 |
-| PHP Services | 344 |
-| Controllers | 118 |
-| Models | 123 |
-| Vuex Stores | 34 |
+| Vue Components | 670 |
+| PHP Services | 358 |
+| Controllers | 120 |
+| Models | 127 |
+| Vuex Stores | 35 |
 | Agents | 9 |
 
 **Production**: https://fynla.org | **Version**: v1.0
@@ -99,60 +99,49 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Tests** (`tests/`): See `tests/CLAUDE.md` for detailed conventions.
 
-**Fyn AI — Two-Fyn architecture (canonical contract).** Source of truth: `April/April24Updates/spec/00-canonical.md`. Fyn has two states behind one chat surface — the user never sees or feels the switch. The system prompt is now **unified**: both states send the identical `FynSystemPrompt::text()` + per-turn `FynContextAssembler::build()` (`app/Services/AI/Fyn/`), gated by `FYN_PROMPT_ARCH` (`config('fyn.prompt_architecture')`, **default `unified`** post-cutover 2026-05-17; `legacy` is the emergency rollback path); the two write states are enforced purely at dispatch + tool-gating, not by prompt content.
+**Fyn AI — one prompt, two write states, converging to one Fyn (canonical contract).** Source of truth: `April/April24Updates/spec/00-canonical.md`. Fyn has two states behind one chat surface — the user never sees or feels the switch. The system prompt is now **unified**: both states send the identical `FynSystemPrompt::text()` + per-turn `FynContextAssembler::build()` (`app/Services/AI/Fyn/`), gated by `FYN_PROMPT_ARCH` (`config('fyn.prompt_architecture')`, **default `unified`** post-cutover 2026-05-17; `legacy` is the emergency rollback path); the two write states are enforced purely at dispatch + tool-gating, not by prompt content.
 - **Onboarding Fyn** (`app/Services/Onboarding/OnboardingChatDirector`) is the **only** state that enters or edits information. It runs the bubble-driven onboarding flow and the post-onboarding `handleInlineCapture` entry point. Both write to the database.
 - **Advice Fyn** (`app/Services/AI/AdviceFyn`) is **read-only**. It answers user questions using the recommendation engine, risk module, and every other engine/module. It exposes **zero** `create_*` / `update_*` / `delete_*` / `set_expenditure` / `capture_*` tools — every persistent record-creation tool (including `create_what_if_scenario`, which persists a `WhatIfScenario` row) is in `AdviceFyn::WRITE_TOOLS` and stripped from the catalogue.
 - **Write intents in advice mode** flow through `delegate_to_capture` (LLM tool call) → `AdviceFyn::wrapStream` → `OnboardingChatDirector::handleInlineCapture` → the same direct-write handlers in `CoordinatingAgent`. The synthetic `handoff` SSE event is consumed internally and never reaches the frontend (INV-2.4.1).
 - **No `FynPersonaOrchestrator`**, no invoker, no registry, no `DataCapturePromptBuilder`. The dispatch is one guard in `AiChatController::sendMessage` on a **3-part predicate**: the onboarding write state requires `users.onboarding_completed === false` **and** `users.onboarding_fyn_step !== null` **and** `config('onboarding.fyn_flow_enabled', true)`; every other case (including a paused onboarding user whose `onboarding_fyn_step` was nulled) routes to the read-only advice state. It is **not** keyed purely on `onboarding_completed`. See `00-canonical.md:11`.
 - **No frontend persona signals.** No `persona_state_change` SSE event. No "capturing" pill. Input placeholder invariant. Any UI that distinguishes the two states violates the contract.
 
+**Where we are vs where we're heading — read before any new Fyn or mobile `/m` work.** The contract above is the **current dev state**: two write states, write-safety via catalogue-strip (`AdviceFyn::WRITE_TOOLS`) at `AiChatController::sendMessage`. The **CoALA work landing on dev soon** (currently on the `coala` branch; see the `project_coala_phase5_progress.md` memory) adds a shared Fyn loop with mechanical write-safety at the dispatch boundary (`GroundGate` rejects write tools on the read-only advice surface, audited `status='stripped'`) — the substrate for collapsing the two write states into **one Fyn**. The final single-loop step (Option A: delete the shells) is a deferred design call; the direction of travel is one Fyn. **Build new work against a single Fyn surface:** web and mobile `/m` already share the one endpoint `POST /api/ai-chat/conversations/{id}/messages` → `AiChatController::sendMessage`, so read/write dispatch is server-side and surface-agnostic. `/m` must not bake in an onboarding-vs-advice split client-side — send to the one endpoint, render the stream; write intents always route through the unseen `delegate_to_capture` handoff, regardless of surface or which Fyn model is active.
+
 ## Working Style
 
-### Parallel tool calls
-Run independent tool calls in a single response — reading several files, `git status` + `git diff` + `git log`, hitting several endpoints. Sequential only when one call's output feeds the next call's parameter. Don't use placeholders or guess missing parameters.
+**Parallel tool calls.** Batch independent calls in one response (reads, `git status`+`diff`+`log`, several endpoints). Sequential only when one call's output feeds the next.
 
-### Scope discipline
-Only change what was asked for. A bug fix doesn't need surrounding cleanup; a simple feature doesn't need extra configurability. If you notice something else worth fixing, **report it** rather than silently fixing it. Don't add comments, docstrings, error handling, validation, or type hints to code you didn't change. Don't design for hypothetical future requirements. Trust internal code and framework guarantees — only validate at system boundaries (user input, external APIs).
+**Scope discipline.** Change only what was asked. Report adjacent issues rather than silently fixing them. Don't add comments/validation/error-handling/type-hints to code you didn't change, and don't build for hypothetical future needs. Validate only at system boundaries (user input, external APIs) — trust internal code and framework guarantees.
 
-### Investigate before answering
-Never speculate about code you haven't opened. If the user references a file, read it before answering. Ground claims in what's in the codebase right now, not what you remember or assume. If you don't know, say so and go look — don't guess.
+**Investigate before answering.** Never speculate about code you haven't opened. If the user references a file, read it first. Ground claims in the codebase as it is now — if you don't know, say so and look.
 
-### When to spawn subagents
-Spawn subagents for work that can run in parallel, needs isolated context, or involves independent workstreams. Use the `Explore` or `general-purpose` agent for broad codebase research that would otherwise take 3+ queries. For single-file edits, sequential operations, or work that needs to share context across steps, do it directly — don't delegate.
+**Subagents.** Spawn for parallel/isolated/independent work; use `Explore` or `general-purpose` for research that would take 3+ queries. Do single-file edits and shared-context sequential work directly.
 
-### Context awareness for long sessions
-The conversation compacts automatically as it approaches the context limit — you can keep working indefinitely. Do not wrap up tasks early over token-budget worries. For multi-window work, save progress to a file the next window can pick up from (git log, a progress note, `CSJTODO.md`, a structured task list).
+**Long sessions.** Context compacts automatically — don't wrap up early over token worries. For multi-window work, save progress to a file (git log, progress note, `CSJTODO.md`).
 
-### Code review output
-When reviewing code, report every issue you find — including low-severity and low-confidence ones — tagged with **confidence** and **severity**. Filtering by importance is a separate downstream step. At the finding stage your job is coverage, not judgment. Don't pre-filter for "only important issues".
+**Code review output.** Report every issue tagged with confidence + severity — coverage, not judgment. Don't pre-filter for "only important issues".
 
-### Response length
-Calibrates to task complexity. For shorter output, say "under N words" or "one-line summary". For step-by-step walkthroughs or deep analysis, ask for it explicitly.
-
-### Effort level
-Default is `xhigh` for Fynla work. Drop to `high` for routine edits where speed matters. Raise to `max` only for genuinely hard problems — it can over-think.
+**Response length & effort.** Calibrate to the task. Default effort `xhigh`; drop to `high` for routine edits; `max` only for genuinely hard problems.
 
 ## Key Rules
 
-### 1. Manual File Upload Only
-Never create ZIP files or deployment packages. The user uploads files manually via SiteGround File Manager. When deploying, list the specific files that changed so the user knows what to upload.
-
-### 2. Preview User Isolation
+### 1. Preview User Isolation
 Preview users (`is_preview_user = true`) are seeded test personas, completely separate from real users. When debugging preview issues, only query `WHERE is_preview_user = true`.
 
-### 3. No Hardcoded Tax Values
+### 2. No Hardcoded Tax Values
 Use `TaxConfigService` for all UK tax values:
 ```php
 $nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'];
 ```
 
-### 4. Form Modal Events
+### 3. Form Modal Events
 Form modals emit `save` (not `submit`) to prevent double submission:
 - Internal: `<form @submit.prevent="handleSubmit">` → `this.$emit('save', formData)`
 - Parent: `<AccountForm @save="handleAccountSave" @close="closeModal" />`
 - Parent handles API call and closes modal on success; keeps modal open on error
 
-### 5. Canonical Enums
+### 4. Canonical Enums
 | Type | Values |
 |------|--------|
 | Ownership | `individual`, `joint`, `tenants_in_common`, `trust` |
@@ -161,42 +150,35 @@ Form modals emit `save` (not `submit`) to prevent double submission:
 
 Never use `sole` (use `individual`).
 
-### 6. Currency Formatting
+### 5. Currency Formatting
 Always use `currencyMixin` - never define local `formatCurrency()` methods.
 
-### 7. Joint Assets Pattern
+### 6. Joint Assets Pattern
 Joint assets use a SINGLE record with `joint_owner_id` and `ownership_percentage` (primary owner's share). The spouse's share is `(100 - ownership_percentage)`. Use `CalculatesOwnershipShare` trait (backend) or `ownership.js` util (frontend) to calculate shares. Never create duplicate records for joint owners. Query with `WHERE user_id = ? OR joint_owner_id = ?`.
 
-### 8. PreviewWriteInterceptor Middleware
+### 7. PreviewWriteInterceptor Middleware
 When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
 
-### 9. No Amber, Orange, or Non-Palette Colors
-The amber (`amber-*`) and orange (`orange-*`) colors are banned from the application. Use violet (`violet-*`) for warnings and caution states, raspberry (`raspberry-*`) for errors/danger, spring (`spring-*`) for success. All colors must come from the palette defined in `fynlaDesignGuide.md` v1.2.0. Use Tailwind tokens (`raspberry-*`, `horizon-*`, `spring-*`, `violet-*`, `savannah-*`, `eggshell-*`) — never hardcode hex.
+### 8. No Amber, Orange, or Non-Palette Colours
+Amber (`amber-*`) and orange (`orange-*`) are banned. Warnings/caution → violet (`violet-*`); errors/danger → raspberry (`raspberry-*`); success → spring (`spring-*`). All colours from the `./fynlaDesignGuide.md` palette via Tailwind tokens (`raspberry/horizon/spring/violet/savannah/eggshell-*`) — never hardcode hex.
 
-### 10. No Acronyms in User-Facing Text
+### 9. No Acronyms in User-Facing Text
 All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
 
-### 11. Design System Compliance
-**CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `fynlaDesignGuide.md` (v1.2.0). This includes:
-- Colors: Raspberry (CTAs), Horizon (text/nav), Spring (success), Violet (warnings/focus), Savannah (hover/subtle), Eggshell (page bg)
-- Typography: Segoe UI (primary), Inter (fallback), font weights 900 (display/h1), 700 (h2-h5)
-- Component patterns (buttons, cards, forms, modals)
-- Badges and status indicators
-- Charts and data visualisation (use `designSystem.js` constants)
+### 10. Design System Compliance
+**Before any UI work, read `./fynlaDesignGuide.md` (v1.2.0) — it is the single source of truth for all visual decisions:** colours, typography (Segoe UI / Inter; weights 900 display, 700 h2–h5), buttons/cards/forms/modals, badges, and charts (via `designSystem.js`). Never introduce a colour, spacing value, or component pattern that isn't in the guide. **Where Rules 12 (No Scores) and 15 (Icons) conflict with the guide, those CLAUDE.md rules win** — the guide predates them.
 
-The design system is the single source of truth for all visual decisions. Never introduce new colors, spacing values, or component patterns without checking `fynlaDesignGuide.md` first.
+### 11. CSS Governance
+Palette tokens only (`raspberry/horizon/spring/violet/savannah/eggshell/neutral/light-*`; never old `primary-*`/`secondary-*`/`gray-*`). No hardcoded hex in `<style>` — use `@apply` (e.g. `@apply text-horizon-500`); chart colours from `designSystem.js`. Before adding scoped CSS, check `app.css` for an existing global class: `.scrollbar-hide`/`.scrollbar-thin`, `.animate-fade-in*`, `.detail-inline-back`, `.expand-*`, card variants (`.card`/`.card-lg`/`.card-sm`), badge classes, and the spinner (`<div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin">` — never a custom `@keyframes spin`). Full rules in `./fynlaDesignGuide.md`.
 
-### 12. CSS Governance
-- **No duplicated CSS patterns** — check `app.css` before adding scrollbar, animation, spinner, range slider, accordion, badge, or back-button styles to `<style scoped>`. Use the global classes instead.
-- **No hardcoded hex in style blocks** — use Tailwind `@apply` directives (e.g. `@apply text-horizon-500` not `color: #1F2A44`). For dynamic chart colours, import from `designSystem.js`.
-- **All colors from palette** — use only tokens from `fynlaDesignGuide.md` v1.2.0: `raspberry-*`, `horizon-*`, `spring-*`, `violet-*`, `savannah-*`, `eggshell-*`, `neutral-*`, `light-gray`, `light-blue-*`, `light-pink-*`. Never use old tokens (`primary-*`, `secondary-*`, `gray-*` for general UI).
-- **Use global classes** for: `.scrollbar-hide`, `.scrollbar-thin`, `.animate-fade-in`, `.animate-fade-in-slide`, `.detail-inline-back`, `.expand-*` transitions, `animate-spin`, badge classes (`.badge-isa`, `.badge-active`, etc.), card variants (`.card`, `.card-lg`, `.card-sm`).
-- **Spinners**: Use `<div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>` — never define custom `@keyframes spin`.
+### 12. No Scores in User-Facing UI
+Numerical ratings ("75/100", adequacy / diversification / portfolio-health scores) must never appear in user-facing UI — no score badges, metric cards, score-formatted values, or score-based narrative. They oversimplify and mislead. Use descriptive text, specific metrics (currency, %, time periods), and actionable guidance instead.
 
-### 13. No Scores in User-Facing UI
-Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
+**Carve-out — gamification by design (CSJ-specified, not LLM/agent-chosen).** This rule stops an LLM/agent inserting scores everywhere; it does **not** ban a gamification/progress/engagement mechanic CSJ has explicitly designed or approved (e.g. an action-driven engagement "level", a progress bar to a target, a "ahead of X% of people" percentile on the mobile dashboard). Still banned regardless: any score/rating/percentile an LLM/agent adds on its own initiative, and any numerical financial-quality rating ("X/100") anywhere. When unsure, ASK CSJ.
 
-### 14. All Pages Must Wrap in AppLayout
+**Built & approved — the `/m` mobile dashboard gamification (CSJ direction 2026-06-05).** The `/m` pathway dashboard (`resources/mobile/views/Dashboard.vue`) intentionally shows a gamification layer: the **Level wheel + level number**, the **"X of Y actions complete" progress**, and the **"you're ahead of X% of people" percentile** (fed by `MobileLevelService` → `GET /api/v1/mobile/dashboard`). This is a deliberate engagement mechanic — **leave it in; never strip, "score-launder", or flag it in audits.** It does NOT count as a banned score. Note `ModuleSummaryController::removeScores()` only strips *financial-quality* scores (`adequacy_score`, `diversification_score`, etc.) from module summaries — it must never be extended to the `level`/`percentile` gamification fields.
+
+### 13. All Pages Must Wrap in AppLayout
 Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
 
 Pattern (see `views/Admin/AdminPanel.vue`):
@@ -214,12 +196,12 @@ export default { components: { AppLayout, ... } };
 
 The only exception is when the user explicitly says "standalone" / "chrome-less" / "no layout". When refactoring an existing view onto a new route, confirm the destination view is layout-wrapped before claiming done.
 
-### 15. LOOP UNTIL CORRECT — NON-NEGOTIABLE
+### 14. LOOP UNTIL CORRECT — NON-NEGOTIABLE
 
 **FOR ALL TESTS AND WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
 
 **The loop is:**
-1. Use /sytemic-debugging skill to Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
+1. Use the systematic-debugging skill to diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
 2. Fix the root cause in code.
 3. Re-verify in the browser end-to-end via Playwright (click, fill, submit, observe DB + SSE + UI).
 4. If still RED, return to step 1 with the new evidence. **Repeat until GREEN exactly as the plan defines GREEN.**
@@ -238,40 +220,51 @@ The only exception is when the user explicitly says "standalone" / "chrome-less"
 
 **Ownership:** This rule is OWNED by CSJ. The mirror copies in `MEMORY.md` (under "Top laws") and the fynlaBrain vault are read-only references — the source of truth is this section of CLAUDE.md.
 
-### 16. Icons — Functional Only, Decorative Banned
+### 15. Icons — Functional Only, Decorative Banned
 
-**The guiding principle: icons are allowed ONLY when they are functionally necessary. Decorative icons are banned everywhere.**
+**Icons are allowed ONLY when functionally necessary; decorative icons are banned everywhere.** "Functionally necessary" = the icon is the only way to identify or operate a UI element (canonical example: the collapsed side nav, where labels are hidden and icons are the sole way to tell items apart). "Decorative" = there for visual balance, personality, brand flavour, or because a label "feels bare" — banned.
 
-"Functionally necessary" means the icon is the ONLY way to identify or operate a UI element. The canonical example is the collapsed side nav: when `AppNavbar` is minimised, labels are hidden and icons are the sole way to tell nav items apart. Remove the icon and the user can't navigate. That's functional.
+**Banned surfaces (no icons, emoji, or glyphs, ever):**
+- **Fyn chat window** — message text, quick-reply bubbles, header chrome, system messages, streaming indicators, delete/collapse/new-conversation buttons. Fyn speaks in plain text.
+- **Dashboard cards** — every module/summary/metric/empty-state card on `/dashboard`.
+- **Detail views** — every module page (`/net-worth/*`, `/protection`, `/estate`, `/retirement`, `/goals`, `/plans/*`, `/trusts`, etc.), drill-down panel, and tabbed sub-view.
 
-"Decorative" means the icon is there for visual balance, personality, brand flavour, or because the label would "feel bare" without it. That is banned everywhere.
+**Allowed surface:** the **side nav (`AppNavbar`)** — icons required because it collapses to icon-only mode with labels hidden. The one canonical case of functional necessity.
 
-**Explicitly banned surfaces (no icons, no emoji, no glyphs, ever):**
-- **Fyn chat window** — Fyn's message text, quick reply bubbles, chat header chrome, system messages, streaming indicators, delete/collapse/new-conversation buttons. Fyn speaks in plain text with no decorative glyphs.
-- **Dashboard cards** — every module card on `/dashboard`, every summary card, every metric tile, every empty-state card.
-- **Detail views** — every module page (`/net-worth/*`, `/protection`, `/estate`, `/retirement`, `/goals`, `/plans/*`, `/trusts`, etc.), every drill-down panel, every tabbed sub-view inside those pages.
+**Other surfaces — ASK CSJ first** (modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, non-card empty states, settings, admin, onboarding wizards, mobile app). Default is NO icon; don't guess or copy nearby patterns.
 
-**Explicitly allowed surface:**
-- **Side nav (`AppNavbar` sidebar)** — icons are required because the nav collapses to an icon-only mode where labels are hidden. Both expanded and collapsed modes may use icons. This is the ONE canonical example of functional necessity.
+**Specific bans anywhere (even the side nav):** emoji in any string/label/bubble/tooltip/AI-response/system-prompt/commit-message/comment/doc/markdown/JSON/DB-row/migration; Unicode-as-icons (★ ✓ ✗ → ← ⚠ ℹ); `::before`/`::after` glyph or icon-font injection; icon fonts as a class (font-awesome, material-icons, any webfont); mascot/character images as inline icons (the Fyn character is allowed only as a large illustrated hero on public pages, never as a button/nav/card icon).
 
-**Other surfaces (ask before adding or removing):**
-Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty states that are NOT on cards, settings pages, admin pages, onboarding wizards, and the mobile app. If you need to add or remove an icon on any of these, ASK CSJ first. Do not guess. Do not copy patterns from elsewhere without checking. If CSJ hasn't said, the default is NO icon.
+**Enforcement (forward-only — existing violations grandfathered):** all current violations stay (e.g. `goalIcons.js` emoji 🔥🎯📈⭐🏆, `AdminDashboard.vue` ▲▼ arrows) — don't rip them out, flag them in audits, or "tidy them up" while editing nearby. Everything new complies strictly from the moment it lands, no grace period. If a plan shows icons on a banned surface, strip them BEFORE coding and flag the plan. Remove an existing violation only if CSJ specifically asks. When in doubt, ASK CSJ.
 
-**Specific bans that apply anywhere (even the allowed side nav):**
-- Emoji in strings, labels, bubbles, tooltips, AI responses, system prompts, commit messages, code comments, docs, markdown, JSON, DB rows, or migration files — use text.
-- Unicode symbols as icons (★, ✓, ✗, →, ←, ⚠, ℹ, etc.) — use text.
-- CSS `::before` / `::after` pseudo-elements that inject glyphs or icon-font codepoints.
-- Icon fonts as a whole class (font-awesome, material-icons, anything requiring a webfont).
-- Mascot/character images used as inline icons. The Fyn character is permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon.
+**Carve-out — icons by design (CSJ-specified, not LLM/agent-chosen).** Like Rule 12, this stops an LLM/agent sprinkling decorative icons; it does **not** ban icons that are part of a design CSJ has explicitly specified or approved (e.g. an approved mobile-dashboard or landing-page redesign) — allowed even on otherwise-banned surfaces when an intentional part of that design. Still banned: any icon an LLM/agent adds on its own initiative to fill space or add personality. When unsure, ASK CSJ. (Added by CSJ direction 2026-06-03.)
 
-**Enforcement (forward-only — existing violations grandfathered):**
-- **All current violations in the codebase are marked as allowed.** Do not retroactively rip out emoji, Unicode-as-icons, icon-font usage, decorative icons, or any other Rule #16 violation that already exists in the code today. Examples of current grandfathered violations include the emoji set in `resources/js/constants/goalIcons.js` (🔥 🎯 📈 ⭐ 🏆) and the `▲` / `▼` Unicode arrows in `resources/js/views/Admin/AdminDashboard.vue`. These stay. Do not flag them in audits, do not propose them for fixing in a PR, do not "tidy them up" while editing nearby code.
-- **Everything new must follow Rule #16 strictly.** Any new feature, new component, new page, new email, new admin tile, new chat element — must comply with every clause above from the moment it lands. There is no grace period for new code.
-- When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
-- When editing code on a banned surface, you may remove existing violations as part of your change ONLY if CSJ has specifically asked. Otherwise leave them alone (the grandfathering clause above).
-- When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
+**Ownership:** OWNED by CSJ — changeable only by CSJ editing this section. No plan, PR, contributor, sub-agent, earlier `fynlaDesignGuide.md`, or historical spec overrides it.
 
-**Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
+### 16. Build to the Agreed Spec — Never Invent or Substitute
+
+When a feature has been specced, planned, and agreed, implement exactly that. Do not invent design decisions that were never agreed (e.g. an "upgrade" CTA in the side menu, greying-out nav items). Do not substitute a cheaper approximation for the agreed approach (e.g. an iframe shell where a real UI with working drill-downs was specced). Do not change which behaviours or tiers were agreed. If you believe the spec is wrong or a deviation is warranted, STOP and ask CSJ before deviating — never ship the deviation and explain afterwards. Before claiming a spec change is done (screens removed, flows gated), verify it is actually reflected in the live UI.
+
+### 17. Lean PR / Test Cadence
+
+Don't run the full test suite or full process ceremony after every single PR when CSJ has signalled "lean" or is iterating on prompts, evals, or a multi-PR refactor — queue several PRs and do one consolidated test pass. This is a speed concession for low-risk iteration only. It does **not** weaken Rule #14 (Loop Until Correct): every BS-NN browser scenario, and any change CSJ has pointed at and said "make this work", still requires the full diagnose → fix → live-browser-verify loop per its plan before it is called done. When unsure whether a change is "lean-eligible" or needs full per-change verification, ASK CSJ.
+
+### 18. Internalise Agreed Plans — Don't Make CSJ Re-Explain
+
+When CSJ has explained an architecture or plan, or explicitly deferred an issue ("we'll do this after the refactor", "this doesn't need to come up every time"), internalise it and act on it. Do not re-raise a settled or deferred decision on every turn, and do not make CSJ re-explain the same already-agreed design repeatedly. If a detail is genuinely unclear, re-read the spec, the canonical contract, and the relevant memory files first; only ask once you've exhausted those and the question is one they have not already answered.
+
+### 19. Every Instruction Applies to the `/m` Pathway Too (Mobile Web Iframe Build)
+
+**Every instruction, feature, fix, and plan applies to BOTH the desktop web SPA and the `/m` mobile pathway unless CSJ specifically excludes it.** The `/m` pathway is the mobile **web** build — phones are detected and routed to `/m`, which iframes the real funnel and serves the mobile SPA (`resources/mobile/`) at `/m/app/*` with its own dashboard. It is NOT the iOS Capacitor build (that is a separate packaging of the same views, rebuilt only via `./deploy/mobile/build-ios.sh` when explicitly in scope).
+
+What this means in practice:
+- **Scope interpretation:** "add X to the dashboard", "fix the tax strategy page", "change module summaries" — all implicitly include the `/m` equivalents (`resources/mobile/views/`, `MobileDashboardAggregator`, mobile module screens). Never deliver web-only and call it done.
+- **Backend is shared by architecture** (one endpoint, e.g. `POST /api/ai-chat/conversations/{id}/messages`, `GET /api/tax-strategy`) — backend changes usually reach `/m` for free. The gap risk is per-surface frontends: anything with a web component (dashboard card, module summary, new page/route, Fyn rendering behaviour) needs its `resources/mobile/` counterpart checked and, where missing, built.
+- **"Done" for user-facing work = verified on web AND `/m`.** `/m` is verified on csjones (it serves the built bundle, no HMR; the `ssh-fynla` MCP tool is PROD — never use it for csjones).
+- **Plans and specs:** when writing or executing a plan, include the `/m` surface explicitly. If a plan is silent on `/m`, treat `/m` parity as in-scope by default — flag, don't skip.
+- The only exceptions are when CSJ says so ("web only", "desktop only", "skip /m"), or surfaces that have no mobile counterpart by design (e.g. the admin panel, which lives on desktop routes).
+
+**Ownership:** OWNED by CSJ (issued 2026-06-11). Changeable only by CSJ editing this section.
 
 ## Vault Reference (fynlaBrain)
 
@@ -337,128 +330,23 @@ Fynla runs on two environments, isolated database, code, and credentials:
 - **All PRs target `dev`**, never `main` directly (except the periodic `dev → main` release PR which only `@Stoff73` opens).
 - `.github/CODEOWNERS` forces `@Stoff73` as a required reviewer on every PR.
 
-### Build scripts (per environment)
+### Build & deploy procedures
 
-**Build locally** — server lacks memory for npm:
+Step-by-step build + deploy commands for both environments live in **`deploy/DEPLOY.md`** (build scripts, per-env Vite settings, dev/prod deploy steps, env templates). Essentials:
 
-```bash
-./deploy/fynla-org/build.sh        # Build for fynla.org (root deployment)
-./deploy/csjones-fynla/build.sh    # Build for csjones.co/fynla (subdirectory)
-```
-
-The scripts set different Vite environment variables so the SPA routing and asset paths match the target:
-
-| Setting | fynla.org (main) | csjones.co/fynla (dev) |
-|---------|------------------|------------------------|
-| `VITE_BASE_PATH` | `/build/` | `/fynla/build/` |
-| `VITE_ROUTER_BASE` | `/` | `/fynla/` |
-| `VITE_API_BASE_URL` | `https://fynla.org` | `https://csjones.co/fynla` |
-| `VITE_REVOLUT_SANDBOX` | `false` | `true` |
-| `.htaccess` `RewriteBase` | `/` | `/fynla/` |
-| `APP_ENV` | `production` | `staging` |
-| `APP_DEBUG` | `false` | `true` |
-| `REVOLUT_SANDBOX` | `false` | `true` |
-| `LIFECYCLE_TEST_RECIPIENT` | unset | `chris@fynla.org` |
-
-**Never mix environments.** If you build with `csjones-fynla/build.sh` and upload to fynla.org, the Vue router base path will be wrong and the app won't load. There's no nice error — you'll just see a blank page or a 404 loop.
-
-### Deploying to dev (csjones.co/fynla)
-
-The csjones server is now a real git checkout tracking `origin/dev`. Source-tree drift is gone — every deploy pulls exactly what's on the remote. The only thing you upload manually is the compiled `public/build/` bundle (not in git).
-
-1. Work on a feature branch off `dev`, open PR → `dev`
-2. After merge, locally: `git checkout dev && git pull`
-3. Build the SPA bundle locally: `./deploy/csjones-fynla/build.sh`
-4. Upload `public/build/` to `~/www/csjones.co/fynla-app/public/build/` (SiteGround File Manager or `scp -r`). `public/build/` is gitignored so `git pull` won't manage it.
-5. SSH in and pull source + finalise:
-
-```bash
-ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
-cd ~/www/csjones.co/fynla-app
-git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
-php artisan migrate --force
-php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
-php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex && php artisan fyn:procedural:validate
-```
-
-6. Smoke test `https://csjones.co/fynla`
-7. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh` — see rule above)
-
-**Why this works without clobbering env config:**
-- `.env` is gitignored — never touched.
-- `public/.htaccess` has `git update-index --skip-worktree` set on csjones, so `git pull` ignores it. The dev `/fynla/` rewrite-base version stays in place. If routing rules change in the source template (`deploy/csjones-fynla/.htaccess`), copy it manually: `cp deploy/csjones-fynla/.htaccess public/.htaccess` after pull.
-- `public/storage` is intentionally absent on csjones (Apache 403s symlinks there; Laravel `/storage/{path}` route in `routes/web.php` handles requests instead). Don't run `php artisan storage:link` on csjones.
-
-**First-time dev setup** (one-time only): see `deploy/csjones-fynla/BOOTSTRAP.md` for the full provision-and-deploy guide.
-
-### Deploying to production (fynla.org)
-
-Only after dev is tested and green:
-
-1. Open PR `dev → main` (you open and approve this yourself)
-2. Merge
-3. `git checkout main && git pull`
-4. Build: `./deploy/fynla-org/build.sh`
-5. Upload `public/build/` + changed PHP files to `~/www/fynla.org/public_html/`
-6. SSH in and finalise:
-
-```bash
-ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-cd ~/www/fynla.org/public_html
-php artisan migrate --force
-php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
-php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex && php artisan fyn:procedural:validate
-```
-
-7. Smoke test `https://fynla.org`
-8. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
-
-### Environment config templates
-
-- `deploy/csjones-fynla/.env.production` — template for the dev `.env`. Has `APP_ENV=staging`, `REVOLUT_SANDBOX=true`, `LIFECYCLE_TEST_RECIPIENT=chris@fynla.org`.
-- `deploy/fynla-org/.env.production` — template for the production `.env`. Has `APP_ENV=production`, `REVOLUT_SANDBOX=false`, no test recipient override.
-
-Real credentials (DB password, mail password, Revolut keys, Anthropic key) live only in each server's `.env` — never in the repo, never echoed in chat.
+- **Build locally** (servers lack npm memory): `./deploy/fynla-org/build.sh` (prod) or `./deploy/csjones-fynla/build.sh` (dev). These set different `VITE_BASE_PATH` / `RewriteBase` — **never mix**: a dev build uploaded to prod = blank page / 404 loop, no nice error.
+- **Dev (csjones)** is a git checkout tracking `origin/dev`: deploy = `git pull origin dev` on the server + upload `public/build/`. Never `migrate:fresh`; `db:seed --force` to reset. First-time setup: `deploy/csjones-fynla/BOOTSTRAP.md`.
+- **Prod (fynla.org)** is manual upload: build, upload `public/build/` + changed PHP, run `migrate --force` + cache clears, monitor `storage/logs/laravel.log` for 10–15 min.
+- Credentials live only in each server's `.env` (gitignored) — never in the repo or chat.
 
 ## Mobile App (Capacitor iOS)
 
-**Build:** `./deploy/mobile/build-ios.sh` (builds web assets + `npx cap sync ios`). NEVER use `npx vite build` alone for mobile — changes won't reach the iOS app.
+Full conventions in `resources/js/CLAUDE.md` (Mobile section) + the `mobile_capacitor_patterns.md` memory. Load-bearing essentials:
 
-**After any mobile change:** Clear server cache (`php artisan cache:clear`) — mobile dashboard is cached 5 min per user.
-
-**CRITICAL — vite.config.js rules for iOS (blank screen prevention):**
-- **NEVER** add `external` to `rollupOptions` for image/asset paths — causes `'image/png' is not a valid JavaScript MIME type'` → blank screen. Rollup leaves `/images/*` as JS module imports, WKWebView rejects PNGs served as JavaScript.
-- **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config
-- **ALWAYS** keep `!disablePWA && VitePWA(...)` — PWA must be conditionally disabled for iOS
-
-**Biometric (Face ID) login:**
-- Mobile logout MUST use `auth/mobileLogout` (clears local state only) — NEVER `auth/logout` (revokes server token, breaks Face ID)
-- Token stored in iOS Keychain via `@capgo/capacitor-native-biometric`, separate from `@capacitor/preferences`
-- `app.js` calls `attemptBiometricLogin()` on startup; `SettingsList.vue` has the toggle; `BiometricPrompt.vue` is the setup modal
-
-**Capacitor gotchas:**
-- `window.location.origin` = `capacitor://localhost` — use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'` for Browser.open() and fetch() URLs
-- Vue Router child routes do NOT inherit parent `meta` — use `to.matched.some(r => r.meta.requiresAuth)` not `to.meta.requiresAuth`
-- `fetch()` cross-origin needs `credentials: 'omit'` to avoid CORS cookie issues
-- WKWebView may not support `response.body` for streaming — always add a fallback reader
-- API returns `fyn_insight` (snake_case), not `insight` — watch for key name mismatches
-
-**Mobile dashboard data flow:**
-```
-Backend (MobileDashboardAggregator) → raw module fields (total_coverage, portfolio_value, etc.)
-→ Vuex store normaliseModule() → normalised shape (metric_type, metric_value, hero_metric, details)
-→ ModuleSummaryCard + ModuleSummary components
-```
-
-**Key mobile files:**
-- `resources/js/mobile/` — All mobile Vue components
-- `resources/js/store/modules/mobileDashboard.js` — Dashboard state + normaliseModule()
-- `resources/js/store/modules/mobileNotifications.js` — Push notification state
-- `app/Services/Mobile/MobileDashboardAggregator.php` — Backend aggregator
-- `deploy/mobile/build-ios.sh` — iOS build script
-- `ios/` — Capacitor iOS project (open `ios/App/App.xcworkspace` in Xcode)
+- **Build:** `./deploy/mobile/build-ios.sh` (web assets + `npx cap sync ios`). NEVER `npx vite build` alone — changes won't reach the iOS app. After any mobile change, `php artisan cache:clear` (mobile dashboard cached 5 min/user).
+- **vite.config.js (blank-screen prevention):** never add `external` to `rollupOptions` for image/asset paths (Rollup leaves `/images/*` as JS imports → WKWebView rejects PNGs: `'image/png' is not a valid JavaScript MIME type'`); always keep `transformAssetUrls: false` in the `vue()` plugin; always keep `!disablePWA && VitePWA(...)`.
+- **Biometric login:** mobile logout uses `auth/mobileLogout` (local state only) — NEVER `auth/logout` (revokes server token, breaks Face ID).
+- **Data flow:** `MobileDashboardAggregator` (raw fields) → store `normaliseModule()` (normalised shape) → `ModuleSummaryCard`/`ModuleSummary`.
 
 ## Preview Mode
 
@@ -475,10 +363,12 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 
 ## UK Tax Context
 
+Orientation only — `TaxConfigService` is the source of truth for every value (Rule 2).
+
 - Tax Year: April 6 - April 5 (active: 2026/27)
 - IHT: 40% above NRB (£325k) + RNRB (£175k)
 - ISA: £20,000/year
-- Pension AA: £60,000
+- Pension Annual Allowance: £60,000
 
 ## Authentication for Testing
 
@@ -511,6 +401,7 @@ Don't suggest browser cache clearing - user tests in incognito.
 | Error | Fix |
 |-------|-----|
 | Blank page with 127.0.0.1:5173 | `rm public/hot` on server |
+| Public homepage / `/m` landing shows the old SPA design instead of the server-rendered page | `php artisan route:clear` on the server. **NEVER `php artisan optimize` / `route:cache` on this app** — the compiled matcher lets the SPA catch-all shadow `/` (and the `/m` iframe loads `/`). Re-cache config only: `config:cache`. |
 | MIME type errors (web) | Rebuild with `./deploy/fynla-org/build.sh` |
 | iOS blank screen / `'image/png' is not a valid JavaScript MIME type'` | Check `vite.config.js`: remove any `external` from `rollupOptions`, ensure `transformAssetUrls: false` in vue() plugin. Run `grep -r 'import("/images' public/build/assets/` to verify no image imports in built JS. Delete app from device, clean build in Xcode. |
 | 500 DirectoryMatch error | Upload `deploy/fynla-org/.htaccess` |
@@ -538,38 +429,24 @@ Check routes: `php artisan route:list --path=endpoint`
 
 ### CRITICAL — Browser Testing Rules (NON-NEGOTIABLE)
 
-**These rules override everything. Violating them is an absolute failure.**
+**These override everything. Violating them is an absolute failure.**
 
-1. **"Browser tested" means you INTERACTED with the element in Playwright.** You CLICKED it. You FILLED the form. You SUBMITTED it. You verified the RESULT. Reading a code diff is NOT a browser test. Taking a snapshot without interacting is NOT a test.
-
-2. **You are NOT DONE until every form has been FILLED and SUBMITTED in the browser.** If login fails on production — ASK THE USER for the verification code. On local dev — fetch the code from the database yourself (see Authentication for Testing). Do NOT skip. Do NOT defer. Do NOT write "requires user assistance" and move on.
-
-3. **NEVER write a completion report until ALL testing is actually complete.** Reports are the LAST thing you do. Writing a report before testing is LYING.
-
-4. **Test EVERY journey end-to-end.** Register/login → select stage → fill EVERY field on EVERY step → submit → verify dashboard shows ALL entered data → verify sidebar → verify cards. No shortcuts.
-
-5. **If you cannot test something, say "I COULD NOT TEST THIS."** NEVER say "verified", "pass", or "confirmed" for untested items.
-
-6. **When you hit a blocker, STOP AND ASK THE USER.** Do not give up. Do not skip.
-
-7. **After ANY code change, re-test from Step 1.** Fixes break other things.
-
-8. **Every checkbox you mark [x] must have a corresponding Playwright interaction.**
+1. **"Browser tested" = you INTERACTED in Playwright** — clicked, filled, submitted, verified the result. Reading a diff or taking a snapshot without interacting is NOT a test.
+2. **Not done until every form is FILLED and SUBMITTED.** If login fails: on prod, ask the user for the verification code; on local dev, fetch it from the DB yourself (see Authentication for Testing). Don't skip, defer, or write "requires user assistance".
+3. **No completion report until ALL testing is done.** Reports are last; a report before testing is lying.
+4. **Test every journey end-to-end** — register/login → select stage → fill EVERY field on EVERY step → submit → verify dashboard, sidebar, and cards show all entered data. No shortcuts.
+5. **If you can't test something, say "I COULD NOT TEST THIS"** — never "verified"/"pass"/"confirmed" for untested items.
+6. **Hit a blocker → STOP AND ASK.** Don't give up or skip.
+7. **After ANY code change, re-test from step 1** — fixes break other things.
+8. **Every `[x]` you mark must have a corresponding Playwright interaction.**
 
 ### Pest Tests
 
 ```bash
-./vendor/bin/pest                                          # All tests (940+)
-./vendor/bin/pest tests/Unit/Services/Estate/              # Module tests
-./vendor/bin/pest --testsuite=Architecture                 # Code standards
-./vendor/bin/pest --filter="calculateIHTLiability"         # By name
+./vendor/bin/pest                                  # All tests
+./vendor/bin/pest tests/Unit/Services/Estate/      # By directory
+./vendor/bin/pest --testsuite=Architecture         # By suite
+./vendor/bin/pest --filter="calculateIHTLiability" # By name
 ```
 
-- **Framework**: Pest (PHPUnit-compatible) with `it()` / `describe()` syntax
-- **Suites**: Unit (81), Feature (46), Architecture (6), Integration (2)
-- **Database**: `RefreshDatabase` trait resets between tests; TaxConfiguration auto-seeded in `beforeEach()`
-- **Auth**: `$this->actingAs($user)` or `Sanctum::actingAs($user)`
-- **Factories**: 46 factories in `database/factories/` with state methods
-- **Mocking**: Mockery for service dependencies; always `Mockery::close()` in `afterEach()`
-- See `tests/CLAUDE.md` for full conventions
-
+Pest (`it()`/`describe()`), `RefreshDatabase`, TaxConfiguration auto-seeded, `Sanctum::actingAs()`, Mockery with `Mockery::close()` in `afterEach`. **Full conventions in `tests/CLAUDE.md`.**

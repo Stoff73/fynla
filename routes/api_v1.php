@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Auth\TokenRefreshController;
 use App\Http\Controllers\Api\V1\Mobile\DeviceController;
 use App\Http\Controllers\Api\V1\Mobile\InsightsController;
+use App\Http\Controllers\Api\V1\Mobile\MobileAchievementsController;
 use App\Http\Controllers\Api\V1\Mobile\MobileDashboardController;
 use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
@@ -48,6 +49,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mobile/dashboard', [MobileDashboardController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.dashboard');
+
+    // Mobile achievements — earned badges, next actions, financial milestones
+    Route::get('/mobile/achievements', [MobileAchievementsController::class, 'index'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements');
 
     // Module summaries — individual module analysis
     Route::get('/mobile/modules/{module}', [ModuleSummaryController::class, 'show'])

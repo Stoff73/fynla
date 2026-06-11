@@ -131,7 +131,7 @@
         </router-link>
         <p class="text-xs text-neutral-400 mt-6">
           Or subscribe via
-          <a href="/feed/news.xml" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 underline hover:text-raspberry-500 transition-colors">
+          <a :href="withBase('/feed/news.xml')" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 underline hover:text-raspberry-500 transition-colors">
             RSS
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14M5 5h5v2H7v10h10v-3h2v5H5V5z" /></svg>
           </a>
@@ -146,6 +146,7 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import newsService from '@/services/newsService';
 import NewsSubscribeBanner from '@/components/News/NewsSubscribeBanner.vue';
 import NewsletterStatusModal from '@/components/News/NewsletterStatusModal.vue';
+import { withBase } from '@/utils/basePath';
 
 export default {
   name: 'NewsHubPage',
@@ -187,6 +188,7 @@ export default {
   },
 
   methods: {
+    withBase,
     detectNewsletterStatus() {
       const { subscribed, unsubscribed } = this.$route.query;
       if (subscribed === '1') {

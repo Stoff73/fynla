@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Middleware\RedirectPhoneToMobile;
 
 use function Pest\Laravel\get;
 
@@ -9,10 +10,10 @@ it('serves the mobile host page with a same-origin iframe', function () {
 
     $res->assertOk();
     $res->assertSee('<iframe', false);
-    // Blade renders {{ url('/m/landing') }}, which is absolute in test/dev/prod
-    // (subdir-aware: csjones.co/fynla/m/landing, fynla.org/m/landing). Assert on
-    // the url() output so this stays accurate regardless of host or APP_URL.
-    $res->assertSee('src="'.url('/m/landing').'"', false);
+    // The host iframes the REAL responsive funnel entry — the homepage ('/').
+    // The funnel (homepage → /savetax → /savetax/plan → register → /m/app) then
+    // runs inside this same-origin iframe. Absolute + subdir-aware via url().
+    $res->assertSee('src="'.url('/').'"', false);
 });
 
 it('serves the mobile app shell at /m/app and nested paths', function () {
@@ -39,10 +40,21 @@ it('allows same-origin framing on /m and /m/app only', function () {
     expect($appTrailing->headers->get('X-Frame-Options'))->toBe('SAMEORIGIN');
     expect($appTrailing->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'self'");
 
-    // Desktop SPA stays locked down.
+    // Desktop SPA / top-level homepage stays locked down (DENY).
     $home = get('/');
     expect($home->headers->get('X-Frame-Options'))->toBe('DENY');
     expect($home->headers->get('Content-Security-Policy'))->not->toContain('frame-ancestors');
+});
+
+it('allows SAMEORIGIN framing for any document loaded inside the mobile iframe', function () {
+    // A document fetched with Sec-Fetch-Dest: iframe is being loaded inside the
+    // /m mobile-view iframe, so it must be SAMEORIGIN-frameable even though the
+    // same URL top-level stays DENY.
+    $framedHome = get('/', ['Sec-Fetch-Dest' => 'iframe']);
+    expect($framedHome->headers->get('X-Frame-Options'))->toBe('SAMEORIGIN');
+    expect($framedHome->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'self'");
+    // Vary on Sec-Fetch-Dest so a cached top-level DENY is never served in-frame.
+    expect($framedHome->headers->get('Vary'))->toContain('Sec-Fetch-Dest');
 });
 
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
@@ -66,6 +78,13 @@ it('does not redirect /m or /m/app (no loop)', function () {
     get('/m/app', ['User-Agent' => PHONE_UA])->assertOk();
 });
 
+it('does not redirect a phone document loaded inside the mobile iframe (no loop)', function () {
+    // The /m host iframes '/'; that in-frame load must serve the homepage, not
+    // 302 back to /m (which would loop the funnel out of existence).
+    get('/', ['User-Agent' => PHONE_UA, 'Sec-Fetch-Dest' => 'iframe'])->assertOk();
+    get('/savetax', ['User-Agent' => PHONE_UA, 'Sec-Fetch-Dest' => 'iframe'])->assertOk();
+});
+
 it('does not redirect /api on a phone UA', function () {
     get('/api/v1/health', ['User-Agent' => PHONE_UA])->assertOk()->assertJson(['success' => true]);
 });
@@ -78,4 +97,40 @@ it('honours the ?full=1 desktop escape hatch and pins via cookie', function () {
     $this->withUnencryptedCookie('m_full_site', '1')
         ->get('/', ['User-Agent' => PHONE_UA])
         ->assertOk();
+});
+
+// --- Campaign deep-link preservation (savetaxFix.md) -------------------------
+
+it('preserves a campaign deep-link path through /m for phones', function () {
+    get('/savetax', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fsavetax');
+    get('/savetax/plan', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fsavetax%2Fplan');
+    get('/biggerpension', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fbiggerpension');
+});
+
+it('preserves a campaign query string in the ?to= param', function () {
+    get('/savetax?utm_source=ad', ['User-Agent' => PHONE_UA])
+        ->assertRedirect('/m?to=%2Fsavetax%3Futm_source%3Dad');
+});
+
+it('does not preserve non-campaign paths (plain /m)', function () {
+    get('/', ['User-Agent' => PHONE_UA])->assertRedirect('/m');
+    get('/dashboard', ['User-Agent' => PHONE_UA])->assertRedirect('/m');
+    get('/pricing', ['User-Agent' => PHONE_UA])->assertRedirect('/m');
+});
+
+it('open-redirect guard: only same-origin campaign paths are framable', function () {
+    $guard = [RedirectPhoneToMobile::class, 'isFramableTo'];
+
+    // Allowed
+    expect($guard('/savetax'))->toBeTrue()
+        ->and($guard('/savetax/plan'))->toBeTrue()
+        ->and($guard('/biggerpension'))->toBeTrue();
+
+    // Rejected
+    expect($guard('//evil.com'))->toBeFalse()
+        ->and($guard('https://evil.com'))->toBeFalse()
+        ->and($guard('/admin'))->toBeFalse()
+        ->and($guard('/savetaxevil'))->toBeFalse()   // prefix-bypass guard
+        ->and($guard('/'))->toBeFalse()
+        ->and($guard('savetax'))->toBeFalse();        // must be rooted
 });

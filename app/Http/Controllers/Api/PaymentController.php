@@ -13,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Account\AccountDeletionService;
 use App\Services\Marketing\AwinTrackingService;
@@ -62,19 +63,79 @@ class PaymentController extends Controller
      */
     public function plans(): JsonResponse
     {
-        $plans = SubscriptionPlan::active()->orderBy('sort_order')->get();
+        // Single source of truth: the purchasable plans ARE the paid tiers from
+        // tier_configurations (admin-editable). Labels and pricing come straight
+        // from each tier; the feature bullets are derived from the tier's
+        // capability matrix (and its quota deltas for the top tier). Editing a
+        // tier in the admin screen therefore updates this modal directly — there
+        // is no parallel SubscriptionPlan pricing to keep in sync. The modal
+        // sends the tier key to checkout, which routes through createTierOrder.
+        $tiers = $this->tierStore->allActiveOrdered()->values();
 
-        return response()->json([
-            'plans' => $plans->map(fn (SubscriptionPlan $plan) => [
-                'slug' => $plan->slug,
-                'name' => $plan->name,
-                'monthly_price' => $plan->monthly_price,
-                'yearly_price' => $plan->yearly_price,
-                'launch_monthly_price' => $plan->launch_monthly_price,
-                'launch_yearly_price' => $plan->launch_yearly_price,
-                'features' => $plan->features,
-            ]),
-        ]);
+        $plans = [];
+        foreach ($tiers as $i => $tier) {
+            if ($tier->tier === 'free') {
+                continue; // Free is the baseline, never a purchasable plan.
+            }
+            $previous = $i > 0 ? $tiers[$i - 1] : null;
+            $plans[] = [
+                'slug' => $tier->tier,
+                'name' => $tier->display_name,
+                'monthly_price' => $tier->price_monthly_pence,
+                'yearly_price' => $tier->price_annual_pence,
+                'launch_monthly_price' => null,
+                'launch_yearly_price' => null,
+                'features' => $this->tierFeatureBullets($tier, $previous),
+            ];
+        }
+
+        return response()->json(['plans' => $plans]);
+    }
+
+    /**
+     * Human-readable feature bullets for a paid tier, derived entirely from
+     * tier_configurations: the modules newly unlocked versus the tier below,
+     * plus — when a tier unlocks no new modules (e.g. the top tier) — its quota
+     * upgrades. Keeps the upgrade modal in lock-step with the admin tier config.
+     */
+    private function tierFeatureBullets(TierConfiguration $tier, ?TierConfiguration $previous): array
+    {
+        $labels = [
+            'investment' => 'Unlimited investments',
+            'savings_account' => 'Unlimited savings',
+            'pension_account' => 'Unlimited pensions',
+            'letter_to_spouse' => 'Letter to Spouse / Expression of Wishes',
+            'estate' => 'Estate Planning — Wills, Trusts and Powers of Attorney',
+            'what_if' => 'What If Scenarios',
+            'holistic_plan' => 'Holistic Plan',
+            'investments_exotic' => 'Advanced investment types',
+            'retirement_decumulation' => 'Retirement decumulation planning',
+        ];
+        $rank = ['none' => 0, 'teaser' => 1, 'limited' => 2, 'full' => 3];
+
+        $current = $tier->capability_matrix ?? [];
+        $below = $previous?->capability_matrix ?? [];
+
+        $features = [];
+        if ($previous) {
+            $features[] = 'Everything in '.$previous->display_name;
+        }
+        foreach ($labels as $key => $label) {
+            $now = $rank[$current[$key] ?? 'none'] ?? 0;
+            $was = $rank[$below[$key] ?? 'none'] ?? 0;
+            if ($now >= 3 && $now > $was) {
+                $features[] = $label;
+            }
+        }
+        // A tier that unlocks no new modules versus the one below (the top tier
+        // shares the full matrix) is differentiated by its quotas instead.
+        if ($previous && count($features) <= 1) {
+            $features[] = 'More document uploads and storage';
+            $features[] = 'Higher Fyn AI allowance';
+            $features[] = 'Longer history and projections';
+        }
+
+        return $features;
     }
 
     /**

@@ -25,7 +25,7 @@
   <link rel="alternate" hreflang="x-default" href="https://fynla.org/savetax/plan" />
 
   <!-- savetax-plan.css provides all section styles (allowances, meaning, examples) -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=1" />
   <!-- v2 overrides: hero layout, inline savings card, resets fixed-panel margin -->
   <link rel="stylesheet" href="/pages/css/savetax-plan-v2.css?v=2" />

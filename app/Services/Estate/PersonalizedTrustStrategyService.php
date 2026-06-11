@@ -29,7 +29,8 @@ class PersonalizedTrustStrategyService
         private readonly AssetLiquidityAnalyzer $liquidityAnalyzer,
         private readonly TaxConfigService $taxConfig,
         private readonly AssumptionsService $assumptionsService,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly AvailableNrbCalculator $availableNrbCalculator
     ) {}
 
     /**
@@ -115,8 +116,11 @@ class PersonalizedTrustStrategyService
         int $yearsUntilDeath
     ): array {
         $strategies = [];
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $availableNRB = $profile->available_nrb ?? $ihtConfig['nil_rate_band'];
+
+        // Derived from gift history (7-year cumulation); a manually-set profile value wins.
+        $availableNRB = $profile->available_nrb !== null
+            ? (float) $profile->available_nrb
+            : $this->availableNrbCalculator->forUser($user);
 
         // Strategy 1: Immediate CLT using available NRB (Discretionary Trust)
         $strategies[] = $this->buildImmediateCLTStrategy(

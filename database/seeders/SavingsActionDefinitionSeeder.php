@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\InvestmentActionDefinition;
 use App\Models\SavingsActionDefinition;
+use App\Services\TaxConfigService;
 use Illuminate\Database\Seeder;
 
 /**
@@ -45,6 +46,13 @@ class SavingsActionDefinitionSeeder extends Seeder
 
     private function getDefinitions(): array
     {
+        // FSCS deposit protection limit is a regulatory value — source it from
+        // the active tax configuration rather than hardcoding (Rule #2). The
+        // TaxConfigurationSeeder runs before this seeder, so the active config
+        // is already in place when this resolves.
+        $fscsLimit = app(TaxConfigService::class)
+            ->getSavingsConfig('fscs_deposit_protection');
+
         return [
             // ── Data Readiness (4) ────────────────────────────────────
 
@@ -459,11 +467,11 @@ class SavingsActionDefinitionSeeder extends Seeder
                 'what_if_impact_type' => 'default',
                 'trigger_config' => [
                     'condition' => 'institution_balance_above_fscs',
-                    'threshold' => 85000,
+                    'threshold' => $fscsLimit,
                 ],
                 'is_enabled' => true,
                 'sort_order' => 50,
-                'notes' => 'Triggers when total balance at a single institution exceeds £85,000 Financial Services Compensation Scheme limit.',
+                'notes' => 'Triggers when total balance at a single institution exceeds the Financial Services Compensation Scheme deposit protection limit.',
             ],
 
             [
@@ -478,7 +486,7 @@ class SavingsActionDefinitionSeeder extends Seeder
                 'what_if_impact_type' => 'default',
                 'trigger_config' => [
                     'condition' => 'institution_balance_approaching_fscs',
-                    'threshold' => 75000,
+                    'threshold' => $fscsLimit - 10000,
                 ],
                 'is_enabled' => true,
                 'sort_order' => 51,

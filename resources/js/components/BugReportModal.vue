@@ -86,6 +86,30 @@
                   <p class="mt-1 text-xs text-neutral-500">{{ form.description.length }}/5000 characters</p>
                 </div>
 
+                <!-- Area + severity -->
+                <div class="mb-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="category" class="block text-sm font-medium text-neutral-500 mb-1">Area</label>
+                    <select
+                      id="category"
+                      v-model="form.category"
+                      class="w-full rounded-md border border-horizon-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-violet-500 text-sm"
+                    >
+                      <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="severity" class="block text-sm font-medium text-neutral-500 mb-1">Severity</label>
+                    <select
+                      id="severity"
+                      v-model="form.severity"
+                      class="w-full rounded-md border border-horizon-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-violet-500 text-sm"
+                    >
+                      <option v-for="s in severities" :key="s" :value="s">{{ s }}</option>
+                    </select>
+                  </div>
+                </div>
+
                 <!-- Expected behaviour -->
                 <div class="mb-4">
                   <label for="expectedBehaviour" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -175,7 +199,12 @@ export default defineComponent({
     const form = reactive({
       description: '',
       expectedBehaviour: '',
+      category: 'General',
+      severity: 'Medium',
     });
+
+    const categories = ['Protection', 'Savings', 'Investment', 'Retirement', 'Estate', 'Goals', 'Coordination', 'General'];
+    const severities = ['Low', 'Medium', 'High', 'Critical'];
 
     const submitting = ref(false);
     const submitted = ref(false);
@@ -186,6 +215,8 @@ export default defineComponent({
       if (newVal) {
         form.description = '';
         form.expectedBehaviour = '';
+        form.category = 'General';
+        form.severity = 'Medium';
         submitting.value = false;
         submitted.value = false;
         error.value = null;
@@ -202,6 +233,8 @@ export default defineComponent({
         await submitBugReport({
           description: form.description.trim(),
           expectedBehaviour: form.expectedBehaviour.trim() || null,
+          category: form.category,
+          severity: form.severity,
         });
         submitted.value = true;
       } catch (err) {
@@ -224,6 +257,8 @@ export default defineComponent({
 
     return {
       form,
+      categories,
+      severities,
       submitting,
       submitted,
       error,

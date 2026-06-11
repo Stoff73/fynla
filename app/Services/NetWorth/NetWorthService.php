@@ -464,9 +464,10 @@ class NetWorthService
         $userId = $user->id;
         $jointAssets = [];
 
-        // Get joint properties
+        // Get joint properties (jointOwner eager-loaded — the display-name
+        // accessor reads the relation, which trips strict no-lazy-loading)
         $properties = $this->propertyStore
-            ->forUser($user)
+            ->forUserWithJointOwner($user)
             ->where('user_id', $userId)
             ->where('ownership_type', 'joint')
             ->map(function ($property) {
@@ -476,13 +477,14 @@ class NetWorthService
                     'description' => $property->address_line_1,
                     'value' => $property->current_value,
                     'ownership_percentage' => $property->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $property->joint_owner_display_name,
                 ];
             });
 
         // Get joint investments
         $investments = InvestmentAccount::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($investment) {
                 return [
@@ -491,13 +493,14 @@ class NetWorthService
                     'description' => $investment->provider.' - '.$investment->account_type,
                     'value' => $investment->current_value,
                     'ownership_percentage' => $investment->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $investment->jointOwner?->name,
                 ];
             });
 
         // Get joint savings accounts
         $cashAccounts = SavingsAccount::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($account) {
                 return [
@@ -513,6 +516,7 @@ class NetWorthService
         // Get joint businesses
         $businesses = BusinessInterest::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($business) {
                 return [
@@ -521,13 +525,14 @@ class NetWorthService
                     'description' => $business->business_name,
                     'value' => $business->current_valuation,
                     'ownership_percentage' => $business->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $business->jointOwner?->name,
                 ];
             });
 
         // Get joint chattels
         $chattels = Chattel::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($chattel) {
                 return [
@@ -536,7 +541,7 @@ class NetWorthService
                     'description' => $chattel->name,
                     'value' => $chattel->current_value,
                     'ownership_percentage' => $chattel->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $chattel->jointOwner?->name ?? $chattel->joint_owner_name,
                 ];
             });
 

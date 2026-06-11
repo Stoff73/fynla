@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -71,7 +71,7 @@
     .about-hero__subtext{font-size:1.125rem;color:var(--white-70);max-width:44rem;line-height:1.625;}
     @media(min-width:1024px){.about-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
-  <link rel="stylesheet" href="/pages/css/global.css?v=2" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/about.css?v=1"  />
 </head>
 <body class="about-page">
