@@ -1460,11 +1460,11 @@ final class OnboardingChatDirector
         $captureError = null;
 
         // A1 — answer-the-user-first on a grouped_extract turn. When the
-        // user's message contains a question, buffer the model's prose so a
+        // user's message asks a question, buffer the model's prose so a
         // definitional answer can be delivered alongside the scripted re-ask
         // when no extraction lands. Without a question the prose is swallowed
         // exactly as before (the extraction tool is meant to fire silently).
-        $userAskedQuestion = str_contains($message, '?');
+        $userAskedQuestion = $this->userAskedQuestion($message);
         $answerBuffer = '';
 
         try {
@@ -1962,15 +1962,17 @@ PROMPT;
             $contentBuffer = '';
             $flushed = false;
 
-            // A1 — answer-the-user-first. When the user's message contains a
+            // A1 — answer-the-user-first. When the user's message asks a
             // question, the capture turn is allowed to answer it before
-            // resuming capture (QUESTION EXCEPTION). That changes two things:
+            // resuming capture (QUESTION EXCEPTION). That changes three things:
             // (1) a zero-tool-call turn must NOT drop its buffer — the answer
-            //     is the whole point of the turn; and
+            //     is the whole point of the turn;
             // (2) the off-script filter runs in allowAnswer mode so a
             //     definitional answer survives, while personal figures are
-            //     still stripped.
-            $userAskedQuestion = str_contains($message, '?');
+            //     still stripped; and
+            // (3) a question turn that captured nothing stays on this state
+            //     instead of advancing (see the gate before the advance below).
+            $userAskedQuestion = $this->userAskedQuestion($message);
 
             // B-1 gap-check — track the fields dict of every fill_form the
             // LLM emitted so we can compare it to the deterministic entity
@@ -2075,6 +2077,25 @@ PROMPT;
             if ($unifiedFocus !== null) {
                 $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
             }
+        }
+
+        // A1 — honour the QUESTION EXCEPTION's "Do NOT advance past it". A
+        // question turn that captured nothing must stay on the current
+        // capture state and re-ask the scripted question; the unconditional
+        // advance below would bump the user to add_more ("Anything else?")
+        // with their question's place in the flow lost. Tool-bearing turns
+        // (the user answered AND asked) advance as normal — the answer was
+        // captured, so the flow moves on.
+        $capturedSomething = $toolCallsSeen > 0 || count($llmEmittedFills) > 0;
+        if ($userAskedQuestion && ! $capturedSomething) {
+            $this->recordProgress(
+                $user,
+                $currentStateId,
+                ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
+            );
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+            return;
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -2367,6 +2388,19 @@ PROMPT;
     }
 
     /**
+     * A1 — does the user's message ask a question? Single heuristic shared by
+     * both capture handlers (delegated asset capture + grouped_extract) so the
+     * two call sites cannot drift. A literal "?" counts, and so does a leading
+     * interrogative/imperative ("explain salary sacrifice please", "what is
+     * a SIPP") — users routinely drop the question mark.
+     */
+    private function userAskedQuestion(string $message): bool
+    {
+        return str_contains($message, '?')
+            || preg_match('/^(explain|what|why|how|when|tell me|define|describe)\b/i', trim($message)) === 1;
+    }
+
+    /**
      * FR-M14 — strip off-script sentences from an asset_capture content
      * event. Splits the text on sentence terminators (`.`, `!`, `?`, newline)
      * and drops any sentence that poses a question (with or without a `?`
@@ -2417,9 +2451,14 @@ PROMPT;
             // A1 — personal-figures rule. Even inside the QUESTION EXCEPTION
             // the model must never quote/compute the user's own numbers in a
             // capture turn (FCA — no figures-based personal advice mid-capture).
-            // A sentence carrying a currency amount (£) is a personal-figure
-            // breach and is dropped regardless of $allowAnswer.
-            if ($allowAnswer && preg_match('/£\s?\d/u', $trimmed) === 1) {
+            // Catches £ amounts, 4+ digit bare numbers, k-shorthand ("2.2k"),
+            // and written-out "pounds"/"GBP". Statutory definitional figures
+            // are carved out — naming an allowance/limit/threshold/band ("the
+            // ISA allowance is £20,000") is definition, not personal advice.
+            if ($allowAnswer
+                && preg_match('/£\s?\d|\b\d{4,}\b|\b\d+(?:\.\d+)?k\b|\bpounds?\b|\bgbp\b/iu', $trimmed) === 1
+                && preg_match('/\b(allowance|limit|threshold|nil[- ]rate|band)\b/i', $trimmed) !== 1
+            ) {
                 continue;
             }
 

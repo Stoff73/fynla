@@ -25,6 +25,15 @@ function invokeFilter(string $text, string $selection, bool $allowAnswer): strin
     return (string) $ref->invoke($director, $text, $selection, $allowAnswer);
 }
 
+function invokeQuestionHeuristic(string $message): bool
+{
+    $director = app(OnboardingChatDirector::class);
+    $ref = new ReflectionMethod($director, 'userAskedQuestion');
+    $ref->setAccessible(true);
+
+    return (bool) $ref->invoke($director, $message);
+}
+
 describe('filterOffScriptContent — allowAnswer arm (A1)', function () {
     it('lets a two-sentence definitional answer through when allowAnswer is true', function () {
         $answer = 'Salary sacrifice means your employer reduces your salary and pays that amount into your pension instead. '
@@ -71,6 +80,62 @@ describe('filterOffScriptContent — allowAnswer arm (A1)', function () {
 
         expect($result)->toContain('Salary sacrifice lowers your taxable pay.')
             ->and($result)->not->toContain('£2,200');
+    });
+
+    it('strips written-out pounds figures on answer turns', function () {
+        $text = 'Salary sacrifice reduces your taxable salary. With a salary of 110,000 pounds you would save 2,200 pounds.';
+
+        $result = invokeFilter($text, 'savetax', true);
+
+        expect($result)->toContain('Salary sacrifice reduces your taxable salary.')
+            ->and($result)->not->toContain('110,000 pounds')
+            ->and($result)->not->toContain('2,200');
+    });
+
+    it('strips k-shorthand figures on answer turns', function () {
+        $text = 'It works through your payroll. You could save around 2.2k annually.';
+
+        $result = invokeFilter($text, 'savetax', true);
+
+        expect($result)->toContain('It works through your payroll.')
+            ->and($result)->not->toContain('2.2k');
+    });
+
+    it('strips GBP-prefixed figures on answer turns', function () {
+        $text = 'Your employer swaps salary for pension contributions. On GBP 110000 the saving is meaningful.';
+
+        $result = invokeFilter($text, 'savetax', true);
+
+        expect($result)->toContain('Your employer swaps salary for pension contributions.')
+            ->and($result)->not->toContain('110000')
+            ->and($result)->not->toContain('GBP');
+    });
+
+    it('keeps statutory definitional figures on answer turns (allowance carve-out)', function () {
+        $text = 'The ISA allowance is £20,000 each tax year.';
+
+        // Naming a statutory allowance/limit/threshold/band is definition,
+        // not personal advice — the carve-out lets it through.
+        expect(invokeFilter($text, 'savetax', true))
+            ->toBe('The ISA allowance is £20,000 each tax year.');
+    });
+});
+
+describe('userAskedQuestion heuristic (A1)', function () {
+    it('detects a literal question mark', function () {
+        expect(invokeQuestionHeuristic("what's salary sacrifice?"))->toBeTrue();
+    });
+
+    it('detects interrogative intent without a question mark', function () {
+        expect(invokeQuestionHeuristic('explain salary sacrifice please'))->toBeTrue();
+    });
+
+    it('does not flag a plain capture answer', function () {
+        expect(invokeQuestionHeuristic("3% and it's matched"))->toBeFalse();
+    });
+
+    it('does not flag an entity-bearing statement', function () {
+        expect(invokeQuestionHeuristic('Halifax ISA with ten thousand in it'))->toBeFalse();
     });
 });
 

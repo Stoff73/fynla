@@ -74,15 +74,18 @@ it('keeps the unified and legacy capture templates in lockstep', function () {
     );
 
     $extract = function (string $text): string {
-        // From the QUESTION EXCEPTION heading up to (and including) the final
-        // sentence of the block, before the blank line that precedes the
-        // "Do NOT greet" guardrail line.
+        // From the QUESTION EXCEPTION heading through to the softened FR-M14
+        // sentence, so the parity window covers the exception block AND both
+        // softened absolutes (the "Do NOT greet" line minus follow-up
+        // questions, and the "Outside the QUESTION EXCEPTION above" prefix).
+        // Everything in this window is slot-free, so byte-identity holds.
+        $endMarker = 'Outside the QUESTION EXCEPTION above, do NOT ask any question';
         $start = strpos($text, 'QUESTION EXCEPTION');
-        $end = strpos($text, 'answer the question in the same turn.');
+        $end = strpos($text, $endMarker);
         expect($start)->not->toBeFalse();
         expect($end)->not->toBeFalse();
 
-        return substr($text, $start, ($end - $start) + strlen('answer the question in the same turn.'));
+        return substr($text, $start, ($end - $start) + strlen($endMarker));
     };
 
     expect($extract($unified))->toBe($extract($legacy));
@@ -202,6 +205,37 @@ describe('delegated capture turn answers a question (A1)', function () {
         // Unchanged: a zero-tool-call, no-question turn drops its prose.
         expect($contentTexts)->each->not->toContain('No holdings noted.');
     });
+
+    it('does not advance the state machine on an answer-only turn', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Test',
+            'is_preview_user' => false,
+            'onboarding_fyn_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+        $conversation = AiConversation::create([
+            'user_id' => $user->id,
+            'status' => 'active',
+            'model_used' => 'director',
+            'title' => 'Onboarding',
+        ]);
+
+        $received = driveCaptureTurn($user, $conversation, "what's salary sacrifice?", [
+            ['type' => 'content', 'text' => 'Salary sacrifice means your employer pays part of your salary into your pension instead.'],
+            ['type' => 'done', 'message_id' => 1],
+        ]);
+
+        // QUESTION EXCEPTION: a question turn that captured nothing stays on
+        // the capture state — no advance to add_more, step pointer unchanged.
+        expect($user->fresh()->onboarding_fyn_step)
+            ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+
+        $advanceEvents = array_filter(
+            $received,
+            fn ($e) => ($e['type'] ?? null) === 'onboarding_advance'
+        );
+        expect($advanceEvents)->toBeEmpty();
+    });
 });
 
 describe('grouped_extract turn answers a question before re-asking (A1)', function () {
@@ -252,8 +286,11 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             'title' => 'Onboarding',
         ]);
 
+        // NOTE: the personal-figure sentence must not name an allowance/limit/
+        // threshold/band — those words trigger the statutory-definition
+        // carve-out and the sentence would legitimately survive.
         $received = driveCaptureTurn($user, $conversation, 'why does my income matter?', [
-            ['type' => 'content', 'text' => 'Your income sets which tax band applies. At your £110,000 it would taper your personal allowance.'],
+            ['type' => 'content', 'text' => 'Your income sets which tax band applies. Based on your £110,000 salary you would pay extra tax.'],
             ['type' => 'done', 'message_id' => 1],
         ]);
 
