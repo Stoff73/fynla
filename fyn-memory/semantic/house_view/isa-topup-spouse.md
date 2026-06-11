@@ -22,9 +22,12 @@ comfortable with the money genuinely belonging to the spouse.
 ## Why Fynla quantifies it this way
 
 Fynla estimates the spouse's headroom by setting their recorded existing ISA
-balance against the annual allowance — a deliberately rough proxy, since
-balances built up in earlier years also shrink the headroom shown, which
-keeps the figure conservative rather than overstated. It deliberately
+balance against the annual allowance. The allowance itself resets every tax
+year; the balance stands in because the recorded data cannot tell this
+year's subscriptions apart from money accumulated in earlier years, so Fynla
+counts the whole balance against the allowance as a deliberately
+conservative proxy — the headroom shown is understated, never overstated,
+until subscription-level data exists. It deliberately
 does not attach a tax-saved headline, because the saving depends on what the
 money would otherwise earn and where it currently sits; the unused capacity
 is the dependable fact, and the saving follows once specific cash or

@@ -40,7 +40,7 @@ remains of the current year's pension annual allowance after this year's
 contributions — that is the cap Fynla applies when sizing it. Unused
 allowance from earlier years is computed separately by the carry-forward
 strategy, with its own headroom figure, and the two are presented side by
-side rather than pipelined; the tapered annual allowance warning surfaces
+side rather than fed into each other; the tapered annual allowance warning surfaces
 for very high earners, whose true allowance can be smaller than the headline.
 
 ## Claim tier and voicing

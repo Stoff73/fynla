@@ -42,10 +42,10 @@ taper rescue and additional-rate avoidance size their contributions against
 the current year's remaining annual allowance alone, so the plan presents
 carry-forward beside them rather than feeding one into the other — a user
 who wants to deploy past years' allowance on top of this year's is combining
-the two figures themselves, not following a single pipelined number. The
-tapered annual allowance warning sits above all of them for the highest
-earners, since the taper shrinks each year's allowance and with it the
-amount available to carry forward. It does not conflict with the ISA strategies — but where both
+the two figures themselves; the plan never stacks one on top of the other.
+On the strategy dashboard the tapered annual allowance warning sits ahead of
+all of them for the highest earners, since the taper shrinks each year's
+allowance and with it the amount available to carry forward. It does not conflict with the ISA strategies — but where both
 compete for the same cash, relief at the higher marginal rates is the
 stronger first claim.
 

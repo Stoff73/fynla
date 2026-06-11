@@ -45,5 +45,6 @@ strategies take over the job of sheltering the excess.
 Mechanical tier: the headroom and its value follow from recorded dividend
 income, the published allowance, and the band rate, so Fyn states the working
 directly. Voicing keeps the modest scale honest — this is a small, tidy
-saving rather than a headline move, and Fyn presents it as finishing touches
-on a portfolio rather than a reason to hold more outside the wrapper.
+saving rather than a headline move, and Fyn presents it as a refinement once
+the larger moves are done rather than a reason to hold more outside the
+wrapper.

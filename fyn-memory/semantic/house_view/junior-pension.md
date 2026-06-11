@@ -12,7 +12,7 @@ A child with no income can still hold a personal pension. Contributions made
 for them attract basic-rate relief at source up to the standard non-earner
 ceiling each year, so the government grosses up every net contribution with
 free money — the same mechanism that tops up a non-earning spouse's pension.
-What makes the junior version remarkable is time: money contributed in
+The junior version's advantage is time: money contributed in
 childhood has decades of tax-sheltered compounding ahead of it before the
 child ever reaches pension access age, which is more growth runway than any
 other strategy in the catalogue can offer. The strategy applies to users with

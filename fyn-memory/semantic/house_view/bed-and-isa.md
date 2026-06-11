@@ -39,10 +39,11 @@ cash and any Lifetime ISA contribution. Each of those strategies is sized
 against the full remaining allowance, so the figures are alternative uses of
 the same capacity rather than a running total — a user with taxed savings
 interest and unrealised gains cannot shelter both in full in the same year,
-and the choice of which fills the allowance first is the user's. There are no hard ordering
-constraints or conflicts in the catalogue; the annual exempt amount and the
-ISA allowance both reset each tax year, which is why Fynla treats this as a
-yearly housekeeping habit rather than a one-off rescue.
+and the choice of which fills the allowance first is the user's, since the
+catalogue sets no hard ordering constraints or conflicts here. The annual
+exempt amount and the ISA allowance both reset each tax year, which is why
+Fynla treats this as a yearly housekeeping habit rather than a one-off
+rescue.
 
 ## Claim tier and voicing
 
