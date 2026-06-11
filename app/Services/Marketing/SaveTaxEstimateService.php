@@ -173,7 +173,7 @@ class SaveTaxEstimateService
             'marginal_rate' => $rate,
             'savings' => $savings,
             'savings_total' => $savingsTotal,
-            'allowances' => $this->allowances($income, $married, $spouseBand, $assets, $isTrap),
+            'allowances' => $this->allowances($income, $married, $spouseBand, $assets),
         ];
     }
 
@@ -184,31 +184,21 @@ class SaveTaxEstimateService
      * @param  array<int,string>  $assets
      * @return array<string,mixed>
      */
-    private function allowances(int $income, bool $married, ?string $spouseBand, array $assets, bool $isTrap = false): array
+    private function allowances(int $income, bool $married, ?string $spouseBand, array $assets): array
     {
         $has = fn (string ...$keys): bool => (bool) array_intersect($keys, $assets);
-        $pa = $this->personalAllowanceBase();
         $isa = (int) $this->taxConfig->getISAAllowances()['annual_allowance'];
-        $aa = (int) $this->taxConfig->getPensionAllowances()['annual_allowance'];
         $items = [];
 
+        // Personal Allowance — always shown. In the £100k–£125,140 taper band it
+        // carries the 60% tax trap explanation in its note (the standalone trap
+        // card is removed; the saving callout attaches to this card in the JS).
         $items[] = $this->personalAllowanceItem('personal_allowance', 'Personal Allowance', $income);
 
-        // The 60% tax trap is a distinct, highlighted item for the £100k–£125,140
-        // band: the £12,570 Personal Allowance you can reclaim via a pension
-        // contribution. The saving callout (tax_trap_60) attaches when relevant.
-        if ($isTrap) {
-            $items[] = [
-                'key' => 'tax_trap_60',
-                'label' => '60% Tax Trap',
-                'amount' => $pa,
-                'on' => true,
-                'note' => 'Income between '.$this->money($this->taperThreshold()).' and '.$this->money((int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140)).' loses the Personal Allowance at an effective 60% rate — a pension contribution reclaims it.',
-            ];
-        }
-
         $items[] = ['key' => 'isa', 'label' => 'ISA Allowance', 'amount' => $isa, 'on' => true];
-        $items[] = ['key' => 'pension_aa', 'label' => 'Pension Annual Allowance', 'amount' => $aa, 'on' => true];
+        // Pension Annual Allowance — shown as a live lever only for a non-earner
+        // (£3,600 route) or someone in the £100k–£125,140 taper; greyed otherwise.
+        $items[] = $this->pensionAaItem('pension_aa', 'Pension Annual Allowance', $income);
 
         $psa = $this->personalSavingsAllowance($income);
         $items[] = ['key' => 'psa', 'label' => 'Personal Savings Allowance', 'amount' => $psa, 'on' => $has('savings', 'bank') && $psa > 0];
@@ -229,8 +219,20 @@ class SaveTaxEstimateService
             // Spouse's own per-person allowances (household view).
             $spouseIncome = $spouseBand !== null ? self::BAND_INCOME[$spouseBand] : 0;
             $items[] = $this->personalAllowanceItem('spouse_pa', "Spouse's Personal Allowance", $spouseIncome);
+
+            // Starting Rate for Savings — a non-earning spouse can receive up to
+            // £5,000 of savings interest tax-free. Greyed unless the spouse has
+            // no income.
+            $startingRate = (int) $this->taxConfig->get('income_tax.starting_rate_for_savings.band', 5000);
+            $spouseNoIncome = $spouseBand === 'zero';
+            $startItem = ['key' => 'spouse_starting_rate', 'label' => "Spouse's Starting Rate for Savings", 'amount' => $startingRate, 'on' => $spouseNoIncome];
+            if ($spouseNoIncome) {
+                $startItem['note'] = 'With no income, your spouse can receive up to '.$this->money($startingRate).' of savings interest tax-free.';
+            }
+            $items[] = $startItem;
+
             $items[] = ['key' => 'spouse_isa', 'label' => "Spouse's ISA Allowance", 'amount' => $isa, 'on' => true];
-            $items[] = ['key' => 'spouse_pension_aa', 'label' => "Spouse's Pension Annual Allowance", 'amount' => $aa, 'on' => true];
+            $items[] = $this->pensionAaItem('spouse_pension_aa', "Spouse's Pension Annual Allowance", $spouseIncome);
         }
 
         $total = 0;
@@ -256,12 +258,58 @@ class SaveTaxEstimateService
 
         if ($income > $this->taperThreshold()) {
             $item['label'] = $label.' (tapered)';
-            $item['note'] = $amount > 0
-                ? 'Tapered down from '.$this->money($this->personalAllowanceBase()).' because income is over '.$this->money($this->taperThreshold()).'. A pension contribution can restore it.'
-                : 'Tapered to £0 because income is over '.$this->money($this->taperThreshold()).'. A pension contribution can restore it.';
+            $additional = (int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
+            // £100k–£125,140 is the 60% tax trap: the Personal Allowance is lost
+            // at £1 for every £2. Above £125,140 it is gone entirely.
+            $item['note'] = $income <= $additional
+                ? 'Income over '.$this->money($this->taperThreshold()).' loses the Personal Allowance at £1 for every £2 — an effective 60% tax rate. A pension contribution restores it.'
+                : 'Income over '.$this->money($additional).' has tapered your Personal Allowance away entirely. A pension contribution can restore it.';
         }
 
         return $item;
+    }
+
+    /**
+     * Build a Pension Annual Allowance allowance-row. Surfaced as a live lever
+     * only for a non-earner (the £3,600 relevant-earnings route) or someone in
+     * the £100k–£125,140 Personal Allowance taper (a pension contribution there
+     * escapes the 60% trap); greyed in every other band. A non-earner's figure
+     * is capped at the £3,600 relevant-earnings minimum, not the full allowance.
+     *
+     * @return array<string,mixed>
+     */
+    private function pensionAaItem(string $key, string $label, int $income): array
+    {
+        $pension = $this->taxConfig->getPensionAllowances();
+        $aa = (int) ($pension['annual_allowance'] ?? 60000);
+        $nonEarnerLimit = (int) ($pension['relevant_earnings_minimum'] ?? 3600);
+        $isNonEarner = $income === 0;
+
+        $item = [
+            'key' => $key,
+            'label' => $label,
+            'amount' => $isNonEarner ? $nonEarnerLimit : $aa,
+            'on' => $this->qualifiesForAnnualAllowance($income),
+        ];
+
+        if ($isNonEarner) {
+            $net = (int) round($nonEarnerLimit * (1 - $this->bandRates()['basic']));
+            $item['note'] = 'With no earnings, the '.$this->money($aa).' allowance is capped at 100% of earnings — a non-earner can still contribute up to '.$this->money($nonEarnerLimit).' gross ('.$this->money($net).' net after basic-rate relief).';
+        }
+
+        return $item;
+    }
+
+    /**
+     * The Pension Annual Allowance is surfaced as a tax-saving lever only for a
+     * non-earner (£0) or someone inside the £100k–£125,140 Personal Allowance
+     * taper. Every other band shows it greyed.
+     */
+    private function qualifiesForAnnualAllowance(int $income): bool
+    {
+        $additional = (int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
+
+        return $income === 0 || ($income > $this->taperThreshold() && $income <= $additional);
     }
 
     // --- Tax engine ----------------------------------------------------------

@@ -48,12 +48,47 @@ it('computes the exact 60% trap relief for the £100k-£125,140 band', function 
         ->and(lineAmount($result, 'pension'))->toBe(0);
 });
 
-it('shows the 60% Tax Trap as a distinct allowance row for the trap band only', function () {
+it('merges the 60% trap into the tapered Personal Allowance card (no standalone trap row)', function () {
     $trap = $this->service->estimate(['income' => '100001_125140', 'assets' => ['savings']]);
-    $other = $this->service->estimate(['income' => '50271_100000', 'assets' => ['savings']]);
 
-    expect(itemOn($trap, 'tax_trap_60'))->toBeTrue()
-        ->and(itemOn($other, 'tax_trap_60'))->toBeNull();
+    // The standalone 60% Tax Trap allowance card is removed everywhere.
+    expect(itemOn($trap, 'tax_trap_60'))->toBeNull();
+
+    // The Personal Allowance card carries the taper in the trap band; its label
+    // gains "(tapered)" and the trap saving still drives the headline figure.
+    $pa = collect($trap['allowances']['items'])->firstWhere('key', 'personal_allowance');
+    expect($pa['on'])->toBeTrue()
+        ->and($pa['label'])->toContain('(tapered)')
+        ->and($pa['amount'])->toBe(0) // £125,140 → Personal Allowance fully tapered
+        ->and(hasSaving($trap, 'tax_trap_60'))->toBeTrue();
+});
+
+it('gates the Pension Annual Allowance card to the £0 and £100k–£125,140 scenarios', function () {
+    // Greyed for ordinary basic/higher/additional earners.
+    expect(itemOn($this->service->estimate(['income' => 'upto_50270', 'assets' => []]), 'pension_aa'))->toBeFalse()
+        ->and(itemOn($this->service->estimate(['income' => '50271_100000', 'assets' => []]), 'pension_aa'))->toBeFalse()
+        ->and(itemOn($this->service->estimate(['income' => 'over_125140', 'assets' => []]), 'pension_aa'))->toBeFalse()
+        // On in the £100k–£125,140 taper band (pension contribution escapes the trap).
+        ->and(itemOn($this->service->estimate(['income' => '100001_125140', 'assets' => []]), 'pension_aa'))->toBeTrue();
+});
+
+it('shows a non-earning spouse a £3,600 pension allowance and the £5,000 starting-rate card', function () {
+    $r = $this->service->estimate(['income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+
+    $spouseAa = collect($r['allowances']['items'])->firstWhere('key', 'spouse_pension_aa');
+    expect($spouseAa['on'])->toBeTrue()
+        ->and($spouseAa['amount'])->toBe(3600) // capped at the relevant-earnings minimum, not £60k
+        ->and($spouseAa['note'])->toContain('£2,880'); // net contribution after basic-rate relief
+
+    $spouseStart = collect($r['allowances']['items'])->firstWhere('key', 'spouse_starting_rate');
+    expect($spouseStart['on'])->toBeTrue()
+        ->and($spouseStart['amount'])->toBe(5000);
+
+    // A spouse who DOES earn gets the full £60k allowance gating + greyed starting rate.
+    $earning = $this->service->estimate(['income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => '100001_125140', 'assets' => []]);
+    $earningAa = collect($earning['allowances']['items'])->firstWhere('key', 'spouse_pension_aa');
+    expect($earningAa['on'])->toBeTrue()->and($earningAa['amount'])->toBe(60000)
+        ->and(itemOn($earning, 'spouse_starting_rate'))->toBeFalse();
 });
 
 it('omits the pension line when the user already has a pension', function () {
@@ -111,8 +146,9 @@ it('does not add spouse levers when there is no spouse', function () {
 
 it('builds the allowances-available total and doubles per-person allowances when married', function () {
     $single = $this->service->estimate(['income' => '50271_100000', 'assets' => ['savings', 'investments']]);
-    // PA 12,570 + ISA 20,000 + AA 60,000 + PSA 500 + dividend 500 + CGT 3,000 = 96,570
-    expect($single['allowances']['total'])->toBe(96570);
+    // Higher-rate earner → Pension AA greyed (only £0 / £100k–£125,140 qualify).
+    // PA 12,570 + ISA 20,000 + PSA 500 + dividend 500 + CGT 3,000 = 36,570
+    expect($single['allowances']['total'])->toBe(36570);
 
     $married = $this->service->estimate([
         'income' => '50271_100000',
@@ -120,9 +156,10 @@ it('builds the allowances-available total and doubles per-person allowances when
         'spouseIncome' => 'zero',
         'assets' => ['savings', 'investments'],
     ]);
-    // Higher-rate primary → Marriage Allowance NOT eligible (excluded).
-    // + spouse PA 12,570 + spouse ISA 20,000 + spouse AA 60,000 = 189,140
-    expect($married['allowances']['total'])->toBe(189140);
+    // Single part 36,570 + spouse PA 12,570 + spouse starting rate 5,000
+    // + spouse ISA 20,000 + spouse AA 3,600 (non-earner, capped) = 77,740.
+    // Marriage Allowance NOT eligible (higher-rate primary).
+    expect($married['allowances']['total'])->toBe(77740);
 });
 
 it('reports the active tax year from config', function () {
@@ -214,7 +251,9 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 // --- Allowance highlighting (on/off) correctness ---
                 expect(itemOn($r, 'personal_allowance'))->toBeTrue("PA must always show [$label]");
                 expect(itemOn($r, 'isa'))->toBeTrue("ISA must always show [$label]");
-                expect(itemOn($r, 'pension_aa'))->toBeTrue("Pension AA must always show [$label]");
+                // Pension AA is gated: a primary earner only qualifies inside the
+                // £100k–£125,140 taper (the primary income question has no £0 band).
+                expect(itemOn($r, 'pension_aa'))->toBe($isTrap, "Pension AA gating wrong [$label]");
                 expect(itemOn($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA on/off wrong [$label]");
                 expect(itemOn($r, 'dividend'))->toBe($has('investments'), "Dividend on/off wrong [$label]");
                 expect(itemOn($r, 'cgt'))->toBe($has('investments', 'property'), "CGT on/off wrong [$label]");
@@ -234,16 +273,24 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 if ($married) {
                     expect(itemOn($r, 'marriage_allowance'))->toBe($marriageEligible, "MA eligibility wrong [$label]");
                     expect(itemOn($r, 'spouse_pa'))->toBeTrue("spouse PA item missing [$label]");
+                    // Spouse Pension AA gated to £0 or the £100k–£125,140 taper;
+                    // spouse Starting Rate for Savings only for a non-earning spouse.
+                    $spouseQualifies = $spouseOpt === 'zero' || $spouseOpt === '100001_125140';
+                    expect(itemOn($r, 'spouse_pension_aa'))->toBe($spouseQualifies, "spouse AA gating wrong [$label]");
+                    expect(itemOn($r, 'spouse_starting_rate'))->toBe($spouseOpt === 'zero', "spouse starting-rate gating wrong [$label]");
                 } else {
                     expect(itemOn($r, 'marriage_allowance'))->toBeNull("MA shown for single [$label]");
                     expect(itemOn($r, 'spouse_pa'))->toBeNull("spouse PA shown for single [$label]");
+                    expect(itemOn($r, 'spouse_pension_aa'))->toBeNull("spouse AA shown for single [$label]");
+                    expect(itemOn($r, 'spouse_starting_rate'))->toBeNull("spouse starting-rate shown for single [$label]");
                 }
 
-                // 60% Tax Trap: distinct allowance row for the trap band only.
-                if ($isTrap) {
-                    expect(itemOn($r, 'tax_trap_60'))->toBeTrue("trap row must show in trap band [$label]");
-                } else {
-                    expect(itemOn($r, 'tax_trap_60'))->toBeNull("trap row shown outside trap band [$label]");
+                // The standalone 60% Tax Trap allowance card is removed in every
+                // band; the trap is folded into the (tapered) Personal Allowance.
+                expect(itemOn($r, 'tax_trap_60'))->toBeNull("trap allowance row must not exist [$label]");
+                if ($income > 100000) {
+                    $paItem = collect($r['allowances']['items'])->firstWhere('key', 'personal_allowance');
+                    expect(str_contains($paItem['label'], '(tapered)'))->toBeTrue("PA label must show tapered over £100k [$label]");
                 }
 
                 // --- Saving-line presence correctness ---

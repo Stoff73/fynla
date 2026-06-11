@@ -82,13 +82,15 @@
     ? window.SAVETAX_ESTIMATE : null;
 
   // Allowance keys shown in the "Income" column (everything else → Investment & Cash).
-  var INCOME_KEYS = ['personal_allowance', 'tax_trap_60', 'marriage_allowance', 'psa', 'spouse_pa'];
+  var INCOME_KEYS = ['personal_allowance', 'marriage_allowance', 'psa', 'spouse_pa', 'spouse_starting_rate'];
 
   // Allowance key → matching saving line (for the "could save" callout + reason).
+  // The 60% tax-trap saving now attaches to the (tapered) Personal Allowance card
+  // — the standalone trap card has been merged into it.
   var SAVING_FOR = {
     isa: 'isa', pension_aa: 'pension', psa: 'psa', dividend: 'dividend',
     cgt: 'cgt', marriage_allowance: 'marriage_allowance', spouse_pa: 'spouse_pa',
-    tax_trap_60: 'tax_trap_60',
+    personal_allowance: 'tax_trap_60',
   };
 
   function estimatedSaving() { return EST ? (EST.savings_total || 0) : 0; }

@@ -254,6 +254,11 @@ class TaxConfigurationSeeder extends Seeder
 
             'pension' => [
                 'annual_allowance' => 60000,
+                // Non-earner / low-earner gross contribution limit. Anyone with
+                // relevant UK earnings below this can still contribute up to
+                // £3,600 gross (£2,880 net + 20% basic-rate relief). The £60,000
+                // annual allowance is otherwise capped at 100% of earnings.
+                'relevant_earnings_minimum' => 3600,
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
                 'lifetime_allowance_abolished' => true,
