@@ -43,14 +43,14 @@ focus_selection:
   turn_type: bubbles
   prompt_text: 'Which area would you like me to focus on first?'
   bubbles:
-    - { id: savings, label: 'Savings' }
-    - { id: investment, label: 'Investment' }
-    - { id: retirement, label: 'Retirement' }
-    - { id: protection, label: 'Protection' }
+    - { id: savings, label: Savings }
+    - { id: investment, label: Investment }
+    - { id: retirement, label: Retirement }
+    - { id: protection, label: Protection }
     - { id: estate, label: 'Estate Planning' }
     - { id: goals, label: 'Goals & Life Events' }
-    - { id: budgeting, label: 'Budgeting' }
-    - { id: business, label: 'Business' }
+    - { id: budgeting, label: Budgeting }
+    - { id: business, label: Business }
   capture_field: onboarding_fyn_selection
   next: base_personal
 
@@ -73,7 +73,7 @@ base_dependants:
   turn_type: bubbles
   prompt_text: 'Any children or dependants to add?'
   bubbles:
-    - { id: yes, label: 'Yes' }
+    - { id: 'yes', label: 'Yes' }
     - { id: 'no', label: 'No' }
   capture_field: null
   next: { branch: nextFromDependants }
@@ -98,10 +98,10 @@ base_employment:
   turn_type: bubbles
   prompt_text: "And what's your employment situation at the moment?"
   bubbles:
-    - { id: employed, label: 'Full-time' }
-    - { id: self_employed, label: 'Self-employed' }
-    - { id: part_time, label: 'Part-time' }
-    - { id: retired, label: 'Retired' }
+    - { id: employed, label: Full-time }
+    - { id: self_employed, label: Self-employed }
+    - { id: part_time, label: Part-time }
+    - { id: retired, label: Retired }
     - { id: unemployed, label: 'Not working' }
   capture_field: employment_status
   value_parser: parseEmploymentFromText
@@ -118,7 +118,7 @@ base_employment_more:
   turn_type: bubbles
   prompt_text: 'Do you have any other roles or sources of earned income to add?'
   bubbles:
-    - { id: yes, label: 'Yes, add another' }
+    - { id: 'yes', label: 'Yes, add another' }
     - { id: 'no', label: "No, that's everything" }
   capture_field: null
   next: { branch: nextFromEmploymentMore }
@@ -135,7 +135,7 @@ base_expenditure:
   prompt_text: "And roughly how much goes out each month — rent or mortgage, bills, food, transport, the lot? A ballpark figure is fine. I'll use it to work out your savings capacity, emergency fund target, and how much income you'll need in retirement."
   capture_field: monthly_expenditure
   value_parser: parseExpenditureAmount
-  next: profile_review_expenditure
+  next: { branch: campaignSectionOrProfileReview }
 
 profile_review_expenditure:
   turn_type: bubbles
@@ -150,16 +150,10 @@ campaign_intro:
   turn_type: bubbles
   prompt_text: { builder: buildCampaignIntroPrompt }
   bubbles:
-    - { id: okay, label: 'Okay' }
-    - { id: nope, label: 'Nope' }
+    - { id: okay, label: Okay }
+    - { id: nope, label: Nope }
   capture_field: null
   next: { branch: nextFromCampaignIntro }
-
-campaign_occupational_scheme:
-  turn_type: delegated
-  prompt_text: "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."
-  capture_field: null
-  next: campaign_isa_holdings
 
 campaign_isa_holdings:
   turn_type: delegated
@@ -171,47 +165,63 @@ campaign_bank_accounts:
   turn_type: delegated
   prompt_text: "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"
   capture_field: null
-  next: campaign_investment_accounts
+  next: campaign_advice_savings
 
 campaign_investment_accounts:
   turn_type: delegated
   prompt_text: 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
   capture_field: null
+  next: campaign_advice_investments
+
+campaign_dob:
+  turn_type: grouped_extract
+  prompt_text: "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985."
+  extraction_tool: capture_personal_details
+  retry_text: 'Could you give me your date of birth — for example 12 January 1985?'
+  next: campaign_occupational_scheme
+
+campaign_occupational_scheme:
+  turn_type: delegated
+  prompt_text: "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."
+  capture_field: null
   next: campaign_pension_contribs
+  advance_on_answered_question: true
 
 campaign_pension_contribs:
   turn_type: delegated
   prompt_text: 'Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?'
   capture_field: null
   next: campaign_pension_history
+  advance_on_answered_question: true
 
 campaign_pension_history:
   turn_type: grouped_extract
-  prompt_text: "Quick one — to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don't know exact numbers, rough figures are fine, and \"zero\" is a valid answer."
+  prompt_text: 'Quick one — to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don''t know exact numbers, rough figures are fine, and "zero" is a valid answer.'
   capture_field: null
   extraction_tool: capture_pension_history
   retry_text: 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.'
-  next: campaign_charitable_giving
+  clarify_single_figure: true
+  next: campaign_advice_pensions
 
 campaign_charitable_giving:
   turn_type: grouped_extract
-  prompt_text: "One more — do you make any charitable donations through Gift Aid? If you donate at the higher or additional rate, there's extra relief you can reclaim. Roughly how much per year? Say \"none\" if you don't donate."
+  prompt_text: 'One more — do you make any charitable donations through Gift Aid? If you donate at the higher or additional rate, there''s extra relief you can reclaim. Roughly how much per year? Say "none" if you don''t donate.'
   capture_field: null
   extraction_tool: capture_charitable_giving
   retry_text: 'Just an annual figure works — e.g. "about £500" or "none".'
-  next: campaign_spouse_work
+  next: { branch: nextCampaignSection }
 
 campaign_spouse_work:
   turn_type: bubbles
   prompt_text: 'Does your spouse work?'
   bubbles:
-    - { id: yes, label: 'Yes, they work' }
+    - { id: 'yes', label: 'Yes, they work' }
     - { id: 'no', label: "No, they don't currently work" }
   capture_field: null
   bubble_capture:
     tool: capture_spouse_work_status
     input_for_bubble:
-      yes: { spouse_works: true }
+      'yes': { spouse_works: true }
       'no': { spouse_works: false }
   next: { branch: nextFromSpouseWork }
 
@@ -221,7 +231,7 @@ campaign_spouse_household:
   capture_field: null
   extraction_tool: capture_spouse_household_data
   retry_text: 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?'
-  next: campaign_terminal
+  next: campaign_advice_spouse
 
 campaign_spouse_non_working_assets:
   turn_type: grouped_extract
@@ -229,7 +239,7 @@ campaign_spouse_non_working_assets:
   capture_field: null
   extraction_tool: capture_spouse_non_working_assets
   retry_text: 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".'
-  next: campaign_terminal
+  next: campaign_advice_spouse
 
 campaign_terminal:
   turn_type: terminal
@@ -237,6 +247,42 @@ campaign_terminal:
   capture_field: null
   navigate_to: /tax-strategy
   next: done
+
+campaign_advice_income:
+  turn_type: advice
+  advice_section: income
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign_advice_savings:
+  turn_type: advice
+  advice_section: savings
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign_advice_investments:
+  turn_type: advice
+  advice_section: investments
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign_advice_pensions:
+  turn_type: advice
+  advice_section: pensions
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign_advice_spouse:
+  turn_type: advice
+  advice_section: spouse
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign_synthesis:
+  turn_type: advice
+  advice_section: synthesis
+  capture_field: null
+  next: campaign_terminal
 
 asset_capture:
   turn_type: delegated
@@ -248,10 +294,10 @@ add_more:
   turn_type: bubbles
   prompt_text: "Anything else you'd like to cover?"
   bubbles:
-    - { id: savings, label: 'Savings' }
-    - { id: investment, label: 'Investment' }
-    - { id: retirement, label: 'Retirement' }
-    - { id: protection, label: 'Protection' }
+    - { id: savings, label: Savings }
+    - { id: investment, label: Investment }
+    - { id: retirement, label: Retirement }
+    - { id: protection, label: Protection }
     - { id: done, label: "I'm done" }
   capture_field: null
   next: { branch: nextFromAddMore }
