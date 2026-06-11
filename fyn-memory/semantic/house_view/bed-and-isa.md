@@ -29,8 +29,8 @@ which defeats the point. The proceeds to move are sized so they fit within
 the remaining ISA allowance, scaled to the proportion of gain being
 harvested. The saving quoted is the realisable gain multiplied by the
 Capital Gains Tax rate for the user's band: the tax a future sale of those
-holdings would otherwise have cost, plus the unsated benefit of sheltering
-everything the holdings earn from then on.
+holdings would otherwise have cost, plus the unquantified benefit of
+sheltering everything the holdings earn from then on.
 
 ## Where it sits in sequence
 
