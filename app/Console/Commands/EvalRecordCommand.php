@@ -110,6 +110,31 @@ final class EvalRecordCommand extends Command
             return self::FAILURE;
         }
 
+        // Optional pre-login setup. A scenario whose persona is not one of the
+        // standard post-onboarding seeds (e.g. the mid-campaign Azlan savetax
+        // user) declares `setup_command`: an artisan command that creates /
+        // resets the dedicated preview persona into the exact state the journey
+        // needs BEFORE login. The command MUST leave a preview-flagged user
+        // (is_preview_user=true, preview_persona_id=$persona) for the lookup
+        // below to find — there is no mirror user; the seeded preview persona IS
+        // the mechanism (canonical 0.2). Validated against [A-Za-z0-9:_-]+ so a
+        // malicious scenario can't smuggle arbitrary artisan invocations.
+        $setupCommand = $scenario['setup_command'] ?? null;
+        if (is_string($setupCommand) && $setupCommand !== '') {
+            if (preg_match('/^[A-Za-z0-9:_-]+$/', $setupCommand) !== 1) {
+                $this->error("setup_command '{$setupCommand}' must match [A-Za-z0-9:_-]+ — refusing to run.");
+
+                return self::INVALID;
+            }
+            $this->line("Setup:      running `php artisan {$setupCommand}` (pre-login persona setup)");
+            $setupExit = Artisan::call($setupCommand);
+            if ($setupExit !== self::SUCCESS) {
+                $this->error("setup_command '{$setupCommand}' exited [{$setupExit}].");
+
+                return self::FAILURE;
+            }
+        }
+
         $personaUser = User::where('is_preview_user', true)
             ->where('preview_persona_id', $persona)
             ->first();
@@ -259,6 +284,7 @@ final class EvalRecordCommand extends Command
                 model: $model,
                 scenarioId: (string) $scenario['id'],
                 events: $events,
+                eventsByTurn: is_array($result['events_by_turn'] ?? null) ? $result['events_by_turn'] : [],
                 conversationId: (int) ($result['conversation_id'] ?? 0),
                 durationMs: $durationMs,
             );
@@ -599,13 +625,22 @@ final class EvalRecordCommand extends Command
     }
 
     /**
+     * Write the JSONL fixture: a leading `__meta` line, then the SSE events.
+     *
+     * For multi-turn scenarios a `{"__turn__": N}` boundary line precedes each
+     * turn's events so a future per-turn grader can reconstruct turns from the
+     * fixture. Single-turn fixtures omit the marker entirely, keeping the
+     * existing flat shape byte-identical.
+     *
      * @param  list<array<string, mixed>>  $events
+     * @param  list<list<array<string, mixed>>>  $eventsByTurn
      */
     private function writeFixture(
         string $provider,
         string $model,
         string $scenarioId,
         array $events,
+        array $eventsByTurn,
         int $conversationId,
         int $durationMs,
     ): string {
@@ -627,13 +662,24 @@ final class EvalRecordCommand extends Command
                 'fynla_sha' => $sha,
                 'conversation_id' => $conversationId,
                 'event_count' => count($events),
+                'turn_count' => count($eventsByTurn),
                 'duration_ms' => $durationMs,
             ],
         ];
 
         $lines = [json_encode($meta, JSON_UNESCAPED_SLASHES)];
-        foreach ($events as $event) {
-            $lines[] = json_encode($event, JSON_UNESCAPED_SLASHES);
+
+        if (count($eventsByTurn) > 1) {
+            foreach ($eventsByTurn as $turnIndex => $turnEvents) {
+                $lines[] = json_encode(['__turn__' => $turnIndex + 1], JSON_UNESCAPED_SLASHES);
+                foreach ($turnEvents as $event) {
+                    $lines[] = json_encode($event, JSON_UNESCAPED_SLASHES);
+                }
+            }
+        } else {
+            foreach ($events as $event) {
+                $lines[] = json_encode($event, JSON_UNESCAPED_SLASHES);
+            }
         }
 
         file_put_contents($path, implode("\n", $lines)."\n");

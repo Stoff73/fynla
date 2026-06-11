@@ -1,0 +1,71 @@
+{
+  "id": "azlan_savetax_journey",
+  "category": "02-insight-quality",
+  "persona": "azlan_savetax",
+  "is_mutating": true,
+  "setup_command": "eval:setup-azlan",
+  "notes": "Golden scenario #1 — replays the 2026-06-09 transcript failures. A £110k single-earner-couple CMO walks the savetax campaign from the ISA step (income already captured by eval:setup-azlan, which positions a dedicated preview persona at STATE_CAMPAIGN_ISA_HOLDINGS so the ONBOARDING write path is exercised — peak_earners and the other seeded personas are post-onboarding and would route to read-only advice Fyn). The mid-campaign persona asks for date of birth between the savings and workplace-pension steps, so the transcript's 5 user turns become 6 turns here (turn 3 is the DOB answer). Failures this pins: A1 ignored 'What's salary sacrifice?', A2 standalone-ack noise, A3 greedy section selection dropping the ISA wrap, A4 no synthesis, and the carry-forward total-vs-per-year ambiguity. LIVE STATUS (grok-4.3, 2026-06-11): recorded end-to-end through the onboarding write path (create_savings_account fired, 5 savings rows written, Canonical-0.1 reset fired after). GREEN: turn-4 salary sacrifice answered with no standalone ack (A1/A2 fixed); journey surfaces savings-section advice (ISA / Savings Allowance / spouse). KNOWN-RED: turn-6 £90,000 ambiguity clarification not asked (the PENSION_HISTORY handler re-prompts) — a real gap for the Task 24 live browser pass.",
+  "description": "Replay of the 2026-06-09 Azlan transcript failure modes through the savetax onboarding flow. Must-surface: the ISA wrap recommendation (turn 2 savings advice), salary sacrifice explained when asked (turn 4), and the carry-forward ambiguity clarified before any arithmetic (turn 6). Must-not: standalone capture acks, zero-write 'recording' claims, or advancing past a direct question.",
+  "input": {
+    "turns": [
+      {"user": "I have a cash isa and a stocks and shares ISA. Cash: 19000 Stocks and shares: 3000. About £100 this year", "current_route": "/dashboard"},
+      {"user": "About £500 in premium bonds and £81000 savings. Savings is 3.25%", "current_route": "/dashboard"},
+      {"user": "12 January 1985", "current_route": "/dashboard"},
+      {"user": "3% contribution and it's matched. What's salary sacrifice?", "current_route": "/dashboard"},
+      {"user": "No personal pension on top of that.", "current_route": "/dashboard"},
+      {"user": "Around £90000", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "onboarding_capture",
+    "related": [],
+    "modules": []
+  },
+  "expected_response_mode": "factual",
+  "expected_engine_call_level": "factual",
+  "expected_kyc_state": "bypass",
+  "expected_tool_calls": [],
+  "expected_tool_calls_absent": [
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["content", "done"],
+    "must_not_emit": ["persona_state_change", "handoff", "error"]
+  },
+  "expected_assistant_text": {
+    "must_contain_at_least_one_of": [
+      ["ISA", "Wrap", "Savings Allowance", "spouse"]
+    ],
+    "must_not_contain_substrings": [
+      "recording those now.Recorded.",
+      "Got it — recording those now."
+    ]
+  },
+  "turn_assertions": [
+    {
+      "turn": 4,
+      "must_contain_at_least_one_of": [
+        ["salary sacrifice"]
+      ],
+      "must_not_contain_substrings": ["Got it — recording those now."],
+      "note": "HEADLINE A1/A2 FIX — the direct question 'What's salary sacrifice?' MUST be answered in this turn (A1) and the answer must not be replaced by a standalone capture ack (A2). Verified GREEN on grok-4.3 2026-06-11."
+    },
+    {
+      "turn": 6,
+      "must_contain_at_least_one_of": [
+        ["each year", "per year", "in total", "altogether", "across the three"]
+      ],
+      "note": "'Around £90000' is ambiguous (total across three years vs per year) — a clarifying question must come before any carry-forward arithmetic. KNOWN-RED on grok-4.3 2026-06-11: the PENSION_HISTORY handler re-prompts rather than asking the total-vs-per-year clarification (the prompt's own 'each 3 tax years' wording is not a clarifying question). Real gap for the Task 24 live pass — do NOT soften this assertion to go green."
+    }
+  ],
+  "expected_db_writes": {
+    "expected_count": 5,
+    "expected_no_writes_to": []
+  },
+  "timing_budget_ms": {
+    "anthropic": {"happy": 60000},
+    "xai": {"happy": 120000}
+  },
+  "tags": ["golden", "insight-quality", "savetax", "onboarding-capture", "azlan", "regression-2026-06-09", "multi-turn"]
+}

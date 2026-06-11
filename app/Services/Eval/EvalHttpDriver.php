@@ -50,7 +50,7 @@ final class EvalHttpDriver
 
     /**
      * @param  array<string, mixed>  $scenario
-     * @return array{events: list<array<string, mixed>>, http_log: list<array<string, mixed>>, db_writes: array<string, mixed>, engine_trace: list<array<string, mixed>>, conversation_id: int|null, user_id: int|null, start_state: array<string, mixed>, end_state: array<string, mixed>}
+     * @return array{events: list<array<string, mixed>>, events_by_turn: list<list<array<string, mixed>>>, http_log: list<array<string, mixed>>, db_writes: array<string, mixed>, engine_trace: list<array<string, mixed>>, conversation_id: int|null, user_id: int|null, start_state: array<string, mixed>, end_state: array<string, mixed>}
      */
     public function run(
         array $scenario,
@@ -69,6 +69,7 @@ final class EvalHttpDriver
 
         $httpLog = [];
         $allEvents = [];
+        $eventsByTurn = [];
         $conversationId = null;
         $userId = null;
         $traceEvents = [];
@@ -169,6 +170,12 @@ final class EvalHttpDriver
 
                 $events = $this->sse->consume($sendResp->body());
                 $allEvents = array_merge($allEvents, $events);
+                // Per-turn capture for multi-turn golden scenarios: one entry
+                // per sent turn so per-turn assistant-text rules can target the
+                // right turn. Every scenario turn carries a non-empty `user`
+                // string (skipped turns `continue` above), so this list aligns
+                // 1:1 with the scenario's input.turns in order.
+                $eventsByTurn[] = $events;
             }
 
             // 4. Pull engine/gate trace handed off via the file cache by
@@ -192,6 +199,7 @@ final class EvalHttpDriver
 
             return [
                 'events' => $allEvents,
+                'events_by_turn' => $eventsByTurn,
                 'http_log' => $httpLog,
                 'db_writes' => $dbWrites,
                 'engine_trace' => $traceEvents,
