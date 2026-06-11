@@ -7,6 +7,8 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\PensionInputHistory;
 use App\Models\User;
+use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -143,7 +145,9 @@ it('captures normally when the figure is stated per year', function () use ($see
     expect(PensionInputHistory::where('user_id', $user->id)->count())->toBe(3);
 });
 
-it('captures normally when the user labels the figure as a window total', function () use ($seedPensionConv) {
+it('distributes rather than concentrating when the user labels the figure as a window total', function () use ($seedPensionConv) {
+    // Previously this case wrote the total into ONE year (the live-browser
+    // bug this suite now pins) — a window total must spread across the window.
     $user = User::factory()->create(['is_preview_user' => false]);
     $conversationId = $seedPensionConv($user, '£90,000 in total across the three years');
 
@@ -153,7 +157,7 @@ it('captures normally when the user labels the figure as a window total', functi
 
     expect($result['onboarding_capture'] ?? false)->toBeTrue();
     expect($result['onboarding_capture_error'] ?? false)->toBeFalse();
-    expect(PensionInputHistory::where('user_id', $user->id)->count())->toBe(1);
+    expect(PensionInputHistory::where('user_id', $user->id)->count())->toBe(3);
 });
 
 it('captures normally when multiple distinct figures are given', function () use ($seedPensionConv) {
@@ -195,4 +199,31 @@ it('captures (no guard) when no conversation context is available', function () 
 
     expect($result['onboarding_capture'] ?? false)->toBeTrue();
     expect(PensionInputHistory::where('user_id', $user->id)->count())->toBe(1);
+});
+
+it('distributes a clarified total evenly across the prior three tax years', function () use ($seedPensionConv) {
+    // Live-browser finding 2026-06-11: after the user clarified "in total
+    // across the three years", the model parked £90k under ONE year —
+    // fabricating an annual-allowance excess and overstating carry-forward
+    // (£120k instead of £90k). The handler now distributes the total.
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversationId = $seedPensionConv($user, 'In total across the three years');
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_pension_history', [
+        'history' => [['tax_year' => '2024/25', 'pension_input_amount' => 90000]],
+    ], $user, $conversationId);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and($result['summary'])->toContain('split evenly');
+
+    $rows = PensionInputHistory::where('user_id', $user->id)->orderBy('tax_year')->get();
+    expect($rows)->toHaveCount(3)
+        ->and($rows->pluck('pension_input_amount')->map(fn ($a) => (float) $a)->unique()->all())
+        ->toBe([30000.0]);
+
+    // The window labels come from the live tax year, not the model's guess.
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+    $expected = app(AnnualAllowanceChecker::class)->getPrevious3TaxYears($taxYear);
+    expect($rows->pluck('tax_year')->sort()->values()->all())
+        ->toBe(collect($expected)->sort()->values()->all());
 });

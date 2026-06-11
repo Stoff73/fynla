@@ -56,6 +56,7 @@ use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
@@ -4125,6 +4126,24 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // "In total across the three years" + a single entry → distribute the
+        // total evenly across the prior-3 window. Writing the total into ONE
+        // year fabricates an annual-allowance excess in that year and
+        // overstates carry-forward (live-browser finding 2026-06-11: £90k
+        // landed in 2024/25 alone → £120k "unused" instead of £90k).
+        $distributed = false;
+        if (count($history) === 1 && $sourceMessage !== null
+            && preg_match('/\b(total|across|altogether|combined|in all)\b/i', $sourceMessage) === 1) {
+            $taxYear = app(TaxConfigService::class)->getTaxYear();
+            $priorYears = app(AnnualAllowanceChecker::class)->getPrevious3TaxYears($taxYear);
+            $perYear = round(((float) (reset($history)['pension_input_amount'] ?? 0)) / 3, 2);
+            $history = array_map(
+                fn (string $year): array => ['tax_year' => $year, 'pension_input_amount' => $perYear],
+                $priorYears
+            );
+            $distributed = true;
+        }
+
         $canonical = app(PensionNormaliser::class)->fromFynInputHistory(['history' => $history]);
 
         try {
@@ -4140,7 +4159,9 @@ class CoordinatingAgent extends BaseAgent
         return [
             'onboarding_capture' => true,
             'field_group' => 'campaign_pension_history',
-            'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
+            'summary' => $distributed
+                ? sprintf('Captured pension history — the total split evenly across the last three tax years (%s per year).', '£'.number_format($perYear, 2))
+                : sprintf('Captured %d year(s) of pension history.', count($written)),
             'details' => $written,
         ];
     }
