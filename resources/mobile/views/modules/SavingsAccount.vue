@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <MobileChrome>
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to savings">Back</button>
       <h1 class="m-h1">{{ headerTitle }}</h1>
@@ -53,12 +53,13 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -93,6 +94,7 @@ const ISA_TYPES = {
 
 export default {
   name: 'MobileSavingsAccount',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', account: null }),
   computed: {
     accountId() { return this.$route.params.id; },

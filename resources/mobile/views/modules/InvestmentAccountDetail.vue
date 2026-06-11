@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <MobileChrome>
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to investments">Back</button>
       <h1 class="m-h1">{{ account ? (account.provider || account.platform || 'Investment account') : 'Investment account' }}</h1>
@@ -62,13 +62,14 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function capitalise(s) {
   if (!s) return '';
@@ -77,6 +78,7 @@ function capitalise(s) {
 
 export default {
   name: 'MobileInvestmentAccountDetail',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', accounts: [] }),
   computed: {
     accountId() { return this.$route.params.id; },

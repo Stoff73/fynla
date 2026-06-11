@@ -477,6 +477,9 @@
 .md-rec.is-unlock {
   border: 1px dashed var(--horizon-300);
   background: transparent;
+  /* overflow:hidden (from .md-rec) clips the dashes at the rounded corners,
+     so the outline looks uneven — let it render fully around the box. */
+  overflow: visible;
 }
 .md-rec.is-unlock:hover { border-color: var(--neutral-400); }
 

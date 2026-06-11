@@ -1,7 +1,7 @@
 <template>
   <div class="ml-login">
     <div class="ml-login__brand">
-      <span class="ml-login__logo">Fynla</span>
+      <img :src="logoUrl" alt="Fynla" class="ml-login__logo-img" />
     </div>
 
     <div class="ml-card">
@@ -95,6 +95,9 @@ export default {
     },
     registerUrl() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'register';
+    },
+    logoUrl() {
+      return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/logos/LogoHiResFynlaLight.png';
     },
   },
   methods: {
@@ -211,7 +214,7 @@ export default {
   font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .ml-login__brand { margin: 1.5rem 0 2rem; }
-.ml-login__logo { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -0.01em; }
+.ml-login__logo-img { height: 2.5rem; width: auto; display: block; }
 
 .ml-card {
   width: 100%; max-width: 26rem; background: #fff;

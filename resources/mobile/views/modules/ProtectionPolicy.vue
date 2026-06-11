@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <MobileChrome>
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to protection">Back</button>
       <h1 class="m-h1">{{ headerProvider }}</h1>
@@ -134,12 +134,13 @@
       <p class="m-sub" style="margin-bottom:12px">We could not find that policy.</p>
       <button class="m-btn" @click="goBack">Back to protection</button>
     </div>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -173,6 +174,7 @@ const GROUP_KEYS = {
 
 export default {
   name: 'MobileProtectionPolicy',
+  components: { MobileChrome },
   data() {
     return {
       loading: true,
