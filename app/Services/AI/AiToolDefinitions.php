@@ -382,6 +382,10 @@ class AiToolDefinitions
                             'type' => 'number',
                             'description' => 'Monthly contribution amount in pounds, if any',
                         ],
+                        'isa_subscription_amount' => [
+                            'type' => 'number',
+                            'description' => 'For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. "about £100 this year" → 100). Leave null if not mentioned.',
+                        ],
                     ],
                     'required' => ['account_name', 'current_balance'],
                     'additionalProperties' => false,

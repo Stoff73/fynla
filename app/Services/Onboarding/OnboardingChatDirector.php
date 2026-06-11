@@ -2747,7 +2747,12 @@ PROMPT;
      */
     private function dedupeAckSentences(string $text): string
     {
-        $sentences = preg_split('/(?<=[.!?])\s*/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        // Split after sentence punctuation followed by whitespace OR directly
+        // by an uppercase/£ start ("now.Recorded." has no space). A full stop
+        // followed by a digit or lowercase is NOT a boundary — "3.25%" and
+        // "e.g. rates" must survive intact (live-browser regression 2026-06-11:
+        // the old `\s*` split decimals and re-joined them as "3. 25%").
+        $sentences = preg_split('/(?<=[.!?])\s+|(?<=[.!?])(?=[A-Z£])/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $deduped = [];
         foreach ($sentences as $s) {
             $prev = $deduped === [] ? null : end($deduped);

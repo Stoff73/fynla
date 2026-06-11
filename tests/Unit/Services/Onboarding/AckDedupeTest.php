@@ -75,6 +75,13 @@ describe('dedupeAckSentences (A2)', function () {
         expect(invokeDedupe('All done. Next up.'))->toBe('All done. Next up.');
     });
 
+    it('never splits decimals or abbreviations inside a sentence', function () {
+        // Live-browser regression: "£81,000 at 3.25%." came out as "3. 25%"
+        // because the split fired on the decimal point and rejoined with a space.
+        expect(invokeDedupe('Recorded — Premium Bonds £500 and savings £81,000 at 3.25%.'))
+            ->toBe('Recorded — Premium Bonds £500 and savings £81,000 at 3.25%.');
+    });
+
     it('drops a bare trailing ack even after a long record-stating ack', function () {
         // Review gap: a 7+-word informative ack followed by a bare "Recorded."
         // — the bare ack adds nothing regardless of the previous sentence's

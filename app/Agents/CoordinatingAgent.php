@@ -2140,6 +2140,7 @@ class CoordinatingAgent extends BaseAgent
             'is_isa' => 'nullable|boolean',
             'is_emergency_fund' => 'nullable|boolean',
             'regular_contribution_amount' => 'nullable|numeric|min:0',
+            'isa_subscription_amount' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;

@@ -356,8 +356,9 @@ class XaiToolDefinitions
                     'is_isa' => ['type' => ['boolean', 'null'], 'description' => 'Whether this is a Cash ISA. Set true if user says "ISA" or "tax-free". Default false.'],
                     'is_emergency_fund' => ['type' => ['boolean', 'null'], 'description' => 'Whether this forms part of the emergency fund. Set true if user says "emergency fund" or "rainy day". Default false.'],
                     'regular_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds, if any'],
+                    'isa_subscription_amount' => ['type' => ['number', 'null'], 'description' => 'For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. "about £100 this year" → 100). Leave null if not mentioned.'],
                 ],
-                ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'is_emergency_fund', 'regular_contribution_amount']
+                ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'is_emergency_fund', 'regular_contribution_amount', 'isa_subscription_amount']
             ),
             $this->wrapTool(
                 'create_investment_account',
