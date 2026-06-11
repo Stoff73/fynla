@@ -173,13 +173,36 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-detail-row:last-child { border-bottom: 0; }
 
 /* Clickable module list rows (savings/investment accounts, net-worth categories,
-   protection policies, pensions) — light-pink rounded hover for affordance. */
-.ms-acct, .mi-acct, .mnw-cat, .mp-policy, .mr-pension {
+   protection policies, pensions). Default eggshell card so they read as tappable;
+   hover lifts to white with a light-pink border. The #m-app prefix raises
+   specificity above the components' scoped row styles (transparent background +
+   hairline divider), so this central rule wins without editing each component. */
+#m-app .ms-acct,
+#m-app .mi-acct,
+#m-app .mnw-cat,
+#m-app .mp-policy,
+#m-app .mr-pension {
+  background: var(--eggshell-500);
+  border: 1px solid transparent;
   border-radius: 12px;
-  transition: background 0.15s ease;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-.ms-acct:hover, .mi-acct:hover, .mnw-cat:hover, .mp-policy:hover, .mr-pension:hover {
-  background: #FDF0F4;
+#m-app .ms-acct:last-of-type,
+#m-app .mi-acct:last-of-type,
+#m-app .mnw-cat:last-of-type,
+#m-app .mp-policy:last-of-type,
+#m-app .mr-pension:last-of-type {
+  margin-bottom: 0;
+}
+#m-app .ms-acct:hover,
+#m-app .mi-acct:hover,
+#m-app .mnw-cat:hover,
+#m-app .mp-policy:hover,
+#m-app .mr-pension:hover {
+  background: var(--white);
+  border-color: var(--light-pink-200);
 }
 .m-detail-key { font-size: 14px; color: #6B7280; }
 .m-detail-value { font-size: 14px; font-weight: 700; color: #1F2A44; text-align: right; white-space: nowrap; }

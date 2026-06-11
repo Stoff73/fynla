@@ -1,14 +1,16 @@
 <template>
-  <div>
-    <!-- Header — mirrors the module views (m-detail-header + m-back + m-h1/m-sub).
-         The phone-frame chrome itself is provided by App.vue via the
-         #m-app:has(.m-card) centred column, so this view is never chrome-less. -->
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Your progress</h1>
-      <p class="m-sub">Achievements you've earned and milestones you've reached</p>
-
-      <!-- Tabs -->
+  <MobileChrome
+    ref="chrome"
+    title="Your progress"
+    subtitle="Achievements you've earned and milestones you've reached"
+    :edit-details="false"
+    :loading="loading"
+    loading-label="your progress"
+    back
+    @back="goBack"
+  >
+    <!-- Tabs -->
+    <div class="m-card">
       <div class="ma-tabs" role="tablist" aria-label="Progress sections">
         <button
           type="button"
@@ -29,11 +31,7 @@
       </div>
     </div>
 
-    <div v-if="loading" class="m-card m-state">
-      <p class="m-sub" style="margin-bottom:0">Loading your progress…</p>
-    </div>
-
-    <div v-else-if="error" class="m-card m-state">
+    <div v-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
     </div>
@@ -41,23 +39,27 @@
     <template v-else>
       <!-- Achievements tab -->
       <template v-if="tab === 'achievements'">
-        <!-- Next — the up-to-four next actions to take. -->
+        <!-- Next — the up-to-four next actions to take. Tapping any one opens Fyn
+             to collect the information that action needs. -->
         <div class="m-card">
           <p class="m-section-label" style="margin-top:0">Next</p>
           <p v-if="!next.length" class="m-sub" style="margin-bottom:0">
             You're all caught up — nothing to action right now.
           </p>
           <div v-else>
-            <div
+            <button
               v-for="item in next"
               :key="item.id"
+              type="button"
               class="ma-next"
+              @click="openNext(item)"
             >
               <div class="ma-next__main">
                 <span class="ma-next__title">{{ item.title }}</span>
                 <span v-if="item.meta" class="ma-next__meta">{{ item.meta }}</span>
               </div>
-            </div>
+              <svg class="ma-next__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
           </div>
         </div>
 
@@ -103,15 +105,17 @@
         </div>
       </template>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import MobileChrome from '../components/MobileChrome.vue';
 
 export default {
   name: 'MobileAchievements',
+  components: { MobileChrome },
   data() {
     return {
       tab: 'achievements',
@@ -128,6 +132,27 @@ export default {
   methods: {
     goBack() {
       this.$router.push({ name: 'dashboard' });
+    },
+    // Tapping a next-action opens Fyn to collect the information that action
+    // needs. Unlock / data-capture actions ask Fyn to gather the module details;
+    // a real recommendation asks Fyn how to action it.
+    openNext(item) {
+      const chrome = this.$refs.chrome;
+      if (!chrome || !item) return;
+      const capture = {
+        protection: 'Help me add my protection cover details',
+        savings: 'Help me add my savings details',
+        investment: 'Help me add my investment details',
+        retirement: 'Help me add my pension details',
+        estate: 'Help me add my estate planning details',
+        goals: 'Help me set a financial goal',
+      };
+      const kind = item.action && item.action.kind;
+      if (kind === 'fyn_capture' || item.type === 'unlock') {
+        chrome.openFynWith(capture[item.module] || 'Help me add my financial details');
+      } else {
+        chrome.openFynWith(`How do I "${item.title}"?`);
+      }
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -187,13 +212,29 @@ export default {
 }
 .ma-tab:active { opacity: 0.8; }
 
-/* Next-action rows */
-.ma-next { padding: 12px 0; border-bottom: 1px solid var(--light-gray); }
-.ma-next:first-child { padding-top: 4px; }
-.ma-next:last-child { border-bottom: 0; padding-bottom: 0; }
-.ma-next__main { display: flex; flex-direction: column; gap: 3px; }
+/* Next-action rows — tappable eggshell cards (open Fyn). Hover lifts to white
+   with a light-pink border, matching the dashboard recommendation rows. */
+.ma-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--eggshell-500);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ma-next:last-child { margin-bottom: 0; }
+.ma-next:hover { background: var(--white); border-color: var(--light-pink-200); }
+.ma-next__main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .ma-next__title { font-size: 15px; font-weight: 700; color: var(--horizon-500); }
 .ma-next__meta { font-size: 13px; color: var(--neutral-500); }
+.ma-next__chevron { color: var(--raspberry-500); flex-shrink: 0; }
 
 /* Badge cards — earned prominent, unearned muted */
 .ma-badges { display: flex; flex-direction: column; gap: 10px; }

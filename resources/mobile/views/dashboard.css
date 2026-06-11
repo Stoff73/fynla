@@ -477,7 +477,7 @@
 .md-rec.is-unlock {
   background: var(--eggshell-500);
 }
-.md-rec.is-unlock:hover { background: var(--savannah-200); }
+.md-rec.is-unlock:hover { background: var(--savannah-200); border-color: transparent; }
 
 /* Slim done-count above the action list (the active card already labels it) */
 .md-recs__count {
@@ -650,12 +650,17 @@
   align-items: stretch;
   width: 100%;
   background: var(--eggshell-500);
-  border: none;
+  /* Transparent 1px border in the base state so the hover border doesn't shift
+     the row by a pixel. */
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: background 0.15s ease, opacity 0.25s ease, transform 0.25s ease;
+  transition: background 0.15s ease, border-color 0.15s ease,
+              opacity 0.25s ease, transform 0.25s ease;
 }
-.md-rec:hover { background: var(--savannah-200); }
+/* Active recommendation (one you can complete / skip) — hover lifts to white
+   with a light-pink border. */
+.md-rec:not(.is-unlock):hover { background: var(--white); border-color: var(--light-pink-200); }
 
 .md-rec__check-btn {
   display: flex;
@@ -717,7 +722,9 @@
   text-decoration: none;
   min-width: 0;
 }
-.md-rec__action:hover { background: var(--savannah-300); }
+/* The row owns the hover fill (white for active recs, savannah for unlocks); keep
+   the action link transparent so that fill shows through its full width. */
+.md-rec__action:hover { background: transparent; }
 .md-rec__action:focus-visible {
   outline: 2px solid var(--raspberry-500);
   outline-offset: -2px;
@@ -781,6 +788,21 @@
   text-decoration: none;
 }
 .md-recs__view-all:hover { text-decoration: underline; }
+
+/* "See all actions" — full-width centred link under the actions, still inside the
+   pink callout. Routes to the progress page where every action is listed. */
+.md-recs__see-all {
+  display: block;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--light-pink-100);
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--raspberry-600);
+  text-decoration: none;
+}
+.md-recs__see-all:hover { text-decoration: underline; }
 
 /* ===================================================================
    4-PANEL GRID — 2 per row. Visual on top, text below (compact tiles).
@@ -1422,8 +1444,8 @@
 .md-fyn-dock__input {
   flex: 1;
   min-width: 0;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.875rem;
+  min-height: 2.875rem;
+  padding: 0.625rem 1rem;
   font-size: 0.9375rem;
   font-family: var(--font-primary);
   color: var(--horizon-600);
