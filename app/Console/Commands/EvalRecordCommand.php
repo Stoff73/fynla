@@ -181,7 +181,24 @@ final class EvalRecordCommand extends Command
         $exitCode = self::SUCCESS;
         $summaries = [];
 
+        $firstProvider = true;
         foreach ($providers as $provider) {
+            // Re-run the persona setup before every provider AFTER the first:
+            // the generic Canonical-0.1 post-run reset (`preview:reset`) does
+            // not know how to restore a mid-campaign step, so without this the
+            // second provider starts wherever the first one left the flow
+            // (observed live 2026-06-11: xai began at the giving step and
+            // jammed against the spouse bubbles).
+            if (! $firstProvider && is_string($setupCommand) && $setupCommand !== '') {
+                $this->line("Setup:      re-running `php artisan {$setupCommand}` (fresh state for {$provider})");
+                if (Artisan::call($setupCommand) !== self::SUCCESS) {
+                    $this->error("setup_command '{$setupCommand}' failed before provider {$provider}.");
+
+                    return self::FAILURE;
+                }
+            }
+            $firstProvider = false;
+
             $model = $this->resolveModel($provider, $modelOverride);
             $run = $this->recordOne(
                 session: $session,
