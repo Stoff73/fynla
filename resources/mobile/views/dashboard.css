@@ -543,23 +543,26 @@
 .md-callout__arrow:disabled { opacity: 0.4; cursor: default; }
 .md-callout__arrow svg { display: block; }
 
-/* Skip (dismiss) a recommendation temporarily — lightly separated from the row,
-   like the old design. The recommendation returns later (see skippedActions). */
+/* Skip (dismiss) a recommendation. Shown as a clearly-visible round chip on the
+   right so it reads as a tappable "skip" control (not a faint hairline glyph).
+   The recommendation returns later (see skippedActions). */
 .md-rec__dismiss {
   flex-shrink: 0;
-  align-self: stretch;
-  width: 2.5rem;
+  align-self: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0 0.625rem 0 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-left: 1px solid var(--horizon-100);
-  background: transparent;
-  color: var(--neutral-400);
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: var(--horizon-500);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.md-rec__dismiss:hover { background: var(--horizon-100); color: var(--horizon-600); }
+.md-rec__dismiss:hover { background: var(--raspberry-500); border-color: var(--raspberry-500); color: var(--white); }
 .md-rec__dismiss svg { display: block; }
 
 /* Recommendations inside the callout's light-pink bottom half */
