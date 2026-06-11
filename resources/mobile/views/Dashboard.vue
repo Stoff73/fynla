@@ -68,18 +68,26 @@
               </button>
             </div>
 
-            <!-- Dots -->
-            <div class="md-callout__dots" role="tablist" aria-label="Focus area navigation">
-              <button
-                v-for="(area, ai) in focusAreas"
-                :key="area.key"
-                type="button"
-                class="md-callout__dot"
-                :class="{ 'is-active': activeArea === ai }"
-                :aria-label="area.label"
-                :aria-selected="activeArea === ai ? 'true' : 'false'"
-                @click="selectArea(ai)"
-              ></button>
+            <!-- Prev / next arrows + dots -->
+            <div class="md-callout__nav">
+              <button type="button" class="md-callout__arrow" aria-label="Previous focus area" :disabled="activeArea === 0" @click="prevArea">
+                <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <div class="md-callout__dots" role="tablist" aria-label="Focus area navigation">
+                <button
+                  v-for="(area, ai) in focusAreas"
+                  :key="area.key"
+                  type="button"
+                  class="md-callout__dot"
+                  :class="{ 'is-active': activeArea === ai }"
+                  :aria-label="area.label"
+                  :aria-selected="activeArea === ai ? 'true' : 'false'"
+                  @click="selectArea(ai)"
+                ></button>
+              </div>
+              <button type="button" class="md-callout__arrow" aria-label="Next focus area" :disabled="activeArea >= focusAreas.length - 1" @click="nextArea">
+                <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+              </button>
             </div>
 
             <!-- Actions for the selected card -->
@@ -88,11 +96,11 @@
 
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
-                  <li v-if="!activeActions.length" class="md-rec md-rec--empty">
+                  <li v-if="!visibleActions.length" class="md-rec md-rec--empty">
                     <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">Nothing to action right now — add more details to unlock your next actions.</span></span></span>
                   </li>
                   <li
-                    v-for="item in activeActions"
+                    v-for="item in visibleActions"
                     :key="item.id"
                     class="md-rec"
                     :class="{ 'is-done': item.done, 'is-unlock': item.type === 'unlock' }"
@@ -114,6 +122,15 @@
                       </span>
                       <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                     </a>
+                    <button
+                      v-if="item.type === 'recommendation'"
+                      type="button"
+                      class="md-rec__dismiss"
+                      aria-label="Skip this recommendation for now"
+                      @click="skipAction(item)"
+                    >
+                      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                   </li>
                 </ul>
                 <a v-if="activeCard.key !== 'top' && !activeCard.locked" href="#" class="md-recs__view-all" @click.prevent="goto('/' + (activeCard.key === 'estate' ? 'estate' : activeCard.key))">View all {{ activeCard.label.toLowerCase() }}</a>
@@ -368,6 +385,9 @@ export default {
       // each with its own action list. activeArea indexes the selected card.
       focusAreas: [],
       activeArea: 0,
+      // Recommendation ids the user has temporarily skipped (the X on a row).
+      // They return once no other recommendations remain on the active card.
+      skippedIds: [],
       // Level wheel — fed from the gamification engine via the dashboard payload
       // (d.level.* + d.percentile). Single source of truth; no client recompute.
       level: 1,
@@ -483,6 +503,13 @@ export default {
     },
     activeActions() {
       return this.activeCard.actions || [];
+    },
+    // The action rows actually shown — temporarily-skipped recommendations are
+    // hidden, but they return automatically once nothing else remains to action.
+    visibleActions() {
+      const all = this.activeActions;
+      const remaining = all.filter((a) => !this.skippedIds.includes(a.id));
+      return remaining.length ? remaining : all;
     },
     activeDoneCount() {
       return this.activeActions.filter((a) => a.type === 'recommendation' && a.done).length;
@@ -643,10 +670,21 @@ export default {
     },
     selectArea(i) {
       this.activeArea = i;
-      // Slide the carousel to the chosen card (dots / card tap).
+      // Slide the carousel to the chosen card (dots / arrows / card tap).
       const strip = this.$refs.focusStrip;
       const el = strip && strip.children[i];
       if (el) strip.scrollTo({ left: el.offsetLeft, behavior: 'smooth' });
+    },
+    prevArea() {
+      if (this.activeArea > 0) this.selectArea(this.activeArea - 1);
+    },
+    nextArea() {
+      if (this.activeArea < this.focusAreas.length - 1) this.selectArea(this.activeArea + 1);
+    },
+    // Temporarily skip a recommendation (the X on the row). It reappears once
+    // no other recommendations remain on the card (see visibleActions).
+    skipAction(item) {
+      if (item && item.id && !this.skippedIds.includes(item.id)) this.skippedIds.push(item.id);
     },
     // Sync the active card to the swipe position (one card per view).
     onFocusScroll() {
