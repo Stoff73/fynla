@@ -104,6 +104,49 @@ it('maps funnel employment + spouse variants onto the profile', function () {
     expect($existing->fresh()->marital_status)->toBe('widowed');
 });
 
+it('maps funnel spouseIncome onto household_calculation_mode so Fyn never re-asks', function () {
+    $svc = new FunnelAnswersMapper;
+
+    // 'zero' answers the spouse-work question outright: single-earner couple.
+    $singleEarner = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null,
+        'household_calculation_mode' => null,
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => 'zero'],
+    ]);
+    $svc->mapToProfile($singleEarner);
+    expect($singleEarner->fresh()->household_calculation_mode)->toBe('single_earner_couple');
+    expect($singleEarner->fresh()->marriage_allowance_eligible)->toBeTrue();
+
+    // Any earning band → dual-earner household (exact figure still confirmed
+    // conversationally in STATE_CAMPAIGN_SPOUSE_HOUSEHOLD).
+    $dualEarner = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null,
+        'household_calculation_mode' => null,
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => 'upto_50270'],
+    ]);
+    $svc->mapToProfile($dualEarner);
+    expect($dualEarner->fresh()->household_calculation_mode)->toBe('dual_earner');
+    expect($dualEarner->fresh()->marriage_allowance_eligible)->toBeFalse();
+
+    // No spouse → never set; spouseIncome absent → never set.
+    $noSpouse = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null,
+        'household_calculation_mode' => null,
+        'funnel_answers' => ['spouse' => 'no'],
+    ]);
+    $svc->mapToProfile($noSpouse);
+    expect($noSpouse->fresh()->household_calculation_mode)->toBeNull();
+
+    // Never overwrites a value already set.
+    $existing = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null,
+        'household_calculation_mode' => 'dual_earner',
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => 'zero'],
+    ]);
+    $svc->mapToProfile($existing);
+    expect($existing->fresh()->household_calculation_mode)->toBe('dual_earner');
+});
+
 it('accepts registration when funnel_answers is omitted (direct signup)', function () {
     $this->postJson('/api/auth/register', funnelPayload([
         'email' => 'funnel-omitted@example.com',

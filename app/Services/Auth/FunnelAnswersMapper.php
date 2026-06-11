@@ -50,6 +50,21 @@ class FunnelAnswersMapper
             $dirty = true;
         }
 
+        // Spouse income — unlike the primary's band, 'zero' is not a range
+        // needing refinement: it answers the spouse-work question outright.
+        // Pre-setting household_calculation_mode lets STATE_CAMPAIGN_SPOUSE_WORK
+        // skip itself instead of re-asking what the funnel already captured;
+        // an earning band routes to the household-data step, which still
+        // confirms the exact figure conversationally.
+        $spouseIncome = $funnel['spouseIncome'] ?? null;
+        if ($spouse === 'yes' && ! $user->household_calculation_mode
+            && is_string($spouseIncome) && $spouseIncome !== '') {
+            $spouseWorks = $spouseIncome !== 'zero';
+            $user->household_calculation_mode = $spouseWorks ? 'dual_earner' : 'single_earner_couple';
+            $user->marriage_allowance_eligible = ! $spouseWorks;
+            $dirty = true;
+        }
+
         if ($dirty) {
             $user->save();
         }
