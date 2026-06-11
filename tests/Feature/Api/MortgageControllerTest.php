@@ -7,6 +7,7 @@ namespace Tests\Feature\Api;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ class MortgageControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(TierConfigurationSeeder::class);
         $this->user = User::factory()->create();
         $this->token = $this->user->createToken('test-token')->plainTextToken;
         $this->property = Property::factory()->create([
