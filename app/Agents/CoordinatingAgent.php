@@ -10,6 +10,7 @@ use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -954,7 +955,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_work_status' => $this->handleCaptureSpouseWorkStatus($input, $user, $isPreviewUser),
                 'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
                 'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
-                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser),
+                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser, $conversationId),
                 'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
@@ -4091,7 +4092,7 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview): array
+    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview, ?int $conversationId = null): array
     {
         if ($isPreview) {
             return $this->previewBlocked('pension');
@@ -4100,6 +4101,27 @@ class CoordinatingAgent extends BaseAgent
         $history = $input['history'] ?? null;
         if (! is_array($history) || $history === []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'history must be a non-empty array.'];
+        }
+
+        // Carry-forward disambiguation guard. The user is asked for their gross
+        // pension input "in each of the last 3 tax years"; when they reply with
+        // ONE lump figure (e.g. "Around £90,000") and no per-year breakdown,
+        // the figure is fatally ambiguous — £90k spread across three years is
+        // unused allowance to top up, but £90k PER YEAR is an annual-allowance
+        // charge. Whatever split the model invents to satisfy the per-year tool
+        // schema is fabricated financial data. So when the source message
+        // carries a single figure with no per-year structure, write nothing and
+        // ask the clarifying question; emitTerminalError voices the message
+        // verbatim and keeps the user on STATE_CAMPAIGN_PENSION_HISTORY so their
+        // next reply re-enters this handler with the disambiguated figures.
+        $sourceMessage = $this->latestUserMessageText($conversationId);
+        if ($sourceMessage !== null && $this->pensionHistoryIsAmbiguousSingleFigure($sourceMessage)) {
+            return [
+                'onboarding_capture_error' => true,
+                'field_group' => 'campaign_pension_history',
+                'error_type' => 'pension_history_ambiguous',
+                'message' => 'Just to be sure I read that correctly — is that the total across all three tax years, or roughly that amount per year? It changes whether you have unused allowance to top up.',
+            ];
         }
 
         $canonical = app(PensionNormaliser::class)->fromFynInputHistory(['history' => $history]);
@@ -4120,6 +4142,105 @@ class CoordinatingAgent extends BaseAgent
             'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
             'details' => $written,
         ];
+    }
+
+    /**
+     * Fetch the verbatim text of the most recent user message in the
+     * conversation — the in-flight turn that triggered the current tool call.
+     * Used by capture handlers that must reason about the user's actual words
+     * (e.g. detecting an ambiguous single figure) rather than trusting the
+     * post-hoc structure the model put into the tool arguments.
+     */
+    private function latestUserMessageText(?int $conversationId): ?string
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $message = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'user')
+            ->orderByDesc('id')
+            ->first();
+
+        $text = $message?->content;
+
+        return is_string($text) && $text !== '' ? $text : null;
+    }
+
+    /**
+     * Detect whether a pension-history reply gives a SINGLE monetary figure for
+     * the three-year window with no per-year structure — the catastrophic
+     * total-vs-per-year ambiguity. Returns false when the reply is per-year
+     * shaped ("about 5,000 each year"), lists multiple figures ("30k, 25k,
+     * 20k"), labels distinct tax years, or carries no monetary figure at all
+     * (e.g. "zero" / "none", which capture cleanly as no contributions).
+     */
+    private function pensionHistoryIsAmbiguousSingleFigure(string $message): bool
+    {
+        $figureCount = $this->countMonetaryFigures($message);
+        if ($figureCount !== 1) {
+            // Zero figures ("none"/"nothing") capture as no contributions;
+            // two or more figures are already per-year and unambiguous.
+            return false;
+        }
+
+        $lower = mb_strtolower($message);
+
+        // Disambiguating cues — the user has already told us whether the figure
+        // is annual (per-year) or the whole-window total. Either resolves the
+        // ambiguity, so capture rather than re-ask.
+        $resolvingCues = [
+            // per-year
+            'each year', 'per year', 'a year', 'every year', 'each of', 'each tax year',
+            'per annum', 'annually', '/yr', 'p.a.', 'pa ', 'each of the', 'for each',
+            'first year', 'second year', 'third year', 'last year', 'year before',
+            // whole-window total
+            'in total', 'total of', 'altogether', 'across', 'combined', 'between them',
+            'all three', 'over the three', 'over three', 'spread', 'split',
+        ];
+        foreach ($resolvingCues as $cue) {
+            if (str_contains($lower, $cue)) {
+                return false;
+            }
+        }
+
+        // Explicit per-year tax-year labelling (e.g. "2024/25") means the user
+        // attributed the figure to a specific year, not the whole window.
+        if (preg_match('/\b20\d{2}\s*\/\s*\d{2}\b/', $message) === 1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Count distinct monetary figures in a free-text message. Handles
+     * £-prefixed and bare numbers, thousands separators, and the "k"/"m"
+     * shorthand (90k, 1.2m). Used to tell a single lump figure apart from a
+     * per-year list.
+     */
+    private function countMonetaryFigures(string $message): int
+    {
+        $matches = [];
+        // £90,000 / 90000 / 90k / 1.2m / £3,250.50 — optional £ prefix, optional
+        // k|m shorthand suffix; the trailing negative lookahead stops a figure
+        // running into an adjacent digit/decimal so "90000" counts once.
+        preg_match_all('/£?\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m)?(?![\d.])/iu', $message, $matches);
+
+        $figures = array_filter(
+            array_map('trim', $matches[0] ?? []),
+            // Drop bare year-like tokens that are not really amounts on their
+            // own (a 4-digit 19xx/20xx with no £, k, m, comma or decimal).
+            static function (string $tok): bool {
+                $hasMoneyMarker = (bool) preg_match('/[£,km.]/i', $tok);
+                $isYearLike = (bool) preg_match('/^(?:19|20)\d{2}$/', preg_replace('/[^\d]/', '', $tok) ?? '');
+
+                return $hasMoneyMarker || ! $isYearLike;
+            }
+        );
+
+        return count($figures);
     }
 
     private function handleCaptureCharitableGiving(array $input, User $user, bool $isPreview): array

@@ -1,23 +1,23 @@
-{"__meta":{"provider":"xai","model":"grok-4.3","scenario_id":"azlan_savetax_journey","recorded_at":"2026-06-11T03:46:08+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"e2aacff","conversation_id":77,"event_count":44,"turn_count":6,"duration_ms":13722}}
+{"__meta":{"provider":"xai","model":"grok-4.3","scenario_id":"azlan_savetax_journey","recorded_at":"2026-06-11T04:32:43+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"f13b5d1","conversation_id":84,"event_count":43,"turn_count":6,"duration_ms":14538}}
 {"__turn__":1}
 {"type":"title","title":"I have a cash isa and a stocks and shares ISA. Cash: 19000 Stocks and shares: 3000. About \u00a3100 this ..."}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1860,"name":"Cash ISA"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1890,"name":"Cash ISA"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1861,"name":"Stocks and Shares ISA"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1891,"name":"Stocks and Shares ISA"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
-{"type":"content","text":"I'll help you capture those details once you sign up. Recorded \u2014 two ISAs totalling \u00a322,000."}
+{"type":"content","text":"I'll show you what that means for your numbers at the end. Recorded \u2014 two ISAs totalling \u00a322,000."}
 {"type":"onboarding_advance","from_step":"campaign_isa_holdings","to_step":"campaign_bank_accounts"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Now your savings outside an ISA \u2014 bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"}
-{"type":"done","message_id":174}
+{"type":"done","message_id":280}
 {"__turn__":2}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1862,"name":"Premium Bonds"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1892,"name":"Premium Bonds"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1863,"name":"Savings Account"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1893,"name":"Savings Account"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"content","text":"Recorded \u2014 Premium Bonds \u00a3500 and savings \u00a381,000 at 3. 25%."}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
@@ -27,25 +27,24 @@
 {"type":"onboarding_advance","from_step":"campaign_advice_savings","to_step":"campaign_dob"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Now let's look at pensions and retirement \u2014 for that I need your date of birth. Something like 12 January 1985."}
-{"type":"done","message_id":178}
+{"type":"done","message_id":284}
 {"__turn__":3}
 {"type":"onboarding_field_captured","field_group":"personal","summary":"Personal details saved","details":{"date_of_birth":"1985-01-12","marital_status":"married"},"hydrated_from_parking":true}
 {"type":"onboarding_advance","from_step":"campaign_dob","to_step":"campaign_occupational_scheme","hydrated_from_parking":true}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."}
-{"type":"done","message_id":180}
+{"type":"done","message_id":286}
 {"__turn__":4}
-{"type":"content","text":"Salary sacrifice means you give up some salary in exchange for higher pension contributions, reducing your taxable income. I'll show you what that means for your numbers at the end. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?"}
-{"type":"onboarding_layout_change","mode":"wide"}
-{"type":"content","text":"Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."}
-{"type":"done","message_id":183}
-{"__turn__":5}
+{"type":"content","text":"Salary sacrifice means you give up some salary in exchange for higher pension contributions, reducing your taxable income. I'll show you what that means for your numbers at the end. What is the name of your workplace pension provider?"}
 {"type":"onboarding_advance","from_step":"campaign_occupational_scheme","to_step":"campaign_pension_contribs"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?"}
-{"type":"done","message_id":186}
-{"__turn__":6}
+{"type":"done","message_id":289}
+{"__turn__":5}
 {"type":"onboarding_advance","from_step":"campaign_pension_contribs","to_step":"campaign_pension_history"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Quick one \u2014 to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don't know exact numbers, rough figures are fine, and \"zero\" is a valid answer."}
-{"type":"done","message_id":189}
+{"type":"done","message_id":292}
+{"__turn__":6}
+{"type":"content","text":"Just to be sure I read that correctly \u2014 is that the total across all three tax years, or roughly that amount per year? It changes whether you have unused allowance to top up."}
+{"type":"done","message_id":294}

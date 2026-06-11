@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\EvalProviderRun;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Models\UserConsent;
@@ -76,10 +77,16 @@ final class EvalSetupAzlanCommand extends Command
             DB::transaction(function () use ($user): void {
                 SavingsAccount::where('user_id', $user->id)->forceDelete();
 
-                AiMessage::whereIn(
-                    'conversation_id',
-                    AiConversation::where('user_id', $user->id)->pluck('id')
-                )->forceDelete();
+                $conversationIds = AiConversation::where('user_id', $user->id)->pluck('id');
+
+                // eval_provider_runs.conversation_id is a NOT NULL RESTRICT FK,
+                // so a prior recording's run row pins its conversation and the
+                // force-delete below would fail. Drop the forensic run rows for
+                // this throwaway persona first to keep the reset idempotent
+                // across back-to-back recordings (the command's contract).
+                EvalProviderRun::whereIn('conversation_id', $conversationIds)->delete();
+
+                AiMessage::whereIn('conversation_id', $conversationIds)->forceDelete();
                 AiConversation::where('user_id', $user->id)->forceDelete();
 
                 UserConsent::where('user_id', $user->id)->delete();

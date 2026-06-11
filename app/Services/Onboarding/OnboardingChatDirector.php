@@ -1692,6 +1692,22 @@ final class OnboardingChatDirector
                 }
             }
 
+            // Carry-forward disambiguation (director side). The model often
+            // declines to call capture_pension_history for a lone figure like
+            // "Around £90,000" — judging, correctly, that it can't tell whether
+            // it's a three-year total or a per-year amount. When it declines,
+            // the handler-level guard never runs, so the generic retry_text
+            // alone would re-ask without ever clarifying the total-vs-per-year
+            // ambiguity. States that opt in via `clarify_single_figure` emit
+            // the real clarifying question here instead, staying on-state so
+            // the user's disambiguated reply re-enters this handler.
+            if (($state['clarify_single_figure'] ?? false) === true
+                && $this->messageIsAmbiguousSingleFigure($message)) {
+                yield from $this->emitSingleFigureClarification($conversation, $currentStateId);
+
+                return;
+            }
+
             yield from $this->emitRetry($conversation, $state, $currentStateId);
 
             return;
@@ -1830,6 +1846,72 @@ final class OnboardingChatDirector
     }
 
     /**
+     * Emit the carry-forward total-vs-per-year clarifying question, staying on
+     * the current grouped_extract state so the user's disambiguated reply
+     * re-enters this handler. Voiced verbatim so the phrasing is deterministic
+     * (a single lone figure for the three-year pension window is catastrophic
+     * to mis-read: a per-year £90k is an annual-allowance charge, the same
+     * figure spread across three years is unused headroom to top up).
+     */
+    private function emitSingleFigureClarification(
+        AiConversation $conversation,
+        string $currentStateId
+    ): \Generator {
+        $text = 'Just to be sure I read that correctly — is that the total across the three tax years, or roughly that amount each year? It changes whether you have unused allowance to top up.';
+
+        $message = $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_clarification' => true,
+                'clarification_type' => 'pension_history_total_vs_per_year',
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $text];
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Director-side mirror of CoordinatingAgent's pension-history ambiguity
+     * check: does the user reply give a SINGLE monetary figure for the window
+     * with no per-year or whole-window-total cue? Used when the model declined
+     * to call the extraction tool, so the handler guard never ran.
+     */
+    private function messageIsAmbiguousSingleFigure(string $message): bool
+    {
+        $matches = [];
+        preg_match_all('/£?\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m)?(?![\d.])/iu', $message, $matches);
+        $figures = array_filter(
+            array_map('trim', $matches[0] ?? []),
+            static function (string $tok): bool {
+                $hasMoneyMarker = (bool) preg_match('/[£,km.]/i', $tok);
+                $isYearLike = (bool) preg_match('/^(?:19|20)\d{2}$/', preg_replace('/[^\d]/', '', $tok) ?? '');
+
+                return $hasMoneyMarker || ! $isYearLike;
+            }
+        );
+        if (count($figures) !== 1) {
+            return false;
+        }
+
+        $lower = mb_strtolower($message);
+        $resolvingCues = [
+            'each year', 'per year', 'a year', 'every year', 'each of', 'each tax year',
+            'per annum', 'annually', '/yr', 'p.a.', 'pa ', 'each of the', 'for each',
+            'first year', 'second year', 'third year', 'last year', 'year before',
+            'in total', 'total of', 'altogether', 'across', 'combined', 'between them',
+            'all three', 'over the three', 'over three', 'spread', 'split',
+        ];
+        foreach ($resolvingCues as $cue) {
+            if (str_contains($lower, $cue)) {
+                return false;
+            }
+        }
+
+        return preg_match('/\b20\d{2}\s*\/\s*\d{2}\b/', $message) !== 1;
+    }
+
+    /**
      * Emit a targeted retry listing only the fields the tool handler
      * reported as still missing. Keeps the user on the current state so
      * the next reply re-enters the grouped_extract flow, this time
@@ -1926,6 +2008,7 @@ final class OnboardingChatDirector
             'capture_spouse_details' => 'Extract the user\'s spouse or partner details. You need their first name, date of birth, and email address. If they mention an annual income, extract it too. Do NOT invent missing fields — if the user did not provide all three required fields, return an error.',
             'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an age and a relationship (child, parent, or other_dependent). First names are optional. Map phrases: "son", "daughter", "step-daughter", "step-son", "kid", "child" → child. "mother", "father", "mum", "dad", "mum-in-law", etc. → parent. Sibling, nephew, elderly relative, friend → other_dependent. If the user says "two kids aged 4 and 7" return two entries with relationship=child.',
             'capture_work_details' => 'Extract the user\'s employer or trade name, their role/position, and their gross annual income in GBP. Strip currency symbols and commas before returning the number. "75k" means 75000. Do not invent fields.',
+            'capture_pension_history' => 'Extract the user\'s gross pension contributions for the recent tax years they mention. Strip currency symbols and commas ("90k" means 90000). The three most recent UK tax years are 2024/25, 2023/24, 2022/23. If the user gives a per-year breakdown, map each figure to its year. If they give a SINGLE figure with no per-year breakdown (e.g. "around £90,000"), do NOT guess a split across years and do NOT divide it — call the tool ONCE with that single figure under the most recent tax year (2024/25); the system will clarify total-vs-per-year with the user. "Zero" or "none" means a single entry of 0 for the most recent year. Always call the tool — never reply conversationally.',
             default => 'Extract the user\'s reply using the provided tool.',
         };
 
@@ -2185,8 +2268,18 @@ PROMPT;
         // with their question's place in the flow lost. Tool-bearing turns
         // (the user answered AND asked) advance as normal — the answer was
         // captured, so the flow moves on.
+        //
+        // Exception: linear scripted delegated states that create no entity
+        // record (campaign workplace-pension / personal-pension steps) opt in
+        // via `advance_on_answered_question`. There, "captured nothing" is the
+        // norm even on a clean answer, so a side-question ("3% and matched.
+        // What's salary sacrifice?") would otherwise stall the walk forever.
+        // We advance once the user gave a substantive answer alongside the
+        // question; a bare question with no answer still re-asks.
         $capturedSomething = $toolCallsSeen > 0 || count($llmEmittedFills) > 0;
-        if ($userAskedQuestion && ! $capturedSomething) {
+        $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
+            && $this->messageHasSubstantiveAnswer($message);
+        if ($userAskedQuestion && ! $capturedSomething && ! $advanceOnAnsweredQuestion) {
             $this->recordProgress(
                 $user,
                 $currentStateId,
@@ -2497,6 +2590,50 @@ PROMPT;
     {
         return str_contains($message, '?')
             || preg_match('/^(explain|what|why|how|when|tell me|define|describe)\b/i', trim($message)) === 1;
+    }
+
+    /**
+     * Decide whether a (possibly question-bearing) message also carries a
+     * substantive answer to the scripted prompt. Used by the
+     * `advance_on_answered_question` gate so a linear delegated step advances
+     * when the user answered AND asked ("3% and it's matched. What's salary
+     * sacrifice?") but re-asks on a bare question with no answer ("What's
+     * salary sacrifice?").
+     *
+     * Substantive = any figure/percentage/currency, OR a clear yes/no answer,
+     * OR meaningful prose before the first interrogative clause.
+     */
+    private function messageHasSubstantiveAnswer(string $message): bool
+    {
+        $trimmed = trim($message);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        // A number, percentage, or currency amount is always an answer.
+        if (preg_match('/\d/', $trimmed) === 1) {
+            return true;
+        }
+
+        $lower = mb_strtolower($trimmed);
+
+        // Explicit yes/no/none answers to a "do you…?" scripted prompt. Kept
+        // deliberately tight to genuine answer signals — topic nouns (e.g.
+        // "salary sacrifice") are excluded because they appear inside questions
+        // ABOUT the topic, which are not answers.
+        $answerTokens = [
+            'yes', 'yep', 'yeah', 'no ', ' no.', 'none', 'nope', 'nothing',
+            "don't have", 'do not have', 'not got', "haven't got",
+            "it's matched", 'is matched', 'and matched', 'employer matches',
+            'i contribute', 'i pay', 'i put in',
+        ];
+        foreach ($answerTokens as $token) {
+            if (str_contains($lower, $token)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
