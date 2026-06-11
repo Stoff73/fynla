@@ -74,4 +74,12 @@ describe('dedupeAckSentences (A2)', function () {
         // Both short, but neither is a prefix of the other → both kept.
         expect(invokeDedupe('All done. Next up.'))->toBe('All done. Next up.');
     });
+
+    it('drops a bare trailing ack even after a long record-stating ack', function () {
+        // Review gap: a 7+-word informative ack followed by a bare "Recorded."
+        // — the bare ack adds nothing regardless of the previous sentence's
+        // length, so branch (c) fires unconditionally.
+        expect(invokeDedupe('Recorded — three ISA accounts totalling £22,000.Recorded.'))
+            ->toBe('Recorded — three ISA accounts totalling £22,000.');
+    });
 });

@@ -2499,9 +2499,9 @@ PROMPT;
      *   (b) a short (<=6 words) textual prefix-duplicate of it
      *       ("Recorded the ISA." + "Recorded."); or
      *   (c) a bare standalone acknowledgment ("Recorded.", "Got it.",
-     *       "Done.", "Noted.") following another short (<=6 words) ack — the
-     *       exact transcript defect, where two *different* short acks stack
-     *       and the second adds nothing.
+     *       "Done.", "Noted.") following ANY prior sentence — a bare ack
+     *       carries no information regardless of what preceded it; the
+     *       closed set in isBareAck() never matches informative content.
      *
      * The split pattern uses `\s*` (not `\s+`) so "now.Recorded." splits into
      * two sentences despite the missing space. Legitimate multi-sentence
@@ -2520,7 +2520,7 @@ PROMPT;
                 || (str_word_count($s) <= 6 && str_word_count($prev) <= 6
                     && (str_starts_with(strtolower($prev), strtolower(rtrim($s, '.!?')))
                         || str_starts_with(strtolower($s), strtolower(rtrim($prev, '.!?')))))
-                || ($this->isBareAck($s) && str_word_count($prev) <= 6))) {
+                || $this->isBareAck($s))) {
                 continue;
             }
             $deduped[] = $s;
