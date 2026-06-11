@@ -756,8 +756,7 @@ final class OnboardingChatDirector
     private function buildSectionAdvice(User $user, string $section): ?string
     {
         if ($section === 'synthesis') {
-            // Synthesis turn is handled by the next task in this plan.
-            return null;
+            return $this->buildSynthesisAdvice($user);
         }
 
         $wanted = self::SECTION_STRATEGY_TYPES[$section] ?? null;
@@ -794,6 +793,88 @@ final class OnboardingChatDirector
         }
 
         return $lines === [] ? null : implode("\n\n", $lines);
+    }
+
+    /**
+     * A4 — the consolidated plan voiced at the end of the savetax flow:
+     * every eligible strategy in composer order (nothing dropped by section
+     * caps), numbered, with conflict notes, a combined realisable total, at
+     * most ONE locked-strategy tease, and the FCA signposting line. The
+     * /tax-strategy page renders the same composed plan, so chat and page
+     * cannot disagree.
+     *
+     * Conflict notes contain raw strategy-type tokens (e.g. "savings_to_spouse")
+     * from the composer. We humanise them by swapping the token for the title of
+     * the matching item when one exists, then fall back to space-replacing
+     * underscores. This keeps the text user-friendly without duplicating the
+     * composer's conflict-resolution logic.
+     */
+    private function buildSynthesisAdvice(User $user): ?string
+    {
+        try {
+            $plan = app(ComposedTaxPlanService::class)->forUser($user);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Synthesis advice calculation failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if ($plan['items'] === []) {
+            return null;
+        }
+
+        // Build a type → title map for humanising conflict notes.
+        $typeToTitle = [];
+        foreach ($plan['items'] as $item) {
+            $type = (string) ($item['type'] ?? '');
+            $title = trim((string) ($item['title'] ?? ''));
+            if ($type !== '' && $title !== '') {
+                $typeToTitle[$type] = $title;
+            }
+        }
+
+        $lines = ['Here is your plan, in the order I suggest tackling it:'];
+        foreach ($plan['items'] as $item) {
+            $saving = $item['estimated_annual_tax_saved'] ?? null;
+            $savingText = is_numeric($saving) && (float) $saving > 0
+                ? sprintf(' — around £%s a year', number_format((int) round((float) $saving)))
+                : '';
+            $lines[] = sprintf('%d. %s%s', $item['sequence_position'], $item['title'], $savingText);
+
+            $conflictNote = trim((string) ($item['conflict_note'] ?? ''));
+            if ($conflictNote !== '') {
+                // Replace type tokens in the note with the item's title where known,
+                // then fall back to underscores → spaces for any remaining tokens.
+                foreach ($typeToTitle as $type => $title) {
+                    $conflictNote = str_replace($type, $title, $conflictNote);
+                }
+                $conflictNote = str_replace('_', ' ', $conflictNote);
+                $lines[] = '   Note: '.$conflictNote;
+            }
+        }
+
+        $total = (float) ($plan['combined_annual_saving'] ?? 0.0);
+        if ($total > 0) {
+            $lines[] = sprintf('Together these are worth roughly £%s a year.', number_format((int) round($total)));
+        }
+
+        foreach (array_slice($plan['locked'], 0, 1) as $locked) {
+            $missingFields = array_map(
+                fn (string $f): string => str_replace('_', ' ', $f),
+                (array) ($locked['missing'] ?? [])
+            );
+            $lines[] = sprintf(
+                'One more strategy is waiting — tell me about your %s and I can check it for you.',
+                implode(' and your ', $missingFields),
+            );
+        }
+
+        $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
+
+        return implode("\n", $lines);
     }
 
     /**

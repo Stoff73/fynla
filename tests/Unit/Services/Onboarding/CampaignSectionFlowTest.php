@@ -36,7 +36,7 @@ it('walks every section in order for a fully-loaded married dual-earner', functi
         ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING) // giving
         ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_WORK)     // spouse
         ->and(SM::nextCampaignSection('spouse', $u))->toBe(SM::STATE_BASE_EXPENDITURE)         // expenditure
-        ->and(SM::nextCampaignSection('expenditure', $u))->toBe(SM::STATE_CAMPAIGN_TERMINAL);  // done
+        ->and(SM::nextCampaignSection('expenditure', $u))->toBe(SM::STATE_CAMPAIGN_SYNTHESIS); // synthesis then terminal
 });
 
 it('skips savings, investments and spouse sections for a single user with no cash/investments', function () {
@@ -138,8 +138,8 @@ it('never lets a campaign advice state auto-advance back into itself', function 
         expect(SM::getNextStateId($id, '', $u))->not->toBe($id);
     }
 
-    // Spouse advice (the last advice section) continues to the expenditure
-    // section, matching the nextCampaignSection('spouse') contract above.
+    // Spouse advice continues to the expenditure section,
+    // matching the nextCampaignSection('spouse') contract above.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SPOUSE, '', $u))
         ->toBe(SM::STATE_BASE_EXPENDITURE);
 });

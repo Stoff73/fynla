@@ -120,6 +120,8 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_ADVICE_SPOUSE = 'campaign_advice_spouse';
 
+    public const STATE_CAMPAIGN_SYNTHESIS = 'campaign_synthesis';
+
     /**
      * SaveTax campaign section order — THE single source of truth for the
      * campaign question sequence. To reorder the journey, reorder this array;
@@ -162,8 +164,10 @@ final class OnboardingStateMachine
 
     /**
      * Resolve the entry state of the next non-skipped campaign section after
-     * the given section. Returns STATE_CAMPAIGN_TERMINAL when none remain.
-     * This is what makes the sequence reorderable from one array.
+     * the given section. Returns STATE_CAMPAIGN_SYNTHESIS when all sections are
+     * exhausted, so the flow ends with a ranked consolidated plan before the
+     * terminal navigation turn. This is what makes the sequence reorderable
+     * from one array.
      */
     public static function nextCampaignSection(string $afterSection, User $user): string
     {
@@ -171,7 +175,7 @@ final class OnboardingStateMachine
         $sections = self::campaignSections();
         $idx = array_search($afterSection, $order, true);
         if ($idx === false) {
-            return self::STATE_CAMPAIGN_TERMINAL;
+            return self::STATE_CAMPAIGN_SYNTHESIS;
         }
 
         for ($i = $idx + 1; $i < count($order); $i++) {
@@ -186,10 +190,10 @@ final class OnboardingStateMachine
 
             // Honour per-state skip_if on the entry too (e.g. occupational
             // scheme skips when not employed), transitively.
-            return self::applySkipRules($section['entry'], $user) ?? self::STATE_CAMPAIGN_TERMINAL;
+            return self::applySkipRules($section['entry'], $user) ?? self::STATE_CAMPAIGN_SYNTHESIS;
         }
 
-        return self::STATE_CAMPAIGN_TERMINAL;
+        return self::STATE_CAMPAIGN_SYNTHESIS;
     }
 
     /**
@@ -560,6 +564,15 @@ final class OnboardingStateMachine
                 // advice turns auto-advance with no user input, so a self-edge
                 // recurses forever, persisting an identical message each pass.
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
+            ],
+            self::STATE_CAMPAIGN_SYNTHESIS => [
+                'turn_type' => 'advice',
+                'advice_section' => 'synthesis',
+                'capture_field' => null,
+                // Plain constant next — NEVER a closure resolving to itself; advice turns
+                // auto-advance and a self-edge recurses unbounded (the 2026-06-07
+                // campaign_advice_spouse incident, PR #504).
+                'next' => self::STATE_CAMPAIGN_TERMINAL,
             ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',

@@ -50,6 +50,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
+            OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS,
         ];
 
         foreach ($expected as $id) {
