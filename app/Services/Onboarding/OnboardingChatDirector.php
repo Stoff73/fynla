@@ -18,6 +18,7 @@ use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Gamification\PointsService;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
@@ -839,8 +840,12 @@ final class OnboardingChatDirector
         $lines = ['Here is your plan, in the order I suggest tackling it:'];
         foreach ($plan['items'] as $item) {
             $saving = $item['estimated_annual_tax_saved'] ?? null;
-            $savingText = is_numeric($saving) && (float) $saving > 0
-                ? sprintf(' — around £%s a year', number_format((int) round((float) $saving)))
+            $savingFormatted = is_numeric($saving) ? number_format((int) round((float) $saving)) : '';
+            // Skip the suffix when the title already quotes the amount
+            // ("Save around £24 a year by …" must not gain "— around £24 a year").
+            $savingText = $savingFormatted !== '' && (float) $saving > 0
+                && ! str_contains((string) $item['title'], '£'.$savingFormatted)
+                ? sprintf(' — around £%s a year', $savingFormatted)
                 : '';
             $lines[] = sprintf('%d. %s%s', $item['sequence_position'], $item['title'], $savingText);
 
@@ -863,7 +868,7 @@ final class OnboardingChatDirector
 
         foreach (array_slice($plan['locked'], 0, 1) as $locked) {
             $missingFields = array_map(
-                fn (string $f): string => str_replace('_', ' ', $f),
+                fn (string $f): string => HouseholdFinancialContext::labelFor($f),
                 (array) ($locked['missing'] ?? [])
             );
             $lines[] = sprintf(

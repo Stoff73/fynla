@@ -7,6 +7,7 @@ namespace App\Services\Mobile;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\PrerequisiteGateService;
 
@@ -292,7 +293,9 @@ class NextActionsService
         $items = [];
 
         foreach (array_slice($plan['locked'], 0, self::MAX_STRATEGY_UNLOCKS) as $locked) {
-            $missingLabel = str_replace('_', ' ', (string) ($locked['missing'][0] ?? 'a detail'));
+            $missingLabel = isset($locked['missing'][0])
+                ? HouseholdFinancialContext::labelFor((string) $locked['missing'][0])
+                : 'a detail';
 
             $items[] = [
                 'id' => 'strategy_unlock:'.$locked['strategy_type'],

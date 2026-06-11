@@ -59,6 +59,31 @@ final class HouseholdFinancialContext
     }
 
     /**
+     * Human label for a required_data vocabulary key, for user-facing unlock
+     * prompts ("tell me about your …"). Raw keys leak abbreviations the copy
+     * rules ban — live-browser finding 2026-06-11: "gia holdings".
+     */
+    public static function labelFor(string $key): string
+    {
+        return match ($key) {
+            'gia_holdings' => 'General Investment Account holdings',
+            'isa_subscriptions_ytd' => 'ISA payments this tax year',
+            'pension_input_history' => 'pension contributions for the last three tax years',
+            'workplace_pension' => 'workplace pension',
+            'pension_contributions' => 'pension contributions',
+            'annual_income' => 'annual income',
+            'dividend_income' => 'dividend income',
+            'savings_balances' => 'savings accounts',
+            'charitable_giving' => 'charitable giving',
+            'spouse_income' => "spouse's income",
+            'marital_status' => 'marital status',
+            'employment_status' => 'employment status',
+            'date_of_birth' => 'date of birth',
+            default => str_replace('_', ' ', $key),
+        };
+    }
+
+    /**
      * Marginal income-tax rate for the user, derived from their full taxable
      * income (employment + dividends + estimated savings interest).
      */
