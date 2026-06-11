@@ -703,6 +703,15 @@ Route::get('/m/app/{any?}', function () {
     return view('mobile-app');
 })->where('any', '.*');
 
+// Gamified dashboard design mockup — standalone HTML for review before porting
+// into the web Dashboard. Shows mobile-web (identical to the mobile app) and an
+// expanded desktop layout. Declared before the SPA catch-all.
+Route::get('/mockup/dashboard', function () {
+    ob_start();
+    include public_path('pages/dashboard-mockup.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8']);
+});
+
 // Serve Vue.js SPA for all routes (catch-all).
 //
 // Constraint is '.+' (one-or-more), NOT '.*' (zero-or-more) on purpose: '.*'

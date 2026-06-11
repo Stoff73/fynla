@@ -22,10 +22,11 @@
     >
       <!-- Header is sticky so the top nav stays visible while dashboards scroll under it.
            Offset by 44px when the AdvisorBanner (fixed, z-50) is present so they don't overlap.
-           z-30 keeps it below modals (typically z-50) and the SideMenu (z-60). -->
+           z-[45] sits above the docked Fyn chat (z-40) so the nav dropdowns (Support /
+           user menu) open OVER the chat, while staying below modals (z-50) and SideMenu (z-60). -->
       <div
         ref="appHeader"
-        class="sticky z-30 bg-eggshell-500"
+        class="sticky z-[45] bg-eggshell-500"
         :class="isImpersonating ? 'top-[44px]' : 'top-0'"
       >
         <AppNavbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />

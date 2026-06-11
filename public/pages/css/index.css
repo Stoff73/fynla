@@ -172,7 +172,9 @@
   background: linear-gradient(135deg, var(--horizon-500) 0%, var(--light-blue-500) 100%);
   border-radius: var(--radius-card, 0.75rem);
   padding: 2rem 1.5rem;
-  margin: 0 0 2.5rem;
+  /* 80% of the container width, horizontally centred */
+  width: 80%;
+  margin: 0 auto 2.5rem;
   box-shadow: var(--shadow-lg);
 }
 .feature-savetax__headline {
