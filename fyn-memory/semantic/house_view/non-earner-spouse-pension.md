@@ -13,8 +13,9 @@ all. Contributions for a non-earner attract basic-rate relief at source up to
 a modest fixed gross ceiling each year: the household pays in a net amount
 and the government grosses it up, which is free money arriving in the
 spouse's pot. A spouse with modest earnings does even better, because their
-relevant UK earnings set their contribution ceiling — everything they earn
-can go in with relief at source on top. Alongside the uplift, the spouse
+relevant UK earnings set their gross contribution ceiling — the household
+pays in the net amount and relief at source makes up the rest of the gross
+within that ceiling. Alongside the uplift, the spouse
 gains their own separate tax-free lump sum entitlement and their own Personal
 Allowance to draw against in retirement, which spreads the household's
 retirement income across two tax positions instead of one. The strategy

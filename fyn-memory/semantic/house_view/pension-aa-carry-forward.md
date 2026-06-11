@@ -37,13 +37,15 @@ contribution at the user's marginal rate.
 
 ## Where it sits in sequence
 
-Carry-forward is the strategy that creates room for the others: the taper
-rescue and additional-rate avoidance both need annual allowance headroom, and
-carry-forward is where extra headroom comes from, so Fynla establishes the
-carry-forward position before sizing those contributions. The tapered annual
-allowance warning sits above it for the highest earners, since the taper
-shrinks each year's allowance and with it the amount available to carry
-forward. It does not conflict with the ISA strategies — but where both
+Carry-forward stands as its own strategy with its own headroom figure. The
+taper rescue and additional-rate avoidance size their contributions against
+the current year's remaining annual allowance alone, so the plan presents
+carry-forward beside them rather than feeding one into the other — a user
+who wants to deploy past years' allowance on top of this year's is combining
+the two figures themselves, not following a single pipelined number. The
+tapered annual allowance warning sits above all of them for the highest
+earners, since the taper shrinks each year's allowance and with it the
+amount available to carry forward. It does not conflict with the ISA strategies — but where both
 compete for the same cash, relief at the higher marginal rates is the
 stronger first claim.
 

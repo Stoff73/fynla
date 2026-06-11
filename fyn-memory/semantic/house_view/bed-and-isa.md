@@ -35,9 +35,11 @@ sheltering everything the holdings earn from then on.
 ## Where it sits in sequence
 
 Bed and ISA draws on the same single overall ISA allowance as wrapping excess
-cash, so the composed plan allocates one allowance across both — a user with
-taxed savings interest and unrealised gains cannot shelter both in full in
-the same year, and Fynla sizes each accordingly. There are no hard ordering
+cash and any Lifetime ISA contribution. Each of those strategies is sized
+against the full remaining allowance, so the figures are alternative uses of
+the same capacity rather than a running total — a user with taxed savings
+interest and unrealised gains cannot shelter both in full in the same year,
+and the choice of which fills the allowance first is the user's. There are no hard ordering
 constraints or conflicts in the catalogue; the annual exempt amount and the
 ISA allowance both reset each tax year, which is why Fynla treats this as a
 yearly housekeeping habit rather than a one-off rescue.

@@ -35,7 +35,7 @@ it that way because the value of the warning is the mistake it prevents.
 
 ## Where it sits in sequence
 
-This warning surfaces first in the composed plan, ahead of every saving
+On the strategy dashboard this warning renders ahead of every saving
 strategy, because it constrains all of them. The taper rescue, additional-rate
 avoidance, and carry-forward strategies each depend on annual allowance
 headroom, and the taper is what shrinks that headroom — so the user needs to

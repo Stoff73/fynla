@@ -28,9 +28,9 @@ non-earner ceiling, per child, every year the contribution is made. The
 uplift is quantified because it is certain on contribution and does not
 depend on investment performance; the decades of compounding are described
 rather than counted, because their value depends on returns no one can
-promise. The per-child ceiling and relief rate come from the same live
-configuration as the non-earner spouse pension, so the figures always move
-with the rules.
+promise. The per-child ceiling and uplift come from the same source as
+the non-earner spouse pension — fixed standard amounts shared between the
+two strategies, so the figures always move together.
 
 ## Where it sits in sequence
 

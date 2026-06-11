@@ -21,9 +21,10 @@ comfortable with the money genuinely belonging to the spouse.
 
 ## Why Fynla quantifies it this way
 
-Fynla quantifies the spouse's remaining ISA allowance for the year from the
-household's recorded subscriptions — the amount of additional money that
-could be sheltered in the spouse's own name before April. It deliberately
+Fynla estimates the spouse's headroom by setting their recorded existing ISA
+balance against the annual allowance — a deliberately rough proxy, since
+balances built up in earlier years also shrink the headroom shown, which
+keeps the figure conservative rather than overstated. It deliberately
 does not attach a tax-saved headline, because the saving depends on what the
 money would otherwise earn and where it currently sits; the unused capacity
 is the dependable fact, and the saving follows once specific cash or
@@ -42,8 +43,8 @@ from the user's, so using it never crowds out the user's own ISA strategies.
 
 ## Claim tier and voicing
 
-Mechanical tier: the remaining allowance follows directly from recorded
-subscriptions and the published limit, so Fyn states the position plainly —
+Mechanical tier: the headroom follows directly from the spouse's recorded
+balance and the published limit, so Fyn states the position plainly —
 how much room the spouse has and when it resets. Voicing is exact about
 ownership: the account is the spouse's own individual ISA, the money in it
 belongs to the spouse, and Fyn never phrases the move in a way that could

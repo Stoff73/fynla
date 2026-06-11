@@ -17,9 +17,10 @@ recurring dividend income to the cheaper rate, and capital gains on an
 eventual sale are taxed more gently too. Transfers between spouses and civil
 partners are exempt from Capital Gains Tax and Inheritance Tax, which is what
 makes the rebalance possible without a tax cost on the way. The strategy
-applies to dual-earner couples where the user pays above the basic rate, the
-spouse pays the basic rate, and the user holds dividend-bearing investments
-outside an ISA.
+applies to dual-earner couples where the user pays above the basic rate and
+the spouse pays the basic rate; where no dividend income is recorded yet,
+the suggestion takes its general form — hold taxable investments in the
+spouse's name — with no figure attached.
 
 ## Why Fynla quantifies it this way
 

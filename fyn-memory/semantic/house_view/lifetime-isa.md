@@ -33,9 +33,10 @@ has closed.
 
 ## Where it sits in sequence
 
-Because the contribution draws on the same single overall ISA allowance as
-wrapping excess cash and bed-and-ISA moves, the composed plan allocates that
-allowance across all of them rather than recommending each at full size. The
+The contribution draws on the same single overall ISA allowance as wrapping
+excess cash and bed-and-ISA moves; each strategy is sized against the full
+remaining allowance, so Fyn presents them as alternative claims on the same
+capacity and the user decides which comes first. The
 bonus rate comfortably beats ordinary interest on the same money, but the
 penalty regime cuts the other way, so the Lifetime ISA slice is sized for
 money genuinely destined for a first home or later life rather than for the

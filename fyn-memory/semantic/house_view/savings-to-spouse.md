@@ -37,15 +37,18 @@ other.
 
 ## Where it sits in sequence
 
-Wrapping the user's own cash in their ISA comes first — the catalogue
-sequences the ISA top-up ahead of this transfer, so the gift is sized on what
-the user's own allowance cannot shelter. The strategy conflicts with the
-joint-savings split: the same pound of cash cannot be both gifted outright to
-the spouse and held back in a shared arrangement, so the composed plan
-chooses one route, and the outright transfer usually leads because the
-spouse's stacked allowances shelter far more interest than a shared
-allowance split can. Money gifted across can then be wrapped in the spouse's
-own ISA over the following years.
+Wrapping the user's own cash in their ISA is sequenced ahead of this
+transfer in the catalogue. That ordering is presentation rather than
+arithmetic, though: the gift figure is computed on the user's full recorded
+sole savings, not net of what the wrap takes, so a user following both
+should treat the two figures as drawing on the same pot. The strategy
+conflicts with the joint-savings split — the same pound of cash cannot be
+both gifted outright to the spouse and held back in a shared arrangement —
+so the plan shows both as alternatives to compare, counts only the
+stronger saving toward the combined total, and the outright transfer
+usually wins because the spouse's stacked allowances shelter far more
+interest than a shared allowance split can. Money gifted across can then be
+wrapped in the spouse's own ISA over the following years.
 
 ## Claim tier and voicing
 

@@ -22,22 +22,26 @@ dominate.
 ## Why Fynla quantifies it this way
 
 Fynla works from the user's recorded income and the current year's thresholds
-held in the live tax configuration, never from assumed figures. The saving is
-computed as the tax relief on the contribution plus the value of the restored
-allowance, which together produce the effective relief rate in the band — the
-familiar "sixty per cent" effect. Fynla states the computed effective rate from
-the user's own numbers rather than quoting the folk figure, because the exact
-rate depends on how far into the band the user sits.
+held in the live tax configuration, never from assumed figures. The
+contribution is sized to the slice of income inside the band, capped by the
+year's remaining pension annual allowance, and the saving applies the
+standard sixty per cent effective-relief treatment to that whole slice —
+higher-rate relief plus the allowance restored at one pound for every two.
+The rate is a property of the band itself, not of where in the band the user
+sits, so Fynla quotes the user's own contribution and the saving computed
+from it rather than leaving the effect as a folk figure.
 
 ## Where it sits in sequence
 
 This strategy comes before discretionary ISA moves for users in the band,
 because the effective relief rate inside the taper band beats the long-run
-benefit of wrapping the same money. It interacts with the pension annual
-allowance and any carry-forward headroom: the contribution that rescues the
-allowance must fit inside available annual allowance, so Fynla checks
-carry-forward first and surfaces the tapered annual allowance rules for very
-high earners, which can shrink the room this strategy needs.
+benefit of wrapping the same money. The contribution must fit inside what
+remains of the current year's pension annual allowance after this year's
+contributions — that is the cap Fynla applies when sizing it. Unused
+allowance from earlier years is computed separately by the carry-forward
+strategy, with its own headroom figure, and the two are presented side by
+side rather than pipelined; the tapered annual allowance warning surfaces
+for very high earners, whose true allowance can be smaller than the headline.
 
 ## Claim tier and voicing
 

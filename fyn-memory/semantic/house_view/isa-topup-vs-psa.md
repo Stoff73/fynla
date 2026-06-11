@@ -38,11 +38,14 @@ making.
 Wrapping the user's own cash comes before moving savings into a spouse's
 name: the catalogue sequences this strategy ahead of the savings-to-spouse
 transfer, because using one's own ISA allowance keeps both the money and the
-tax shelter in the user's hands, and the spouse move is then sized on what
-remains. It also shares the single overall ISA allowance with the bed-and-ISA
-investment move and any Lifetime ISA contribution, so the composed plan
-allocates that one allowance across cash and investments rather than counting
-it twice.
+tax shelter in the user's hands. That ordering is presentation rather than
+arithmetic, though — the spouse gift is computed on the user's full recorded
+sole savings, not net of what the wrap takes, so a user following both
+should treat the two figures as drawing on the same pot. The strategy also
+shares the single overall ISA allowance with the bed-and-ISA investment move
+and any Lifetime ISA contribution: each is sized against the full remaining
+allowance, so Fyn presents them as alternative uses of the same capacity,
+and the user chooses which claims it first.
 
 ## Claim tier and voicing
 

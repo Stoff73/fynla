@@ -37,11 +37,13 @@ headline rate, because the saving genuinely differs slice by slice.
 This strategy leads the plan for additional-rate taxpayers for the same
 reason the taper rescue leads it for those a band below: relief at the top
 rates beats the long-run benefit of wrapping the same money in an ISA. It
-depends entirely on annual allowance headroom, so Fynla checks carry-forward
-from earlier years first and surfaces the tapered annual allowance warning
-alongside it — additional-rate earners are exactly the population whose
-allowance is most likely to be tapered, which can shrink the room this
-strategy needs.
+is capped by what remains of the current year's pension annual allowance
+after this year's contributions; unused allowance from earlier years is
+quantified separately by the carry-forward strategy, with its own headroom
+figure, and the two appear side by side in the plan rather than feeding one
+another. The tapered annual allowance warning surfaces alongside them —
+additional-rate earners are exactly the population whose true allowance is
+most likely to be smaller than the headline.
 
 ## Claim tier and voicing
 

@@ -15,7 +15,7 @@ Allowance can therefore shelter more of it by splitting the savings with
 their spouse: half the interest then counts against the spouse's allowance
 instead of piling up taxed in one name. The strategy applies when the user
 holds sole-name non-ISA savings whose interest exceeds their own allowance
-and the spouse has allowance capacity to spare. Fynla does not surface it for
+and the spouse's band gives them a savings allowance at all. Fynla does not surface it for
 additional-rate taxpayers, whose own allowance is nil — for them the outright
 gift to the spouse and the ISA strategies do the heavier lifting instead.
 
@@ -25,8 +25,8 @@ Fynla sums the user's sole-name non-ISA savings — joint accounts are already
 split by default and cannot benefit again — and estimates the interest from
 the recorded rates on those accounts. The slice of interest above the user's
 own allowance is what currently suffers tax; Fynla shelters as much of that
-slice as the spouse's allowance can absorb, and the saving is that sheltered
-slice at the marginal rate the user would otherwise pay. The band behind both
+slice as the spouse's full band allowance can absorb, and the saving is that
+sheltered slice at the marginal rate the user would otherwise pay. The band behind both
 the allowance and the rate is judged on total taxable income, so the figures
 reflect the tax the user genuinely faces rather than a salary-only
 approximation.
@@ -35,7 +35,8 @@ approximation.
 
 This strategy conflicts with the outright savings-to-spouse gift: the same
 pound of cash cannot be both given away to the spouse and kept in a shared
-arrangement, so the composed plan selects one route per household. The
+arrangement, so the plan shows the pair as alternatives to compare and
+counts only the stronger saving toward the combined total. The
 outright gift generally ranks ahead, because a low-earning spouse's stacked
 allowances shelter far more interest than doubling the savings allowance
 alone — this split is the gentler alternative for couples who want both names
