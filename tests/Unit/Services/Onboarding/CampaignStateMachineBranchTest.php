@@ -131,6 +131,38 @@ describe('STATE_CAMPAIGN_SPOUSE_WORK routing', function () {
     });
 });
 
+describe('STATE_CAMPAIGN_SPOUSE_WORK funnel-aware skip', function () {
+    it('skips the question and routes straight to non-working assets when the funnel already said the spouse has no income', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'single_earner_couple',
+        ]);
+
+        expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK, $user))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
+    });
+
+    it('skips the question and routes straight to household data when the funnel already said the spouse earns', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'dual_earner',
+        ]);
+
+        expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK, $user))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+    });
+
+    it('still asks the question when household_calculation_mode is unknown (no funnel answer)', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => null,
+        ]);
+
+        expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK, $user))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK);
+    });
+});
+
 describe('STATE_CAMPAIGN_TERMINAL', function () {
     it('declares turn_type=terminal, navigate_to=/tax-strategy, next=STATE_DONE', function () {
         $state = OnboardingStateMachine::states()[OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL];

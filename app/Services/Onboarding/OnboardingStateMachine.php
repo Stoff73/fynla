@@ -510,7 +510,7 @@ final class OnboardingStateMachine
                     ],
                 ],
                 'next' => self::class.'::nextFromSpouseWork',
-                'skip_if' => [self::class, 'skipIfNotMarried'],
+                'skip_if' => [self::class, 'skipSpouseWorkIfModeKnown'],
             ],
             // Two structured grouped_extract states — each uses ONE bespoke
             // composite tool that captures multiple fields in a single call,
@@ -1210,6 +1210,19 @@ final class OnboardingStateMachine
     public static function skipIfNotMarried(User $user): bool
     {
         return ! in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
+    }
+
+    /**
+     * Skip the spouse-work question when the answer is already known —
+     * either the user isn't married (whole section skips) or
+     * household_calculation_mode was pre-set (mapped from the funnel's
+     * spouse-income answer at registration, or captured on an earlier run).
+     * applySkipRules then follows nextFromSpouseWork straight to the right
+     * follow-up state, so Fyn never re-asks what the funnel already told us.
+     */
+    public static function skipSpouseWorkIfModeKnown(User $user): bool
+    {
+        return self::skipIfNotMarried($user) || $user->household_calculation_mode !== null;
     }
 
     /**

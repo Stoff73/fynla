@@ -34,7 +34,9 @@ it('walks every section in order for a fully-loaded married dual-earner', functi
         ->and(SM::nextCampaignSection('savings', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS) // investments
         ->and(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_DOB)        // pensions (DOB first)
         ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING) // giving
-        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_WORK)     // spouse
+        // spouse — household_calculation_mode is already known (dual_earner),
+        // so the spouse-work question skips itself straight to household data.
+        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD)
         ->and(SM::nextCampaignSection('spouse', $u))->toBe(SM::STATE_BASE_EXPENDITURE)         // expenditure
         ->and(SM::nextCampaignSection('expenditure', $u))->toBe(SM::STATE_CAMPAIGN_SYNTHESIS); // synthesis then terminal
 });
