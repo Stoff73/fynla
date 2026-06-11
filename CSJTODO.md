@@ -1,6 +1,21 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-10 — context-clear wrap, session 3. The `/m` gamification + recommendations rework is verified (all 9 acceptance criteria), six finding-fixes landed, **merged to dev (PRs #525 + #526) and live on csjones at merge head `a75af48`**. NOT on prod. 94 remote + 4 local merged branches deleted. Handover: `June/June10Updates/handover-2026-06-10-session-3-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-11 — context-clear wrap, session 1. **Track 1 of the recommendation/insight-quality programme delivered: PR #528 merged to dev @ `4e211aa`, deployed + verified on csjones.** Catalogue reconciled (20 strategy rows live), guided-flow A1–A4 fixes verified in the live browser, knowledge layer restored to the unified prompt, golden eval scenarios green on grok-4.3. NOT on prod. Handover: `June/June11Updates/handover-2026-06-11-session-1-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-11 — Session 1: insight-quality Track 1 spec→plan→build→verify→merge→deploy (context-clear; dev @ 4e211aa)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-1-clear.md`. Deploy note: `June/June11Updates/deploy-2026-06-11.md`.
+- Spec + 25-task plan written and executed subagent-driven (two-stage review per task — every review cycle caught real defects). Three catalogue layers reconciled; data-correctness fixes (ISA subscriptions, carry-forward window, 7-year NRB, spouse strategies, salary-sacrifice status family); StrategyPlanComposer + ComposedTaxPlanService; tax = seventh aggregator module (web + /m + Fyn); A1–A4 guided-flow fixes; knowledge layer + voicing rules restored to unified prompt; module-scoped context; /m strategy unlock cards; Azlan + 4 persona golden eval scenarios (live grok-4.3, GREEN).
+- Live Playwright Azlan replay end-to-end: six further defects found AND fixed in-loop.
+- Suite: 4,517 passed; 24 failures verified pre-existing on dev → chipped.
+
+### Outstanding
+- [ ] **CSJ re-test the Azlan journey on csjones** (the acceptance moment — see handover "Pick up from here").
+- [ ] **Chip: 24 pre-existing dev test failures** (mortgage lender_name fixtures, InlineHoldings, NetWorth lazy-loading, PreviewGamificationSeeder/PaymentController store-boundary breaches, AwardsDataEntryPoints arch rule).
+- [ ] **Chip: GiftFactory enum mismatch** with the live gifts schema (invalid gift_type/status defaults).
+- [ ] **Track 2 (coala)**: plan from spec §7 — house_view corpus authored from catalogue ids, RecommendationHandler returns composed plan, planner heuristics, capture overlays, mirror the get_recommendations description into the tool_schema corpus.
+- [ ] Deferred polish: ComposedTaxPlanService double-invocation on GET /api/tax-strategy; conflict notes in section turns (synthesis-only today); answer+retry one-bubble-live vs two-rows-reload; tax-strategy endpoint missing {success,message} envelope (pre-existing).
+- [ ] Caveat to close: observe live-LLM supply of isa_subscription_amount in a recorded run (unit-proven; fixtures omit tool inputs).
 
 ## 2026-06-10 — Session 3: verification, finding-fixes, merge to dev, branch cleanup (context-clear; dev @ a75af48)
 
