@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Savings &amp; Emergency Fund</h1>
-      <p class="m-sub">Your cash, emergency-fund runway and ISA allowance</p>
-    </div>
-
+  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your savings…</p>
     </div>
@@ -94,12 +88,13 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -108,6 +103,7 @@ function formatCurrency(value) {
 
 export default {
   name: 'MobileSavings',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     accounts() { return this.payload?.accounts || []; },

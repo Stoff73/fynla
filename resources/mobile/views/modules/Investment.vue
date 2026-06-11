@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Investments</h1>
-      <p class="m-sub">Your investment accounts, holdings and allowances</p>
-    </div>
-
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your investments…</p>
     </div>
@@ -62,16 +56,18 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 export default {
   name: 'MobileInvestment',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     accounts() { return this.payload?.accounts || []; },

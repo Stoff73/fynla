@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Estate</h1>
-      <p class="m-sub">Inheritance tax exposure and planning</p>
-    </div>
-
+  <MobileChrome title="Estate" subtitle="Inheritance tax exposure and planning">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your estate position…</p>
     </div>
@@ -67,12 +61,13 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -83,6 +78,7 @@ const COMP_LABELS = { property: 'Property', investment: 'Investments', cash: 'Ca
 
 export default {
   name: 'MobileEstate',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null }),
   computed: {
     gifts() { return this.payload?.gifts || []; },

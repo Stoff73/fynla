@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Tax Strategy</h1>
-      <p class="m-sub">{{ taxYear ? `Tax year ${taxYear}` : 'Your allowances and tax-saving actions' }}</p>
-    </div>
-
+  <MobileChrome title="Tax Strategy" :subtitle="taxYear ? `Tax year ${taxYear}` : 'Your allowances and tax-saving actions'">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your tax position…</p>
     </div>
@@ -108,12 +102,13 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import MobileChrome from '../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -135,6 +130,7 @@ const NEXT_STEPS = {
 
 export default {
   name: 'MobileTaxStrategy',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', dashboard: null }),
   computed: {
     taxYear() { return this.dashboard?.tax_year || ''; },

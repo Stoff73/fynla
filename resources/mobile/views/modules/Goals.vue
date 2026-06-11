@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Goals &amp; Life Events</h1>
-      <p class="m-sub">Your financial milestones and how they're tracking</p>
-    </div>
-
+  <MobileChrome title="Goals and life events" subtitle="Your financial milestones and how they're tracking">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your goals…</p>
     </div>
@@ -67,12 +61,13 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -81,6 +76,7 @@ function formatCurrency(value) {
 
 export default {
   name: 'MobileGoals',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', goals: [], overview: null }),
   computed: {
     totalGoals() { return this.overview?.total_goals ?? this.goals.length; },
