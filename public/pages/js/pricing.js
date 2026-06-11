@@ -222,17 +222,41 @@
         var h = document.getElementById('plan-' + key + '-heading');
         return h ? h.textContent.trim() : null;
       };
-      var order = ['free', 'tier1', 'tier2', 'tier3'];
       var byKey = {};
       rows.forEach(function (t) { byKey[t.tier] = t; });
-      order.forEach(function (key, i) {
-        var tier = byKey[key];
-        if (!tier) return;
-        var prevKey = i > 0 ? order[i - 1] : null;
-        var prevName = prevKey ? nameOf(prevKey) : null;
-        var prevTier = prevKey ? byKey[prevKey] : null;
-        renderFeatures(key, tier, prevName, prevTier);
+
+      // Free card — its full feature list.
+      var freeTier = byKey.free || {};
+      renderFeatures('free', freeTier, null, null);
+
+      // Premium card (tier1 element) — the page now shows a single paid plan, so
+      // it lists the UNION of all paid tiers' capabilities (Bronze + Silver +
+      // Gold), shown as the delta over Free ("Everything in Free, plus:").
+      var freeById = {};
+      buildFeatures(freeTier).forEach(function (f) { freeById[f.id] = f.label; });
+      var merged = {}, ordered = [];
+      ['tier1', 'tier2', 'tier3'].forEach(function (k) {
+        var t = byKey[k];
+        if (!t) return;
+        buildFeatures(t).forEach(function (f) {
+          if (!(f.id in merged)) ordered.push(f.id);
+          merged[f.id] = f.label;   // a higher tier may upgrade the label
+        });
       });
+      var premiumLabels = ordered
+        .filter(function (id) { return !(id in freeById) || freeById[id] !== merged[id]; })
+        .map(function (id) { return merged[id]; });
+      // Gold's storage differentiator isn't a capability-matrix item — append it.
+      if (byKey.tier3) premiumLabels.push('More document uploads and storage');
+
+      var pListEl = document.getElementById('tier1-features');
+      var pPlusEl = document.getElementById('tier1-plus');
+      if (pListEl && premiumLabels.length) {
+        pListEl.innerHTML = premiumLabels.map(function (l) {
+          return '<li class="plan-card__feature">' + CHECK_SVG + l + '</li>';
+        }).join('');
+      }
+      if (pPlusEl) { pPlusEl.textContent = 'Everything in Free, plus:'; pPlusEl.hidden = false; }
     })
     .catch(function () { /* fallback static features already in the DOM */ });
 
