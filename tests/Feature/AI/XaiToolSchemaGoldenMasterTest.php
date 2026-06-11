@@ -61,7 +61,7 @@ it('captures the current xAI catalogue into fixtures', function () use ($fixture
         file_put_contents($fixtureDir.'/'.$name.'.json', $encode($build()));
     }
 
-    expect(glob($fixtureDir.'/*.json'))->toHaveCount(3);
+    expect(glob($fixtureDir.'/[!_]*.json'))->toHaveCount(3);
 });
 
 it('assembles each xAI variant byte-identical to the committed fixture', function (string $name, $build) use ($fixtureDir, $encode): void {
