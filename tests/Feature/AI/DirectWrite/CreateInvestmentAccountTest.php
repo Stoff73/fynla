@@ -55,6 +55,45 @@ it('create_investment_account maps personal_investment_account to gia', function
     expect(InvestmentAccount::find($result['entity_id'])->account_type)->toBe('gia');
 });
 
+it('create_investment_account feeds taxable dividend income onto the user profile', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false, 'annual_dividend_income' => null]);
+
+    app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+        'account_name' => 'General Investment Account',
+        'account_type' => 'personal_investment_account',
+        'current_value' => 40000,
+        'annual_dividend_income' => 800,
+    ], $user);
+
+    // The tax-strategy engine reads users.annual_dividend_income for
+    // Dividend Allowance usage — the capture must populate it.
+    expect((float) $user->fresh()->annual_dividend_income)->toBe(800.00);
+
+    // A second dividend-paying account accumulates.
+    app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+        'account_name' => 'Share Trading Account',
+        'account_type' => 'personal_investment_account',
+        'current_value' => 5000,
+        'annual_dividend_income' => 200,
+    ], $user);
+
+    expect((float) $user->fresh()->annual_dividend_income)->toBe(1000.00);
+});
+
+it('create_investment_account never counts ISA dividends against the Dividend Allowance', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false, 'annual_dividend_income' => null]);
+
+    app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+        'account_name' => 'Vanguard Stocks & Shares ISA',
+        'account_type' => 'stocks_shares_isa',
+        'current_value' => 30000,
+        'annual_dividend_income' => 600,
+    ], $user);
+
+    // ISA dividends are tax-free — they must not touch the taxable figure.
+    expect($user->fresh()->annual_dividend_income)->toBeNull();
+});
+
 it('create_investment_account passes through specialised types unchanged', function (): void {
     $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
 

@@ -2202,6 +2202,7 @@ class CoordinatingAgent extends BaseAgent
             'provider' => 'nullable|string|max:255',
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+            'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -2319,6 +2320,20 @@ class CoordinatingAgent extends BaseAgent
                 'error_type' => 'tier_limit_exceeded',
                 'message' => "You've reached the investment account limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
             ];
+        }
+
+        // Taxable dividend income feeds the user-level figure the tax-strategy
+        // engine reads (Dividend Allowance usage, composed taxable income).
+        // ISA dividends are tax-free, so they never touch it. Accumulates
+        // across accounts; the duplicate check above prevents double-counting
+        // a re-captured account.
+        if ($dbAccountType !== 'isa'
+            && isset($input['annual_dividend_income']) && is_numeric($input['annual_dividend_income'])
+            && (float) $input['annual_dividend_income'] > 0) {
+            $user->update([
+                'annual_dividend_income' => (float) ($user->annual_dividend_income ?? 0)
+                    + (float) $input['annual_dividend_income'],
+            ]);
         }
 
         $this->invalidateUserCache($user->id);

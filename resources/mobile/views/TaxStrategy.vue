@@ -87,7 +87,7 @@
           </div>
           <div class="mts-allow__foot">
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span class="mts-allow__used">{{ fmt(a.used) }} used</span>
+            <span v-if="a.available !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
         </div>
       </div>
@@ -105,7 +105,7 @@
           </div>
           <div class="mts-allow__foot">
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span class="mts-allow__used">{{ fmt(a.used) }} used</span>
+            <span v-if="a.available !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@ export default {
         ? 'Move assets to use spouse allowances'
         : 'Coordinate as a household';
     },
-    headroom() { return this.userAllowances.filter((a) => Number(a.utilisation_pct) < 90); },
+    headroom() { return this.userAllowances.filter((a) => a.available !== false && Number(a.utilisation_pct) < 90); },
     headroomCount() { return this.headroom.length; },
     totalHeadroom() { return this.headroom.reduce((sum, a) => sum + (Number(a.remaining) || 0), 0); },
   },
@@ -166,6 +166,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     barWidth(a) { return `${Math.min(Number(a.utilisation_pct) || 0, 100)}%`; },
     remainingLabel(a) {
+      if (a.available === false) return 'Not available';
       if (Number(a.utilisation_pct) >= 100 || Number(a.remaining) <= 0) return 'Fully used';
       return `${this.fmt(a.remaining)} of headroom`;
     },
@@ -210,6 +211,7 @@ export default {
 .mts-allow__remain--spring { color: var(--spring-600); }
 .mts-allow__remain--violet { color: var(--violet-500); }
 .mts-allow__remain--raspberry { color: var(--raspberry-500); }
+.mts-allow__remain--muted { color: var(--neutral-500); }
 .mts-allow__used { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
 
 .mts-household { background: var(--eggshell-500); }
