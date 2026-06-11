@@ -11,8 +11,8 @@ Handover: `June/June11Updates/handover-2026-06-11-session-1-clear.md`. Deploy no
 
 ### Outstanding
 - [ ] **CSJ re-test the Azlan journey on csjones** (the acceptance moment — see handover "Pick up from here").
-- [ ] **Chip: 24 pre-existing dev test failures** (mortgage lender_name fixtures, InlineHoldings, NetWorth lazy-loading, PreviewGamificationSeeder/PaymentController store-boundary breaches, AwardsDataEntryPoints arch rule).
-- [ ] **Chip: GiftFactory enum mismatch** with the live gifts schema (invalid gift_type/status defaults).
+- [x] **Chip: 24 pre-existing dev test failures** — DONE session 2 (2026-06-11, dev @ `095ccb6`): suite 4,541 passed / 0 failed. Real prod bug fixed en route (NetWorthService joint-assets lazy-load 500, `367d207`); the "mortgage lender_name fixtures" were actually missing tier_configurations seeds; insights featured test realigned to the 1dba112 fallback contract (CSJ-merged May change supersedes the April no-fallback decision — flag if wrong).
+- [x] **Chip: GiftFactory enum mismatch** — DONE session 2 (`095ccb6`): factory aligned to live enums (pet/clt/exempt/small_gift/annual_exemption; within_7_years/survived_7_years), verified with 36 rolled-back inserts.
 - [ ] **Track 2 (coala)**: plan from spec §7 — house_view corpus authored from catalogue ids, RecommendationHandler returns composed plan, planner heuristics, capture overlays, mirror the get_recommendations description into the tool_schema corpus.
 - [ ] Deferred polish: ComposedTaxPlanService double-invocation on GET /api/tax-strategy; conflict notes in section turns (synthesis-only today); answer+retry one-bubble-live vs two-rows-reload; tax-strategy endpoint missing {success,message} envelope (pre-existing).
 - [ ] Caveat to close: observe live-LLM supply of isa_subscription_amount in a recorded run (unit-proven; fixtures omit tool inputs).
