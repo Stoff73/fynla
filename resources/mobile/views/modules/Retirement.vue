@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections">
+  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="your retirement">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your retirement position…</p>
     </div>

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Estate" subtitle="Inheritance tax exposure and planning">
+  <MobileChrome title="Estate" subtitle="Inheritance tax exposure and planning" :loading="loading" loading-label="your estate">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your estate position…</p>
     </div>

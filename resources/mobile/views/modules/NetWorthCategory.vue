@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome>
+  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe" :loading="loading" loading-label="your accounts">
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to net worth">Back</button>
       <h1 class="m-h1">{{ title }}</h1>

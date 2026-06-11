@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance">
+  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your savings">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your savings…</p>
     </div>

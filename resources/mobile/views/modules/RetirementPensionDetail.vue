@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome>
+  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="this pension">
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to retirement">Back</button>
       <h1 class="m-h1">{{ title }}</h1>

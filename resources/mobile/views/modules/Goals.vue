@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Goals and life events" subtitle="Your financial milestones and how they're tracking">
+  <MobileChrome title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your goals…</p>
     </div>

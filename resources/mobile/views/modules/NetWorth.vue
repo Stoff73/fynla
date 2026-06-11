@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe">
+  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe" :loading="loading" loading-label="your net worth">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your net worth…</p>
     </div>

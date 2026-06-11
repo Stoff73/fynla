@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Tax Strategy" :subtitle="taxYear ? `Tax year ${taxYear}` : 'Your allowances and tax-saving actions'">
+  <MobileChrome title="Tax Strategy" :subtitle="taxYear ? `Tax year ${taxYear}` : 'Your allowances and tax-saving actions'" :loading="loading" loading-label="your tax strategy">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your tax position…</p>
     </div>

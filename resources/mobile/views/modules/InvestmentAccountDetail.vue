@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome>
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account">
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to investments">Back</button>
       <h1 class="m-h1">{{ account ? (account.provider || account.platform || 'Investment account') : 'Investment account' }}</h1>

@@ -85,7 +85,7 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-welcome .m-sub { margin-bottom: 14px; }
 .m-net-worth { background: #1F2A44; color: #fff; }
 .m-net-worth .m-sub, .m-net-worth .m-label { color: #C8CFDC; margin-bottom: 4px; }
-.m-net-worth .m-metric { font-size: 32px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
+.m-net-worth .m-metric { font-size: 44px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
 .m-net-worth .m-insight { font-size: 14px; line-height: 1.45; color: #E8ECF3; margin-top: 6px; }
 .m-section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; margin: 18px 4px 8px; }
 .m-module { padding: 16px 18px; }
@@ -166,10 +166,20 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-back { background: transparent; border: 0; color: #E83E6D; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; margin-bottom: 12px; cursor: pointer; }
 .m-hero { background: #1F2A44; color: #fff; }
 .m-hero .m-sub, .m-hero .m-label { color: #C8CFDC; margin-bottom: 4px; }
-.m-hero .m-metric { font-size: 30px; font-weight: 900; margin-bottom: 6px; letter-spacing: -0.5px; }
+.m-hero .m-metric { font-size: 44px; font-weight: 900; margin-bottom: 6px; letter-spacing: -0.5px; }
 .m-hero-sub { font-size: 14px; color: #E8ECF3; }
 .m-detail-rows .m-section-label { margin: 0 0 12px; }
 .m-detail-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #F1F3F6; }
 .m-detail-row:last-child { border-bottom: 0; }
+
+/* Clickable module list rows (savings/investment accounts, net-worth categories,
+   protection policies, pensions) — light-pink rounded hover for affordance. */
+.ms-acct, .mi-acct, .mnw-cat, .mp-policy, .mr-pension {
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+.ms-acct:hover, .mi-acct:hover, .mnw-cat:hover, .mp-policy:hover, .mr-pension:hover {
+  background: #FDF0F4;
+}
 .m-detail-key { font-size: 14px; color: #6B7280; }
 .m-detail-value { font-size: 14px; font-weight: 700; color: #1F2A44; text-align: right; white-space: nowrap; }

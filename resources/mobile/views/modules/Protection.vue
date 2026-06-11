@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain">
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your protection position…</p>
     </div>

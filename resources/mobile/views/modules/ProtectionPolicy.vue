@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome>
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="this policy">
     <div class="m-card m-detail-header">
       <button class="m-back" @click="goBack" aria-label="Back to protection">Back</button>
       <h1 class="m-h1">{{ headerProvider }}</h1>

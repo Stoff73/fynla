@@ -475,10 +475,10 @@
 /* Locked recommendation row (an unlock prompt) — full light-grey dotted outline.
    Actionable recommendations keep the default solid hairline border (no dots). */
 .md-rec.is-unlock {
-  border: 1px dashed var(--horizon-300);
+  border: 2px dotted var(--horizon-300);
   background: transparent;
-  /* overflow:hidden (from .md-rec) clips the dashes at the rounded corners,
-     so the outline looks uneven — let it render fully around the box. */
+  /* overflow:hidden (from .md-rec) clips the dots at the rounded corners, so the
+     outline looks uneven — let it render fully and evenly around the box. */
   overflow: visible;
 }
 .md-rec.is-unlock:hover { border-color: var(--neutral-400); }
@@ -707,11 +707,10 @@
   text-decoration: line-through;
 }
 
-/* Unlock action — a module with no data yet. Distinct dashed accent so it
-   reads as "add details to unlock" rather than a completable recommendation. */
+/* Unlock action — a module with no data yet. Full even dotted outline (see the
+   .md-rec.is-unlock rule above); no thicker left stripe so the dots are uniform. */
 .md-rec.is-unlock {
-  background: var(--eggshell-500);
-  border-left: 3px dashed var(--horizon-200);
+  background: transparent;
 }
 .md-rec.is-unlock .md-rec__title { color: var(--horizon-500); }
 
