@@ -46,6 +46,7 @@ use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
@@ -1816,6 +1817,9 @@ class CoordinatingAgent extends BaseAgent
             'recommendations' => $analysis['ranked_recommendations'] ?? [],
             'total' => count($analysis['ranked_recommendations'] ?? []),
             'surplus' => $analysis['available_surplus'] ?? 0,
+            // Ordered, conflict-resolved tax plan with claim tiers + locked strategies —
+            // the presentation contract lives in the tool description.
+            'composed_tax_plan' => app(ComposedTaxPlanService::class)->forUser($user),
         ];
     }
 
