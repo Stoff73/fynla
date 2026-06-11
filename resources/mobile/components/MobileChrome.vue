@@ -236,7 +236,8 @@ export default {
     async signOut() {
       try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch (e) { /* best-effort */ }
       store.logout();
-      window.location.href = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
+      this.closeDrawer();
+      this.$router.push('/login');
     },
     openFyn() {
       this.fynMounted = true;

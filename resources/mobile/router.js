@@ -4,6 +4,7 @@ import Dashboard from './views/Dashboard.vue';
 import ModuleDetail from './views/ModuleDetail.vue';
 import TaxStrategy from './views/TaxStrategy.vue';
 import Achievements from './views/Achievements.vue';
+import MobileLogin from './views/Login.vue';
 import MobileNetWorth from './views/modules/NetWorth.vue';
 import MobileNetWorthCategory from './views/modules/NetWorthCategory.vue';
 import MobileProtection from './views/modules/Protection.vue';
@@ -32,6 +33,7 @@ const router = createRouter({
   history: createWebHistory(MOBILE_ROUTER_BASE),
   routes: [
     { path: '/', redirect: '/dashboard' },
+    { path: '/login', name: 'm-login', component: MobileLogin },
     { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { auth: true } },
     { path: '/module/:slug', name: 'module-detail', component: ModuleDetail, props: true, meta: { auth: true } },
     { path: '/tax-strategy', name: 'tax-strategy', component: TaxStrategy, meta: { auth: true } },
@@ -52,11 +54,10 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  // Unauthenticated → the canonical funnel login (framed in /m), never a
-  // bespoke scaffold screen.
+  // Unauthenticated → the in-app mobile login screen (mobile-skinned). Signed-in
+  // users hitting /login are bounced to the dashboard by the Login view itself.
   if (to.meta.auth && !store.token) {
-    window.location.href = CANONICAL_LOGIN;
-    return false;
+    return { path: '/login' };
   }
   return true;
 });
