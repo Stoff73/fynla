@@ -231,6 +231,7 @@ export default {
       data: null,
       activeCat: 0,
       buckets: { save_tax: [], retirement: [], savings: [] },
+      areaStats: { save_tax: '', retirement: '', savings: '' },
       level: 1,
       percentile: 57,
       cats: [
@@ -326,15 +327,41 @@ export default {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
     statFor(ci) {
-      const list = this.buckets[this.cats[ci].key] || [];
-      const top = list.filter((r) => !r.done).sort((a, b) => (b.value || 0) - (a.value || 0))[0];
-      return top && top.value ? this.fmt(top.value) : '—';
+      const key = this.cats[ci].key;
+      if (this.areaStats[key]) return this.areaStats[key];
+      const n = (this.buckets[key] || []).length;
+      return n ? `${n} action${n === 1 ? '' : 's'}` : '—';
     },
     goto(route) {
       if (route && this.$route.path !== route) this.$router.push(route);
     },
+    // The aggregator's navigate payloads carry /m app paths; translate to the
+    // equivalent web SPA route (same targets as the finances cards below).
+    webRouteFor(module) {
+      const routes = {
+        tax: '/tax-strategy',
+        retirement: '/net-worth/retirement',
+        savings: '/net-worth/cash',
+        protection: '/protection',
+        investment: '/net-worth/investments',
+        estate: '/estate',
+        goals: '/goals',
+      };
+      return routes[module] || null;
+    },
     openRec(rec) {
-      // Open Fyn with the recommendation as a question (mirrors mobile).
+      // Unlock prompts (KYC gaps / locked tax strategies) capture via Fyn;
+      // real recommendations deep-link to the module screen where they are
+      // actioned — mirrors the /m app's onActionTap split.
+      if (rec.type === 'unlock' || (rec.action && rec.action.kind === 'fyn_capture')) {
+        this.openFyn();
+        return;
+      }
+      const route = this.webRouteFor(rec.module);
+      if (route) {
+        this.goto(route);
+        return;
+      }
       this.openFyn();
     },
     // Open the docked Fyn chat (expands it if collapsed). Mirrors how the
@@ -344,6 +371,7 @@ export default {
       window.dispatchEvent(new Event('fyn-open-chat'));
     },
     toggleRec(rec) {
+      if (rec.type === 'unlock') return; // unlocks have no completion state
       if (rec.done) { rec.done = false; return; }
       rec.done = true;
       // Persist completion so the gamification engine awards points (best-effort).
@@ -368,13 +396,46 @@ export default {
         const res = await api.get('/v1/mobile/dashboard');
         const d = res.data?.data || res.data || {};
         this.data = d;
-        const recs = d.recommendations || {};
-        ['save_tax', 'retirement', 'savings'].forEach((k) => {
-          this.buckets[k] = (recs[k] || []).map((r) => ({
-            id: r.id, title: r.title, meta: r.meta, value: Number(r.value) || 0,
-            module: r.module, done: !!r.done,
-          }));
+
+        // Buckets come from the canonical focus_areas payload (the same
+        // NextActionsService aggregation the /m app renders): tax actions
+        // (recommendations + strategy unlocks, module 'tax') surface in the
+        // unified Top area; retirement and savings have areas of their own.
+        const areas = Array.isArray(d.focus_areas) ? d.focus_areas : [];
+        const byKey = {};
+        areas.forEach((a) => { byKey[a.key] = a; });
+        const mapItem = (it) => ({
+          id: it.id, title: it.title, meta: it.meta || '',
+          value: Number(it.value) || 0, module: it.module,
+          done: !!it.done, type: it.type, action: it.action || null,
         });
+
+        const seen = new Set();
+        const taxActions = [];
+        areas.forEach((a) => (a.actions || []).forEach((it) => {
+          if (it.module === 'tax' && !seen.has(it.id)) {
+            seen.add(it.id);
+            taxActions.push(mapItem(it));
+          }
+        }));
+
+        const bucketFor = (key) => ((byKey[key] || {}).actions || []).map(mapItem);
+        this.buckets = {
+          save_tax: taxActions,
+          retirement: bucketFor('retirement'),
+          savings: bucketFor('savings'),
+        };
+        const areaStat = (key, list) => {
+          const area = byKey[key];
+          if (area && area.locked) return 'Locked';
+          return list.length ? `${list.length} action${list.length === 1 ? '' : 's'}` : '—';
+        };
+        this.areaStats = {
+          save_tax: taxActions.length ? `${taxActions.length} action${taxActions.length === 1 ? '' : 's'}` : '—',
+          retirement: areaStat('retirement', this.buckets.retirement),
+          savings: areaStat('savings', this.buckets.savings),
+        };
+
         const lv = d.level || {};
         this.level = lv.level ?? 1;
         this.percentile = d.percentile ?? 57;
