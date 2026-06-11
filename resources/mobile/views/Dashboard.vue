@@ -230,7 +230,7 @@
 
     <!-- Docked Fyn bar -->
     <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
-      <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
+      <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
         <span class="md-fyn-dock__status">Your financial companion</span>
@@ -290,7 +290,7 @@
     <section class="md-fyn" :class="{ 'is-open': fynOpen }" :hidden="!fynMounted" aria-label="Chat with Fyn">
       <header class="md-fyn__head">
         <div class="md-fyn__title">
-          <span class="md-fyn__avatar" aria-hidden="true">F</span>
+          <span class="md-fyn__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
           <div>
             <p class="md-fyn__name">Fyn</p>
             <p class="md-fyn__status">Your financial companion</p>
@@ -328,7 +328,7 @@
       </div>
 
       <form class="md-fyn__compose" @submit.prevent="send()">
-        <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
+        <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
         <label for="md-fyn-input" class="visually-hidden">Ask Fyn a question</label>
         <input id="md-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
@@ -432,6 +432,9 @@ export default {
     },
     userEmail() {
       return store.user?.email || '';
+    },
+    fynIcon() {
+      return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';
     },
     // Drives the shared fireworks takeover. Set from a level_up SSE frame
     // (after Fyn's reply) or a missed celebration delivered by fetchStatus.

@@ -460,16 +460,25 @@
 .md-focus__card.is-active .md-focus__label { color: var(--raspberry-500); }
 .md-focus__card.is-active .md-focus__stat { color: var(--raspberry-600); }
 
-/* Locked — grey box with a grey dashed border all around; grey title. */
+/* Locked — grey box, grey title. Solid border (the dotted treatment now lives
+   on the locked recommendation rows, not the focus card). */
 .md-focus__card.is-locked,
 .md-focus__card.is-locked.is-active {
   background: var(--light-gray);
-  border: 2px dashed var(--neutral-400);
+  border: 1px solid var(--horizon-100);
   box-shadow: none;
 }
 .md-focus__card.is-locked .md-focus__label,
 .md-focus__card.is-locked.is-active .md-focus__label { color: var(--neutral-500); }
 .md-focus__card.is-locked .md-focus__stat { color: var(--neutral-500); }
+
+/* Locked recommendation row (an unlock prompt) — full light-grey dotted outline.
+   Actionable recommendations keep the default solid hairline border (no dots). */
+.md-rec.is-unlock {
+  border: 1px dashed var(--horizon-300);
+  background: transparent;
+}
+.md-rec.is-unlock:hover { border-color: var(--neutral-400); }
 
 /* Slim done-count above the action list (the active card already labels it) */
 .md-recs__count {
@@ -997,6 +1006,12 @@
   font-size: 0.9375rem;
   flex-shrink: 0;
 }
+/* Fyn avatar now shows the Fyn icon image (matches the desktop chat). The icon
+   fills the circle; drop the gradient + letter styling when an <img> is present. */
+.md-fyn-dock__avatar:has(img),
+.md-fyn__avatar:has(img) { background: none; overflow: hidden; }
+.md-fyn-dock__avatar img,
+.md-fyn__avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-full); display: block; }
 .md-fyn-dock__text {
   flex: 1;
   display: flex;
