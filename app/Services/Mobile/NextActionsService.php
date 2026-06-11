@@ -6,6 +6,7 @@ namespace App\Services\Mobile;
 
 use App\Models\RecommendationTracking;
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\PrerequisiteGateService;
 
@@ -22,9 +23,13 @@ class NextActionsService
     /** Modules that can produce an unlock prompt, in surfacing priority order. */
     private const UNLOCK_MODULES = ['retirement', 'protection', 'savings', 'investment', 'estate', 'goals'];
 
+    /** Max strategy-level unlock cards to surface — keeps the 4-slot list from being crowded. */
+    private const MAX_STRATEGY_UNLOCKS = 2;
+
     public function __construct(
         private readonly RecommendationsAggregatorService $recommendations,
         private readonly PrerequisiteGateService $gate,
+        private readonly ComposedTaxPlanService $taxPlan,
     ) {}
 
     /**
@@ -37,6 +42,7 @@ class NextActionsService
         return $this->rank(array_merge(
             $this->recommendationItems($userId),
             $this->unlockItems($user),
+            $this->strategyUnlockItems($user),
         ));
     }
 
@@ -54,7 +60,7 @@ class NextActionsService
         $user = User::findOrFail($userId);
 
         $recItems = $this->recommendationItems($userId);
-        $unlocks = $this->unlockItems($user);
+        $unlocks = array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
 
         // Top card = the unified <=4 (recs + unlocks), same ranking as build().
         $top = $this->rank(array_merge($recItems, $unlocks));
@@ -255,6 +261,48 @@ class NextActionsService
                 'value' => $weight,
                 'done' => false,
                 'action' => ['kind' => 'fyn_capture', 'payload' => $module],
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Strategy-level unlock cards: tax gate open but individual strategies are
+     * locked by a single missing data point each. Teases the unlock to the user
+     * and routes to tax strategy capture. Uses type 'unlock' so the frontend
+     * carousel styles and tap-handler (openFynForCapture) work without changes;
+     * the id prefix 'strategy_unlock:' distinguishes them from module unlocks.
+     * At most MAX_STRATEGY_UNLOCKS items so they never crowd the 4-slot list.
+     *
+     * These carry a slightly higher weight than module-level unlocks (+5) because
+     * they are more specific: we know the exact missing data point, which makes
+     * them more actionable than a generic "unlock module" prompt.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function strategyUnlockItems(User $user): array
+    {
+        if ($this->gate->enforce('tax_optimisation', $user)['can_proceed'] !== true) {
+            return [];
+        }
+
+        $plan = $this->taxPlan->forUser($user);
+        $weight = (float) config('gamification.unlock_action_weight', 65) + 5.0;
+        $items = [];
+
+        foreach (array_slice($plan['locked'], 0, self::MAX_STRATEGY_UNLOCKS) as $locked) {
+            $missingLabel = str_replace('_', ' ', (string) ($locked['missing'][0] ?? 'a detail'));
+
+            $items[] = [
+                'id' => 'strategy_unlock:'.$locked['strategy_type'],
+                'type' => 'unlock',
+                'module' => 'tax',
+                'title' => 'Unlock a tax strategy',
+                'meta' => 'Tell us about your '.$missingLabel,
+                'value' => $weight,
+                'done' => false,
+                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax'],
             ];
         }
 
