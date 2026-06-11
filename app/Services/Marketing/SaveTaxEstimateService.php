@@ -231,8 +231,24 @@ class SaveTaxEstimateService
             }
             $items[] = $startItem;
 
+            // Personal Savings Allowance — per person. A non-earning spouse still
+            // gets the basic-rate amount; an earning spouse gets their band amount
+            // (the same rule as your own card). Greyed without household savings.
+            $spousePsa = $this->personalSavingsAllowance($spouseIncome);
+            $spousePsaItem = ['key' => 'spouse_psa', 'label' => "Spouse's Personal Savings Allowance", 'amount' => $spousePsa, 'on' => $has('savings', 'bank') && $spousePsa > 0];
+            if ($spouseNoIncome && $spousePsa > 0) {
+                $spousePsaItem['note'] = 'A non-earning spouse still gets the basic-rate '.$this->money($spousePsa).' of savings interest tax-free.';
+            }
+            $items[] = $spousePsaItem;
+
             $items[] = ['key' => 'spouse_isa', 'label' => "Spouse's ISA Allowance", 'amount' => $isa, 'on' => true];
             $items[] = $this->pensionAaItem('spouse_pension_aa', "Spouse's Pension Annual Allowance", $spouseIncome);
+
+            // Dividend and CGT allowances are also per person — held in the
+            // spouse's name they double the household's tax-free headroom. Same
+            // gating as your own cards.
+            $items[] = ['key' => 'spouse_dividend', 'label' => "Spouse's Dividend Allowance", 'amount' => $divAllowance, 'on' => $has('investments')];
+            $items[] = ['key' => 'spouse_cgt', 'label' => "Spouse's Capital Gains Tax Allowance", 'amount' => $cgt, 'on' => $has('investments', 'property')];
         }
 
         $total = 0;

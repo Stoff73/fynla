@@ -82,7 +82,7 @@
     ? window.SAVETAX_ESTIMATE : null;
 
   // Allowance keys shown in the "Income" column (everything else → Investment & Cash).
-  var INCOME_KEYS = ['personal_allowance', 'marriage_allowance', 'psa', 'spouse_pa', 'spouse_starting_rate'];
+  var INCOME_KEYS = ['personal_allowance', 'marriage_allowance', 'psa', 'spouse_pa', 'spouse_starting_rate', 'spouse_psa'];
 
   // Allowance key → matching saving line (for the "could save" callout + reason).
   // The 60% tax-trap saving now attaches to the (tapered) Personal Allowance card

@@ -157,9 +157,35 @@ it('builds the allowances-available total and doubles per-person allowances when
         'assets' => ['savings', 'investments'],
     ]);
     // Single part 36,570 + spouse PA 12,570 + spouse starting rate 5,000
-    // + spouse ISA 20,000 + spouse AA 3,600 (non-earner, capped) = 77,740.
+    // + spouse PSA 1,000 + spouse ISA 20,000 + spouse AA 3,600 (non-earner)
+    // + spouse dividend 500 + spouse CGT 3,000 = 82,240.
     // Marriage Allowance NOT eligible (higher-rate primary).
-    expect($married['allowances']['total'])->toBe(77740);
+    expect($married['allowances']['total'])->toBe(82240);
+});
+
+it('gives the spouse every per-person allowance the primary gets (PSA, dividend, CGT)', function () {
+    // Non-earning spouse: PSA at the basic rate (£1,000), plus dividend and CGT.
+    $nonEarner = $this->service->estimate([
+        'income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'zero',
+        'assets' => ['savings', 'investments'],
+    ]);
+    $psa = collect($nonEarner['allowances']['items'])->firstWhere('key', 'spouse_psa');
+    expect($psa['on'])->toBeTrue()->and($psa['amount'])->toBe(1000); // basic-rate PSA
+    expect(itemOn($nonEarner, 'spouse_dividend'))->toBeTrue()
+        ->and(itemOn($nonEarner, 'spouse_cgt'))->toBeTrue();
+
+    // Earning (higher-rate) spouse: PSA at the band amount (£500), same as the primary.
+    $earner = $this->service->estimate([
+        'income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => '50271_100000',
+        'assets' => ['savings', 'investments'],
+    ]);
+    expect(collect($earner['allowances']['items'])->firstWhere('key', 'spouse_psa')['amount'])->toBe(500);
+
+    // No household savings → spouse PSA greyed (same gate as the primary's PSA).
+    $noSavings = $this->service->estimate([
+        'income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => [],
+    ]);
+    expect(itemOn($noSavings, 'spouse_psa'))->toBeFalse();
 });
 
 it('reports the active tax year from config', function () {
@@ -278,11 +304,20 @@ it('highlights the correct allowances and keeps the math consistent for every po
                     $spouseQualifies = $spouseOpt === 'zero' || $spouseOpt === '100001_125140';
                     expect(itemOn($r, 'spouse_pension_aa'))->toBe($spouseQualifies, "spouse AA gating wrong [$label]");
                     expect(itemOn($r, 'spouse_starting_rate'))->toBe($spouseOpt === 'zero', "spouse starting-rate gating wrong [$label]");
+                    // Spouse per-person PSA / dividend / CGT mirror the primary's gating.
+                    $spouseInc = ['zero' => 0, 'upto_50270' => 50270, '50271_100000' => 100000, '100001_125140' => 125140, 'over_125140' => 150000][$spouseOpt];
+                    $spousePsaBand = $spouseInc > 125140 ? 0 : ($spouseInc > 50270 ? 500 : 1000);
+                    expect(itemOn($r, 'spouse_psa'))->toBe($has('savings', 'bank') && $spousePsaBand > 0, "spouse PSA gating wrong [$label]");
+                    expect(itemOn($r, 'spouse_dividend'))->toBe($has('investments'), "spouse dividend gating wrong [$label]");
+                    expect(itemOn($r, 'spouse_cgt'))->toBe($has('investments', 'property'), "spouse CGT gating wrong [$label]");
                 } else {
                     expect(itemOn($r, 'marriage_allowance'))->toBeNull("MA shown for single [$label]");
                     expect(itemOn($r, 'spouse_pa'))->toBeNull("spouse PA shown for single [$label]");
                     expect(itemOn($r, 'spouse_pension_aa'))->toBeNull("spouse AA shown for single [$label]");
                     expect(itemOn($r, 'spouse_starting_rate'))->toBeNull("spouse starting-rate shown for single [$label]");
+                    expect(itemOn($r, 'spouse_psa'))->toBeNull("spouse PSA shown for single [$label]");
+                    expect(itemOn($r, 'spouse_dividend'))->toBeNull("spouse dividend shown for single [$label]");
+                    expect(itemOn($r, 'spouse_cgt'))->toBeNull("spouse CGT shown for single [$label]");
                 }
 
                 // The standalone 60% Tax Trap allowance card is removed in every
