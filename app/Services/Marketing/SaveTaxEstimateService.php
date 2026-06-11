@@ -270,27 +270,39 @@ class SaveTaxEstimateService
     private function personalAllowanceItem(string $key, string $label, int $income): array
     {
         $amount = (int) round($this->personalAllowance($income));
-        $item = ['key' => $key, 'label' => $label, 'amount' => $amount, 'on' => true];
+        $taper = $this->taperThreshold();
+        $additional = (int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
+        $inTrap = $income > $taper && $income <= $additional;
 
-        if ($income > $this->taperThreshold()) {
-            $item['label'] = $label.' (tapered)';
-            $additional = (int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
-            // £100k–£125,140 is the 60% tax trap: the Personal Allowance is lost
-            // at £1 for every £2. Above £125,140 it is gone entirely.
-            $item['note'] = $income <= $additional
-                ? 'Income over '.$this->money($this->taperThreshold()).' loses the Personal Allowance at £1 for every £2 — an effective 60% tax rate. A pension contribution restores it.'
-                : 'Income over '.$this->money($additional).' has tapered your Personal Allowance away entirely. A pension contribution can restore it.';
+        $item = [
+            'key' => $key,
+            'label' => $income > $taper ? $label.' (tapered)' : $label,
+            'amount' => $amount,
+            // A working earner's Personal Allowance is used automatically by their
+            // salary, so the card is greyed. It is only "available" to a non-earner
+            // (unused) or someone in the £100k–£125,140 taper (reclaimable via a
+            // pension contribution).
+            'on' => $this->personalAllowanceClaimable($income),
+        ];
+
+        if ($inTrap) {
+            $item['note'] = 'Income over '.$this->money($taper).' loses the Personal Allowance at £1 for every £2 — an effective 60% tax rate. A pension contribution restores it.';
+        } elseif ($income > $additional) {
+            $item['note'] = 'Income over '.$this->money($additional).' has tapered your Personal Allowance away entirely.';
+        } elseif ($income > 0) {
+            $item['note'] = 'Automatically used against your income.';
+        } else {
+            $item['note'] = 'Not yet used — available to set against income or savings.';
         }
 
         return $item;
     }
 
     /**
-     * Build a Pension Annual Allowance allowance-row. Surfaced as a live lever
-     * only for a non-earner (the £3,600 relevant-earnings route) or someone in
-     * the £100k–£125,140 Personal Allowance taper (a pension contribution there
-     * escapes the 60% trap); greyed in every other band. A non-earner's figure
-     * is capped at the £3,600 relevant-earnings minimum, not the full allowance.
+     * Build a Pension Annual Allowance allowance-row. The Pension Annual
+     * Allowance is for pensions, not income: a working earner gets the full
+     * £60,000 and it is always shown. A non-earner's figure is capped at the
+     * £3,600 relevant-earnings minimum (they can only contribute up to that).
      *
      * @return array<string,mixed>
      */
@@ -305,7 +317,7 @@ class SaveTaxEstimateService
             'key' => $key,
             'label' => $label,
             'amount' => $isNonEarner ? $nonEarnerLimit : $aa,
-            'on' => $this->qualifiesForAnnualAllowance($income),
+            'on' => true, // always shown: a worker gets £60k, a non-earner the £3,600 route
         ];
 
         if ($isNonEarner) {
@@ -317,11 +329,12 @@ class SaveTaxEstimateService
     }
 
     /**
-     * The Pension Annual Allowance is surfaced as a tax-saving lever only for a
-     * non-earner (£0) or someone inside the £100k–£125,140 Personal Allowance
-     * taper. Every other band shows it greyed.
+     * The Personal Allowance is shown as "available" only to a non-earner (it is
+     * still unused) or someone inside the £100k–£125,140 taper (it can be
+     * reclaimed via a pension contribution). A working earner's Personal
+     * Allowance is used automatically by their salary, so the card is greyed.
      */
-    private function qualifiesForAnnualAllowance(int $income): bool
+    private function personalAllowanceClaimable(int $income): bool
     {
         $additional = (int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
 

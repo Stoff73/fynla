@@ -63,13 +63,26 @@ it('merges the 60% trap into the tapered Personal Allowance card (no standalone 
         ->and(hasSaving($trap, 'tax_trap_60'))->toBeTrue();
 });
 
-it('gates the Pension Annual Allowance card to the £0 and £100k–£125,140 scenarios', function () {
-    // Greyed for ordinary basic/higher/additional earners.
-    expect(itemOn($this->service->estimate(['income' => 'upto_50270', 'assets' => []]), 'pension_aa'))->toBeFalse()
-        ->and(itemOn($this->service->estimate(['income' => '50271_100000', 'assets' => []]), 'pension_aa'))->toBeFalse()
-        ->and(itemOn($this->service->estimate(['income' => 'over_125140', 'assets' => []]), 'pension_aa'))->toBeFalse()
-        // On in the £100k–£125,140 taper band (pension contribution escapes the trap).
-        ->and(itemOn($this->service->estimate(['income' => '100001_125140', 'assets' => []]), 'pension_aa'))->toBeTrue();
+it('greys the Personal Allowance for a working earner; shows it only for £0 or the £100k–£125,140 band', function () {
+    // A working earner's Personal Allowance is used automatically by their
+    // salary — greyed.
+    expect(itemOn($this->service->estimate(['income' => 'upto_50270', 'assets' => []]), 'personal_allowance'))->toBeFalse()
+        ->and(itemOn($this->service->estimate(['income' => '50271_100000', 'assets' => []]), 'personal_allowance'))->toBeFalse()
+        ->and(itemOn($this->service->estimate(['income' => 'over_125140', 'assets' => []]), 'personal_allowance'))->toBeFalse()
+        // Shown only in the £100k–£125,140 taper (reclaimable via a pension).
+        ->and(itemOn($this->service->estimate(['income' => '100001_125140', 'assets' => []]), 'personal_allowance'))->toBeTrue();
+});
+
+it('always shows the Pension Annual Allowance — £60k for a worker (it is for pensions, not income)', function () {
+    // The pension annual allowance is shown in every working band.
+    expect(itemOn($this->service->estimate(['income' => 'upto_50270', 'assets' => []]), 'pension_aa'))->toBeTrue()
+        ->and(itemOn($this->service->estimate(['income' => '50271_100000', 'assets' => []]), 'pension_aa'))->toBeTrue()
+        ->and(itemOn($this->service->estimate(['income' => 'over_125140', 'assets' => []]), 'pension_aa'))->toBeTrue();
+
+    foreach (['upto_50270', '50271_100000', '100001_125140', 'over_125140'] as $band) {
+        $aa = collect($this->service->estimate(['income' => $band, 'assets' => []])['allowances']['items'])->firstWhere('key', 'pension_aa');
+        expect($aa['amount'])->toBe(60000); // a worker gets the full £60,000
+    }
 });
 
 it('shows a non-earning spouse a £3,600 pension allowance and the £5,000 starting-rate card', function () {
@@ -146,9 +159,9 @@ it('does not add spouse levers when there is no spouse', function () {
 
 it('builds the allowances-available total and doubles per-person allowances when married', function () {
     $single = $this->service->estimate(['income' => '50271_100000', 'assets' => ['savings', 'investments']]);
-    // Higher-rate earner → Pension AA greyed (only £0 / £100k–£125,140 qualify).
-    // PA 12,570 + ISA 20,000 + PSA 500 + dividend 500 + CGT 3,000 = 36,570
-    expect($single['allowances']['total'])->toBe(36570);
+    // Working earner → Personal Allowance greyed (auto-used); Pension AA shown.
+    // ISA 20,000 + Pension AA 60,000 + PSA 500 + dividend 500 + CGT 3,000 = 84,000
+    expect($single['allowances']['total'])->toBe(84000);
 
     $married = $this->service->estimate([
         'income' => '50271_100000',
@@ -156,11 +169,11 @@ it('builds the allowances-available total and doubles per-person allowances when
         'spouseIncome' => 'zero',
         'assets' => ['savings', 'investments'],
     ]);
-    // Single part 36,570 + spouse PA 12,570 + spouse starting rate 5,000
-    // + spouse PSA 1,000 + spouse ISA 20,000 + spouse AA 3,600 (non-earner)
-    // + spouse dividend 500 + spouse CGT 3,000 = 82,240.
+    // Single part 84,000 + spouse PA 12,570 (non-earner, shown) + starting rate
+    // 5,000 + spouse PSA 1,000 + spouse ISA 20,000 + spouse AA 3,600 (non-earner)
+    // + spouse dividend 500 + spouse CGT 3,000 = 129,670.
     // Marriage Allowance NOT eligible (higher-rate primary).
-    expect($married['allowances']['total'])->toBe(82240);
+    expect($married['allowances']['total'])->toBe(129670);
 });
 
 it('gives the spouse every per-person allowance the primary gets (PSA, dividend, CGT)', function () {
@@ -275,11 +288,12 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 }
 
                 // --- Allowance highlighting (on/off) correctness ---
-                expect(itemOn($r, 'personal_allowance'))->toBeTrue("PA must always show [$label]");
+                // Personal Allowance: greyed for a working earner (auto-used);
+                // shown only in the £100k–£125,140 taper (primary has no £0 band).
+                expect(itemOn($r, 'personal_allowance'))->toBe($isTrap, "PA gating wrong [$label]");
                 expect(itemOn($r, 'isa'))->toBeTrue("ISA must always show [$label]");
-                // Pension AA is gated: a primary earner only qualifies inside the
-                // £100k–£125,140 taper (the primary income question has no £0 band).
-                expect(itemOn($r, 'pension_aa'))->toBe($isTrap, "Pension AA gating wrong [$label]");
+                // Pension Annual Allowance is always shown — a worker gets £60k.
+                expect(itemOn($r, 'pension_aa'))->toBeTrue("Pension AA must always show [$label]");
                 expect(itemOn($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA on/off wrong [$label]");
                 expect(itemOn($r, 'dividend'))->toBe($has('investments'), "Dividend on/off wrong [$label]");
                 expect(itemOn($r, 'cgt'))->toBe($has('investments', 'property'), "CGT on/off wrong [$label]");
@@ -298,11 +312,13 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 $marriageEligible = $married && $spouseOpt === 'zero' && $primaryBasic;
                 if ($married) {
                     expect(itemOn($r, 'marriage_allowance'))->toBe($marriageEligible, "MA eligibility wrong [$label]");
-                    expect(itemOn($r, 'spouse_pa'))->toBeTrue("spouse PA item missing [$label]");
-                    // Spouse Pension AA gated to £0 or the £100k–£125,140 taper;
+                    // Spouse Personal Allowance: greyed for a working spouse; shown
+                    // only for a non-earner (£0) or the £100k–£125,140 taper.
+                    $spousePaClaimable = $spouseOpt === 'zero' || $spouseOpt === '100001_125140';
+                    expect(itemOn($r, 'spouse_pa'))->toBe($spousePaClaimable, "spouse PA gating wrong [$label]");
+                    // Spouse Pension AA always shown (£3,600 non-earner / £60k worker);
                     // spouse Starting Rate for Savings only for a non-earning spouse.
-                    $spouseQualifies = $spouseOpt === 'zero' || $spouseOpt === '100001_125140';
-                    expect(itemOn($r, 'spouse_pension_aa'))->toBe($spouseQualifies, "spouse AA gating wrong [$label]");
+                    expect(itemOn($r, 'spouse_pension_aa'))->toBeTrue("spouse AA must always show [$label]");
                     expect(itemOn($r, 'spouse_starting_rate'))->toBe($spouseOpt === 'zero', "spouse starting-rate gating wrong [$label]");
                     // Spouse per-person PSA / dividend / CGT mirror the primary's gating.
                     $spouseInc = ['zero' => 0, 'upto_50270' => 50270, '50271_100000' => 100000, '100001_125140' => 125140, 'over_125140' => 150000][$spouseOpt];
