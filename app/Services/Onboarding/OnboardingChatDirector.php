@@ -17,8 +17,9 @@ use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
+use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Gamification\PointsService;
-use App\Services\Tax\TaxStrategyCalculator;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -728,27 +729,44 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Build the conversational advice for a completed section by running the
-     * canonical TaxStrategyCalculator and surfacing the top recommendations
-     * relevant to that section. Numbers come from the engine (Rule #2); Fyn
-     * only phrases them. Returns null when there's nothing relevant to say.
+     * Strategy types voiced per campaign section (plan order wins within the
+     * section — this map documents which types belong to each section, not
+     * their relative priority). Max two strategies voiced per section; the
+     * synthesis turn collects the rest.
+     *
+     * The 'giving' and 'expenditure' sections are not voiced here (null
+     * returned) — gift_aid_higher_rate_relief requires a live charitable-giving
+     * figure and is covered in the synthesis turn.
+     */
+    private const SECTION_STRATEGY_TYPES = [
+        'income' => ['pa_taper_rescue', 'additional_rate_avoidance', 'tapered_annual_allowance'],
+        'savings' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'],
+        'investments' => ['bed_and_isa', 'dividend_allowance_harvest'],
+        'pensions' => ['salary_sacrifice_ni', 'pension_aa_carry_forward'],
+        'giving' => ['gift_aid_higher_rate_relief'],
+        'spouse' => ['non_earner_spouse_pension', 'savings_to_spouse', 'isa_topup_spouse', 'marriage_allowance_transfer', 'gia_to_spouse', 'gia_rebalance', 'isa_coordination'],
+    ];
+
+    /**
+     * Build the conversational advice for a completed section from the composed
+     * tax plan catalogue. Numbers come from the engine (Rule #2); Fyn only
+     * phrases them. Plan order is respected — the composer's sequencing and
+     * conflict resolution are already applied. Returns null when there are no
+     * applicable strategies for the section.
      */
     private function buildSectionAdvice(User $user, string $section): ?string
     {
-        $map = [
-            'income' => ['intro' => "Here's where you stand on income tax.", 'types' => ['pa_taper_rescue', 'additional_rate_avoidance'], 'categories' => ['income_band']],
-            'savings' => ['intro' => 'On your savings and cash:', 'types' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'], 'categories' => []],
-            'investments' => ['intro' => 'On your investments:', 'types' => ['dividend_allowance_harvest', 'bed_and_isa'], 'categories' => []],
-            'pensions' => ['intro' => 'On pensions:', 'types' => ['salary_sacrifice_ni', 'pension_aa_carry_forward', 'tapered_annual_allowance', 'non_earner_spouse_pension'], 'categories' => []],
-            'spouse' => ['intro' => 'As a couple:', 'types' => [], 'categories' => ['household']],
-        ];
-        $conf = $map[$section] ?? null;
-        if ($conf === null) {
+        if ($section === 'synthesis') {
+            return $this->buildSynthesisAdvice($user);
+        }
+
+        $wanted = self::SECTION_STRATEGY_TYPES[$section] ?? null;
+        if ($wanted === null) {
             return null;
         }
 
         try {
-            $recs = app(TaxStrategyCalculator::class)->calculate($user->refresh())->recommendations;
+            $plan = app(ComposedTaxPlanService::class)->forUser($user);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Section advice calculation failed', [
                 'user_id' => $user->id,
@@ -759,24 +777,109 @@ final class OnboardingChatDirector
             return null;
         }
 
-        $relevant = array_values(array_filter($recs, fn (array $r): bool => in_array($r['type'] ?? '', $conf['types'], true)
-            || in_array($r['category'] ?? '', $conf['categories'], true)));
-        if ($relevant === []) {
+        $lines = [];
+        foreach ($plan['items'] as $item) {
+            if (! in_array($item['type'] ?? '', $wanted, true)) {
+                continue;
+            }
+            // Tiered voicing: mechanical strategies stated directly; judgement
+            // strategies hedged so Fyn does not over-promise uncertain outcomes.
+            $prefix = ($item['claim_tier'] ?? 'judgement') === 'mechanical' ? '' : 'You may want to consider: ';
+            $title = trim((string) ($item['title'] ?? ''));
+            $desc = trim((string) ($item['description'] ?? ''));
+            $lines[] = $prefix.$title.'.'.($desc !== '' ? ' '.$desc : '');
+            if (count($lines) >= 2) {
+                break;
+            }
+        }
+
+        return $lines === [] ? null : implode("\n\n", $lines);
+    }
+
+    /**
+     * A4 — the consolidated plan voiced at the end of the savetax flow:
+     * every eligible strategy in composer order (nothing dropped by section
+     * caps), numbered, with conflict notes, a combined realisable total, at
+     * most ONE locked-strategy tease, and the FCA signposting line. The
+     * /tax-strategy page renders the same composed plan, so chat and page
+     * cannot disagree.
+     *
+     * Conflict notes contain raw strategy-type tokens (e.g. "savings_to_spouse")
+     * from the composer. We humanise them by swapping the token for the title of
+     * the matching item when one exists, then fall back to space-replacing
+     * underscores. This keeps the text user-friendly without duplicating the
+     * composer's conflict-resolution logic.
+     */
+    private function buildSynthesisAdvice(User $user): ?string
+    {
+        try {
+            $plan = app(ComposedTaxPlanService::class)->forUser($user);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Synthesis advice calculation failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return null;
         }
 
-        usort($relevant, fn (array $a, array $b): int => (int) ($b['estimated_annual_tax_saved'] ?? 0) <=> (int) ($a['estimated_annual_tax_saved'] ?? 0));
-
-        $parts = [];
-        foreach (array_slice($relevant, 0, 2) as $r) {
-            $saving = (float) ($r['estimated_annual_tax_saved'] ?? 0);
-            $savingStr = $saving > 0 ? ' — around £'.number_format($saving).' a year' : '';
-            $title = trim((string) ($r['title'] ?? ''));
-            $desc = trim((string) ($r['description'] ?? ''));
-            $parts[] = rtrim($title.$savingStr, '. ').'.'.($desc !== '' ? ' '.$desc : '');
+        if ($plan['items'] === []) {
+            return null;
         }
 
-        return $conf['intro'].' '.implode(' ', $parts);
+        // Build a type → title map for humanising conflict notes.
+        $typeToTitle = [];
+        foreach ($plan['items'] as $item) {
+            $type = (string) ($item['type'] ?? '');
+            $title = trim((string) ($item['title'] ?? ''));
+            if ($type !== '' && $title !== '') {
+                $typeToTitle[$type] = $title;
+            }
+        }
+
+        $lines = ['Here is your plan, in the order I suggest tackling it:'];
+        foreach ($plan['items'] as $item) {
+            $saving = $item['estimated_annual_tax_saved'] ?? null;
+            $savingFormatted = is_numeric($saving) ? number_format((int) round((float) $saving)) : '';
+            // Skip the suffix when the title already quotes the amount
+            // ("Save around £24 a year by …" must not gain "— around £24 a year").
+            $savingText = $savingFormatted !== '' && (float) $saving > 0
+                && ! str_contains((string) $item['title'], '£'.$savingFormatted)
+                ? sprintf(' — around £%s a year', $savingFormatted)
+                : '';
+            $lines[] = sprintf('%d. %s%s', $item['sequence_position'], $item['title'], $savingText);
+
+            $conflictNote = trim((string) ($item['conflict_note'] ?? ''));
+            if ($conflictNote !== '') {
+                // Replace type tokens in the note with the item's title where known,
+                // then fall back to underscores → spaces for any remaining tokens.
+                foreach ($typeToTitle as $type => $title) {
+                    $conflictNote = str_replace($type, $title, $conflictNote);
+                }
+                $conflictNote = str_replace('_', ' ', $conflictNote);
+                $lines[] = '   Note: '.$conflictNote;
+            }
+        }
+
+        $total = (float) ($plan['combined_annual_saving'] ?? 0.0);
+        if ($total > 0) {
+            $lines[] = sprintf('Together these are worth roughly £%s a year.', number_format((int) round($total)));
+        }
+
+        foreach (array_slice($plan['locked'], 0, 1) as $locked) {
+            $missingFields = array_map(
+                fn (string $f): string => HouseholdFinancialContext::labelFor($f),
+                (array) ($locked['missing'] ?? [])
+            );
+            $lines[] = sprintf(
+                'One more strategy is waiting — tell me about your %s and I can check it for you.',
+                implode(' and your ', $missingFields),
+            );
+        }
+
+        $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
+
+        return implode("\n", $lines);
     }
 
     /**
@@ -1459,6 +1562,14 @@ final class OnboardingChatDirector
         $captureDetails = [];
         $captureError = null;
 
+        // A1 — answer-the-user-first on a grouped_extract turn. When the
+        // user's message asks a question, buffer the model's prose so a
+        // definitional answer can be delivered alongside the scripted re-ask
+        // when no extraction lands. Without a question the prose is swallowed
+        // exactly as before (the extraction tool is meant to fire silently).
+        $userAskedQuestion = $this->userAskedQuestion($message);
+        $answerBuffer = '';
+
         try {
             $generator = $this->coordinatingAgent->chatWithPromptOverride(
                 $user,
@@ -1523,7 +1634,15 @@ final class OnboardingChatDirector
                 // Claude emit chatty text alongside the tool call. Letting
                 // that text through stacks two assistant messages (model
                 // text + director retry) on the user on failed captures.
+                //
+                // A1 — exception: when the user asked a question, keep the
+                // prose in $answerBuffer so a definitional answer can be
+                // emitted before the re-ask if no extraction lands.
                 if (($event['type'] ?? '') === 'content') {
+                    if ($userAskedQuestion) {
+                        $answerBuffer .= (string) ($event['text'] ?? '');
+                    }
+
                     continue;
                 }
 
@@ -1561,6 +1680,39 @@ final class OnboardingChatDirector
                 'state' => $currentStateId,
                 'tool' => $toolName,
             ]);
+
+            // A1 — the user asked a question that yielded no extraction.
+            // Deliver the definitional answer (personal figures stripped)
+            // before the scripted re-ask so the question is not ignored.
+            if ($userAskedQuestion && $answerBuffer !== '') {
+                $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
+                if ($answer !== '') {
+                    $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
+                        'metadata' => [
+                            'onboarding_step' => $currentStateId,
+                            'is_question_answer' => true,
+                        ],
+                    ]);
+                    yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
+                }
+            }
+
+            // Carry-forward disambiguation (director side). The model often
+            // declines to call capture_pension_history for a lone figure like
+            // "Around £90,000" — judging, correctly, that it can't tell whether
+            // it's a three-year total or a per-year amount. When it declines,
+            // the handler-level guard never runs, so the generic retry_text
+            // alone would re-ask without ever clarifying the total-vs-per-year
+            // ambiguity. States that opt in via `clarify_single_figure` emit
+            // the real clarifying question here instead, staying on-state so
+            // the user's disambiguated reply re-enters this handler.
+            if (($state['clarify_single_figure'] ?? false) === true
+                && $this->messageIsAmbiguousSingleFigure($message)) {
+                yield from $this->emitSingleFigureClarification($conversation, $currentStateId);
+
+                return;
+            }
+
             yield from $this->emitRetry($conversation, $state, $currentStateId);
 
             return;
@@ -1699,6 +1851,72 @@ final class OnboardingChatDirector
     }
 
     /**
+     * Emit the carry-forward total-vs-per-year clarifying question, staying on
+     * the current grouped_extract state so the user's disambiguated reply
+     * re-enters this handler. Voiced verbatim so the phrasing is deterministic
+     * (a single lone figure for the three-year pension window is catastrophic
+     * to mis-read: a per-year £90k is an annual-allowance charge, the same
+     * figure spread across three years is unused headroom to top up).
+     */
+    private function emitSingleFigureClarification(
+        AiConversation $conversation,
+        string $currentStateId
+    ): \Generator {
+        $text = 'Just to be sure I read that correctly — is that the total across the three tax years, or roughly that amount each year? It changes whether you have unused allowance to top up.';
+
+        $message = $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_clarification' => true,
+                'clarification_type' => 'pension_history_total_vs_per_year',
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $text];
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Director-side mirror of CoordinatingAgent's pension-history ambiguity
+     * check: does the user reply give a SINGLE monetary figure for the window
+     * with no per-year or whole-window-total cue? Used when the model declined
+     * to call the extraction tool, so the handler guard never ran.
+     */
+    private function messageIsAmbiguousSingleFigure(string $message): bool
+    {
+        $matches = [];
+        preg_match_all('/£?\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m)?(?![\d.])/iu', $message, $matches);
+        $figures = array_filter(
+            array_map('trim', $matches[0] ?? []),
+            static function (string $tok): bool {
+                $hasMoneyMarker = (bool) preg_match('/[£,km.]/i', $tok);
+                $isYearLike = (bool) preg_match('/^(?:19|20)\d{2}$/', preg_replace('/[^\d]/', '', $tok) ?? '');
+
+                return $hasMoneyMarker || ! $isYearLike;
+            }
+        );
+        if (count($figures) !== 1) {
+            return false;
+        }
+
+        $lower = mb_strtolower($message);
+        $resolvingCues = [
+            'each year', 'per year', 'a year', 'every year', 'each of', 'each tax year',
+            'per annum', 'annually', '/yr', 'p.a.', 'pa ', 'each of the', 'for each',
+            'first year', 'second year', 'third year', 'last year', 'year before',
+            'in total', 'total of', 'altogether', 'across', 'combined', 'between them',
+            'all three', 'over the three', 'over three', 'spread', 'split',
+        ];
+        foreach ($resolvingCues as $cue) {
+            if (str_contains($lower, $cue)) {
+                return false;
+            }
+        }
+
+        return preg_match('/\b20\d{2}\s*\/\s*\d{2}\b/', $message) !== 1;
+    }
+
+    /**
      * Emit a targeted retry listing only the fields the tool handler
      * reported as still missing. Keeps the user on the current state so
      * the next reply re-enters the grouped_extract flow, this time
@@ -1795,6 +2013,7 @@ final class OnboardingChatDirector
             'capture_spouse_details' => 'Extract the user\'s spouse or partner details. You need their first name, date of birth, and email address. If they mention an annual income, extract it too. Do NOT invent missing fields — if the user did not provide all three required fields, return an error.',
             'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an age and a relationship (child, parent, or other_dependent). First names are optional. Map phrases: "son", "daughter", "step-daughter", "step-son", "kid", "child" → child. "mother", "father", "mum", "dad", "mum-in-law", etc. → parent. Sibling, nephew, elderly relative, friend → other_dependent. If the user says "two kids aged 4 and 7" return two entries with relationship=child.',
             'capture_work_details' => 'Extract the user\'s employer or trade name, their role/position, and their gross annual income in GBP. Strip currency symbols and commas before returning the number. "75k" means 75000. Do not invent fields.',
+            'capture_pension_history' => 'Extract the user\'s gross pension contributions for the recent tax years they mention. Strip currency symbols and commas ("90k" means 90000). The three most recent UK tax years are 2024/25, 2023/24, 2022/23. If the user gives a per-year breakdown, map each figure to its year. If they give a SINGLE figure with no per-year breakdown (e.g. "around £90,000"), do NOT guess a split across years and do NOT divide it — call the tool ONCE with that single figure under the most recent tax year (2024/25); the system will clarify total-vs-per-year with the user. "Zero" or "none" means a single entry of 0 for the most recent year. Always call the tool — never reply conversationally.',
             default => 'Extract the user\'s reply using the provided tool.',
         };
 
@@ -1929,6 +2148,18 @@ PROMPT;
             $contentBuffer = '';
             $flushed = false;
 
+            // A1 — answer-the-user-first. When the user's message asks a
+            // question, the capture turn is allowed to answer it before
+            // resuming capture (QUESTION EXCEPTION). That changes three things:
+            // (1) a zero-tool-call turn must NOT drop its buffer — the answer
+            //     is the whole point of the turn;
+            // (2) the off-script filter runs in allowAnswer mode so a
+            //     definitional answer survives, while personal figures are
+            //     still stripped; and
+            // (3) a question turn that captured nothing stays on this state
+            //     instead of advancing (see the gate before the advance below).
+            $userAskedQuestion = $this->userAskedQuestion($message);
+
             // B-1 gap-check — track the fields dict of every fill_form the
             // LLM emitted so we can compare it to the deterministic entity
             // extractor's view of the user message and fill in any gaps
@@ -1937,14 +2168,15 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection, $userAskedQuestion) {
                 $flushed = true;
-                if ($toolCallsSeen === 0 || $contentBuffer === '') {
+                if ($contentBuffer === '' || ($toolCallsSeen === 0 && ! $userAskedQuestion)) {
                     $contentBuffer = '';
 
                     return null;
                 }
-                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection);
+                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection, allowAnswer: $userAskedQuestion);
+                $cleaned = $this->dedupeAckSentences($cleaned);
                 $contentBuffer = '';
                 if ($cleaned === '') {
                     return null;
@@ -2032,6 +2264,35 @@ PROMPT;
             if ($unifiedFocus !== null) {
                 $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
             }
+        }
+
+        // A1 — honour the QUESTION EXCEPTION's "Do NOT advance past it". A
+        // question turn that captured nothing must stay on the current
+        // capture state and re-ask the scripted question; the unconditional
+        // advance below would bump the user to add_more ("Anything else?")
+        // with their question's place in the flow lost. Tool-bearing turns
+        // (the user answered AND asked) advance as normal — the answer was
+        // captured, so the flow moves on.
+        //
+        // Exception: linear scripted delegated states that create no entity
+        // record (campaign workplace-pension / personal-pension steps) opt in
+        // via `advance_on_answered_question`. There, "captured nothing" is the
+        // norm even on a clean answer, so a side-question ("3% and matched.
+        // What's salary sacrifice?") would otherwise stall the walk forever.
+        // We advance once the user gave a substantive answer alongside the
+        // question; a bare question with no answer still re-asks.
+        $capturedSomething = $toolCallsSeen > 0 || count($llmEmittedFills) > 0;
+        $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
+            && $this->messageHasSubstantiveAnswer($message);
+        if ($userAskedQuestion && ! $capturedSomething && ! $advanceOnAnsweredQuestion) {
+            $this->recordProgress(
+                $user,
+                $currentStateId,
+                ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
+            );
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+            return;
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -2324,6 +2585,63 @@ PROMPT;
     }
 
     /**
+     * A1 — does the user's message ask a question? Single heuristic shared by
+     * both capture handlers (delegated asset capture + grouped_extract) so the
+     * two call sites cannot drift. A literal "?" counts, and so does a leading
+     * interrogative/imperative ("explain salary sacrifice please", "what is
+     * a SIPP") — users routinely drop the question mark.
+     */
+    private function userAskedQuestion(string $message): bool
+    {
+        return str_contains($message, '?')
+            || preg_match('/^(explain|what|why|how|when|tell me|define|describe)\b/i', trim($message)) === 1;
+    }
+
+    /**
+     * Decide whether a (possibly question-bearing) message also carries a
+     * substantive answer to the scripted prompt. Used by the
+     * `advance_on_answered_question` gate so a linear delegated step advances
+     * when the user answered AND asked ("3% and it's matched. What's salary
+     * sacrifice?") but re-asks on a bare question with no answer ("What's
+     * salary sacrifice?").
+     *
+     * Substantive = any figure/percentage/currency, OR a clear yes/no answer,
+     * OR meaningful prose before the first interrogative clause.
+     */
+    private function messageHasSubstantiveAnswer(string $message): bool
+    {
+        $trimmed = trim($message);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        // A number, percentage, or currency amount is always an answer.
+        if (preg_match('/\d/', $trimmed) === 1) {
+            return true;
+        }
+
+        $lower = mb_strtolower($trimmed);
+
+        // Explicit yes/no/none answers to a "do you…?" scripted prompt. Kept
+        // deliberately tight to genuine answer signals — topic nouns (e.g.
+        // "salary sacrifice") are excluded because they appear inside questions
+        // ABOUT the topic, which are not answers.
+        $answerTokens = [
+            'yes', 'yep', 'yeah', 'no ', ' no.', 'none', 'nope', 'nothing',
+            "don't have", 'do not have', 'not got', "haven't got",
+            "it's matched", 'is matched', 'and matched', 'employer matches',
+            'i contribute', 'i pay', 'i put in',
+        ];
+        foreach ($answerTokens as $token) {
+            if (str_contains($lower, $token)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * FR-M14 — strip off-script sentences from an asset_capture content
      * event. Splits the text on sentence terminators (`.`, `!`, `?`, newline)
      * and drops any sentence that poses a question (with or without a `?`
@@ -2336,8 +2654,19 @@ PROMPT;
      *
      * Returns the rejoined surviving sentences, or '' when nothing
      * survived the filter.
+     *
+     * A1 — when $allowAnswer is true the user asked a direct question, so the
+     * model is permitted to answer it before resuming capture (QUESTION
+     * EXCEPTION). On an answer turn the question-mark and off-script-topic
+     * strips are relaxed (a definitional answer legitimately re-asks the
+     * capture question and may mention income/pension concepts), but the
+     * personal-figures rule stays ACTIVE: the model must never quote or
+     * compute the user's own numbers in a capture turn. With $allowAnswer
+     * false (the default) behaviour is byte-identical to the original
+     * FR-M14 filter — the personal-figures rule does not run, so the
+     * established off-script path is unchanged.
      */
-    private function filterOffScriptContent(string $text, string $selection): string
+    private function filterOffScriptContent(string $text, string $selection, bool $allowAnswer = false): string
     {
         if ($text === '') {
             return '';
@@ -2360,12 +2689,32 @@ PROMPT;
                 continue;
             }
 
-            // Questions are never legitimate on an asset_capture turn.
-            if (str_contains($trimmed, '?')) {
+            // A1 — personal-figures rule. Even inside the QUESTION EXCEPTION
+            // the model must never quote/compute the user's own numbers in a
+            // capture turn (FCA — no figures-based personal advice mid-capture).
+            // Catches £ amounts, 4+ digit bare numbers, k-shorthand ("2.2k"),
+            // and written-out "pounds"/"GBP". Statutory definitional figures
+            // are carved out — naming an allowance/limit/threshold/band ("the
+            // ISA allowance is £20,000") is definition, not personal advice.
+            if ($allowAnswer
+                && preg_match('/£\s?\d|\b\d{4,}\b|\b\d+(?:\.\d+)?k\b|\bpounds?\b|\bgbp\b/iu', $trimmed) === 1
+                && preg_match('/\b(allowance|limit|threshold|nil[- ]rate|band)\b/i', $trimmed) !== 1
+            ) {
                 continue;
             }
 
-            if (! $allowOffScriptTerms && preg_match(
+            // Questions are never legitimate on an asset_capture turn — UNLESS
+            // the user asked one, in which case the answer turn may re-ask the
+            // capture question (QUESTION EXCEPTION).
+            if (! $allowAnswer && str_contains($trimmed, '?')) {
+                continue;
+            }
+
+            // Off-script topics (property/mortgage/income/…) are stripped on a
+            // normal capture turn, but a definitional answer to the user's
+            // question may legitimately reference those concepts, so the rule
+            // is relaxed on an answer turn.
+            if (! $allowAnswer && ! $allowOffScriptTerms && preg_match(
                 '/\b(propert(?:y|ies)|mortgages?|rents?|incomes?|homes?|address(?:es)?|ownership|valuations?)\b/i',
                 $trimmed
             ) === 1) {
@@ -2376,6 +2725,76 @@ PROMPT;
         }
 
         return implode(' ', $kept);
+    }
+
+    /**
+     * A2 — collapse the repeated short acks the model emits once per
+     * agent-loop pass ("Got it — recording those now.Recorded." family).
+     * On each continuation the model re-narrates its acknowledgment and the
+     * buffered prose stacks; the May-18 captureTurnCompleteDirective dampens
+     * this but does not eliminate it.
+     *
+     * A consecutive sentence is dropped when, against its predecessor, it is:
+     *   (a) identical (case-insensitive); or
+     *   (b) a short (<=6 words) textual prefix-duplicate of it
+     *       ("Recorded the ISA." + "Recorded."); or
+     *   (c) a bare standalone acknowledgment ("Recorded.", "Got it.",
+     *       "Done.", "Noted.") following ANY prior sentence — a bare ack
+     *       carries no information regardless of what preceded it; the
+     *       closed set in isBareAck() never matches informative content.
+     *
+     * The split pattern uses `\s*` (not `\s+`) so "now.Recorded." splits into
+     * two sentences despite the missing space. Legitimate multi-sentence
+     * answers survive untouched: a substantive follow-on ("It saves Y.", "Now
+     * your savings outside an ISA.") is neither a prefix-duplicate nor a bare
+     * ack, and the new record-stating ack ("Recorded — two ISAs …") is long
+     * enough never to qualify as the short predecessor in (c).
+     */
+    private function dedupeAckSentences(string $text): string
+    {
+        // Split after sentence punctuation followed by whitespace OR directly
+        // by an uppercase/£ start ("now.Recorded." has no space). A full stop
+        // followed by a digit or lowercase is NOT a boundary — "3.25%" and
+        // "e.g. rates" must survive intact (live-browser regression 2026-06-11:
+        // the old `\s*` split decimals and re-joined them as "3. 25%").
+        $sentences = preg_split('/(?<=[.!?])\s+|(?<=[.!?])(?=[A-Z£])/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $deduped = [];
+        foreach ($sentences as $s) {
+            $prev = $deduped === [] ? null : end($deduped);
+            if ($prev !== null && (strcasecmp($prev, $s) === 0
+                || (str_word_count($s) <= 6 && str_word_count($prev) <= 6
+                    && (str_starts_with(strtolower($prev), strtolower(rtrim($s, '.!?')))
+                        || str_starts_with(strtolower($s), strtolower(rtrim($prev, '.!?')))))
+                || $this->isBareAck($s))) {
+                continue;
+            }
+            $deduped[] = $s;
+        }
+
+        return implode(' ', $deduped);
+    }
+
+    /**
+     * A2 — is the sentence a bare standalone acknowledgment with no payload?
+     * The closed re-narration family the model stacks ("Recorded.", "Got it.",
+     * "Done.", "Noted.", "Got it — recording those now."). Matched on the
+     * sentence's lowercased alphabetic content so trailing punctuation, the
+     * em-dash, and casing don't matter. A record-stating ack that names what
+     * was captured ("Recorded — two ISAs totalling £22,000.") carries extra
+     * words and is NOT bare, so it never matches.
+     */
+    private function isBareAck(string $sentence): bool
+    {
+        $core = strtolower(trim(preg_replace('/[^\p{L}\s]+/u', ' ', $sentence) ?? ''));
+        $core = trim(preg_replace('/\s+/', ' ', $core) ?? '');
+
+        return in_array($core, [
+            'recorded',
+            'got it',
+            'done',
+            'noted',
+            'got it recording those now',
+        ], true);
     }
 
     // ─── Terminal state ───────────────────────────────────────────────────

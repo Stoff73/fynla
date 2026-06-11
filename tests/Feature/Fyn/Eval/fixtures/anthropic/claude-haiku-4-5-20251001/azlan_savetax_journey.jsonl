@@ -1,0 +1,42 @@
+{"__meta":{"provider":"anthropic","model":"claude-haiku-4-5-20251001","scenario_id":"azlan_savetax_journey","recorded_at":"2026-06-11T06:06:09+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"8516da1","conversation_id":91,"event_count":35,"turn_count":6,"duration_ms":1314}}
+{"__turn__":1}
+{"type":"title","title":"I have a cash isa and a stocks and shares ISA. Cash: 19000 Stocks and shares: 3000. About \u00a3100 this ..."}
+{"type":"error","message":"Configuration issue \u2014 please contact support."}
+{"type":"onboarding_advance","from_step":"campaign_isa_holdings","to_step":"campaign_bank_accounts"}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"content","text":"Now your savings outside an ISA \u2014 bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"}
+{"type":"done","message_id":360}
+{"__turn__":2}
+{"type":"title","title":"About \u00a3500 in premium bonds and \u00a381000 savings. Savings is 3.25%"}
+{"type":"error","message":"Configuration issue \u2014 please contact support."}
+{"type":"tool_use","tool":"create_savings_account","status":"running"}
+{"type":"tool_use","tool":"create_savings_account","status":"complete"}
+{"type":"onboarding_advance","from_step":"campaign_bank_accounts","to_step":"campaign_advice_savings"}
+{"type":"onboarding_advance","from_step":"campaign_advice_savings","to_step":"campaign_dob"}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"content","text":"Now let's look at pensions and retirement \u2014 for that I need your date of birth. Something like 12 January 1985."}
+{"type":"done","message_id":362}
+{"__turn__":3}
+{"type":"onboarding_field_captured","field_group":"personal","summary":"Personal details saved","details":{"date_of_birth":"1985-01-12","marital_status":"married"},"hydrated_from_parking":true}
+{"type":"onboarding_advance","from_step":"campaign_dob","to_step":"campaign_occupational_scheme","hydrated_from_parking":true}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"content","text":"Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."}
+{"type":"done","message_id":364}
+{"__turn__":4}
+{"type":"title","title":"3% contribution and it's matched. What's salary sacrifice?"}
+{"type":"error","message":"Configuration issue \u2014 please contact support."}
+{"type":"onboarding_advance","from_step":"campaign_occupational_scheme","to_step":"campaign_pension_contribs"}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"content","text":"Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?"}
+{"type":"done","message_id":366}
+{"__turn__":5}
+{"type":"title","title":"No personal pension on top of that."}
+{"type":"error","message":"Configuration issue \u2014 please contact support."}
+{"type":"onboarding_advance","from_step":"campaign_pension_contribs","to_step":"campaign_pension_history"}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"content","text":"Quick one \u2014 to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don't know exact numbers, rough figures are fine, and \"zero\" is a valid answer."}
+{"type":"done","message_id":368}
+{"__turn__":6}
+{"type":"error","message":"Configuration issue \u2014 please contact support."}
+{"type":"content","text":"Just to be sure I read that correctly \u2014 is that the total across the three tax years, or roughly that amount each year? It changes whether you have unused allowance to top up."}
+{"type":"done","message_id":370}

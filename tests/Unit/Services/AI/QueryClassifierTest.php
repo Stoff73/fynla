@@ -208,4 +208,38 @@ describe('QueryClassifier', function () {
             expect($result['modules'])->toBe([]);
         });
     });
+
+    // The savings keyword table is intentionally narrow (saving + account|rate,
+    // emergency fund, etc.) so generic "save" phrasings — "save tax", "save for
+    // retirement" — are NOT swallowed into a savings classification. A generic
+    // "how do I start saving?" therefore stays GENERAL by design; the
+    // emergency-fund-first guidance for it is injected by FynContextAssembler,
+    // not by reclassifying. These pin that boundary so neither side drifts.
+    describe('generic getting-started saving stays general', function () {
+        it('classifies "how do I start saving properly?" as general', function () {
+            expect($this->classifier->classify('how do I start saving properly?')['primary'])
+                ->toBe(QuerySchemas::GENERAL);
+        });
+
+        it('classifies "how do I start saving?" as general', function () {
+            expect($this->classifier->classify('how do I start saving?')['primary'])
+                ->toBe(QuerySchemas::GENERAL);
+        });
+
+        it('does not misroute a generic "save tax" question into savings', function () {
+            $result = $this->classifier->classify('how can I save tax?');
+            expect($result['primary'])->not->toBe(QuerySchemas::SAVINGS_EMERGENCY)
+                ->and($result['primary'])->not->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('still classifies a real emergency-fund question as savings_emergency', function () {
+            expect($this->classifier->classify('is my emergency fund big enough?')['primary'])
+                ->toBe(QuerySchemas::SAVINGS_EMERGENCY);
+        });
+
+        it('still classifies a savings-rate question as savings_accounts', function () {
+            expect($this->classifier->classify('what savings rate should I be getting?')['primary'])
+                ->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+    });
 });

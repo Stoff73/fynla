@@ -25,6 +25,7 @@ class RecommendationsAggregatorService
         private readonly GoalsAgent $goalsAgent,
         private readonly RecommendationPersonaliser $personaliser,
         private readonly PrerequisiteGateService $gate,
+        private readonly ComposedTaxPlanService $taxPlan,
     ) {}
 
     /**
@@ -185,6 +186,34 @@ class RecommendationsAggregatorService
             }
         }
 
+        // Tax module — the strategy catalogue, gated by the tax_optimisation prerequisites.
+        // Locked strategies are deliberately NOT aggregated here: dashboards list
+        // actionable recommendations; unlock prompts are a separate mobile surface.
+        if ($this->moduleGateOpen('tax_optimisation', $user)) {
+            try {
+                $plan = $this->taxPlan->forUser($user);
+                $taxRecs = array_map(static function (array $item): array {
+                    return [
+                        // Stable id derived from the strategy type — recommendation_tracking
+                        // and the gamification dedup key both rely on identity across requests.
+                        'recommendation_id' => 'tax_'.$item['type'],
+                        'recommendation_text' => $item['title'].' — '.$item['description'],
+                        'priority_score' => match ($item['priority']) {
+                            'high' => 85.0, 'medium' => 60.0, default => 45.0,
+                        },
+                        'category' => $item['category'],
+                        'potential_benefit' => $item['estimated_annual_tax_saved'],
+                        'claim_tier' => $item['claim_tier'],
+                        'sequence_position' => $item['sequence_position'],
+                        'conflict_note' => $item['conflict_note'],
+                    ];
+                }, $plan['items']);
+                $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($taxRecs, 'tax'));
+            } catch (\Exception $e) {
+                Log::warning("Failed to get tax recommendations for user {$userId}: ".$e->getMessage());
+            }
+        }
+
         // Personalise recommendations with user-specific context
         $allRecommendations = $this->personaliser->personaliseRecommendations($allRecommendations, $user);
 
@@ -233,6 +262,9 @@ class RecommendationsAggregatorService
                 'estimated_cost' => $rec['estimated_cost'] ?? $rec['cost'] ?? null,
                 'potential_benefit' => $rec['potential_benefit'] ?? $rec['benefit'] ?? null,
                 'status' => $rec['status'] ?? 'pending',
+                'claim_tier' => $rec['claim_tier'] ?? null,
+                'sequence_position' => $rec['sequence_position'] ?? null,
+                'conflict_note' => $rec['conflict_note'] ?? null,
             ];
         }, $validRecommendations);
     }
@@ -357,6 +389,7 @@ class RecommendationsAggregatorService
                 'estate' => 0,
                 'goals' => 0,
                 'property' => 0,
+                'tax' => 0,
             ],
             'by_timeline' => [
                 'immediate' => 0,

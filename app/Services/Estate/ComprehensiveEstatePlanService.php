@@ -41,6 +41,7 @@ class ComprehensiveEstatePlanService
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly ActuarialLifeTableStore $actuarialStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly AvailableNrbCalculator $availableNrbCalculator,
     ) {}
 
     /**
@@ -127,7 +128,8 @@ class ComprehensiveEstatePlanService
             $trustPlan,
             $lifePolicyPlan,
             $currentIHTLiability,
-            $ihtProfile
+            $ihtProfile,
+            $user
         );
 
         // Build comprehensive plan
@@ -155,7 +157,7 @@ class ComprehensiveEstatePlanService
             'balance_sheet' => $this->buildBalanceSheet($user, $assets, $ihtAnalysis, $spouse, $spouseAssets, $dataSharingEnabled),
             'estate_overview' => $this->buildEstateOverview($aggregatedAssets, $ihtAnalysis, $spouseAggregatedAssets, $dataSharingEnabled),
             'estate_breakdown' => $this->buildEstateBreakdown($user, $aggregatedAssets, $secondDeathAnalysis, $spouse, $spouseAggregatedAssets, $dataSharingEnabled),
-            'current_iht_position' => $this->buildIHTPosition($ihtAnalysis, $ihtProfile, $secondDeathAnalysis),
+            'current_iht_position' => $this->buildIHTPosition($ihtAnalysis, $ihtProfile, $secondDeathAnalysis, $user),
             'gifting_strategy' => $giftingPlan,
             'trust_strategy' => $trustPlan,
             'life_policy_strategy' => $lifePolicyPlan,
@@ -872,7 +874,7 @@ class ComprehensiveEstatePlanService
      * Build IHT position
      * Uses second death analysis if available (married couples)
      */
-    private function buildIHTPosition(array $ihtAnalysis, IHTProfile $profile, ?array $secondDeathAnalysis): array
+    private function buildIHTPosition(array $ihtAnalysis, IHTProfile $profile, ?array $secondDeathAnalysis, User $user): array
     {
         // If we have second death analysis, show both NOW and PROJECTED scenarios
         if ($secondDeathAnalysis && isset($secondDeathAnalysis['current_iht_calculation']) && isset($secondDeathAnalysis['iht_calculation'])) {
@@ -927,7 +929,10 @@ class ComprehensiveEstatePlanService
         return [
             'has_projection' => false,
             'gross_estate' => $ihtAnalysis['total_net_estate'] ?? 0,
-            'available_nrb' => $profile->available_nrb ?? $ihtConfig['nil_rate_band'],
+            // Derived from gift history (7-year cumulation); a manually-set profile value wins.
+            'available_nrb' => $profile->available_nrb !== null
+                ? (float) $profile->available_nrb
+                : $this->availableNrbCalculator->forUser($user),
             'rnrb' => $ihtAnalysis['rnrb_available'] ?? 0,
             'total_allowances' => $ihtAnalysis['total_allowances'] ?? $ihtConfig['nil_rate_band'],
             'taxable_estate' => $ihtAnalysis['taxable_estate'] ?? 0,
@@ -946,7 +951,8 @@ class ComprehensiveEstatePlanService
         array $trustPlan,
         ?array $lifePolicyPlan,
         float $currentIHTLiability,
-        IHTProfile $profile
+        IHTProfile $profile,
+        User $user
     ): array {
         $recommendations = [];
         $totalIHTSaving = 0;
@@ -962,7 +968,10 @@ class ComprehensiveEstatePlanService
         $giftingConfig = $this->taxConfig->getGiftingExemptions();
         $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? 3000);
         $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
-        $availableNRB = $profile->available_nrb ?? $ihtConfig['nil_rate_band'];
+        // Derived from gift history (7-year cumulation); a manually-set profile value wins.
+        $availableNRB = $profile->available_nrb !== null
+            ? (float) $profile->available_nrb
+            : $this->availableNrbCalculator->forUser($user);
 
         if ($currentIHTLiability > 0) {
             $annualExemptionIHTSaving = min($annualExemption * $ihtRate, $currentIHTLiability);

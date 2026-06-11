@@ -20,12 +20,20 @@ export default {
   name: 'TaxYearHeader',
   mixins: [currencyMixin],
   computed: {
-    ...mapGetters('taxStrategy', ['taxYear', 'recommendations']),
+    ...mapGetters('taxStrategy', ['taxYear', 'recommendations', 'composedPlan']),
     ...mapGetters('auth', ['currentUser']),
     firstName() {
       return this.currentUser?.first_name || 'there';
     },
     totalSavings() {
+      // Prefer the composed plan's realisable total — it excludes the
+      // lower-saving member of each conflict pair, matching the figure Fyn
+      // quotes in the chat synthesis. Fall back to the raw sum when the
+      // composed plan is absent (older cached payloads).
+      const composed = Number(this.composedPlan?.combined_annual_saving);
+      if (Number.isFinite(composed) && composed > 0) {
+        return composed;
+      }
       return this.recommendations
         .filter((r) => r.category !== 'warning')
         .reduce((sum, r) => sum + (Number(r.estimated_annual_tax_saved) || 0), 0);

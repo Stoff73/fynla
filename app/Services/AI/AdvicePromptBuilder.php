@@ -472,7 +472,17 @@ PROMPT;
             $lines = [];
             $modules = $analysis['module_analysis'] ?? [];
 
-            // Net worth from dedicated service
+            // Derive which modules are in scope for this classification.
+            // Empty array means "no constraint" (holistic, null, or non-module queries)
+            // — all module blocks render. A non-empty array means only those modules
+            // render their detailed sections; net worth, surplus, goals, life events,
+            // and recommendations always render for cross-module insight.
+            $scopedModules = is_array($classification)
+                ? QuerySchemas::getModulesForClassification($classification)
+                : [];
+            $renderModule = static fn (string $m): bool => $scopedModules === [] || in_array($m, $scopedModules, true);
+
+            // Net worth from dedicated service — always rendered (cross-module overview)
             try {
                 $netWorthService = app(NetWorthService::class);
                 $netWorthData = $netWorthService->calculateNetWorth($user);
@@ -483,7 +493,7 @@ PROMPT;
                 // Fall through — individual modules below will provide partial data
             }
 
-            // Available surplus
+            // Available surplus — always rendered (cross-module cashflow)
             $surplus = $analysis['available_surplus'] ?? 0;
             if ($surplus !== 0) {
                 $formatted = number_format(abs($surplus), 2);
@@ -491,8 +501,8 @@ PROMPT;
                 $lines[] = "- {$label}: £{$formatted}";
             }
 
-            // Savings
-            if (isset($modules['savings'])) {
+            // Savings — module-scoped
+            if ($renderModule('savings') && isset($modules['savings'])) {
                 $s = $modules['savings'];
                 if (($s['total_savings'] ?? 0) > 0) {
                     $lines[] = '- Total savings: £'.number_format($s['total_savings'], 2);
@@ -502,16 +512,16 @@ PROMPT;
                 }
             }
 
-            // Investments
-            if (isset($modules['investment'])) {
+            // Investments — module-scoped
+            if ($renderModule('investment') && isset($modules['investment'])) {
                 $inv = $modules['investment'];
                 if (($inv['total_portfolio_value'] ?? 0) > 0) {
                     $lines[] = '- Investment portfolio: £'.number_format($inv['total_portfolio_value'], 0);
                 }
             }
 
-            // Retirement
-            if (isset($modules['retirement'])) {
+            // Retirement — module-scoped
+            if ($renderModule('retirement') && isset($modules['retirement'])) {
                 $ret = $modules['retirement'];
                 if (($ret['total_pension_value'] ?? 0) > 0) {
                     $lines[] = '- Total pension value: £'.number_format($ret['total_pension_value'], 0);
@@ -524,8 +534,8 @@ PROMPT;
                 }
             }
 
-            // Protection
-            if (isset($modules['protection'])) {
+            // Protection — module-scoped
+            if ($renderModule('protection') && isset($modules['protection'])) {
                 $prot = $modules['protection'];
                 if (($prot['full_analysis']['total_cover'] ?? 0) > 0) {
                     $lines[] = '- Total life cover: £'.number_format($prot['full_analysis']['total_cover'], 0);
@@ -535,12 +545,14 @@ PROMPT;
                 }
             }
 
-            // Property
-            $ownsProperty = $this->propertyStore->forUserWithJointOwner($user)->isNotEmpty();
-            $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
+            // Property ownership indicator — module-scoped
+            if ($renderModule('property')) {
+                $ownsProperty = $this->propertyStore->forUserWithJointOwner($user)->isNotEmpty();
+                $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
+            }
 
-            // Estate (IHT-specific)
-            if (isset($modules['estate'])) {
+            // Estate (Inheritance Tax) — module-scoped
+            if ($renderModule('estate') && isset($modules['estate'])) {
                 $est = $modules['estate'];
                 if (($est['iht_liability'] ?? 0) > 0) {
                     $lines[] = '- Estimated Inheritance Tax liability: £'.number_format($est['iht_liability'], 0);

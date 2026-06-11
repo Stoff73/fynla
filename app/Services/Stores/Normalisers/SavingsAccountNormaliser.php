@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Stores\Normalisers;
 
+use App\Services\TaxConfigService;
+
 class SavingsAccountNormaliser
 {
     /**
@@ -121,6 +123,16 @@ class SavingsAccountNormaliser
         }
         if (isset($toolParams['regular_contribution_amount'])) {
             $canonical['regular_contribution_amount'] = (float) $toolParams['regular_contribution_amount'];
+        }
+        // Current-tax-year ISA subscriptions, when the user states them
+        // ("about £100 this year"). The year label is stamped server-side —
+        // the model never supplies tax-year strings. Without this field the
+        // ISA top-up strategy falls back to the created-this-year proxy and
+        // a freshly-captured ISA's full balance masquerades as subscriptions
+        // (live-browser finding, 2026-06-11).
+        if ($isIsa && isset($toolParams['isa_subscription_amount'])) {
+            $canonical['isa_subscription_amount'] = (float) $toolParams['isa_subscription_amount'];
+            $canonical['isa_subscription_year'] = app(TaxConfigService::class)->getTaxYear();
         }
 
         // ISA / non-ISA country default — same rule as fromForm

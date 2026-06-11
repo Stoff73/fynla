@@ -762,7 +762,7 @@ trait HasAiChat
         // Validate and sanitise AI response
         $validator = app(StructuredResponseValidator::class);
         $fullResponse = $validator->sanitise($fullResponse);
-        $violations = $validator->validateAndLog($fullResponse, $classification, $user->id);
+        $violations = $validator->validateAndLog($fullResponse, $classification, $user->id, null, $this->personaOverride ?? 'advice');
 
         // Build metadata with tool call summary and any violations
         $messageMetadata = [];
