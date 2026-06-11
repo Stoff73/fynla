@@ -2,9 +2,9 @@
 procedure_id: 'savings.tool.create_savings_account'
 kind: tool_schema
 module: savings
-version: 1
+version: 2
 active: true
-effective_from: 2026-06-02
+effective_from: 2026-06-11
 ---
 
 ```json
@@ -51,6 +51,10 @@ effective_from: 2026-06-02
             "regular_contribution_amount": {
                 "type": "number",
                 "description": "Monthly contribution amount in pounds, if any"
+            },
+            "isa_subscription_amount": {
+                "type": "number",
+                "description": "For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. \"about £100 this year\" → 100). Leave null if not mentioned."
             }
         },
         "required": [

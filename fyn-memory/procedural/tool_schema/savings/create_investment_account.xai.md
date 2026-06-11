@@ -3,9 +3,9 @@ procedure_id: 'savings.tool.create_investment_account'
 kind: tool_schema
 module: savings
 provider: xai
-version: 1
+version: 2
 active: true
-effective_from: 2026-06-02
+effective_from: 2026-06-11
 ---
 
 ```json
@@ -64,6 +64,13 @@ effective_from: 2026-06-02
                     "null"
                 ],
                 "description": "Annual platform fee as a percentage (e.g. 0.15)"
+            },
+            "annual_dividend_income": {
+                "type": [
+                    "number",
+                    "null"
+                ],
+                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (GIA, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
             },
             "bond_purchase_date": {
                 "type": [
@@ -405,6 +412,7 @@ effective_from: 2026-06-02
             "current_value",
             "monthly_contribution_amount",
             "platform_fee_percent",
+            "annual_dividend_income",
             "bond_purchase_date",
             "bond_withdrawal_taken",
             "company_legal_name",
