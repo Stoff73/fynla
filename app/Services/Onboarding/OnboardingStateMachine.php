@@ -8,6 +8,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Pure state config for the Fyn-driven onboarding flow.
@@ -676,6 +677,11 @@ final class OnboardingStateMachine
 
             // State-id set + order MUST match the in-code table, else fall back.
             if (array_keys($data) !== array_keys($base)) {
+                Log::notice('[OnboardingStateMachine] Corpus workflow ignored: state-id set mismatch with in-code table — falling back to in-code states.', [
+                    'corpus_states' => count($data),
+                    'in_code_states' => count($base),
+                ]);
+
                 return self::$transitionTableCache = $base;
             }
 

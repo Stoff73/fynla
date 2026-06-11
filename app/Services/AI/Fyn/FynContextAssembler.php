@@ -145,8 +145,10 @@ final class FynContextAssembler
         // mirroring <knowledge>/<live_data>: load the active procedures of the
         // two prose-bearing kinds, keep those whose module matches this turn
         // (or the 'general' wildcard), and emit one block per kind. The corpus
-        // is empty today, so this is a no-op (proven by the golden master). A
-        // malformed corpus degrades to no block — never breaks the turn.
+        // holds procedures (tool_schema, workflow, ...), but none of the two
+        // prose-bearing kinds yet, so this layer emits nothing today (proven
+        // by the PromptOverlay golden master). A malformed corpus degrades to
+        // no block — never breaks the turn.
         $turnModule = $ctx->isOnboarding()
             ? (string) $ctx->onboardingFocus
             : (string) ($ctx->classification['primary'] ?? '');
