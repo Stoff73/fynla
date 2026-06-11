@@ -7,6 +7,7 @@ namespace App\Services\AI\Fyn;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
@@ -84,6 +85,20 @@ final class FynContextAssembler
             $lines[] = $ctx->kycResult['prompt_text'];
         }
 
+        // Financial knowledge (parity restoration). The legacy 12-layer builder
+        // injected FinancialPlanningKnowledge via buildKnowledgeBlock (Layer 8,
+        // AdvicePromptBuilder.php:189); the unified cutover dropped it with no
+        // per-turn replacement — same regression family as the billing layer
+        // below. Classification-scoped via QueryKnowledge, advice turns only.
+        if (! $ctx->isOnboarding()) {
+            $knowledge = QueryKnowledge::getForClassification($ctx->classification);
+            if ($knowledge !== '') {
+                $lines[] = "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
+            }
+
+            $lines[] = $this->voicingRules();
+        }
+
         // Billing guidance (parity with legacy AdvicePromptBuilder Layer 3c,
         // AdvicePromptBuilder.php:123-125). Classification-gated on BILLING
         // and suppressed in preview, exactly as the legacy builder injects
@@ -131,6 +146,19 @@ final class FynContextAssembler
         }
 
         return $first;
+    }
+
+    private function voicingRules(): string
+    {
+        return <<<'RULES'
+<voicing_rules>
+Claim tiers govern how you state guidance:
+- MECHANICAL claims (allowance arithmetic, tax-band maths, carry-forward totals, taper effects, recommendations marked claim_tier=mechanical): state them directly and quantified with the user's own figures, and show the working inline — e.g. "£110,000 − £10,000 contribution = £100,000, restoring your full Personal Allowance — worth around £6,000 this year." Always quote threshold figures retrieved from get_tax_information.
+- JUDGEMENT claims (investment selection, trust structures, drawdown choices, anything marked claim_tier=judgement): hedge them ("you may want to consider", "one option might be") and signpost regulated advice.
+Proactivity: after fully answering the user's question, you MAY surface AT MOST ONE additional high-value strategy from the recommendations if it is clearly relevant to what they asked — lead with the pound impact, keep it to two sentences, and never let it crowd the actual answer.
+Ambiguity: if a figure the user gave you is ambiguous in a way that changes the answer (e.g. "£90,000" — total or per year?), ask the one clarifying question BEFORE computing anything from it.
+</voicing_rules>
+RULES;
     }
 
     private function focusLabel(?string $focus): string

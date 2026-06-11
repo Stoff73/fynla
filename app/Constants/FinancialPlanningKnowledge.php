@@ -166,7 +166,7 @@ PROTECTION: Coverage gap analysis (life cover need = income replacement + mortga
 
 ESTATE: Will existence and currency, Lasting Power of Attorney (financial + health), Inheritance Tax liability above nil rate bands, gifting strategies (annual exemptions, PETs, normal expenditure), trust structures for tax efficiency, policy trust placement, beneficiary review
 
-TAX: ISA allowance maximisation, pension carry forward utilisation, spousal transfers to lower-rate taxpayer, Capital Gains Tax annual exempt amount usage, dividend allowance planning
+TAX: strategy catalogue computed per-user (ISA wrapping vs Personal Savings Allowance, pension carry forward from captured contribution history, salary sacrifice, spousal transfers and spouse ISA, marriage allowance with strict eligibility, dividend allowance, Gift Aid relief, taper warnings) — composed into one sequenced plan with conflicts resolved and a combined annual saving; locked strategies list the single data point that unlocks them
 
 Recommendations are ranked by urgency (critical → high → medium → low) and allocated across competing demands using available surplus. Cross-module conflicts are resolved (e.g. pension contribution vs ISA vs debt repayment priorities).
 TEXT;
