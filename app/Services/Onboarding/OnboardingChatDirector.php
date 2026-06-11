@@ -17,8 +17,8 @@ use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\PointsService;
-use App\Services\Tax\TaxStrategyCalculator;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -728,27 +728,45 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Build the conversational advice for a completed section by running the
-     * canonical TaxStrategyCalculator and surfacing the top recommendations
-     * relevant to that section. Numbers come from the engine (Rule #2); Fyn
-     * only phrases them. Returns null when there's nothing relevant to say.
+     * Strategy types voiced per campaign section (plan order wins within the
+     * section — this map documents which types belong to each section, not
+     * their relative priority). Max two strategies voiced per section; the
+     * synthesis turn collects the rest.
+     *
+     * The 'giving' and 'expenditure' sections are not voiced here (null
+     * returned) — gift_aid_higher_rate_relief requires a live charitable-giving
+     * figure and is covered in the synthesis turn.
+     */
+    private const SECTION_STRATEGY_TYPES = [
+        'income' => ['pa_taper_rescue', 'additional_rate_avoidance', 'tapered_annual_allowance'],
+        'savings' => ['isa_topup_vs_psa', 'joint_savings_psa_split'],
+        'investments' => ['bed_and_isa', 'dividend_allowance_harvest'],
+        'pensions' => ['salary_sacrifice_ni', 'pension_aa_carry_forward'],
+        'giving' => ['gift_aid_higher_rate_relief'],
+        'spouse' => ['non_earner_spouse_pension', 'savings_to_spouse', 'isa_topup_spouse', 'marriage_allowance_transfer', 'gia_to_spouse'],
+    ];
+
+    /**
+     * Build the conversational advice for a completed section from the composed
+     * tax plan catalogue. Numbers come from the engine (Rule #2); Fyn only
+     * phrases them. Plan order is respected — the composer's sequencing and
+     * conflict resolution are already applied. Returns null when there are no
+     * applicable strategies for the section.
      */
     private function buildSectionAdvice(User $user, string $section): ?string
     {
-        $map = [
-            'income' => ['intro' => "Here's where you stand on income tax.", 'types' => ['pa_taper_rescue', 'additional_rate_avoidance'], 'categories' => ['income_band']],
-            'savings' => ['intro' => 'On your savings and cash:', 'types' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'], 'categories' => []],
-            'investments' => ['intro' => 'On your investments:', 'types' => ['dividend_allowance_harvest', 'bed_and_isa'], 'categories' => []],
-            'pensions' => ['intro' => 'On pensions:', 'types' => ['salary_sacrifice_ni', 'pension_aa_carry_forward', 'tapered_annual_allowance', 'non_earner_spouse_pension'], 'categories' => []],
-            'spouse' => ['intro' => 'As a couple:', 'types' => [], 'categories' => ['household']],
-        ];
-        $conf = $map[$section] ?? null;
-        if ($conf === null) {
+        if ($section === 'synthesis') {
+            // Synthesis turn is handled by the next task in this plan.
+            return null;
+        }
+
+        $wanted = self::SECTION_STRATEGY_TYPES[$section] ?? null;
+        if ($wanted === null) {
             return null;
         }
 
         try {
-            $recs = app(TaxStrategyCalculator::class)->calculate($user->refresh())->recommendations;
+            $plan = app(ComposedTaxPlanService::class)->forUser($user);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Section advice calculation failed', [
                 'user_id' => $user->id,
@@ -759,24 +777,23 @@ final class OnboardingChatDirector
             return null;
         }
 
-        $relevant = array_values(array_filter($recs, fn (array $r): bool => in_array($r['type'] ?? '', $conf['types'], true)
-            || in_array($r['category'] ?? '', $conf['categories'], true)));
-        if ($relevant === []) {
-            return null;
+        $lines = [];
+        foreach ($plan['items'] as $item) {
+            if (! in_array($item['type'] ?? '', $wanted, true)) {
+                continue;
+            }
+            // Tiered voicing: mechanical strategies stated directly; judgement
+            // strategies hedged so Fyn does not over-promise uncertain outcomes.
+            $prefix = ($item['claim_tier'] ?? 'judgement') === 'mechanical' ? '' : 'You may want to consider: ';
+            $title = trim((string) ($item['title'] ?? ''));
+            $desc = trim((string) ($item['description'] ?? ''));
+            $lines[] = $prefix.$title.'.'.($desc !== '' ? ' '.$desc : '');
+            if (count($lines) >= 2) {
+                break;
+            }
         }
 
-        usort($relevant, fn (array $a, array $b): int => (int) ($b['estimated_annual_tax_saved'] ?? 0) <=> (int) ($a['estimated_annual_tax_saved'] ?? 0));
-
-        $parts = [];
-        foreach (array_slice($relevant, 0, 2) as $r) {
-            $saving = (float) ($r['estimated_annual_tax_saved'] ?? 0);
-            $savingStr = $saving > 0 ? ' — around £'.number_format($saving).' a year' : '';
-            $title = trim((string) ($r['title'] ?? ''));
-            $desc = trim((string) ($r['description'] ?? ''));
-            $parts[] = rtrim($title.$savingStr, '. ').'.'.($desc !== '' ? ' '.$desc : '');
-        }
-
-        return $conf['intro'].' '.implode(' ', $parts);
+        return $lines === [] ? null : implode("\n\n", $lines);
     }
 
     /**
