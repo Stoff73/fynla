@@ -155,3 +155,10 @@
 - Status: working tree clean (two pre-existing untracked docs)
 - Shipped: branch verification (9/9 acceptance criteria), six finding-fixes (stable rec IDs, retirement earnings cap + age gates, goals copy, assets caption, bubble dismissal persistence, persona onboarding seed), csjones back on dev + live-verified, 94 remote + 4 local merged branches deleted
 - Next: estate will/LPA recs decision (CSJ); dev → main release when CSJ decides
+
+## 2026-06-11 — session 4 (clear)
+- Handover: [[handover-2026-06-11-session-4-clear]]
+- Branch: dev @ d0f7cf6 (clean, pushed)
+- Commits this session: 7 (PRs #529, #530, #531 merged)
+- Status: 0 uncommitted (2 long-standing untracked docs only)
+- Next: Track 2 (coala) — review spec v4 with CSJ (docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md), then superpowers:writing-plans

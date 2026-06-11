@@ -1,6 +1,19 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-11 — context-clear wrap, session 3. **SaveTax `/savetax/plan` allowance-card corrections complete + deployed + verified on csjones /m (dev @ `b7dfa96`): 60% trap merged into tapered PA card; PA gated (greyed for workers, ON only for £0/£100k–£125,140); Pension AA always shown (£60k worker / £3,600 non-earner); full spouse per-person parity (PSA/Dividend/CGT); ISA cards now plain "tax-free account" description, no figures. 16 tests / 92,853 assertions.** Track 2 coala spec at v4 awaiting CSJ review. NOT on prod. Handover: `June/June11Updates/handover-2026-06-11-session-3-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-11 — context-clear wrap, session 4. **Savetax campaign E2E test (csjones /m, click-through, verbatim `ai_messages` recording confirmed) + the 6 fixes it produced, all merged (PRs #529 spouse-skip, #530 tax-strategy layout, #531 four iteration fixes), deployed to csjones, live-verified web AND /m (dev @ `d0f7cf6`).** NOT on prod. **NEXT PHASE: Track 2 (coala) — review spec v4 with CSJ, then `superpowers:writing-plans`.** Handover: `June/June11Updates/handover-2026-06-11-session-4-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-11 — Session 4: Savetax campaign E2E + 6 fixes (context-clear; dev @ d0f7cf6)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-4-clear.md`.
+- Full campaign journey tested live on csjones `/m` (funnel → register → Fyn → /tax-strategy); verbatim recording verified (LLM turns carry system_prompt/context/tool_calls in `ai_messages`). Test pattern → `reference_savetax_campaign_e2e_test_pattern.md`.
+- **PR #529**: funnel `spouseIncome` now maps to `household_calculation_mode`; `STATE_CAMPAIGN_SPOUSE_WORK` skips when known — Fyn never re-asks "Does your spouse work?".
+- **PR #530**: Tax Strategy page — strategies above allowance blocks, both surfaces (new `HouseholdCoordinationPanel.vue`).
+- **PR #531**: dividend capture (`create_investment_account.annual_dividend_income` → user profile, non-ISA only); Marriage Allowance "Not available" for higher-rate recipients (both grids, both surfaces); `/savetax/plan` social-proof copy + count keys fixed; Gift Aid capture ack added.
+- Test users on csjones for regression: emma.savetax0611 / oliver.savetax0611b / daisy.savetax0611c (@example.com, Password1!).
+
+### Outstanding
+- [ ] **Track 2 (coala) — NEXT PHASE (CSJ, session-4 close): review spec v4 with CSJ, then write the plan** (`docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md`; canonical flow in `feedback_coala_agent_flow_canonical.md`). Do NOT start build before spec approval.
+- [ ] Desktop sidebar has no Tax Strategy nav entry (the `/m` menu does) — flagged in session 4; CSJ to decide whether to add it to the Planning group.
 
 ## 2026-06-11 — Session 3: SaveTax allowance-card corrections (context-clear; dev @ b7dfa96)
 
