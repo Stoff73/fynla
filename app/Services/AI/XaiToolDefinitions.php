@@ -381,6 +381,7 @@ class XaiToolDefinitions
                     'current_value' => ['type' => 'number', 'description' => 'Current value in pounds'],
                     'monthly_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds'],
                     'platform_fee_percent' => ['type' => ['number', 'null'], 'description' => 'Annual platform fee as a percentage (e.g. 0.15)'],
+                    'annual_dividend_income' => ['type' => ['number', 'null'], 'description' => 'Annual dividend income this account pays in pounds, when the user states it (e.g. "pays about £800 a year in dividends" → 800). Only for taxable accounts (GIA, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance.'],
                     'bond_purchase_date' => ['type' => ['string', 'null'], 'description' => 'Bond purchase date (YYYY-MM-DD). Only for onshore_bond or offshore_bond.'],
                     'bond_withdrawal_taken' => ['type' => ['number', 'null'], 'description' => 'Total 5% tax-deferred withdrawals taken (£). Only for bonds.'],
                     'company_legal_name' => ['type' => ['string', 'null'], 'description' => 'Legal name of the company. For private_company or crowdfunding.'],
@@ -441,6 +442,7 @@ class XaiToolDefinitions
                 [
                     'account_name', 'account_type', 'provider', 'current_value',
                     'monthly_contribution_amount', 'platform_fee_percent',
+                    'annual_dividend_income',
                     'bond_purchase_date', 'bond_withdrawal_taken',
                     'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
                     'investment_date', 'investment_amount', 'number_of_shares', 'price_per_share',

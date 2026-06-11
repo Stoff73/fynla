@@ -293,6 +293,62 @@ describe('Path C — single_earner_couple', function () {
     });
 });
 
+describe('allowance grid availability + dividend usage', function () {
+    it('marks Marriage Allowance "not available" on both grids when the recipient pays higher-rate tax', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 115000,
+            'marriage_allowance_eligible' => true,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $userMa = collect($output->userAllowances)->firstWhere('key', 'marriage_allowance');
+        expect($userMa)->not->toBeNull();
+        expect($userMa['available'])->toBeFalse();
+        expect((float) $userMa['used'])->toBe(0.0);
+        expect((float) $userMa['remaining'])->toBe(0.0);
+
+        $spouseMa = collect($output->spouseAllowances)->firstWhere('key', 'marriage_allowance');
+        expect($spouseMa)->not->toBeNull();
+        expect($spouseMa['available'])->toBeFalse();
+    });
+
+    it('keeps Marriage Allowance available (fully used) for an eligible basic-rate recipient', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 35000,
+            'marriage_allowance_eligible' => true,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $userMa = collect($output->userAllowances)->firstWhere('key', 'marriage_allowance');
+        expect($userMa['available'])->toBeTrue();
+        expect((float) $userMa['used'])->toBeGreaterThan(0.0);
+    });
+
+    it('counts captured dividend income against the Dividend Allowance', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => null,
+            'annual_employment_income' => 60000,
+            'annual_dividend_income' => 800,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $div = collect($output->userAllowances)->firstWhere('key', 'dividend_allowance');
+        expect($div)->not->toBeNull();
+        // £800 of dividends against a £500 allowance — fully used, capped.
+        expect((float) $div['used'])->toBe((float) $div['amount']);
+        expect((float) $div['remaining'])->toBe(0.0);
+        expect($div['utilisation_pct'])->toBeGreaterThanOrEqual(100.0);
+    });
+});
+
 describe('benchmark', function () {
     // Wall-clock threshold is generous (100ms) on purpose — single_earner_couple
     // mode runs ~13 strategies, each with its own SavingsAccount / DCPension /

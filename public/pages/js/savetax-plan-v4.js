@@ -167,17 +167,26 @@
     var grid = document.getElementById('proof-grid');
     if (!headline || !grid) return;
 
-    var segment = INC[ans.income] ? INC[ans.income].toLowerCase() : 'people like you';
+    // "members with income up to £50,270" / "members with income in the
+    // £100k tax-trap" — the segment is a qualifier AFTER "members", never
+    // jammed between the count and "members" (that produced garbled copy).
+    var segmentPhrase = INC[ans.income] ? 'with ' + INC[ans.income].toLowerCase() : 'like you';
     var married = ans.spouse === 'yes';
 
     // Headline stat = the SAME estimated saving shown in the hero box.
     var stat = fmt(estimatedSaving());
-    var count = { 'higher': '4,200', 'additional': '1,600', 'basic': '9,800', 'personal-allowance': '3,500' }[ans.income] || '5,000';
+    // Illustrative sample sizes keyed by the funnel's CURRENT income band values.
+    var count = {
+      'upto_50270': '9,800',
+      '50271_100000': '4,200',
+      '100001_125140': '2,400',
+      'over_125140': '1,600',
+    }[ans.income] || '5,000';
 
     headline.innerHTML =
       '<span class="sp4-proof__headline-stat">' + stat + '</span>' +
       '<p class="sp4-proof__headline-text">Average first-year tax saving identified for <strong>' +
-      count + '</strong> ' + segment + ' members who completed onboarding with Fyn.</p>';
+      count + '</strong> members ' + segmentPhrase + ' who completed onboarding with Fyn.</p>';
 
     // Build 3 testimonials relevant to the answers.
     var cards = [];

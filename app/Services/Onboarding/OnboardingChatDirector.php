@@ -2419,8 +2419,24 @@ PROMPT;
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
+            OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING => $this->charitableGivingAck($user),
             default => null,
         };
+    }
+
+    /**
+     * Gift Aid is the one campaign capture with neither a delegated-LLM ack
+     * nor an immediate strategy turn after it — without an ack the flow
+     * jumps straight into the spouse section and feels abrupt.
+     */
+    private function charitableGivingAck(User $user): string
+    {
+        $amount = (float) ($user->annual_charitable_donations ?? 0);
+        if ($amount <= 0) {
+            return 'Got it — no Gift Aid donations.';
+        }
+
+        return sprintf('Recorded — around £%s a year through Gift Aid.', number_format($amount, 0));
     }
 
     private function spouseAck(User $user): string

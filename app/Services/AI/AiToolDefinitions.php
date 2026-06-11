@@ -427,6 +427,10 @@ class AiToolDefinitions
                             'type' => 'number',
                             'description' => 'Annual platform fee as a percentage (e.g., 0.15 for 0.15%)',
                         ],
+                        'annual_dividend_income' => [
+                            'type' => 'number',
+                            'description' => 'Annual dividend income this account pays in pounds, when the user states it (e.g. "pays about £800 a year in dividends" → 800). Only for taxable accounts (GIA, shares); omit for ISAs — ISA dividends are tax-free and never use the Dividend Allowance.',
+                        ],
                         // Bond-specific fields (onshore_bond, offshore_bond)
                         'bond_purchase_date' => [
                             'type' => 'string',
