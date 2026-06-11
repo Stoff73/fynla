@@ -76,6 +76,32 @@ it('marks a recommendation item done when a matching completed tracking row exis
         ->and($item['done'])->toBeTrue();
 });
 
+it('deep-links a tax recommendation to the tax strategy screen', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    // The aggregator's seventh module — a tax rec must navigate to
+    // /tax-strategy, not the /net-worth fallback.
+    $aggregator = Mockery::mock(RecommendationsAggregatorService::class);
+    $aggregator->shouldReceive('aggregateRecommendations')
+        ->with($user->id)
+        ->andReturn([[
+            'recommendation_id' => 'tax_test_rec_1',
+            'module' => 'tax',
+            'recommendation_text' => 'Use salary sacrifice for your pension contributions',
+            'priority_score' => 80.0,
+            'category' => 'tax',
+            'potential_benefit' => null,
+        ]]);
+    app()->instance(RecommendationsAggregatorService::class, $aggregator);
+
+    $items = app(NextActionsService::class)->build($user->id);
+
+    $item = collect($items)->firstWhere('id', 'tax_test_rec_1');
+    expect($item)->not->toBeNull()
+        ->and($item['action']['kind'])->toBe('navigate')
+        ->and($item['action']['payload'])->toBe('/tax-strategy');
+});
+
 it('builds focus-area cards: a Top card first, then one per module', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 

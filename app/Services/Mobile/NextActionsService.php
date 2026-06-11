@@ -223,6 +223,7 @@ class NextActionsService
             'retirement' => '/retirement',
             'estate' => '/estate',
             'goals' => '/goals',
+            'tax' => '/tax-strategy',
             default => '/net-worth',
         };
     }

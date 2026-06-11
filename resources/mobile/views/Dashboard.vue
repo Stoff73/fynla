@@ -689,6 +689,7 @@ export default {
         retirement: 'Help me add my pension details',
         estate: 'Help me add my estate planning details',
         goals: 'Help me set a financial goal',
+        tax: 'Help me complete my tax strategy details',
       };
       this.openFyn();
       this.send(prompts[module] || 'Help me add my financial details');
