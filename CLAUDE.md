@@ -248,6 +248,19 @@ Don't run the full test suite or full process ceremony after every single PR whe
 
 When CSJ has explained an architecture or plan, or explicitly deferred an issue ("we'll do this after the refactor", "this doesn't need to come up every time"), internalise it and act on it. Do not re-raise a settled or deferred decision on every turn, and do not make CSJ re-explain the same already-agreed design repeatedly. If a detail is genuinely unclear, re-read the spec, the canonical contract, and the relevant memory files first; only ask once you've exhausted those and the question is one they have not already answered.
 
+### 19. Every Instruction Applies to the `/m` Pathway Too (Mobile Web Iframe Build)
+
+**Every instruction, feature, fix, and plan applies to BOTH the desktop web SPA and the `/m` mobile pathway unless CSJ specifically excludes it.** The `/m` pathway is the mobile **web** build — phones are detected and routed to `/m`, which iframes the real funnel and serves the mobile SPA (`resources/mobile/`) at `/m/app/*` with its own dashboard. It is NOT the iOS Capacitor build (that is a separate packaging of the same views, rebuilt only via `./deploy/mobile/build-ios.sh` when explicitly in scope).
+
+What this means in practice:
+- **Scope interpretation:** "add X to the dashboard", "fix the tax strategy page", "change module summaries" — all implicitly include the `/m` equivalents (`resources/mobile/views/`, `MobileDashboardAggregator`, mobile module screens). Never deliver web-only and call it done.
+- **Backend is shared by architecture** (one endpoint, e.g. `POST /api/ai-chat/conversations/{id}/messages`, `GET /api/tax-strategy`) — backend changes usually reach `/m` for free. The gap risk is per-surface frontends: anything with a web component (dashboard card, module summary, new page/route, Fyn rendering behaviour) needs its `resources/mobile/` counterpart checked and, where missing, built.
+- **"Done" for user-facing work = verified on web AND `/m`.** `/m` is verified on csjones (it serves the built bundle, no HMR; the `ssh-fynla` MCP tool is PROD — never use it for csjones).
+- **Plans and specs:** when writing or executing a plan, include the `/m` surface explicitly. If a plan is silent on `/m`, treat `/m` parity as in-scope by default — flag, don't skip.
+- The only exceptions are when CSJ says so ("web only", "desktop only", "skip /m"), or surfaces that have no mobile counterpart by design (e.g. the admin panel, which lives on desktop routes).
+
+**Ownership:** OWNED by CSJ (issued 2026-06-11). Changeable only by CSJ editing this section.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**
