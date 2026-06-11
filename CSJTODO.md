@@ -1,6 +1,22 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-11 — context-clear wrap, session 1. **Track 1 of the recommendation/insight-quality programme delivered: PR #528 merged to dev @ `4e211aa`, deployed + verified on csjones.** Catalogue reconciled (20 strategy rows live), guided-flow A1–A4 fixes verified in the live browser, knowledge layer restored to the unified prompt, golden eval scenarios green on grok-4.3. NOT on prod. Handover: `June/June11Updates/handover-2026-06-11-session-1-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-11 — context-clear wrap, session 2. **Suite GREEN (4,541 / 0), both session-1 chips done, Rule #19 (/m parity) codified, route:cache permanently banned (it was shadowing the public homepage — the "/m landing regression"), PR #527 gamified web dashboard merged with two in-merge repairs. dev @ `857ea2a`, deployed + verified on csjones (both bundles).** NOT on prod. Handover: `June/June11Updates/handover-2026-06-11-session-2-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-11 — Session 2: chips, /m parity law, route:cache incident, PR #527 (context-clear; dev @ 857ea2a)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-2-clear.md`. Deploy note: `June/June11Updates/deploy-2026-06-11.md` (3 addenda today).
+- 24 pre-existing failures cleared (incl. REAL NetWorthService joint-assets lazy-load 500 fix); GiftFactory enums aligned; CLAUDE.md Rule #19 added; PR #528 /m parity gaps fixed (tax deep-link + capture prompt); route:cache→catch-all-shadows-homepage root-caused + banned (DEPLOY.md, build scripts, Troubleshooting, memory); PR #527 merged with repairs (dead `recommendations` payload key → focus_areas rewire; CP1252 mojibake → iconv).
+
+### Outstanding
+- [ ] **CSJ re-test the Azlan journey on csjones** (carried — still the acceptance moment; csjones now also carries the gamified web dashboard).
+- [ ] **CSJ eyeball the gamified web dashboard** (`/dashboard` on csjones): two flagged design notes — only Save tax/Retirement/Savings have tabs (protection/investment/estate/goals recs are /m + module pages only); unlock rows open the Fyn dock with no preset capture message. Accept or redirect.
+- [ ] **Insights featured judgement call**: test realigned to the May fallback contract (1dba112) over the April no-fallback decision (5d3ac7f) — flip controller+test together if the April behaviour was intended.
+- [ ] Tech debt: legacy deploy docs (`deploy/DEPLOYMENT_v0.6.2.md`, `deploy/DEPLOYMENT_FYNLA_ORG.md`) still instruct `route:cache`/`optimize` — superseded by DEPLOY.md but a trap; prune or banner them.
+- [ ] Tech debt: `MEMORY.md` is over the 24.4KB load budget (truncated at session start) — shorten index lines / archive stale entries.
+- [ ] Tech debt: gamified web dashboard unlock rows render a no-op checkbox + Skip (cosmetic); web Fyn dock has no programmatic send so unlock taps can't pre-fill a capture message (parity nicety vs /m).
+- [ ] Vault: NetWorth + DeploymentBuild Current State docs >2 weeks stale and touched by today's work (flagged by vault-sync).
+- [ ] Track 2 (coala) planning from spec §7 (carried).
+- [ ] Deferred polish + isa_subscription_amount caveat (carried from session 1).
 
 ## 2026-06-11 — Session 1: insight-quality Track 1 spec→plan→build→verify→merge→deploy (context-clear; dev @ 4e211aa)
 
