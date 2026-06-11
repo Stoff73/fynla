@@ -1,50 +1,50 @@
-{"__meta":{"provider":"xai","model":"grok-4.3","scenario_id":"azlan_savetax_journey","recorded_at":"2026-06-11T04:57:01+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"fa59f0e","conversation_id":88,"event_count":43,"turn_count":6,"duration_ms":11332}}
+{"__meta":{"provider":"xai","model":"grok-4.3","scenario_id":"azlan_savetax_journey","recorded_at":"2026-06-11T06:09:03+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"8516da1","conversation_id":93,"event_count":43,"turn_count":6,"duration_ms":9314}}
 {"__turn__":1}
 {"type":"title","title":"I have a cash isa and a stocks and shares ISA. Cash: 19000 Stocks and shares: 3000. About \u00a3100 this ..."}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1895,"name":"Cash ISA"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1904,"name":"Cash ISA"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1896,"name":"Stocks and Shares ISA"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1905,"name":"Stocks and Shares ISA"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"content","text":"I'll show you what that means for your numbers at the end. Recorded \u2014 two ISAs totalling \u00a322,000."}
 {"type":"onboarding_advance","from_step":"campaign_isa_holdings","to_step":"campaign_bank_accounts"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Now your savings outside an ISA \u2014 bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"}
-{"type":"done","message_id":303}
+{"type":"done","message_id":385}
 {"__turn__":2}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1897,"name":"Premium Bonds"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1906,"name":"Premium Bonds"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
-{"type":"entity_created","entity_type":"savings_account","entity_id":1898,"name":"Savings Account"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1907,"name":"Savings Account"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"content","text":"Recorded \u2014 Premium Bonds \u00a3500 and savings \u00a381,000 at 3. 25%."}
 {"type":"tool_use","tool":"create_savings_account","status":"running"}
 {"type":"tool_use","tool":"create_savings_account","status":"complete"}
 {"type":"onboarding_advance","from_step":"campaign_bank_accounts","to_step":"campaign_advice_savings"}
-{"type":"content","text":"Split your savings between you and your spouse to use both Savings Allowances. Holding \u00a382,000 of cash in one name uses only your \u00a3500 Personal Savings Allowance. Putting half in your spouse's name claims their \u00a31,000 allowance too \u2014 saving around \u00a3155 a year."}
+{"type":"content","text":"Wrap \u00a320,000 of cash savings inside an ISA before April 5. You hold \u00a382,000 of non-ISA cash earning interest above your \u00a3500 Savings Allowance. Wrapping \u00a320,000 in an ISA removes that interest from tax permanently \u2014 saving around \u00a3256 a year going forward.\n\nSplit your savings between you and your spouse to use both Savings Allowances. Holding \u00a382,000 of cash in one name uses only your \u00a3500 Personal Savings Allowance. Putting half in your spouse's name claims their \u00a31,000 allowance too \u2014 saving around \u00a3155 a year."}
 {"type":"onboarding_advance","from_step":"campaign_advice_savings","to_step":"campaign_dob"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Now let's look at pensions and retirement \u2014 for that I need your date of birth. Something like 12 January 1985."}
-{"type":"done","message_id":307}
+{"type":"done","message_id":389}
 {"__turn__":3}
 {"type":"onboarding_field_captured","field_group":"personal","summary":"Personal details saved","details":{"date_of_birth":"1985-01-12","marital_status":"married"},"hydrated_from_parking":true}
 {"type":"onboarding_advance","from_step":"campaign_dob","to_step":"campaign_occupational_scheme","hydrated_from_parking":true}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."}
-{"type":"done","message_id":309}
+{"type":"done","message_id":391}
 {"__turn__":4}
-{"type":"content","text":"Salary sacrifice means you give up some salary in exchange for higher pension contributions, which reduces your taxable income and National Insurance bill. I'll show you what that means for your numbers at the end. What are the details of your workplace pension?"}
+{"type":"content","text":"Salary sacrifice means you give up part of your salary in exchange for extra pension contributions, which reduces your taxable income and National Insurance bill. I'll show you what that means for your numbers at the end. What is the name of your workplace pension provider?"}
 {"type":"onboarding_advance","from_step":"campaign_occupational_scheme","to_step":"campaign_pension_contribs"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?"}
-{"type":"done","message_id":312}
+{"type":"done","message_id":394}
 {"__turn__":5}
 {"type":"onboarding_advance","from_step":"campaign_pension_contribs","to_step":"campaign_pension_history"}
 {"type":"onboarding_layout_change","mode":"wide"}
 {"type":"content","text":"Quick one \u2014 to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don't know exact numbers, rough figures are fine, and \"zero\" is a valid answer."}
-{"type":"done","message_id":315}
+{"type":"done","message_id":397}
 {"__turn__":6}
 {"type":"content","text":"Just to be sure I read that correctly \u2014 is that the total across all three tax years, or roughly that amount per year? It changes whether you have unused allowance to top up."}
-{"type":"done","message_id":317}
+{"type":"done","message_id":399}
