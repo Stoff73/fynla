@@ -464,9 +464,10 @@ class NetWorthService
         $userId = $user->id;
         $jointAssets = [];
 
-        // Get joint properties
+        // Get joint properties (jointOwner eager-loaded — the display-name
+        // accessor reads the relation, which trips strict no-lazy-loading)
         $properties = $this->propertyStore
-            ->forUser($user)
+            ->forUserWithJointOwner($user)
             ->where('user_id', $userId)
             ->where('ownership_type', 'joint')
             ->map(function ($property) {
@@ -483,6 +484,7 @@ class NetWorthService
         // Get joint investments
         $investments = InvestmentAccount::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($investment) {
                 return [
@@ -498,6 +500,7 @@ class NetWorthService
         // Get joint savings accounts
         $cashAccounts = SavingsAccount::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($account) {
                 return [
@@ -513,6 +516,7 @@ class NetWorthService
         // Get joint businesses
         $businesses = BusinessInterest::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($business) {
                 return [
@@ -528,6 +532,7 @@ class NetWorthService
         // Get joint chattels
         $chattels = Chattel::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($chattel) {
                 return [
