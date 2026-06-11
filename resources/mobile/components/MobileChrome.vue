@@ -17,10 +17,17 @@
         <p v-if="subtitle" class="md-page-hero__sub">{{ subtitle }}</p>
       </div>
 
-      <!-- Edit details — opens Fyn pre-asked. Sits under the header, above content. -->
-      <button v-if="editDetails && !loading" type="button" class="md-edit-details" @click="openFynWith('What would you like to update?')">
-        Edit details
-      </button>
+      <!-- Action row under the header: Back (left) + Edit details. Back shows on
+           sub-pages (the parent passes :back and handles @back). -->
+      <div v-if="!loading && (back || editDetails)" class="md-page-actions">
+        <button v-if="back" type="button" class="md-back-btn" @click="$emit('back')">
+          <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+          Back
+        </button>
+        <button v-if="editDetails" type="button" class="md-edit-details" @click="openFynWith('What would you like to update?')">
+          Edit details
+        </button>
+      </div>
 
       <!-- Centred ring + coin loader while the page's data loads. -->
       <div v-if="loading" class="md-loader" role="status" aria-live="polite">
@@ -159,7 +166,11 @@ export default {
     loadingLabel: { type: String, default: '' },
     // Show the "Edit details" button under the header (opens Fyn pre-asked).
     editDetails: { type: Boolean, default: true },
+    // Show a Back button to the left of Edit details (sub-pages). The parent
+    // owns the destination via @back.
+    back: { type: Boolean, default: false },
   },
+  emits: ['back'],
   data() {
     return {
       NAV_ICON,
@@ -346,10 +357,35 @@ export default {
 .md-page-hero__title { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0; line-height: 1.15; }
 .md-page-hero__sub { font-size: 0.875rem; color: rgba(255, 255, 255, 0.82); margin: 0.375rem 0 0; line-height: 1.4; }
 
+/* Action row under the header — Back (left) + Edit details. */
+.md-page-actions {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.875rem 0 0.25rem;
+}
+/* Back — sits to the LEFT of Edit details on sub-pages. */
+.md-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.5rem;
+  background: var(--white);
+  color: var(--horizon-500);
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.md-back-btn:hover { background: var(--horizon-100); border-color: var(--horizon-300); }
+.md-back-btn svg { display: block; }
+
 /* Edit details — small button under the header, above the first content card. */
 .md-edit-details {
-  align-self: flex-start;
-  margin: 0.875rem 0 0.25rem;
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -365,39 +401,4 @@ export default {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .md-edit-details:hover { background: var(--light-pink-50); border-color: var(--raspberry-500); }
-
-/* Centred ring + coin loader. */
-.md-loader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  min-height: 55vh;
-  padding: 2rem 1rem;
-}
-.md-loader__spin { position: relative; width: 6rem; height: 6rem; }
-.md-loader__ring {
-  position: absolute;
-  inset: 0;
-  border: 6px solid var(--horizon-100);
-  border-top-color: var(--raspberry-500);
-  border-radius: 50%;
-  animation: md-loader-spin 0.9s linear infinite;
-}
-.md-loader__coin {
-  position: absolute;
-  inset: 1.4rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--raspberry-400), var(--raspberry-600));
-  color: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 1.5rem;
-  box-shadow: 0 4px 12px rgba(232, 62, 109, 0.35);
-}
-.md-loader__text { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin: 0; }
-@keyframes md-loader-spin { to { transform: rotate(360deg); } }
 </style>

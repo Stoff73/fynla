@@ -472,16 +472,12 @@
 .md-focus__card.is-locked.is-active .md-focus__label { color: var(--neutral-500); }
 .md-focus__card.is-locked .md-focus__stat { color: var(--neutral-500); }
 
-/* Locked recommendation row (an unlock prompt) — full light-grey dotted outline.
-   Actionable recommendations keep the default solid hairline border (no dots). */
+/* Unlock prompts are actions too (tap → Fyn helps add the data), so they share
+   the same borderless eggshell card as the other rows. */
 .md-rec.is-unlock {
-  border: 2px dotted var(--horizon-300);
-  background: transparent;
-  /* overflow:hidden (from .md-rec) clips the dots at the rounded corners, so the
-     outline looks uneven — let it render fully and evenly around the box. */
-  overflow: visible;
+  background: var(--eggshell-500);
 }
-.md-rec.is-unlock:hover { border-color: var(--neutral-400); }
+.md-rec.is-unlock:hover { background: var(--savannah-200); }
 
 /* Slim done-count above the action list (the active card already labels it) */
 .md-recs__count {
@@ -645,19 +641,21 @@
   gap: 0.5rem;
 }
 
-/* Split row: check-toggle (left) + action link with chevron (right) */
+/* Split row: check-toggle (left) + action link with chevron (right).
+   Every row here is an action the user can take, so they read as soft eggshell
+   cards with no border (cleaner than a hairline). overflow:hidden keeps the
+   hover fill clipped to the rounded corners. */
 .md-rec {
   display: flex;
   align-items: stretch;
   width: 100%;
-  background: var(--white);
-  border: 1px solid var(--horizon-100);
+  background: var(--eggshell-500);
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: border-color 0.15s ease, background 0.15s ease,
-              opacity 0.25s ease, transform 0.25s ease;
+  transition: background 0.15s ease, opacity 0.25s ease, transform 0.25s ease;
 }
-.md-rec:hover { border-color: var(--horizon-200); }
+.md-rec:hover { background: var(--savannah-200); }
 
 .md-rec__check-btn {
   display: flex;
@@ -667,7 +665,7 @@
   padding: 0 0.5rem;
   background: transparent;
   border: none;
-  border-right: 1px solid var(--horizon-100);
+  border-right: 1px solid var(--savannah-300);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -707,11 +705,6 @@
   text-decoration: line-through;
 }
 
-/* Unlock action — a module with no data yet. Full even dotted outline (see the
-   .md-rec.is-unlock rule above); no thicker left stripe so the dots are uniform. */
-.md-rec.is-unlock {
-  background: transparent;
-}
 .md-rec.is-unlock .md-rec__title { color: var(--horizon-500); }
 
 .md-rec__action {
@@ -724,7 +717,7 @@
   text-decoration: none;
   min-width: 0;
 }
-.md-rec__action:hover { background: var(--horizon-100); }
+.md-rec__action:hover { background: var(--savannah-300); }
 .md-rec__action:focus-visible {
   outline: 2px solid var(--raspberry-500);
   outline-offset: -2px;
@@ -1854,6 +1847,54 @@
   cursor: pointer;
   padding: 0.25rem;
 }
+
+/* Centred ring + coin loader — large, centre of screen. Shared by the dashboard
+   and every MobileChrome-wrapped page (MobileChrome imports this stylesheet). */
+.md-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 55vh;
+  padding: 2rem 1rem;
+}
+.md-loader__spin { position: relative; width: 6rem; height: 6rem; }
+.md-loader__ring {
+  position: absolute;
+  inset: 0;
+  border: 6px solid var(--horizon-100);
+  border-top-color: var(--raspberry-500);
+  border-radius: 50%;
+  animation: md-loader-spin 0.9s linear infinite;
+}
+.md-loader__coin {
+  position: absolute;
+  inset: 1.4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--raspberry-400), var(--raspberry-600));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(232, 62, 109, 0.35);
+}
+.md-loader__text { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin: 0; }
+.md-retry {
+  margin-top: 0.25rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+@keyframes md-loader-spin { to { transform: rotate(360deg); } }
 
 /* Today's insight — Fyn's daily insight surfaced from the dashboard payload
    (fyn_insight). Plain-text card; sits between the level callout and the

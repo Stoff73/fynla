@@ -12,9 +12,15 @@
 
     <main class="md-main">
 
-      <div v-if="loading" class="md-loading">Loading your dashboard…</div>
-      <div v-else-if="error" class="md-loading">
-        <p>{{ error }}</p>
+      <div v-if="loading" class="md-loader" role="status" aria-live="polite">
+        <div class="md-loader__spin" aria-hidden="true">
+          <div class="md-loader__ring"></div>
+          <span class="md-loader__coin">£</span>
+        </div>
+        <p class="md-loader__text">Loading your dashboard…</p>
+      </div>
+      <div v-else-if="error" class="md-loader">
+        <p class="md-loader__text">{{ error }}</p>
         <button class="md-retry" @click="load">Try again</button>
       </div>
 
@@ -217,7 +223,7 @@
          dismisses it for the session. Hidden once Fyn is open or onboarded. -->
     <div v-if="showFynNudge" class="md-fyn-nudge">
       <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Finish your personalised tax plan with Fyn</button>
-      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="nudgeDismissed = true">Later</button>
+      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="dismissNudge">Later</button>
     </div>
 
     <!-- Fyn unlock nudge: when a high-value area is KYC-gated, Fyn offers to
@@ -404,7 +410,13 @@ export default {
       fynOpen: false,
       fynMounted: false,
       fynStarted: false,
-      nudgeDismissed: false,
+      // "Later" on the tax-plan nudge holds for the whole browsing session (until
+      // the next login / the session expires), so it doesn't re-nag on every
+      // navigation back to the dashboard. Persisted in sessionStorage, which
+      // clears when the tab/session ends.
+      nudgeDismissed: (() => {
+        try { return sessionStorage.getItem('m_fyn_nudge_dismissed') === '1'; } catch (e) { return false; }
+      })(),
       // "Not now" holds for the whole browsing session (spec decision D — the
       // bubble must not re-nag on every navigation back to the dashboard), so
       // the flag lives in sessionStorage, not just component state.
@@ -722,6 +734,12 @@ export default {
       this.unlockBubbleDismissed = true;
       try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
     },
+    // "Later" on the tax-plan nudge — hold the dismissal for the session so it
+    // doesn't reappear on every dashboard visit until the next login.
+    dismissNudge() {
+      this.nudgeDismissed = true;
+      try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+    },
     openFynForCapture(module) {
       const prompts = {
         protection: 'Help me add my protection cover details',
@@ -823,9 +841,10 @@ export default {
         if (store.token) await apiPost('/api/auth/logout', {}, store.token);
       } catch (e) { /* best-effort — proceed to local clear regardless */ }
       store.logout();
-      // Return to the CANONICAL funnel login (framed in /m), not a scaffold
-      // screen. Full navigation so the main app's login renders in-frame.
-      window.location.href = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
+      // Stay inside the /m SPA: route to the mobile login (/m/app/login), not the
+      // desktop /login page. The mobile router base already carries the m/app/
+      // prefix, so a plain push('/login') resolves to the framed mobile login.
+      this.$router.push('/login');
     },
     openDrawer() {
       this.drawerMounted = true;

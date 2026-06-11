@@ -1,7 +1,6 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account">
+  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" back @back="goBack">
     <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to savings">Back</button>
       <h1 class="m-h1">{{ headerTitle }}</h1>
       <p class="m-sub">{{ headerSub }}</p>
     </div>
