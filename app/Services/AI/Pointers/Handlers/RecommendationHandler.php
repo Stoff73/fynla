@@ -26,23 +26,18 @@ final class RecommendationHandler implements FetchHandler
         // so skill and tool cannot disagree (shape-parity pinned in tests).
         $plan = $this->plans->forUser($ctx->user);
 
-        $surfaced = array_values(array_filter(array_map(
-            static fn (array $item): string => (string) ($item['type'] ?? ''),
-            $plan['items'],
-        ), static fn (string $id): bool => $id !== ''));
+        $ids = ComposedTaxPlanService::extractStrategyIds($plan);
 
-        $locked = array_values(array_map(
-            static fn (array $l): string => $l['strategy_type'],
-            $plan['locked'],
-        ));
-
+        // The value encoding is the digest preimage (FetchResult::make derives
+        // the digest from it) and must stay byte-equal to
+        // ComposedTaxPlanService::planDigest's encoding — parity-pinned.
         return FetchResult::make(
             (string) json_encode(['composed_tax_plan' => $plan], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'recommendation engine',
             Carbon::now()->toDateString(),
             [
-                'strategy_ids' => implode(',', $surfaced),
-                'locked_strategy_ids' => implode(',', $locked),
+                'strategy_ids' => implode(',', $ids['surfaced']),
+                'locked_strategy_ids' => implode(',', $ids['locked']),
             ],
         );
     }

@@ -101,6 +101,43 @@ it('loads authored procedures and skips the scaffolding', function () {
         ->and($this->store->proceduralContext())->toContain('Build three months');
 });
 
+describe('proceduralContext relevance filter', function () {
+    beforeEach(function () {
+        $dir = config('fyn.memory.procedural_path');
+        // Mirror of the real root procedure (fyn-memory/procedural/recommendation-routing.md).
+        File::put($dir.'/recommendation-routing.md',
+            "---\nid: recommendation-routing\ntitle: Recommendation turns — route to the composed plan\n"
+            ."applies_when: >\n  The user asks what they should do, asks for recommendations, strategies,\n"
+            ."  ways to save tax, or next steps with their money.\nversion: 1\n---\n\n"
+            ."## Goal\n\nA recommendation-intent turn surfaces the composed strategy plan.\n");
+        File::put($dir.'/emergency-fund.md',
+            "---\nid: emergency-fund\ntitle: Emergency fund\napplies_when: low cash buffer\nversion: 2\n---\n"
+            ."Build three months of expenses.\n");
+    });
+
+    it('excludes the routing procedure on an unrelated turn (lean-prompt law)', function () {
+        $context = $this->store->proceduralContext('How do I change the email address on my login?');
+
+        expect($context)->not->toContain('Recommendation turns')
+            ->and($context)->toBe('');
+    });
+
+    it('includes the routing procedure on a recommendation-intent turn', function () {
+        $context = $this->store->proceduralContext('What should I do to save tax — any strategies or recommendations?');
+
+        expect($context)->toContain('Recommendation turns — route to the composed plan')
+            ->and($context)->toContain('composed strategy plan')
+            ->and($context)->not->toContain('Emergency fund');
+    });
+
+    it('includes every procedure when no query is given (the planner path)', function () {
+        $context = $this->store->proceduralContext();
+
+        expect($context)->toContain('Recommendation turns — route to the composed plan')
+            ->and($context)->toContain('Emergency fund');
+    });
+});
+
 it('returns empty for an unknown user and an empty procedural dir', function () {
     expect($this->store->recall(999))->toBeEmpty()
         ->and($this->store->recallContext(999))->toBe('')

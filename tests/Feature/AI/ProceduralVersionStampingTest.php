@@ -162,6 +162,67 @@ it('records nothing into the holder when no overlay/fca_block matches the turn',
     File::deleteDirectory($corpus);
 });
 
+it('stamps an included root procedure id@version into the holder on a matching turn', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $corpus = sys_get_temp_dir().'/proc-root-stamp-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    app()->forgetInstance(FynContextAssembler::class);
+
+    // A ROOT-level procedure in FynMemoryStore's frontmatter format (id +
+    // version, like fyn-memory/procedural/recommendation-routing.md) — not
+    // the subdirectory {kind}/{module} corpus format above.
+    @mkdir($corpus, 0777, true);
+    file_put_contents("{$corpus}/recommendation-routing.md",
+        "---\nid: recommendation-routing\ntitle: Recommendation turns — route to the composed plan\n"
+        ."applies_when: >\n  The user asks what they should do, asks for recommendations, strategies,\n"
+        ."  ways to save tax, or next steps with their money.\nversion: 1\n---\n\n"
+        ."## Goal\n\nA recommendation-intent turn surfaces the composed strategy plan.\n");
+
+    $user = User::factory()->create();
+    app(FynContextAssembler::class)->build(FynTurnContext::make(
+        user: $user,
+        message: 'What should I do to save tax — any strategies or recommendations?',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'general'],
+    ));
+
+    expect(app(ProceduralVersionHolder::class)->all())->toContain('recommendation-routing@1');
+
+    File::deleteDirectory($corpus);
+});
+
+it('does not stamp a root procedure on a turn whose message does not match it', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $corpus = sys_get_temp_dir().'/proc-root-stamp-'.uniqid();
+    config([
+        'fyn.memory.procedural_path' => $corpus,
+        'fyn.memory.procedural_reload_interval' => 0,
+    ]);
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    app()->forgetInstance(FynContextAssembler::class);
+
+    @mkdir($corpus, 0777, true);
+    file_put_contents("{$corpus}/recommendation-routing.md",
+        "---\nid: recommendation-routing\ntitle: Recommendation turns — route to the composed plan\n"
+        ."applies_when: >\n  The user asks what they should do, asks for recommendations, strategies,\n"
+        ."  ways to save tax, or next steps with their money.\nversion: 1\n---\n\n"
+        ."## Goal\n\nA recommendation-intent turn surfaces the composed strategy plan.\n");
+
+    $user = User::factory()->create();
+    app(FynContextAssembler::class)->build(stampAdviceTurn($user, 'general'));
+
+    expect(app(ProceduralVersionHolder::class)->all())->toBe([]);
+
+    File::deleteDirectory($corpus);
+});
+
 it('AiToolDefinitions records each assembled tool_schema procedure into the holder', function (): void {
     $corpus = sys_get_temp_dir().'/proc-tools-'.uniqid();
     config([

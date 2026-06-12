@@ -81,11 +81,24 @@ final class FynContextAssembler
         }
 
         // CoALA durable memory (FR-M2): the procedural corpus shapes HOW Fyn
-        // answers; recalled episodes are WHAT Fyn remembers about this user. Both
-        // are empty until authored / accrued, so this is a no-op today.
-        $procedural = $this->memoryStore->proceduralContext();
+        // answers; recalled episodes are WHAT Fyn remembers about this user.
+        // Procedures are relevance-filtered to this turn's message (lean-prompt
+        // law) — the planner path (FynLoop::plannerSystemPrompt) deliberately
+        // keeps the FULL corpus, because matching applies_when to intent IS
+        // the planner's job.
+        $procedural = $this->memoryStore->proceduralContext($ctx->message);
         if ($procedural !== '') {
             $lines[] = "<procedures>\n{$procedural}\n</procedures>";
+            // Episode provenance (4e): stamp each root procedure actually
+            // included this turn (post-filter) as id@version, mirroring how
+            // selectProcedures below stamps overlays / fca_blocks. The holder
+            // flows to ai_messages.procedural_version / blob / audit via the
+            // existing persistEpisode plumbing.
+            foreach ($this->memoryStore->matchingProcedures($ctx->message) as $procedure) {
+                if (is_numeric($procedure['version'])) {
+                    $this->proceduralVersions->add($procedure['id'], (int) $procedure['version']);
+                }
+            }
         }
         $remembered = $this->memoryStore->recallContext($ctx->user->id);
         if ($remembered !== '') {

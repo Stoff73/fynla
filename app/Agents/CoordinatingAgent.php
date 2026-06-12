@@ -131,6 +131,7 @@ class CoordinatingAgent extends BaseAgent
         private readonly AiToolDefinitions $toolDefinitions,
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
+        private readonly ComposedTaxPlanService $composedTaxPlans,
     ) {}
 
     /**
@@ -1877,33 +1878,27 @@ class CoordinatingAgent extends BaseAgent
     {
         $analysis = $this->orchestrateAnalysis($user->id);
 
-        $plan = app(ComposedTaxPlanService::class)->forUser($user);
+        $plan = $this->composedTaxPlans->forUser($user);
 
-        // §6e — the tool path records the same strategy-id provenance as the
-        // fetch-skill (RecommendationHandler), so every surfaced strategy is
-        // attributable from ai_messages.fetch_provenance regardless of path.
-        $surfaced = array_values(array_filter(array_map(
-            static fn (array $item): string => (string) ($item['type'] ?? ''),
-            $plan['items'],
-        ), static fn (string $id): bool => $id !== ''));
+        // §6e — the tool path records the same strategy-id provenance and plan
+        // digest as the fetch-skill (RecommendationHandler), via the shared home
+        // on ComposedTaxPlanService, so every surfaced strategy is attributable
+        // from ai_messages.fetch_provenance regardless of path.
+        $ids = ComposedTaxPlanService::extractStrategyIds($plan);
 
-        $locked = array_values(array_map(
-            static fn (array $l): string => $l['strategy_type'],
-            $plan['locked'],
-        ));
-
-        // Digest mirrors the fetch-skill's exact payload encoding (RecommendationHandler)
-        // so the same plan yields the same digest on either path — cross-path correlation.
-        $payload = (string) json_encode(['composed_tax_plan' => $plan], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
+        // Deliberately resolved at call time, NOT constructor-injected: the
+        // collector is request-scoped, and this agent is captured by the
+        // singleton AdviceFyn — constructor injection would freeze the first
+        // request's collector (same hazard as the FetchDispatcher binding
+        // comment in AppServiceProvider).
         app(FetchProvenanceCollector::class)->record([
             'pointer_id' => 'recommendations',
             'handler' => 'recommendations',
             'source_label' => 'recommendation engine',
             'source_version' => now()->toDateString(),
-            'digest' => substr(hash('sha256', $payload), 0, 16),
-            'strategy_ids' => implode(',', $surfaced),
-            'locked_strategy_ids' => implode(',', $locked),
+            'digest' => ComposedTaxPlanService::planDigest($plan),
+            'strategy_ids' => implode(',', $ids['surfaced']),
+            'locked_strategy_ids' => implode(',', $ids['locked']),
         ]);
 
         return [
