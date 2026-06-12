@@ -66,7 +66,10 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 #m-app:has(.phone-frame) {
   background: var(--eggshell-500);
 }
-#m-app:has(.m-card) { max-width: 420px; margin: 0 auto; padding: 24px 20px 40px; }
+/* Capped, centred layout for legacy m-card-only pages. Pages wrapped in
+   MobileChrome carry BOTH .m-card and .phone-frame — those must stay full-bleed
+   (the chrome owns the padding via .md-main), so exclude phone-frame contexts. */
+#m-app:has(.m-card):not(:has(.phone-frame)) { max-width: 420px; margin: 0 auto; padding: 24px 20px 40px; }
 .m-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
 .m-field { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 16px; }
 .m-btn { width: 100%; padding: 14px; background: #E83E6D; color: #fff; border: 0; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
@@ -82,7 +85,7 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-welcome .m-sub { margin-bottom: 14px; }
 .m-net-worth { background: #1F2A44; color: #fff; }
 .m-net-worth .m-sub, .m-net-worth .m-label { color: #C8CFDC; margin-bottom: 4px; }
-.m-net-worth .m-metric { font-size: 32px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
+.m-net-worth .m-metric { font-size: 44px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
 .m-net-worth .m-insight { font-size: 14px; line-height: 1.45; color: #E8ECF3; margin-top: 6px; }
 .m-section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; margin: 18px 4px 8px; }
 .m-module { padding: 16px 18px; }
@@ -100,37 +103,55 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-state .m-sub { margin-bottom: 0; }
 
 /* Bug report — floating button + bottom sheet */
+/* Help / report-a-problem — top-right icon button, sits over the header gradient. */
 .m-report-fab {
   position: fixed;
-  right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  z-index: 40;
-  background: #E83E6D;
+  right: 14px;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  z-index: 30;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
   border: 0;
   border-radius: 999px;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 2px 10px rgba(31, 42, 68, 0.25);
   cursor: pointer;
+  transition: background 0.15s ease;
 }
+.m-report-fab:hover { background: rgba(255, 255, 255, 0.28); }
 .m-report-fab:active { transform: scale(0.97); }
 
 .m-sheet-root { position: fixed; inset: 0; z-index: 60; } /* above the Fyn chat overlay (z-index 50) */
 .m-sheet-overlay { position: absolute; inset: 0; background: rgba(31, 42, 68, 0.5); }
+/* Centred lightbox so the whole dialog is always fully on-screen. */
 .m-sheet {
   position: absolute;
-  left: 0; right: 0; bottom: 0;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
   max-width: 420px;
-  margin: 0 auto;
   background: #fff;
-  border-radius: 16px 16px 0 0;
-  padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px));
-  max-height: 88vh;
+  border-radius: 16px;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  max-height: 90vh;
+  max-height: 90svh;
   overflow-y: auto;
-  box-shadow: 0 -4px 24px rgba(31, 42, 68, 0.2);
+  box-shadow: 0 12px 40px rgba(31, 42, 68, 0.28);
 }
+.m-sheet-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 2rem; height: 2rem;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 999px;
+  background: #F1F3F6; color: #1F2A44;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.m-sheet-close:hover { background: #E5E7EB; }
 .m-sheet-handle { width: 40px; height: 4px; border-radius: 999px; background: #E5E7EB; margin: 6px auto 12px; }
 .m-sheet-label { display: block; font-size: 13px; font-weight: 600; color: #6B7280; margin: 12px 0 2px; }
 .m-textarea { resize: vertical; font-family: inherit; }
@@ -145,10 +166,43 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-back { background: transparent; border: 0; color: #E83E6D; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; margin-bottom: 12px; cursor: pointer; }
 .m-hero { background: #1F2A44; color: #fff; }
 .m-hero .m-sub, .m-hero .m-label { color: #C8CFDC; margin-bottom: 4px; }
-.m-hero .m-metric { font-size: 30px; font-weight: 900; margin-bottom: 6px; letter-spacing: -0.5px; }
+.m-hero .m-metric { font-size: 44px; font-weight: 900; margin-bottom: 6px; letter-spacing: -0.5px; }
 .m-hero-sub { font-size: 14px; color: #E8ECF3; }
 .m-detail-rows .m-section-label { margin: 0 0 12px; }
 .m-detail-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #F1F3F6; }
 .m-detail-row:last-child { border-bottom: 0; }
+
+/* Clickable module list rows (savings/investment accounts, net-worth categories,
+   protection policies, pensions). Default eggshell card so they read as tappable;
+   hover lifts to white with a light-pink border. The #m-app prefix raises
+   specificity above the components' scoped row styles (transparent background +
+   hairline divider), so this central rule wins without editing each component. */
+#m-app .ms-acct,
+#m-app .mi-acct,
+#m-app .mnw-cat,
+#m-app .mp-policy,
+#m-app .mr-pension {
+  background: var(--eggshell-500);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#m-app .ms-acct:last-of-type,
+#m-app .mi-acct:last-of-type,
+#m-app .mnw-cat:last-of-type,
+#m-app .mp-policy:last-of-type,
+#m-app .mr-pension:last-of-type {
+  margin-bottom: 0;
+}
+#m-app .ms-acct:hover,
+#m-app .mi-acct:hover,
+#m-app .mnw-cat:hover,
+#m-app .mp-policy:hover,
+#m-app .mr-pension:hover {
+  background: var(--white);
+  border-color: var(--light-pink-200);
+}
 .m-detail-key { font-size: 14px; color: #6B7280; }
 .m-detail-value { font-size: 14px; font-weight: 700; color: #1F2A44; text-align: right; white-space: nowrap; }

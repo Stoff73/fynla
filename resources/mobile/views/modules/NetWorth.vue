@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Net Worth</h1>
-      <p class="m-sub">Everything you own, less what you owe</p>
-    </div>
-
+  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe" :loading="loading" loading-label="your net worth">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your net worth…</p>
     </div>
@@ -66,12 +60,13 @@
         </button>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -90,6 +85,7 @@ const ASSET_ORDER = ['property', 'investments', 'pensions', 'cash', 'business', 
 
 export default {
   name: 'MobileNetWorth',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', overview: null, detailed: null }),
   computed: {
     netWorth() { return this.overview?.net_worth ?? 0; },

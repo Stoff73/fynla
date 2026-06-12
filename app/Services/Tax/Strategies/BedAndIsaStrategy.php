@@ -17,9 +17,9 @@ use App\Services\TaxConfigService;
  * Strategy #6 — Bed & ISA Capital Gains Harvest within the Annual Exempt Amount.
  *
  * Fires when the user has non-ISA holdings with positive unrealised gains
- * AND remaining ISA allowance to absorb the proceeds. Saving =
- * min(total_unrealised_gain, AEA) × CGT rate for the user's band, sized
- * by the proceeds that fit inside the remaining ISA allowance.
+ * AND remaining ISA allowance to absorb the proceeds. Saving = the gains
+ * embedded in the proceeds that fit inside the remaining ISA allowance
+ * (capped at min(total_unrealised_gain, AEA)) × CGT rate for the user's band.
  */
 final class BedAndIsaStrategy implements TaxStrategy
 {
@@ -109,10 +109,11 @@ final class BedAndIsaStrategy implements TaxStrategy
             $totalCurrentValueWithGain * ($realisableGains / $totalUnrealisedGain),
         );
 
-        // Under a shared-pool constraint, the gains actually crystallised are
-        // only those embedded in the proceeds that still fit inside the ISA —
+        // The gains actually crystallised are only those embedded in the
+        // proceeds that fit inside the remaining ISA allowance (whether the
+        // clip came from the user's own subscriptions or a shared-pool cap) —
         // the honest saving on the smaller amount, not the full AEA figure.
-        if ($context->isaPoolCap !== null && $totalCurrentValueWithGain > 0.0) {
+        if ($totalCurrentValueWithGain > 0.0) {
             $realisableGains = min(
                 $realisableGains,
                 $proceeds * ($totalUnrealisedGain / $totalCurrentValueWithGain),

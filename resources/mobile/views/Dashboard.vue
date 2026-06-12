@@ -12,9 +12,15 @@
 
     <main class="md-main">
 
-      <div v-if="loading" class="md-loading">Loading your dashboard…</div>
-      <div v-else-if="error" class="md-loading">
-        <p>{{ error }}</p>
+      <div v-if="loading" class="md-loader" role="status" aria-live="polite">
+        <div class="md-loader__spin" aria-hidden="true">
+          <div class="md-loader__ring"></div>
+          <span class="md-loader__coin">£</span>
+        </div>
+        <p class="md-loader__text">Loading your dashboard…</p>
+      </div>
+      <div v-else-if="error" class="md-loader">
+        <p class="md-loader__text">{{ error }}</p>
         <button class="md-retry" @click="load">Try again</button>
       </div>
 
@@ -68,18 +74,26 @@
               </button>
             </div>
 
-            <!-- Dots -->
-            <div class="md-callout__dots" role="tablist" aria-label="Focus area navigation">
-              <button
-                v-for="(area, ai) in focusAreas"
-                :key="area.key"
-                type="button"
-                class="md-callout__dot"
-                :class="{ 'is-active': activeArea === ai }"
-                :aria-label="area.label"
-                :aria-selected="activeArea === ai ? 'true' : 'false'"
-                @click="selectArea(ai)"
-              ></button>
+            <!-- Prev / next arrows + dots -->
+            <div class="md-callout__nav">
+              <button type="button" class="md-callout__arrow" aria-label="Previous focus area" :disabled="activeArea === 0" @click="prevArea">
+                <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <div class="md-callout__dots" role="tablist" aria-label="Focus area navigation">
+                <button
+                  v-for="(area, ai) in focusAreas"
+                  :key="area.key"
+                  type="button"
+                  class="md-callout__dot"
+                  :class="{ 'is-active': activeArea === ai }"
+                  :aria-label="area.label"
+                  :aria-selected="activeArea === ai ? 'true' : 'false'"
+                  @click="selectArea(ai)"
+                ></button>
+              </div>
+              <button type="button" class="md-callout__arrow" aria-label="Next focus area" :disabled="activeArea >= focusAreas.length - 1" @click="nextArea">
+                <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+              </button>
             </div>
 
             <!-- Actions for the selected card -->
@@ -88,11 +102,11 @@
 
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
-                  <li v-if="!activeActions.length" class="md-rec md-rec--empty">
+                  <li v-if="!visibleActions.length" class="md-rec md-rec--empty">
                     <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">Nothing to action right now — add more details to unlock your next actions.</span></span></span>
                   </li>
                   <li
-                    v-for="item in activeActions"
+                    v-for="item in visibleActions"
                     :key="item.id"
                     class="md-rec"
                     :class="{ 'is-done': item.done, 'is-unlock': item.type === 'unlock' }"
@@ -108,15 +122,26 @@
                       <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
                     </button>
                     <a href="#" class="md-rec__action" @click.prevent="onActionTap(item)">
+                      <span class="md-rec__lead" aria-hidden="true" v-html="item.type === 'unlock' ? KEY_ICON : BULB_ICON"></span>
                       <span class="md-rec__text">
                         <span class="md-rec__title">{{ item.title }}</span>
                         <span class="md-rec__meta">{{ item.meta }}</span>
                       </span>
                       <svg class="md-rec__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                     </a>
+                    <button
+                      v-if="item.type === 'recommendation'"
+                      type="button"
+                      class="md-rec__dismiss"
+                      aria-label="Skip this recommendation for now"
+                      @click="skipAction(item)"
+                    >
+                      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                   </li>
                 </ul>
                 <a v-if="activeCard.key !== 'top' && !activeCard.locked" href="#" class="md-recs__view-all" @click.prevent="goto('/' + (activeCard.key === 'estate' ? 'estate' : activeCard.key))">View all {{ activeCard.label.toLowerCase() }}</a>
+                <a href="#" class="md-recs__see-all" @click.prevent="goto('/achievements')">See all actions</a>
               </div>
             </section>
           </div>
@@ -200,7 +225,7 @@
          dismisses it for the session. Hidden once Fyn is open or onboarded. -->
     <div v-if="showFynNudge" class="md-fyn-nudge">
       <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Finish your personalised tax plan with Fyn</button>
-      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="nudgeDismissed = true">Later</button>
+      <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="dismissNudge">Later</button>
     </div>
 
     <!-- Fyn unlock nudge: when a high-value area is KYC-gated, Fyn offers to
@@ -213,7 +238,7 @@
 
     <!-- Docked Fyn bar -->
     <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
-      <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
+      <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
         <span class="md-fyn-dock__status">Your financial companion</span>
@@ -273,7 +298,7 @@
     <section class="md-fyn" :class="{ 'is-open': fynOpen }" :hidden="!fynMounted" aria-label="Chat with Fyn">
       <header class="md-fyn__head">
         <div class="md-fyn__title">
-          <span class="md-fyn__avatar" aria-hidden="true">F</span>
+          <span class="md-fyn__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
           <div>
             <p class="md-fyn__name">Fyn</p>
             <p class="md-fyn__status">Your financial companion</p>
@@ -311,9 +336,8 @@
       </div>
 
       <form class="md-fyn__compose" @submit.prevent="send()">
-        <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
-        <label for="md-fyn-input" class="visually-hidden">Ask Fyn a question</label>
-        <input id="md-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." autocomplete="off" />
+        <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
+        <input id="md-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7" /></svg>
         </button>
@@ -343,6 +367,12 @@ const ICON = {
   investment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>',
 };
 
+// Leading glyphs that distinguish the two action types: a grey key for locked
+// "unlock" prompts (gated until data is added) and a coloured bulb for actionable
+// recommendations (an idea to act on). Functional differentiation, requested by CSJ.
+const KEY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4-2a6 6 0 01-7.743 5.743L11 14H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>';
+const BULB_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
+
 const NAV_ICON = {
   net_worth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
   protection: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
@@ -361,6 +391,8 @@ export default {
   components: { GamificationCelebration },
   data() {
     return {
+      KEY_ICON,
+      BULB_ICON,
       loading: true,
       error: '',
       data: null,
@@ -368,6 +400,9 @@ export default {
       // each with its own action list. activeArea indexes the selected card.
       focusAreas: [],
       activeArea: 0,
+      // Recommendation ids the user has temporarily skipped (the X on a row).
+      // They return once no other recommendations remain on the active card.
+      skippedIds: [],
       // Level wheel — fed from the gamification engine via the dashboard payload
       // (d.level.* + d.percentile). Single source of truth; no client recompute.
       level: 1,
@@ -384,7 +419,13 @@ export default {
       fynOpen: false,
       fynMounted: false,
       fynStarted: false,
-      nudgeDismissed: false,
+      // "Later" on the tax-plan nudge holds for the whole browsing session (until
+      // the next login / the session expires), so it doesn't re-nag on every
+      // navigation back to the dashboard. Persisted in sessionStorage, which
+      // clears when the tab/session ends.
+      nudgeDismissed: (() => {
+        try { return sessionStorage.getItem('m_fyn_nudge_dismissed') === '1'; } catch (e) { return false; }
+      })(),
       // "Not now" holds for the whole browsing session (spec decision D — the
       // bubble must not re-nag on every navigation back to the dashboard), so
       // the flag lives in sessionStorage, not just component state.
@@ -412,6 +453,9 @@ export default {
     },
     userEmail() {
       return store.user?.email || '';
+    },
+    fynIcon() {
+      return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';
     },
     // Drives the shared fireworks takeover. Set from a level_up SSE frame
     // (after Fyn's reply) or a missed celebration delivered by fetchStatus.
@@ -483,6 +527,13 @@ export default {
     },
     activeActions() {
       return this.activeCard.actions || [];
+    },
+    // The action rows actually shown — temporarily-skipped recommendations are
+    // hidden, but they return automatically once nothing else remains to action.
+    visibleActions() {
+      const all = this.activeActions;
+      const remaining = all.filter((a) => !this.skippedIds.includes(a.id));
+      return remaining.length ? remaining : all;
     },
     activeDoneCount() {
       return this.activeActions.filter((a) => a.type === 'recommendation' && a.done).length;
@@ -643,10 +694,21 @@ export default {
     },
     selectArea(i) {
       this.activeArea = i;
-      // Slide the carousel to the chosen card (dots / card tap).
+      // Slide the carousel to the chosen card (dots / arrows / card tap).
       const strip = this.$refs.focusStrip;
       const el = strip && strip.children[i];
       if (el) strip.scrollTo({ left: el.offsetLeft, behavior: 'smooth' });
+    },
+    prevArea() {
+      if (this.activeArea > 0) this.selectArea(this.activeArea - 1);
+    },
+    nextArea() {
+      if (this.activeArea < this.focusAreas.length - 1) this.selectArea(this.activeArea + 1);
+    },
+    // Temporarily skip a recommendation (the X on the row). It reappears once
+    // no other recommendations remain on the card (see visibleActions).
+    skipAction(item) {
+      if (item && item.id && !this.skippedIds.includes(item.id)) this.skippedIds.push(item.id);
     },
     // Sync the active card to the swipe position (one card per view).
     onFocusScroll() {
@@ -680,6 +742,12 @@ export default {
     dismissUnlockBubble() {
       this.unlockBubbleDismissed = true;
       try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+    },
+    // "Later" on the tax-plan nudge — hold the dismissal for the session so it
+    // doesn't reappear on every dashboard visit until the next login.
+    dismissNudge() {
+      this.nudgeDismissed = true;
+      try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
     },
     openFynForCapture(module) {
       const prompts = {
@@ -783,9 +851,10 @@ export default {
         if (store.token) await apiPost('/api/auth/logout', {}, store.token);
       } catch (e) { /* best-effort — proceed to local clear regardless */ }
       store.logout();
-      // Return to the CANONICAL funnel login (framed in /m), not a scaffold
-      // screen. Full navigation so the main app's login renders in-frame.
-      window.location.href = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
+      // Stay inside the /m SPA: route to the mobile login (/m/app/login), not the
+      // desktop /login page. The mobile router base already carries the m/app/
+      // prefix, so a plain push('/login') resolves to the framed mobile login.
+      this.$router.push('/login');
     },
     openDrawer() {
       this.drawerMounted = true;

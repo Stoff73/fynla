@@ -413,10 +413,10 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.875rem 1rem;
+  padding: 1rem 1rem;
   border: 1px solid var(--horizon-100);
   border-radius: var(--radius-lg);
-  background: var(--white);
+  background: var(--eggshell-500);
   color: var(--horizon-600);
   cursor: pointer;
   text-align: center;
@@ -424,8 +424,8 @@
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .md-focus__label {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 1.375rem;
+  font-weight: 900;
   letter-spacing: 0.01em;
   color: var(--horizon-600);
 }
@@ -451,26 +451,36 @@
   border-radius: var(--radius-full);
 }
 
-/* Active — raspberry accent border + tint, stat goes raspberry */
+/* Active — eggshell box with a raspberry accent border; stat goes raspberry */
 .md-focus__card.is-active {
   border-color: var(--raspberry-500);
-  background: var(--light-pink-50);
+  background: var(--eggshell-500);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
 }
 .md-focus__card.is-active .md-focus__label { color: var(--raspberry-500); }
 .md-focus__card.is-active .md-focus__stat { color: var(--raspberry-600); }
 
-/* Locked — muted / desaturated until the module's data is captured */
-.md-focus__card.is-locked {
-  background: var(--eggshell-500);
-  border-color: var(--horizon-100);
-  opacity: 0.85;
-}
-.md-focus__card.is-locked .md-focus__stat { color: var(--neutral-600); }
+/* Locked — grey box, grey title. Solid border (the dotted treatment now lives
+   on the locked recommendation rows, not the focus card). */
+.md-focus__card.is-locked,
 .md-focus__card.is-locked.is-active {
-  border-color: var(--raspberry-500);
-  opacity: 1;
+  background: var(--light-gray);
+  border: 1px solid var(--horizon-100);
+  box-shadow: none;
 }
+.md-focus__card.is-locked .md-focus__label,
+.md-focus__card.is-locked.is-active .md-focus__label { color: var(--neutral-500); }
+.md-focus__card.is-locked .md-focus__stat { color: var(--neutral-500); }
+
+/* Unlock prompts are locked until data is added, so they read differently from
+   actionable recommendations: a light-grey dotted border + a grey key glyph. */
+.md-rec.is-unlock {
+  background: var(--eggshell-500);
+  border: 1px dotted var(--horizon-300);
+}
+/* Hover lifts to white but keeps the grey dotted border so unlocks stay visually
+   distinct from the solid pink-bordered recommendation hover. */
+.md-rec.is-unlock:hover { background: var(--white); border-color: var(--horizon-400); }
 
 /* Slim done-count above the action list (the active card already labels it) */
 .md-recs__count {
@@ -508,6 +518,53 @@
   background: var(--raspberry-500);
   width: 1.25rem;
 }
+
+/* Prev / next arrows flanking the dots (Top actions carousel) */
+.md-callout__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+}
+.md-callout__nav .md-callout__dots { margin-top: 0; }
+.md-callout__arrow {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: var(--raspberry-500);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.md-callout__arrow:hover { background: var(--light-pink-100); }
+.md-callout__arrow:disabled { opacity: 0.4; cursor: default; }
+.md-callout__arrow svg { display: block; }
+
+/* Skip (dismiss) a recommendation — a subtle glyph in its own area, divided from
+   the main clickable bar by a hairline so it reads as a separate control. The
+   recommendation returns later (see skippedActions). */
+.md-rec__dismiss {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-left: 1px solid var(--light-pink-100);
+  background: transparent;
+  color: var(--neutral-400);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.md-rec__dismiss:hover { color: var(--raspberry-500); }
+.md-rec__dismiss svg { display: block; }
 
 /* Recommendations inside the callout's light-pink bottom half */
 .md-callout .md-recs {
@@ -588,19 +645,25 @@
   gap: 0.5rem;
 }
 
-/* Split row: check-toggle (left) + action link with chevron (right) */
+/* Split row: check-toggle (left) + action link with chevron (right).
+   Every row here is an action the user can take, so they read as soft eggshell
+   cards with no border (cleaner than a hairline). overflow:hidden keeps the
+   hover fill clipped to the rounded corners. */
 .md-rec {
   display: flex;
   align-items: stretch;
   width: 100%;
-  background: var(--white);
-  border: 1px solid var(--horizon-100);
+  background: var(--eggshell-500);
+  /* Transparent 1px border in the base state so the hover border doesn't shift
+     the row by a pixel. */
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: border-color 0.15s ease, background 0.15s ease,
+  transition: background 0.15s ease, border-color 0.15s ease,
               opacity 0.25s ease, transform 0.25s ease;
 }
-.md-rec:hover { border-color: var(--horizon-200); }
+/* Hover lifts every action row to white with a light-pink border. */
+.md-rec:hover { background: var(--white); border-color: var(--light-pink-200); }
 
 .md-rec__check-btn {
   display: flex;
@@ -610,7 +673,7 @@
   padding: 0 0.5rem;
   background: transparent;
   border: none;
-  border-right: 1px solid var(--horizon-100);
+  border-right: 1px solid var(--savannah-300);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -650,12 +713,6 @@
   text-decoration: line-through;
 }
 
-/* Unlock action — a module with no data yet. Distinct dashed accent so it
-   reads as "add details to unlock" rather than a completable recommendation. */
-.md-rec.is-unlock {
-  background: var(--eggshell-500);
-  border-left: 3px dashed var(--horizon-200);
-}
 .md-rec.is-unlock .md-rec__title { color: var(--horizon-500); }
 
 .md-rec__action {
@@ -668,11 +725,24 @@
   text-decoration: none;
   min-width: 0;
 }
-.md-rec__action:hover { background: var(--horizon-100); }
+/* The row owns the hover fill (white); keep the action link transparent so that
+   fill shows through its full width. */
+.md-rec__action:hover { background: transparent; }
 .md-rec__action:focus-visible {
   outline: 2px solid var(--raspberry-500);
   outline-offset: -2px;
 }
+
+/* Leading type glyph — grey key (unlock) or coloured bulb (recommendation),
+   sitting just before the title. */
+.md-rec__lead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.md-rec__lead svg { display: block; }
+.md-rec.is-unlock .md-rec__lead { color: var(--neutral-400); }
+.md-rec:not(.is-unlock) .md-rec__lead { color: var(--raspberry-500); }
 
 .md-rec__text {
   display: flex;
@@ -732,6 +802,21 @@
   text-decoration: none;
 }
 .md-recs__view-all:hover { text-decoration: underline; }
+
+/* "See all actions" — full-width centred link under the actions, still inside the
+   pink callout. Routes to the progress page where every action is listed. */
+.md-recs__see-all {
+  display: block;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--light-pink-100);
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--raspberry-600);
+  text-decoration: none;
+}
+.md-recs__see-all:hover { text-decoration: underline; }
 
 /* ===================================================================
    4-PANEL GRID — 2 per row. Visual on top, text below (compact tiles).
@@ -952,6 +1037,12 @@
   font-size: 0.9375rem;
   flex-shrink: 0;
 }
+/* Fyn avatar now shows the Fyn icon image (matches the desktop chat). The icon
+   fills the circle; drop the gradient + letter styling when an <img> is present. */
+.md-fyn-dock__avatar:has(img),
+.md-fyn__avatar:has(img) { background: none; overflow: hidden; }
+.md-fyn-dock__avatar img,
+.md-fyn__avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-full); display: block; }
 .md-fyn-dock__text {
   flex: 1;
   display: flex;
@@ -1367,8 +1458,8 @@
 .md-fyn-dock__input {
   flex: 1;
   min-width: 0;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.875rem;
+  min-height: 2.875rem;
+  padding: 0.625rem 1rem;
   font-size: 0.9375rem;
   font-family: var(--font-primary);
   color: var(--horizon-600);
@@ -1792,6 +1883,54 @@
   cursor: pointer;
   padding: 0.25rem;
 }
+
+/* Centred ring + coin loader — large, centre of screen. Shared by the dashboard
+   and every MobileChrome-wrapped page (MobileChrome imports this stylesheet). */
+.md-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 55vh;
+  padding: 2rem 1rem;
+}
+.md-loader__spin { position: relative; width: 6rem; height: 6rem; }
+.md-loader__ring {
+  position: absolute;
+  inset: 0;
+  border: 6px solid var(--horizon-100);
+  border-top-color: var(--raspberry-500);
+  border-radius: 50%;
+  animation: md-loader-spin 0.9s linear infinite;
+}
+.md-loader__coin {
+  position: absolute;
+  inset: 1.4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--raspberry-400), var(--raspberry-600));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(232, 62, 109, 0.35);
+}
+.md-loader__text { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin: 0; }
+.md-retry {
+  margin-top: 0.25rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+@keyframes md-loader-spin { to { transform: rotate(360deg); } }
 
 /* Today's insight — Fyn's daily insight surfaced from the dashboard payload
    (fyn_insight). Plain-text card; sits between the level callout and the

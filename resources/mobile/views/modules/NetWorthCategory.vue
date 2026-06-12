@@ -1,7 +1,6 @@
 <template>
-  <div>
+  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe" :loading="loading" loading-label="your accounts" back @back="goBack">
     <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to net worth">Back</button>
       <h1 class="m-h1">{{ title }}</h1>
       <p class="m-sub">{{ subtitle }}</p>
     </div>
@@ -42,12 +41,13 @@
         </article>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -88,6 +88,7 @@ const LIABILITY_LABELS = {
 
 export default {
   name: 'MobileNetWorthCategory',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     categoryKey() { return this.$route.params.category; },

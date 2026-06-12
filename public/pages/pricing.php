@@ -72,7 +72,7 @@
     @media(min-width:1024px){.pricing-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
   <link rel="stylesheet" href="/pages/css/global.css?v=113"  />
-  <link rel="stylesheet" href="/pages/css/pricing.css?v=6" />
+  <link rel="stylesheet" href="/pages/css/pricing.css?v=7" />
 </head>
 <body class="pricing-page">
 
@@ -157,11 +157,12 @@
 
           </article>
 
-          <!-- Tier 1 -->
-          <article class="plan-card" aria-labelledby="plan-tier1-heading">
+          <!-- Premium (Most Popular) -->
+          <article class="plan-card plan-card--featured" aria-labelledby="plan-tier1-heading">
+            <div class="plan-card__badge" aria-label="Most popular tier">Most Popular</div>
             <div class="plan-card__header">
-              <h3 id="plan-tier1-heading" class="plan-card__name">Bronze</h3>
-              <p class="plan-card__tagline">More capabilities and higher limits</p>
+              <h3 id="plan-tier1-heading" class="plan-card__name">Premium</h3>
+              <p class="plan-card__tagline">Everything Fynla offers</p>
             </div>
 
             <div class="plan-card__price">
@@ -177,7 +178,7 @@
             </a>
 
             <p class="plan-card__plus" id="tier1-plus" hidden></p>
-            <ul class="plan-card__features" id="tier1-features" aria-label="Bronze features">
+            <ul class="plan-card__features" id="tier1-features" aria-label="Premium features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 Everything in Free
@@ -186,65 +187,26 @@
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 Unlimited savings accounts, investments and pensions
               </li>
-            </ul>
-
-          </article>
-
-          <!-- Tier 2 (Most Popular) -->
-          <article class="plan-card plan-card--featured" aria-labelledby="plan-tier2-heading">
-            <div class="plan-card__badge" aria-label="Most popular tier">Most Popular</div>
-            <div class="plan-card__header">
-              <h3 id="plan-tier2-heading" class="plan-card__name">Silver</h3>
-              <p class="plan-card__tagline">Our most popular tier</p>
-            </div>
-
-            <div class="plan-card__price">
-              <div class="plan-card__price-row">
-                <span class="plan-card__launch-price" id="tier2-price" aria-label="Price">&hellip;</span>
-                <span class="plan-card__period" id="tier2-period">/year</span>
-              </div>
-              <p class="plan-card__equiv" id="tier2-equiv"></p>
-            </div>
-
-            <a href="/register?plan=tier2&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring plan-card__cta--top" id="cta-tier2-top">
-              Get started for free
-            </a>
-
-            <p class="plan-card__plus" id="tier2-plus" hidden></p>
-            <ul class="plan-card__features" id="tier2-features" aria-label="Silver features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                Everything in Bronze
+                Unlimited properties
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Letter to spouse and expression of wishes
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Alternative investments
+              </li>
+              <li class="plan-card__feature">
+                <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Retirement planning
               </li>
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 Full estate planning
               </li>
-            </ul>
-
-          </article>
-
-          <!-- Tier 3 -->
-          <article class="plan-card" aria-labelledby="plan-tier3-heading">
-            <div class="plan-card__header">
-              <h3 id="plan-tier3-heading" class="plan-card__name">Gold</h3>
-              <p class="plan-card__tagline">More capabilities and higher limits</p>
-            </div>
-
-            <div class="plan-card__price">
-              <div class="plan-card__price-row">
-                <span class="plan-card__launch-price" id="tier3-price" aria-label="Price">&hellip;</span>
-                <span class="plan-card__period" id="tier3-period">/year</span>
-              </div>
-              <p class="plan-card__equiv" id="tier3-equiv"></p>
-            </div>
-
-            <a href="/register?plan=tier3&amp;billing=yearly" class="plan-card__cta plan-card__cta--spring plan-card__cta--top" id="cta-tier3-top">
-              Get started for free
-            </a>
-
-            <p class="plan-card__plus" id="tier3-plus" hidden></p>
-            <ul class="plan-card__features" id="tier3-features" aria-label="Gold features">
               <li class="plan-card__feature">
                 <svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 More document uploads and storage
@@ -349,7 +311,7 @@
   <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
-  <script src="/pages/js/pricing.js?v=9" defer></script>
+  <script src="/pages/js/pricing.js?v=10" defer></script>
 
 </body>
 </html>

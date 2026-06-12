@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Retirement</h1>
-      <p class="m-sub">Your projected retirement income, pensions and projections</p>
-    </div>
-
+  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="your retirement">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your retirement position…</p>
     </div>
@@ -115,12 +109,13 @@
         </article>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet, apiPost } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -135,6 +130,7 @@ const TYPE_LABELS = {
 
 export default {
   name: 'MobileRetirement',
+  components: { MobileChrome },
   data: () => ({
     loading: true,
     error: '',
