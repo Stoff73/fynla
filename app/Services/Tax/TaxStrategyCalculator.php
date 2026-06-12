@@ -30,6 +30,7 @@ final class TaxStrategyCalculator
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly TaxStrategyMath $math,
+        private readonly IsaAllowanceAllocator $isaAllocator,
         private readonly Strategies\IncomeBandStrategy $incomeBand,
         private readonly Strategies\LifecycleStrategy $lifecycle,
         private readonly Strategies\JointSavingsStrategy $jointSavings,
@@ -86,6 +87,21 @@ final class TaxStrategyCalculator
             $allRecs = array_merge($allRecs, $strategy->generate($context));
         }
 
+        // All adult ISA types share ONE overall annual allowance per person —
+        // cash wraps, Bed & ISA proceeds and Lifetime ISA contributions all
+        // draw from the same pool, yet each strategy above sized itself
+        // against the full remaining allowance independently. Re-allocate the
+        // pool greedily by annual saving so the same allowance capacity is
+        // never counted twice (the Lifetime ISA's own sub-limit is enforced
+        // inside its evaluator). Lives here, not in the composer, so the
+        // dashboard payload (TaxStrategyService) and the composed plan
+        // (ComposedTaxPlanService) see identical honest figures.
+        $allRecs = $this->isaAllocator->allocate($allRecs, [
+            'isa_topup_vs_psa' => fn (float $cap): array => $this->isaTopUp->generate($context->withIsaPoolCap($cap)),
+            'bed_and_isa' => fn (float $cap): array => $this->bedAndIsa->generate($context->withIsaPoolCap($cap)),
+            'lifetime_isa' => fn (float $cap): array => $this->lifecycle->generate($context->withIsaPoolCap($cap)),
+        ], $this->userIsaPoolRemaining($user));
+
         usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
             $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
 
@@ -102,6 +118,19 @@ final class TaxStrategyCalculator
             recommendations: $recommendations,
             deltaVsBaseline: [],
         );
+    }
+
+    /**
+     * The user's remaining overall ISA allowance — the same basis every
+     * ISA-consuming evaluator uses internally (no override deposit applied,
+     * matching pass-1 sizing).
+     */
+    private function userIsaPoolRemaining(User $user): float
+    {
+        $isa = $this->taxConfig->getISAAllowances();
+        $allowance = (float) ($isa['annual_allowance'] ?? 20000);
+
+        return max(0.0, $allowance - $this->math->estimateIsaSubscriptionsThisYear($user));
     }
 
     // ─── Allowance grid builders (output-DTO-bound, kept here) ──────────
