@@ -1,7 +1,12 @@
 <?php
 
 declare(strict_types=1);
+use Anthropic\Client;
+use App\Models\TaxConfiguration;
+use App\Services\AI\XaiClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\Fyn\ScriptedAnthropicClient;
+use Tests\Support\Fyn\ScriptedXaiClient;
 use Tests\TestCase;
 
 /*
@@ -59,17 +64,46 @@ uses(TestCase::class)->in(
     'Architecture/EvalFloorIntegrityTest.php',
 );
 
-// NOTE (test-isolation fix, 2026-06-12): this file used to carry two
-// `beforeEach(closure)->in(...)` blocks (TaxConfiguration auto-create and
-// scripted AI-client binding). That chain is NOT a Pest scoping form — a bare
-// beforeEach() registers for tests in the registering file only (Pest.php has
-// none) and `->in()` is swallowed by BeforeEachCall::__call as a runtime
-// proxy — so neither hook ever executed. They were removed rather than
-// activated: every test that needs TaxConfiguration seeds it explicitly
-// (`$this->seed(TaxConfigurationSeeder::class)`), and chat-path tests bind
-// their own scripted clients. If suite-wide hooks are ever wanted, the
-// supported form is uses()->beforeEach($closure)->in(...).
+// NOTE (global hooks, re-activated 2026-06-12): the two hooks below ARE live.
+// They were originally written as bare `beforeEach(closure)->in(...)` — not a
+// Pest scoping form, so they never executed — and were removed in PR #536.
+// They are now registered in the supported `uses()->beforeEach($closure)
+// ->in(...)` form (see vendor/pestphp/pest/src/PendingCalls/UsesCall.php),
+// which chains the hook BEFORE any file-level beforeEach (Testable::setUp
+// wraps them as ChainableClosure::bound($globalHook, $fileLevelBeforeEach)),
+// so per-file seeding/bindings still override what the hooks set up.
+// Liveness is pinned by tests/Feature/Fyn/PestHooksLivenessTest.php — if
+// either hook stops executing, that test fails. Do not remove the hooks or
+// the pin without updating both.
 
+// Global TaxConfiguration safety net: every covered test gets an active tax
+// configuration unless it already created one. The row is pinned to tax year
+// 2019/20 — deliberately OUTSIDE TaxConfigurationFactory's random range
+// (2021/22–2026/27) and TaxConfigurationSeeder's seeded years, so it can
+// never collide with per-test factory creates or seeder upserts on the
+// unique tax_configurations.tax_year index. Tests that exercise the
+// missing-config error path must deactivate/delete rows in their arrange step.
+uses()->beforeEach(function () {
+    // Ensure active tax configuration exists for tests
+    if (class_exists(TaxConfiguration::class)) {
+        if (! TaxConfiguration::where('is_active', true)->exists()) {
+            TaxConfiguration::factory()->forTaxYear('2019/20')->create(['is_active' => true]);
+        }
+    }
+})->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php', 'Integration');
+
+// CoALA Phase 5 item 5 — the planner (and reasoner) resolve a provider LLM
+// client on every advice turn. The suite's default provider is xAI (env), so an
+// advice-path test that doesn't script the LLM would otherwise make a real
+// network call (slow, non-deterministic, CI-fragile). Bind empty scripted
+// clients by default across the chat-path suites so an unmocked turn degrades to
+// a fast no-op (the planner falls back to a default reason; the reasoner streams
+// nothing). Tests that script the LLM (FynStreamHarness, ScriptedXaiClient) or
+// mock CoordinatingAgent override these in their own setup, which runs after.
+uses()->beforeEach(function () {
+    app()->instance(Client::class, new ScriptedAnthropicClient([]));
+    app()->instance(XaiClient::class, new ScriptedXaiClient([]));
+})->in('Feature/Fyn', 'Feature/AI', 'Feature/Onboarding', 'Unit/Services/AI', 'Unit/Services/Onboarding');
 
 /*
 |--------------------------------------------------------------------------
