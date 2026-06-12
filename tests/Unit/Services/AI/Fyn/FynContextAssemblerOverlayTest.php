@@ -195,6 +195,19 @@ it('degrades to no overlay/fca block when the corpus is malformed (turn still bu
         ->and($out)->toContain('<context>'); // the rest of the prompt still built
 });
 
+it('never injects the shipped inactive A1/A2 overlays — build() carries none of their text', function (): void {
+    // Point at the REAL shipped corpus (not the temp dir from beforeEach): the
+    // A1/A2 overlays are authored active:false, so a representative turn must
+    // not carry their text — the "never injected" half at the consumption layer.
+    config(['fyn.memory.procedural_path' => base_path('fyn-memory/procedural')]);
+
+    $out = app(FynContextAssembler::class)->build(adviceTurn($this->user, 'general'));
+
+    expect($out)->toContain('<context>')
+        ->and($out)->not->toContain('Answer the user first')
+        ->and($out)->not->toContain('Acknowledgement hygiene');
+});
+
 it('records the injected procedure_id@version into the contribution collector', function (): void {
     writeOverlayProc(
         $this->corpus, 'system_prompt_overlay', 'retirement', 'tone',
