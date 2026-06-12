@@ -40,6 +40,15 @@ final class LifecycleStrategy implements TaxStrategy
             $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
             $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
             $isaRemaining = max(0, $isaAllowance - $isaUsed);
+
+            // Shared-allowance allocation pass: Lifetime ISA contributions
+            // draw from the one overall ISA allowance, so a higher-saving ISA
+            // strategy may already have claimed part of the pool. The LISA's
+            // own annual sub-limit still applies on top via min() below.
+            if ($context->isaPoolCap !== null) {
+                $isaRemaining = min($isaRemaining, max(0.0, $context->isaPoolCap));
+            }
+
             $contribution = min($lisaAnnual, $isaRemaining);
 
             if ($contribution > 0) {

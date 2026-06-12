@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Coordination;
 
 use App\DataTransferObjects\StrategyRecommendation;
+use App\Services\Tax\IsaAllowanceAllocator;
 
 /**
  * Composes eligible strategy recommendations into ONE ordered, conflict-aware plan:
@@ -23,6 +24,10 @@ use App\DataTransferObjects\StrategyRecommendation;
  *   - Combined total: sums every non-excluded item with a non-null saving, so
  *     mutually-exclusive alternatives are never double-counted and chains are
  *     never over-excluded.
+ *   - Shared ISA allowance: items flagged isa_allowance_excluded by the
+ *     calculator's IsaAllowanceAllocator pass (pool fully used by a
+ *     higher-saving ISA strategy) are kept in the plan but excluded from the
+ *     combined total; their isa_allowance_note surfaces via conflict_note.
  *   - Claim tier: attached from metadata for downstream voicing; defaults to
  *     'judgement' when metadata is absent.
  *
@@ -115,6 +120,16 @@ final class StrategyPlanComposer
         $excluded = [];
         $noteFor = []; // type => the preferred alternative it should name
 
+        // Shared-ISA-allowance exclusions arrive pre-resolved from the
+        // calculator's allocation pass (IsaAllowanceAllocator). Seed them
+        // before conflict-pair processing so a pool-exhausted strategy cannot
+        // knock its conflict alternative out of the combined total.
+        foreach ($items as $rec) {
+            if (($rec->extra[IsaAllowanceAllocator::EXCLUDED_FLAG] ?? false) === true) {
+                $excluded[$rec->type] = true;
+            }
+        }
+
         foreach ($pairList as [$a, $b]) {
             $savingA = $savingByType[$a] ?? 0.0;
             $savingB = $savingByType[$b] ?? 0.0;
@@ -151,9 +166,13 @@ final class StrategyPlanComposer
         //    leaking in from the DTO's extra[] via toArray().
         $out = [];
         foreach ($items as $index => $rec) {
+            // Conflict-pair notes take precedence; otherwise surface the
+            // shared-ISA-allowance note through the same channel so frontends
+            // render both kinds of annotation identically.
+            $isaNote = $rec->extra[IsaAllowanceAllocator::NOTE_FIELD] ?? null;
             $conflictNote = isset($noteFor[$rec->type])
                 ? "Alternative to {$noteFor[$rec->type]} — compare before doing both."
-                : null;
+                : (is_string($isaNote) ? $isaNote : null);
 
             $out[] = array_merge($rec->toArray(), [
                 'claim_tier' => $metadata[$rec->type]['claim_tier'] ?? 'judgement',

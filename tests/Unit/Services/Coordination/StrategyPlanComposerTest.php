@@ -141,6 +141,73 @@ it('keeps the chain tail realisable when its only conflict is itself excluded', 
         ->and($a['conflict_note'])->toBeNull();
 });
 
+it('excludes shared-ISA-allowance losers from the combined total and surfaces their note', function () {
+    // The calculator's ISA allocation pass flags a pool-exhausted consumer
+    // with isa_allowance_excluded + isa_allowance_note in extra. The composer
+    // must keep the item in the plan, leave it out of combined_annual_saving,
+    // and surface the note through the conflict_note channel so frontends
+    // render it exactly like a conflict alternative.
+    $recs = [
+        new StrategyRecommendation('lifetime_isa', StrategyCategory::Lifecycle, StrategyPriority::Medium,
+            'Open a Lifetime ISA', 'desc', 1000.0),
+        new StrategyRecommendation('isa_topup_vs_psa', StrategyCategory::Allowance, StrategyPriority::High,
+            'Wrap cash in ISA', 'desc', 72.0, false, [
+                'isa_allowance_excluded' => true,
+                'isa_allowance_note' => 'Draws on the same ISA allowance, already fully used by lifetime_isa.',
+            ]),
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, [], lockedStrategies: []);
+
+    $topup = collect($plan['items'])->firstWhere('type', 'isa_topup_vs_psa');
+    expect($topup)->not->toBeNull()
+        ->and($topup['conflict_note'])->toContain('same ISA allowance')
+        ->and($plan['combined_annual_saving'])->toBe(1000.0);
+});
+
+it('counts a pool-constrained ISA consumer and carries its note', function () {
+    // Constrained-but-realisable consumers carry only isa_allowance_note —
+    // they still count toward the total at their re-evaluated saving.
+    $recs = [
+        new StrategyRecommendation('lifetime_isa', StrategyCategory::Lifecycle, StrategyPriority::Medium,
+            'Open a Lifetime ISA', 'desc', 1000.0),
+        new StrategyRecommendation('isa_topup_vs_psa', StrategyCategory::Allowance, StrategyPriority::High,
+            'Wrap cash in ISA', 'desc', 256.0, false, [
+                'isa_allowance_note' => 'Sized to the ISA allowance left after lifetime_isa — every ISA type shares one annual ISA allowance per tax year.',
+            ]),
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, [], lockedStrategies: []);
+
+    $topup = collect($plan['items'])->firstWhere('type', 'isa_topup_vs_psa');
+    expect($topup['conflict_note'])->toContain('shares one annual ISA allowance')
+        ->and($plan['combined_annual_saving'])->toBe(1256.0);
+});
+
+it('lets a conflict-pair note win over an ISA allowance note', function () {
+    // When an item both loses a conflict pair AND carries an ISA note, the
+    // conflict mechanism's own wording takes precedence (first note wins).
+    $recs = [
+        new StrategyRecommendation('strategy_a', StrategyCategory::Household, StrategyPriority::High,
+            'A', 'desc', 300.0),
+        new StrategyRecommendation('strategy_b', StrategyCategory::Household, StrategyPriority::High,
+            'B', 'desc', 200.0, false, [
+                'isa_allowance_note' => 'Sized to the ISA allowance left after strategy_x.',
+            ]),
+    ];
+
+    $metadata = [
+        'strategy_a' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_b']]],
+        'strategy_b' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_a']]],
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+
+    $b = collect($plan['items'])->firstWhere('type', 'strategy_b');
+    expect($b['conflict_note'])->toContain('Alternative to strategy_a')
+        ->and($plan['combined_annual_saving'])->toBe(300.0);
+});
+
 it('handles null savings and keeps ordering stable', function () {
     // Recs with null estimatedAnnualTaxSaved sort after valued ones;
     // combined total ignores nulls; sequence_positions remain 1-based and contiguous.
