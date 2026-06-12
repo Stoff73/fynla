@@ -449,4 +449,4 @@ Check routes: `php artisan route:list --path=endpoint`
 ./vendor/bin/pest --filter="calculateIHTLiability" # By name
 ```
 
-Pest (`it()`/`describe()`), `RefreshDatabase`, TaxConfiguration auto-seeded, `Sanctum::actingAs()`, Mockery with `Mockery::close()` in `afterEach`. **Full conventions in `tests/CLAUDE.md`.**
+Pest (`it()`/`describe()`), `RefreshDatabase`, TaxConfiguration seeded explicitly per file (`$this->seed(TaxConfigurationSeeder::class)` — there is no global auto-seed hook), `Sanctum::actingAs()`, Mockery with `Mockery::close()` in `afterEach`. **Full conventions in `tests/CLAUDE.md`.**

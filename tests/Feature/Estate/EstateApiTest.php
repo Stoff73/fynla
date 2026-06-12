@@ -62,8 +62,7 @@ describe('GET /api/estate', function () {
     });
 
     it('requires authentication', function () {
-        // Use a fresh app instance without auth from beforeEach
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
