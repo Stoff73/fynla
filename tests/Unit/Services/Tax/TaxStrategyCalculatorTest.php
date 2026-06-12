@@ -971,6 +971,77 @@ describe('Phase 3 — bed & ISA capital gains harvest (#6)', function () {
         expect(collect($output->recommendations)->firstWhere('type', 'bed_and_isa'))->toBeNull();
     });
 
+    it('caps the saving to the gains embedded in proceeds clipped by the remaining ISA allowance', function () {
+        // Hand-derived expectation:
+        //   GIA holding: cost basis £5,000, current value £10,000
+        //     → total unrealised gain G = £5,000, gains-bearing value V = £10,000.
+        //   AEA-capped gains r = min(£5,000, £3,000 AEA) = £3,000.
+        //   Proceeds needed to crystallise r pro-rata: V × (r/G) = £10,000 × 0.6 = £6,000.
+        //   But £18,000 of the £20,000 ISA allowance is already subscribed this
+        //   tax year → only £2,000 remaining clips the proceeds: min(£2,000, £6,000) = £2,000.
+        //   Gains actually crystallised by £2,000 of proceeds: £2,000 × (G/V) = £2,000 × 0.5 = £1,000.
+        //   Saving = £1,000 × 24% higher-rate CGT = £240
+        //     — NOT the full AEA figure £3,000 × 24% = £720, which assumes gains
+        //       the clipped proceeds cannot shelter this year.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000,
+            'date_of_birth' => now()->subYears(45), // no Lifetime ISA → bed_and_isa is the sole ISA consumer (unconstrained path)
+            'marital_status' => 'single',
+        ]);
+        SavingsAccount::factory()->isa()->for($user)->create([
+            'current_balance' => 18000,
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
+            'isa_subscription_amount' => 18000,
+        ]);
+        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        Holding::factory()->forAccount($gia)->create([
+            'quantity' => 100,
+            'purchase_price' => 50,
+            'current_price' => 100,
+            'cost_basis' => 5000,
+            'current_value' => 10000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'bed_and_isa');
+        expect($rec)->not->toBeNull()
+            ->and($rec['isa_remaining'])->toBe(2000.0)
+            ->and($rec['estimated_proceeds_to_transfer'])->toBe(2000.0)
+            ->and($rec['realisable_within_aea'])->toBe(1000.0) // embedded in clipped proceeds, not the £3,000 AEA cap
+            ->and($rec['estimated_annual_tax_saved'])->toBe(240.0); // £1,000 × 24%
+    });
+
+    it('keeps the ample-allowance figures byte-stable when proceeds fit the remaining allowance', function () {
+        // Same holding, full £20,000 allowance free: proceeds £6,000 fit easily,
+        // so the embedded-gains cap is a no-op — £6,000 × (£5,000/£10,000) = £3,000
+        // exactly equals the AEA-capped gains. Saving stays £3,000 × 24% = £720.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000,
+            'date_of_birth' => now()->subYears(45),
+            'marital_status' => 'single',
+        ]);
+        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        Holding::factory()->forAccount($gia)->create([
+            'quantity' => 100,
+            'purchase_price' => 50,
+            'current_price' => 100,
+            'cost_basis' => 5000,
+            'current_value' => 10000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'bed_and_isa');
+        expect($rec)->not->toBeNull()
+            ->and($rec['total_unrealised_gain'])->toBe(5000.0)
+            ->and($rec['realisable_within_aea'])->toBe(3000.0)
+            ->and($rec['estimated_proceeds_to_transfer'])->toBe(6000.0)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(720.0);
+    });
+
     it('uses the basic-rate CGT band for a basic-rate taxpayer', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
