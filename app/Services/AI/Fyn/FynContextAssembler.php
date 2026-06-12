@@ -89,6 +89,16 @@ final class FynContextAssembler
         $procedural = $this->memoryStore->proceduralContext($ctx->message);
         if ($procedural !== '') {
             $lines[] = "<procedures>\n{$procedural}\n</procedures>";
+            // Episode provenance (4e): stamp each root procedure actually
+            // included this turn (post-filter) as id@version, mirroring how
+            // selectProcedures below stamps overlays / fca_blocks. The holder
+            // flows to ai_messages.procedural_version / blob / audit via the
+            // existing persistEpisode plumbing.
+            foreach ($this->memoryStore->matchingProcedures($ctx->message) as $procedure) {
+                if (is_numeric($procedure['version'])) {
+                    $this->proceduralVersions->add($procedure['id'], (int) $procedure['version']);
+                }
+            }
         }
         $remembered = $this->memoryStore->recallContext($ctx->user->id);
         if ($remembered !== '') {
