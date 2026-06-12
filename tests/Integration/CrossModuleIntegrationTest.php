@@ -6,7 +6,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentActionDefinition;
 use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
-use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Coordination\PriorityRanker;
 use App\Services\Estate\EstateDataReadinessService;

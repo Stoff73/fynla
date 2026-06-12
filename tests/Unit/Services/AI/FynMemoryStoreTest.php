@@ -138,6 +138,25 @@ describe('proceduralContext relevance filter', function () {
     });
 });
 
+it('memoises procedures per instance — a second call does not re-read the directory', function () {
+    $dir = config('fyn.memory.procedural_path');
+    File::put($dir.'/first.md', "---\nid: first\ntitle: First\napplies_when: always\nversion: 1\n---\nBody one.\n");
+
+    expect($this->store->procedures())->toHaveCount(1);
+
+    // A file added after the first read is invisible to this instance — the
+    // assembler calls proceduralContext() AND matchingProcedures() per turn,
+    // and both must reuse the one parse instead of re-walking the directory.
+    File::put($dir.'/second.md', "---\nid: second\ntitle: Second\napplies_when: always\nversion: 1\n---\nBody two.\n");
+
+    expect($this->store->procedures())->toHaveCount(1)
+        ->and($this->store->matchingProcedures())->toHaveCount(1);
+
+    // ...but a fresh instance (the store is container-resolved per request,
+    // never bound singleton) sees the new file — no cross-request staleness.
+    expect(app(FynMemoryStore::class)->procedures())->toHaveCount(2);
+});
+
 it('returns empty for an unknown user and an empty procedural dir', function () {
     expect($this->store->recall(999))->toBeEmpty()
         ->and($this->store->recallContext(999))->toBe('')
