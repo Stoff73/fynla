@@ -30,7 +30,10 @@ it('never carries the composed tax plan in the assembled context — it arrives 
 
     $out = app(FynContextAssembler::class)->build($ctx);
 
-    expect($out)->not->toContain('composed_tax_plan')
+    // Affirmative anchor first — build() always emits the <user_message> block
+    // (unconditional tail), so the negative assertions below cannot pass vacuously.
+    expect($out)->toContain('<user_message>')
+        ->and($out)->not->toContain('composed_tax_plan')
         ->and($out)->not->toContain('combined_annual_saving');
 });
 
