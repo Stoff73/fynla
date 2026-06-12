@@ -15,7 +15,7 @@ the user's live position — never an answer from memory or generic advice.
 
 ## Steps
 
-1. Choose `ground` (or `reason`) so the reasoner runs; the reasoner must call
+1. Choose `ground` so the reasoner runs; the reasoner must call
    `get_recommendations` or the `fetch_recommendations` skill rather than
    answering from prior context.
 2. If a surfaced strategy is locked behind missing data, the turn should ask

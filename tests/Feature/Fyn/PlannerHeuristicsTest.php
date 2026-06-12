@@ -26,7 +26,7 @@ it('the recommendation-routing procedure loads into the planner context', functi
         ->and($context)->toContain('unlock question');
 });
 
-it('parses a ground plan routed to get_recommendations into a ground Action', function (): void {
+it('Planner::plan() hydrates a ground Action from a get_recommendations tool turn', function (): void {
     FynStreamHarness::fake()
         ->toolTurn('plan', ['action_type' => 'ground', 'surface' => 'get_recommendations', 'args' => []])
         ->bind();
