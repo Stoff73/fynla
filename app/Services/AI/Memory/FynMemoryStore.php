@@ -25,15 +25,29 @@ final class FynMemoryStore
     private const PROCEDURAL_SKIP = ['_TEMPLATE.md', 'README.md'];
 
     /**
+     * Per-instance memo of procedures(). The assembler calls proceduralContext()
+     * AND matchingProcedures() on the same turn — without this, each call
+     * re-walks and re-parses the directory. The store is container-resolved per
+     * request (never bound singleton/scoped), so the memo never outlives a turn.
+     *
+     * @var list<array{id: string, title: string, applies_when: string, version: mixed, body: string}>|null
+     */
+    private ?array $procedures = null;
+
+    /**
      * Load every authored procedure (parsed frontmatter + body).
      *
      * @return list<array{id: string, title: string, applies_when: string, version: mixed, body: string}>
      */
     public function procedures(): array
     {
+        if ($this->procedures !== null) {
+            return $this->procedures;
+        }
+
         $dir = (string) config('fyn.memory.procedural_path');
         if (! File::isDirectory($dir)) {
-            return [];
+            return $this->procedures = [];
         }
 
         $procedures = [];
@@ -53,7 +67,7 @@ final class FynMemoryStore
             ];
         }
 
-        return $procedures;
+        return $this->procedures = $procedures;
     }
 
     /**
