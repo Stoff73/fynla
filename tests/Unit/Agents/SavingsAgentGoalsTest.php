@@ -36,6 +36,14 @@ describe('SavingsAgent goal recommendations', function () {
             'goal_name' => 'Holiday Fund',
             'target_amount' => 20000,
             'current_amount' => 5000,
+            // Pin start_date a year back so the goal is UNAMBIGUOUSLY behind
+            // schedule. GoalProgressService::calculateProgress derives
+            // is_on_track from expected_progress = days_elapsed / total_days;
+            // GoalFactory's default random start_date (-2 years to -1 month)
+            // occasionally lands recent enough that 25% saved still reads
+            // "on track", silently dropping the behind-schedule recommendation
+            // this test asserts. Fixing the fixture removes the ~10% flake.
+            'start_date' => now()->subYear(),
             'target_date' => now()->addMonths(6),
             'assigned_module' => 'savings',
             'status' => 'active',
