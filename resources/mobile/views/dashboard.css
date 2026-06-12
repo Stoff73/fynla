@@ -472,14 +472,15 @@
 .md-focus__card.is-locked.is-active .md-focus__label { color: var(--neutral-500); }
 .md-focus__card.is-locked .md-focus__stat { color: var(--neutral-500); }
 
-/* Unlock prompts are actions too (tap → Fyn helps add the data), so they share
-   the same borderless eggshell card as the other rows. */
+/* Unlock prompts are locked until data is added, so they read differently from
+   actionable recommendations: a light-grey dotted border + a grey key glyph. */
 .md-rec.is-unlock {
   background: var(--eggshell-500);
+  border: 1px dotted var(--horizon-300);
 }
-/* Explicit (higher-specificity) hover so unlock rows reliably lift to white with
-   a light-pink border, matching every other action row. */
-.md-rec.is-unlock:hover { background: var(--white); border-color: var(--light-pink-200); }
+/* Hover lifts to white but keeps the grey dotted border so unlocks stay visually
+   distinct from the solid pink-bordered recommendation hover. */
+.md-rec.is-unlock:hover { background: var(--white); border-color: var(--horizon-400); }
 
 /* Slim done-count above the action list (the active card already labels it) */
 .md-recs__count {
@@ -724,13 +725,24 @@
   text-decoration: none;
   min-width: 0;
 }
-/* The row owns the hover fill (white for active recs, savannah for unlocks); keep
-   the action link transparent so that fill shows through its full width. */
+/* The row owns the hover fill (white); keep the action link transparent so that
+   fill shows through its full width. */
 .md-rec__action:hover { background: transparent; }
 .md-rec__action:focus-visible {
   outline: 2px solid var(--raspberry-500);
   outline-offset: -2px;
 }
+
+/* Leading type glyph — grey key (unlock) or coloured bulb (recommendation),
+   sitting just before the title. */
+.md-rec__lead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.md-rec__lead svg { display: block; }
+.md-rec.is-unlock .md-rec__lead { color: var(--neutral-400); }
+.md-rec:not(.is-unlock) .md-rec__lead { color: var(--raspberry-500); }
 
 .md-rec__text {
   display: flex;
