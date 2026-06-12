@@ -57,12 +57,51 @@ final class FynMemoryStore
     }
 
     /**
-     * The procedural corpus as a context block for the planner/reasoner. Empty
-     * string when no procedures are authored yet.
+     * The procedures relevant to one turn. Null query = the FULL corpus —
+     * the planner's path (FynLoop::plannerSystemPrompt), because matching
+     * applies_when to intent IS the planner's job. With a query, a procedure
+     * is admitted under the same relevance contract as SemanticRetriever
+     * (§8.2 lean-prompt law): stopword-dropped query tokens, word-boundary
+     * token counting over title + applies_when + body with simple ±"s"
+     * plural variants, admitted at >= min(2, distinct content tokens)
+     * distinct matches.
+     *
+     * @return list<array{id: string, title: string, applies_when: string, version: mixed, body: string}>
      */
-    public function proceduralContext(): string
+    public function matchingProcedures(?string $query = null): array
     {
         $procedures = $this->procedures();
+        if ($query === null || $procedures === []) {
+            return $procedures;
+        }
+
+        $terms = array_values(array_diff($this->tokenise($query), SemanticRetriever::STOPWORDS));
+        if ($terms === []) {
+            return [];
+        }
+
+        $required = min(2, count($terms));
+
+        return array_values(array_filter($procedures, function (array $p) use ($terms, $required): bool {
+            $counts = $this->termCounts("{$p['title']} {$p['applies_when']} {$p['body']}");
+            $distinct = 0;
+            foreach ($terms as $term) {
+                if ($this->termHits($term, $counts) > 0) {
+                    $distinct++;
+                }
+            }
+
+            return $distinct >= $required;
+        }));
+    }
+
+    /**
+     * The procedural corpus as a context block for the planner/reasoner. Empty
+     * string when no procedures are authored yet (or none match the query).
+     */
+    public function proceduralContext(?string $query = null): string
+    {
+        $procedures = $this->matchingProcedures($query);
         if ($procedures === []) {
             return '';
         }
@@ -192,6 +231,47 @@ final class FynMemoryStore
     private function userEpisodeDir(int $userId): string
     {
         return rtrim((string) config('fyn.memory.episodic_path'), '/').'/'.$userId;
+    }
+
+    /**
+     * Same token grammar as SemanticRetriever::tokenise (the §8.2 contract).
+     *
+     * @return list<string>
+     */
+    private function tokenise(string $text): array
+    {
+        preg_match_all('/[a-z0-9]{3,}/', mb_strtolower($text), $m);
+
+        return array_values(array_unique($m[0]));
+    }
+
+    /**
+     * Word-boundary token frequency map of the haystack — mirror of
+     * SemanticRetriever::termCounts, so "the" never matches inside "them".
+     *
+     * @return array<string, int>
+     */
+    private function termCounts(string $haystack): array
+    {
+        preg_match_all('/[a-z0-9]{3,}/', mb_strtolower($haystack), $m);
+
+        return array_count_values($m[0]);
+    }
+
+    /**
+     * Exact-token hits plus simple ±"s" plural variants — mirror of
+     * SemanticRetriever::termHits. No deeper stemming.
+     *
+     * @param  array<string, int>  $counts
+     */
+    private function termHits(string $term, array $counts): int
+    {
+        $hits = ($counts[$term] ?? 0) + ($counts[$term.'s'] ?? 0);
+        if (str_ends_with($term, 's')) {
+            $hits += $counts[substr($term, 0, -1)] ?? 0;
+        }
+
+        return $hits;
     }
 
     /**

@@ -25,9 +25,10 @@ final class SemanticRetriever
      * Conservative query-side stopword set (articles, pronouns, auxiliaries,
      * question words). Domain words (tax, save, pension, isa, income, …) must
      * never be added here. Haystack tokens are NOT filtered — a stopworded
-     * query token simply never looks up.
+     * query token simply never looks up. Public so FynMemoryStore's
+     * procedures relevance filter shares the ONE list (never duplicated).
      */
-    private const STOPWORDS = [
+    public const STOPWORDS = [
         'the', 'a', 'an', 'and', 'or', 'but',
         'how', 'what', 'when', 'where', 'which', 'who', 'why',
         'should', 'would', 'could', 'can',
