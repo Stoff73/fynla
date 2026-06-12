@@ -20,7 +20,7 @@ beforeEach(function () {
 
 describe('GET /api/estate/letter-validation', function () {
     it('requires authentication', function () {
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
