@@ -1,0 +1,404 @@
+/**
+ * savetax-plan-v4.css — page-specific styles for the /savetax/plan/v4 mockup.
+ *
+ * Builds on savetax-plan.css (loaded first). Adds: single-column hero with a
+ * compact register form, "remembered" answer chips, answer-personalised
+ * allowance states (applicable vs greyed), mobile-optimised allowances, and a
+ * social-proof "Could this be you" band. Tokens come from global.css :root.
+ */
+
+/* No right-hand Fyn panel in v4 — body keeps full width on desktop. */
+.sp4-body { margin-right: 0 !important; }
+.sp4-body .campaign-inner {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ===================================================================
+   HERO — single column on mobile, copy + card side-by-side on desktop
+   =================================================================== */
+.sp4-hero__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: stretch;
+}
+.sp4-hero__copy { flex: 1; }
+/* Hero heading — tight line spacing, scales up to use more screen width. */
+.sp4-hero .campaign-hero__heading {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1.1;
+  margin-bottom: 0.5rem;
+}
+/* Let the supporting copy run wider so it uses more of the screen. */
+.sp4-hero .campaign-hero__subtext {
+  max-width: 38rem;
+  font-size: 1.0625rem;
+}
+
+/* ===================================================================
+   HERO CARD — savings figure + compact register form
+   =================================================================== */
+.sp4-hero__card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+}
+.sp4-savings {
+  text-align: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+/* Hero variant — savings figure sits under the title in the copy column.
+   "Up to" is a small lead-in baseline-aligned with the big £-figure, with a
+   single tidy label line beneath. */
+.sp4-savings--hero {
+  text-align: left;
+  border-bottom: none;
+  padding: 0;
+  /* Generous top + bottom margin sets the savings block apart from the heading
+     above and the subtext below. */
+  margin: 2rem 0 2rem;
+}
+/* "Up to" stacked above the big £-figure, pulled tight to it so they group. */
+.sp4-savings--hero .sp4-savings__row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+}
+.sp4-savings--hero .sp4-savings__up-to {
+  /* Negative bottom margin closes the gap to the figure below. */
+  margin: 0 0 -0.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--white-70);
+}
+.sp4-savings--hero .sp4-savings__figure {
+  /* The dominant element — flush-left, scales up on wide screens. */
+  font-size: clamp(3.75rem, 13vw, 6.5rem);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.sp4-savings--hero .sp4-savings__label {
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--white-80);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.sp4-savings__up-to {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--white-70);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+.sp4-savings__figure {
+  font-size: clamp(2.5rem, 8vw, 3.25rem);
+  font-weight: 900;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.sp4-savings__label { font-size: 0.875rem; color: var(--white-70); line-height: 1.4; }
+
+/* Compact register form */
+.sp4-register { display: flex; flex-direction: column; gap: 0.625rem; }
+.sp4-register__heading {
+  /* Larger per request */
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--white);
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+/* First name + last name side by side */
+.sp4-register__row { display: flex; gap: 0.625rem; }
+.sp4-register__col { flex: 1; min-width: 0; }
+.sp4-register__col .sp4-register__field { width: 100%; }
+.sp4-register__field {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.875rem;
+  font-size: 0.9375rem;
+  font-family: var(--font-primary);
+  color: var(--horizon-500);
+  background: rgba(255, 255, 255, 0.92);
+  min-height: 2.75rem;
+}
+.sp4-register__field::placeholder { color: var(--neutral-500); }
+.sp4-register__field:focus { outline: 2px solid var(--violet-500); outline-offset: 1px; background: var(--white); }
+.sp4-register__btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  border: none;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  min-height: 3rem;
+  margin-top: 0.25rem;
+}
+.sp4-register__btn:hover { background: var(--spring-600); }
+.sp4-register__note {
+  font-size: 0.75rem;
+  color: var(--white-70);
+  text-align: center;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+/* ===================================================================
+   COMBINED SECTION — "What does this mean" + "Your allowances" together
+   =================================================================== */
+.sp4-combined {
+  background: var(--eggshell-500);
+  padding: 3.5rem 0;
+}
+.sp4-combined__intro { margin-bottom: 2rem; }
+.sp4-combined__heading {
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  line-height: 1.25;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+/* Meaning row: total card + explanatory text */
+.sp4-combined__meaning {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  background: var(--white);
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+.sp4-combined__total-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--neutral-500);
+  margin-bottom: 0.375rem;
+}
+.sp4-combined__total-figure {
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 900;
+  color: var(--raspberry-500);
+  line-height: 1;
+}
+.sp4-combined__body {
+  font-size: 0.9375rem;
+  color: var(--neutral-600);
+  line-height: 1.6;
+}
+.sp4-combined__body strong { color: var(--horizon-500); }
+
+/* "Find out how" + register CTA below the allowances grid */
+.sp4-combined__cta {
+  margin-top: 2.5rem;
+  text-align: center;
+}
+.sp4-combined__cta-text {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 0.75rem;
+}
+.sp4-combined__cta-btn {
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 2.75rem;
+}
+.sp4-combined__cta-btn:hover { background: var(--spring-600); }
+
+/* ===================================================================
+   ALLOWANCES — personalised grid, mobile-optimised
+   =================================================================== */
+.sp4-allowances__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem 2rem;
+}
+.sp4-alw-col__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--horizon-500);
+  padding-bottom: 0.625rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 2px solid var(--horizon-500);
+}
+.sp4-alw-col--raspberry .sp4-alw-col__title { border-bottom-color: var(--raspberry-500); }
+
+.sp4-alw-list { display: flex; flex-direction: column; gap: 0.625rem; }
+
+/* Allowance card — mobile-first, full card per allowance (clearer than a
+   dense table row on small screens). */
+.sp4-alw {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--white);
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem 1rem;
+  position: relative;
+}
+.sp4-alw__check {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin-top: 0.1rem;
+}
+.sp4-alw__body { flex: 1; min-width: 0; }
+.sp4-alw__row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+.sp4-alw__label { font-size: 0.9375rem; font-weight: 700; color: var(--horizon-500); }
+.sp4-alw__amount { font-size: 1rem; font-weight: 800; color: var(--horizon-500); white-space: nowrap; }
+.sp4-alw__note { font-size: 0.8125rem; color: var(--neutral-500); line-height: 1.4; margin-top: 0.1875rem; }
+/* Personalised reason ("You're married, so…") — grey so it doesn't compete
+   with the green "applicable" highlight. */
+.sp4-alw__reason {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin-top: 0.5rem;
+  padding: 0.4375rem 0.625rem;
+  border-radius: var(--radius-sm);
+  background: var(--horizon-100);
+  color: var(--neutral-600);
+}
+
+/* Applicable state — highlighted */
+.sp4-alw--on { border-color: var(--spring-400); box-shadow: 0 2px 10px rgba(32, 180, 134, 0.12); }
+.sp4-alw--on .sp4-alw__check { background: var(--spring-500); color: var(--white); }
+
+/* Not-applicable state — greyed out */
+.sp4-alw--off { background: var(--eggshell-500); border-color: var(--horizon-200); opacity: 0.85; }
+.sp4-alw--off .sp4-alw__check { background: var(--horizon-200); color: var(--neutral-500); }
+.sp4-alw--off .sp4-alw__label,
+.sp4-alw--off .sp4-alw__amount { color: var(--neutral-500); }
+.sp4-alw--off .sp4-alw__reason { background: var(--white); color: var(--neutral-500); }
+
+/* ===================================================================
+   SOCIAL PROOF — replaces the old example panels
+   =================================================================== */
+/* Centre the "Could this be you?" title (label removed) */
+.sp4-proof__intro { text-align: center; }
+.sp4-proof__headline {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.5rem;
+}
+.sp4-proof__headline-stat {
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 900;
+  color: var(--raspberry-500);
+  line-height: 1;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.sp4-proof__headline-text {
+  font-size: 1rem;
+  color: var(--horizon-500);
+  line-height: 1.5;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+.sp4-proof__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+.sp4-proof-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.sp4-proof-card__stars { color: var(--raspberry-500); font-size: 0.9375rem; letter-spacing: 0.1em; }
+.sp4-proof-card__quote {
+  font-size: 0.9375rem;
+  color: var(--horizon-500);
+  line-height: 1.6;
+  flex: 1;
+}
+.sp4-proof-card__quote strong { color: var(--raspberry-600); }
+.sp4-proof-card__person { display: flex; align-items: center; gap: 0.625rem; }
+.sp4-proof-card__avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to bottom right, var(--horizon-500), var(--raspberry-500));
+  color: var(--white);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sp4-proof-card__name { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); }
+.sp4-proof-card__meta { font-size: 0.75rem; color: var(--neutral-500); }
+.sp4-proof__disclaimer {
+  margin-top: 1.5rem;
+  font-size: 0.6875rem;
+  color: var(--neutral-400);
+  text-align: center;
+}
+
+/* "Join them — it's free" above the bottom CTA — larger + bold */
+.sp4-proof__join {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 640px) {
+  .sp4-allowances__grid { grid-template-columns: 1fr 1fr; }
+  .sp4-proof__grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 768px) {
+  .sp4-hero__inner { flex-direction: row; align-items: flex-start; gap: 3rem; }
+  .sp4-hero__copy { flex: 1; }
+  .sp4-hero__card { width: 360px; flex-shrink: 0; }
+}
+
+@media (min-width: 1024px) {
+  .sp4-proof__grid { grid-template-columns: repeat(3, 1fr); }
+}

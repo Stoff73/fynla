@@ -57,7 +57,9 @@ it('skips path_choice and lands the user at base_personal for a campaign `from` 
     $user->refresh();
     expect($user->onboarding_fyn_path)->toBe('campaign');
     expect($user->onboarding_fyn_selection)->toBe('savetax');
-    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
+    // SaveTax campaign is income-first: opens at base_work (income details),
+    // with employment seeded from the funnel and DOB deferred to pensions.
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
 });
 
 it('falls through to STATE_PATH_CHOICE for an unknown `from` value', function () {

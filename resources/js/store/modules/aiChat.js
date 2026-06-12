@@ -32,8 +32,8 @@ const state = {
     // True while the current conversation is a Fyn-driven onboarding
     // conversation (started via startOnboardingConversation, i.e. the
     // "Quick start with Fyn" CTA). AppLayout reads this to activate the
-    // wide-chat wrapper + dashboard blur on /dashboard routes — the
-    // onboarding surface is not tied to a specific URL path.
+    // wide-chat wrapper on /dashboard routes — the onboarding surface is
+    // not tied to a specific URL path.
     isOnboardingActive: false,
     // Set true when the backend emits a consent_required event (either as
     // a 403 on send or as a mid-stream SSE event after withdrawal). UI
@@ -1164,7 +1164,7 @@ const actions = {
         commit('SET_MESSAGES', []);
         commit('SET_STREAMING_TEXT', '');
         // Phase 13 — Fyn-driven onboarding is active. Unlocks the wide-chat
-        // wrapper + dashboard blur in AppLayout regardless of URL path.
+        // wrapper in AppLayout regardless of URL path.
         commit('SET_IS_ONBOARDING_ACTIVE', true);
         commit('SET_ONBOARDING_LAYOUT', 'wide');
 

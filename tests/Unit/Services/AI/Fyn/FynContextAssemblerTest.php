@@ -207,3 +207,68 @@ it('suppresses billing_guidance in preview mode even on a billing turn', functio
     expect(app(FynContextAssembler::class)->build($ctx))
         ->not->toContain('<billing_guidance>');
 });
+
+// "How do I start saving properly?" rightly stays GENERAL (the QueryClassifier
+// savings table is deliberately narrow so "save tax" / "save for retirement"
+// are not swallowed), but GENERAL injects no knowledge — so the factual answer
+// would skip the emergency-fund-first ordering the affordability rules demand.
+// The assembler injects a focused getting-started block on this shape.
+it('injects emergency-fund-first guidance for a getting-started saving question', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'how do I start saving properly?', currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'general'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<savings_getting_started>')
+        ->toContain('emergency fund')
+        ->toContain('FIRST priority');
+});
+
+it('does not inject the saving block for a save-tax question', function (): void {
+    // "save tax" classifies GENERAL too, but it is a tax question, not the
+    // emergency-fund getting-started question — the topic guard excludes it.
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'how can I save tax?', currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'general'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('<savings_getting_started>');
+});
+
+it('does not inject the saving block for a save-for-retirement question', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'how do I save for retirement?', currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'general'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('<savings_getting_started>');
+});
+
+it('does not inject the saving block when a real savings classification already carries knowledge', function (): void {
+    // savings_emergency is a 'module' turn that injects its own knowledge; the
+    // getting-started block is GENERAL-only and must not double up here.
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'how do I start saving properly?', currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'savings_emergency'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('<savings_getting_started>');
+});
+
+it('does not inject the saving block on an onboarding turn', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'how do I start saving properly?', currentRoute: null,
+        mode: 'onboarding', onboardingFocus: 'savings', isPreview: false, classification: null,
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('<savings_getting_started>');
+});

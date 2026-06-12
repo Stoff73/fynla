@@ -289,6 +289,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import BespokeArticleNotice from '@/components/Admin/Insights/BespokeArticleNotice.vue';
 import BlockPickerModal from '@/components/Admin/Insights/BlockPickerModal.vue';
 import insightsService from '@/services/insightsService';
+import { withBase } from '@/utils/basePath';
 
 import EditHeadingBlock from '@/components/Admin/Insights/blocks/EditHeadingBlock.vue';
 import EditParagraphBlock from '@/components/Admin/Insights/blocks/EditParagraphBlock.vue';
@@ -474,7 +475,7 @@ export default {
         alert('Save a draft first to generate a slug.');
         return;
       }
-      window.open(`/insights/${this.form.slug}?preview=true`, '_blank');
+      window.open(withBase(`/insights/${this.form.slug}?preview=true`), '_blank');
     },
     async submitSaveAsTemplate() {
       if (!this.newTemplateName) return;

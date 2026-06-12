@@ -76,7 +76,7 @@ it('captures the current catalogue into fixtures', function () use ($fixtureDir,
         file_put_contents($fixtureDir.'/'.$name.'.json', $encode($build()));
     }
 
-    expect(glob($fixtureDir.'/*.json'))->toHaveCount(8);
+    expect(glob($fixtureDir.'/[!_]*.json'))->toHaveCount(8);
 });
 
 it('assembles each variant byte-identical to the committed fixture', function (string $name, $build) use ($fixtureDir, $encode): void {

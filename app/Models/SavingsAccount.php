@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -17,7 +18,12 @@ use Illuminate\Support\Facades\Crypt;
 
 class SavingsAccount extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'savings_account';
+    }
 
     protected $fillable = [
         'user_id',

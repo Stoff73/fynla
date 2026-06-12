@@ -1,3 +1,26 @@
+<?php
+
+use App\Services\Marketing\SaveTaxEstimateService;
+
+// Headline "save tax" figure for the How-Fyn-can-help teaser. Uses the same
+// representative default persona as /savetax/plan for a direct visit, so the
+// number shown here matches the savetax landing page. All tax values come from
+// TaxConfigService via SaveTaxEstimateService — never hard-coded.
+$homeSaveTaxFigure = null;
+try {
+    $homeSaveTaxEstimate = app(SaveTaxEstimateService::class)->estimate([
+        'income' => '50271_100000',
+        'spouse' => 'no',
+        'spouseIncome' => null,
+        'assets' => ['savings', 'pension', 'isa'],
+    ]);
+    if (! empty($homeSaveTaxEstimate['savings_total'])) {
+        $homeSaveTaxFigure = '£'.number_format((int) $homeSaveTaxEstimate['savings_total']);
+    }
+} catch (Throwable $e) {
+    $homeSaveTaxFigure = null;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,8 +58,8 @@
 
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=112" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=112" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=123" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -62,7 +85,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -80,7 +103,7 @@
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/register" class="btn-cta-primary">Get started</a>
+          <a href="/register" class="btn-cta-primary">Get started for free</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
@@ -90,22 +113,13 @@
           </p>
         </div>
 
-        <!-- Mobile caption panels (hidden above 640px by CSS) -->
+        <!-- Mobile hero panel (hidden above 640px by CSS).
+             Translucent white card holding the Fynla Brain, mirroring the level
+             card on /m-mockup/dashboard — it overlaps down onto the eggshell
+             tray below for the same straddle effect. -->
         <div class="hero__mobile-panels" aria-hidden="true">
-          <div class="hero__panel hero__panel--brain">
-            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="112" height="112" loading="lazy" />
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial view.</p>
-            <p class="hero__panel-body">Use Fynla to securely centralise and view all your financial data.</p>
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial brain.</p>
-            <p class="hero__panel-body">Our proprietary brain does the calculations<br />so you don't have to.</p>
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial voice.</p>
-            <p class="hero__panel-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
+          <div class="hero__brain-card">
+            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="176" height="176" loading="lazy" />
           </div>
         </div>
 
@@ -135,6 +149,24 @@
             <p class="hero__caption-title">One financial voice.</p>
             <p class="hero__caption-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Eggshell tray (mobile only) — sits at the bottom of the hero so the
+           translucent brain card above overlaps onto it. Holds the three value
+           props on an eggshell background, matching /m-mockup/dashboard. -->
+      <div class="hero__mobile-eggshell" aria-hidden="true">
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial view.</p>
+          <p class="hero__panel-body">Use Fynla to securely centralise and view all your financial data.</p>
+        </div>
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial brain.</p>
+          <p class="hero__panel-body">Our proprietary brain does the calculations so you don't have to.</p>
+        </div>
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial voice.</p>
+          <p class="hero__panel-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
         </div>
       </div>
     </section>
@@ -192,6 +224,27 @@
       <div class="feature-grid__inner">
         <h2 id="features-heading" class="feature-grid__heading">How Fyn can help you</h2>
         <p class="feature-grid__intro">We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.</p>
+
+        <!-- Save-tax highlight — headline saving + CTA into the savetax funnel.
+             The figure counts up to its value when scrolled into view (JS). -->
+        <div class="feature-savetax">
+          <p class="feature-savetax__headline">You could save tax today</p>
+          <?php if ($homeSaveTaxFigure): ?>
+            <p
+              class="feature-savetax__figure"
+              id="savetax-counter"
+              data-count-to="<?= (int) ($homeSaveTaxEstimate['savings_total'] ?? 0) ?>"
+              data-count-prefix="£"
+            >£0</p>
+          <?php endif; ?>
+          <p class="feature-savetax__sub">
+            <?php if ($homeSaveTaxFigure): ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php endif; ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
+          </p>
+          <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
+        </div>
+
+        <h3 class="feature-grid__subheading">Other ways Fyn can help you</h3>
+
         <div class="feature-grid__cards">
           <article class="feature-card" aria-label="Protection">
             <div class="feature-card__icon-wrap feature-card__icon-wrap--raspberry" aria-hidden="true">
@@ -573,12 +626,12 @@
     </div>
   </div>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
   <script src="/pages/js/site.js?v=112" defer></script>
   <!-- Page-specific interactions (carousel, video, accordion, insights, demo modal) -->
-  <script src="/pages/js/index.js?v=112" defer></script>
+  <script src="/pages/js/index.js?v=113" defer></script>
 
 </body>
 </html>

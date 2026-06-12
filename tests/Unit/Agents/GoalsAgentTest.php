@@ -197,8 +197,31 @@ describe('generateRecommendations', function () {
         );
 
         expect($behindRec)->not->toBeNull();
-        expect($behindRec['title'])->toContain('2 goal(s) falling behind');
+        expect($behindRec['title'])->toBe('2 goals falling behind schedule');
         expect($behindRec['category'])->toBe('Progress');
+    });
+
+    it('pluralises the behind-schedule title correctly for one goal', function () {
+        $analysisData = [
+            'has_goals' => true,
+            'summary' => [
+                'behind_count' => 1,
+            ],
+            'affordability' => ['status' => 'sustainable'],
+            'by_module' => [
+                'savings' => ['goals' => [['goal_type' => 'emergency_fund']]],
+            ],
+            'streaks' => ['best_current_streak' => 0],
+        ];
+
+        $result = $this->agent->generateRecommendations($analysisData);
+
+        $behindRec = collect($result['recommendations'])->first(
+            fn ($r) => str_contains($r['title'], 'falling behind schedule')
+        );
+
+        expect($behindRec)->not->toBeNull();
+        expect($behindRec['title'])->toBe('1 goal falling behind schedule');
     });
 
     it('generates affordability recommendation', function () {
@@ -243,7 +266,10 @@ describe('generateRecommendations', function () {
         expect($emergencyRec['title'])->toBe('No Emergency Fund Goal');
     });
 
-    it('generates streak achievement recommendation', function () {
+    it('does not emit streak praise as a recommendation', function () {
+        // A contribution streak is praise, not an action the user can take —
+        // it must never appear in the recommendations list (where the UI
+        // renders it with a "mark complete" affordance).
         $analysisData = [
             'has_goals' => true,
             'summary' => ['behind_count' => 0],
@@ -260,8 +286,7 @@ describe('generateRecommendations', function () {
             fn ($r) => $r['category'] === 'Momentum'
         );
 
-        expect($streakRec)->not->toBeNull();
-        expect($streakRec['title'])->toContain('5-month contribution streak');
+        expect($streakRec)->toBeNull();
     });
 });
 

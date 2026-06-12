@@ -41,6 +41,10 @@ return [
         'api_key' => env('XAI_API_KEY', ''),
         'chat_model' => env('XAI_CHAT_MODEL', 'grok-4.3'),
         'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4.3'),
+        // Cheaper tier used when a user's rolling weekly budget is exceeded
+        // (HasAiGuardrails soft-degrade). Defaults to the standard chat model so
+        // chat stays OPEN on xAI; set to a cheaper xAI model to actually degrade.
+        'degrade_chat_model' => env('XAI_DEGRADE_CHAT_MODEL'),
         'vision_model' => env('XAI_VISION_MODEL', 'grok-4.3'),
         'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
     ],
@@ -64,6 +68,16 @@ return [
     'fcm' => [
         'server_key' => env('FCM_SERVER_KEY'),
         'project_id' => env('FCM_PROJECT_ID'),
+    ],
+
+    // GitHub issue creation for in-app bug reports. The token needs only
+    // Issues: write on the target repo, lives on the server .env, and is
+    // disabled by default so nothing fires until provisioned.
+    'github' => [
+        'token' => env('GITHUB_BUG_ISSUE_TOKEN'),
+        'repo' => env('GITHUB_BUG_ISSUE_REPO', 'Stoff73/fynla'),
+        'enabled' => env('GITHUB_BUG_ISSUE_ENABLED', false),
+        'labels' => ['bug', 'from-mobile', 'claude-auto'],
     ],
 
 ];

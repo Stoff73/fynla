@@ -150,8 +150,17 @@ trait HasAiGuardrails
 
         // Soft-degrade: rolling weekly budget exceeded → cheapest model.
         // Chat stays open; the system prompt prepends a plain-text notice.
+        // MUST be provider-aware: SOFT_DEGRADE_MODEL is an Anthropic model name,
+        // so returning it under AI_PROVIDER=xai sends an invalid model to the
+        // xAI endpoint ("model ... does not exist") and BREAKS chat instead of
+        // degrading it. Under xAI, degrade to a configured xAI model (defaulting
+        // to the standard xAI chat model so the conversation stays open).
         if ($this->isWeeklyBudgetExceeded($user)) {
-            return self::SOFT_DEGRADE_MODEL; // terser/cheaper until the rolling week resets
+            // ?: (not the config default arg) so an explicitly null/empty
+            // services.xai.degrade_chat_model still falls back to a valid model.
+            return $provider === 'xai'
+                ? (config('services.xai.degrade_chat_model') ?: self::DEFAULT_MODEL_XAI)
+                : self::SOFT_DEGRADE_MODEL; // terser/cheaper until the rolling week resets
         }
 
         $configModel = config("{$configKey}.chat_model");

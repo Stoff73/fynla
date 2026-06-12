@@ -79,6 +79,10 @@ $pensionConsumers = [
     // runtime write path (spec §14.2 console-command category).
     'App\Console\Commands\EncryptExistingData',
     'App\Console\Commands\ResetPreviewData',
+    // GamificationBackfill maps DCPension/DBPension::class => category for
+    // read-only per-user counts when backfilling point awards; writes only
+    // gamification tables.
+    'App\Console\Commands\GamificationBackfill',
     // Seeders (preview / lifecycle persona fixtures) — §14.2 permanent.
     //  - PreviewUserSeeder retains DCPension::where/delete cleanup paths
     //    plus a DCPension::class polymorphic discriminator on Holding
@@ -87,8 +91,12 @@ $pensionConsumers = [
     //  - LifecycleTestSeeder uses DCPension::factory()->create() which is
     //    a §14.2-permitted factory call (DCPensionFactory is on the
     //    permanent allowlist).
+    //  - PreviewGamificationSeeder issues read-only per-persona counts
+    //    (DCPension/DBPension::query()->count()) to derive seeded point
+    //    awards; writes only gamification tables.
     'Database\Seeders\PreviewUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
+    'Database\Seeders\PreviewGamificationSeeder',
 
     // ---- Documented residual NON-QUERY references ----
     // These files retain a pension-model reference that is NOT a

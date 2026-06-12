@@ -70,6 +70,12 @@ const CATEGORY_LABELS = {
 
 const getters = {
   userAllowances: (s) => s.dashboard?.user_allowances ?? [],
+  /**
+   * Composed plan (sequenced, conflict-resolved, realisable total) — the same
+   * substance Fyn voices in the savetax synthesis turn, so chat and page
+   * never disagree on the headline figure.
+   */
+  composedPlan: (s) => s.dashboard?.composed_plan ?? null,
   spouseAllowances: (s) => s.dashboard?.spouse_allowances ?? null,
   recommendations: (s) => s.dashboard?.recommendations ?? [],
   /**

@@ -253,18 +253,13 @@ export const FAQ_CATEGORIES = [
       },
       {
         id: 'plan-differences',
-        q: 'What is the difference between the plans?',
-        a: 'Each tier adds more depth. Student covers budgeting, savings, and basic pension tracking. Standard adds full retirement projections, property, investments, and protection analysis. Premium adds Monte Carlo simulations, Inheritance Tax planning, ICE letters, and advanced scenario modelling.',
+        q: 'What is the difference between the tiers?',
+        a: 'Each tier adds more depth. The Free tier covers your dashboard, income and expenditure, property, protection, savings, investments and pensions. Tier 1 unlocks unlimited savings, investment and pension accounts plus the Letter to Spouse. Tier 2 adds Estate Planning — Wills, Trusts, Powers of Attorney and Inheritance Tax — along with What If Scenarios and the Holistic Plan. Tier 3 adds higher document, storage and Fyn allowances.',
       },
       {
         id: 'free-trial',
         q: 'Is there a free trial?',
-        a: 'Yes. Try Fynla free with full access to all features in your chosen tier. No credit card required to start.',
-      },
-      {
-        id: 'trial-ends',
-        q: 'What happens when my free trial ends?',
-        a: 'You\'ll be prompted to choose a plan. If you don\'t subscribe, your account remains accessible in read-only mode — you won\'t lose any data. You can subscribe at any time to regain full access.',
+        a: 'There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.',
       },
       {
         id: 'change-plans',
@@ -385,7 +380,7 @@ export const FEATURE_PAGE_FAQS = {
 };
 
 export const PRICING_PAGE_FAQS = [
-  'trial-ends',
+  'free-trial',
   'change-plans',
   'payment-methods',
   'data-safe',

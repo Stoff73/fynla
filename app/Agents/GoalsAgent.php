@@ -173,7 +173,9 @@ class GoalsAgent extends BaseAgent
                 $recommendations[] = [
                     'category' => 'Progress',
                     'priority' => $priority++,
-                    'title' => "{$behindCount} goal(s) falling behind schedule",
+                    'title' => $behindCount === 1
+                        ? '1 goal falling behind schedule'
+                        : "{$behindCount} goals falling behind schedule",
                     'description' => 'Some goals are not on track to be achieved by their target date.',
                     'action' => 'Review these goals and consider increasing contributions or extending timelines.',
                 ];
@@ -205,17 +207,10 @@ class GoalsAgent extends BaseAgent
                 ];
             }
 
-            // Check contribution streaks
-            $bestStreak = $analysisData['streaks']['best_current_streak'] ?? 0;
-            if ($bestStreak >= 3) {
-                $recommendations[] = [
-                    'category' => 'Momentum',
-                    'priority' => $priority++,
-                    'title' => "Excellent! {$bestStreak}-month contribution streak",
-                    'description' => 'Consistency is key to achieving your financial goals.',
-                    'action' => 'Keep up the great work and maintain your contribution schedule.',
-                ];
-            }
+            // Contribution streaks are deliberately NOT emitted here: a streak
+            // is praise, not an action, and everything in this list renders as
+            // an actionable recommendation (mark-done affordance, next-actions
+            // carousel). Streak data stays available via analyze()['streaks'].
 
             // Sort by priority
             usort($recommendations, fn ($a, $b) => $a['priority'] <=> $b['priority']);

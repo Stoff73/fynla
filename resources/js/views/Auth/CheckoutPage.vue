@@ -363,7 +363,8 @@ export default {
         if (TIER_KEYS.includes(this.plan)) {
           // Tier-based plan: resolve display name + price from the tier store.
           const response = await api.get('/pricing-config');
-          const tiers = response.data.tiers || [];
+          // PricingConfigController returns { data: [...tiers] }.
+          const tiers = response.data.data || response.data.tiers || [];
           const tier = tiers.find(t => t.tier === this.plan) || null;
           if (tier) {
             // Adapt to the shape planPrice / displayPrice computed props expect.

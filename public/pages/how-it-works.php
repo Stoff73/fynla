@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -74,7 +74,7 @@
     @media(min-width:640px){.hiw-hero__cta{flex-direction:row;align-items:center;}}
     @media(min-width:1024px){.hiw-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
-  <link rel="stylesheet" href="/pages/css/global.css?v=2"        />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113"        />
   <link rel="stylesheet" href="/pages/css/how-it-works.css?v=2"  />
 </head>
 <body>

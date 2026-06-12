@@ -38,6 +38,10 @@ it('every preview write-block site checks the bypass-preview-mode token ability'
         'app/Http/Middleware/CheckSubscription.php',
         // Feature-access check — same shape as CheckSubscription.
         'app/Http/Middleware/CheckFeatureAccess.php',
+        // Public-page redirect guard — exempts preview personas from the
+        // logged-in → dashboard bounce so the landing-page persona selector
+        // stays reachable. Pure navigation read, no write effect.
+        'app/Http/Middleware/RedirectAuthenticatedToDashboard.php',
         // Plan-tier lookup ('preview' tier vs paid tier). Used for token
         // budget + rate-limit defaults; no write effect.
         'app/Traits/HasAiGuardrails.php',

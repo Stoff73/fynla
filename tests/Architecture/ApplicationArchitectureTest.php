@@ -25,6 +25,7 @@ arch('all agents extend BaseAgent')
 // Test: All models use proper traits
 arch('all models extend Eloquent Model')
     ->expect('App\Models')
+    ->classes() // traits live under App\Models\Concerns (e.g. AwardsDataEntryPoints)
     ->toExtend('Illuminate\Database\Eloquent\Model')
     ->ignoring('App\Models\User'); // User extends Authenticatable
 
