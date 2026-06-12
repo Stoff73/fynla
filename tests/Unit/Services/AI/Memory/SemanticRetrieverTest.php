@@ -75,3 +75,58 @@ it('returns [] when top_k is misconfigured to zero or negative', function (): vo
 
     expect(app(SemanticRetriever::class)->retrieve('advice', Carbon::now()))->toBe([]);
 });
+
+// ── §8.2 conformance: stopwords, word-boundary scoring, distinct-match gate ──
+
+it('returns nothing for a query made only of stopwords', function (): void {
+    // Body is a substring trap: "how" sits inside "However"/"shows", "they" appears
+    // verbatim — the old substr_count scorer matched this fact for a pure-chatter query.
+    writeFact2($this->corpus, 'fca', 'trap', "fact_id: fca-trap\ncategory: fca\ntitle: Substring trap\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'However, the approach shows rather more than they admit.');
+
+    expect(app(SemanticRetriever::class)->retrieve('How should they do this?', Carbon::now()))->toBe([]);
+});
+
+it('does not match stopwords as substrings inside words (the in them/rather)', function (): void {
+    writeFact2($this->corpus, 'fca', 'them', "fact_id: fca-them\ncategory: fca\ntitle: Boundary trap\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'Them and rather and whether, together.');
+
+    // "the" is a stopword; "zebra" matches nothing — the fact must not be admitted
+    // even though "the" occurs four times as a substring of its body words.
+    expect(app(SemanticRetriever::class)->retrieve('the zebra', Carbon::now()))->toBe([]);
+});
+
+it('does not match content tokens as substrings inside words (rate in moderate/corporate)', function (): void {
+    writeFact2($this->corpus, 'fca', 'rate', "fact_id: fca-rate\ncategory: fca\ntitle: Word boundary\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'Moderate growth and corporate bonds.');
+
+    expect(app(SemanticRetriever::class)->retrieve('rate', Carbon::now()))->toBe([]);
+});
+
+it('matches simple plural variants of query tokens (pensions finds pension, and back)', function (): void {
+    writeFact2($this->corpus, 'fca', 'sing', "fact_id: fca-sing\ncategory: fca\ntitle: Pension relief\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'A pension contribution attracts relief.');
+
+    $plural = app(SemanticRetriever::class)->retrieve('pensions contributions', Carbon::now());
+    expect($plural)->toHaveCount(1)->and($plural[0]->factId)->toBe('fca-sing');
+
+    writeFact2($this->corpus, 'fca', 'plur', "fact_id: fca-plur\ncategory: fca\ntitle: ISA limits\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'ISAs shelter savings from dividend taxes.');
+
+    $singular = app(SemanticRetriever::class)->retrieve('isa dividend', Carbon::now());
+    expect($singular)->toHaveCount(1)->and($singular[0]->factId)->toBe('fca-plur');
+});
+
+it('still retrieves on a single content-token query', function (): void {
+    writeFact2($this->corpus, 'fca', 'one', "fact_id: fca-one\ncategory: fca\ntitle: Pension advice\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'A pension needs regulated advice.');
+
+    $hits = app(SemanticRetriever::class)->retrieve('pension?', Carbon::now());
+
+    expect($hits)->toHaveCount(1)->and($hits[0]->factId)->toBe('fca-one');
+});
+
+it('excludes facts matching only one distinct content token on multi-token queries', function (): void {
+    // Fact A repeats a single query token; fact B matches two distinct tokens.
+    // Under the old scorer A outscored B (5 vs 2) — the gate must exclude A entirely.
+    writeFact2($this->corpus, 'fca', 'repeat', "fact_id: fca-repeat\ncategory: fca\ntitle: Repetition\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'Pension pension pension pension pension schemes.');
+    writeFact2($this->corpus, 'fca', 'two', "fact_id: fca-two\ncategory: fca\ntitle: Coverage\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'Pension contribution limits.');
+
+    $hits = app(SemanticRetriever::class)->retrieve('pension contribution tax', Carbon::now());
+
+    expect($hits)->toHaveCount(1)->and($hits[0]->factId)->toBe('fca-two');
+});
