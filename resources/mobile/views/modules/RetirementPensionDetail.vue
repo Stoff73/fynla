@@ -1,7 +1,6 @@
 <template>
-  <div>
+  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="this pension" back @back="goBack">
     <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to retirement">Back</button>
       <h1 class="m-h1">{{ title }}</h1>
       <p class="m-sub">{{ typeLabel }}</p>
     </div>
@@ -130,12 +129,13 @@
         <p v-else class="m-sub" style="margin-bottom:0">No projection available for this pension.</p>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -164,6 +164,7 @@ const DB_SCHEME_TYPES = {
 
 export default {
   name: 'MobileRetirementPensionDetail',
+  components: { MobileChrome },
   data: () => ({
     loading: true,
     error: '',

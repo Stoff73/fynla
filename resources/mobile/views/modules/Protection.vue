@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <div class="m-card m-detail-header">
-      <button class="m-back" @click="goBack" aria-label="Back to dashboard">Back</button>
-      <h1 class="m-h1">Protection</h1>
-      <p class="m-sub">Your insurance cover and the gaps that remain</p>
-    </div>
-
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your protection position…</p>
     </div>
@@ -72,12 +66,13 @@
         </div>
       </div>
     </template>
-  </div>
+  </MobileChrome>
 </template>
 
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -103,6 +98,7 @@ function annualise(amount, frequency) {
 
 export default {
   name: 'MobileProtection',
+  components: { MobileChrome },
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     profile() { return this.payload?.profile || {}; },

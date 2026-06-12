@@ -2,7 +2,9 @@
   <div v-if="show" class="m-sheet-root" role="dialog" aria-modal="true" aria-label="Report a problem">
     <div class="m-sheet-overlay" @click="close"></div>
     <div class="m-sheet">
-      <div class="m-sheet-handle"></div>
+      <button type="button" class="m-sheet-close" aria-label="Close" @click="close">
+        <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
 
       <div v-if="submitted" class="m-sheet-done">
         <h2 class="m-h1">Report logged</h2>

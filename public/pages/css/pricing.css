@@ -229,6 +229,7 @@
 @media (min-width: 1024px) {
   .pricing-plans__inner { padding-left: 2rem; padding-right: 2rem; }
   .trust-section__inner { padding-left: 2rem; padding-right: 2rem; }
-  .plan-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Two plans (Free + Premium) span the full content width, side by side. */
+  .plan-grid { grid-template-columns: repeat(2, 1fr); }
   .pricing-page .faq__inner { padding-left: 2rem; padding-right: 2rem; }
 }
