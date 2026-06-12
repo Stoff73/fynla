@@ -43,6 +43,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
@@ -1876,13 +1877,42 @@ class CoordinatingAgent extends BaseAgent
     {
         $analysis = $this->orchestrateAnalysis($user->id);
 
+        $plan = app(ComposedTaxPlanService::class)->forUser($user);
+
+        // §6e — the tool path records the same strategy-id provenance as the
+        // fetch-skill (RecommendationHandler), so every surfaced strategy is
+        // attributable from ai_messages.fetch_provenance regardless of path.
+        $surfaced = array_values(array_filter(array_map(
+            static fn (array $item): string => (string) ($item['type'] ?? ''),
+            $plan['items'],
+        ), static fn (string $id): bool => $id !== ''));
+
+        $locked = array_values(array_map(
+            static fn (array $l): string => $l['strategy_type'],
+            $plan['locked'],
+        ));
+
+        // Digest mirrors the fetch-skill's exact payload encoding (RecommendationHandler)
+        // so the same plan yields the same digest on either path — cross-path correlation.
+        $payload = (string) json_encode(['composed_tax_plan' => $plan], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        app(FetchProvenanceCollector::class)->record([
+            'pointer_id' => 'recommendations',
+            'handler' => 'recommendations',
+            'source_label' => 'recommendation engine',
+            'source_version' => now()->toDateString(),
+            'digest' => substr(hash('sha256', $payload), 0, 16),
+            'strategy_ids' => implode(',', $surfaced),
+            'locked_strategy_ids' => implode(',', $locked),
+        ]);
+
         return [
             'recommendations' => $analysis['ranked_recommendations'] ?? [],
             'total' => count($analysis['ranked_recommendations'] ?? []),
             'surplus' => $analysis['available_surplus'] ?? 0,
             // Ordered, conflict-resolved tax plan with claim tiers + locked strategies —
             // the presentation contract lives in the tool description.
-            'composed_tax_plan' => app(ComposedTaxPlanService::class)->forUser($user),
+            'composed_tax_plan' => $plan,
         ];
     }
 

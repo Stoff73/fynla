@@ -36,6 +36,22 @@ it('records provenance into the collector on a successful fetch', function (): v
         ->and($collector->all()[0]['source_version'])->toBe('2026/27');
 });
 
+it('merges a handler\'s extra fields (strategy ids) into the provenance entry', function (): void {
+    $result = FetchResult::make(
+        '{"composed_tax_plan":{}}',
+        'recommendation engine',
+        '2026-06-11',
+        ['strategy_ids' => 'pa_taper_rescue,bed_and_isa', 'locked_strategy_ids' => 'junior_isa'],
+    );
+
+    $entry = $result->provenance('recommendations', 'recommendations');
+
+    expect($entry['strategy_ids'])->toBe('pa_taper_rescue,bed_and_isa')
+        ->and($entry['locked_strategy_ids'])->toBe('junior_isa')
+        ->and($entry['pointer_id'])->toBe('recommendations')
+        ->and($entry)->toHaveKeys(['handler', 'source_label', 'source_version', 'digest']);
+});
+
 it('records nothing when the handler fails', function (): void {
     $handler = new class implements FetchHandler
     {
