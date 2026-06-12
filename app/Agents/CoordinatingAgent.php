@@ -1892,12 +1892,16 @@ class CoordinatingAgent extends BaseAgent
             $plan['locked'],
         ));
 
+        // Digest mirrors the fetch-skill's exact payload encoding (RecommendationHandler)
+        // so the same plan yields the same digest on either path — cross-path correlation.
+        $payload = (string) json_encode(['composed_tax_plan' => $plan], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
         app(FetchProvenanceCollector::class)->record([
             'pointer_id' => 'recommendations',
             'handler' => 'recommendations',
             'source_label' => 'recommendation engine',
             'source_version' => now()->toDateString(),
-            'digest' => substr(hash('sha256', (string) json_encode($plan)), 0, 16),
+            'digest' => substr(hash('sha256', $payload), 0, 16),
             'strategy_ids' => implode(',', $surfaced),
             'locked_strategy_ids' => implode(',', $locked),
         ]);

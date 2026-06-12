@@ -7,12 +7,12 @@ namespace App\Services\AI\Pointers;
 /** A handler's result + provenance. Immutable. */
 final class FetchResult
 {
+    /** @param array<string,string> $extra handler-specific provenance fields (e.g. surfaced strategy ids) */
     public function __construct(
         public readonly string $value,        // rendered text injected into context / returned to the tool
         public readonly string $sourceLabel,  // e.g. "TaxConfigService"
         public readonly string $sourceVersion, // source as-of, e.g. the active tax year
         public readonly string $digest,        // short hash of $value for provenance
-        /** @var array<string,string> handler-specific provenance fields (e.g. surfaced strategy ids) */
         public readonly array $extra = [],
     ) {}
 
