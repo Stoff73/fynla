@@ -35,12 +35,14 @@ sheltering everything the holdings earn from then on.
 ## Where it sits in sequence
 
 Bed and ISA draws on the same single overall ISA allowance as wrapping excess
-cash and any Lifetime ISA contribution. Each of those strategies is sized
-against the full remaining allowance, so the figures are alternative uses of
-the same capacity rather than a running total — a user with taxed savings
-interest and unrealised gains cannot shelter both in full in the same year,
-and the choice of which fills the allowance first is the user's, since the
-catalogue sets no hard ordering constraints or conflicts here. The annual
+cash and any Lifetime ISA contribution, and Fynla allocates that one pool by
+value: whichever strategy saves the most each year takes what it needs
+first, each further strategy is re-sized by its own arithmetic on the
+allowance that remains, and a strategy the remainder cannot support is
+still shown but flagged as crowded out — naming what used the allowance —
+and left out of the combined saving. A user with taxed savings interest and
+unrealised gains may therefore see this move sized down, or set aside for
+the year, when wrapping cash earns the stronger claim. The annual
 exempt amount and the ISA allowance both reset each tax year, which is why
 Fynla treats this as a yearly housekeeping habit rather than a one-off
 rescue.

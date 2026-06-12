@@ -43,9 +43,14 @@ arithmetic, though — the spouse gift is computed on the user's full recorded
 sole savings, not net of what the wrap takes, so a user following both
 should treat the two figures as drawing on the same pot. The strategy also
 shares the single overall ISA allowance with the bed-and-ISA investment move
-and any Lifetime ISA contribution: each is sized against the full remaining
-allowance, so Fyn presents them as alternative uses of the same capacity,
-and the user chooses which claims it first.
+and any Lifetime ISA contribution, and Fynla allocates that one pool by
+value: the strategy with the strongest annual saving keeps its full sizing,
+each further strategy is re-sized by its own arithmetic on whatever
+allowance remains, and a strategy the remainder cannot support is still
+shown but flagged as crowded out — naming what used the allowance — and
+left out of the combined saving. The figures presented are therefore one
+coherent plan for the year's allowance, not alternative claims for the user
+to arbitrate.
 
 ## Claim tier and voicing
 

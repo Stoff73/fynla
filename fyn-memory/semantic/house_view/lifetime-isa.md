@@ -34,9 +34,12 @@ has closed.
 ## Where it sits in sequence
 
 The contribution draws on the same single overall ISA allowance as wrapping
-excess cash and bed-and-ISA moves; each strategy is sized against the full
-remaining allowance, so Fyn presents them as alternative claims on the same
-capacity and the user decides which comes first. The
+excess cash and bed-and-ISA moves, and Fynla allocates that one pool by
+value: the strategy with the strongest annual saving takes what it needs
+first, each further strategy is re-sized by its own arithmetic on the
+allowance that remains, and a strategy the remainder cannot support is
+still shown but flagged as crowded out and left out of the combined saving.
+The
 bonus rate comfortably beats ordinary interest on the same money, but the
 penalty regime cuts the other way, so the Lifetime ISA slice is sized for
 money genuinely destined for a first home or later life rather than for the
