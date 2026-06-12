@@ -1,6 +1,23 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-11 — context-clear wrap, session 4. **Savetax campaign E2E test (csjones /m, click-through, verbatim `ai_messages` recording confirmed) + the 6 fixes it produced, all merged (PRs #529 spouse-skip, #530 tax-strategy layout, #531 four iteration fixes), deployed to csjones, live-verified web AND /m (dev @ `d0f7cf6`).** NOT on prod. **NEXT PHASE: Track 2 (coala) — review spec v4 with CSJ, then `superpowers:writing-plans`.** Handover: `June/June11Updates/handover-2026-06-11-session-4-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-12 — end-of-day wrap, session 1. **Track 2 (CoALA) fully landed on `coala`** (PRs #532–#536/#539/#540/#543/#545; suite 4,963/0). Dev got ISA shared-allowance #542 + Bed-and-ISA cap #544, README v1.0 #537, DEPLOY fix #541, Phailanx mobile pages #538. All loose threads closed. csjones NOT yet caught up (dev @ `7b9152b` vs deployed `d0f7cf6`). Handover: `June/June13Updates/handover-2026-06-13-session-1.md`. Prior sections preserved beneath.*
+
+## 2026-06-12 — Session 1: Track 2 executed + merged; loose threads closed (end-of-day; dev @ 7b9152b, coala @ 10193e2)
+
+Handover: `June/June13Updates/handover-2026-06-13-session-1.md`. Deploy note: `June/June13Updates/deploy-2026-06-13.md`.
+- Track 2 plan (11 tasks) executed subagent-driven, two-stage review per task; all 9 PRs merged to coala; live grok-4.3 Azlan gate GREEN; retriever conformance fix; Pest hooks re-activated liveness-pinned; test-isolation leak fixed; tests/Integration wired into phpunit.xml.
+- Dev: ISA strategies share ONE annual allowance (`IsaAllowanceAllocator`, tax-review approved); Bed-and-ISA clipped-proceeds gains cap; README v1.0; deploy-doc fixes/banners; #538 merged on CSJ instruction (branch lacked contributor prefix — note for Phailanx).
+- MEMORY.md trimmed under budget + `project_track2_landed_on_coala.md` added.
+
+### Outstanding
+- [ ] **CSJ: deploy dev → csjones** (catch-up steps in `June/June13Updates/deploy-2026-06-13.md`; no migrations/composer; needs main + mobile bundle rebuilds). Then spot-check /m chrome (#538), /tax-strategy ISA combined saving (#542), pricing page.
+- [ ] **CSJ re-test the Azlan journey on csjones** (carried — the acceptance moment).
+- [ ] **CSJ eyeball the gamified web dashboard** (carried — two flagged design notes).
+- [ ] **Next major arc: the coala→dev landing programme** (own spec/plan; start from `project_track2_landed_on_coala.md` + `git log origin/coala`; worktree at `~/Desktop/fynla-coala`).
+- [ ] A1/A2 overlay flip-to-active needs `provider: xai` variants (live app runs xAI).
+- [ ] Optional (offered in #535, not requested): planner-only consumption of the `<procedures>` block if CSJ prefers it off reasoner turns.
+- [ ] Desktop sidebar has no Tax Strategy nav entry (carried — CSJ to decide).
+- [ ] Insights featured judgement call (carried); vault `UKTaxes.md` Current State stale (carried, touched again by ISA work).
 
 ## 2026-06-11 — Session 4: Savetax campaign E2E + 6 fixes (context-clear; dev @ d0f7cf6)
 
@@ -12,7 +29,7 @@ Handover: `June/June11Updates/handover-2026-06-11-session-4-clear.md`.
 - Test users on csjones for regression: emma.savetax0611 / oliver.savetax0611b / daisy.savetax0611c (@example.com, Password1!).
 
 ### Outstanding
-- [ ] **Track 2 (coala) — NEXT PHASE (CSJ, session-4 close): review spec v4 with CSJ, then write the plan** (`docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md`; canonical flow in `feedback_coala_agent_flow_canonical.md`). Do NOT start build before spec approval.
+- [x] **Track 2 (coala) — DONE 2026-06-12 (spec approved → plan → executed → all merged to coala)** (`docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md`; canonical flow in `feedback_coala_agent_flow_canonical.md`). Do NOT start build before spec approval.
 - [ ] Desktop sidebar has no Tax Strategy nav entry (the `/m` menu does) — flagged in session 4; CSJ to decide whether to add it to the Planning group.
 
 ## 2026-06-11 — Session 3: SaveTax allowance-card corrections (context-clear; dev @ b7dfa96)

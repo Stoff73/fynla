@@ -162,3 +162,10 @@
 - Commits this session: 7 (PRs #529, #530, #531 merged)
 - Status: 0 uncommitted (2 long-standing untracked docs only)
 - Next: Track 2 (coala) — review spec v4 with CSJ (docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md), then superpowers:writing-plans
+
+## 2026-06-12 — session 1 (eod)
+- Handover: [[handover-2026-06-13-session-1]]
+- Branch: dev @ 7b9152b; coala @ 10193e2 — both pushed, trees clean
+- Commits today (dev): 12; PRs merged: #532–#545 (Track 2 + follow-ups + cleanup), suite 4,963/0 on coala
+- Status: 0 uncommitted (two long-standing untracked docs only)
+- Next: CSJ — deploy dev→csjones (June13Updates/deploy-2026-06-13.md), Azlan re-test, gamified dashboard eyeball; then the coala→dev landing programme
