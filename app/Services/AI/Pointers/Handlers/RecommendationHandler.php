@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Pointers\Handlers;
 
-use App\Agents\CoordinatingAgent;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\FetchHandler;
 use App\Services\AI\Pointers\FetchResult;
+use App\Services\Coordination\ComposedTaxPlanService;
 use Illuminate\Support\Carbon;
 
-/** Engine archetype — live recommendations from the recommendation engine. */
+/** Engine archetype — the live composed tax plan from the recommendation engine. */
 final class RecommendationHandler implements FetchHandler
 {
-    public function __construct(private readonly CoordinatingAgent $coordinator) {}
+    public function __construct(private readonly ComposedTaxPlanService $plans) {}
 
     public function id(): string
     {
@@ -22,19 +22,28 @@ final class RecommendationHandler implements FetchHandler
 
     public function fetch(FetchContext $ctx): FetchResult
     {
-        $analysis = $this->coordinator->orchestrateAnalysis($ctx->user->id);
-        $recs = $analysis['ranked_recommendations'] ?? [];
+        // §6b — the skill returns the same composed plan as get_recommendations,
+        // so skill and tool cannot disagree (shape-parity pinned in tests).
+        $plan = $this->plans->forUser($ctx->user);
 
-        $lines = [];
-        foreach ($recs as $r) {
-            $title = is_array($r) ? ($r['title'] ?? $r['description'] ?? '') : (string) $r;
-            if ($title !== '') {
-                $lines[] = '- '.$title;
-            }
-        }
+        $surfaced = array_values(array_filter(array_map(
+            static fn (array $item): string => (string) ($item['type'] ?? ''),
+            $plan['items'],
+        ), static fn (string $id): bool => $id !== ''));
 
-        $value = $lines === [] ? 'No current recommendations.' : "Current recommendations:\n".implode("\n", $lines);
+        $locked = array_values(array_map(
+            static fn (array $l): string => $l['strategy_type'],
+            $plan['locked'],
+        ));
 
-        return FetchResult::make($value, 'recommendation engine', Carbon::now()->toDateString());
+        return FetchResult::make(
+            (string) json_encode(['composed_tax_plan' => $plan], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'recommendation engine',
+            Carbon::now()->toDateString(),
+            [
+                'strategy_ids' => implode(',', $surfaced),
+                'locked_strategy_ids' => implode(',', $locked),
+            ],
+        );
     }
 }
