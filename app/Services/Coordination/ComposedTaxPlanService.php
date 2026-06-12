@@ -64,4 +64,41 @@ final class ComposedTaxPlanService
 
         return $this->composer->compose($recommendations, $metadata, $locked);
     }
+
+    /**
+     * The shared home for strategy-id derivation (§6e) — surfaced item types
+     * + locked strategy types, consumed by both provenance paths
+     * (RecommendationHandler::fetch and CoordinatingAgent::handleRecommendations)
+     * so they can never drift apart.
+     *
+     * @param  array{items: list<array<string,mixed>>, locked: list<array{strategy_type: string, missing: list<string>}>}  $plan
+     * @return array{surfaced: list<string>, locked: list<string>}
+     */
+    public static function extractStrategyIds(array $plan): array
+    {
+        $surfaced = array_values(array_filter(array_map(
+            static fn (array $item): string => (string) ($item['type'] ?? ''),
+            $plan['items'],
+        ), static fn (string $id): bool => $id !== ''));
+
+        $locked = array_values(array_map(
+            static fn (array $l): string => (string) $l['strategy_type'],
+            $plan['locked'],
+        ));
+
+        return ['surfaced' => $surfaced, 'locked' => $locked];
+    }
+
+    /**
+     * The harmonised plan digest (§6e): the same encoding
+     * RecommendationHandler::fetch passes to FetchResult::make, so the same
+     * plan yields the same digest on the skill and tool paths — pinned by
+     * RecommendationHandlerParityTest against the FetchResult derivation.
+     *
+     * @param  array<string, mixed>  $plan
+     */
+    public static function planDigest(array $plan): string
+    {
+        return substr(hash('sha256', (string) json_encode(['composed_tax_plan' => $plan], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)), 0, 16);
+    }
 }

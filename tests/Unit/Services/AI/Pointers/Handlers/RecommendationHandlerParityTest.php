@@ -53,7 +53,10 @@ it('the fetch-skill payload equals get_recommendations composed_tax_plan', funct
 
     expect($skillPlan)->toEqual($toolPlan)
         ->and($skillPlan)->toEqual($direct)
-        ->and($skillDigest)->toBe($toolDigest);
+        ->and($skillDigest)->toBe($toolDigest)
+        // The shared home (ComposedTaxPlanService::planDigest) must equal the
+        // digest FetchResult::make derives from the handler's value encoding.
+        ->and(ComposedTaxPlanService::planDigest($direct))->toBe($skillDigest);
 });
 
 it('parity holds for a user whose plan has fired items and locked strategies', function (): void {
@@ -94,5 +97,8 @@ it('parity holds for a user whose plan has fired items and locked strategies', f
         ->and($skillPlan)->toEqual($toolPlan)
         ->and($skillPlan)->toEqual($direct)
         // §6e — same plan, same digest, regardless of path (skill vs tool).
-        ->and($skillDigest)->toBe($toolDigest);
+        ->and($skillDigest)->toBe($toolDigest)
+        // The shared home (ComposedTaxPlanService::planDigest) must equal the
+        // digest FetchResult::make derives from the handler's value encoding.
+        ->and(ComposedTaxPlanService::planDigest($direct))->toBe($skillDigest);
 });
