@@ -39,6 +39,13 @@ final class BedAndIsaStrategy implements TaxStrategy
         $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
         $isaRemaining = max(0, $isaAllowance - $isaUsed);
 
+        // Shared-allowance allocation pass: a higher-saving ISA strategy may
+        // already have claimed part of the one overall allowance — only the
+        // remaining pool capacity is available to this evaluation.
+        if ($context->isaPoolCap !== null) {
+            $isaRemaining = min($isaRemaining, max(0.0, $context->isaPoolCap));
+        }
+
         if ($isaRemaining <= 0 || $aea <= 0) {
             return [];
         }
@@ -101,6 +108,16 @@ final class BedAndIsaStrategy implements TaxStrategy
             $isaRemaining,
             $totalCurrentValueWithGain * ($realisableGains / $totalUnrealisedGain),
         );
+
+        // Under a shared-pool constraint, the gains actually crystallised are
+        // only those embedded in the proceeds that still fit inside the ISA —
+        // the honest saving on the smaller amount, not the full AEA figure.
+        if ($context->isaPoolCap !== null && $totalCurrentValueWithGain > 0.0) {
+            $realisableGains = min(
+                $realisableGains,
+                $proceeds * ($totalUnrealisedGain / $totalCurrentValueWithGain),
+            );
+        }
 
         $saving = $realisableGains * $cgtRate;
         if ($saving < 1) {
