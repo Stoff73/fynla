@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guides &amp; Explainers &#8212; Free UK Financial Planning Guides | Fynla</title>
   <meta name="description" content="Free jargon-free guides to UK financial planning. Learn about ISAs, pensions, drawdown, inheritance tax, salary sacrifice, mortgages and more. Written for real people." />

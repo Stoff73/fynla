@@ -33,6 +33,7 @@ class AiConversation extends Model
         'entities_mentioned',
         'intents_stated',
         'summarised_at',
+        'pending_resumption',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class AiConversation extends Model
         'entities_mentioned' => 'array',
         'intents_stated' => 'array',
         'summarised_at' => 'datetime',
+        'pending_resumption' => 'array',
     ];
 
     public function user(): BelongsTo

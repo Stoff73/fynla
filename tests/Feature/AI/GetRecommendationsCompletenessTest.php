@@ -38,7 +38,17 @@ function buildAgentWithFixedAnalysis(array $analysis): CoordinatingAgent
 {
     $stub = new class($analysis) extends CoordinatingAgent
     {
-        public function __construct(private array $stubAnalysis) {}
+        public function __construct(private array $stubAnalysis)
+        {
+            // The parent constructor must run (handleRecommendations reads
+            // promoted readonly properties, e.g. $composedTaxPlans). Resolve
+            // its dependencies from the container so the stub stays honest
+            // and never breaks when the constructor signature changes.
+            parent::__construct(...array_map(
+                static fn (ReflectionParameter $p): object => app((string) $p->getType()),
+                (new ReflectionMethod(CoordinatingAgent::class, '__construct'))->getParameters(),
+            ));
+        }
 
         public function orchestrateAnalysis(int $userId, ?array $moduleAgents = null): array
         {

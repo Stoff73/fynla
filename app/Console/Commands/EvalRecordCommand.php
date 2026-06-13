@@ -254,7 +254,11 @@ final class EvalRecordCommand extends Command
         if ($dryRun) {
             $this->warn('Dry-run — skipping HTTP loop.');
 
-            return EvalProviderRun::create([
+            // Unsaved placeholder: conversation_id 0 can never satisfy the FK to
+            // ai_conversations (restrictOnDelete, present since the table's creation
+            // migration), so persisting here always threw a QueryException. Dry-run
+            // only needs a non-null return to signal "setup validated".
+            return new EvalProviderRun([
                 'eval_recording_session_id' => $session->id,
                 'provider' => $provider,
                 'model' => $model,

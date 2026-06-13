@@ -32,6 +32,7 @@ class AiAuditEvent extends Model
         'row_hash',
         'signed_at',
         'signature',
+        'hash_scheme',
         'created_at',
     ];
 
@@ -39,6 +40,7 @@ class AiAuditEvent extends Model
         'input_summary' => 'array',
         'result_summary' => 'array',
         'entity_id' => 'integer',
+        'hash_scheme' => 'integer',
         'signed_at' => 'datetime',
         'created_at' => 'datetime',
     ];

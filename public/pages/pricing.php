@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing — Simple, Transparent Plans | Fynla</title>
   <meta name="description" content="Choose the Fynla tier that fits — Free, Tier 1, Tier 2 or Tier 3 — for UK financial planning. Start free, no credit card required." />

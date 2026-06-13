@@ -131,6 +131,9 @@ const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
+const AiCostDashboard = () => import('@/views/Admin/AiCostDashboard.vue');
+const EpisodicComplianceLog = () => import('@/views/Admin/EpisodicComplianceLog.vue');
+const ProceduralCorpusViewer = () => import('@/views/Admin/ProceduralCorpusViewer.vue');
 const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
@@ -1189,6 +1192,48 @@ const routes = [
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Admin Panel', path: '/admin' },
+      ],
+    },
+  },
+  {
+    path: '/admin/ai-cost',
+    name: 'AiCostDashboard',
+    component: AiCostDashboard,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'AI cost', path: '/admin/ai-cost' },
+      ],
+    },
+  },
+  {
+    path: '/admin/episodic-compliance',
+    name: 'EpisodicComplianceLog',
+    component: EpisodicComplianceLog,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Episodic compliance', path: '/admin/episodic-compliance' },
+      ],
+    },
+  },
+  {
+    path: '/admin/procedural-corpus',
+    name: 'ProceduralCorpusViewer',
+    component: ProceduralCorpusViewer,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Procedural memory', path: '/admin/procedural-corpus' },
       ],
     },
   },

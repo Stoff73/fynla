@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Security &amp; Privacy â€” Your Data is Protected | Fynla</title>
   <meta name="description" content="Learn how Fynla protects your financial data. AES-256 encryption, multi-factor authentication, GDPR compliance, and UK-hosted servers. Your data is never sold or shared." />

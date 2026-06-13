@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fynla for Advisers â€” Help Your Clients Plan Better | Fynla</title>
   <meta name="description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place â€” so clients arrive prepared and meetings are more productive." />

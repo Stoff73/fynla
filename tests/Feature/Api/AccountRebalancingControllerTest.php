@@ -73,7 +73,7 @@ it('returns 404 for an unknown account id', function () {
 });
 
 it('requires authentication for the rebalancing endpoint', function () {
-    $this->app = $this->createApplication();
+    $this->actingAsGuest();
     $account = InvestmentAccount::factory()->create();
 
     $this->withHeaders(['Accept' => 'application/json'])

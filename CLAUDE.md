@@ -60,6 +60,11 @@ php artisan migrate && php artisan db:seed
 | `php artisan trials:expire` | Expire ended trial subscriptions |
 | `php artisan sessions:cleanup` | Clean up orphaned user sessions |
 | `php artisan registrations:cleanup` | Remove stale pending registrations |
+| `php artisan fyn:episodic:backfill-blobs` | One-shot idempotent backfill of episodic .md blobs for legacy ai_messages rows |
+| `php artisan fyn:episodic:cold-archive` | Move episodic blobs older than 12 months to cold storage (scheduled weekly) |
+| `php artisan fyn:episodic:reconcile` | Flag orphan episodic blobs with no matching ai_messages row (scheduled daily) |
+| `php artisan fyn:episodic:purge --force` | Hard-delete episodes older than 6 years (FCA SYSC 9.1); dry-run without --force |
+| `php artisan fyn:user:erase {user} --force` | GDPR erasure of a user's episodic rows + blobs (hot + cold); dry-run without --force |
 
 ## Architecture
 
@@ -444,4 +449,4 @@ Check routes: `php artisan route:list --path=endpoint`
 ./vendor/bin/pest --filter="calculateIHTLiability" # By name
 ```
 
-Pest (`it()`/`describe()`), `RefreshDatabase`, TaxConfiguration auto-seeded, `Sanctum::actingAs()`, Mockery with `Mockery::close()` in `afterEach`. **Full conventions in `tests/CLAUDE.md`.**
+Pest (`it()`/`describe()`), `RefreshDatabase`, TaxConfiguration IS auto-created by the live Pest.php global hook (`uses()->beforeEach(...)->in(...)` — a 2019/20 safety-net row when no active config exists; liveness pinned by `tests/Feature/Fyn/PestHooksLivenessTest.php`). Tests needing real seeded years still seed explicitly (`$this->seed(TaxConfigurationSeeder::class)`); chat-path suites get empty scripted AI clients bound by the second global hook. `Sanctum::actingAs()`, Mockery with `Mockery::close()` in `afterEach`. **Full conventions in `tests/CLAUDE.md`.**
