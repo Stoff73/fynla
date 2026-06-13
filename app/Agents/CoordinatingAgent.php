@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\QuerySchemas;
+use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
@@ -2203,6 +2204,7 @@ class CoordinatingAgent extends BaseAgent
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
             'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
+            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -2262,6 +2264,7 @@ class CoordinatingAgent extends BaseAgent
         // Optional numeric / string fields — only persist when supplied.
         $optionalNumeric = [
             'monthly_contribution_amount', 'platform_fee_percent',
+            'isa_subscription_current_year',
             'investment_amount', 'number_of_shares', 'price_per_share',
             'units_granted', 'exercise_price', 'market_value_at_grant',
             'current_share_price', 'units_vested', 'units_unvested',

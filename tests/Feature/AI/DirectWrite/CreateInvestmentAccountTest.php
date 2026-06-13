@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\Tax\TaxStrategyMath;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,6 +42,26 @@ it('create_investment_account persists an InvestmentAccount row directly', funct
     expect((float) $account->current_value)->toBe(25000.00);
     expect((float) $account->monthly_contribution_amount)->toBe(500.00);
     expect($account->ownership_type)->toBe('individual');
+});
+
+it('create_investment_account records the ISA subscription this tax year and counts it toward the allowance', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+        'account_name' => 'Vanguard Stocks & Shares ISA',
+        'account_type' => 'stocks_shares_isa',
+        'current_value' => 30000,
+        'isa_subscription_current_year' => 5000, // "I've put in £5,000 this year"
+    ], $user);
+
+    $account = InvestmentAccount::find($result['entity_id']);
+    expect($account->account_type)->toBe('isa');
+    expect((float) $account->isa_subscription_current_year)->toBe(5000.00);
+
+    // End-to-end: the ISA allowance calc now sees the S&S ISA subscription, so
+    // the £20k allowance is correctly reduced to £15k of headroom (Bug A + Bug B).
+    expect(app(TaxStrategyMath::class)->estimateIsaSubscriptionsThisYear($user->fresh()))
+        ->toBe(5000.0);
 });
 
 it('create_investment_account maps personal_investment_account to gia', function (): void {
