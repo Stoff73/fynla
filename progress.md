@@ -169,3 +169,10 @@
 - Commits today (dev): 12; PRs merged: #532–#545 (Track 2 + follow-ups + cleanup), suite 4,963/0 on coala
 - Status: 0 uncommitted (two long-standing untracked docs only)
 - Next: CSJ — deploy dev→csjones (June13Updates/deploy-2026-06-13.md), Azlan re-test, gamified dashboard eyeball; then the coala→dev landing programme
+
+## 2026-06-13 — session 2 (context-clear)
+- Handover: [[handover-2026-06-13-session-2-clear]]
+- Branch: dev (main @ 2905c62, dev-ahead 0); prod fynla.org current
+- Shipped: #546 web dashboard parity + sidebar Tax Strategy; #547 ISA calc counts S&S ISA subs; #548 ISA tool capture + Fyn deflection carve-out (PARTIAL); #549 dev→main release deployed to prod (5 migrations, catalogue seeders), verified end-to-end web + /m. Azlan re-test GREEN on csjones.
+- Status: 0 uncommitted (working tree clean except 2 long-standing untracked docs). All merged + deployed.
+- Next: CSJ to pick — eval-driven #2 deflection fix / non-tax catalogue metadata / coala→dev landing.

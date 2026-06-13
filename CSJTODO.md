@@ -1,6 +1,25 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-12 — end-of-day wrap, session 1. **Track 2 (CoALA) fully landed on `coala`** (PRs #532–#536/#539/#540/#543/#545; suite 4,963/0). Dev got ISA shared-allowance #542 + Bed-and-ISA cap #544, README v1.0 #537, DEPLOY fix #541, Phailanx mobile pages #538. All loose threads closed. csjones NOT yet caught up (dev @ `7b9152b` vs deployed `d0f7cf6`). Handover: `June/June13Updates/handover-2026-06-13-session-1.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-13 — context-clear wrap, session 2. **Full production release shipped + verified.** `dev → main` (#549, 342 commits, 5 migrations) deployed to fynla.org; prod verified end-to-end on web AND `/m`. Also this session: web dashboard parity #546, ISA calc fix #547, ISA tool-capture + Fyn deflection carve-out #548; Azlan re-test GREEN on csjones. main = dev; nothing in flight. Handover: `June/June13Updates/handover-2026-06-13-session-2-clear.md`. Prior sections preserved beneath.*
+
+## 2026-06-13 — Session 2: dashboard parity, ISA fixes, Fyn deflection, FULL PROD RELEASE (context-clear; dev @ 2386915, main @ 2905c62, prod current)
+
+Handover: `June/June13Updates/handover-2026-06-13-session-2-clear.md`.
+- **#546** web `/dashboard` module parity (all-module focus tabs + unlock-row capture pre-seed) + desktop sidebar Tax Strategy nav entry.
+- **#547** ISA calc counts S&S ISA subscriptions toward the allowance (was Cash-ISA-only → headroom over-stated).
+- **#548** Fyn `create_investment_account` captures the ISA subscription + advice-Fyn deflection carve-out (**PARTIAL** — still intermittently deflects; see memory).
+- **#549** `dev → main` release deployed to **fynla.org** (rsync, 5 migrations, 6 catalogue seeders, `config:cache`); verified prod end-to-end (web + `/m`).
+- Azlan savetax journey re-tested GREEN on csjones (recording verified). Insights "featured" = **keep May fallback** (answered, no change).
+
+### Outstanding
+- [ ] **The #2 advice-Fyn deflection fix is PARTIAL** — needs eval-driven prompt tuning and/or a deterministic capture-routing layer. Live carve-out reduced but didn't eliminate it. See `feedback_advice_fyn_capture_deflection_partial.md`.
+- [ ] **Local `public/build/` is PROD-configured** — rebuild with `./deploy/csjones-fynla/build.sh` before any csjones deploy.
+- [ ] **coala→dev landing programme** (deferred; own spec/plan; worktree `~/Desktop/fynla-coala`; 224 commits ahead).
+- [ ] Author non-tax module catalogue `required_data`/`sequencing` metadata (null by design today — only tax authored).
+- [ ] A1/A2 overlay flip-to-active needs `provider: xai` variants (coala work).
+- [ ] Pre-existing May-29 `CollisionServiceProvider` error in prod `laravel.log` (dev dep via a cron path; 0 today) — minor tidy-up.
+- [ ] vault `UKTaxes.md` Current State stale (carried).
+- [x] ~~deploy dev → csjones~~ DONE. ~~Azlan re-test on csjones~~ DONE. ~~eyeball gamified web dashboard~~ DONE (#546). ~~desktop sidebar Tax Strategy nav~~ DONE (#546). ~~insights featured judgement call~~ ANSWERED (keep May).
 
 ## 2026-06-12 — Session 1: Track 2 executed + merged; loose threads closed (end-of-day; dev @ 7b9152b, coala @ 10193e2)
 
