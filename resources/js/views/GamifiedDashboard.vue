@@ -220,7 +220,32 @@ const ICON = {
   card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
   investment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>',
+  // Focus-area icons (22px, matching saveTax/retirement/savings) for the
+  // expanded module tabs — rendered only in the mobile-web accordion.
+  protection: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
+  investmentArea: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>',
+  estate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M4 21V10l8-5 8 5v11M9 21v-6h6v6"/></svg>',
+  goals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zm0-4a5 5 0 100-10 5 5 0 000 10zm0-4a1 1 0 100-2 1 1 0 000 2z"/></svg>',
 };
+
+// Static presentation for each focus area (label, web route, icon, blurb). The
+// server's focus_areas decide WHICH areas show and their locked / action state;
+// this map only supplies the chrome. Mirrors the /m focus carousel, which shows
+// one entry per module. Save tax has no module area of its own — it rides the
+// unified "top" highlight set (module 'tax').
+const AREA_META = {
+  save_tax: { label: 'Save tax', route: '/tax-strategy', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
+  retirement: { label: 'Retirement', route: '/net-worth/retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
+  protection: { label: 'Protection', route: '/protection', icon: ICON.protection, info: 'Make sure your family is covered if the unexpected happens.' },
+  savings: { label: 'Savings', route: '/net-worth/cash', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
+  investment: { label: 'Investment', route: '/net-worth/investments', icon: ICON.investmentArea, info: 'Put your money to work and keep your portfolio on track.' },
+  estate: { label: 'Estate', route: '/estate', icon: ICON.estate, info: 'Plan how your wealth passes on and reduce Inheritance Tax.' },
+  goals: { label: 'Goals', route: '/goals', icon: ICON.goals, info: 'Set financial goals and track your progress towards them.' },
+};
+
+// Module focus areas the aggregator returns, in server order (NextActionsService
+// UNLOCK_MODULES). Save tax is prepended separately as the unified tax tab.
+const MODULE_ORDER = ['retirement', 'protection', 'savings', 'investment', 'estate', 'goals'];
 
 export default {
   name: 'GamifiedDashboard',
@@ -255,7 +280,7 @@ export default {
     // progress bar and "X of Y actions complete" move live as the user checks /
     // unchecks them (no server round-trip — instant, and works both ways).
     allRecs() {
-      return [].concat(this.buckets.save_tax, this.buckets.retirement, this.buckets.savings);
+      return Object.values(this.buckets).reduce((acc, list) => acc.concat(list || []), []);
     },
     actionsTotal() {
       return this.allRecs.length;
@@ -354,7 +379,7 @@ export default {
       // real recommendations deep-link to the module screen where they are
       // actioned — mirrors the /m app's onActionTap split.
       if (rec.type === 'unlock' || (rec.action && rec.action.kind === 'fyn_capture')) {
-        this.openFyn();
+        this.openFynForCapture(rec.module);
         return;
       }
       const route = this.webRouteFor(rec.module);
@@ -369,6 +394,22 @@ export default {
     openFyn() {
       this.$store.dispatch('aiChat/open');
       window.dispatchEvent(new Event('fyn-open-chat'));
+    },
+    // Tapping an unlock row opens Fyn AND pre-seeds a capture prompt so the user
+    // lands in a guided capture rather than a blank chat. Mirrors the /m app's
+    // openFynForCapture; AiChatPanel consumes aiChat/prefilledPrompt on open.
+    openFynForCapture(module) {
+      const prompts = {
+        protection: 'Help me add my protection cover details',
+        savings: 'Help me add my savings details',
+        investment: 'Help me add my investment details',
+        retirement: 'Help me add my pension details',
+        estate: 'Help me add my estate planning details',
+        goals: 'Help me set a financial goal',
+        tax: 'Help me complete my tax strategy details',
+      };
+      this.$store.dispatch('aiChat/prefillPrompt', prompts[module] || 'Help me add my financial details');
+      this.openFyn();
     },
     toggleRec(rec) {
       if (rec.type === 'unlock') return; // unlocks have no completion state
@@ -419,22 +460,34 @@ export default {
           }
         }));
 
-        const bucketFor = (key) => ((byKey[key] || {}).actions || []).map(mapItem);
-        this.buckets = {
-          save_tax: taxActions,
-          retirement: bucketFor('retirement'),
-          savings: bucketFor('savings'),
-        };
-        const areaStat = (key, list) => {
-          const area = byKey[key];
-          if (area && area.locked) return 'Locked';
-          return list.length ? `${list.length} action${list.length === 1 ? '' : 's'}` : '—';
-        };
-        this.areaStats = {
+        // Save tax = the unified tax-module actions (module 'tax' rides the
+        // 'top' highlight set; it has no area of its own).
+        const buckets = { save_tax: taxActions };
+        const areaStats = {
           save_tax: taxActions.length ? `${taxActions.length} action${taxActions.length === 1 ? '' : 's'}` : '—',
-          retirement: areaStat('retirement', this.buckets.retirement),
-          savings: areaStat('savings', this.buckets.savings),
         };
+
+        // One tab per module the aggregator returned (all of UNLOCK_MODULES) —
+        // locked modules still appear (parity with the /m focus carousel).
+        MODULE_ORDER.forEach((key) => {
+          const area = byKey[key];
+          if (!area) return;
+          const list = (area.actions || []).map(mapItem);
+          buckets[key] = list;
+          areaStats[key] = area.locked ? 'Locked' : (list.length ? `${list.length} action${list.length === 1 ? '' : 's'}` : '—');
+        });
+
+        // Tabs: Save tax first, then modules actionable-first (unlocked with
+        // real actions before locked / empty) so the user sees what they can act
+        // on without scrolling. Array.sort is stable → server order within a group.
+        const orderedModules = MODULE_ORDER
+          .filter((k) => byKey[k])
+          .sort((a, b) => (byKey[a].locked ? 1 : 0) - (byKey[b].locked ? 1 : 0));
+        this.cats = [{ key: 'save_tax', ...AREA_META.save_tax }]
+          .concat(orderedModules.map((key) => ({ key, ...(AREA_META[key] || { label: key, route: null, icon: '', info: '' }) })));
+        this.buckets = buckets;
+        this.areaStats = areaStats;
+        this.activeCat = 0;
 
         const lv = d.level || {};
         this.level = lv.level ?? 1;
