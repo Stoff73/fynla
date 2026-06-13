@@ -453,6 +453,7 @@ export default {
             'previewCta',
             'onboardingLayout',
             'isOnboardingActive',
+            'prefilledPrompt',
         ]),
 
         // True once the user has sent at least one message in this
@@ -684,6 +685,14 @@ export default {
             if (newVal) {
                 this.onOpen();
             }
+        },
+
+        // A dashboard unlock row sets aiChat/prefilledPrompt then opens Fyn. If
+        // the dock is ALREADY open (the desktop docked panel auto-opens at mount,
+        // so onOpen won't re-fire), this watcher delivers the auto-send. The
+        // fresh-open case is handled by onOpen calling maybeSendPrefilled().
+        prefilledPrompt(val) {
+            if (val) this.maybeSendPrefilled();
         },
 
         secondsUntilReset(newVal) {
@@ -952,6 +961,7 @@ export default {
 
             if (hasActive() || busy()) {
                 await this.fetchConversations();
+                await this.maybeSendPrefilled();
                 this.$nextTick(() => this.$refs.inputField?.focus());
                 return;
             }
@@ -964,6 +974,7 @@ export default {
             // fresh empty conversation at this point would orphan the
             // real onboarding conversation and split the transcript.
             if (hasActive() || busy()) {
+                await this.maybeSendPrefilled();
                 this.$nextTick(() => this.$refs.inputField?.focus());
                 return;
             }
@@ -985,9 +996,35 @@ export default {
                 await this.startNewConversation();
             }
 
+            await this.maybeSendPrefilled();
+
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
             });
+        },
+
+        // Consume aiChat/prefilledPrompt — a capture prompt seeded by a dashboard
+        // unlock row (mirrors the /m app's openFynForCapture auto-send). Delivers
+        // once the dock is open and idle; if the open dock has no conversation yet
+        // (the docked panel can sit open with none), it starts one first. Leaves
+        // the prefill set when the dock is still closed or busy so a later trigger
+        // (onOpen / the watcher) delivers it. Never auto-sends into onboarding.
+        async maybeSendPrefilled() {
+            const prompt = this.$store.state.aiChat.prefilledPrompt;
+            if (!prompt) return;
+            if (!this.isOpen) return;
+            if (this.streaming || this.loading) return;
+            const user = this.$store.getters['auth/user'];
+            if (user && user.onboarding_completed === false && user.onboarding_fyn_step) {
+                this.$store.commit('aiChat/SET_PREFILLED_PROMPT', null);
+                return;
+            }
+            if (!this.currentConversation) {
+                await this.startNewConversation();
+                if (!this.currentConversation) return; // create failed — leave prefill for retry
+            }
+            this.$store.commit('aiChat/SET_PREFILLED_PROMPT', null);
+            await this.sendSuggested(prompt);
         },
 
         async startNew() {

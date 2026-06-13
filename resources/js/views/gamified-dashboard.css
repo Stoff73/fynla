@@ -160,10 +160,16 @@
 .gamified-dash .gd-header__lu-sub { font-size: 0.8125rem; opacity: 0.9; margin: 0.125rem 0 0; }
 
 .gamified-dash .gd-card { background: #fff; border: 1px solid var(--horizon-100); border-radius: var(--radius-2xl); padding: 0.5rem 1.5rem 1.5rem; }
-.gamified-dash .gd-tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--horizon-100); }
+/* Strip scrolls horizontally when there are more module tabs than fit (parity
+   with the /m focus carousel — Save tax + up to six modules). Scrollbar hidden;
+   the clipped trailing tab signals "more". */
+.gamified-dash .gd-tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--horizon-100); overflow-x: auto; scrollbar-width: none; }
+.gamified-dash .gd-tabs::-webkit-scrollbar { display: none; }
 /* Inactive tabs sit "set back" on a grey surface with a hover state; the active
-   tab is raised (white) with a raspberry underline so it reads as selected. */
-.gamified-dash .gd-tab { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; padding: 1rem 1rem 0.875rem; border: none; background: var(--horizon-100); border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 3px solid transparent; cursor: pointer; font-family: var(--font-primary); text-align: left; transition: background 0.15s ease; }
+   tab is raised (white) with a raspberry underline so it reads as selected.
+   flex 1 0 7.5rem: grow to fill when few, but never shrink below a readable
+   width — so a full set overflows into the horizontal scroll instead of cramming. */
+.gamified-dash .gd-tab { flex: 1 0 7.5rem; display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; padding: 1rem 1rem 0.875rem; border: none; background: var(--horizon-100); border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 3px solid transparent; cursor: pointer; font-family: var(--font-primary); text-align: left; transition: background 0.15s ease; }
 .gamified-dash .gd-tab:hover { background: var(--horizon-200); }
 .gamified-dash .gd-tab__stat { font-size: 1.35rem; font-weight: 900; color: var(--horizon-400); line-height: 1; }
 .gamified-dash .gd-tab__area { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--neutral-400); }
