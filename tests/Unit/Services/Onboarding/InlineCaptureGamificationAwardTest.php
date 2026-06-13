@@ -25,10 +25,10 @@ uses(RefreshDatabase::class);
  *
  * The award fires off the events the delegated CoordinatingAgent generator
  * yields (fill_form / entity_created), so the only mock needed is that
- * generator seam — no LLM HTTP mock. entityTypes ['income'] maps to a null
- * focus in inferFocusesFromEntityTypes(), so the post-award gap-fill and the
- * unified-focus carry both no-op, leaving CoordinatingAgent the sole
- * collaborator exercised.
+ * generator seam — no LLM HTTP mock. entityTypes ['income'] maps to no module
+ * focus in inferFocusesFromEntityTypes(), so the post-award gap-fill no-ops;
+ * the unified-focus carry uses the capture-mode 'savings' fallback (June13 §6c),
+ * leaving CoordinatingAgent the sole collaborator exercised.
  */
 
 /**
@@ -41,6 +41,12 @@ uses(RefreshDatabase::class);
 function directorYielding(array $events): OnboardingChatDirector
 {
     $agent = Mockery::mock(CoordinatingAgent::class);
+    // handleInlineCapture now guarantees a non-null unifiedFocus (the deflection
+    // fix, June13 §6c) — even for entity types with no module focus like
+    // ['income'], the 'savings' fallback keeps the turn in capture mode. FynLoop
+    // therefore calls setUnifiedOnboardingFocus; allow it without weakening the
+    // strict chatWithPromptOverride expectation.
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function () use ($events): Generator {
             yield from $events;
