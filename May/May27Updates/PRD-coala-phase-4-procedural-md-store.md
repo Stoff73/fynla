@@ -8,6 +8,8 @@
 **Canonical contract:** `/Users/CSJ/Desktop/fynla/April/April24Updates/spec/00-canonical.md`
 **Codebase audit:** Performed during plan v0.1 → v0.4 revision cycle
 
+> **AMENDED by plan v0.5 (2026-06-01) — the pointer registry is the heart of procedural memory.** Procedural memory's core is now the **pointer registry**: typed fetch-skills (`{topic, source ∈ md_fact|tax_config|model_query|service_call|engine_run, fetch, effective_dating}`) that route Fyn to the *live* source for any data with an authoritative owner, so nothing is duplicated or frozen. The overlays / workflows / tool-schemas described in this PRD are the *rest* of procedural memory; the registry is its centre. A pointer fetches — it never widens write permission. See `fynla-coala-implementation-plan.md` → "v0.5 amendment".
+
 ---
 
 ## 1. Context & Why

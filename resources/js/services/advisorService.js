@@ -93,6 +93,39 @@ const advisorService = {
         return response.data;
     },
 
+    /**
+     * Get paginated episodic advice sessions for a client.
+     * @param {Number} clientId - Client ID
+     * @param {Object} params - Query params (page)
+     * @returns {Promise} Paginated episode list
+     */
+    async getClientEpisodes(clientId, params = {}) {
+        const response = await api.get(`/advisor/clients/${clientId}/episodes`, { params });
+        return response.data;
+    },
+
+    /**
+     * Get the full forensic detail (blob body) for a single episode.
+     * @param {Number} clientId - Client ID
+     * @param {Number} episodeId - Episode (AiMessage) ID
+     * @returns {Promise} Episode detail
+     */
+    async getClientEpisode(clientId, episodeId) {
+        const response = await api.get(`/advisor/clients/${clientId}/episodes/${episodeId}`);
+        return response.data;
+    },
+
+    /**
+     * Run an on-demand chain-verify / attestation check on a single episode.
+     * @param {Number} clientId - Client ID
+     * @param {Number} episodeId - Episode (AiMessage) ID
+     * @returns {Promise} Verification result ({ verified, state })
+     */
+    async verifyClientEpisode(clientId, episodeId) {
+        const response = await api.post(`/advisor/clients/${clientId}/episodes/${episodeId}/verify`);
+        return response.data;
+    },
+
 };
 
 export default advisorService;

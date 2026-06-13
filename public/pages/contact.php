@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Contact &amp; Support | Fynla</title>
   <meta name="description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries â€” we'd love to hear from you." />

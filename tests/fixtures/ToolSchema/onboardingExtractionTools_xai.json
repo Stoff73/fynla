@@ -1,0 +1,350 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_personal_details",
+            "description": "Capture the user's date of birth and/or marital status from a free-text reply during onboarding. Call this once per turn. Do not call any other tool. CRITICAL: only include a field in the arguments when the user has EXPLICITLY stated it in their reply. Do not guess, infer, or default any field. If the user only gave their date of birth, include only date_of_birth. If they only gave their marital status, include only marital_status. Omit a field entirely rather than inventing a value — the onboarding flow will re-ask for anything missing.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "date_of_birth": {
+                        "type": "string",
+                        "description": "Date of birth in YYYY-MM-DD format, parsed from natural language like \"12 January 1985\". Only include this field if the user explicitly stated a date of birth."
+                    },
+                    "marital_status": {
+                        "type": "string",
+                        "enum": [
+                            "single",
+                            "married",
+                            "civil_partnership",
+                            "divorced",
+                            "widowed"
+                        ],
+                        "description": "The user's marital status. Only include this field if the user explicitly stated their marital status. Map phrases: \"married\" → married, \"civil partnership\" or \"civil partner\" → civil_partnership, \"single\" or \"unmarried\" → single, \"divorced\" or \"separated\" → divorced, \"widowed\" or \"widow\" → widowed."
+                    }
+                },
+                "required": [],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_spouse_details",
+            "description": "Capture the user's spouse or civil partner details from a free-text reply during onboarding. This creates a linked spouse user account. Call this once per turn. Do not call any other tool.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "first_name": {
+                        "type": "string",
+                        "description": "The spouse or partner's first name. Extract from phrases like \"my partner Jamie\" or \"called Sarah\"."
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "description": "The spouse or partner's last name, if provided. Optional."
+                    },
+                    "date_of_birth": {
+                        "type": "string",
+                        "description": "Spouse/partner date of birth in YYYY-MM-DD format. Parse natural language dates into ISO format."
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "The spouse or partner's email address. Required — this is used to create their linked account."
+                    },
+                    "annual_income": {
+                        "type": "number",
+                        "description": "The spouse or partner's rough annual income in GBP, if mentioned. Optional. Strip currency symbols and commas; \"75k\" = 75000."
+                    }
+                },
+                "required": [
+                    "first_name",
+                    "date_of_birth",
+                    "email"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_dependants",
+            "description": "Capture a list of the user's dependants (children or other dependants) from a free-text reply during onboarding. Call this once per turn with an array of all dependants mentioned. Do not call any other tool.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "dependants": {
+                        "type": "array",
+                        "description": "One entry per dependant mentioned. Names may be omitted if the user did not provide them (use null).",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "first_name": {
+                                    "type": "string",
+                                    "description": "The dependant's first name if mentioned, otherwise null."
+                                },
+                                "age": {
+                                    "type": "integer",
+                                    "description": "The dependant's age in whole years. Required."
+                                },
+                                "relationship": {
+                                    "type": "string",
+                                    "enum": [
+                                        "child",
+                                        "parent",
+                                        "other_dependent"
+                                    ],
+                                    "description": "Child (son, daughter, step-child, etc.), parent (mother, father, in-law), or other_dependent (sibling, nephew, elderly relative, friend)."
+                                }
+                            },
+                            "required": [
+                                "age",
+                                "relationship"
+                            ],
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                "required": [
+                    "dependants"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_work_details",
+            "description": "Capture the user's employer, position, and annual income from a free-text reply during onboarding. Only used when the user is employed, self-employed, or part-time. Call this once per turn. Do not call any other tool.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "employer": {
+                        "type": "string",
+                        "description": "The company or employer name. For self-employed users this may be their trading name or \"self-employed\"."
+                    },
+                    "occupation": {
+                        "type": "string",
+                        "description": "The user's job title or role. e.g. \"Software engineer\", \"Sole trader\", \"Consultant\"."
+                    },
+                    "annual_income": {
+                        "type": "number",
+                        "description": "Gross annual income in GBP. Strip currency symbols and commas; \"75k\" = 75000. For self-employed users this is self-employment income."
+                    }
+                },
+                "required": [
+                    "employer",
+                    "occupation",
+                    "annual_income"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_salary_sacrifice",
+            "description": "Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pension_id": {
+                        "type": "integer",
+                        "description": "ID of the dc_pension row to update."
+                    },
+                    "salary_sacrifice": {
+                        "type": "boolean",
+                        "description": "true if pension contributions are made via salary sacrifice."
+                    },
+                    "employer_ni_rebate_pct": {
+                        "type": "number",
+                        "description": "Optional. Share of the employer National Insurance saving rebated back into the pension as a fraction between 0 and 1 (e.g. 0.5 for 50%)."
+                    }
+                },
+                "required": [
+                    "pension_id",
+                    "salary_sacrifice"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_spouse_work_status",
+            "description": "Set whether the user's spouse currently works. Updates household_calculation_mode (dual_earner | single_earner_couple) and marriage_allowance_eligible accordingly. The state machine routes the next state based on the result.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "spouse_works": {
+                        "type": "boolean",
+                        "description": "true if spouse has earned income, false otherwise."
+                    }
+                },
+                "required": [
+                    "spouse_works"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_spouse_household_data",
+            "description": "Capture working-spouse data for dual_earner households (spouse_works=yes path). Writes to tax_strategy_household_inputs.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "spouse_annual_income": {
+                        "type": "number",
+                        "description": "Spouse gross annual income in pounds."
+                    },
+                    "spouse_employment_status": {
+                        "type": "string",
+                        "enum": [
+                            "full_time",
+                            "part_time",
+                            "self_employed",
+                            "retired"
+                        ],
+                        "description": "Spouse employment status."
+                    },
+                    "spouse_isa_balance": {
+                        "type": "number",
+                        "description": "Spouse current ISA balance in pounds."
+                    },
+                    "spouse_psa_band": {
+                        "type": "string",
+                        "enum": [
+                            "basic",
+                            "higher",
+                            "additional"
+                        ],
+                        "description": "Spouse Personal Savings Allowance band."
+                    },
+                    "spouse_unrealised_gains": {
+                        "type": "number",
+                        "description": "Spouse unrealised capital gains in pounds."
+                    },
+                    "spouse_annual_dividends": {
+                        "type": "number",
+                        "description": "Spouse annual dividend income in pounds."
+                    },
+                    "spouse_pension_input_annual": {
+                        "type": "number",
+                        "description": "Spouse gross annual pension contribution in pounds."
+                    }
+                },
+                "required": [],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_spouse_non_working_assets",
+            "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance) and to size a non-earner spouse pension contribution.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "spouse_existing_isa_balance": {
+                        "type": "number",
+                        "description": "Spouse's existing standalone ISA balance."
+                    },
+                    "spouse_existing_savings_balance": {
+                        "type": "number",
+                        "description": "Spouse's existing standalone bank/savings balance."
+                    },
+                    "spouse_existing_investment_balance": {
+                        "type": "number",
+                        "description": "Spouse's existing standalone investment account (GIA) balance."
+                    },
+                    "spouse_existing_dividend_holdings_value": {
+                        "type": "number",
+                        "description": "Value of spouse's dividend-paying holdings."
+                    },
+                    "spouse_existing_pension_balance": {
+                        "type": "number",
+                        "description": "Spouse's existing personal-pension pot value (used to size the non-earner pension top-up suggestion)."
+                    }
+                },
+                "required": [],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_pension_history",
+            "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused AA the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "history": {
+                        "type": "array",
+                        "description": "List of tax_year + amount pairs. The strategy reads up to the most recent 3 entries.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tax_year": {
+                                    "type": "string",
+                                    "description": "UK tax year in \"YYYY/YY\" format (e.g. \"2024/25\")."
+                                },
+                                "pension_input_amount": {
+                                    "type": "number",
+                                    "description": "Gross pension input for that year in pounds."
+                                }
+                            },
+                            "required": [
+                                "tax_year",
+                                "pension_input_amount"
+                            ],
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                "required": [
+                    "history"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_charitable_giving",
+            "description": "Capture the user's annual charitable donations covered by Gift Aid. Used by the Gift Aid Higher-Rate Relief strategy to compute the personal tax relief the user can reclaim via Self Assessment when they donate at the higher or additional rate.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "annual_donations": {
+                        "type": "number",
+                        "description": "Total annual Gift-Aid-eligible donations in pounds."
+                    }
+                },
+                "required": [
+                    "annual_donations"
+                ],
+                "additionalProperties": false
+            },
+            "strict": false
+        }
+    }
+]

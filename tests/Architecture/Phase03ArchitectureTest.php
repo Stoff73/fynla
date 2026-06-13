@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Controller;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 
 /**
  * Phase 03 Architecture Tests
@@ -93,15 +94,15 @@ describe('Phase 03 Architecture Tests', function () {
 
             // NetWorthService injects CrossModuleAssetAggregator (cross-module data)
             // plus PropertyStore (SP1 Pass 4). Assert the aggregator dependency is
-            // present rather than a brittle exact param count, so adding further
-            // injected stores doesn't falsely fail this convention check.
+            // present by type rather than a brittle exact param count, so adding
+            // further injected stores doesn't falsely fail this convention check.
             expect($constructor)->not->toBeNull();
             expect($constructor->getNumberOfParameters())->toBeGreaterThanOrEqual(1);
-            $paramTypes = implode(',', array_map(
-                fn ($p) => $p->getType()?->getName() ?? '',
-                $constructor->getParameters(),
-            ));
-            expect($paramTypes)->toContain('CrossModuleAssetAggregator');
+            $paramTypes = array_map(
+                fn ($p) => $p->getType()?->getName(),
+                $constructor->getParameters()
+            );
+            expect($paramTypes)->toContain(CrossModuleAssetAggregator::class);
         });
     });
 
@@ -181,7 +182,7 @@ describe('Phase 03 Architecture Tests', function () {
             // Should import model classes directly or read them via a store/aggregator.
             // Property is now read through PropertyStore (SP1 Pass 4); the rest remain
             // direct model imports; cash/mortgage go via CrossModuleAssetAggregator.
-            expect($contents)->toContain('PropertyStore');
+            expect($contents)->toContain('use App\Services\Stores\PropertyStore'); // Property via PropertyStore (SP1 Pass 4)
             expect($contents)->toContain('use App\Models\Investment\InvestmentAccount');
             expect($contents)->toContain('use App\Models\BusinessInterest');
             expect($contents)->toContain('use App\Models\Chattel');

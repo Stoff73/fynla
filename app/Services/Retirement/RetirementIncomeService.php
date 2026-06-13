@@ -389,7 +389,7 @@ class RetirementIncomeService
                 'is_projected' => true,
                 'years_projected' => $yearsToRetirement,
                 'projection_type' => 'monte_carlo_80',
-                'isa_type' => $account->isa_type ?? 'stocks_shares',
+                'isa_type' => $account->isa_type ?? 'stocks_and_shares',
                 'tax_rate' => 0,
                 'tax_treatment' => 'tax_free',
                 'source_type' => 'isa',

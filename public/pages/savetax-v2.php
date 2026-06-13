@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Save Tax — Find Your Tax Saving Opportunities — Fynla</title>
   <meta name="description" content="Answer 5 quick questions and discover the UK tax reliefs and allowances you may be missing. Personalised tax insights from Fynla in under a minute." />

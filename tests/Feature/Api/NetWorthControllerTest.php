@@ -40,8 +40,7 @@ it('returns net worth data from overview endpoint', function () {
 });
 
 it('requires authentication for overview endpoint', function () {
-    // Reset app to clear Sanctum auth from beforeEach
-    $this->app = $this->createApplication();
+    $this->actingAsGuest();
 
     $response = $this->withHeaders([
         'Accept' => 'application/json',

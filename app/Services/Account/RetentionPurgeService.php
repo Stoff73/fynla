@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Account;
 
 use App\Models\User;
+use App\Services\AI\Memory\Episodic\EpisodeBlobLocator;
+use App\Services\AI\Memory\FynMemoryStore;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -29,14 +31,25 @@ class RetentionPurgeService
         $userEmail = $user->email;
         $totalDeleted = 0;
         $tablesPurged = 0;
+        $blobsErased = 0;
 
-        DB::transaction(function () use ($userId, $userEmail, &$totalDeleted, &$tablesPurged) {
+        DB::transaction(function () use ($userId, $userEmail, &$totalDeleted, &$tablesPurged, &$blobsErased) {
 
             // ─── Phase 1: Clean up reverse references in OTHER users' records ───
             $this->cleanupReverseReferences($userId);
 
             // ─── Phase 2: Delete uploaded documents from disk ───
             $this->deleteDocumentFiles($userId);
+
+            // ─── Phase 2b: Delete the user's episodic memory (CoALA markdown
+            // store) — GDPR right to erasure (FR-M2 / fyn-memory/episodic). ───
+            app(FynMemoryStore::class)->forget($userId);
+
+            // ─── Phase 2c: Delete the user's Phase 2 episodic forensic blobs
+            // (hot episodic/ + cold episodic-cold/) addressed by
+            // ai_messages.blob_md_path — GDPR right to erasure. Must run before
+            // any ai_messages row deletion (the rows carry the blob paths). ───
+            $blobsErased = app(EpisodeBlobLocator::class)->eraseForUser($userId);
 
             // ─── Phase 3: Delete polymorphic holdings ───
             $count = $this->deleteHoldings($userId);
@@ -141,6 +154,7 @@ class RetentionPurgeService
             'user_id' => $userId,
             'tables_purged' => $tablesPurged,
             'records_deleted' => $totalDeleted,
+            'episodic_blobs_erased' => $blobsErased,
         ]);
 
         return [

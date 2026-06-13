@@ -9,6 +9,14 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
+
+// The protection analysis pipeline resolves TaxConfigService, which fails
+// loud without an active tax year. Seed explicitly — the suite convention;
+// there is no global auto-seed hook (see the note in tests/Pest.php).
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 describe('Protection Workflow Integration', function () {
     it('completes full protection planning journey', function () {
@@ -18,6 +26,10 @@ describe('Protection Workflow Integration', function () {
             'surname' => 'Test User',
             'email' => 'integration@test.com',
             'date_of_birth' => now()->subYears(35),
+            // Readiness gate (ProtectionDataReadinessService::hasIncome) blocks
+            // analysis unless the USER record carries income — the protection
+            // profile's annual_income alone does not satisfy it.
+            'annual_employment_income' => 60000,
         ]);
 
         // Step 2: User creates protection profile
@@ -134,7 +146,7 @@ describe('Protection Workflow Integration', function () {
         $analysisData = $analysisResponse->json('data');
 
         // Verify analysis contains expected data
-        expect($analysisData['adequacy_score'])->toBeGreaterThan(0);
+        expect($analysisData['adequacy_score']['overall_score'])->toBeGreaterThan(0);
         expect($analysisData['recommendations'])->toBeArray();
         expect($analysisData['scenarios'])->toHaveKey('death');
         expect($analysisData['scenarios'])->toHaveKey('critical_illness');
@@ -183,7 +195,7 @@ describe('Protection Workflow Integration', function () {
         $this->assertDatabaseHas('life_insurance_policies', ['user_id' => $user->id]);
         $this->assertDatabaseHas('income_protection_policies', ['user_id' => $user->id]);
         $this->assertDatabaseHas('disability_policies', ['user_id' => $user->id]);
-        $this->assertDatabaseMissing('critical_illness_policies', ['id' => $criticalPolicy->id]); // Deleted
+        $this->assertSoftDeleted('critical_illness_policies', ['id' => $criticalPolicy->id]); // CriticalIllnessPolicy uses SoftDeletes
     });
 
     it('handles multiple users with isolated data', function () {
@@ -230,12 +242,15 @@ describe('Protection Workflow Integration', function () {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->postJson('/api/protection/analyze');
+        // The data-readiness gate returns a successful envelope whose payload
+        // says the analysis cannot proceed (can_proceed=false + the failing
+        // checks) rather than an error response.
         $response->assertStatus(200)
-            ->assertJson(['success' => false]);
+            ->assertJson(['success' => true, 'data' => ['can_proceed' => false]]);
     });
 
     it('handles comprehensive policy portfolio', function () {
-        $user = User::factory()->create(['date_of_birth' => now()->subYears(40)]);
+        $user = User::factory()->create(['date_of_birth' => now()->subYears(40), 'annual_employment_income' => 80000]);
 
         // Create profile
         $profile = ProtectionProfile::factory()->create([
@@ -271,7 +286,7 @@ describe('Protection Workflow Integration', function () {
         $analysisResponse->assertStatus(200);
 
         $analysisData = $analysisResponse->json('data');
-        expect($analysisData['adequacy_score'])->toBeGreaterThan(0);
+        expect($analysisData['adequacy_score']['overall_score'])->toBeGreaterThan(0);
         expect($analysisData['gaps'])->toHaveKey('gaps_by_category');
         expect($analysisData['gaps']['gaps_by_category'])->toHaveKeys([
             'human_capital_gap',
@@ -282,7 +297,7 @@ describe('Protection Workflow Integration', function () {
     });
 
     it('handles profile updates and re-analysis', function () {
-        $user = User::factory()->create(['date_of_birth' => now()->subYears(30)]);
+        $user = User::factory()->create(['date_of_birth' => now()->subYears(30), 'annual_employment_income' => 40000]);
 
         // Create initial profile
         $profile = ProtectionProfile::factory()->create([
