@@ -4,6 +4,22 @@
   var answers = { employment: null, income: null, spouse: null, spouseIncome: null, assets: [] };
   var current = 'employment';
 
+  // Persist the funnel answers so the plan page personalises from the real
+  // answers (savetax-plan reads localStorage('savetax_answers')) and so they
+  // can be carried into registration. Then go to the personalised plan.
+  function persistAndGoToPlan() {
+    try { localStorage.setItem('savetax_answers', JSON.stringify(answers)); } catch (e) { /* private mode */ }
+    // Also pass the answers as query params so the plan page can compute the
+    // personalised tax figures server-side (SaveTaxEstimateService).
+    var qs = 'from=savetax'
+      + '&employment=' + encodeURIComponent(answers.employment || '')
+      + '&income=' + encodeURIComponent(answers.income || '')
+      + '&spouse=' + encodeURIComponent(answers.spouse || '')
+      + '&spouseIncome=' + encodeURIComponent(answers.spouseIncome || '')
+      + '&assets=' + encodeURIComponent((answers.assets || []).join(','));
+    window.location.href = (window.FYNLA_BASE || '') + '/savetax/plan?' + qs;
+  }
+
   function sequence() {
     var s = ['employment', 'income', 'spouse'];
     if (answers.spouse === 'yes') s.push('spouse-income');
@@ -16,8 +32,15 @@
 
   var backBtn      = document.getElementById('qr-back-btn');
   var continueBtn  = document.getElementById('qr-continue-btn');
+  var footerArea   = document.getElementById('qr-footer-area');
   var stepLabel    = document.getElementById('qr-step-label');
   var progressFill = document.getElementById('qr-progress-fill');
+
+  // Single-select screens auto-advance on selection; only the final
+  // multi-select (assets) screen shows the Continue button.
+  function updateFooter() {
+    if (footerArea) footerArea.style.display = (current === 'assets') ? '' : 'none';
+  }
 
   function updateProgressTicks(total) {
     var bar = progressFill.parentElement;
@@ -90,6 +113,7 @@
     current = targetId;
     updateHeader();
     updateContinue();
+    updateFooter();
 
     // Move focus to the screen heading for keyboard / screen-reader users
     var heading = toEl.querySelector('[tabindex="-1"]');
@@ -102,7 +126,7 @@
     if (idx < seq.length - 1) {
       goTo(seq[idx + 1], 'forward');
     } else {
-      window.location.href = (window.FYNLA_BASE||'')+'/savetax/plan?from=savetax';
+      persistAndGoToPlan();
     }
   }
 
@@ -137,9 +161,12 @@
       btn.setAttribute('aria-pressed', sel ? 'true' : 'false');
     });
 
-    // Selection recorded — Continue button will enable.
-    // User must click Continue to move to the next question (no auto-advance).
     updateContinue();
+
+    // Auto-advance to the next question after a brief highlight so the user
+    // sees their choice register. Back re-shows this screen with the choice
+    // still highlighted (the .sel state persists in the DOM).
+    window.setTimeout(advance, 220);
   }
 
   function toggleAsset(btn) {
@@ -162,7 +189,7 @@
   // Continue button
   continueBtn.addEventListener('click', function () {
     if (current === 'assets') {
-      window.location.href = (window.FYNLA_BASE||'')+'/savetax/plan?from=savetax';
+      persistAndGoToPlan();
     } else {
       advance();
     }
@@ -213,5 +240,6 @@
   // Initialise header + continue state
   updateHeader();
   updateContinue();
+  updateFooter();
 
 }());

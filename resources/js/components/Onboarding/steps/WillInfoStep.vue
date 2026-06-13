@@ -103,6 +103,7 @@ import { useRouter } from 'vue-router';
 import OnboardingStep from '../OnboardingStep.vue';
 import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
+import { withBase } from '@/utils/basePath';
 
 export default {
   name: 'WillInfoStep',
@@ -231,7 +232,7 @@ export default {
     });
 
     const openWillBuilder = () => {
-      window.open('/estate/will-builder', '_blank');
+      window.open(withBase('/estate/will-builder'), '_blank');
     };
 
     return {

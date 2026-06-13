@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -126,4 +127,41 @@ it('create_savings_account return shape does not contain fill_form action', func
     expect($result)->not->toHaveKey('action');
     expect($result)->not->toHaveKey('fields');
     expect($result)->not->toHaveKey('route');
+});
+
+it('stamps current-tax-year ISA subscriptions when the user states them', function (): void {
+    // Live-browser finding 2026-06-11: without this field the freshly-captured
+    // ISA's full balance masquerades as this-year subscriptions (created-this-
+    // year proxy) and the ISA top-up strategy never fires.
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+        'account_name' => 'Cash ISA',
+        'account_type' => 'cash_isa',
+        'current_balance' => 19000,
+        'is_isa' => true,
+        'isa_subscription_amount' => 100,
+    ], $user);
+
+    expect($result['created'] ?? false)->toBeTrue();
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect((float) $account->isa_subscription_amount)->toBe(100.0)
+        ->and($account->isa_subscription_year)
+        ->toBe(app(TaxConfigService::class)->getTaxYear());
+});
+
+it('ignores isa_subscription_amount on non-ISA accounts', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+        'account_name' => 'Marcus Savings',
+        'current_balance' => 81000,
+        'is_isa' => false,
+        'isa_subscription_amount' => 100,
+    ], $user);
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account->isa_subscription_amount)->toBeNull()
+        ->and($account->isa_subscription_year)->toBeNull();
 });

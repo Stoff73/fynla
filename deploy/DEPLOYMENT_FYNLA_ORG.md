@@ -1,3 +1,9 @@
+> **⛔️ SUPERSEDED — do not follow this document.**
+> The current deploy procedure is **`deploy/DEPLOY.md`**. This document is retained for
+> historical reference only and contains commands that are now BANNED on this app
+> (`php artisan optimize` / `route:cache` — they let the SPA catch-all shadow the public
+> homepage; see CLAUDE.md Troubleshooting).
+
 # Fynla Deployment Guide - fynla.org (SiteGround Shared Hosting)
 
 ## Deployment Overview

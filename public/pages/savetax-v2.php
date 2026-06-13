@@ -70,7 +70,7 @@
   </style>
 
   <!-- Blocking CSS — base styles then v2 gradient overrides -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax.css?v=1" />
   <link rel="stylesheet" href="/pages/css/savetax-v2.css?v=1" />
 </head>

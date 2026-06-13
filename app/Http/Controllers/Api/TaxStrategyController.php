@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TaxStrategyCalculateRequest;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Tax\TaxStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,11 +20,16 @@ use Illuminate\Http\Request;
  */
 final class TaxStrategyController extends Controller
 {
-    public function __construct(private readonly TaxStrategyService $service) {}
+    public function __construct(
+        private readonly TaxStrategyService $service,
+        private readonly ComposedTaxPlanService $composedTaxPlan,
+    ) {}
 
     public function show(Request $request): JsonResponse
     {
-        $payload = $this->service->getDashboardPayload($request->user());
+        $user = $request->user();
+        $payload = $this->service->getDashboardPayload($user);
+        $payload['composed_plan'] = $this->composedTaxPlan->forUser($user);
 
         return response()->json(['data' => $payload]);
     }

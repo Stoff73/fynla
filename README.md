@@ -6,7 +6,7 @@ A comprehensive financial planning web application designed for UK individuals a
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green?logo=vue.js)
 ![PHP](https://img.shields.io/badge/PHP-8.2+-blue?logo=php)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue?logo=mysql)
-![Tests](https://img.shields.io/badge/tests-1603%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-4500%2B%20passing-brightgreen)
 
 ---
 
@@ -14,14 +14,14 @@ A comprehensive financial planning web application designed for UK individuals a
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 646 |
-| PHP Services | 215 |
-| PHP Controllers | 90 |
-| Eloquent Models | 89 |
-| API Endpoints | 550+ |
-| Vuex Store Modules | 32 |
+| Vue Components | 670 |
+| PHP Services | 358 |
+| PHP Controllers | 120 |
+| Eloquent Models | 127 |
+| API Endpoints | 600+ |
+| Vuex Store Modules | 35 |
 | Agents | 9 |
-| Test Cases | 1,603+ |
+| Test Cases | 4,500+ |
 
 ---
 
@@ -55,23 +55,24 @@ A comprehensive financial planning web application designed for UK individuals a
 
 | Environment | URL |
 |-------------|-----|
-| Primary | https://fynla.org |
-| Legacy | https://csjones.co/fynla |
+| Production | https://fynla.org |
+| Dev / staging | https://csjones.co/fynla |
 
 ---
 
 ## Current Status
 
-**Version**: v0.9.4
-**Last Updated**: 1 April 2026
-**Test Suite**: 1,603 tests passing
+**Version**: v1.0
+**Status**: Production (https://fynla.org)
+**Last Updated**: 12 June 2026
+**Test Suite**: 4,500+ tests passing
 
 ### Completion Status
 
 | Area | Status | Notes |
 |------|--------|-------|
 | Foundation | 100% | Authentication, routing, testing framework |
-| Core Modules | 100% | All 5 modules fully functional |
+| Core Modules | 100% | All seven modules fully functional |
 | Advanced Features | 100% | Portfolio optimization, Monte Carlo, IHT planning |
 | User Management | 100% | Spouse accounts, joint ownership, data sharing |
 | Admin Panel | 100% | User management, backups, tax configuration |
@@ -121,7 +122,7 @@ The main dashboard provides a unified view of your financial planning:
 ### Tax Configuration System
 
 - **Database-Driven**: All UK tax values stored in database (never hardcoded)
-- **Multi-Year Support**: Tax years 2021/22 through 2025/26
+- **Multi-Year Support**: Tax years 2021/22 through 2027/28 (active: 2026/27)
 - **Admin Panel**: Easy tax year switching and value updates
 - **Comprehensive Coverage**: Income tax, NI, CGT, dividend tax, IHT, stamp duty, ISA/pension allowances
 
@@ -130,7 +131,7 @@ The main dashboard provides a unified view of your financial planning:
 Upload financial documents and let AI extract the data automatically:
 
 - **Supported Formats**: PDF, PNG, JPG, JPEG, WebP, Excel (XLSX, XLS), CSV
-- **AI-Powered**: Uses Claude Sonnet for intelligent data extraction
+- **AI-Powered**: Uses Anthropic Claude for intelligent data extraction
 - **Document Types**: Pension statements, insurance policies, investment statements, mortgage/savings statements
 - **Review & Confirm**: Review extracted data with confidence scores before saving
 
@@ -167,7 +168,7 @@ Try the full application with realistic financial data:
 **Features**:
 - Policy portfolio view with filtering and sorting
 - Coverage gap analysis comparing recommended vs. current
-- Adequacy scoring (0-100) based on 8 metrics
+- Coverage adequacy analysis based on 8 metrics
 - Human capital calculation (lifetime earning potential)
 - Premium affordability analysis
 - Strategy tab with prioritized recommendations
@@ -201,7 +202,7 @@ Try the full application with realistic financial data:
 - Account types: ISA, GIA, NS&I, Bonds, VCT, EIS
 - Rebalancing recommendations
 - Fee analysis (platform fees, fund OCFs, advisor fees)
-- Tax efficiency scoring
+- Tax efficiency analysis
 - Annualized return calculations (gross and net of fees)
 - Portfolio strategy recommendations
 
@@ -233,7 +234,7 @@ Try the full application with realistic financial data:
 - Actuarial projections (life expectancy-based)
 - Second death analysis with combined allowances
 - Life policy strategy comparison
-- Probate readiness scoring
+- Probate readiness assessment
 - Chattels & valuables tracking with CGT calculator
 - Business interests with Business Relief assessment
 
@@ -289,21 +290,21 @@ Try the full application with realistic financial data:
 ┌─────────────────────────────────────┐
 │ Presentation Layer                  │
 │ Vue.js 3 + ApexCharts + Tailwind   │
-│ 378 Components + 21 Store Modules   │
+│ 670 Components + 35 Store Modules   │
 └─────────────────┬───────────────────┘
-                  │ REST API (457 endpoints)
+                  │ REST API (600+ endpoints)
                   ↓
 ┌─────────────────────────────────────┐
 │ Application Layer                   │
-│ 70 Controllers + 8 Agents           │
-│ 174 Services + Business Logic       │
-│ Claude AI (Document Extraction)     │
+│ 120 Controllers + 9 Agents          │
+│ 358 Services + Business Logic       │
+│ Fyn AI Chat + Document Extraction   │
 └─────────────────┬───────────────────┘
                   │ Eloquent ORM
                   ↓
 ┌─────────────────────────────────────┐
 │ Data Layer                          │
-│ MySQL 8.0+ (77 Models)             │
+│ MySQL 8.0+ (127 Models)            │
 │ Memcached (calculation caching)    │
 └─────────────────────────────────────┘
 ```
@@ -321,7 +322,7 @@ Each module has an intelligent agent that orchestrates analysis:
 | EstateAgent | IHT calculation & estate strategy |
 | GoalsAgent | Goals projection & life events |
 | CoordinatingAgent | Cross-module holistic planning |
-| RiskAgent | Automated risk profile calculation |
+| TaxOptimisationAgent | Tax strategy catalogue & cross-module tax optimisation |
 
 ---
 
@@ -353,13 +354,8 @@ php artisan key:generate
 # Configure database in .env, then:
 php artisan migrate
 
-# Seed required data
-php artisan db:seed --class=TaxConfigurationSeeder
-php artisan db:seed --class=TaxProductReferenceSeeder
-php artisan db:seed --class=UKLifeExpectancySeeder
-php artisan db:seed --class=ActuarialLifeTablesSeeder
-php artisan db:seed --class=AdminUserSeeder
-php artisan db:seed --class=PreviewUserSeeder
+# Seed required data (tax config, reference data, preview personas, admin user)
+php artisan db:seed
 
 # Start development servers
 ./dev.sh
@@ -369,8 +365,8 @@ php artisan db:seed --class=PreviewUserSeeder
 
 | Role | Email | Password |
 |------|-------|----------|
-| User | demo@fps.com | password |
-| Admin | admin@fps.com | admin123 |
+| User | john@example.com | password |
+| Admin | admin@fps.com | Set via `ADMIN_SEED_PASSWORD` env (see `AdminUserSeeder`) |
 
 ---
 
@@ -440,10 +436,10 @@ php -d memory_limit=512M ./vendor/bin/pest
 
 | Suite | Tests | Description |
 |-------|-------|-------------|
-| Unit | 200+ | Service classes, calculations |
-| Feature | 800+ | API endpoints, integrations |
-| Architecture | 50+ | Coding standards enforcement |
-| **Total** | **1,603** | All passing |
+| Unit | 2,500+ | Service classes, calculations |
+| Feature | 1,700+ | API endpoints, integrations |
+| Architecture | 90+ | Coding standards enforcement |
+| **Total** | **4,500+** | All passing |
 
 ### After Running Tests
 
@@ -493,14 +489,24 @@ php artisan route:clear
 | Document | Purpose |
 |----------|---------|
 | `CLAUDE.md` | Development guidelines for Claude Code |
-| `fynlaDesignGuide.md` | Design system v1.2.0 (single source of truth) |
-| `March2Update/patch083.md` | v0.8.3 comprehensive patch report |
+| `fynlaDesignGuide.md` | Design system v1.3.0 (single source of truth) |
+| `deploy/DEPLOY.md` | Build & deploy procedures (both environments) |
 | `deploy/README.md` | Deployment configuration |
-| `preview.md` | Preview mode architecture |
 
 ---
 
 ## Recent Updates
+
+### April–June 2026 — v1.0 (Production)
+
+- **Production Launch** — Fynla v1.0 live at https://fynla.org, with csjones.co/fynla as the dev/staging environment and a formalised feature → dev → main release workflow
+- **Freemium Tiers & Payments** — Tier-based freemium model with Revolut subscription payments, tier-driven upgrade flows, and the public pricing page rebuilt around tiers
+- **Fyn AI Unified Architecture** — One unified system prompt across both Fyn states (onboarding capture and read-only advice), with write intents routed through an unseen capture handoff; CoALA memory programme (semantic, episodic, and procedural memory) in progress on the `coala` branch
+- **Save-Tax Campaign & Tax Strategy** — Public save-tax funnel feeding a Fyn-led onboarding journey; tax strategy catalogue joins the recommendation aggregator as a seventh module with a TaxOptimisationAgent, composed household tax plans, and dedicated Tax Strategy pages on web and mobile
+- **Mobile `/m` Pathway** — Phones route to `/m`, which serves the mobile web build (iframed funnel plus a dedicated mobile SPA at `/m/app` with its own dashboard), alongside the Capacitor iOS packaging
+- **Gamification Engine** — Append-only points ledger with named levels, level wheel and progress on the mobile dashboard, and a gamified web dashboard
+- **Lifecycle Email Engine** — Transactional and lifecycle email campaigns built on a master layout with reusable modules, including account-deletion lifecycle emails
+- **Test Suite Growth** — Suite expanded to 4,500+ passing tests across Unit, Feature, Architecture, Integration, and Browser suites
 
 ### 1 April 2026 - v0.9.4
 
@@ -573,7 +579,7 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Version**: v0.9.4 | **Last Updated**: 1 April 2026 | **Status**: Production Ready
+**Version**: v1.0 | **Last Updated**: 12 June 2026 | **Status**: Production (https://fynla.org)
 
 Built with [Claude Code](https://claude.com/claude-code)
 

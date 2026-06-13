@@ -140,6 +140,19 @@
 }
 .plan-card__check { color: var(--spring-500); flex-shrink: 0; margin-top: 0.125rem; }
 
+/* "Everything in <prev>, plus:" lead line above the feature list */
+.plan-card__plus {
+  font-size: 0.8125rem; font-weight: 700; color: var(--white);
+  margin-bottom: 0.75rem;
+}
+/* Free card has no "Everything in…" line — add matching top space so its first
+   bullet aligns with the bullets in the other cards. */
+#free-features { margin-top: 1.8rem; }
+
+/* Not-included capability — greyed with a cross icon (matches the in-app matrix) */
+.plan-card__feature--off { color: var(--white-40); }
+.plan-card__feature--off .plan-card__check--off { color: var(--white-40); }
+
 /* CTA button */
 .plan-card__cta {
   display: block; width: 100%; padding: 0.75rem 1.5rem;
@@ -154,6 +167,9 @@
 .plan-card__cta--spring:hover {
   background: var(--spring-600); box-shadow: var(--shadow-lg);
 }
+/* Secondary CTA placed above the feature list — same styling, with spacing below
+   so it sits clearly between the price block and the bullets. */
+.plan-card__cta--top { margin-bottom: 1.5rem; }
 
 /* ===================================================================
    TRUST SECTION  [.trust-section]
@@ -213,6 +229,7 @@
 @media (min-width: 1024px) {
   .pricing-plans__inner { padding-left: 2rem; padding-right: 2rem; }
   .trust-section__inner { padding-left: 2rem; padding-right: 2rem; }
-  .plan-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Two plans (Free + Premium) span the full content width, side by side. */
+  .plan-grid { grid-template-columns: repeat(2, 1fr); }
   .pricing-page .faq__inner { padding-left: 2rem; padding-right: 2rem; }
 }

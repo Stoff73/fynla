@@ -55,9 +55,22 @@ arch('SavingsAccount mutations and reads only happen inside the savings canonica
         // rows: reads via SavingsAccount::chunkById and forceFill/saveQuietly
         // the derived columns only — a migration-style backfill.
         'App\Console\Commands\BackfillSavingsDerivedColumns',
+        // GamificationBackfill maps SavingsAccount::class => category for
+        // read-only per-user counts when backfilling point awards; writes
+        // only gamification tables.
+        'App\Console\Commands\GamificationBackfill',
+        // Eval fixture setup (eval:setup-azlan) — resets the Azlan persona's
+        // savings rows (forceDelete cleanup path) before re-seeding the
+        // mid-campaign state. Same controlled-fixture shape as
+        // ResetPreviewData.
+        'App\Console\Commands\EvalSetupAzlanCommand',
         // Seeders (test/preview/lifecycle persona fixtures) — §14.2 permanent.
+        // PreviewGamificationSeeder issues read-only per-persona counts
+        // (SavingsAccount::query()->count()) to derive seeded point awards;
+        // writes only gamification tables.
         'Database\Seeders\PreviewUserSeeder',
         'Database\Seeders\LifecycleTestSeeder',
+        'Database\Seeders\PreviewGamificationSeeder',
 
         // ---- Documented residual NON-QUERY references ----
         // These files retain a SavingsAccount reference that is NOT a

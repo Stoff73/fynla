@@ -142,7 +142,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'get_recommendations',
-                'description' => 'Get the user\'s personalised financial recommendations ranked by priority across all modules.',
+                'description' => 'Get the user\'s personalised, ranked financial recommendations across all modules, plus a composed tax plan (composed_tax_plan) ordered by what to do first with conflicts resolved and a combined annual saving. Call this whenever the user asks what they should do, wants strategies, or asks about saving tax. Present the top 3 to 5 items in sequence order: state each title with its pound saving, quote the working for mechanical-tier items directly, hedge judgement-tier items ("you may want to consider"). If composed_tax_plan.locked is non-empty, tell the user how many further strategies unlock and what single data point each needs. Offer to go through the remaining items rather than dumping the full list.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object) [],
@@ -382,6 +382,10 @@ class AiToolDefinitions
                             'type' => 'number',
                             'description' => 'Monthly contribution amount in pounds, if any',
                         ],
+                        'isa_subscription_amount' => [
+                            'type' => 'number',
+                            'description' => 'For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. "about £100 this year" → 100). Leave null if not mentioned.',
+                        ],
                     ],
                     'required' => ['account_name', 'current_balance'],
                     'additionalProperties' => false,
@@ -422,6 +426,14 @@ class AiToolDefinitions
                         'platform_fee_percent' => [
                             'type' => 'number',
                             'description' => 'Annual platform fee as a percentage (e.g., 0.15 for 0.15%)',
+                        ],
+                        'annual_dividend_income' => [
+                            'type' => 'number',
+                            'description' => 'Annual dividend income this account pays in pounds, when the user states it (e.g. "pays about £800 a year in dividends" → 800). Only for taxable accounts (GIA, shares); omit for ISAs — ISA dividends are tax-free and never use the Dividend Allowance.',
+                        ],
+                        'isa_subscription_current_year' => [
+                            'type' => 'number',
+                            'description' => 'For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. "I\'ve put in £5,000 this year" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account\'s total value. Only for ISA account types; omit for GIA and other taxable accounts.',
                         ],
                         // Bond-specific fields (onshore_bond, offshore_bond)
                         'bond_purchase_date' => [

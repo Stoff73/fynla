@@ -9,9 +9,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
+use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
 use App\Services\Eval\EvalTraceCollector;
+use App\Services\Gamification\LevelService;
+use App\Services\Gamification\LevelUpCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -132,6 +135,28 @@ class AiChatController extends Controller
     }
 
     /**
+     * Build the terminal `level_up` SSE frame from the request-scoped collector,
+     * or null if no level-up occurred this turn.
+     */
+    public static function levelUpFrame(
+        LevelUpCollector $collector,
+        LevelService $levels,
+        User $user,
+    ): ?array {
+        if (! $collector->hasLevelUp()) {
+            return null;
+        }
+        $top = $collector->highest();
+
+        return [
+            'type' => 'level_up',
+            'level' => $top['level'],
+            'level_name' => $top['level_name'],
+            'next_actions' => $levels->nextActions($user),
+        ];
+    }
+
+    /**
      * Send a message and stream the response via SSE.
      *
      * POST /api/ai-chat/conversations/{id}/messages
@@ -223,6 +248,19 @@ class AiChatController extends Controller
 
                     echo 'data: '.json_encode($event)."\n\n";
 
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+
+                $frame = self::levelUpFrame(
+                    app(LevelUpCollector::class),
+                    app(LevelService::class),
+                    $user,
+                );
+                if ($frame !== null) {
+                    echo 'data: '.json_encode($frame)."\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
                     }
@@ -377,11 +415,27 @@ class AiChatController extends Controller
         $matchedCampaign = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
+        // Funnel fallback: a user who arrived via the /savetax funnel carries
+        // durable funnel_answers. The transient `from=savetax` query is lost
+        // across the mobile handoff (the iframe is replaced with /m/app), so
+        // key the savetax campaign off funnel_answers too — both mobile and
+        // desktop funnel users then get the campaign onboarding (greet + recap).
+        if ($matchedCampaign === null && $matchedJourney === null
+            && ! empty($user->funnel_answers)
+            && isset($campaignMap['savetax'])) {
+            $matchedCampaign = $campaignMap['savetax'];
+        }
+
         if ($matchedCampaign !== null) {
             $user->onboarding_fyn_path = 'campaign';
             $user->onboarding_fyn_selection = $matchedCampaign;
-            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_PERSONAL;
-            $startStateId = OnboardingStateMachine::STATE_BASE_PERSONAL;
+            // SaveTax campaign is section-led: lead with income (most relevant to
+            // the tax goal). Employment is already known from the funnel, so we
+            // open at base_work (income details) with the recap greeting; DOB is
+            // deferred to the pensions section. Sequence is driven by
+            // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
+            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_WORK;
+            $startStateId = OnboardingStateMachine::STATE_BASE_WORK;
         } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;
@@ -502,6 +556,19 @@ class AiChatController extends Controller
                 foreach ($generator as $event) {
                     echo 'data: '.json_encode($event)."\n\n";
 
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+
+                $frame = self::levelUpFrame(
+                    app(LevelUpCollector::class),
+                    app(LevelService::class),
+                    $user,
+                );
+                if ($frame !== null) {
+                    echo 'data: '.json_encode($frame)."\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
                     }

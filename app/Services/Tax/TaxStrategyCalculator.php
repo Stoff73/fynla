@@ -30,6 +30,7 @@ final class TaxStrategyCalculator
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly TaxStrategyMath $math,
+        private readonly IsaAllowanceAllocator $isaAllocator,
         private readonly Strategies\IncomeBandStrategy $incomeBand,
         private readonly Strategies\LifecycleStrategy $lifecycle,
         private readonly Strategies\JointSavingsStrategy $jointSavings,
@@ -57,9 +58,9 @@ final class TaxStrategyCalculator
 
         $spouseAllowances = match ($mode) {
             'dual_earner' => $household instanceof TaxStrategyHouseholdInput
-                ? $this->buildSpouseAllowanceGridDualEarner($household)
+                ? $this->buildSpouseAllowanceGridDualEarner($household, $this->marriageAllowanceAvailableFor($user))
                 : null,
-            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($household),
+            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($household, $this->marriageAllowanceAvailableFor($user)),
             default => null,
         };
 
@@ -86,6 +87,21 @@ final class TaxStrategyCalculator
             $allRecs = array_merge($allRecs, $strategy->generate($context));
         }
 
+        // All adult ISA types share ONE overall annual allowance per person —
+        // cash wraps, Bed & ISA proceeds and Lifetime ISA contributions all
+        // draw from the same pool, yet each strategy above sized itself
+        // against the full remaining allowance independently. Re-allocate the
+        // pool greedily by annual saving so the same allowance capacity is
+        // never counted twice (the Lifetime ISA's own sub-limit is enforced
+        // inside its evaluator). Lives here, not in the composer, so the
+        // dashboard payload (TaxStrategyService) and the composed plan
+        // (ComposedTaxPlanService) see identical honest figures.
+        $allRecs = $this->isaAllocator->allocate($allRecs, [
+            'isa_topup_vs_psa' => fn (float $cap): array => $this->isaTopUp->generate($context->withIsaPoolCap($cap)),
+            'bed_and_isa' => fn (float $cap): array => $this->bedAndIsa->generate($context->withIsaPoolCap($cap)),
+            'lifetime_isa' => fn (float $cap): array => $this->lifecycle->generate($context->withIsaPoolCap($cap)),
+        ], $this->userIsaPoolRemaining($user));
+
         usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
             $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
 
@@ -102,6 +118,19 @@ final class TaxStrategyCalculator
             recommendations: $recommendations,
             deltaVsBaseline: [],
         );
+    }
+
+    /**
+     * The user's remaining overall ISA allowance — the same basis every
+     * ISA-consuming evaluator uses internally (no override deposit applied,
+     * matching pass-1 sizing).
+     */
+    private function userIsaPoolRemaining(User $user): float
+    {
+        $isa = $this->taxConfig->getISAAllowances();
+        $allowance = (float) ($isa['annual_allowance'] ?? 20000);
+
+        return max(0.0, $allowance - $this->math->estimateIsaSubscriptionsThisYear($user));
     }
 
     // ─── Allowance grid builders (output-DTO-bound, kept here) ──────────
@@ -132,6 +161,11 @@ final class TaxStrategyCalculator
         $marriageAllowanceAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
         $maritalStatus = (string) ($user->marital_status ?? '');
         $isPartnered = in_array($maritalStatus, ['married', 'civil_partnership'], true);
+        // HMRC: the recipient of a Marriage Allowance transfer must be a
+        // basic-rate taxpayer. A higher/additional-rate user can't claim it
+        // at all — surface "not available" rather than the misleading
+        // "fully used" / "headroom" framings.
+        $marriageAllowanceAvailable = $this->marriageAllowanceAvailableFor($user);
         // Recipient (the working spouse) "uses" the MA only when eligible
         $marriageAllowanceUsed = ($overrides?->marriageAllowanceClaimed === true || $user->marriage_allowance_eligible === true)
             ? $marriageAllowanceAmount
@@ -177,13 +211,26 @@ final class TaxStrategyCalculator
         // in a civil partnership. Don't show it to single / divorced / widowed
         // users — there's no spouse to transfer the allowance from.
         if ($isPartnered) {
-            $positions[] = $this->position('marriage_allowance', 'Marriage Allowance', $marriageAllowanceAmount, $marriageAllowanceUsed, 'user');
+            $positions[] = $this->position('marriage_allowance', 'Marriage Allowance', $marriageAllowanceAmount, $marriageAllowanceUsed, 'user', $marriageAllowanceAvailable);
         }
 
         return $positions;
     }
 
-    private function buildSpouseAllowanceGridDualEarner(TaxStrategyHouseholdInput $household): array
+    /**
+     * Marriage Allowance availability is decided by the RECIPIENT's band:
+     * the transfer can only be claimed when the working spouse pays no more
+     * than basic-rate tax. The spouse grids mirror the primary's verdict —
+     * a non-earner spouse "with £1,260 of headroom" is misleading when the
+     * primary can't receive the transfer.
+     */
+    private function marriageAllowanceAvailableFor(User $user): bool
+    {
+        return $this->math->taxableIncomeFor($user)
+            <= (float) $this->taxConfig->get('income_tax.higher_rate_threshold', 50270);
+    }
+
+    private function buildSpouseAllowanceGridDualEarner(TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
     {
         $income = $this->taxConfig->getIncomeTax();
         $isa = $this->taxConfig->getISAAllowances();
@@ -212,7 +259,7 @@ final class TaxStrategyCalculator
             $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, min($spouseIncome, $personalAllowance), 'spouse'),
             $this->position('savings_allowance', 'Savings Allowance', $psa, 0.0, 'spouse'),
             $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAmount, max(0, $spouseIncome - $personalAllowance), 'spouse'),
-            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse'),
+            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse', $marriageAllowanceAvailable),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, min($isaAmount, $isaUsed), 'spouse'),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, min($cgtAmount, $unrealised), 'spouse'),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, min($divAmount, $divUsed), 'spouse'),
@@ -220,7 +267,7 @@ final class TaxStrategyCalculator
         ];
     }
 
-    private function buildSpouseAllowanceGridNonWorking(?TaxStrategyHouseholdInput $household): array
+    private function buildSpouseAllowanceGridNonWorking(?TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
     {
         $income = $this->taxConfig->getIncomeTax();
         $isa = $this->taxConfig->getISAAllowances();
@@ -246,8 +293,9 @@ final class TaxStrategyCalculator
             // Basic-rate PSA from TaxConfigService
             $this->position('savings_allowance', 'Savings Allowance', $this->math->psaForBand('basic'), 0.0, 'spouse'),
             $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAmount, 0.0, 'spouse'),
-            // Marriage Allowance N/A on spouse's grid (it transfers FROM them TO the working spouse)
-            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse'),
+            // Marriage Allowance on the spouse's grid = their PA slice available
+            // to transfer TO the working spouse — gated on the recipient's band.
+            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse', $marriageAllowanceAvailable),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, min($isaAmount, $existingIsa), 'spouse'),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'spouse'),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, 0.0, 'spouse'),
@@ -255,8 +303,26 @@ final class TaxStrategyCalculator
         ];
     }
 
-    private function position(string $key, string $label, float $amount, float $used, string $owner): array
+    private function position(string $key, string $label, float $amount, float $used, string $owner, bool $available = true): array
     {
+        // An unavailable allowance (e.g. Marriage Allowance when the recipient
+        // pays higher-rate tax) has no usage and no headroom — it can't be
+        // claimed at all. remaining=0 keeps it out of headroom totals even on
+        // a consumer that ignores the `available` flag.
+        if (! $available) {
+            return [
+                'key' => $key,
+                'label' => $label,
+                'amount' => round($amount, 2),
+                'used' => 0.0,
+                'remaining' => 0.0,
+                'utilisation_pct' => 0.0,
+                'status' => 'muted',
+                'owner' => $owner,
+                'available' => false,
+            ];
+        }
+
         $used = max(0.0, min($amount, $used));
         $remaining = max(0.0, $amount - $used);
         $pct = $amount > 0 ? round(($used / $amount) * 100, 1) : 0.0;
@@ -271,6 +337,7 @@ final class TaxStrategyCalculator
             'utilisation_pct' => $pct,
             'status' => $status,
             'owner' => $owner,
+            'available' => true,
         ];
     }
 }

@@ -78,14 +78,22 @@ $propertyConsumers = [
     // runtime write path (spec §14.2 console-command category).
     'App\Console\Commands\EncryptExistingData',
     'App\Console\Commands\ResetPreviewData',
+    // GamificationBackfill maps Property::class => category for read-only
+    // per-user counts when backfilling point awards; writes only
+    // gamification tables.
+    'App\Console\Commands\GamificationBackfill',
     // Seeders (preview / lifecycle persona fixtures) — §14.2 permanent.
     //  - PreviewUserSeeder routes all Property creates through
     //    PropertyStore::create (IngestSource::SEEDER); resetPersonaData()
     //    retains a bulk-delete path outside the ingest boundary.
     //  - LifecycleTestSeeder uses Property factory for test scaffolding;
     //    factory writes are §14.2-permitted.
+    //  - PreviewGamificationSeeder issues read-only per-persona counts
+    //    (Property::query()->count()) to derive seeded point awards;
+    //    writes only gamification tables.
     'Database\Seeders\PreviewUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
+    'Database\Seeders\PreviewGamificationSeeder',
     // Snapshot model — value-snapshot history table for property valuations,
     // written exclusively by PropertyStore::recalculateDerived() (PR 6).
     'App\Models\PropertyValueSnapshot',

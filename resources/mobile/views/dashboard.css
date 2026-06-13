@@ -1,0 +1,1984 @@
+/**
+ * mobile-dashboard-mockup.css — design mockup for /m-mockup/dashboard
+ *
+ * Mobile-first; full-bleed at every width (fills the viewport like the module
+ * views — no centred phone-frame cap). Fynla palette only —
+ * no purple from the reference imagery. Rule #16: no decorative icons
+ * on cards. Functional icons (hamburger, close X, recommendation tick)
+ * are allowed.
+ *
+ * Tokens consumed from global.css :root.
+ */
+
+/* ===================================================================
+   PHONE FRAME — root container
+   Fixed at exact viewport height so the inner .md-main scrolls instead
+   of the whole page. Absolutely-positioned children (dock, overlay,
+   drawer) stay anchored to the frame's edges = viewport edges.
+   =================================================================== */
+.phone-frame {
+  width: 100%;
+  /* Full-bleed at every width — the dashboard fills the viewport just like the
+     module views (which use no phone-frame). On a phone this is the screen; on
+     wider viewports it uses the whole width rather than a centred 430px column. */
+  background: var(--eggshell-500);
+  height: 100vh;   /* fallback */
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===================================================================
+   CONTINUOUS GRADIENT — shared between the fixed header and the
+   scroll-hero. Both paint the SAME gradient sized to span the combined
+   header+hero height (--grad-span); the hero offsets its background up
+   by the header height (--hdr-h) so the two read as one continuous
+   gradient at rest, with NO seam. The header is a normal (non-scrolling)
+   flex item so the menu stays visible while the body scrolls.
+   =================================================================== */
+:root {
+  --hdr-h: 4.5rem;     /* hamburger 2.75rem + 0.875rem padding top & bottom */
+  --grad-span: 22rem;  /* total height the shared gradient runs across */
+}
+
+.md-scroll-hero {
+  background-image: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%);
+  background-size: 100% var(--grad-span);
+  background-position: 0 calc(-1 * (var(--hdr-h) + env(safe-area-inset-top, 0px)));
+  background-repeat: no-repeat;
+  margin: 0 -1rem 0;     /* bleed to frame edges (md-main has 1rem side padding) */
+  padding: 1rem 1rem 1.5rem;
+}
+
+/* ===================================================================
+   FIXED HEADER — gradient app bar that does NOT scroll. Paints the top
+   slice of the shared gradient so it lines up seamlessly with the hero.
+   =================================================================== */
+.md-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  padding-top: calc(0.875rem + env(safe-area-inset-top, 0px));
+  background-image: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%);
+  background-size: 100% var(--grad-span);
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  color: var(--white);
+  z-index: 10;
+}
+
+.md-hamburger {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--white);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-hamburger:hover,
+.md-hamburger:focus-visible {
+  background: rgba(255, 255, 255, 0.28);
+  outline: none;
+}
+
+.md-header__greeting {
+  flex: 1;
+  min-width: 0;
+}
+.md-header__hello {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--white);
+  margin: 0;
+  line-height: 1.2;
+}
+.md-header__spacer { width: 2.75rem; }
+
+/* ===================================================================
+   MAIN scroll area
+   Top padding clears the level card's negative overlap so the
+   Recommendations heading sits visibly below the card.
+   =================================================================== */
+.md-main {
+  flex: 1;
+  overflow-y: auto;
+  /* No top padding: the scroll-hero supplies the header clearance via its
+     own top padding so the gradient can fill the header zone seamlessly. */
+  padding: 0 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+/* First child (scroll-hero) sits flush under the fixed header; the gap
+   applies between it and the callout below. */
+.md-main > .md-scroll-hero { margin-top: 0; }
+
+/* ===================================================================
+   LEVEL CARD — pie is the hero (centred, top), text below.
+   Card overlaps past the gradient hero into the eggshell page below.
+   =================================================================== */
+.md-level {
+  /* Translucent white — gradient AND eggshell faintly visible through it
+     depending on which background the card is overlapping at that y-position */
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: var(--horizon-600);
+  border-radius: var(--radius-2xl);
+  padding: 2rem 1.5rem 1.75rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+  text-align: center;
+  /* Card straddles the gradient/eggshell boundary — sits inside the
+     scroll-hero. Large negative margin ends the gradient well above the
+     "3 of 5 actions" text, so the eggshell shows behind the lower card.
+     (Callout below adds margin-top to clear the card's visual overflow.) */
+  margin-bottom: -9rem;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* Pie / donut — SVG arc with rounded stroke caps on the completed portion.
+   Track is a full grey ring; the raspberry arc is dashed to show progress. */
+.md-level__pie {
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.md-level__pie-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* start the arc from the top */
+}
+.md-level__pie-track {
+  fill: none;
+  stroke: var(--horizon-100);
+  stroke-width: 10;
+}
+.md-level__pie-arc {
+  --progress: 0;
+  /* circumference of r=44 circle = 2π × 44 ≈ 276.46 */
+  fill: none;
+  stroke: var(--raspberry-500);
+  stroke-width: 10;
+  stroke-linecap: round; /* rounded edges on the completed portion */
+  stroke-dasharray: 276.46;
+  stroke-dashoffset: calc(276.46 * (1 - var(--progress) / 100));
+  transition: stroke-dashoffset 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.md-level__pie-inner {
+  position: relative;
+  z-index: 1;
+  width: 100px;
+  height: 100px;
+  background: var(--horizon-600);
+  border-radius: var(--radius-full);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+}
+.md-level__pie-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+}
+.md-level__pie-num {
+  font-size: 2.625rem;
+  font-weight: 900;
+  color: var(--white);
+  line-height: 1;
+  margin: 0;
+}
+
+/* The level wheel is a button (taps through to the achievements panel) — strip
+   native button chrome but keep the translucent card look from .md-level. */
+.md-level--button {
+  width: 100%;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.md-level--button:active {
+  transform: scale(0.99);
+}
+.md-level--button:focus-visible {
+  outline: 2px solid var(--raspberry-500);
+  outline-offset: 2px;
+}
+
+.md-level__copy {
+  width: 100%;
+}
+.md-level__heading {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--horizon-600);
+  margin: 0 0 0.375rem;
+  line-height: 1.25;
+}
+.md-level__sub {
+  font-size: 0.875rem;
+  color: var(--horizon-500);
+  margin: 0;
+  line-height: 1.4;
+}
+.md-level__sub strong { color: var(--raspberry-600); font-weight: 700; }
+
+/* ===================================================================
+   CALLOUT — raspberry rank statement above Recommendations
+   =================================================================== */
+.md-callout {
+  background: linear-gradient(135deg, var(--raspberry-500) 0%, var(--raspberry-600) 100%);
+  color: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 6px 18px rgba(232, 62, 109, 0.28);
+  text-align: center;
+  overflow: hidden;
+  /* .md-main is a flex column — without flex-shrink:0 this box collapses to
+     zero height and its content gets clipped by overflow:hidden (invisible). */
+  flex-shrink: 0;
+  /* Clears the level card's downward visual overflow (card has -9rem
+     margin-bottom) plus a comfortable gap below it. */
+  margin-top: 8rem;
+}
+
+/* Top half — current rank */
+.md-callout__top {
+  padding: 1.125rem 1.125rem 1rem;
+}
+.md-callout__lead {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.md-callout__lead strong { font-weight: 900; }
+.md-callout__sub {
+  font-size: 0.8125rem;
+  margin: 0.375rem 0 0;
+  line-height: 1.35;
+  opacity: 0.92;
+}
+
+/* Bottom half — light-pink region containing carousel + recommendations.
+   Carousel and recs are adjacent siblings sharing the same light-pink bg so
+   they read as one continuous lower section. Text flips to dark for contrast. */
+.md-callout__carousel {
+  background: var(--light-pink-50);
+  color: var(--horizon-600);
+  padding: 1.125rem 1.125rem 0.875rem;
+}
+/* Accordion track sits on eggshell so collapsed cards read as a strip */
+.md-callout__carousel .md-accordion { background: transparent; }
+/* Horizontal accordion — active card expands, inactive collapse to icon.
+   Full-bleed: negative margins cancel the carousel's top + side padding so
+   inactive cards run edge-to-edge and up to the dark-pink top half. */
+.md-accordion {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  margin: -1.125rem -1.125rem 0;   /* bleed to top + side edges of the carousel */
+}
+.md-accordion__card {
+  display: flex;
+  align-items: flex-start;
+  border: none;
+  border-radius: 0;                /* straight corners */
+  cursor: pointer;
+  font-family: var(--font-primary);
+  text-align: left;
+  overflow: hidden;
+  transition: flex 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
+  padding: 0;
+}
+/* Inactive — eggshell, collapsed to a narrow icon strip, grey icon */
+.md-accordion__card {
+  flex: 0 0 3rem;
+  background: var(--eggshell-500);
+  align-self: stretch;             /* full height of the accordion row */
+}
+.md-accordion__icon {
+  flex-shrink: 0;
+  width: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1.125rem;
+  color: var(--neutral-500);       /* grey icon (same as nav inactive) */
+}
+.md-accordion__icon svg { display: block; }
+.md-accordion__content {
+  display: none;
+  flex-direction: column;
+  padding: 1.125rem 1.125rem 1.125rem 0.25rem;
+  min-width: 0;
+}
+
+/* Active — light pink, expands to fill, content revealed, rounded corners */
+.md-accordion__card.is-active {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  background: var(--light-pink-50);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+.md-accordion__card.is-active .md-accordion__icon {
+  color: var(--raspberry-500);
+}
+.md-accordion__card.is-active .md-accordion__content {
+  display: flex;
+}
+
+.md-callout__slide-stat {
+  font-size: 1.6rem;
+  font-weight: 900;
+  margin: 0;
+  line-height: 1.05;
+  color: var(--raspberry-600);
+  /* Stat values like "£130,000" must not clip inside the expanded card */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.md-callout__slide-area {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0.25rem 0 0.375rem;
+  color: var(--horizon-500);
+}
+.md-callout__slide-info {
+  font-size: 0.8125rem;
+  margin: 0;
+  line-height: 1.4;
+  color: var(--neutral-600);
+}
+
+/* ===================================================================
+   FOCUS-AREA CAROUSEL — per-user cards (Top actions + one per module).
+   Horizontal, swipeable (scroll-snap) and tappable; selecting a card swaps
+   the actions list below it. Replaces the old fixed 3-category accordion.
+   =================================================================== */
+/* True carousel: ONE card per view, swipe (scroll-snap) to the next. */
+.md-focus {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem 0 0.125rem;
+  /* hide the horizontal scrollbar (no global .scrollbar-hide in /m) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.md-focus::-webkit-scrollbar { display: none; }
+
+.md-focus__card {
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  flex: 0 0 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem 1rem;
+  border: 1px solid var(--horizon-100);
+  border-radius: var(--radius-lg);
+  background: var(--eggshell-500);
+  color: var(--horizon-600);
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--font-primary);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.md-focus__label {
+  font-size: 1.375rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: var(--horizon-600);
+}
+.md-focus__stat {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--neutral-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.md-focus__lock {
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+  background: var(--eggshell-500);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+/* Active — eggshell box with a raspberry accent border; stat goes raspberry */
+.md-focus__card.is-active {
+  border-color: var(--raspberry-500);
+  background: var(--eggshell-500);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+.md-focus__card.is-active .md-focus__label { color: var(--raspberry-500); }
+.md-focus__card.is-active .md-focus__stat { color: var(--raspberry-600); }
+
+/* Locked — grey box, grey title. Solid border (the dotted treatment now lives
+   on the locked recommendation rows, not the focus card). */
+.md-focus__card.is-locked,
+.md-focus__card.is-locked.is-active {
+  background: var(--light-gray);
+  border: 1px solid var(--horizon-100);
+  box-shadow: none;
+}
+.md-focus__card.is-locked .md-focus__label,
+.md-focus__card.is-locked.is-active .md-focus__label { color: var(--neutral-500); }
+.md-focus__card.is-locked .md-focus__stat { color: var(--neutral-500); }
+
+/* Unlock prompts are locked until data is added, so they read differently from
+   actionable recommendations: a light-grey dotted border + a grey key glyph. */
+.md-rec.is-unlock {
+  background: var(--eggshell-500);
+  border: 1px dotted var(--horizon-300);
+}
+/* Hover lifts to white but keeps the grey dotted border so unlocks stay visually
+   distinct from the solid pink-bordered recommendation hover. */
+.md-rec.is-unlock:hover { background: var(--white); border-color: var(--horizon-400); }
+
+/* Slim done-count above the action list (the active card already labels it) */
+.md-recs__count {
+  margin: 0.25rem 0 0.5rem;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--neutral-500);
+}
+
+/* Dot navigation */
+.md-callout__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+.md-callout__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--light-pink-200);
+  cursor: pointer;
+  transition: background 0.2s ease, width 0.2s ease;
+  position: relative;
+}
+.md-callout__dot::before {
+  content: '';
+  position: absolute;
+  inset: -0.625rem;   /* expand tap target without changing visual size */
+}
+.md-callout__dot.is-active {
+  background: var(--raspberry-500);
+  width: 1.25rem;
+}
+
+/* Prev / next arrows flanking the dots (Top actions carousel) */
+.md-callout__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+}
+.md-callout__nav .md-callout__dots { margin-top: 0; }
+.md-callout__arrow {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: var(--raspberry-500);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.md-callout__arrow:hover { background: var(--light-pink-100); }
+.md-callout__arrow:disabled { opacity: 0.4; cursor: default; }
+.md-callout__arrow svg { display: block; }
+
+/* Skip (dismiss) a recommendation — a subtle glyph in its own area, divided from
+   the main clickable bar by a hairline so it reads as a separate control. The
+   recommendation returns later (see skippedActions). */
+.md-rec__dismiss {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-left: 1px solid var(--light-pink-100);
+  background: transparent;
+  color: var(--neutral-400);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.md-rec__dismiss:hover { color: var(--raspberry-500); }
+.md-rec__dismiss svg { display: block; }
+
+/* Recommendations inside the callout's light-pink bottom half */
+.md-callout .md-recs {
+  background: var(--light-pink-50);
+  padding: 0.25rem 1.125rem 1.125rem;
+  margin-top: 1.25rem;   /* space above the Recommendations title */
+}
+.md-callout .md-recs .md-section-head--toggle {
+  color: var(--horizon-600);
+}
+
+/* ===================================================================
+   SECTION HEADS — shared across recs + panels
+   =================================================================== */
+.md-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+.md-section-head__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-600);
+  margin: 0;
+}
+.md-section-head__count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--raspberry-500);
+}
+
+/* Collapsible head — used by the Recommendations section */
+.md-section-head--toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-primary);
+}
+.md-section-head__right {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.md-section-head__chevron {
+  color: var(--horizon-400);
+  transition: transform 0.2s ease;
+}
+.md-recs.is-open .md-section-head__chevron {
+  transform: rotate(180deg);
+}
+
+/* Collapsible body — height transition via max-height */
+.md-recs__body {
+  overflow: hidden;
+  max-height: 1500px;
+  transition: max-height 0.32s ease, opacity 0.2s ease, margin-top 0.2s ease;
+  opacity: 1;
+}
+.md-recs:not(.is-open) .md-recs__body {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+/* ===================================================================
+   RECOMMENDATIONS
+   =================================================================== */
+.md-recs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Split row: check-toggle (left) + action link with chevron (right).
+   Every row here is an action the user can take, so they read as soft eggshell
+   cards with no border (cleaner than a hairline). overflow:hidden keeps the
+   hover fill clipped to the rounded corners. */
+.md-rec {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  background: var(--eggshell-500);
+  /* Transparent 1px border in the base state so the hover border doesn't shift
+     the row by a pixel. */
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: background 0.15s ease, border-color 0.15s ease,
+              opacity 0.25s ease, transform 0.25s ease;
+}
+/* Hover lifts every action row to white with a light-pink border. */
+.md-rec:hover { background: var(--white); border-color: var(--light-pink-200); }
+
+.md-rec__check-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  padding: 0 0.5rem;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--savannah-300);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.md-rec__check-btn:focus-visible {
+  outline: 2px solid var(--raspberry-500);
+  outline-offset: -2px;
+}
+
+.md-rec__check {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background: var(--horizon-100);
+  border: 2px solid var(--horizon-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.md-rec__check svg {
+  display: block;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.md-rec.is-done { background: var(--savannah-100); border-color: var(--spring-400); }
+.md-rec.is-done .md-rec__check-btn { border-right-color: var(--spring-400); }
+.md-rec.is-done .md-rec__check {
+  background: var(--spring-500);
+  border-color: var(--spring-500);
+}
+.md-rec.is-done .md-rec__check svg { opacity: 1; transform: scale(1); }
+.md-rec.is-done .md-rec__title {
+  color: var(--horizon-400);
+  text-decoration: line-through;
+}
+
+.md-rec.is-unlock .md-rec__title { color: var(--horizon-500); }
+
+.md-rec__action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  padding: 0.875rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+/* The row owns the hover fill (white); keep the action link transparent so that
+   fill shows through its full width. */
+.md-rec__action:hover { background: transparent; }
+.md-rec__action:focus-visible {
+  outline: 2px solid var(--raspberry-500);
+  outline-offset: -2px;
+}
+
+/* Leading type glyph — grey key (unlock) or coloured bulb (recommendation),
+   sitting just before the title. */
+.md-rec__lead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.md-rec__lead svg { display: block; }
+.md-rec.is-unlock .md-rec__lead { color: var(--neutral-400); }
+.md-rec:not(.is-unlock) .md-rec__lead { color: var(--raspberry-500); }
+
+.md-rec__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  text-align: left;   /* left-align rec text */
+}
+.md-rec__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--horizon-600);
+  line-height: 1.3;
+  /* Keep the top sentence to a single line */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-rec__meta {
+  font-size: 0.75rem;
+  color: var(--horizon-400);
+  margin-top: 0.125rem;
+}
+.md-rec__chevron {
+  color: var(--horizon-300);
+  flex-shrink: 0;
+}
+
+/* Skip button — replaces the current recommendation with the next one */
+.md-rec__skip {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--horizon-100);
+  color: var(--neutral-500);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.md-rec__skip:hover {
+  background: var(--horizon-200);
+  color: var(--horizon-600);
+}
+.md-rec__skip svg { display: block; }
+
+/* View all recommendations link at the bottom of the recs body */
+.md-recs__view-all {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--raspberry-600);
+  text-decoration: none;
+}
+.md-recs__view-all:hover { text-decoration: underline; }
+
+/* "See all actions" — full-width centred link under the actions, still inside the
+   pink callout. Routes to the progress page where every action is listed. */
+.md-recs__see-all {
+  display: block;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--light-pink-100);
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--raspberry-600);
+  text-decoration: none;
+}
+.md-recs__see-all:hover { text-decoration: underline; }
+
+/* ===================================================================
+   4-PANEL GRID — 2 per row. Visual on top, text below (compact tiles).
+   Each panel has a coloured border that matches its graph accent.
+   =================================================================== */
+.md-panels__list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;   /* every row the same height → all tiles equal */
+  gap: 0.625rem;
+}
+
+.md-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  /* Per-variant gradient background set below (dashboard chart colours) */
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 0.875rem;
+  text-align: center;
+  /* Equal-height tiles regardless of content length */
+  height: 100%;
+  justify-content: center;
+}
+
+/* Visual — donut (default) */
+.md-panel__viz {
+  --progress: 0;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: conic-gradient(
+    currentColor 0deg,
+    currentColor calc(var(--progress) * 3.6deg),
+    var(--horizon-100) calc(var(--progress) * 3.6deg),
+    var(--horizon-100) 360deg
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.md-panel__viz-inner {
+  width: 52px;
+  height: 52px;
+  background: var(--white);
+  border-radius: var(--radius-full);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.md-panel__viz-num {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--horizon-600);
+  line-height: 1;
+}
+.md-panel__viz-cap {
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--horizon-400);
+  margin-top: 0.125rem;
+}
+
+/* Visual — progress-bar variant */
+.md-panel__viz--bar {
+  --progress: 0;
+  width: 100%;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem 0;
+}
+.md-panel__bar {
+  width: 100%;
+  height: 8px;
+  background: var(--horizon-100);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.md-panel__bar-fill {
+  height: 100%;
+  background: currentColor;
+  border-radius: var(--radius-full);
+}
+.md-panel__bar-label {
+  font-size: 0.6875rem;
+  color: var(--horizon-500);
+  margin: 0;
+  text-align: center;
+  line-height: 1.2;
+}
+.md-panel__bar-label strong {
+  color: var(--horizon-600);
+  font-weight: 800;
+  font-size: 0.8125rem;
+}
+
+/* Text */
+.md-panel__body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.md-panel__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3125rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--horizon-400);
+  margin: 0;
+}
+.md-panel__title-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--horizon-400); /* neutral — no per-panel accent colour */
+}
+.md-panel__title-icon svg { display: block; }
+.md-panel__value {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--horizon-600);
+  margin: 0;
+  line-height: 1.1;
+}
+.md-panel__caption {
+  font-size: 0.6875rem;
+  color: var(--horizon-500);
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Accent colours (currentColor drives donut arc, bar fill, border) + a soft
+   gradient background tint of the same dashboard chart colour.
+   Chart palette: Horizon #1F2A44, Spring #20B486, Violet #5854E6,
+   Raspberry #E83E6D (designSystem.js CHART_COLORS). */
+.md-panel--horizon {
+  color: var(--horizon-500);
+  background: linear-gradient(135deg, rgba(31, 42, 68, 0.12) 0%, rgba(31, 42, 68, 0.02) 100%);
+}
+.md-panel--raspberry {
+  color: var(--raspberry-500);
+  background: linear-gradient(135deg, rgba(232, 62, 109, 0.14) 0%, rgba(232, 62, 109, 0.02) 100%);
+}
+.md-panel--spring {
+  color: var(--spring-500);
+  background: linear-gradient(135deg, rgba(32, 180, 134, 0.14) 0%, rgba(32, 180, 134, 0.02) 100%);
+}
+.md-panel--violet {
+  color: var(--violet-500);
+  background: linear-gradient(135deg, rgba(88, 84, 230, 0.14) 0%, rgba(88, 84, 230, 0.02) 100%);
+}
+/* Full-width tile — the 5th (Investment) panel spans both grid columns so the
+   2-col grid reads as 2×2 + 1 banner rather than leaving a lone half-tile. */
+.md-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.md-bottom-pad {
+  /* Clears the fixed Fyn dock so the last finance panels scroll fully clear.
+     flex-shrink:0 is essential — .md-main is a flex column, so without it
+     this spacer collapses and the panels stay hidden behind the dock. */
+  flex-shrink: 0;
+  height: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ===================================================================
+   FYN DOCK — mirrors the open-state chat header.
+   White bg, gradient F avatar, "Fyn / Your financial companion", up-arrow.
+   =================================================================== */
+.md-fyn-dock {
+  position: absolute; /* anchored to the phone-frame, not the viewport */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--white);
+  color: var(--horizon-600);
+  border: none;
+  border-top: 1px solid var(--horizon-100);
+  font-family: var(--font-primary);
+  text-align: left;
+  cursor: pointer;
+  padding: 0.875rem 1rem;
+  padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+  min-height: 3.5rem;
+  transition: background 0.15s ease;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
+}
+.md-fyn-dock:hover { background: var(--horizon-100); }
+
+.md-fyn-dock__avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--horizon-500), var(--raspberry-500));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.9375rem;
+  flex-shrink: 0;
+}
+/* Fyn avatar now shows the Fyn icon image (matches the desktop chat). The icon
+   fills the circle; drop the gradient + letter styling when an <img> is present. */
+.md-fyn-dock__avatar:has(img),
+.md-fyn__avatar:has(img) { background: none; overflow: hidden; }
+.md-fyn-dock__avatar img,
+.md-fyn__avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-full); display: block; }
+.md-fyn-dock__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.md-fyn-dock__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--horizon-600);
+  line-height: 1.2;
+}
+.md-fyn-dock__status {
+  font-size: 0.75rem;
+  color: var(--horizon-400);
+  margin-top: 0.125rem;
+}
+.md-fyn-dock__action {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+  background: var(--horizon-100);
+  color: var(--horizon-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ===================================================================
+   HAMBURGER DRAWER — slide-in from left
+   =================================================================== */
+.md-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.md-drawer-backdrop[hidden] { display: none; }
+.md-drawer-backdrop.is-open { opacity: 1; }
+
+.md-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 86%;
+  max-width: 320px;
+  background: var(--white);
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.2);
+}
+.md-drawer[hidden] { display: none; }
+.md-drawer.is-open { transform: translateX(0); }
+
+/* Drawer chrome matches the logged-in app sidebar (Navigation/Sidebar.vue):
+   white surface, light-blue active state, sectioned icon links. */
+.md-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.25rem 1.25rem 1.125rem;
+  padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
+  background: var(--white);
+  border-bottom: 1px solid var(--light-gray);
+  color: var(--horizon-500);
+}
+.md-drawer__head-text { min-width: 0; }
+.md-drawer__user {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--horizon-500);
+  margin: 0;
+}
+.md-drawer__email {
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+  margin: 0.25rem 0 0;
+}
+.md-drawer__close {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: none;
+  background: var(--eggshell-500);
+  color: var(--horizon-500);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-drawer__close:hover { background: var(--light-gray); }
+
+.md-drawer__nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+.md-drawer__section { padding: 0.25rem 0; }
+.md-drawer__section + .md-drawer__section {
+  border-top: 1px solid var(--light-gray);
+}
+.md-drawer__section--account { margin-top: 0.25rem; }
+.md-drawer__group {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--neutral-400);
+  margin: 0.75rem 0.75rem 0.25rem;
+}
+.md-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  margin: 0.0625rem 0;
+  color: var(--neutral-600);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-lg);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.md-drawer__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neutral-500);
+}
+.md-drawer__icon svg { display: block; width: 100%; height: 100%; }
+.md-drawer__label { flex: 1; min-width: 0; }
+.md-drawer__link:hover {
+  background: var(--eggshell-500);
+  color: var(--horizon-500);
+}
+.md-drawer__link:hover .md-drawer__icon { color: var(--horizon-500); }
+.md-drawer__link.is-active {
+  background: var(--light-blue-100);
+  color: var(--horizon-500);
+  font-weight: 600;
+}
+.md-drawer__link.is-active .md-drawer__icon { color: var(--horizon-500); }
+.md-drawer__link--signout { color: var(--raspberry-600); }
+.md-drawer__link--signout .md-drawer__icon { color: var(--raspberry-600); }
+
+/* ===================================================================
+   FYN OVERLAY — full screen takeover
+   =================================================================== */
+.md-fyn {
+  position: absolute; /* anchored to the phone-frame */
+  inset: 0;
+  z-index: 50;
+  background: var(--eggshell-500);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.md-fyn[hidden] { display: none; }
+.md-fyn.is-open { transform: translateY(0); }
+
+/* Top header — Fyn avatar + name + status on the left, X close on the right. */
+.md-fyn__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  padding-top: calc(0.875rem + env(safe-area-inset-top, 0px));
+  background: var(--white);
+  border-bottom: 1px solid var(--horizon-100);
+  flex-shrink: 0;
+}
+.md-fyn__title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+.md-fyn__avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--horizon-500), var(--raspberry-500));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.md-fyn__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--horizon-600);
+  margin: 0;
+  line-height: 1.2;
+}
+.md-fyn__status {
+  font-size: 0.75rem;
+  color: var(--horizon-400);
+  margin: 0;
+}
+.md-fyn__close {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  background: var(--horizon-100);
+  color: var(--horizon-600);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-fyn__close:hover { background: var(--horizon-200); }
+
+.md-fyn__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.md-fyn__report {
+  border: none;
+  background: none;
+  color: var(--horizon-400);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.md-fyn__report:hover { color: var(--raspberry-500); }
+
+.md-fyn__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.md-fyn__msg p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+}
+.md-fyn__msg--fyn {
+  align-self: flex-start;
+  max-width: 88%;
+}
+.md-fyn__msg--fyn p {
+  background: var(--white);
+  color: var(--horizon-600);
+  border: 1px solid var(--horizon-100);
+}
+
+.md-fyn__prompts {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  border-top: 1px solid var(--horizon-100);
+  background: var(--white);
+  flex-shrink: 0;
+}
+.md-fyn__prompt {
+  text-align: left;
+  background: var(--horizon-100);
+  border: none;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-family: var(--font-primary);
+  color: var(--horizon-600);
+  cursor: pointer;
+}
+.md-fyn__prompt:hover { background: var(--horizon-200); }
+
+/* Compose bar at the bottom — full-bleed raspberry matching the docked
+   Ask Fyn button, with input field + circular white send button. */
+.md-fyn__compose {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  background: var(--raspberry-500);
+  border: none;
+  min-height: 3.5rem;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+}
+.md-fyn__input {
+  flex: 1;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.9375rem;
+  font-family: var(--font-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--horizon-600);
+}
+.md-fyn__input::placeholder { color: var(--horizon-400); }
+.md-fyn__input:focus {
+  outline: 2px solid var(--white);
+  outline-offset: 1px;
+  background: var(--white);
+}
+.md-fyn__send {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  color: var(--raspberry-600);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.md-fyn__send:hover { background: var(--horizon-100); }
+
+/* Scroll-lock helper applied to body when drawer or fyn is open */
+.is-locked { overflow: hidden; }
+
+/* ===================================================================
+   v39 OVERRIDES — accordion smoothing + divider, skip pill, fade,
+   dock chat input, panel hover. Appended; later rules win.
+   =================================================================== */
+
+/* Accordion: smoother expand/collapse + light-pink divider between cards */
+.md-accordion__card {
+  transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              flex-basis 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s ease !important;
+  flex: 0 0 3rem;
+}
+.md-accordion__card + .md-accordion__card {
+  box-shadow: -1px 0 0 0 var(--light-pink-200);
+}
+.md-accordion__card.is-active { flex: 1 1 0 !important; }
+
+/* Skip — clear pill CTA, visible without hover (mobile) */
+.md-rec__skip {
+  width: auto !important;
+  height: auto !important;
+  align-self: center;
+  margin-right: 0.625rem;
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--raspberry-300);
+  background: var(--white);
+  color: var(--raspberry-600);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--raspberry-50);
+  border-color: var(--raspberry-500);
+  color: var(--raspberry-600);
+}
+
+/* Skip fade-out / fade-in */
+.md-rec.is-skipping { opacity: 0; transform: translateX(8px); }
+.md-rec.is-entering { animation: recFadeIn 0.35s ease both; }
+@keyframes recFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.md-rec {
+  transition: border-color 0.15s ease, background 0.15s ease,
+              opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* Docked chat input — matches authenticated Fyn composer */
+.md-fyn-dock {
+  gap: 0.625rem !important;
+  cursor: default !important;
+  padding: 0.75rem 1rem !important;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
+  border-top: 1px solid var(--light-gray) !important;
+}
+.md-fyn-dock:hover { background: var(--white) !important; }
+.md-fyn-dock__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.875rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+  font-family: var(--font-primary);
+  color: var(--horizon-600);
+  background: var(--white);
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.md-fyn-dock__input::placeholder { color: var(--horizon-400); }
+.md-fyn-dock__send {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--raspberry-500);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-fyn-dock__send:hover { background: var(--raspberry-600); }
+.md-fyn-dock__send svg { display: block; }
+
+/* Finance panels are now <a> links — hover lifts them */
+.md-panel {
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.md-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+.md-panel:focus-visible {
+  outline: 2px solid var(--raspberry-500);
+  outline-offset: 2px;
+}
+
+/* ===================================================================
+   v40 OVERRIDES — LEVEL UP header, accordion divider/no-curve,
+   secondary skip + refresh icon. Appended; later rules win.
+   =================================================================== */
+
+/* Top half: LEVEL UP (left) + rank copy (right) */
+.md-callout__top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+}
+.md-callout__levelup {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--white);
+}
+.md-callout__top-copy { flex: 1; min-width: 0; }
+.md-callout__top-copy .md-callout__lead {
+  white-space: normal;        /* allow wrap now "in the UK" is gone */
+  font-size: 1rem;
+}
+.md-callout__top-copy .md-callout__sub { margin-top: 0.25rem; }
+
+/* Accordion: divider lines in the light-pink background colour; no curve */
+.md-accordion__card + .md-accordion__card {
+  box-shadow: -1px 0 0 0 var(--light-pink-50) !important;
+}
+.md-accordion__card.is-active {
+  border-radius: 0 !important;   /* remove the rounded corners */
+}
+
+/* Skip — secondary (the chevron arrow is the primary CTA) */
+.md-rec__skip {
+  border: none !important;
+  background: transparent !important;
+  color: var(--neutral-400) !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0.25rem 0.5rem !important;
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  color: var(--horizon-500) !important;
+  background: transparent !important;
+}
+/* Make the chevron arrow read as the primary action */
+.md-rec__chevron { color: var(--raspberry-500) !important; }
+
+/* Refresh variant — small circular icon button (shown on completed items) */
+.md-rec__skip--refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  padding: 0 !important;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  color: var(--raspberry-500) !important;
+  background: var(--white) !important;
+}
+.md-rec__skip--refresh:hover {
+  background: var(--light-pink-50) !important;
+}
+.md-rec__skip--refresh svg { display: block; }
+
+/* ===================================================================
+   v41 OVERRIDES — tighter stat copy, stable accordion height,
+   chat compose only in expanded overlay.
+   =================================================================== */
+
+/* Reduce the gap between the 57% lead and the sub-copy */
+.md-callout__top-copy .md-callout__sub { margin-top: 0.125rem !important; }
+
+/* Accordion: fix the row height so text reflow during the expand/collapse
+   transition doesn't make the whole block grow/shrink vertically. */
+.md-accordion { min-height: 9.5rem; align-items: stretch; }
+.md-accordion__content {
+  justify-content: flex-start;
+  height: 100%;
+}
+
+/* Compose chat box at the bottom of the EXPANDED overlay (matches the
+   authenticated Fyn composer). Not rendered in the collapsed dock. */
+.md-fyn__compose {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  background: var(--white);
+  border-top: 1px solid var(--light-gray);
+  flex-shrink: 0;
+}
+.md-fyn__compose .md-fyn-dock__input { cursor: text; }
+
+/* ===================================================================
+   v42 OVERRIDES — lock accordion to a fixed height so it never jumps.
+   =================================================================== */
+.md-accordion {
+  height: 9.5rem !important;
+  min-height: 9.5rem;
+  align-items: stretch;
+}
+.md-accordion__card { height: 100%; }
+.md-accordion__content {
+  height: 100%;
+  overflow: hidden;            /* clip any overflow rather than grow the row */
+  justify-content: flex-start;
+}
+
+/* ===================================================================
+   v43 OVERRIDES — tighter stat copy, skip hover bg, checkbox hover tick.
+   =================================================================== */
+
+/* Even tighter gap between the 57% lead and the sub-copy */
+.md-callout__top-copy .md-callout__lead { margin: 0 !important; }
+.md-callout__top-copy .md-callout__sub { margin-top: 0 !important; }
+
+/* Skip — grey background on hover */
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--horizon-100) !important;
+  color: var(--horizon-600) !important;
+  border-radius: var(--radius-md);
+}
+
+/* Checkbox circle — show a faint grey tick on hover (pending items only) */
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg {
+  opacity: 1;
+}
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path {
+  stroke: var(--neutral-400);
+}
+
+/* v43b — ensure hover tick scales up (base svg is scale(0.4)) */
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path {
+  stroke: var(--neutral-400) !important;
+}
+
+/* ===================================================================
+   v44 OVERRIDES — bigger LEVEL UP, completion fade, full-width skip hover.
+   =================================================================== */
+
+.md-callout__levelup { font-size: 1.6rem !important; }
+
+/* Completion fade: row collapses + fades after the tick is shown, before
+   the list re-orders, so the user sees it check off. */
+.md-rec.is-completing {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Skip — the whole button greys on hover, not just behind the text */
+.md-rec__skip {
+  text-decoration: none !important;   /* drop the underline; the bg is the affordance */
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--horizon-100) !important;
+  color: var(--horizon-600) !important;
+  border-radius: var(--radius-md);
+}
+
+/* ===================================================================
+   v45 OVERRIDES — skip hover (skip section only), level-up celebration.
+   =================================================================== */
+
+/* Skip hover greys ONLY the skip button's own area (its full box) */
+.md-rec__skip {
+  align-self: stretch !important;     /* fill the row height */
+  display: flex !important;
+  align-items: center;
+  border-radius: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 0.875rem !important;
+  background: transparent !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--horizon-100) !important;
+  color: var(--horizon-600) !important;
+}
+
+/* Level-up pulse on the pie */
+.md-level__pie.is-levelup {
+  animation: levelPulse 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes levelPulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* Confetti layer — covers the phone frame, ignores pointer events */
+.md-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  overflow: hidden;
+}
+.md-confetti__piece {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  opacity: 0;
+  animation-name: confettiFall;
+  animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes confettiFall {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--drift, 0), 105vh) rotate(var(--rot, 360deg)); }
+}
+
+/* Centre "Level X!" banner */
+.md-confetti__banner {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  padding: 0.625rem 1.25rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  font-size: 1.5rem;
+  font-weight: 900;
+  border-radius: var(--radius-full);
+  box-shadow: 0 12px 32px rgba(232, 62, 109, 0.5);
+  white-space: nowrap;
+  animation: bannerPop 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes bannerPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  30%  { transform: translate(-50%, -50%) scale(1); }
+  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
+}
+
+/* v46 — docked Fyn bar hover + pointer cursor */
+.md-fyn-dock--bar {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-fyn-dock--bar:hover {
+  background: var(--eggshell-500) !important;
+}
+.md-fyn-dock--bar:hover .md-fyn-dock__action {
+  background: var(--horizon-200);
+}
+
+/* ===================================================================
+   v47 — fix docked Fyn bar hover (override the earlier white !important),
+   restore circular refresh button on completed recommendations.
+   =================================================================== */
+
+/* Higher-specificity selector beats the earlier `.md-fyn-dock:hover` rule */
+.phone-frame .md-fyn-dock--bar { cursor: pointer; transition: background 0.15s ease; }
+.phone-frame .md-fyn-dock--bar:hover { background: var(--eggshell-500) !important; }
+.phone-frame .md-fyn-dock--bar:hover .md-fyn-dock__action { background: var(--horizon-200); }
+
+/* Refresh button on completed items — circular icon, overrides the
+   v45 full-height grey skip styling. */
+.md-rec__skip--refresh {
+  align-self: center !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  margin-right: 0.625rem !important;
+  padding: 0 !important;
+  border-radius: var(--radius-full) !important;
+  color: var(--raspberry-500) !important;
+  background: var(--white) !important;
+}
+.md-rec__skip--refresh:hover {
+  background: var(--light-pink-50) !important;
+  color: var(--raspberry-600) !important;
+}
+.md-rec__skip--refresh svg { display: block; }
+
+/* v48 — beat the v41 `.md-fyn-dock { cursor: default !important }` and the
+   `.md-fyn-dock:hover { background: white !important }` rules for the bar. */
+.phone-frame .md-fyn-dock.md-fyn-dock--bar {
+  cursor: pointer !important;
+}
+.phone-frame .md-fyn-dock.md-fyn-dock--bar:hover {
+  background: var(--eggshell-500) !important;
+}
+.phone-frame .md-fyn-dock.md-fyn-dock--bar:hover .md-fyn-dock__action {
+  background: var(--horizon-200) !important;
+}
+
+/* v49 — grey hover on inactive accordion cards */
+.md-accordion__card:not(.is-active) {
+  transition: background 0.2s ease, flex-grow 0.45s cubic-bezier(0.4,0,0.2,1),
+              flex-basis 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+.md-accordion__card:not(.is-active):hover {
+  background: var(--horizon-100) !important;
+}
+.md-accordion__card:not(.is-active):hover .md-accordion__icon {
+  color: var(--horizon-500);
+}
+
+/* ===================================================================
+   FYN ONBOARDING — bubble choices (quick_replies) + dashboard nudge
+   =================================================================== */
+.md-fyn__bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.md-fyn__bubble {
+  background: var(--white);
+  border: 1px solid var(--raspberry-500);
+  color: var(--raspberry-500);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.md-fyn__bubble:hover { background: var(--raspberry-500); color: var(--white); }
+.md-fyn__bubble:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Nudge — sits just above the docked Fyn bar, points the user into Fyn. */
+.md-fyn-nudge {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--horizon-500);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 0.625rem 0.75rem;
+  box-shadow: 0 6px 20px rgba(31, 42, 68, 0.25);
+}
+.md-fyn-nudge__cta {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--white);
+  font-family: var(--font-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.md-fyn-nudge__later {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+/* Centred ring + coin loader — large, centre of screen. Shared by the dashboard
+   and every MobileChrome-wrapped page (MobileChrome imports this stylesheet). */
+.md-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 55vh;
+  padding: 2rem 1rem;
+}
+.md-loader__spin { position: relative; width: 6rem; height: 6rem; }
+.md-loader__ring {
+  position: absolute;
+  inset: 0;
+  border: 6px solid var(--horizon-100);
+  border-top-color: var(--raspberry-500);
+  border-radius: 50%;
+  animation: md-loader-spin 0.9s linear infinite;
+}
+.md-loader__coin {
+  position: absolute;
+  inset: 1.4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--raspberry-400), var(--raspberry-600));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(232, 62, 109, 0.35);
+}
+.md-loader__text { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin: 0; }
+.md-retry {
+  margin-top: 0.25rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+@keyframes md-loader-spin { to { transform: rotate(360deg); } }
+
+/* Today's insight — Fyn's daily insight surfaced from the dashboard payload
+   (fyn_insight). Plain-text card; sits between the level callout and the
+   finance grid as a direct child of .md-main (inherits its column gap). */
+.md-insight {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 1rem 1.125rem;
+  box-shadow: 0 2px 10px rgba(31, 42, 68, 0.06);
+  flex-shrink: 0;
+}
+.md-insight__text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--neutral-600);
+  margin: 0.25rem 0 0;
+}
+
+/* Milestone celebration toast — a financial milestone just crossed, with a
+   Share action. Floats at the top of the phone frame (absolute, like the Fyn
+   nudge), dismissable, plain text (no icons). */
+.md-milestone {
+  position: absolute;
+  /* Sits clear below the gradient hero (not tucked under the header) so the
+     whole banner — all four sides — is visible and never clipped. */
+  top: calc(8.5rem + env(safe-area-inset-top, 0px));
+  left: 1rem;
+  right: 1rem;
+  max-width: 26rem;
+  margin: 0 auto;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, var(--spring-500) 0%, var(--spring-600) 100%);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 0.875rem;
+  box-shadow: 0 8px 24px rgba(32, 180, 134, 0.32);
+  animation: md-milestone-in 0.32s ease;
+}
+@keyframes md-milestone-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.md-milestone__body { flex: 1; min-width: 0; }
+.md-milestone__title { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; margin: 0; }
+.md-milestone__label { font-size: 0.875rem; font-weight: 700; line-height: 1.35; margin: 0.125rem 0 0; }
+.md-milestone__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 0.375rem; flex-shrink: 0; }
+.md-milestone__share { background: var(--white); color: var(--spring-600); border: 0; border-radius: var(--radius-full); padding: 0.375rem 0.875rem; font-family: var(--font-primary); font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
+.md-milestone__dismiss { background: none; border: 0; color: rgba(255, 255, 255, 0.85); font-family: var(--font-primary); font-size: 0.6875rem; cursor: pointer; padding: 0.125rem; }

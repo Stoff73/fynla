@@ -58,3 +58,9 @@
 ### Boundary lock-down pattern (now verified 4×)
 - R4 → R3 → R2 → R1 all locked at `[Store, Factory]` for greenfield entities, or `[Store, AuditModel, Factory]` for entities with a model-on-model audit relation (R1 is the only one with this — `TaxConfigurationAudit::belongsTo(TaxConfiguration::class)`). Pattern is now stable.
 - `TaxConfigService` was the unique R1 challenge — it has a typed property + typed return on `getModel()`, so just removing `TaxConfiguration::` static calls wasn't enough. Removing the dead `getModel()` method + its property finished the migration.
+
+## 2026-06-11 session 4 — savetax campaign E2E findings
+- The campaign's two memory systems can desync: `users.funnel_answers` (greetings, section skips) vs profile routing columns (`household_calculation_mode`). Any funnel answer that maps cleanly to a routing column needs an explicit `FunnelAnswersMapper` line — there's no automatic inference (PR #529 root cause).
+- `create_investment_account` silently dropped any user-stated fact without a schema field (the £800 dividends case) — when iterating on captures, diff the recorded `tool_calls` in `ai_messages` against the user's verbatim message to spot dropped facts (PR #531).
+- `buildCaptureAck` is a state-keyed table covering only base states; campaign grouped_extract states need explicit entries — delegated turns ack via LLM, grouped_extract turns don't.
+- csjones `php artisan cache:clear` invalidates live user tokens — every deploy needs re-login in browser tests.

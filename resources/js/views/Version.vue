@@ -1821,7 +1821,7 @@
 
       <!-- Footer Note -->
       <div class="mt-8 text-center text-body-sm text-neutral-500">
-        <p>For detailed changelog and bug fixes, see the <a href="/OCTOBER_2025_FEATURES_UPDATE.md" class="text-raspberry-500 hover:text-raspberry-600 underline">October 2025 Features Update</a> document.</p>
+        <p>For detailed changelog and bug fixes, see the <a :href="withBase('/OCTOBER_2025_FEATURES_UPDATE.md')" class="text-raspberry-500 hover:text-raspberry-600 underline">October 2025 Features Update</a> document.</p>
         <p class="mt-2">Built with Claude Code</p>
       </div>
     </div>
@@ -1830,12 +1830,17 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
+import { withBase } from '@/utils/basePath';
 
 export default {
   name: 'VersionHistory',
 
   components: {
     AppLayout,
+  },
+
+  methods: {
+    withBase,
   },
 };
 </script>

@@ -101,3 +101,71 @@
   2. Pure freemium signup — spec + plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*.md`), NO code yet. Awaiting execution-approach choice.
 - Commits this session: 4 (2 Revolut fix, 2 freemium docs).
 - Next: CSJ picks execution approach for the freemium plan → start PR1 (registration → tier='free', no trial).
+
+## 2026-06-03 — end-of-day (mobile funnel + Fyn onboarding)
+- Handover: [[handover-2026-06-04-session-1]]
+- Branch: dev (csjones @ 6d30719)
+- Shipped: PRs #452–#460 — /m responsive funnel + authed handoff (token bridge) + homepage CTA → /savetax + funnel-answer persistence + real account creation from the funnel + Fyn pre-fill/greet/recap/skip-known + mobile Fyn dock onboarding (bubbles + resume) + nudge + CLAUDE.md Rules #17–19.
+- Verified live on csjones end-to-end; nothing to production.
+- Next: walk mobile onboarding to /tax-strategy terminal in the Fyn dock + confirm tax advice renders on mobile; browser-verify desktop recap; refresh Current State/Auth.md.
+
+## 2026-06-04 — session 2 (context-clear)
+- Handover: [[handover-2026-06-04-session-2-clear]]
+- Branch: dev
+- Commits this session: 1 (`05b1e8e` docs(claude): lean CLAUDE.md + Fyn two→one transition)
+- Status: clean (only untracked docs/mobile/designer-brief.pdf, not ours)
+- Next: resume mobile /m work — build against the single shared /api/ai-chat dispatch (Fyn converging to one); reconcile 00-canonical.md when coala merges to dev.
+
+## 2026-06-04 — session (end-of-day)
+- Handover: [[handover-2026-06-05-session-1]]
+- Branch: dev
+- Commits this session: 2 code (`06937fc` fix(fyn) streaming+soft-degrade, `7dce0e2` feat(mobile) tax-strategy + module drill-downs) + session-end docs
+- Built: real mobile `/m/app` Tax Strategy view (incl. married/joint household) + Net Worth/Protection/Savings/Retirement/Investment overview + drill-down views; dock streaming fixes; provider-aware Fyn soft-degrade. All browser-verified.
+- Status: working tree clean
+- Next: deploy to csjones per June5Updates/deploy-2026-06-05.md (mobile bundle rebuild for /fynla/ base); optionally click a tax-strategy next-step CTA with a qualifying user.
+
+## 2026-06-07 — session (end-of-day)
+- Handover: [[handover-2026-06-08-session-1]] (target 2026-06-08)
+- Branch: dev
+- Commits this session: 4 (PRs #487 test, #488 fix)
+- Status: 0 uncommitted (working tree clean)
+- Shipped: #487 inline-capture onboarding-award unit test; #488 Save tax CTA on server-rendered public/pages/index.php (deployed+verified csjones)
+- Next: production release decision (dev +120/-7 vs main); chris existing-user pass (blocked on password reset)
+
+## 2026-06-09 — session 1 (end-of-day)
+- Handover: [[handover-2026-06-09-session-1]]
+- Branch: dev
+- Commits this session: 3 (b4a8029 mojibake fix + 2 merges aa4569d/87f2e4d)
+- Status: 0 uncommitted (working tree clean)
+- Shipped: freemium tier-pricing modal #501 + router cold-boot #500 merged to dev, deployed + live-verified on csjones. Public /pricing rewritten to Free+Tier1/2/3, trial copy stripped, <title> mojibake fixed.
+- Next: prod release (dev→main, +158/-7) is CSJ's call — #489 auth throttle is the priority reason (prod MFA reset broken). Set real tier prices in admin Tier Configuration.
+
+## 2026-06-09 — session 2 (context-clear)
+- Handover: [[handover-2026-06-09-session-2-clear]]
+- Branch: dev @ faa86d6 (+165/-7 vs main)
+- Commits this session: 6 (PRs #502, #503, #504 merged to dev)
+- Status: clean (one pre-existing untracked PDF)
+- Shipped: #502 /m Save tax CTA base-path; #503 withBase() helper + 6 base-path sites; #504 onboarding advice self-loop fix + MAX_ADVICE_CHAIN guard + conv 66 cleanup (17,488 rows deleted)
+- Next: prod release (dev→main) is CSJ's call; #489 auth-throttle is the priority reason
+
+## 2026-06-10 — session 3 (context-clear)
+- Handover: [[handover-2026-06-10-session-3-clear]]
+- Branch: dev @ a75af48 (PRs #525 + #526 merged via pushed merge commits; gh CLI merge endpoint 401s — needs `gh auth refresh`)
+- Commits this session: 7 (5 finding-fixes + 2 PR merges); 345-test sweep green pre-push
+- Status: working tree clean (two pre-existing untracked docs)
+- Shipped: branch verification (9/9 acceptance criteria), six finding-fixes (stable rec IDs, retirement earnings cap + age gates, goals copy, assets caption, bubble dismissal persistence, persona onboarding seed), csjones back on dev + live-verified, 94 remote + 4 local merged branches deleted
+- Next: estate will/LPA recs decision (CSJ); dev → main release when CSJ decides
+
+## 2026-06-11 — session 4 (clear)
+- Handover: [[handover-2026-06-11-session-4-clear]]
+- Branch: dev @ d0f7cf6 (clean, pushed)
+- Commits this session: 7 (PRs #529, #530, #531 merged)
+- Status: 0 uncommitted (2 long-standing untracked docs only)
+- Next: Track 2 (coala) — review spec v4 with CSJ (docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md), then superpowers:writing-plans
+
+## 2026-06-12 — session 1 (eod)
+- Handover: [[handover-2026-06-13-session-1]]
+- Branch: dev @ 7b9152b; coala @ 10193e2 — both pushed, trees clean
+- Commits today (dev): 12; PRs merged: #532–#545 (Track 2 + follow-ups + cleanup), suite 4,963/0 on coala
+- Status: 0 uncommitted (two long-standing untracked docs only)
+- Next: CSJ — deploy dev→csjones (June13Updates/deploy-2026-06-13.md), Azlan re-test, gamified dashboard eyeball; then the coala→dev landing programme

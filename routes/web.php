@@ -76,511 +76,543 @@ Route::get('/storage/{path}', function (string $path) {
         ->setPublic();
 })->where('path', '.*');
 
-// Homepage — server-render the public landing page for unauthenticated visitors;
-// authenticated users get the Vue SPA directly.
-// Cache-Control: public, max-age=300 lets Cloudflare / browser cache the
-// unauthenticated response for 5 minutes, cutting TTFB for repeat visitors.
-Route::get('/', function () {
-    if (auth()->check()) {
-        return view('app');
-    }
-    ob_start();
-    include public_path('pages/index.php');
-    $html = ob_get_clean();
-    return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+// ─── Public-facing pages (guests only) ──────────────────────────────────────
+// Every route in this group server-renders a public PHP page for unauthenticated
+// visitors. Authenticated users are bounced to the in-app dashboard by the
+// `redirect.authed` middleware — they never see the front / marketing / learn
+// pages, which exist only to convert guests. The auth decision lives in the
+// middleware, not in the route bodies.
+//
+// Cache-Control: public, max-age=300 lets the CDN / browser cache the guest
+// response for 5 minutes, cutting TTFB for repeat visitors.
+Route::middleware('redirect.authed')->group(function () {
+    // Homepage
+    Route::get('/', function () {
+        ob_start();
+        include public_path('pages/index.php');
+        $html = ob_get_clean();
 
-// How It Works — server-render the public how-it-works page for unauthenticated visitors;
-// authenticated users get the Vue SPA directly.
-Route::get('/how-it-works', function () {
-    if (auth()->check()) {
-        return view('app');
-    }
-    ob_start();
-    include public_path('pages/how-it-works.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-// Features — server-render the public features page for unauthenticated visitors;
-// authenticated users get the Vue SPA directly.
-Route::get('/features', function () {
-    if (auth()->check()) {
-        return view('app');
-    }
-    ob_start();
-    include public_path('pages/features.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // How It Works — server-render the public how-it-works page for unauthenticated visitors;
+    // authenticated users get the Vue SPA directly.
+    Route::get('/how-it-works', function () {
+        ob_start();
+        include public_path('pages/how-it-works.php');
 
-// ─── Public marketing pages ───────────────────────────────────────────────────
-// All server-render PHP for full SEO; authenticated users get the Vue SPA.
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/pricing', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/pricing.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // Features — server-render the public features page for unauthenticated visitors;
+    // authenticated users get the Vue SPA directly.
+    Route::get('/features', function () {
+        ob_start();
+        include public_path('pages/features.php');
 
-Route::get('/about', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/about.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/advisors', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/advisors.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // ─── Public marketing pages ───────────────────────────────────────────────────
+    // All server-render PHP for full SEO; authenticated users get the Vue SPA.
 
-Route::get('/security', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/security.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/pricing', function () {
+        ob_start();
+        include public_path('pages/pricing.php');
 
-Route::get('/faq', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/faq.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/contact', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/contact.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/about', function () {
+        ob_start();
+        include public_path('pages/about.php');
 
-Route::get('/help', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/help.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-// Why Fynla sub-pages
-Route::get('/why-fynla/our-approach', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/why-fynla/our-approach.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/advisors', function () {
+        ob_start();
+        include public_path('pages/advisors.php');
 
-Route::get('/why-fynla/one-platform', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/why-fynla/one-platform.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/why-fynla/independent', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/why-fynla/independent.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/security', function () {
+        ob_start();
+        include public_path('pages/security.php');
 
-Route::get('/why-fynla/alternatives', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/why-fynla/alternatives.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-// Life stage pages
-Route::get('/stage/starting-out', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/stage/starting-out.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/faq', function () {
+        ob_start();
+        include public_path('pages/faq.php');
 
-Route::get('/stage/building-foundations', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/stage/building-foundations.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/stage/protecting-and-growing', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/stage/protecting-and-growing.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/contact', function () {
+        ob_start();
+        include public_path('pages/contact.php');
 
-Route::get('/stage/planning-your-future', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/stage/planning-your-future.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/stage/enjoying-your-wealth', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/stage/enjoying-your-wealth.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/help', function () {
+        ob_start();
+        include public_path('pages/help.php');
 
-// Feature detail pages — MUST be declared before /features catch-all (none exists, but before SPA)
-Route::get('/features/net-worth-dashboard', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/net-worth-dashboard.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/features/ice-letters', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/ice-letters.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // Why Fynla sub-pages
+    Route::get('/why-fynla/our-approach', function () {
+        ob_start();
+        include public_path('pages/why-fynla/our-approach.php');
 
-Route::get('/features/protection-gap', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/protection-gap.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/features/monte-carlo', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/monte-carlo.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/why-fynla/one-platform', function () {
+        ob_start();
+        include public_path('pages/why-fynla/one-platform.php');
 
-Route::get('/features/when-can-i-retire', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/when-can-i-retire.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/features/pension-tracker', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/pension-tracker.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/why-fynla/independent', function () {
+        ob_start();
+        include public_path('pages/why-fynla/independent.php');
 
-Route::get('/features/iht-planning', function () {
-    if (auth()->check()) { return view('app'); }
-    ob_start();
-    include public_path('pages/features/iht-planning.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-// ─── Compare pages ───────────────────────────────────────────────────────────
-// Educational/comparison content — always serve PHP regardless of auth state.
+    Route::get('/why-fynla/alternatives', function () {
+        ob_start();
+        include public_path('pages/why-fynla/alternatives.php');
 
-Route::get('/compare/fynla-vs-financial-centralisation-platform', function () {
-    ob_start();
-    include public_path('pages/compare/fynla-vs-financial-centralisation-platform.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/compare/fynla-vs-financial-planning-platform', function () {
-    ob_start();
-    include public_path('pages/compare/fynla-vs-financial-planning-platform.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // Life stage pages
+    Route::get('/stage/starting-out', function () {
+        ob_start();
+        include public_path('pages/stage/starting-out.php');
 
-Route::get('/compare/fynla-vs-financial-investment-platform', function () {
-    ob_start();
-    include public_path('pages/compare/fynla-vs-financial-investment-platform.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/compare/fynla-vs-spreadsheets', function () {
-    ob_start();
-    include public_path('pages/compare/fynla-vs-spreadsheets.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/stage/building-foundations', function () {
+        ob_start();
+        include public_path('pages/stage/building-foundations.php');
 
-Route::get('/compare/fynla-vs-moneyhelper', function () {
-    ob_start();
-    include public_path('pages/compare/fynla-vs-moneyhelper.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/compare/best-financial-planning-tools-uk', function () {
-    ob_start();
-    include public_path('pages/compare/best-financial-planning-tools-uk.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/stage/protecting-and-growing', function () {
+        ob_start();
+        include public_path('pages/stage/protecting-and-growing.php');
 
-// ─── Learn hub ────────────────────────────────────────────────────────────────
-// Learn pages are educational content — always serve PHP regardless of auth state.
-// Authenticated users reading an article don't need the SPA; there is no in-app
-// equivalent of these pages.
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn', function () {
-    ob_start();
-    include public_path('pages/learn.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/stage/planning-your-future', function () {
+        ob_start();
+        include public_path('pages/stage/planning-your-future.php');
 
-// Learn — concept explainers
-Route::get('/learn/what-is-an-isa', function () {
-    ob_start();
-    include public_path('pages/learn/what-is-an-isa.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/what-is-drawdown', function () {
-    ob_start();
-    include public_path('pages/learn/what-is-drawdown.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/stage/enjoying-your-wealth', function () {
+        ob_start();
+        include public_path('pages/stage/enjoying-your-wealth.php');
 
-Route::get('/learn/should-i-consolidate-pensions', function () {
-    ob_start();
-    include public_path('pages/learn/should-i-consolidate-pensions.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/should-i-overpay-my-mortgage', function () {
-    ob_start();
-    include public_path('pages/learn/should-i-overpay-my-mortgage.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // Feature detail pages — MUST be declared before /features catch-all (none exists, but before SPA)
+    Route::get('/features/net-worth-dashboard', function () {
+        ob_start();
+        include public_path('pages/features/net-worth-dashboard.php');
 
-Route::get('/learn/what-is-salary-sacrifice', function () {
-    ob_start();
-    include public_path('pages/learn/what-is-salary-sacrifice.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/what-is-an-lpa', function () {
-    ob_start();
-    include public_path('pages/learn/what-is-an-lpa.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/features/ice-letters', function () {
+        ob_start();
+        include public_path('pages/features/ice-letters.php');
 
-Route::get('/learn/what-is-a-sipp', function () {
-    ob_start();
-    include public_path('pages/learn/what-is-a-sipp.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/what-is-inheritance-tax', function () {
-    ob_start();
-    include public_path('pages/learn/what-is-inheritance-tax.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/features/protection-gap', function () {
+        ob_start();
+        include public_path('pages/features/protection-gap.php');
 
-Route::get('/learn/when-should-i-make-a-will', function () {
-    ob_start();
-    include public_path('pages/learn/when-should-i-make-a-will.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/should-i-use-a-lisa-or-isa', function () {
-    ob_start();
-    include public_path('pages/learn/should-i-use-a-lisa-or-isa.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/features/monte-carlo', function () {
+        ob_start();
+        include public_path('pages/features/monte-carlo.php');
 
-Route::get('/learn/when-can-i-afford-to-retire', function () {
-    ob_start();
-    include public_path('pages/learn/when-can-i-afford-to-retire.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/glossary', function () {
-    ob_start();
-    include public_path('pages/learn/glossary.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/features/when-can-i-retire', function () {
+        ob_start();
+        include public_path('pages/features/when-can-i-retire.php');
 
-// Learn — life stage guides
-Route::get('/learn/guide/starting-out', function () {
-    ob_start();
-    include public_path('pages/learn/guide/starting-out.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/guide/building-foundations', function () {
-    ob_start();
-    include public_path('pages/learn/guide/building-foundations.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/features/pension-tracker', function () {
+        ob_start();
+        include public_path('pages/features/pension-tracker.php');
 
-Route::get('/learn/guide/protecting-and-growing', function () {
-    ob_start();
-    include public_path('pages/learn/guide/protecting-and-growing.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/guide/planning-your-future', function () {
-    ob_start();
-    include public_path('pages/learn/guide/planning-your-future.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/features/iht-planning', function () {
+        ob_start();
+        include public_path('pages/features/iht-planning.php');
 
-Route::get('/learn/guide/enjoying-your-wealth', function () {
-    ob_start();
-    include public_path('pages/learn/guide/enjoying-your-wealth.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-// Learn — tax & allowances
-Route::get('/learn/tax/pension-annual-allowance', function () {
-    ob_start();
-    include public_path('pages/learn/tax/pension-annual-allowance.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    // ─── Compare pages ───────────────────────────────────────────────────────────
+    // Educational/comparison content — always serve PHP regardless of auth state.
 
-Route::get('/learn/tax/iht-thresholds', function () {
-    ob_start();
-    include public_path('pages/learn/tax/iht-thresholds.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/compare/fynla-vs-financial-centralisation-platform', function () {
+        ob_start();
+        include public_path('pages/compare/fynla-vs-financial-centralisation-platform.php');
 
-Route::get('/learn/tax/capital-gains-tax', function () {
-    ob_start();
-    include public_path('pages/learn/tax/capital-gains-tax.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/learn/tax/tax-year-checklist', function () {
-    ob_start();
-    include public_path('pages/learn/tax/tax-year-checklist.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/compare/fynla-vs-financial-planning-platform', function () {
+        ob_start();
+        include public_path('pages/compare/fynla-vs-financial-planning-platform.php');
 
-Route::get('/learn/tax/isa-allowance', function () {
-    ob_start();
-    include public_path('pages/learn/tax/isa-allowance.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
 
-Route::get('/calculators', function () {
-    ob_start();
-    include public_path('pages/calculators.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+    Route::get('/compare/fynla-vs-financial-investment-platform', function () {
+        ob_start();
+        include public_path('pages/compare/fynla-vs-financial-investment-platform.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/compare/fynla-vs-spreadsheets', function () {
+        ob_start();
+        include public_path('pages/compare/fynla-vs-spreadsheets.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/compare/fynla-vs-moneyhelper', function () {
+        ob_start();
+        include public_path('pages/compare/fynla-vs-moneyhelper.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/compare/best-financial-planning-tools-uk', function () {
+        ob_start();
+        include public_path('pages/compare/best-financial-planning-tools-uk.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    // ─── Learn hub ────────────────────────────────────────────────────────────────
+    // Learn pages are educational content — always serve PHP regardless of auth state.
+    // Authenticated users reading an article don't need the SPA; there is no in-app
+    // equivalent of these pages.
+
+    Route::get('/learn', function () {
+        ob_start();
+        include public_path('pages/learn.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    // Learn — concept explainers
+    Route::get('/learn/what-is-an-isa', function () {
+        ob_start();
+        include public_path('pages/learn/what-is-an-isa.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/what-is-drawdown', function () {
+        ob_start();
+        include public_path('pages/learn/what-is-drawdown.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/should-i-consolidate-pensions', function () {
+        ob_start();
+        include public_path('pages/learn/should-i-consolidate-pensions.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/should-i-overpay-my-mortgage', function () {
+        ob_start();
+        include public_path('pages/learn/should-i-overpay-my-mortgage.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/what-is-salary-sacrifice', function () {
+        ob_start();
+        include public_path('pages/learn/what-is-salary-sacrifice.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/what-is-an-lpa', function () {
+        ob_start();
+        include public_path('pages/learn/what-is-an-lpa.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/what-is-a-sipp', function () {
+        ob_start();
+        include public_path('pages/learn/what-is-a-sipp.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/what-is-inheritance-tax', function () {
+        ob_start();
+        include public_path('pages/learn/what-is-inheritance-tax.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/when-should-i-make-a-will', function () {
+        ob_start();
+        include public_path('pages/learn/when-should-i-make-a-will.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/should-i-use-a-lisa-or-isa', function () {
+        ob_start();
+        include public_path('pages/learn/should-i-use-a-lisa-or-isa.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/when-can-i-afford-to-retire', function () {
+        ob_start();
+        include public_path('pages/learn/when-can-i-afford-to-retire.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/glossary', function () {
+        ob_start();
+        include public_path('pages/learn/glossary.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    // Learn — life stage guides
+    Route::get('/learn/guide/starting-out', function () {
+        ob_start();
+        include public_path('pages/learn/guide/starting-out.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/guide/building-foundations', function () {
+        ob_start();
+        include public_path('pages/learn/guide/building-foundations.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/guide/protecting-and-growing', function () {
+        ob_start();
+        include public_path('pages/learn/guide/protecting-and-growing.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/guide/planning-your-future', function () {
+        ob_start();
+        include public_path('pages/learn/guide/planning-your-future.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/guide/enjoying-your-wealth', function () {
+        ob_start();
+        include public_path('pages/learn/guide/enjoying-your-wealth.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    // Learn — tax & allowances
+    Route::get('/learn/tax/pension-annual-allowance', function () {
+        ob_start();
+        include public_path('pages/learn/tax/pension-annual-allowance.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/tax/iht-thresholds', function () {
+        ob_start();
+        include public_path('pages/learn/tax/iht-thresholds.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/tax/capital-gains-tax', function () {
+        ob_start();
+        include public_path('pages/learn/tax/capital-gains-tax.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/tax/tax-year-checklist', function () {
+        ob_start();
+        include public_path('pages/learn/tax/tax-year-checklist.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/learn/tax/isa-allowance', function () {
+        ob_start();
+        include public_path('pages/learn/tax/isa-allowance.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/calculators', function () {
+        ob_start();
+        include public_path('pages/calculators.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+}); // end public-facing pages group
 
 // ─── Save Tax campaign ───────────────────────────────────────────────────────
 // /savetax          = quick-registration questionnaire funnel (entry gate)
@@ -593,6 +625,17 @@ Route::get('/calculators', function () {
 Route::get('/savetax/plan/v3', function () {
     ob_start();
     include public_path('pages/savetax-plan-v3.php');
+
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'no-store');
+});
+
+// /savetax/plan/v4  = mockup: answer-personalised allowances, no right-hand Fyn
+// chat, compact register form, social-proof "Could this be you" band.
+Route::get('/savetax/plan/v4', function () {
+    ob_start();
+    include public_path('pages/savetax-plan-v4.php');
+
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
         ->header('Cache-Control', 'no-store');
 });
@@ -602,6 +645,7 @@ Route::get('/savetax/plan/v3', function () {
 Route::get('/m-mockup/dashboard', function () {
     ob_start();
     include public_path('pages/mobile-dashboard-mockup.php');
+
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
         ->header('Cache-Control', 'no-store');
 });
@@ -609,6 +653,7 @@ Route::get('/m-mockup/dashboard', function () {
 Route::get('/savetax/v2', function () {
     ob_start();
     include public_path('pages/savetax-v2.php');
+
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
         ->header('Cache-Control', 'no-store');
 });
@@ -616,25 +661,33 @@ Route::get('/savetax/v2', function () {
 Route::get('/savetax/plan/v2', function () {
     ob_start();
     include public_path('pages/savetax-plan-v2.php');
+
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
         ->header('Cache-Control', 'no-store');
 });
 
-Route::get('/savetax/plan', function () {
-    ob_start();
-    include public_path('pages/savetax-plan.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+// Real Save Tax funnel pages — guests only. The mockups above stay viewable
+// while logged in for design review; these live, customer-facing funnel pages
+// bounce authenticated users to the dashboard like every other public page.
+Route::middleware('redirect.authed')->group(function () {
+    Route::get('/savetax/plan', function () {
+        ob_start();
+        include public_path('pages/savetax-plan.php');
 
-Route::get('/savetax', function () {
-    ob_start();
-    include public_path('pages/savetax.php');
-    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
-        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-        ->header('Vary', 'Accept-Encoding');
-});
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/savetax', function () {
+        ob_start();
+        include public_path('pages/savetax.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+}); // end Save Tax funnel group
 
 // SP3 — mobile-first iframe scaffold. MUST be declared BEFORE the SPA catch-all
 // so phone visitors get the dedicated host + isolated mobile SPA instead of the
@@ -650,7 +703,24 @@ Route::get('/m/app/{any?}', function () {
     return view('mobile-app');
 })->where('any', '.*');
 
-// Serve Vue.js SPA for all routes (catch-all)
+// Gamified dashboard design mockup — standalone HTML for review before porting
+// into the web Dashboard. Shows mobile-web (identical to the mobile app) and an
+// expanded desktop layout. Declared before the SPA catch-all.
+Route::get('/mockup/dashboard', function () {
+    ob_start();
+    include public_path('pages/dashboard-mockup.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8']);
+});
+
+// Serve Vue.js SPA for all routes (catch-all).
+//
+// Constraint is '.+' (one-or-more), NOT '.*' (zero-or-more) on purpose: '.*'
+// lets {any} match the empty string, so this route also matches '/'. With
+// routes UNcached the static '/' route above wins by declaration order, but
+// under `php artisan route:cache` the compiled matcher lets this catch-all
+// shadow the homepage route — serving the bare SPA shell to guests instead of
+// the server-rendered landing page. '.+' requires at least one character, so
+// '/' can only resolve to the homepage route and route caching stays safe.
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '.*');
+})->where('any', '.+');

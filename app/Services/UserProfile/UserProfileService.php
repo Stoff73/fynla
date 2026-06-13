@@ -15,6 +15,7 @@ use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
+use App\Services\Gamification\PointsService;
 use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
@@ -137,9 +138,42 @@ class UserProfileService
         // Override the annual_rental_income with calculated total
         $data['annual_rental_income'] = $rentalBreakdown['total'];
 
+        $hadIncomeBefore = $this->totalGrossAnnualIncome($user) > 0;
+
         $user->update($data);
 
-        return $user->fresh();
+        $fresh = $user->fresh();
+
+        // First-capture gamification award: income transitioned empty -> set.
+        // Dedup on the key guarantees the bonus pays exactly once. Never throws.
+        if (! $hadIncomeBefore && $this->totalGrossAnnualIncome($fresh) > 0) {
+            app(PointsService::class)->award(
+                $fresh,
+                'data',
+                'data:income:first',
+                (int) config('gamification.points.data_first_in_category'),
+                ['category' => 'income'],
+            );
+        }
+
+        return $fresh;
+    }
+
+    /**
+     * Sum of all annual gross income sources on a user.
+     *
+     * Public so the gamification backfill can detect "income is set" with the
+     * exact same logic the live first-capture award uses (dedup-key parity).
+     */
+    public function totalGrossAnnualIncome(User $user): float
+    {
+        return (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
     }
 
     /**

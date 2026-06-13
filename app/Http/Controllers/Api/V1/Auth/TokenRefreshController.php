@@ -33,8 +33,10 @@ class TokenRefreshController extends Controller
             // Revoke the current token
             $currentToken->delete();
 
-            // Create a new token with 30-day expiry
-            $newToken = $user->createToken('mobile-token', ['*'], now()->addDays(30));
+            // Create a new short-lived token (rotation). TTL is config-driven
+            // (default 12h) so a leaked /m token self-expires; /m rotates on boot.
+            $ttlMinutes = (int) config('sanctum.mobile_token_ttl_minutes', 720);
+            $newToken = $user->createToken('mobile-token', ['*'], now()->addMinutes($ttlMinutes));
 
             return response()->json([
                 'success' => true,

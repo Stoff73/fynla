@@ -17,9 +17,9 @@ use App\Services\TaxConfigService;
  * Strategy #6 — Bed & ISA Capital Gains Harvest within the Annual Exempt Amount.
  *
  * Fires when the user has non-ISA holdings with positive unrealised gains
- * AND remaining ISA allowance to absorb the proceeds. Saving =
- * min(total_unrealised_gain, AEA) × CGT rate for the user's band, sized
- * by the proceeds that fit inside the remaining ISA allowance.
+ * AND remaining ISA allowance to absorb the proceeds. Saving = the gains
+ * embedded in the proceeds that fit inside the remaining ISA allowance
+ * (capped at min(total_unrealised_gain, AEA)) × CGT rate for the user's band.
  */
 final class BedAndIsaStrategy implements TaxStrategy
 {
@@ -38,6 +38,13 @@ final class BedAndIsaStrategy implements TaxStrategy
 
         $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
         $isaRemaining = max(0, $isaAllowance - $isaUsed);
+
+        // Shared-allowance allocation pass: a higher-saving ISA strategy may
+        // already have claimed part of the one overall allowance — only the
+        // remaining pool capacity is available to this evaluation.
+        if ($context->isaPoolCap !== null) {
+            $isaRemaining = min($isaRemaining, max(0.0, $context->isaPoolCap));
+        }
 
         if ($isaRemaining <= 0 || $aea <= 0) {
             return [];
@@ -101,6 +108,17 @@ final class BedAndIsaStrategy implements TaxStrategy
             $isaRemaining,
             $totalCurrentValueWithGain * ($realisableGains / $totalUnrealisedGain),
         );
+
+        // The gains actually crystallised are only those embedded in the
+        // proceeds that fit inside the remaining ISA allowance (whether the
+        // clip came from the user's own subscriptions or a shared-pool cap) —
+        // the honest saving on the smaller amount, not the full AEA figure.
+        if ($totalCurrentValueWithGain > 0.0) {
+            $realisableGains = min(
+                $realisableGains,
+                $proceeds * ($totalUnrealisedGain / $totalCurrentValueWithGain),
+            );
+        }
 
         $saving = $realisableGains * $cgtRate;
         if ($saving < 1) {

@@ -32,8 +32,8 @@
           </button>
         </div>
 
-        <!-- Limited Time Offer Banner -->
-        <div class="flex justify-center mb-4">
+        <!-- Limited Time Offer Banner — only when a launch/discount price is live -->
+        <div v-if="hasAnyLaunchOffer" class="flex justify-center mb-4">
           <span class="inline-block bg-raspberry-50 text-raspberry-500 text-base font-bold px-5 py-2 rounded-full">
             Limited Time Offer
           </span>
@@ -102,7 +102,7 @@
             </div>
             <!-- Most Popular Badge -->
             <div
-              v-else-if="plan.slug === 'family'"
+              v-else-if="plan.slug === 'tier2'"
               class="absolute -top-3 left-1/2 -translate-x-1/2"
             >
               <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-spring-500 text-white whitespace-nowrap">
@@ -174,7 +174,7 @@ import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
-const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
+const PLAN_ORDER = ['free', 'tier1', 'tier2', 'tier3'];
 
 // Student plan is gated to UK university students. Backend (PaymentController +
 // User::isEligibleForStudentPlan) is the authoritative gate; this mirrors that
@@ -262,6 +262,13 @@ export default {
       return Math.max(...this.filteredPlans.map(p => this.savingsPercentage(p)));
     },
 
+    // Only surface the "Limited Time Offer" banner when at least one visible
+    // plan actually carries a launch/discount price. The tier model prices are
+    // flat (no launch discount), so the banner stays hidden for them.
+    hasAnyLaunchOffer() {
+      return this.filteredPlans.some(p => p.launch_monthly_price || p.launch_yearly_price);
+    },
+
     headerTitle() {
       if (!this.dismissable) return 'Your Trial Has Ended';
       if (this.showAllPlans) return 'Choose Your Plan';
@@ -323,7 +330,9 @@ export default {
     },
 
     formatPrice(pence) {
-      return this.formatCurrency(pence / 100);
+      // Prices must display to the penny so the figure shown matches the amount
+      // charged (e.g. £4.99, not a rounded £5). formatCurrency drops pence.
+      return this.formatCurrencyWithPence(pence / 100);
     },
 
     savingsPercentage(plan) {
@@ -337,28 +346,12 @@ export default {
       return this.showAllPlans && plan.slug === this.currentPlan;
     },
 
-    // Render features with two adjustments vs the raw DB list:
-    //   1. Standard plan: when the Student card is hidden (user not eligible),
-    //      "Everything in Student" is meaningless — inline the Student feature
-    //      bullets so the Standard card stands on its own.
-    //   2. Family plan: always append "Parents included" + "Children for free"
-    //      as commercial add-ons, regardless of Student visibility.
+    // The three paid tiers (Tier 1/2/3) carry self-contained feature lists from
+    // tier_configurations, so the card renders the DB list verbatim — no
+    // per-slug adjustments (the legacy Student-inline and Family add-on hacks
+    // were removed when the plans were relabelled onto the tier model).
     displayFeatures(plan) {
-      const features = Array.isArray(plan.features) ? [...plan.features] : [];
-
-      if (plan.slug === 'standard' && !this.isEligibleForStudentPlan) {
-        const studentPlan = this.plans.find(p => p.slug === 'student');
-        const studentFeatures = Array.isArray(studentPlan?.features) ? studentPlan.features : [];
-        return features.flatMap(f =>
-          f === 'Everything in Student' ? [...studentFeatures] : [f]
-        );
-      }
-
-      if (plan.slug === 'family') {
-        return [...features, 'Parents included', 'Children for free'];
-      }
-
-      return features;
+      return Array.isArray(plan.features) ? plan.features : [];
     },
 
     selectAndContinue(slug) {

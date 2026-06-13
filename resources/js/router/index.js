@@ -3,6 +3,7 @@ import store from '@/store';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
 import { capabilityForRoute, isRouteGated } from '@/constants/tierAccess';
+import { getTokenSync } from '@/services/tokenStorage';
 import { hasConsent } from '@/utils/cookieConsent';
 import { shouldLoadAwin, loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag } from '@/utils/awinTracking';
 
@@ -1452,8 +1453,32 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
+  // Mobile-view handoff: the /m mobile view hosts the responsive funnel in a
+  // same-origin iframe. Once the user is authenticated and lands on an app
+  // (requiresAuth) route, swap the whole frame to the isolated mobile SPA
+  // (/m/app) instead of showing the desktop SPA inside the frame. Only the
+  // mobile view ever frames this app, so desktop is unaffected. `self !== top`
+  // is the cross-origin-safe "am I framed?" check (window.frameElement throws
+  // on a cross-origin parent; this never does).
+  let inMobileFrame = false;
+  try { inMobileFrame = window.self !== window.top; } catch (e) { inMobileFrame = true; }
+  if (inMobileFrame
+      && store.getters['auth/isAuthenticated']
+      && to.matched.some(r => r.meta.requiresAuth)) {
+    // Bridge auth across the two same-origin SPAs: the desktop app keeps its
+    // Sanctum bearer token in sessionStorage('auth_token'); the isolated mobile
+    // SPA reads localStorage('m_scaffold_token'). Copy it so /m/app lands
+    // authenticated instead of bouncing to the mobile login. localStorage is
+    // shared same-origin; both are the same Sanctum bearer token.
+    const token = getTokenSync();
+    if (token) {
+      try { localStorage.setItem('m_scaffold_token', token); } catch (e) { /* private mode */ }
+    }
+    window.location.replace(routerBase + 'm/app');
+    return next(false); // cancel the in-frame SPA nav; the frame is reloading into /m/app
+  }
+
   const isAuthenticated = store.getters['auth/isAuthenticated'];
-  const isAdmin = store.getters['auth/isAdmin'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
   // Use to.matched.some() rather than to.meta — child routes do NOT inherit
   // parent meta in Vue Router. /preview/net-worth has nested children that
@@ -1496,6 +1521,38 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
+  // Cold-boot role hydration. The user-derived getters (isAdmin/isAdvisor) read
+  // state.auth.user, which is populated either synchronously from persisted
+  // state (vuex-persistedstate path 'auth.user') or asynchronously by App.vue's
+  // fetchUser on mount. On a first-ever boot of the desktop SPA in a context
+  // that has a bearer token but no persisted user — e.g. tapping "Admin Panel"
+  // in the /m drawer, which does a top-window full-page load of /admin where
+  // only the token is bridged — neither source has populated the user yet when
+  // this guard first runs, so isAdmin is falsely false and an admin is bounced
+  // to /dashboard on the first hop (reachable only on the next nav). If a token
+  // is present but the user hasn't hydrated and this route gates on a
+  // user-derived role, fetch the user once before deciding. Mirrors the
+  // capability-matrix hydration below; runs at most once per page load.
+  if (isAuthenticated && !isPreviewMode && !store.state.auth.user
+      && to.matched.some(r => r.meta.requiresAdmin || r.meta.requiresAdvisor)) {
+    try {
+      await store.dispatch('auth/fetchUser');
+    } catch (e) {
+      // Token invalid/expired — leave state as-is; the requiresAuth / requiresAdmin
+      // branches below still apply (and API 401s force a re-login).
+    }
+  }
+
+  // Authenticated users never see the public marketing / landing pages — those
+  // exist only to convert guests; the user lives behind the auth wall in the
+  // app. Bounce them to the dashboard. Preview personas are exempt so they can
+  // still reach the landing-page persona selector. Mirrors the server-side
+  // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+    next({ name: 'Dashboard' });
+    return;
+  }
+
   // Allow access to authenticated routes when in preview mode
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   if (requiresAuth && !isAuthenticated && !isPreviewMode) {
@@ -1506,7 +1563,7 @@ router.beforeEach(async (to, from, next) => {
     // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
     // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
-  } else if (to.matched.some(r => r.meta.requiresAdmin) && !isAdmin) {
+  } else if (to.matched.some(r => r.meta.requiresAdmin) && !store.getters['auth/isAdmin']) {
     // Redirect to dashboard if route requires admin access (preview mode cannot access admin).
     // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
     // REVIEW.md §4 High #27.

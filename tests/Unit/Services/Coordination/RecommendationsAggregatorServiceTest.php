@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Agents\GoalsAgent;
+use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Estate\ComprehensiveEstatePlanService;
-use App\Services\Investment\PortfolioAnalyzer;
+use App\Services\PrerequisiteGateService;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -17,19 +20,44 @@ beforeEach(function () {
     // Mock all the services with correct types matching the constructor
     $this->protectionEngine = Mockery::mock(ProtectionAgent::class);
     $this->savingsCalculator = Mockery::mock(SavingsAgent::class);
-    $this->investmentAnalyzer = Mockery::mock(PortfolioAnalyzer::class);
+    $this->investmentAgent = Mockery::mock(InvestmentAgent::class);
     $this->retirementAgent = Mockery::mock(RetirementAgent::class);
     $this->estatePlanService = Mockery::mock(ComprehensiveEstatePlanService::class);
+    $this->goalsAgent = Mockery::mock(GoalsAgent::class);
     $this->personaliser = Mockery::mock(RecommendationPersonaliser::class);
     $this->personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
+
+    // Gate open for every module so existing module assertions remain valid
+    $this->gate = Mockery::mock(PrerequisiteGateService::class);
+    $this->gate->shouldReceive('enforce')->andReturn(['can_proceed' => true]);
+
+    // Investment and goals agents return no recommendations by default
+    $this->investmentAgent->shouldReceive('analyze')->andReturn(['data' => []]);
+    $this->investmentAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []]);
+    $this->goalsAgent->shouldReceive('analyze')->andReturn(['data' => []]);
+    $this->goalsAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []]);
+
+    // Retirement recommendations come from generateRecommendations(analyze data);
+    // default to none — tests that need retirement recs override this stub.
+    $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn(['recommendations' => []])->byDefault();
+
+    // ComposedTaxPlanService is final and cannot be Mockery-mocked — use the
+    // real service. The gate mock opens every module (including
+    // tax_optimisation), but a bare factory user (no income, no accounts,
+    // empty tax_action_definitions table) fires no strategies, so the tax
+    // block contributes no recommendations to these fixtures.
+    $this->taxPlan = app(ComposedTaxPlanService::class);
 
     $this->service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
-        $this->investmentAnalyzer,
+        $this->investmentAgent,
         $this->retirementAgent,
         $this->estatePlanService,
-        $this->personaliser
+        $this->goalsAgent,
+        $this->personaliser,
+        $this->gate,
+        $this->taxPlan
     );
 });
 
@@ -114,6 +142,13 @@ it('sorts aggregated recommendations by priority score descending', function () 
             'summary' => ['shortfall' => 5000],
         ],
     ]);
+    // Retirement recs come from the action-definition engine via
+    // generateRecommendations; priority 2 maps to score 80.
+    $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn([
+        'recommendations' => [
+            ['title' => 'Increase Pension Contributions', 'priority' => 2],
+        ],
+    ]);
 
     $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
         'implementation_timeline' => [],
@@ -123,7 +158,7 @@ it('sorts aggregated recommendations by priority score descending', function () 
 
     expect($recommendations)->toHaveCount(3);
     expect($recommendations[0]['priority_score'])->toBe(90); // Savings critical
-    expect($recommendations[1]['priority_score'])->toBe(80); // Retirement shortfall
+    expect($recommendations[1]['priority_score'])->toBe(80); // Retirement contribution increase
     expect($recommendations[2]['priority_score'])->toBe(50.0); // Protection
 });
 
@@ -380,6 +415,11 @@ it('assigns correct category based on module', function () {
             'summary' => ['shortfall' => 5000],
         ],
     ]);
+    $this->retirementAgent->shouldReceive('generateRecommendations')->andReturn([
+        'recommendations' => [
+            ['title' => 'Close pension shortfall', 'priority' => 2, 'category' => 'income_shortfall'],
+        ],
+    ]);
 
     $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
         'implementation_timeline' => [
@@ -417,10 +457,13 @@ it('handles non-numeric iht_saving gracefully during aggregation', function () {
     $service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
-        $this->investmentAnalyzer,
+        $this->investmentAgent,
         $this->retirementAgent,
         $this->estatePlanService,
-        $personaliser
+        $this->goalsAgent,
+        $personaliser,
+        $this->gate,
+        $this->taxPlan
     );
 
     $recommendations = $service->aggregateRecommendations($this->user->id);

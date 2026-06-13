@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\Estate\WillDocumentController;
 use App\Http\Controllers\Api\EstateController;
 use App\Http\Controllers\Api\EvalAuthController;
 use App\Http\Controllers\Api\FamilyMembersController;
+use App\Http\Controllers\Api\GamificationController;
 use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\GoalsController;
 use App\Http\Controllers\Api\HolisticPlanningController;
@@ -123,29 +124,32 @@ Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('t
 
 // Authentication routes
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-    Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1');
-    Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:5,1');
-    Route::post('/restore/check', [RestoreAccountController::class, 'check'])->middleware('throttle:5,1');
-    Route::post('/restore', [RestoreAccountController::class, 'restore'])->middleware('throttle:5,1');
+    // Each unauthenticated auth route uses a per-endpoint named limiter
+    // (auth-N, keyed by path|ip) so steps never throttle each other. See the
+    // limiter definitions + rationale in RouteServiceProvider::boot().
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-5');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-5');
+    Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:auth-10');
+    Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:auth-5');
+    Route::post('/restore/check', [RestoreAccountController::class, 'check'])->middleware('throttle:auth-5');
+    Route::post('/restore', [RestoreAccountController::class, 'restore'])->middleware('throttle:auth-5');
 
     // Beacon logout - accepts token in body for browser/tab close handling
     // No auth middleware since sendBeacon cannot set Authorization header
-    Route::post('/logout-beacon', [AuthController::class, 'logoutBeacon'])->middleware('throttle:10,1');
+    Route::post('/logout-beacon', [AuthController::class, 'logoutBeacon'])->middleware('throttle:auth-10');
 
     // MFA verification during login (no auth required - user is partially authenticated)
-    Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:10,1');
-    Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:5,1');
+    Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:auth-10');
+    Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:auth-5');
 
     // Password reset routes (no auth required)
     Route::prefix('password-reset')->group(function () {
-        Route::post('/request', [PasswordResetController::class, 'request'])->middleware('throttle:3,1');
-        Route::post('/verify-email', [PasswordResetController::class, 'verifyEmail'])->middleware('throttle:10,1');
-        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:3,1');
-        Route::post('/verify-mfa', [PasswordResetController::class, 'verifyMfa'])->middleware('throttle:10,1');
-        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:3,1');
-        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:3,1');
+        Route::post('/request', [PasswordResetController::class, 'request'])->middleware('throttle:auth-3');
+        Route::post('/verify-email', [PasswordResetController::class, 'verifyEmail'])->middleware('throttle:auth-10');
+        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:auth-3');
+        Route::post('/verify-mfa', [PasswordResetController::class, 'verifyMfa'])->middleware('throttle:auth-10');
+        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:auth-3');
+        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:auth-5');
     });
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -231,7 +235,7 @@ Route::prefix('news')->group(function () {
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)
     Route::get('/personas', [PreviewController::class, 'getPersonas']);
-    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:3,1');
+    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:auth-3');
 
     // Authenticated preview routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -1066,6 +1070,12 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::post('/{id}/in-progress', [RecommendationsController::class, 'markInProgress']);
     Route::post('/{id}/dismiss', [RecommendationsController::class, 'dismiss']);
     Route::patch('/{id}/notes', [RecommendationsController::class, 'updateNotes']);
+});
+
+// Gamification routes (points-and-levels engine)
+Route::middleware('auth:sanctum')->prefix('gamification')->group(function () {
+    Route::get('/status', [GamificationController::class, 'status']);
+    Route::post('/celebration/ack', [GamificationController::class, 'ackCelebration']);
 });
 
 // Tax Product Information routes (Tax status for products)

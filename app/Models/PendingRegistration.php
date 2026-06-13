@@ -38,6 +38,7 @@ class PendingRegistration extends Model
         'billing_cycle',
         'referral_code',
         'signup_source',
+        'funnel_answers',
         'expires_at',
     ];
 
@@ -48,6 +49,7 @@ class PendingRegistration extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'funnel_answers' => 'array',
     ];
 
     /**
@@ -78,6 +80,7 @@ class PendingRegistration extends Model
                 'billing_cycle' => $data['billing_cycle'] ?? null,
                 'referral_code' => $data['referral_code'] ?? null,
                 'signup_source' => $data['signup_source'] ?? null,
+                'funnel_answers' => $data['funnel_answers'] ?? null,
                 'expires_at' => now()->addHours(self::EXPIRY_HOURS),
             ]
         );

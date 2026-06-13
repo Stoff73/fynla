@@ -198,7 +198,7 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'get_recommendations',
-                'Get the user\'s personalised financial recommendations ranked by priority across all modules.',
+                'Get the user\'s personalised, ranked financial recommendations across all modules, plus a composed tax plan (composed_tax_plan) ordered by what to do first with conflicts resolved and a combined annual saving. Call this whenever the user asks what they should do, wants strategies, or asks about saving tax. Present the top 3 to 5 items in sequence order: state each title with its pound saving, quote the working for mechanical-tier items directly, hedge judgement-tier items ("you may want to consider"). If composed_tax_plan.locked is non-empty, tell the user how many further strategies unlock and what single data point each needs. Offer to go through the remaining items rather than dumping the full list.',
                 [],
                 []
             ),
@@ -356,8 +356,9 @@ class XaiToolDefinitions
                     'is_isa' => ['type' => ['boolean', 'null'], 'description' => 'Whether this is a Cash ISA. Set true if user says "ISA" or "tax-free". Default false.'],
                     'is_emergency_fund' => ['type' => ['boolean', 'null'], 'description' => 'Whether this forms part of the emergency fund. Set true if user says "emergency fund" or "rainy day". Default false.'],
                     'regular_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds, if any'],
+                    'isa_subscription_amount' => ['type' => ['number', 'null'], 'description' => 'For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. "about £100 this year" → 100). Leave null if not mentioned.'],
                 ],
-                ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'is_emergency_fund', 'regular_contribution_amount']
+                ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'is_emergency_fund', 'regular_contribution_amount', 'isa_subscription_amount']
             ),
             $this->wrapTool(
                 'create_investment_account',
@@ -380,6 +381,8 @@ class XaiToolDefinitions
                     'current_value' => ['type' => 'number', 'description' => 'Current value in pounds'],
                     'monthly_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds'],
                     'platform_fee_percent' => ['type' => ['number', 'null'], 'description' => 'Annual platform fee as a percentage (e.g. 0.15)'],
+                    'annual_dividend_income' => ['type' => ['number', 'null'], 'description' => 'Annual dividend income this account pays in pounds, when the user states it (e.g. "pays about £800 a year in dividends" → 800). Only for taxable accounts (GIA, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance.'],
+                    'isa_subscription_current_year' => ['type' => ['number', 'null'], 'description' => 'For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. "I\'ve put in £5,000 this year" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account\'s total value. Only for ISA account types; leave null for GIA and other taxable accounts.'],
                     'bond_purchase_date' => ['type' => ['string', 'null'], 'description' => 'Bond purchase date (YYYY-MM-DD). Only for onshore_bond or offshore_bond.'],
                     'bond_withdrawal_taken' => ['type' => ['number', 'null'], 'description' => 'Total 5% tax-deferred withdrawals taken (£). Only for bonds.'],
                     'company_legal_name' => ['type' => ['string', 'null'], 'description' => 'Legal name of the company. For private_company or crowdfunding.'],
@@ -440,6 +443,7 @@ class XaiToolDefinitions
                 [
                     'account_name', 'account_type', 'provider', 'current_value',
                     'monthly_contribution_amount', 'platform_fee_percent',
+                    'annual_dividend_income',
                     'bond_purchase_date', 'bond_withdrawal_taken',
                     'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
                     'investment_date', 'investment_amount', 'number_of_shares', 'price_per_share',

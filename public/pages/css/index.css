@@ -30,6 +30,14 @@
   transition: background-color 0.15s ease; white-space: nowrap;
 }
 .btn-cta-primary:hover { background: var(--spring-600); }
+.btn-cta-secondary {
+  display: inline-block; padding: 0.625rem 4rem;
+  font-size: 1.125rem; font-weight: 500;
+  color: var(--horizon-500); background: var(--white);
+  border-radius: var(--radius-button); border: none;
+  transition: background-color 0.15s ease; white-space: nowrap;
+}
+.btn-cta-secondary:hover { background: var(--white-90); }
 .hero__sublinks {
   font-size: 0.875rem; color: var(--white-70);
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
@@ -38,13 +46,44 @@
 .hero__sublink:hover { color: var(--spring-400); }
 .hero__sublink-sep { color: var(--white-40); }
 
-/* Mobile caption panels */
-.hero__mobile-panels { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; padding-bottom: 1.5rem; }
+/* Mobile hero — translucent brain card that overlaps an eggshell tray, mirroring
+   the level card on /m-mockup/dashboard. */
+.hero__mobile-panels { display: flex; flex-direction: column; margin-top: 1.5rem; }
+/* Translucent white card holding the Fynla Brain. The gradient shows faintly
+   through the top; it straddles down onto the eggshell tray below. */
+.hero__brain-card {
+  background: var(--white);
+  border: 1px solid var(--white);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  /* Fixed height so the brain image can fill it edge-to-edge. */
+  height: 14rem;
+  /* Pull the card down so it overlaps the eggshell tray (negative margin =
+     overlap depth, same technique as .md-level on the mockup). */
+  margin-bottom: -3.5rem;
+}
+/* Image fills the panel height. */
+.hero__brain-card img { height: 100%; width: auto; max-width: 100%; display: block; }
+
+/* Eggshell tray — full-bleed band at the bottom of the hero that the brain card
+   overlaps onto; holds the three value-prop panels. */
+.hero__mobile-eggshell {
+  background: var(--eggshell-500);
+  /* Top padding clears the brain card's downward overlap (-3.5rem) plus a gap. */
+  padding: 5rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 .hero__panel         { background: var(--white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm); }
 .hero__panel-title   { font-size: 1.125rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.25rem; }
 .hero__panel-body    { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.25; }
-.hero__panel--brain  { display: flex; justify-content: center; }
-.hero__panel--brain img { width: 7rem; border-radius: var(--radius-md); }
 
 /* Desktop composite */
 .hero__desktop-composite {
@@ -121,7 +160,56 @@
 .feature-grid { background: linear-gradient(to right, var(--horizon-600), var(--horizon-700)); padding: 2.5rem 0; }
 .feature-grid__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
 .feature-grid__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); text-align: center; margin-bottom: 1rem; color: var(--white); }
-.feature-grid__intro { text-align: center; color: var(--white-70); font-size: 0.875rem; max-width: 42rem; margin: 0 auto 2.5rem; line-height: 1.625; }
+.feature-grid__intro { text-align: center; color: var(--white-70); font-size: 0.875rem; max-width: 42rem; margin: 0 auto 2rem; line-height: 1.625; }
+
+/* Save-tax highlight — full width (matches the cards grid), centred content */
+.feature-savetax {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--horizon-500) 0%, var(--light-blue-500) 100%);
+  border-radius: var(--radius-card, 0.75rem);
+  padding: 2rem 1.5rem;
+  /* 80% of the container width, horizontally centred */
+  width: 80%;
+  margin: 0 auto 2.5rem;
+  box-shadow: var(--shadow-lg);
+}
+.feature-savetax__headline {
+  font-size: clamp(1.5rem, 4.5vw, 2.25rem); font-weight: 800;
+  color: var(--white); line-height: 1.2;
+}
+.feature-savetax__figure {
+  font-size: clamp(2.75rem, 9vw, 4rem); font-weight: 900;
+  color: var(--white); line-height: 1; white-space: nowrap;
+  margin: 0.25rem 0 0.5rem;
+}
+.feature-savetax__sub {
+  font-size: 0.9375rem; color: var(--white-80); line-height: 1.5;
+  max-width: 36rem; margin-bottom: 1.25rem;
+}
+.feature-savetax__cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.875rem 2rem; background: var(--raspberry-500); color: var(--white);
+  font-size: 1rem; font-weight: 700; border-radius: var(--radius-button);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  min-height: 3rem; text-align: center;
+}
+.feature-savetax__cta:hover {
+  background: var(--raspberry-600);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+.feature-savetax__cta:active { transform: translateY(0); }
+
+/* "Other ways Fyn can help you" subheading above the cards */
+.feature-grid__subheading {
+  text-align: center; color: var(--white); font-weight: 700;
+  font-size: clamp(1rem, 3vw, 1.375rem); margin: 0 0 1.5rem;
+}
+
 .feature-grid__cards { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 .feature-card { background: var(--horizon-500); border-radius: var(--radius-card); padding: 1.5rem; transition: all 0.2s ease; }
 .feature-card__icon-wrap {
@@ -327,9 +415,10 @@
    RESPONSIVE — page-specific breakpoints
    =================================================================== */
 @media (min-width: 640px) {
-  .hero__mobile-panels  { display: none; }
-  .journey-stages__grid { grid-template-columns: repeat(2, 1fr); }
-  .insights-static      { grid-template-columns: repeat(3, 1fr); }
+  .hero__mobile-panels   { display: none; }
+  .hero__mobile-eggshell { display: none; }
+  .journey-stages__grid  { grid-template-columns: repeat(2, 1fr); }
+  .insights-static       { grid-template-columns: repeat(3, 1fr); }
 }
 @media (min-width: 768px) {
   .feature-grid__cards            { grid-template-columns: repeat(2, 1fr); }

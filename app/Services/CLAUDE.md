@@ -42,40 +42,9 @@ public function __construct(
 
 ## Directory Structure
 
-Heavily-used modules have nested subdirectories; simpler modules are flat:
+`Services/{Module}/` — heavily-used modules have nested subdirectories, simpler ones are flat. Largest is `Investment/` (10 subdirs: Analytics, AssetLocation, Fees, Goals, ModelPortfolio, Performance, Rebalancing, Recommendation, Tax, Utilities); other sizeable modules include Estate, Documents (AI extraction/upload), Retirement, Goals, AI (chat/tools/streaming), Plans, Savings, Payment (Revolut/subscriptions). Most others hold a handful of services; Audit, Benefits, Business, Cache, Chattel, Dashboard, LifeStage, Marketing, NetWorth, Settings, and WhatIf hold a single service each.
 
-```
-Services/             (239 services across 35 module directories)
-  Investment/         (55 services, 10 subdirectories)
-    Analytics/, AssetLocation/, Fees/, Goals/, ModelPortfolio/,
-    Performance/, Rebalancing/, Recommendation/, Tax/, Utilities/
-  Estate/             (27 services)
-  Documents/          (17 services — AI extraction, upload handling)
-  Retirement/         (12 services)
-  Goals/              (12 services)
-  AI/                 (12 services — chat, tools, streaming)
-  Plans/              (11 services)
-  Savings/            (9 services)
-  Coordination/       (8 services)
-  Payment/            (8 services — Revolut, subscriptions)
-  Protection/         (7 services)
-  Auth/               (5 services)
-  Insights/           (5 services)
-  Onboarding/         (5 services)
-  UserProfile/        (5 services)
-  Property/           (4 services)
-  Tax/                (4 services)
-  Admin/, Advisor/, GDPR/, Mobile/  (3 services each)
-  Risk/, Shared/, Trust/            (2 services each)
-
-  Root files (module-agnostic):
-  TaxConfigService.php         (centralised tax lookups)
-  UKTaxCalculator.php          (primary tax calculation engine)
-  TaxBandTracker.php           (tax band allocation across income sources)
-  PrerequisiteGateService.php  (onboarding readiness gates)
-```
-
-Smaller modules (Audit, Benefits, Business, Cache, Chattel, Dashboard, LifeStage, Marketing, NetWorth, Settings, WhatIf) each contain a single service.
+**Module-agnostic root files:** `TaxConfigService` (centralised tax lookups), `UKTaxCalculator` (primary tax engine), `TaxBandTracker` (band allocation across income sources), `PrerequisiteGateService` (onboarding readiness gates).
 
 ## TaxConfigService
 

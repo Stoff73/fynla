@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExpenditureProfile extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -43,5 +44,10 @@ class ExpenditureProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function gamificationCategory(): string
+    {
+        return 'expenditure';
     }
 }

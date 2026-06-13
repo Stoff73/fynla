@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -96,6 +97,16 @@ final class TaxStrategyMath
     }
 
     /**
+     * Marginal income-tax rate for an arbitrary gross income figure, without
+     * needing a User model. Used by HouseholdFinancialContext to price a
+     * dual-earner spouse's rate from the household input's spouse_annual_income.
+     */
+    public function bandRateFromIncome(float $income): float
+    {
+        return $this->bandRateForBand($this->bandFromIncome($income));
+    }
+
+    /**
      * Marginal income-tax rate for a given band ('basic' / 'higher' /
      * 'additional'), sourced from TaxConfigService['income_tax']['bands'].
      * Falls back to HMRC 2025/26 defaults only if the band can't be matched
@@ -181,25 +192,54 @@ final class TaxStrategyMath
 
     public function estimateIsaSubscriptionsThisYear(User $user): float
     {
-        // P0.6 — only count ISAs OPENED in the current tax year as
-        // current-year subscriptions. Older ISAs hold balances from prior
-        // years' allowances; counting their full balance against this
-        // year's £20,000 cap makes a £25k old-ISA holder look "fully
-        // subscribed" and suppresses legitimate top-up / LISA / Bed&ISA
-        // suggestions for the current year.
+        // P0.6 / Task 4 — Prefer explicit per-account subscription amounts captured
+        // during onboarding ("how much have you put in this tax year?"). The
+        // isa_subscription_year field stores the tax-year label in 'YYYY/YY' format
+        // (e.g. '2026/27'), matching TaxConfigService::getTaxYear().
         //
-        // This is still a proxy (a user might top up an old ISA mid-year
-        // without opening a new account), but it's strictly conservative —
-        // we under-estimate rather than over-estimate, and the strategy
-        // layer caps the suggestion at the £20k allowance regardless.
-        // Replace with a per-subscription log when one exists.
-        $taxYearStart = $this->taxConfig->getEffectiveFrom();
+        // If ANY account has a captured amount for the current tax year, sum those
+        // amounts and return early — they are direct user input and strictly more
+        // accurate than the proxy.
+        //
+        // Fallback (no captured amounts): P0.6 proxy — sum balances of ISAs OPENED
+        // in the current tax year. This is conservative (under-estimates top-ups to
+        // older accounts) but better than over-estimating against the £20k cap.
+        // The strategy layer caps suggestions at the allowance regardless.
+        $currentTaxYear = $this->taxConfig->getTaxYear(); // e.g. '2026/27'
 
         // forUser() is joint-aware; the Collection-level where('user_id')
         // post-filter preserves the original single-owner sum.
-        $accounts = app(SavingsStore::class)->forUser($user)
+        $allIsas = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', true);
+
+        // Prefer captured per-account subscription amounts for the current tax year.
+        $capturedCash = $allIsas
+            ->where('isa_subscription_year', $currentTaxYear)
+            ->filter(fn ($a) => $a->isa_subscription_amount !== null)
+            ->sum('isa_subscription_amount');
+
+        // Stocks & shares / investment ISAs subscribe against the SAME £20k
+        // allowance but live on investment_accounts (account_type 'isa') under
+        // isa_subscription_current_year — NOT savings_accounts. Without this the
+        // allowance is over-stated for anyone with an S&S ISA, so ISA top-up
+        // strategies recommend wrapping more than the user can still subscribe.
+        // Mirrors the household allowance accounting in HouseholdPlanningService.
+        // (ISAs are never jointly owned, so primary-owner scope is exhaustive.)
+        $capturedInvestment = InvestmentAccount::where('user_id', $user->id)
+            ->where('account_type', 'isa')
+            ->sum('isa_subscription_current_year');
+
+        $captured = (float) $capturedCash + (float) $capturedInvestment;
+
+        if ($captured > 0) {
+            return $captured;
+        }
+
+        // Fallback: created-this-tax-year proxy (P0.6 original logic, unchanged).
+        $taxYearStart = $this->taxConfig->getEffectiveFrom();
+
+        $accounts = $allIsas;
 
         if ($taxYearStart !== '') {
             // created_at is a Carbon cast; Collection::where string comparison

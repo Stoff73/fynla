@@ -1,6 +1,5 @@
 <template>
-  <AppLayout>
-    <div class="cash-overview module-gradient">
+  <div class="cash-overview module-gradient">
       <ModuleStatusBar />
     <!-- Account Detail View (when account selected) -->
     <SavingsAccountDetailInline
@@ -326,7 +325,6 @@
       />
     </Teleport>
     </div>
-  </AppLayout>
 </template>
 
 <script>
@@ -342,14 +340,12 @@ import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 
 import logger from '@/utils/logger';
 export default {
   name: 'CashOverview',
 
   components: {
-    AppLayout,
     AccountSummaryPanel,
     CashInsightsPanel,
     CashActionsPanel,

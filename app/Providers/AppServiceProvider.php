@@ -7,10 +7,13 @@ namespace App\Providers;
 use Anthropic\Client;
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
+use App\Models\RecommendationTracking;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
+use App\Observers\RecommendationTrackingObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\XaiClient;
+use App\Services\Gamification\LevelUpCollector;
 use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
 use App\Services\Lifecycle\LifecycleEngine;
 use App\Services\Lifecycle\LifecycleSnapshotService;
@@ -34,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
         // agent that takes one as a constructor dep to re-run the lookup.
         $this->app->scoped(TaxConfigService::class);
         $this->app->scoped(PlanConfigService::class);
+
+        // Request-scoped collector that surfaces in-turn gamification level-ups
+        // to the SSE/API layer (one instance per request).
+        $this->app->scoped(LevelUpCollector::class);
 
         // Register both AI client singletons — runtime provider selection happens
         // in HasAiChat/HasAiGuardrails via cache check (admin toggle)
@@ -89,6 +96,7 @@ class AppServiceProvider extends ServiceProvider
 
         InsightArticle::observe(InsightArticleObserver::class);
         DocumentArticle::observe(DocumentArticleObserver::class);
+        RecommendationTracking::observe(RecommendationTrackingObserver::class);
     }
 
     /**

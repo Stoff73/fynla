@@ -10,7 +10,7 @@
         </h1>
         <p class="text-lg text-white/70">
           <template v-if="isAuthenticated">Choose the plan that's right for you.</template>
-          <template v-else>Start with a 7-day free trial on any plan. No credit card required.</template>
+          <template v-else>Start free, then upgrade whenever you're ready. No credit card required.</template>
         </p>
       </div>
     </div>
@@ -78,10 +78,6 @@
               <p v-if="isYearly && tierMonthlyEquivalent(tier)" class="text-sm text-spring-500 mt-1">{{ tierMonthlyEquivalent(tier) }}</p>
             </div>
 
-            <div v-if="!isAuthenticated" class="inline-flex items-center px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
-              7-day free trial
-            </div>
-
             <ul class="space-y-3 mb-8 flex-1">
               <li v-if="index > 0" class="text-white/80 text-sm font-medium">
                 Everything in {{ tiers[index - 1].display_name }}, plus:
@@ -97,7 +93,7 @@
             </ul>
 
             <button
-              @click="startTrial(tier.tier)"
+              @click="selectTier(tier.tier)"
               class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
             >
               {{ ctaLabel }}
@@ -118,8 +114,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-horizon-500 mb-1">7-Day Free Trial</h3>
-            <p class="text-sm text-neutral-500">Try any plan risk-free. No credit card required to start.</p>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">Free to Start</h3>
+            <p class="text-sm text-neutral-500">Begin on the Free tier and upgrade whenever you like. No credit card required.</p>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-3">
@@ -187,7 +183,7 @@
         <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to take control of your finances?</h2>
         <p class="text-neutral-500 mb-8">
           <template v-if="isAuthenticated">Upgrade your plan to unlock more features.</template>
-          <template v-else>Start your 7-day free trial today. No credit card required.</template>
+          <template v-else>Start free today. No credit card required.</template>
         </p>
         <router-link
           to="/register"
@@ -242,7 +238,7 @@ export default {
     ...mapGetters('auth', ['isAuthenticated']),
 
     ctaLabel() {
-      return this.isAuthenticated ? 'Upgrade now' : 'Start Free Trial';
+      return this.isAuthenticated ? 'Upgrade now' : 'Get started free';
     },
 
     // Feature the most-popular badge: second-from-top tier when present.
@@ -263,7 +259,7 @@ export default {
   mounted() {
     document.title = 'Pricing — Simple, Transparent Plans | Fynla';
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Start with a 7-day free trial. Choose the Fynla tier that fits — from the Free tier to higher tiers with full estate planning and unlimited accounts. No credit card required.');
+    if (meta) meta.setAttribute('content', 'Choose the Fynla tier that fits — from the Free tier to higher tiers with full estate planning and unlimited accounts. Start free, no credit card required.');
     this.fetchTiers();
   },
 
@@ -340,7 +336,7 @@ export default {
         });
     },
 
-    startTrial(tierKey) {
+    selectTier(tierKey) {
       // Pass the tier KEY (free/tier1/tier2/tier3), never a legacy slug (§5.2).
       if (this.isAuthenticated) {
         this.$router.push({

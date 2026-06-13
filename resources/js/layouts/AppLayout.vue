@@ -22,10 +22,11 @@
     >
       <!-- Header is sticky so the top nav stays visible while dashboards scroll under it.
            Offset by 44px when the AdvisorBanner (fixed, z-50) is present so they don't overlap.
-           z-30 keeps it below modals (typically z-50) and the SideMenu (z-60). -->
+           z-[45] sits above the docked Fyn chat (z-40) so the nav dropdowns (Support /
+           user menu) open OVER the chat, while staying below modals (z-50) and SideMenu (z-60). -->
       <div
         ref="appHeader"
-        class="sticky z-30 bg-eggshell-500"
+        class="sticky z-[45] bg-eggshell-500"
         :class="isImpersonating ? 'top-[44px]' : 'top-0'"
       >
         <AppNavbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
@@ -55,17 +56,7 @@
       </div>
 
       <!-- Content area -->
-      <!--
-        Phase 13 — when the user is mid-onboarding AND the chat is in
-        wide layout (data-capture or path-choice states, not the
-        profile-review pauses), blur the main dashboard content so the
-        focus is the chat. Switched back on entry to a pause state
-        via the onboarding_layout_change SSE event → store.onboardingLayout.
-      -->
-      <main
-        class="flex-grow bg-eggshell-500 transition-all duration-300"
-        :class="dashboardBlurClass"
-      >
+      <main class="flex-grow bg-eggshell-500 transition-all duration-300">
         <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
@@ -238,11 +229,9 @@ export default {
     },
 
     /**
-     * Dashboard blur class — active when the user is mid-onboarding and
-     * the director has signalled the wide chat layout (data-capture or
-     * path-choice turns). Profile-review pauses use layout='standard'
-     * which un-blurs so the user can see both the chat and the
-     * ProfileReviewPanel at once.
+     * True while the Fyn-driven onboarding is active. Gates the wide-chat
+     * wrapper width and the profile-review route push (see asideWidthClass
+     * and the onboardingLayout watcher).
      */
     isOnboardingRoute() {
       const path = this.$route?.path || '';
@@ -251,14 +240,9 @@ export default {
       // onboarding from /dashboard?openFyn=journey. Dashboard.vue strips
       // the query param immediately, leaving the app at /dashboard while
       // the onboarding director is still driving the conversation. In
-      // that case the wide-chat wrapper + dashboard blur must activate
-      // here even though the URL no longer says /onboarding.
+      // that case the wide-chat wrapper must activate here even though the
+      // URL no longer says /onboarding.
       return this.isOnboardingActive;
-    },
-
-    dashboardBlurClass() {
-      if (!this.isOnboardingRoute) return '';
-      return this.onboardingLayout === 'standard' ? '' : 'filter blur-[4px] pointer-events-none';
     },
 
     /**
