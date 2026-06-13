@@ -3010,8 +3010,15 @@ PROMPT;
         // Mirror handleAssetCaptureTurn: derive the focus from the
         // CaptureContext and carry it for the duration of the turn (no-op
         // under legacy — the property is only read on the unified path).
+        // The `?? 'savings'` fallback is the deflection guarantee: a turn that
+        // reached handleInlineCapture is a write the classifier or the LLM
+        // delegate_to_capture path has ALREADY cleared, so it must stay in
+        // capture mode even when the entity type has no module focus (e.g. an
+        // LLM-emitted entity the map below doesn't know). A null focus here
+        // demotes the turn to advice mode, the CAPTURE bucket is dropped, and
+        // the model deflects with the security refusal (June13 §6c).
         $unifiedFocus = FynPromptMode::isUnified()
-            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? null)
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? 'savings')
             : null;
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
@@ -3307,6 +3314,15 @@ PROMPT;
                 'savings_account', 'cash_account' => 'savings',
                 'dc_pension', 'db_pension', 'pension' => 'retirement',
                 'investment_account', 'holding' => 'investment',
+                'goal', 'life_event' => 'goals',
+                'business_interest', 'business' => 'business',
+                // Net-worth + estate-planning records share the Estate focus —
+                // its tool hint (create_property/asset/liability/gift/chattel)
+                // is the closest match and, critically, keeps the turn in
+                // capture mode so FynCaptureTurnInstructions are injected.
+                'property', 'mortgage', 'asset', 'liability',
+                'estate_gift', 'gift', 'chattel',
+                'will', 'power_of_attorney', 'trust' => 'estate',
                 default => null,
             };
             if ($focus !== null && ! in_array($focus, $focuses, true)) {

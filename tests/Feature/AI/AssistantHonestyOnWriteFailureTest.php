@@ -92,6 +92,10 @@ it('AdviceFyn passes assistant honesty text through unchanged when a write tool 
     // than fabricating success. The chain MUST deliver the content event
     // unchanged — no rewriting, no stripping.
     $agent = Mockery::mock(CoordinatingAgent::class);
+    // The 'goal' write intent now carries the 'goals' capture focus (deflection
+    // fix, June13 §6c), so FynLoop sets it on the agent. Allow it without
+    // weakening the strict chatWithPromptOverride expectation.
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {

@@ -89,3 +89,87 @@ it('strips onboarding_layout_change and quick_replies, passes fill_form and cont
     // Handoff invisibility — no persona_state_change ever emitted.
     expect($types)->not->toContain('persona_state_change');
 });
+
+/**
+ * Capture-turn framing regression (deflection fix, June13 §6c).
+ *
+ * handleInlineCapture is DEFINITIONALLY a capture turn — a write intent the
+ * deterministic classifier or the LLM delegate_to_capture path has already
+ * cleared. It must NEVER be framed as advice: a null unifiedFocus makes
+ * injectUnifiedTurnContext pick mode='advice', FynContextSelector drops the
+ * CAPTURE bucket, FynCaptureTurnInstructions are never injected, and the
+ * capture-turn model falls back to the security refusal ("I can only help
+ * with financial planning questions…") instead of calling create_*.
+ *
+ * The bug: inferFocusesFromEntityTypes only mapped protection/savings/
+ * retirement/investment, so property, mortgage, liability, goal, life_event,
+ * and every estate entity (asset, will, trust, power_of_attorney, gift,
+ * chattel, business_interest) derived a null focus → advice framing → deflect.
+ *
+ * This pins that a non-null focus reaches the loop (via setUnifiedOnboardingFocus)
+ * for every captureable entity type.
+ */
+it('frames the inline capture as a capture turn (non-null focus) for every captureable entity type', function (string $entityType) {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $capturedFocus = null;
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')
+        ->andReturnUsing(function ($focus) use (&$capturedFocus) {
+            if ($focus !== null) {
+                $capturedFocus = $focus;
+            }
+        });
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            yield ['type' => 'content', 'text' => 'Recorded.'];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    /** @var OnboardingChatDirector $director */
+    $director = app(OnboardingChatDirector::class);
+
+    $context = new CaptureContext(
+        reason: "user is adding their own {$entityType}",
+        entityTypes: [$entityType],
+    );
+
+    iterator_to_array(
+        $director->handleInlineCapture($user, $conversation, "Please add my {$entityType}", $context),
+        false,
+    );
+
+    expect($capturedFocus)->not->toBeNull(
+        "Capture turn for entity '{$entityType}' was framed as advice (null focus) — the capture instructions are dropped and the model deflects."
+    );
+})->with([
+    'goal' => ['goal'],
+    'life_event' => ['life_event'],
+    'property' => ['property'],
+    'mortgage' => ['mortgage'],
+    'liability' => ['liability'],
+    'asset' => ['asset'],
+    'estate_gift' => ['estate_gift'],
+    'chattel' => ['chattel'],
+    'trust' => ['trust'],
+    'will' => ['will'],
+    'power_of_attorney' => ['power_of_attorney'],
+    'business_interest' => ['business_interest'],
+    'family_member' => ['family_member'],
+    // sanity: the already-working module types must keep their focus
+    'savings_account' => ['savings_account'],
+    'pension' => ['pension'],
+]);
