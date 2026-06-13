@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -213,13 +214,26 @@ final class TaxStrategyMath
             ->where('is_isa', true);
 
         // Prefer captured per-account subscription amounts for the current tax year.
-        $captured = $allIsas
+        $capturedCash = $allIsas
             ->where('isa_subscription_year', $currentTaxYear)
             ->filter(fn ($a) => $a->isa_subscription_amount !== null)
             ->sum('isa_subscription_amount');
 
-        if ((float) $captured > 0) {
-            return (float) $captured;
+        // Stocks & shares / investment ISAs subscribe against the SAME £20k
+        // allowance but live on investment_accounts (account_type 'isa') under
+        // isa_subscription_current_year — NOT savings_accounts. Without this the
+        // allowance is over-stated for anyone with an S&S ISA, so ISA top-up
+        // strategies recommend wrapping more than the user can still subscribe.
+        // Mirrors the household allowance accounting in HouseholdPlanningService.
+        // (ISAs are never jointly owned, so primary-owner scope is exhaustive.)
+        $capturedInvestment = InvestmentAccount::where('user_id', $user->id)
+            ->where('account_type', 'isa')
+            ->sum('isa_subscription_current_year');
+
+        $captured = (float) $capturedCash + (float) $capturedInvestment;
+
+        if ($captured > 0) {
+            return $captured;
         }
 
         // Fallback: created-this-tax-year proxy (P0.6 original logic, unchanged).
