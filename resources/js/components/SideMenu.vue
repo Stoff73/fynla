@@ -89,6 +89,7 @@
         <!-- Planning -->
         <SideMenuSection label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
           <SideMenuItem icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="calculator" label="Tax Strategy" :collapsed="effectiveCollapsed" :active="isActive('/tax-strategy')" :active-colour="currentStage ? stageColour : ''" @action="openTaxStrategy" />
           <SideMenuItem icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -448,6 +449,24 @@ export default {
       closeMobile();
     };
 
+    // Tax Strategy nav: if the user has finished onboarding their personalised
+    // plan exists, so go straight to the page. If not, resume the tax-plan
+    // capture in Fyn instead (the onboarding / savetax campaign) — opening the
+    // dock lets AiChatPanel.onOpen pick the conversation back up via
+    // onboarding_fyn_step rather than dropping them on an empty page.
+    const openTaxStrategy = () => {
+      closeMobile();
+      const user = store.getters['auth/currentUser'];
+      if (user && user.onboarding_completed) {
+        if (route.path !== '/tax-strategy') {
+          router.push('/tax-strategy');
+        }
+      } else {
+        store.dispatch('aiChat/open');
+        window.dispatchEvent(new Event('fyn-open-chat'));
+      }
+    };
+
     const handleLogout = async () => {
       closeMobile();
       try {
@@ -541,6 +560,7 @@ export default {
       toggleCollapsed,
       closeMobile,
       openBugReport,
+      openTaxStrategy,
       handleLogout,
       isPreviewMode,
       currentPlanSlug,
