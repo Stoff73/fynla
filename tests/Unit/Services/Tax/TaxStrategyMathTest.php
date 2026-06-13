@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -126,6 +128,39 @@ describe('estimateIsaSubscriptionsThisYear', function () {
             'is_isa' => false,
             'current_balance' => 50000,
             'created_at' => now(),
+        ]);
+
+        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);
+    });
+
+    // Regression: Stocks & Shares / investment ISAs subscribe against the SAME
+    // £20k allowance but live on investment_accounts (account_type 'isa') under
+    // isa_subscription_current_year. Pre-fix the helper read only savings_accounts,
+    // so an S&S-ISA subscriber's allowance was over-stated and ISA top-up
+    // strategies recommended wrapping more cash than they could still subscribe.
+    it('counts a stocks & shares (investment) ISA subscription against the same allowance', function () {
+        $user = User::factory()->create();
+        InvestmentAccount::factory()->for($user)->create([
+            'account_type' => 'isa',
+            'isa_type' => 'stocks_and_shares',
+            'isa_subscription_current_year' => 5000,
+        ]);
+
+        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(5000.0);
+    });
+
+    it('sums cash ISA and investment ISA subscriptions toward the one allowance', function () {
+        $user = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => true,
+            'isa_subscription_amount' => 3000,
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
+            'current_balance' => 3000,
+            'created_at' => now(),
+        ]);
+        InvestmentAccount::factory()->for($user)->create([
+            'account_type' => 'isa',
+            'isa_subscription_current_year' => 5000,
         ]);
 
         expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);
