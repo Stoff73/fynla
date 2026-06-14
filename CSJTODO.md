@@ -1,6 +1,13 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-13 — context-clear wrap, session 2. **Full production release shipped + verified.** `dev → main` (#549, 342 commits, 5 migrations) deployed to fynla.org; prod verified end-to-end on web AND `/m`. Also this session: web dashboard parity #546, ISA calc fix #547, ISA tool-capture + Fyn deflection carve-out #548; Azlan re-test GREEN on csjones. main = dev; nothing in flight. Handover: `June/June13Updates/handover-2026-06-13-session-2-clear.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
+
+## 2026-06-14 — Session 1: write-intent classifier goal-precedence fix (end-of-day; dev @ b78409a5, prod unchanged)
+
+Handover: `June/June15Updates/handover-2026-06-15-session-1.md`.
+- **#552** `WriteIntentClassifier` now prefers an explicit goal noun (`goal` / `savings goal` / `target`) over an incidental asset keyword — "add a goal to save £25,000 for a house deposit" routes to a **goal** capture, not property (matched "house"). Pure precedence change (`goal` was already the last entry, so the set of non-null results is unchanged); conservative verb + question guards untouched. Added a `WriteIntentClassifierTest` case (TDD: RED→GREEN). 407 AI unit tests green, Pint clean. Admin-merged to dev, deployed csjones (backend-only, no `public/build/` rebuild).
+- CLAUDE.md metrics table refreshed during vault-sync (Vue 691→674, PHP Services 359→400, Controllers 120→122, Models 127→128 — verified against actual counts).
+- Resolves the deferred precedence bug noted in `feedback_advice_fyn_capture_deflection_partial.md`. The **#2 advice-Fyn deflection** item (below) remains open.
 
 ## 2026-06-13 — Session 2: dashboard parity, ISA fixes, Fyn deflection, FULL PROD RELEASE (context-clear; dev @ 2386915, main @ 2905c62, prod current)
 
