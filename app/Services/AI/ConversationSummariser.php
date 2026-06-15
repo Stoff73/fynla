@@ -99,18 +99,25 @@ class ConversationSummariser
             return;
         }
 
-        foreach ($this->synthesiser->synthesise($conversation->id, $transcript) as $fact) {
-            ProposedSemanticFact::updateOrCreate(
-                ['user_id' => $conversation->user_id, 'fact_id' => $fact['fact_id'], 'status' => 'pending'],
-                [
-                    'derived_from_conversation_id' => $conversation->id,
-                    'category' => 'user_profile',
-                    'title' => $fact['title'],
-                    'body' => $fact['body'],
-                    'valid_from' => $fact['valid_from'] ?: null,
-                    'valid_to' => $fact['valid_to'] ?: null,
-                ],
-            );
+        try {
+            foreach ($this->synthesiser->synthesise($conversation->id, $transcript) as $fact) {
+                ProposedSemanticFact::updateOrCreate(
+                    ['user_id' => $conversation->user_id, 'fact_id' => $fact['fact_id'], 'status' => 'pending'],
+                    [
+                        'derived_from_conversation_id' => $conversation->id,
+                        'category' => 'user_profile',
+                        'title' => $fact['title'],
+                        'body' => $fact['body'],
+                        'valid_from' => $fact['valid_from'] ?: null,
+                        'valid_to' => $fact['valid_to'] ?: null,
+                    ],
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[ConversationSummariser] proposed-fact staging failed', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
