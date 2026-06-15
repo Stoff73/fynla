@@ -232,6 +232,30 @@ final class FynLoop
 
         // Cycle cap exhausted (only reachable via repeated learn/retrieve
         // no-ops). Emit the canonical defer response (FR-M6 scenario 7).
+
+        // FR-M (Phase 6) — the turn exhausted its cycle cap without answering: a
+        // workflow-failure signal. When learning is enabled, give the planner one
+        // final consult framed on the failure so it may propose a procedure
+        // amendment (staged for engineering review, NEVER auto-applied). Bounded
+        // to a single extra consult; flag-gated so the common path is untouched.
+        if (config('fyn.learning_enabled', false)) {
+            try {
+                $closing = $this->planner->plan(
+                    $plannerSystem."\n\n## Workflow failure\nThis turn exhausted its cycle cap without answering the user. If a named procedure is at fault, emit a `learn` action with store=procedural proposing an amendment (procedure_id, problem_observed, proposed_fix, rationale, failure_type). Otherwise emit no_action.",
+                    [['role' => 'user', 'content' => $message]],
+                );
+
+                if ($closing->type === ActionType::Learn && $closing->store() === 'procedural') {
+                    $this->stageProcedureAmendment($conversation, $closing->payload());
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[FynLoop] failure-consult failed', [
+                    'conversation_id' => $conversation->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         yield from $this->emitNoAction();
     }
 
