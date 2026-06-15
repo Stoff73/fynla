@@ -6,6 +6,8 @@ namespace App\Services\AI\Loop;
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\ProposedProcedureAmendment;
+use App\Models\ProposedSemanticFact;
 use App\Models\User;
 use App\Services\AI\Actions\ActionType;
 use App\Services\AI\AdviceFyn;
@@ -190,10 +192,14 @@ final class FynLoop
 
                 case ActionType::Learn:
                     // FR-M2 — the planner decided this turn is worth remembering
-                    // (it applied the rubric). Write the episode, then re-plan.
-                    if ($action->store() === 'episodic') {
-                        $this->recordEpisode($user, $conversation, $action->payload());
-                    }
+                    // (it applied the rubric). Dispatch to the correct staging
+                    // method, then re-plan within the cycle cap.
+                    match ($action->store()) {
+                        'episodic' => $this->recordEpisode($user, $conversation, $action->payload()),
+                        'semantic' => $this->stageProposedFact($user, $conversation, $action->payload()),
+                        'procedural' => $this->stageProcedureAmendment($conversation, $action->payload()),
+                        default => null,
+                    };
 
                     continue 2;
 
@@ -278,6 +284,62 @@ final class FynLoop
                 'conversation_id' => $conversation->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * CoALA Phase 6 — stage a proposed semantic fact (status='pending', never
+     * auto-applied). Flag-gated and guarded — a staging failure must never break
+     * a turn.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function stageProposedFact(User $user, AiConversation $conversation, array $payload): void
+    {
+        if (! config('fyn.learning_enabled', false) || empty($payload['fact_id'])) {
+            return;
+        }
+
+        try {
+            ProposedSemanticFact::updateOrCreate(
+                ['user_id' => $user->id, 'fact_id' => (string) $payload['fact_id'], 'status' => 'pending'],
+                [
+                    'derived_from_conversation_id' => $conversation->id,
+                    'category' => 'user_profile',
+                    'title' => (string) ($payload['title'] ?? $payload['fact_id']),
+                    'body' => (string) ($payload['body'] ?? ''),
+                ],
+            );
+        } catch (\Throwable $e) {
+            Log::warning('[FynLoop] stageProposedFact failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * CoALA Phase 6 — stage a proposed procedure amendment (status='pending',
+     * never auto-applied, never writes the procedural corpus). Flag-gated and
+     * guarded — a staging failure must never break a turn.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function stageProcedureAmendment(AiConversation $conversation, array $payload): void
+    {
+        if (! config('fyn.learning_enabled', false) || empty($payload['procedure_id'])) {
+            return;
+        }
+
+        try {
+            ProposedProcedureAmendment::create([
+                'procedure_id' => (string) $payload['procedure_id'],
+                'problem_observed' => (string) ($payload['problem_observed'] ?? ''),
+                'proposed_fix' => (string) ($payload['proposed_fix'] ?? ''),
+                'rationale' => (string) ($payload['rationale'] ?? ''),
+                'failure_type' => (string) ($payload['failure_type'] ?? ''),
+                'conversation_id' => $conversation->id,
+                'status' => 'pending',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[FynLoop] stageProcedureAmendment failed', ['error' => $e->getMessage()]);
         }
     }
 
