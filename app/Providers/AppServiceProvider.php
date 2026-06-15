@@ -17,6 +17,8 @@ use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\AI\Memory\Recall\RecallScorer;
+use App\Services\AI\Memory\Recall\SparseRecallScorer;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandlerRegistry;
 use App\Services\AI\Pointers\Handlers\RecommendationHandler;
@@ -114,6 +116,13 @@ class AppServiceProvider extends ServiceProvider
         // Procedural corpus loader — singleton so the in-memory corpus + 60s
         // re-stat throttle persist within a request (and across requests under Octane).
         $this->app->singleton(ProceduralCorpusLoader::class);
+
+        // CoALA Phase 6 — relevance-ranked episodic recall (sparse token-overlap).
+        // Dense embedding implementation is the deferred drop-in (CSJ 2026-06-01).
+        $this->app->bind(
+            RecallScorer::class,
+            SparseRecallScorer::class,
+        );
 
         // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(

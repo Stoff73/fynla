@@ -167,7 +167,7 @@ final class FynLoop
         // recalled episodes + (once authored) the episodic-capture rubric. Empty
         // layers when nothing is authored yet, so behaviour is unchanged until
         // the stores have content.
-        $plannerSystem = $this->plannerSystemPrompt($user);
+        $plannerSystem = $this->plannerSystemPrompt($user, $message);
 
         // FR-M14 — surface "Fyn is thinking…" while the planner runs, before any
         // reasoner output exists.
@@ -247,12 +247,12 @@ final class FynLoop
      * Each layer is empty until authored, so this equals the bare planner prompt
      * while the stores are empty.
      */
-    private function plannerSystemPrompt(User $user): string
+    private function plannerSystemPrompt(User $user, string $query): string
     {
         $layers = array_values(array_filter([
             self::PLANNER_SYSTEM_PROMPT,
             $this->memory->proceduralContext(),
-            $this->memory->recallContext($user->id),
+            $this->memory->recallContext($user->id, $query),
         ], static fn (string $layer): bool => trim($layer) !== ''));
 
         $rubric = $this->memory->rubric();

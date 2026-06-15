@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Memory;
 
+use App\Services\AI\Memory\Recall\RecallScorer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -149,36 +150,42 @@ final class FynMemoryStore
     }
 
     /**
-     * Recall a user's most recent episodes (newest first). Episode filenames are
-     * date-prefixed, so a reverse name sort is recency order without parsing.
+     * Recall a user's episodes. With $query, episodes are relevance-ranked
+     * (sparse) then capped; without it, recency order (newest first). Recency is
+     * the tiebreak because the candidate set is gathered newest-first before
+     * scoring.
      *
      * @return list<array{meta: array<string, mixed>, body: string, path: string}>
      */
-    public function recall(int $userId, int $limit = 5): array
+    public function recall(int $userId, ?string $query = null, int $limit = 5): array
     {
         $userDir = $this->userEpisodeDir($userId);
         if (! File::isDirectory($userDir)) {
             return [];
         }
 
-        // episodes live at {userDir}/{year}/{file}.md
         $files = File::glob($userDir.'/*/*.md') ?: [];
-        rsort($files);
-        $files = array_slice($files, 0, max(0, $limit));
+        rsort($files); // newest first (date-prefixed filenames)
 
-        return array_map(function (string $path): array {
+        $episodes = array_map(function (string $path): array {
             [$meta, $body] = $this->parse(File::get($path));
 
             return ['meta' => $meta, 'body' => trim($body), 'path' => $path];
         }, $files);
+
+        if ($query !== null && trim($query) !== '') {
+            $episodes = app(RecallScorer::class)->rank($query, $episodes);
+        }
+
+        return array_slice($episodes, 0, max(0, $limit));
     }
 
     /**
      * Recalled episodes as a context block. Empty string when the user has none.
      */
-    public function recallContext(int $userId, int $limit = 5): string
+    public function recallContext(int $userId, ?string $query = null, int $limit = 5): string
     {
-        $episodes = $this->recall($userId, $limit);
+        $episodes = $this->recall($userId, $query, $limit);
         if ($episodes === []) {
             return '';
         }

@@ -57,7 +57,7 @@ it('recalls newest first within the limit', function () {
     $this->store->writeEpisode(11, 1, ['summary' => 'newest one']);
     Carbon::setTestNow();
 
-    $recalled = $this->store->recall(11, 2);
+    $recalled = $this->store->recall(11, null, 2);
 
     expect($recalled)->toHaveCount(2)
         ->and($recalled[0]['body'])->toContain('newest one')
