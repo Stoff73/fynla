@@ -13,6 +13,7 @@ use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Coordination\PlanSources\SavingsStrategySource;
 use App\Services\Coordination\PlanSources\TaxStrategySource;
 use App\Services\Goals\GoalAffordabilityService;
+use App\Services\Goals\LifeEventService;
 
 /**
  * The cross-module composite plan: gathers every module's composed plan, ranks
@@ -30,6 +31,7 @@ final class CompositePlanService
         private readonly ComposedModulePlanService $plans,
         private readonly CashFlowCoordinator $cashFlow,
         private readonly GoalAffordabilityService $goalAffordability,
+        private readonly LifeEventService $lifeEvents,
         private readonly TaxStrategySource $tax,
         private readonly RetirementStrategySource $retirement,
         private readonly SavingsStrategySource $savings,
@@ -85,10 +87,25 @@ final class CompositePlanService
         $goals = $this->goalAffordability->analyzeAllGoals($user);
         $goalCommitments = (float) ($goals['total_goal_commitments'] ?? 0);
 
+        // Near-term (next 12 months) net life-event capital — a positive figure
+        // is incoming capital (e.g. an inheritance) that can fund a lump-sum
+        // strategy beyond the monthly surplus; a negative figure is a near-term
+        // drain the plan should respect. Summed by expected_date so imminent
+        // (this-year) events count — the year-bucketed cash-flow map treats them
+        // as "year 0" and would miss them. Surfaced as context, not folded into
+        // the monthly surplus (a one-off lump sum is not a monthly figure).
+        $horizon = now()->addYear();
+        $nearTermCapital = (float) $this->lifeEvents->getActiveEventsForProjection($user->id)
+            ->filter(fn ($event) => $event->expected_date !== null && $event->expected_date->lte($horizon))
+            ->sum(fn ($event) => $event->impact_type === 'expense'
+                ? -(float) $event->amount
+                : (float) $event->amount);
+
         return [
             'available_monthly_surplus' => $surplus,
             'goal_commitments' => $goalCommitments,
             'effective_surplus' => max(0.0, $surplus - $goalCommitments),
+            'near_term_capital' => $nearTermCapital,
             'goals' => $goals,
         ];
     }
