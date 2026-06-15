@@ -1,10 +1,32 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-15 — context-clear wrap, session 2. **Built CoALA Phase 6** (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (PR #554, `fae710c`), suite 5030/0; deployed + live-E2E-verified on csjones with real xAI. Wrote + approved the **cross-module plan composer spec** (parked, CoALA-native). **NEXT SESSION: write the composer implementation plan (`superpowers:writing-plans`) → build.** Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.*
+*Last updated: 2026-06-15 — end-of-day wrap, session 3. **Built the cross-module plan composer backend, Phases 1–4 (core)** — TDD, byte-identity-pinned. Two open PRs to dev: **#558** (Phases 1–3: generalised composer + 5 module sources + Fyn-reachable handlers/pointers) and **#559** (Phase 4: composite plan — affordability + goals + life-events, stacked on #558). 215 composer-area tests green; tax byte-identical throughout. Nothing deployed (in PRs). **NEXT SESSION: Phase 5 (surfaces — aggregator wire-through + `/holistic-plan` web + net-new `/m`), then Phase 6 (E2E).** Handover: `June/June16Updates/handover-2026-06-16-session-1.md`. Plan: `docs/superpowers/plans/2026-06-15-cross-module-plan-composer.md`.*
+
+*Prior: 2026-06-15 — context-clear wrap, session 2. **Built CoALA Phase 6** (gated learning), 13 tasks subagent-driven, merged to dev (PR #554, `fae710c`), suite 5030/0; deployed + live-E2E-verified on csjones. Wrote + approved the **cross-module plan composer spec**. Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.*
 
 *Prior: 2026-06-15 — session start. Live-verified the #552 fix end-to-end (advice-Fyn "add a goal to save £25,000 for a house deposit" → **goal** capture, Goal #2240 written, no property deflection). Doc-hygiene: marked the "#2 advice-Fyn deflection" item RESOLVED.*
 
 *Prior: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
+
+## 2026-06-15 — Session 3: cross-module plan composer Phases 1–4 (end-of-day; two PRs to dev, nothing deployed)
+
+Handover: `June/June16Updates/handover-2026-06-16-session-1.md`. Plan: `docs/superpowers/plans/2026-06-15-cross-module-plan-composer.md`. Spec: `docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md`.
+- **Phase 1 (PR #558)** — generalised the tax composer **byte-identically**: `StrategyRecommendation` nullable cost fields (null-omitted → tax serialises identically), `ModuleStrategySource`, `ComposedModulePlanService`, `TaxStrategySource`, `ComposedTaxPlanService`→facade. `planDigest` parity + golden masters green.
+- **Phase 2 (PR #558)** — `strategy_type` migration (5 non-tax tables) + `ModuleAvailabilityProvider` (non-tax `required_data` vocabulary) + 5 module sources (Retirement reference inline; Savings/Investment/Protection/Estate subagent-built) each with adapter + source + `source='strategy'` catalogue rows + tests; vocabulary guard test.
+- **Phase 3 core (PR #558)** — `ModulePlanHandler` + 5 concretes registered in `FetchHandlerRegistry`; 5 tool-mode pointers (reindex green); golden baselines recaptured. **Every module reachable via Fyn.**
+- **Phase 4 core (PR #559, stacked on #558)** — `CompositePlanService` (affordability rank+annotate, nothing dropped) + goals-as-demands (effective surplus) + near-term life-event capital; `CrossModulePlanHandler` + `cross-module-plan` pointer.
+
+### Outstanding (cross-module composer)
+- [ ] **NEXT: Phase 5 — surfaces** — `RecommendationsAggregatorService` wire-through (5 non-tax composed plans); `/holistic-plan` web composite view; **net-new `/m` holistic screen** (no mobile holistic surface exists — Rule #19 gap). UI + browser-test heavy. PR to dev after.
+- [ ] **Phase 6 — full suite + browser E2E** (web + `/m`, Rule #14). PR to dev after.
+- [ ] **Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — ~19 non-tax advisory narratives NOT auto-generated (Rule #16); composer works without them. Needs CSJ: draft descriptively or author personally.
+- [ ] **Task 4.4 — episodic recall de-ranking (DEFERRED)** — needs deterministic episode-payload analysis (`FynMemoryStore::recall`), not a fuzzy heuristic.
+- [ ] **Merge order:** #558 (Phases 1–3) BEFORE #559 (Phase 4). #557 closed (superseded by #558).
+- [ ] **Deploy** (after merge): 1 new migration in #558 (`2026_06_16_000001_add_strategy_type_to_non_tax_action_definitions`) → `migrate --force`. Backend-only, no Vite rebuild yet.
+
+### Tech debt noted (targeted self-audit)
+- [ ] Adapter category→strategy_type maps are heuristic (tested vs hand-built recs, not live agent output for every category) — Phase 6 E2E should confirm fired strategies match catalogue rows.
+- [ ] Some seeded strategies may never *fire* via the source path (e.g. investment fee triggers need account data) — they still lock correctly when data is missing.
 
 ## 2026-06-15 — Session 2: CoALA Phase 6 built + cross-module composer spec (context-clear; dev @ fae710c, prod pre-Phase-6)
 
