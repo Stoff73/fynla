@@ -12,6 +12,7 @@ use App\Services\Coordination\PlanSources\ProtectionStrategySource;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Coordination\PlanSources\SavingsStrategySource;
 use App\Services\Coordination\PlanSources\TaxStrategySource;
+use App\Services\Goals\GoalAffordabilityService;
 
 /**
  * The cross-module composite plan: gathers every module's composed plan, ranks
@@ -28,6 +29,7 @@ final class CompositePlanService
     public function __construct(
         private readonly ComposedModulePlanService $plans,
         private readonly CashFlowCoordinator $cashFlow,
+        private readonly GoalAffordabilityService $goalAffordability,
         private readonly TaxStrategySource $tax,
         private readonly RetirementStrategySource $retirement,
         private readonly SavingsStrategySource $savings,
@@ -37,7 +39,7 @@ final class CompositePlanService
     ) {}
 
     /**
-     * @return array{items: list<array<string,mixed>>, by_module: array<string, array<string,mixed>>, locked: list<array<string,mixed>>, available_monthly_surplus: float}
+     * @return array{items: list<array<string,mixed>>, by_module: array<string, array<string,mixed>>, locked: list<array<string,mixed>>, available_monthly_surplus: float, goal_commitments: float, effective_surplus: float, goals: array<string,mixed>}
      */
     public function compose(User $user): array
     {
@@ -60,13 +62,34 @@ final class CompositePlanService
             }
         }
 
-        $surplus = (float) $this->cashFlow->calculateAvailableSurplus($user->id);
+        $financials = $this->financials($user);
 
-        return [
-            'items' => $this->annotateAffordability($items, $surplus),
+        return array_merge([
+            'items' => $this->annotateAffordability($items, $financials['effective_surplus']),
             'by_module' => $byModule,
             'locked' => $locked,
+        ], $financials);
+    }
+
+    /**
+     * The household money picture the strategy ranking competes for: the monthly
+     * surplus, less active-goal contributions (committed demands the strategies
+     * must give way to), floored at zero. Goals enter the composite as demands —
+     * a strategy is ranked against what is left after the user's own goals.
+     *
+     * @return array{available_monthly_surplus: float, goal_commitments: float, effective_surplus: float, goals: array<string,mixed>}
+     */
+    public function financials(User $user): array
+    {
+        $surplus = (float) $this->cashFlow->calculateAvailableSurplus($user->id);
+        $goals = $this->goalAffordability->analyzeAllGoals($user);
+        $goalCommitments = (float) ($goals['total_goal_commitments'] ?? 0);
+
+        return [
             'available_monthly_surplus' => $surplus,
+            'goal_commitments' => $goalCommitments,
+            'effective_surplus' => max(0.0, $surplus - $goalCommitments),
+            'goals' => $goals,
         ];
     }
 
