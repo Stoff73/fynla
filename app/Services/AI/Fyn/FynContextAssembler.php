@@ -111,7 +111,7 @@ final class FynContextAssembler
         // at runtime we degrade to no knowledge block (the backbone still covers
         // the user). Sparse, effective-dated to today.
         try {
-            $knowledgeFacts = $this->semantic->retrieve($ctx->message, Carbon::now());
+            $knowledgeFacts = $this->semantic->retrieveForUser($ctx->user->id, $ctx->message);
         } catch (\Throwable $e) {
             report($e);
             $knowledgeFacts = [];

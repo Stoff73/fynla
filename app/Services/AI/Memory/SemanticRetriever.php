@@ -31,7 +31,7 @@ final class SemanticRetriever
     public const STOPWORDS = [
         'the', 'a', 'an', 'and', 'or', 'but',
         'how', 'what', 'when', 'where', 'which', 'who', 'why',
-        'should', 'would', 'could', 'can',
+        'will', 'shall', 'should', 'would', 'could', 'can',
         'do', 'does', 'did', 'is', 'are', 'was', 'were', 'have', 'has', 'had',
         'i', 'me', 'my', 'we', 'our', 'you', 'your', 'they', 'their',
         'it', 'its', 'this', 'that', 'these', 'those',
@@ -40,7 +40,10 @@ final class SemanticRetriever
         'please', 'tell', 'show',
     ];
 
-    public function __construct(private readonly SemanticCorpusLoader $loader) {}
+    public function __construct(
+        private readonly SemanticCorpusLoader $loader,
+        private readonly UserSemanticStore $userStore,
+    ) {}
 
     /**
      * @param  list<string>|null  $categories  null = all categories
@@ -87,6 +90,65 @@ final class SemanticRetriever
         $topK = max(0, (int) config('fyn.memory.semantic_top_k', 4));
 
         return array_map(fn (array $r): SemanticFact => $r['fact'], array_slice($scored, 0, $topK));
+    }
+
+    /**
+     * Global corpus matches PLUS this user's approved per-user facts, both
+     * filtered by the same sparse relevance grammar. Returns the SAME
+     * list<SemanticFact> type as retrieve() so the assembler treats both
+     * uniformly. When the user has no approved facts the result is byte-
+     * identical to retrieve() (empty-store no-op invariant).
+     *
+     * User facts are appended AFTER global results (global facts rank higher
+     * because they were authored by CSJ against the corpus grammar; per-user
+     * facts are always admitted when they match, regardless of score, so
+     * personal context is never crowded out by a high-scoring global fact).
+     * The combined list is capped at recall_top_k (global) + user facts that
+     * match — user facts count separately so they never displace global ones.
+     *
+     * @return list<SemanticFact> global matches followed by matching user facts
+     */
+    public function retrieveForUser(int $userId, string $message): array
+    {
+        $global = $this->retrieve($message, Carbon::now());
+
+        $userRaw = $this->userStore->forUser($userId);
+        if ($userRaw === []) {
+            return $global;
+        }
+
+        $terms = array_values(array_diff($this->tokenise($message), self::STOPWORDS));
+        if ($terms === []) {
+            return $global;
+        }
+
+        $required = min(2, count($terms));
+
+        $userFacts = [];
+        foreach ($userRaw as $raw) {
+            $haystack = mb_strtolower(($raw['title'] ?? '').' '.($raw['body'] ?? ''));
+            $counts = $this->termCounts($haystack);
+            $distinct = 0;
+            foreach ($terms as $term) {
+                if ($this->termHits($term, $counts) > 0) {
+                    $distinct++;
+                }
+            }
+            if ($distinct >= $required) {
+                $userFacts[] = new SemanticFact(
+                    factId: (string) $raw['fact_id'],
+                    category: 'user_profile',
+                    title: (string) $raw['title'],
+                    source: '',
+                    version: 1,
+                    validFrom: null,
+                    validTo: null,
+                    body: (string) $raw['body'],
+                );
+            }
+        }
+
+        return array_values(array_merge($global, $userFacts));
     }
 
     /**
