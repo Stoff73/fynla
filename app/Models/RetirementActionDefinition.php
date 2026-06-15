@@ -14,6 +14,7 @@ class RetirementActionDefinition extends Model
     protected $fillable = [
         'key',
         'source',
+        'strategy_type',
         'title_template',
         'description_template',
         'action_template',
