@@ -20,3 +20,10 @@ it('writes and reads a per-user fact, isolated by user', function () {
         ->and($store->forUser(7)[0]['body'])->toContain('2041')
         ->and($store->forUser(99))->toBe([]);
 });
+
+it('rejects a factId that sanitises to an empty filename', function () {
+    $store = new UserSemanticStore;
+
+    expect(fn () => $store->put(7, '!@#$', 'Bad', 'Body'))
+        ->toThrow(InvalidArgumentException::class);
+});

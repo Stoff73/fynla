@@ -20,7 +20,12 @@ final class UserSemanticStore
     {
         $dir = $this->userDir($userId);
         File::ensureDirectoryExists($dir);
-        $path = $dir.'/'.preg_replace('/[^a-z0-9\-]/', '', mb_strtolower($factId)).'.md';
+
+        $filename = preg_replace('/[^a-z0-9\-]/', '', mb_strtolower($factId));
+        if ($filename === '') {
+            throw new \InvalidArgumentException("factId '{$factId}' produces an empty filename after sanitisation.");
+        }
+        $path = $dir.'/'.$filename.'.md';
 
         $meta = ['fact_id' => $factId, 'category' => 'user_profile', 'title' => $title, 'version' => 1];
         File::put($path, "---\n".Yaml::dump($meta, 4, 2)."---\n\n".trim($body)."\n");
