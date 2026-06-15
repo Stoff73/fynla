@@ -184,3 +184,9 @@
 - Status: clean except two pre-existing untracked docs + CLAUDE.md metrics refresh (committed in wrap)
 - Shipped: WriteIntentClassifier goal/property keyword-precedence fix (explicit goal noun wins over incidental asset keyword; "add a goal for a house deposit" → goal, not property). TDD'd; 407 AI unit tests green. Resolves the precedence bug flagged in feedback_advice_fyn_capture_deflection_partial.
 - Next: CSJ — optional live /m+web confirm of goal-capture; dev → main release when CSJ decides (this fix + #546–#551 ride the next prod release); #2 advice-Fyn deflection eval-driven fix still open
+
+## 2026-06-15 — session 2 (context-clear)
+- Handover: [[handover-2026-06-15-session-2-clear]]
+- Branch: docs/session-2026-06-15-clear (Phase 6 built on coala-phase-6-learning → dev via #554)
+- Shipped: CoALA Phase 6 (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (fae710c), suite 5030/0; deployed + live-E2E-verified on csjones. Cross-module composer spec written + approved (parked).
+- Next: write the cross-module plan composer implementation plan (superpowers:writing-plans) from docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md, then build.
