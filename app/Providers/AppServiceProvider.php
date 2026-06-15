@@ -21,6 +21,7 @@ use App\Services\AI\Memory\Recall\RecallScorer;
 use App\Services\AI\Memory\Recall\SparseRecallScorer;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandlerRegistry;
+use App\Services\AI\Pointers\Handlers\CrossModulePlanHandler;
 use App\Services\AI\Pointers\Handlers\EstatePlanHandler;
 use App\Services\AI\Pointers\Handlers\InvestmentPlanHandler;
 use App\Services\AI\Pointers\Handlers\ProtectionPlanHandler;
@@ -96,6 +97,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(InvestmentPlanHandler::class),
                 $app->make(ProtectionPlanHandler::class),
                 $app->make(EstatePlanHandler::class),
+                $app->make(CrossModulePlanHandler::class),
             ]);
         });
 
