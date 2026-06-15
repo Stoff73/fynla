@@ -57,5 +57,16 @@ return [
         'semantic_top_k' => (int) env('FYN_SEMANTIC_TOP_K', 4),
         'pointers_path' => base_path('fyn-memory/procedural/pointers'),
         'procedural_reload_interval' => (int) env('FYN_PROCEDURAL_RELOAD_INTERVAL', 60),
+        'user_semantic_path' => storage_path('app/memory/semantic-user'),
+        'recall_top_k' => (int) env('FYN_RECALL_TOP_K', 5),
     ],
+
+    /*
+     * CoALA Phase 6 — gated learning.
+     *
+     * When false (the default) the learning pipeline is fully inactive:
+     * no facts are staged, no procedure amendments are queued.
+     * Flip to true (FYN_LEARNING_ENABLED=true) to enable the review flow.
+     */
+    'learning_enabled' => (bool) env('FYN_LEARNING_ENABLED', false),
 ];

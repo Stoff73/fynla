@@ -134,6 +134,8 @@ const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
 const AiCostDashboard = () => import('@/views/Admin/AiCostDashboard.vue');
 const EpisodicComplianceLog = () => import('@/views/Admin/EpisodicComplianceLog.vue');
 const ProceduralCorpusViewer = () => import('@/views/Admin/ProceduralCorpusViewer.vue');
+const ProposedSemanticFactsViewer = () => import('@/views/Admin/ProposedSemanticFactsViewer.vue');
+const ProposedProcedureAmendmentsViewer = () => import('@/views/Admin/ProposedProcedureAmendmentsViewer.vue');
 const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
@@ -1234,6 +1236,34 @@ const routes = [
         { label: 'Home', path: '/dashboard' },
         { label: 'Admin Panel', path: '/admin' },
         { label: 'Procedural memory', path: '/admin/procedural-corpus' },
+      ],
+    },
+  },
+  {
+    path: '/admin/proposed-facts',
+    name: 'ProposedSemanticFactsViewer',
+    component: ProposedSemanticFactsViewer,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Proposed facts', path: '/admin/proposed-facts' },
+      ],
+    },
+  },
+  {
+    path: '/admin/proposed-amendments',
+    name: 'ProposedProcedureAmendmentsViewer',
+    component: ProposedProcedureAmendmentsViewer,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Proposed amendments', path: '/admin/proposed-amendments' },
       ],
     },
   },

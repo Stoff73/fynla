@@ -144,6 +144,8 @@ arch('services are organized by module')
         'App\Services\AI\Loop\SessionMode',
         // CoALA pointer registry: FetchHandler is the whitelist-registry interface, not a class
         'App\Services\AI\Pointers\FetchHandler',
+        // CoALA Phase 6: RecallScorer is the ranking interface (sparse impl in SparseRecallScorer)
+        'App\Services\AI\Memory\Recall\RecallScorer',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()

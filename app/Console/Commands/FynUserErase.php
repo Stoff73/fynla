@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\Memory\Episodic\EpisodeBlobLocator;
+use App\Services\AI\Memory\UserSemanticStore;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -18,14 +19,18 @@ use Illuminate\Support\Facades\DB;
  *
  * Blobs are deleted FIRST — they are addressed by blob_md_path on the rows, so
  * once the rows are gone the paths are lost. Dry-run by default; --force to execute.
+ *
+ * CoALA Phase 6: also erases the user's per-user semantic facts
+ * (UserSemanticStore, storage/app/memory/semantic-user/{userId}/). The forget()
+ * call is gated on --force, mirroring the episodic blob deletion above.
  */
 final class FynUserErase extends Command
 {
     protected $signature = 'fyn:user:erase {user : The user id to erase} {--force : Execute the erasure (default is dry-run)}';
 
-    protected $description = "Erase a user's episodic data across SQL rows and .md blobs (hot + cold). Dry-run unless --force.";
+    protected $description = "Erase a user's episodic data across SQL rows and .md blobs (hot + cold), and per-user semantic facts. Dry-run unless --force.";
 
-    public function handle(EpisodeBlobLocator $locator): int
+    public function handle(EpisodeBlobLocator $locator, UserSemanticStore $semanticStore): int
     {
         $userId = (int) $this->argument('user');
 
@@ -43,11 +48,12 @@ final class FynUserErase extends Command
 
         $episodeCount = (clone $messageQuery)->count();
         $blobCount = (clone $messageQuery)->whereNotNull('blob_md_path')->count();
+        $semanticFactCount = count($semanticStore->forUser($userId));
 
         $force = (bool) $this->option('force');
 
         if (! $force) {
-            $this->info("Would erase {$episodeCount} episodes ({$blobCount} blobs) for user {$userId} (dry-run). Use --force to execute.");
+            $this->info("Would erase {$episodeCount} episodes ({$blobCount} blobs), {$semanticFactCount} per-user semantic facts for user {$userId} (dry-run). Use --force to execute.");
 
             return self::SUCCESS;
         }
@@ -66,7 +72,10 @@ final class FynUserErase extends Command
             DB::table('ai_conversations')->where('user_id', $userId)->delete();
         });
 
-        $this->info("Erased {$episodesDeleted} episodes, {$blobsDeleted} blobs for user {$userId}.");
+        // Phase 3: delete per-user semantic facts (CoALA Phase 6).
+        $semanticStore->forget($userId);
+
+        $this->info("Erased {$episodesDeleted} episodes, {$blobsDeleted} blobs, {$semanticFactCount} per-user semantic facts for user {$userId}.");
 
         return self::SUCCESS;
     }
