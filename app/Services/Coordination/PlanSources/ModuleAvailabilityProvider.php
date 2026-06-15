@@ -7,6 +7,7 @@ namespace App\Services\Coordination\PlanSources;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
+use App\Models\Investment\RiskProfile;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Stores\InvestmentAccountStore;

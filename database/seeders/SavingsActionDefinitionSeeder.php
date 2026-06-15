@@ -21,7 +21,7 @@ class SavingsActionDefinitionSeeder extends Seeder
 {
     public function run(): void
     {
-        $definitions = $this->getDefinitions();
+        $definitions = array_merge($this->getDefinitions(), $this->getStrategyDefinitions());
 
         foreach ($definitions as $definition) {
             SavingsActionDefinition::updateOrCreate(
@@ -833,5 +833,58 @@ class SavingsActionDefinitionSeeder extends Seeder
                 'notes' => 'Triggers when one partner has fully used ISA allowance and the other has remaining.',
             ],
         ];
+    }
+
+    /**
+     * source='strategy' catalogue rows for the cross-module plan composer.
+     * strategy_type values match the slugs SavingsRecommendationAdapter emits;
+     * required_data keys are drawn from ModuleAvailabilityProvider::forModule('savings').
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getStrategyDefinitions(): array
+    {
+        $rows = [
+            [
+                'strategy_type' => 'build_emergency_fund',
+                'category' => 'Emergency Fund',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['savings_balances', 'emergency_fund_target_known'],
+                'sequencing' => ['do_before' => ['move_to_high_interest', 'regular_savings_habit'], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'move_to_high_interest',
+                'category' => 'Rate Optimisation',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['savings_balances'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'regular_savings_habit',
+                'category' => 'Goal',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['emergency_fund_target_known'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+        ];
+
+        return array_map(static function (array $row): array {
+            return array_merge([
+                'key' => 'strategy_'.$row['strategy_type'],
+                'source' => 'strategy',
+                'title_template' => $row['strategy_type'],
+                'description_template' => 'Computed by the savings plan source.',
+                'action_template' => null,
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'contribution',
+                'trigger_config' => [],
+                'is_enabled' => true,
+                'sort_order' => 200,
+                'notes' => 'Strategy catalogue row for the cross-module plan composer.',
+            ], $row);
+        }, $rows);
     }
 }
