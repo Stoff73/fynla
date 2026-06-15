@@ -1,8 +1,25 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-15 — session start. Live-verified the #552 fix end-to-end (advice-Fyn "add a goal to save £25,000 for a house deposit" → **goal** capture, Goal #2240 written, no property deflection). Doc-hygiene: marked the "#2 advice-Fyn deflection PARTIAL" item RESOLVED (stale framing — #551 fixed the real root cause, #552 the precedence bug; only the evidence-gated refusal-recovery guard remains deferred). No code shipped this pass.*
+*Last updated: 2026-06-15 — context-clear wrap, session 2. **Built CoALA Phase 6** (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (PR #554, `fae710c`), suite 5030/0; deployed + live-E2E-verified on csjones with real xAI. Wrote + approved the **cross-module plan composer spec** (parked, CoALA-native). **NEXT SESSION: write the composer implementation plan (`superpowers:writing-plans`) → build.** Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.*
+
+*Prior: 2026-06-15 — session start. Live-verified the #552 fix end-to-end (advice-Fyn "add a goal to save £25,000 for a house deposit" → **goal** capture, Goal #2240 written, no property deflection). Doc-hygiene: marked the "#2 advice-Fyn deflection" item RESOLVED.*
 
 *Prior: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
+
+## 2026-06-15 — Session 2: CoALA Phase 6 built + cross-module composer spec (context-clear; dev @ fae710c, prod pre-Phase-6)
+
+Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.
+- **CoALA Phase 6 (gated learning actions) — built, reviewed, merged to dev (PR #554, `fae710c`).** (A) session→per-user-semantic promotion (human-reviewed; `ProposedFactSynthesiser` → `proposed_semantic_facts` → `/admin/proposed-facts` → `SemanticFactPromoter` → `UserSemanticStore` → `retrieveForUser`); (B) procedure-amendment proposals (engineering-reviewed, never auto-applied; `/admin/proposed-amendments`); (C) sparse `RecallScorer` recall in the planner. `FYN_LEARNING_ENABLED` default OFF; no-auto-apply invariant tested; `FynSystemPrompt` byte-invariant untouched. Suite 5030/0. 13 tasks subagent-driven (each spec + code-quality reviewed + a final holistic review).
+- **Deployed to csjones + live-E2E-verified with real xAI** (synthesised durable figure-free facts → staged → approved in the admin UI → per-user store). Both admin surfaces browser-walked (local + csjones).
+- **Cross-module plan composer spec written + approved** (`docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md`, CoALA-native) — parked pending its implementation plan; Phase 6 (its substrate dependency) is now in place.
+
+### Outstanding
+- [ ] **NEXT: cross-module plan composer** — write the implementation plan (`superpowers:writing-plans`) from the approved spec, then build (subagent-driven). **Supersedes** the old "author non-tax catalogue metadata" item below (that's now consumer-first inside the composer).
+- [ ] **csjones has `FYN_LEARNING_ENABLED=true`** — left on as the test venue (ongoing 30-min stale-scan synthesis cost). Revert if unwanted: `sed -i 's/^FYN_LEARNING_ENABLED=.*/FYN_LEARNING_ENABLED=false/' .env && php artisan config:cache`.
+- [ ] **Local `public/build/` is now CSJONES-configured** (rebuilt for the Phase 6 deploy) — any PROD deploy needs `./deploy/fynla-org/build.sh` FIRST.
+- [ ] **Prod (`main`) is pre-CoALA + pre-Phase-6** (last release #549, 2026-06-13). A `dev → main` release (incl. #550 CoALA + Phase 6's 2 migrations + default-off flag; no corpus reindex) is CSJ's call.
+- [ ] A1 (session-end episode consolidation) deferred per CSJ — synthesiser reads the transcript directly.
+- [ ] 3 untracked unknown-provenance files in the tree (`docs/diagrams/fyn-turn-lifecycle.excalidraw`, `June/June15Updates/2026-06-15-fyn-system-prompt-build-walkthrough.md`, `.claude/skills/excalidraw/scripts/__pycache__/`) — left untracked.
 
 ## 2026-06-14 — Session 1: write-intent classifier goal-precedence fix (end-of-day; dev @ b78409a5, prod unchanged)
 
