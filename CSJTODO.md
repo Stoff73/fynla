@@ -1,13 +1,15 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-15 — session start. Live-verified the #552 fix end-to-end (advice-Fyn "add a goal to save £25,000 for a house deposit" → **goal** capture, Goal #2240 written, no property deflection). Doc-hygiene: marked the "#2 advice-Fyn deflection PARTIAL" item RESOLVED (stale framing — #551 fixed the real root cause, #552 the precedence bug; only the evidence-gated refusal-recovery guard remains deferred). No code shipped this pass.*
+
+*Prior: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
 
 ## 2026-06-14 — Session 1: write-intent classifier goal-precedence fix (end-of-day; dev @ b78409a5, prod unchanged)
 
 Handover: `June/June15Updates/handover-2026-06-15-session-1.md`.
 - **#552** `WriteIntentClassifier` now prefers an explicit goal noun (`goal` / `savings goal` / `target`) over an incidental asset keyword — "add a goal to save £25,000 for a house deposit" routes to a **goal** capture, not property (matched "house"). Pure precedence change (`goal` was already the last entry, so the set of non-null results is unchanged); conservative verb + question guards untouched. Added a `WriteIntentClassifierTest` case (TDD: RED→GREEN). 407 AI unit tests green, Pint clean. Admin-merged to dev, deployed csjones (backend-only, no `public/build/` rebuild).
 - CLAUDE.md metrics table refreshed during vault-sync (Vue 691→674, PHP Services 359→400, Controllers 120→122, Models 127→128 — verified against actual counts).
-- Resolves the deferred precedence bug noted in `feedback_advice_fyn_capture_deflection_partial.md`. The **#2 advice-Fyn deflection** item (below) remains open.
+- Resolves the deferred precedence bug noted in `feedback_advice_fyn_capture_deflection_partial.md`. The **#2 advice-Fyn deflection** item (below) is **RESOLVED** by #551 (focus-null capture-turn fix) + #552 (precedence) — only the evidence-gated refusal-recovery guard remains deferred.
 
 ## 2026-06-13 — Session 2: dashboard parity, ISA fixes, Fyn deflection, FULL PROD RELEASE (context-clear; dev @ 2386915, main @ 2905c62, prod current)
 
@@ -19,7 +21,7 @@ Handover: `June/June13Updates/handover-2026-06-13-session-2-clear.md`.
 - Azlan savetax journey re-tested GREEN on csjones (recording verified). Insights "featured" = **keep May fallback** (answered, no change).
 
 ### Outstanding
-- [ ] **The #2 advice-Fyn deflection fix is PARTIAL** — needs eval-driven prompt tuning and/or a deterministic capture-routing layer. Live carve-out reduced but didn't eliminate it. See `feedback_advice_fyn_capture_deflection_partial.md`.
+- [x] **The #2 advice-Fyn deflection is RESOLVED** (not "PARTIAL" — that framing was stale vs the memory file). Real root cause was the capture-turn focus-null mis-framing, fixed in **PR #551** (expanded the `inferFocusesFromEntityTypes` map + non-null `'savings'` fallback in `handleInlineCapture` so a cleared capture can never be re-framed as advice; 15-case `InlineCaptureFlowTest` + suite 4,981 green). The separate `WriteIntentClassifier` precedence bug is fixed in **PR #552** — **re-verified live end-to-end 2026-06-15** ("add a goal to save £25,000 for a house deposit" → goal capture, `Goal` row `home_deposit` £25k written, zero property deflection). Only the **post-stream refusal-recovery guard** stays deferred: "add only on fresh evidence" — none seen. See `feedback_advice_fyn_capture_deflection_partial.md`.
 - [ ] **Local `public/build/` is PROD-configured** — rebuild with `./deploy/csjones-fynla/build.sh` before any csjones deploy.
 - [ ] **coala→dev landing programme** (deferred; own spec/plan; worktree `~/Desktop/fynla-coala`; 224 commits ahead).
 - [ ] Author non-tax module catalogue `required_data`/`sequencing` metadata (null by design today — only tax authored).
