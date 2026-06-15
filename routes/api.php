@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
 use App\Http\Controllers\Api\Admin\ProceduralCorpusController;
 use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
+use App\Http\Controllers\Api\Admin\SemanticFactReviewController;
 use App\Http\Controllers\Api\Admin\TierConfigurationController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdvisorController;
@@ -1182,6 +1183,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('/procedural-corpus', [ProceduralCorpusController::class, 'index']);
     Route::get('/procedural-corpus/{procedureId}', [ProceduralCorpusController::class, 'show'])
         ->where('procedureId', '.*');
+
+    // CoALA Phase 6 — admin review surface for proposed per-user semantic facts.
+    Route::get('/semantic-facts', [SemanticFactReviewController::class, 'index']);
+    Route::patch('/semantic-facts/{fact}', [SemanticFactReviewController::class, 'update']);
 
     // Database backup - list (read-only, no rate limit)
     Route::middleware(['permission:admin.backup'])->group(function () {
