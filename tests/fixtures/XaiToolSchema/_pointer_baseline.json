@@ -1,4 +1,9 @@
 [
+    "fetch_estate_plan",
+    "fetch_investment_plan",
     "fetch_isa_annual_allowance",
-    "fetch_recommendations"
+    "fetch_protection_plan",
+    "fetch_recommendations",
+    "fetch_retirement_plan",
+    "fetch_savings_plan"
 ]
