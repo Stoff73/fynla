@@ -1,4 +1,5 @@
 [
+    "fetch_cross_module_plan",
     "fetch_estate_plan",
     "fetch_investment_plan",
     "fetch_isa_annual_allowance",
