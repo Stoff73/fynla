@@ -1053,6 +1053,9 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('holistic')->group(fu
     Route::get('/recommendations', [HolisticPlanningController::class, 'recommendations']);
     Route::get('/cash-flow-analysis', [HolisticPlanningController::class, 'cashFlowAnalysis']);
 
+    // Cross-module composite plan (affordability-ranked, goal/life-event aware)
+    Route::get('/composite-plan', [HolisticPlanningController::class, 'compositePlan']);
+
     // Recommendation tracking
     Route::post('/recommendations/{id}/mark-done', [HolisticPlanningController::class, 'markRecommendationDone']);
     Route::post('/recommendations/{id}/in-progress', [HolisticPlanningController::class, 'markRecommendationInProgress']);
