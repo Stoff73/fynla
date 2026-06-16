@@ -832,3 +832,26 @@ Run the `tech-debt-session` skill over the changed files, then open the `dev` PR
 **Placeholder scan:** Two grounded "verify-then-match-the-pattern" steps remain by necessity — Task 5 Step 2 (corpus `prompt_text` exemption, follow `STATE_BASE_PERSONAL`), Task 6 Step 1 (test seam vs public path) and Step 3 (`navigate_to` exemption, follow `STATE_CAMPAIGN_TERMINAL`), and Task 7 Step 1 / Task 10 (confirm live shapes). These are verification steps with a named existing precedent to copy, not open-ended TODOs. ✓
 
 **Type/name consistency:** `campaignVerifyConfig` (Task 1), `enterCampaignVerify` / `nextFromVerifyMore` / `nextFromVerifyNavigate` / `verifyNavigateRoute` / `verifyPromptMore` / `verifyPromptNavigate` (Task 2), states `campaign_verify_more` / `campaign_verify_navigate` / `campaign_verify_edit` (Tasks 3–5), context key `verify_section` — consistent across tasks. ✓
+
+---
+
+## STATUS (2026-06-16) — backend + screens DONE; Task 10 reframed
+
+**Done, committed on `savetax-verify-capture`, green (318 onboarding tests + income_summary feature test):**
+- Tasks 1–6 (backend verify sub-flow: config, helpers, 3 generic verify states, edge re-routing, corpus parity, director navigation-on-bubbles). Commits `209bda6`→`f1751b3`. Also fixed two test gaps the plan missed: the golden-master `navigate_to` closure assertion (`toBeInstanceOf(Closure)` not `->toBe`, since `inCodeStates()` regenerates the `fn`), and `CampaignSectionFlowTest`/`OnboardingStateMachineTest` which encoded the old advice→next-section edges (now advice→`campaign_verify_more`).
+- Tasks 7–9 (the two `/m` screens + Cash Management nav) + a net-new additive `income_summary` block on `UserProfileService::getCompleteProfile` (user + spouse per-source), with a feature test. Commit `72276df`.
+
+### Task 10 (REVISED) — Option B: resume onboarding in the dock (CSJ decision 2026-06-16)
+
+**Architecture finding that forced this:** the `/m` onboarding *campaign* chat (the `messages`/`cursor` state, the SSE handling, the bubble rendering) lives **inside `Dashboard.vue`**. The app uses a plain `<router-view/>` (no `<keep-alive>`), so navigating to `/income` etc. **unmounts `Dashboard.vue`** and destroys the chat + the waiting Gate-2 bubble. Module screens render `MobileChrome`'s dock, which starts a **fresh advice** chat (`initFyn` → "What would you like to look at?"), not the onboarding conversation. So the spec's "minimise → navigate → reopen chat → Gate-2 waiting" cannot work as-is.
+
+**Chosen fix (Option B):** make `MobileChrome`'s Fyn dock **onboarding-aware** — when opened while onboarding is in progress (`store.user.onboarding_completed === false` and an active onboarding conversation exists), it **resumes the persisted onboarding conversation** (already in `ai_messages`) instead of starting advice, rendering the latest turn = the Gate-2 prompt + yes/no bubbles, and drives the bubble click → next onboarding turn.
+
+**Implementation steps:**
+1. **Extract the onboarding chat client into a shared unit** (composable `resources/mobile/composables/useOnboardingChat.js` or a mixin) that both `Dashboard.vue` and `MobileChrome.vue` use: the SSE `handleFynEvent` (`onboarding_advance` / `quick_replies` / `navigation`), `chooseBubble`, the `send`/stream loop, and the resume path. DRY — don't duplicate `Dashboard.vue`'s logic into the dock.
+2. **Dock resume-on-open:** in `MobileChrome.openFyn`/`initFyn`, if onboarding is active, resume the onboarding conversation (load its messages incl. bubbles, or call the existing `resume` action) rather than pushing the advice greeting. The dock must render onboarding bubbles + handle clicks via the shared unit.
+3. **Widen `Dashboard.vue::handleOnboardingNavigation`** (currently `if (routePath !== '/tax-strategy') return;`) to a whitelist of the verify destinations: `['/tax-strategy','/income','/expenditure','/savings','/investment','/retirement']` (ignore unknown desktop-only routes). Apply the same in the shared unit so the dock can re-navigate on a Gate-2-"no" edit re-show. (NOTE: the Gate-2 bubble already survives a navigation turn in `send()` — it has text+bubbles so it isn't dropped at lines ~1090-1095; only `handleOnboardingNavigation`'s guard blocks non-tax routes.)
+4. **Confirm the dock is present on the destination screens** (it is — every `MobileChrome`-wrapped screen has it).
+
+### Task 11 — full suite + `/m` E2E (unchanged)
+Full `./vendor/bin/pest`; deploy the branch to csjones; browser-walk the SaveTax campaign on `/m` confirming the full verify loop per section (Gate 1 → navigate to the right screen → reopen dock → Gate-2 resumes → edit path), the new Income/Expenditure screens + Cash Management nav, giving inline; tech-debt-session; open the dev PR. Per `reference_savetax_campaign_e2e_test_pattern`.
