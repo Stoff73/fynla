@@ -56,3 +56,15 @@ it('routes verify_navigate no to edit and yes to the next section', function ():
     expect(OnboardingStateMachine::nextFromVerifyNavigate('yes', $user))
         ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
 });
+
+it('defines the three generic verify states with the right turn types', function (): void {
+    $m = new ReflectionMethod(OnboardingStateMachine::class, 'inCodeStates');
+    $m->setAccessible(true);
+    $states = $m->invoke(null);
+
+    expect($states)->toHaveKeys(['campaign_verify_more', 'campaign_verify_navigate', 'campaign_verify_edit'])
+        ->and($states['campaign_verify_more']['turn_type'])->toBe('bubbles')
+        ->and($states['campaign_verify_navigate']['turn_type'])->toBe('bubbles')
+        ->and($states['campaign_verify_edit']['turn_type'])->toBe('delegated')
+        ->and($states['campaign_verify_navigate']['navigate_to'])->toBeInstanceOf(Closure::class);
+});

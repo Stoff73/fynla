@@ -623,6 +623,41 @@ final class OnboardingStateMachine
                 // campaign_advice_spouse incident, PR #504).
                 'next' => self::STATE_CAMPAIGN_TERMINAL,
             ],
+            // ── SaveTax verify sub-flow (generic; section in context) ──────
+            // Entered via enterCampaignVerify() which stamps verify_section.
+            'campaign_verify_more' => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::verifyPromptMore',
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => 'Yes, add more'],
+                    ['id' => 'no', 'label' => "No, that's everything"],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromVerifyMore',
+            ],
+            // Bubbles state that ALSO emits a navigation event when navigate_to
+            // resolves to a route (director extension): the chat minimises + routes,
+            // and the "is this correct?" bubbles wait for the user to reopen.
+            // navigate_to is a code-only closure (null for charitable giving =
+            // inline confirm, no navigation).
+            'campaign_verify_navigate' => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::verifyPromptNavigate',
+                'navigate_to' => fn (User $user): ?string => self::verifyNavigateRoute($user),
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => "Yes, that's right"],
+                    ['id' => 'no', 'label' => 'No, change something'],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromVerifyNavigate',
+            ],
+            'campaign_verify_edit' => [
+                'turn_type' => 'delegated',
+                'prompt_text' => 'No problem — what needs changing?',
+                'capture_field' => null,
+                // After the edit is applied, re-show the screen + re-ask "correct?".
+                'next' => 'campaign_verify_navigate',
+            ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',
                 // Prompt is built at runtime by OnboardingPromptBuilder based
