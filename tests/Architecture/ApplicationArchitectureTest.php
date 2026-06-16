@@ -146,6 +146,9 @@ arch('services are organized by module')
         'App\Services\AI\Pointers\FetchHandler',
         // CoALA Phase 6: RecallScorer is the ranking interface (sparse impl in SparseRecallScorer)
         'App\Services\AI\Memory\Recall\RecallScorer',
+        // Cross-module composer: ModuleStrategySource is the plan-source contract
+        // (concrete TaxStrategySource/RetirementStrategySource/... implement it)
+        'App\Services\Coordination\PlanSources\ModuleStrategySource',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()
@@ -158,7 +161,9 @@ arch('services are organized by module')
     ->and('App\Services\Estate')
     ->toBeClasses()
     ->and('App\Services\Coordination')
-    ->toBeClasses();
+    ->toBeClasses()
+    // ModuleStrategySource is the plan-source contract (interface), not a service class.
+    ->ignoring('App\Services\Coordination\PlanSources\ModuleStrategySource');
 
 // Test: Naming conventions
 // Note: Service naming conventions are informational

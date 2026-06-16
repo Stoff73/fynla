@@ -8,6 +8,11 @@
     @retry="loadAllPlans"
     @print="handlePrint"
   >
+    <HolisticCompositePlan
+      v-if="hasCompositeContent"
+      :plan="compositePlan"
+    />
+
     <HolisticPlanContent
       v-if="hasAnyPlan"
       :protection-plan="protectionPlan"
@@ -18,7 +23,7 @@
       @update-funding-source="handleUpdateFundingSource"
     />
 
-    <div v-else class="py-12 text-center">
+    <div v-else-if="!hasCompositeContent" class="py-12 text-center">
       <svg class="mx-auto h-12 w-12 text-horizon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
       </svg>
@@ -38,7 +43,10 @@
 import { mapState, mapActions } from 'vuex';
 import PlanPageLayout from '@/components/Plans/Shared/PlanPageLayout.vue';
 import HolisticPlanContent from '@/components/Plans/Holistic/HolisticPlanContent.vue';
+import HolisticCompositePlan from '@/components/Plans/Holistic/HolisticCompositePlan.vue';
 import { planPrintMixin } from '@/components/Plans/Shared/planPrintMixin';
+import holisticService from '@/services/holisticService';
+import logger from '@/utils/logger';
 
 export default {
   name: 'HolisticPlan',
@@ -46,6 +54,7 @@ export default {
   components: {
     PlanPageLayout,
     HolisticPlanContent,
+    HolisticCompositePlan,
   },
 
   mixins: [planPrintMixin],
@@ -55,6 +64,7 @@ export default {
       holisticLoading: false,
       error: null,
       loadErrors: {},
+      compositePlan: null,
     };
   },
 
@@ -70,6 +80,12 @@ export default {
       return this.protectionPlan || this.investmentPlan || this.retirementPlan || this.estatePlan;
     },
 
+    hasCompositeContent() {
+      return !!this.compositePlan
+        && ((this.compositePlan.items && this.compositePlan.items.length > 0)
+          || (this.compositePlan.locked && this.compositePlan.locked.length > 0));
+    },
+
     allPlans() {
       const p = {};
       if (this.protectionPlan) p.protection = this.protectionPlan;
@@ -81,11 +97,26 @@ export default {
   },
 
   async mounted() {
-    await this.loadAllPlans();
+    await Promise.allSettled([
+      this.loadAllPlans(),
+      this.loadCompositePlan(),
+    ]);
   },
 
   methods: {
     ...mapActions('plans', ['fetchPlan', 'toggleAction', 'updateActionFundingSource']),
+
+    async loadCompositePlan() {
+      try {
+        const response = await holisticService.getCompositePlan();
+        this.compositePlan = response?.data ?? null;
+      } catch (err) {
+        // The composite plan is supplementary — never block the per-module
+        // holistic view if it fails to load.
+        logger.error('Failed to load composite plan', err);
+        this.compositePlan = null;
+      }
+    },
 
     async loadAllPlans() {
       this.holisticLoading = true;

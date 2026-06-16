@@ -10,6 +10,12 @@ use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Models\User;
+use App\Services\Coordination\PlanSources\EstateStrategySource;
+use App\Services\Coordination\PlanSources\InvestmentStrategySource;
+use App\Services\Coordination\PlanSources\ModuleStrategySource;
+use App\Services\Coordination\PlanSources\ProtectionStrategySource;
+use App\Services\Coordination\PlanSources\RetirementStrategySource;
+use App\Services\Coordination\PlanSources\SavingsStrategySource;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\PrerequisiteGateService;
 use Illuminate\Support\Facades\Log;
@@ -36,8 +42,40 @@ class RecommendationsAggregatorService
         $user = User::findOrFail($userId);
         $allRecommendations = [];
 
+        // When enabled, the five non-tax modules are sourced from the generalised
+        // ComposedModulePlanService (catalogue-annotated, sequencing-aware) instead
+        // of their raw per-agent blocks below; the raw blocks remain as the rollback
+        // path (flag off). Each composed module is gated identically to its raw block,
+        // and locked strategies are excluded — dashboards list actionable
+        // recommendations; unlock prompts are surfaced via Fyn pointers / the
+        // holistic plan, mirroring how the tax block already behaves.
+        $composedEnabled = (bool) config('coordination.composed_module_plans', true);
+
+        if ($composedEnabled) {
+            $composedSources = [
+                'protection' => ProtectionStrategySource::class,
+                'savings' => SavingsStrategySource::class,
+                'retirement' => RetirementStrategySource::class,
+                'investment' => InvestmentStrategySource::class,
+                'estate' => EstateStrategySource::class,
+            ];
+            foreach ($composedSources as $module => $sourceClass) {
+                if (! $this->moduleGateOpen($module, $user)) {
+                    continue;
+                }
+                try {
+                    $allRecommendations = array_merge(
+                        $allRecommendations,
+                        $this->composedModuleRecs($module, app($sourceClass), $user)
+                    );
+                } catch (\Exception $e) {
+                    Log::warning("Failed to get composed {$module} recommendations for user {$userId}: ".$e->getMessage());
+                }
+            }
+        }
+
         // Protection module
-        if ($this->moduleGateOpen('protection', $user)) {
+        if (! $composedEnabled && $this->moduleGateOpen('protection', $user)) {
             try {
                 $protectionAnalysis = $this->protectionEngine->analyze($userId);
                 $rawRecs = $protectionAnalysis['data']['recommendations'] ?? [];
@@ -75,7 +113,7 @@ class RecommendationsAggregatorService
         }
 
         // Savings module
-        if ($this->moduleGateOpen('savings', $user)) {
+        if (! $composedEnabled && $this->moduleGateOpen('savings', $user)) {
             try {
                 $savingsAnalysis = $this->savingsCalculator->analyze($userId);
                 $savingsRecs = [];
@@ -106,7 +144,7 @@ class RecommendationsAggregatorService
 
         // Retirement module — real recs come from the action-definition engine
         // via generateRecommendations(analyze data), NOT from an analyze() key.
-        if ($this->moduleGateOpen('retirement', $user)) {
+        if (! $composedEnabled && $this->moduleGateOpen('retirement', $user)) {
             try {
                 $retirementAnalysis = $this->retirementAgent->analyze($userId);
                 $retirementData = $retirementAnalysis['data'] ?? $retirementAnalysis;
@@ -126,7 +164,7 @@ class RecommendationsAggregatorService
         }
 
         // Investment module
-        if ($this->moduleGateOpen('investment', $user)) {
+        if (! $composedEnabled && $this->moduleGateOpen('investment', $user)) {
             try {
                 $investmentAnalysis = $this->investmentAgent->analyze($userId);
                 $generated = $this->investmentAgent->generateRecommendations($investmentAnalysis['data'] ?? $investmentAnalysis);
@@ -144,7 +182,7 @@ class RecommendationsAggregatorService
         }
 
         // Estate module — extract from implementation_timeline
-        if ($this->moduleGateOpen('estate', $user)) {
+        if (! $composedEnabled && $this->moduleGateOpen('estate', $user)) {
             try {
                 $estatePlan = $this->estatePlanService->generateComprehensiveEstatePlan($user);
                 $estateRecs = [];
@@ -267,6 +305,44 @@ class RecommendationsAggregatorService
                 'conflict_note' => $rec['conflict_note'] ?? null,
             ];
         }, $validRecommendations);
+    }
+
+    /**
+     * Map a module's composed plan into the aggregator recommendation shape,
+     * mirroring the tax block. StrategyPlanComposer has already attached
+     * claim_tier / sequence_position / conflict_note and resolved sequencing +
+     * conflicts. Locked strategies are deliberately excluded (only $plan['items'])
+     * — dashboards list actionable recommendations; unlock prompts are a separate
+     * surface. Non-tax recommendations carry no estimated_annual_tax_saved, so
+     * potential_benefit is null unless the source supplies one.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function composedModuleRecs(string $module, ModuleStrategySource $source, User $user): array
+    {
+        $plan = app(ComposedModulePlanService::class)->forSource($source, $user);
+
+        $recs = array_map(static function (array $item) use ($module): array {
+            $title = (string) ($item['title'] ?? '');
+            $description = (string) ($item['description'] ?? '');
+
+            return [
+                'recommendation_id' => $module.'_'.($item['type'] ?? ''),
+                'recommendation_text' => $description !== '' ? $title.' — '.$description : $title,
+                'priority_score' => match ($item['priority'] ?? 'medium') {
+                    'high' => 85.0,
+                    'medium' => 60.0,
+                    default => 45.0,
+                },
+                'category' => $item['category'] ?? null,
+                'potential_benefit' => $item['estimated_annual_tax_saved'] ?? null,
+                'claim_tier' => $item['claim_tier'] ?? null,
+                'sequence_position' => $item['sequence_position'] ?? null,
+                'conflict_note' => $item['conflict_note'] ?? null,
+            ];
+        }, $plan['items']);
+
+        return $this->formatRecommendations($recs, $module);
     }
 
     /**
