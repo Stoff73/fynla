@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 
 it('maps every navigable campaign section to a route and capture-entry state', function (): void {
     $config = OnboardingStateMachine::campaignVerifyConfig();
@@ -89,5 +92,29 @@ it('routes each section-end into the verify flow instead of straight to the next
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
         expect($resolved)->toBe('campaign_verify_more', "state {$stateId} should enter verify");
+    }
+});
+
+it('emits a navigation event for a navigable verify section and none for giving', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $director = app(OnboardingChatDirector::class);
+
+    $emit = new ReflectionMethod($director, 'emitTurnForState');
+    $emit->setAccessible(true);
+
+    foreach ([['savings', true], ['giving', false]] as [$section, $expectNav]) {
+        $user = User::factory()->create([
+            'onboarding_fyn_path' => 'campaign', 'onboarding_completed' => false,
+            'onboarding_fyn_step' => 'campaign_verify_navigate',
+            'onboarding_fyn_context' => ['verify_section' => $section],
+        ]);
+        $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+        $state = OnboardingStateMachine::getState('campaign_verify_navigate');
+        $events = iterator_to_array($emit->invoke($director, $user, $conversation, 'campaign_verify_navigate', $state), false);
+        $types = array_column($events, 'type');
+
+        expect(in_array('navigation', $types, true))->toBe($expectNav, "section {$section}");
+        expect($types)->toContain('quick_replies');
     }
 });

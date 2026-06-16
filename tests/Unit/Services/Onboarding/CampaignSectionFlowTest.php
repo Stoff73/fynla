@@ -97,16 +97,18 @@ it('drops the recap and asks the plain income question once income is captured',
 it('inserts a per-section advice turn between a section and the next', function () {
     $u = campaignUser(['funnel_answers' => ['assets' => ['savings', 'investments', 'pension']]]);
 
-    // Savings' last capture (bank accounts) → savings advice → investments entry.
+    // Savings' last capture (bank accounts) → savings advice → verify sub-flow.
+    // (The verify flow carries on to the investments entry on "is this correct? yes"
+    // — see CampaignVerifyFlowTest for the full advice→verify→next-section walk.)
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_SAVINGS)
-        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe('campaign_verify_more');
 
     // Pensions' last capture (history) → pensions advice → next section.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_PENSIONS);
 
-    // Income end (employment-more "no") → income advice → savings entry.
+    // Income end (employment-more "no") → income advice → verify sub-flow.
     expect(SM::nextFromEmploymentMore('No', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_INCOME)
-        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS);
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->toBe('campaign_verify_more');
 });
 
 it('marks every advice state as an auto-advancing advice turn with a section', function () {
@@ -140,10 +142,12 @@ it('never lets a campaign advice state auto-advance back into itself', function 
         expect(SM::getNextStateId($id, '', $u))->not->toBe($id);
     }
 
-    // Spouse advice continues to the expenditure section,
-    // matching the nextCampaignSection('spouse') contract above.
+    // Spouse advice now enters the verify sub-flow (advice → campaign_verify_more);
+    // the verify flow then carries on to the expenditure section on "correct? yes"
+    // (nextCampaignSection('spouse') — see CampaignVerifyFlowTest). The invariant
+    // this test guards is only that no advice state self-edges.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SPOUSE, '', $u))
-        ->toBe(SM::STATE_BASE_EXPENDITURE);
+        ->toBe('campaign_verify_more');
 });
 
 it('section order matches the single source-of-truth array', function () {

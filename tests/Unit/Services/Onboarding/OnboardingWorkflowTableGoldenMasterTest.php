@@ -40,6 +40,13 @@ function dataSubset(array $state): array
         if (($k === 'next' || $k === 'prompt_text') && isCallableRef($v)) {
             continue; // callable form — compared separately as a PHP-only field
         }
+        // navigate_to is DATA when it's a static route string (campaign_terminal
+        // → /tax-strategy, carried in the corpus), but a code-only Closure for the
+        // verify-navigate state (resolves the route per section at runtime). The
+        // Closure form is never in the corpus — exempt it like the other callables.
+        if ($k === 'navigate_to' && $v instanceof Closure) {
+            continue;
+        }
         $out[$k] = $v;
     }
 
@@ -77,6 +84,14 @@ it('merged corpus-backed table deep-equals the in-code states() table', function
         }
         if (array_key_exists('skip_if', $codeState)) {
             expect($merged[$id]['skip_if'] ?? null)->toBe($codeState['skip_if']);
+        }
+        // Closure navigate_to (verify-navigate) is code-only: it must survive the
+        // merge AS a Closure. Object-identity can't be asserted — a fresh
+        // inCodeStates() call regenerates the `fn`, so the test's closure and the
+        // merged one are different instances of the same code (unlike the string
+        // `next`/`prompt_text` refs and the array `skip_if`, which compare equal).
+        if (array_key_exists('navigate_to', $codeState) && $codeState['navigate_to'] instanceof Closure) {
+            expect($merged[$id]['navigate_to'] ?? null)->toBeInstanceOf(Closure::class);
         }
     }
 });

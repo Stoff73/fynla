@@ -637,6 +637,20 @@ final class OnboardingChatDirector
                 $promptText,
                 ['metadata' => $metadata]
             );
+
+            // Verify-navigate: a bubbles state can carry a navigate_to (closure or
+            // string). When it resolves to a route, emit a navigation event so the
+            // /m chat minimises + routes to the section's screen while these bubbles
+            // wait for the user to reopen. Null route = inline confirm (no nav).
+            $navigateTo = $state['navigate_to'] ?? null;
+            $route = is_callable($navigateTo) ? $navigateTo($user) : $navigateTo;
+            if (is_string($route) && $route !== '') {
+                yield [
+                    'type' => 'navigation',
+                    'route_path' => $route,
+                    'description' => $stateId,
+                ];
+            }
         } else {
             // free_text / grouped_extract / terminal — plain content event.
             // Grouped_extract turns emit a prompt too so the user knows what
