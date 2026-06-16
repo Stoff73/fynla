@@ -166,6 +166,29 @@ final class OnboardingStateMachine
     }
 
     /**
+     * SaveTax verify sub-flow config: for each campaign section, the /m screen to
+     * navigate to for the "is this correct?" confirm (null = inline confirm, no
+     * navigation — used for charitable giving) and the section's capture-entry
+     * state to loop back to on "anything else to add?". The single source of truth
+     * for the per-section verify behaviour; the three generic verify states read
+     * the current section from users.onboarding_fyn_context['verify_section'].
+     *
+     * @return array<string, array{route:?string, entry:string}>
+     */
+    public static function campaignVerifyConfig(): array
+    {
+        return [
+            'income' => ['route' => '/income', 'entry' => self::STATE_BASE_EMPLOYMENT],
+            'savings' => ['route' => '/savings', 'entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS],
+            'investments' => ['route' => '/investment', 'entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS],
+            'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
+            'giving' => ['route' => null, 'entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING],
+            'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
+            'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
+        ];
+    }
+
+    /**
      * Resolve the entry state of the next non-skipped campaign section after
      * the given section. Returns STATE_CAMPAIGN_SYNTHESIS when all sections are
      * exhausted, so the flow ends with a ranked consolidated plan before the
