@@ -21,7 +21,12 @@ use App\Services\AI\Memory\Recall\RecallScorer;
 use App\Services\AI\Memory\Recall\SparseRecallScorer;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandlerRegistry;
+use App\Services\AI\Pointers\Handlers\EstatePlanHandler;
+use App\Services\AI\Pointers\Handlers\InvestmentPlanHandler;
+use App\Services\AI\Pointers\Handlers\ProtectionPlanHandler;
 use App\Services\AI\Pointers\Handlers\RecommendationHandler;
+use App\Services\AI\Pointers\Handlers\RetirementPlanHandler;
+use App\Services\AI\Pointers\Handlers\SavingsPlanHandler;
 use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
 use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
 use App\Services\AI\Pointers\PointerRegistry;
@@ -86,6 +91,11 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(TaxAllowanceHandler::class),
                 $app->make(UserFinancialHandler::class),
                 $app->make(RecommendationHandler::class),
+                $app->make(RetirementPlanHandler::class),
+                $app->make(SavingsPlanHandler::class),
+                $app->make(InvestmentPlanHandler::class),
+                $app->make(ProtectionPlanHandler::class),
+                $app->make(EstatePlanHandler::class),
             ]);
         });
 
