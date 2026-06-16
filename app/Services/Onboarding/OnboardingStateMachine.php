@@ -403,7 +403,7 @@ final class OnboardingStateMachine
                 // of its reordered section flow, then heads to the holistic
                 // terminal; the standard flow keeps the profile-review pause.
                 'next' => fn (string $answer, User $user): string => $user->onboarding_fyn_path === 'campaign'
-                    ? self::nextCampaignSection('expenditure', $user)
+                    ? self::enterCampaignVerify($user, 'expenditure')
                     : self::STATE_PROFILE_REVIEW_EXPENDITURE,
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
@@ -522,7 +522,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_charitable_giving',
                 'retry_text' => 'Just an annual figure works — e.g. "about £500" or "none".',
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('giving', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'giving'),
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
@@ -583,36 +583,36 @@ final class OnboardingStateMachine
                 'turn_type' => 'advice',
                 'advice_section' => 'income',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('income', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'income'),
             ],
             self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'savings',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
             ],
             self::STATE_CAMPAIGN_ADVICE_INVESTMENTS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'investments',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
             self::STATE_CAMPAIGN_ADVICE_PENSIONS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'pensions',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
             ],
             self::STATE_CAMPAIGN_ADVICE_SPOUSE => [
                 'turn_type' => 'advice',
                 'advice_section' => 'spouse',
                 'capture_field' => null,
-                // Advance past the spouse section like every other advice state
-                // (nextCampaignSection returns STATE_CAMPAIGN_TERMINAL once the
-                // sections are exhausted). This MUST NOT point back at itself —
-                // advice turns auto-advance with no user input, so a self-edge
-                // recurses forever, persisting an identical message each pass.
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
+                // Enter the verify sub-flow for the spouse section (like every
+                // other advice state now). The verify flow's "yes" branch calls
+                // nextCampaignSection('spouse'), which returns STATE_CAMPAIGN_TERMINAL
+                // once the sections are exhausted — so advancement still happens,
+                // just behind the verify gate. This MUST NOT point back at itself.
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
             ],
             self::STATE_CAMPAIGN_SYNTHESIS => [
                 'turn_type' => 'advice',

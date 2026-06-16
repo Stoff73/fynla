@@ -68,3 +68,26 @@ it('defines the three generic verify states with the right turn types', function
         ->and($states['campaign_verify_edit']['turn_type'])->toBe('delegated')
         ->and($states['campaign_verify_navigate']['navigate_to'])->toBeInstanceOf(Closure::class);
 });
+
+it('routes each section-end into the verify flow instead of straight to the next section', function (): void {
+    $m = new ReflectionMethod(OnboardingStateMachine::class, 'inCodeStates');
+    $m->setAccessible(true);
+    $states = $m->invoke(null);
+    $user = User::factory()->create([
+        'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_context' => [],
+        'marital_status' => 'married',
+    ]);
+
+    foreach ([
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME,
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SAVINGS,
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
+        OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING,
+    ] as $stateId) {
+        $next = $states[$stateId]['next'];
+        $resolved = is_callable($next) ? $next('', $user) : $next;
+        expect($resolved)->toBe('campaign_verify_more', "state {$stateId} should enter verify");
+    }
+});
