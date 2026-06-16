@@ -2,8 +2,8 @@
 title: Module Canonical Store-and-Retrieve Contract
 date: 2026-05-14
 sub_project: 1 of 6 (Fynla major-overhaul series)
-status: APPROVED — all 7 open questions resolved 2026-05-14; passes 1–4 DONE (pass 4 Properties closed 2026-05-27 at merge `c972fff`), passes 5–14 pending
-last_updated: 2026-05-27
+status: PAUSED 2026-05-28 (CSJ) — passes 1–5 DONE; pass 6 (Investments) write-path complete + paused at PR 5a; passes 6-remainder + 7–14 DEFERRED to pivot to the CoALA initiative. Resume point: Pass 6 PR 5b. See `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md` for the defer rationale.
+last_updated: 2026-05-28
 author: Claude (Opus 4.7) + CSJ
 related_specs: (forthcoming) freemium-tier-model, mobile-first-iframe-shell, campaign-engine, track-onboarding, gamification
 ---

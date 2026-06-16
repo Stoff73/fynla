@@ -96,8 +96,7 @@ describe('GET /api/user/profile', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -169,8 +168,7 @@ describe('PUT /api/user/profile/personal', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -231,8 +229,7 @@ describe('PUT /api/user/profile/income-occupation', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',

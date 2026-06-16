@@ -17,6 +17,11 @@ use App\Services\PrerequisiteGateService;
 beforeEach(function () {
     $this->user = User::factory()->create();
 
+    // These cases assert the raw per-agent aggregation path (mocked agents).
+    // The composed module-plan path (default on in production) has its own
+    // coverage in RecommendationsAggregatorComposedModulesTest.
+    config(['coordination.composed_module_plans' => false]);
+
     // Mock all the services with correct types matching the constructor
     $this->protectionEngine = Mockery::mock(ProtectionAgent::class);
     $this->savingsCalculator = Mockery::mock(SavingsAgent::class);

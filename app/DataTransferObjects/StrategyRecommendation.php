@@ -44,6 +44,8 @@ final class StrategyRecommendation
         public readonly ?float $estimatedAnnualTaxSaved = null,
         public readonly bool $requiresAdvice = false,
         public readonly array $extra = [],
+        public readonly ?float $requiredMonthlyCost = null,
+        public readonly ?float $requiredLumpSum = null,
     ) {
         $this->category = $category instanceof StrategyCategory
             ? $category->value
@@ -77,6 +79,7 @@ final class StrategyRecommendation
         $reservedKeys = [
             'type', 'category', 'priority', 'title', 'description',
             'estimated_annual_tax_saved', 'requires_advice',
+            'required_monthly_cost', 'required_lump_sum',
         ];
 
         return new self(
@@ -90,6 +93,12 @@ final class StrategyRecommendation
                 : null,
             requiresAdvice: (bool) ($arr['requires_advice'] ?? false),
             extra: array_diff_key($arr, array_flip($reservedKeys)),
+            requiredMonthlyCost: isset($arr['required_monthly_cost'])
+                ? (float) $arr['required_monthly_cost']
+                : null,
+            requiredLumpSum: isset($arr['required_lump_sum'])
+                ? (float) $arr['required_lump_sum']
+                : null,
         );
     }
 
@@ -107,6 +116,16 @@ final class StrategyRecommendation
             'estimated_annual_tax_saved' => $this->estimatedAnnualTaxSaved,
             'requires_advice' => $this->requiresAdvice,
         ];
+
+        // Cost fields are first-class for affordability ranking, but omitted
+        // when null so tax plans (which never set them) serialise byte-identically
+        // to the pre-cost shape — preserving planDigest parity.
+        if ($this->requiredMonthlyCost !== null) {
+            $base['required_monthly_cost'] = $this->requiredMonthlyCost;
+        }
+        if ($this->requiredLumpSum !== null) {
+            $base['required_lump_sum'] = $this->requiredLumpSum;
+        }
 
         return array_merge($base, $this->extra);
     }

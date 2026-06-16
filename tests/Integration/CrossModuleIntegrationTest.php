@@ -6,7 +6,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentActionDefinition;
 use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
-use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Coordination\PriorityRanker;
 use App\Services\Estate\EstateDataReadinessService;
@@ -19,6 +18,15 @@ use App\Services\Savings\SavingsDataReadinessService;
 use App\Services\TaxConfigService;
 use Database\Seeders\InvestmentActionDefinitionSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
+use Database\Seeders\TaxConfigurationSeeder;
+
+// Several paths under test (action-definition seeders, SafetyCheckService,
+// readiness services) resolve TaxConfigService, which fails loud without an
+// active tax year. Seed explicitly — the suite convention; there is no
+// global auto-seed hook (see the note in tests/Pest.php).
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 describe('Cross-Module Integration', function () {
 
@@ -47,10 +55,6 @@ describe('Cross-Module Integration', function () {
         });
 
         it('SafetyCheckService gates surplus without producing standalone emergency fund recommendations', function () {
-            // Ensure TaxConfiguration exists for SafetyCheckService
-            TaxConfiguration::factory()->create(['is_active' => true]);
-            app()->forgetInstance(TaxConfigService::class);
-
             $service = app(SafetyCheckService::class);
 
             // Context with critically low emergency fund
@@ -99,10 +103,6 @@ describe('Cross-Module Integration', function () {
     describe('ISA Allowance Shared Across Modules', function () {
 
         it('ISA allowance is shared between Cash ISA and Stocks & Shares ISA', function () {
-            // Ensure TaxConfiguration exists for TaxConfigService
-            TaxConfiguration::factory()->create(['is_active' => true]);
-            app()->forgetInstance(TaxConfigService::class);
-
             $user = User::factory()->create([
                 'date_of_birth' => now()->subYears(35),
             ]);
@@ -144,10 +144,6 @@ describe('Cross-Module Integration', function () {
         });
 
         it('ISA context accounts for both modules when allowance is fully used', function () {
-            // Ensure TaxConfiguration exists for TaxConfigService
-            TaxConfiguration::factory()->create(['is_active' => true]);
-            app()->forgetInstance(TaxConfigService::class);
-
             $user = User::factory()->create([
                 'date_of_birth' => now()->subYears(40),
             ]);

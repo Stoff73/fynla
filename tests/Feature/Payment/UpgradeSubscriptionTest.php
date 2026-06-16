@@ -10,14 +10,26 @@ use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    // Freeze "now" to a mid-month date. The proration setups use
+    // now()->subMonths(N); on month-end dates (29th–31st) Carbon overflows the
+    // non-existent target day (e.g. 29 May - 3mo → invalid 29 Feb → rolls to
+    // 1 Mar), which makes diffInMonths off by one and the assertions flaky by
+    // calendar date. The 15th is clear of every short-month boundary.
+    Carbon::setTestNow(Carbon::parse('2026-06-15 12:00:00'));
+
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(RolesPermissionsSeeder::class);
     $this->seed(SubscriptionPlanSeeder::class);
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 describe('POST /api/payment/upgrade', function () {
@@ -52,9 +64,9 @@ describe('POST /api/payment/upgrade', function () {
         $priceDiff = $proPrice - $standardPrice;
         $monthlyDiff = (int) round($priceDiff / 12);
 
-        // Carbon diffInMonths counts full months, so calculate dynamically
-        $monthsUsed = (int) $periodStart->diffInMonths(now());
-        $monthsRemaining = max(1, 12 - $monthsUsed);
+        // 6 months into a 12-month period (time frozen mid-month in beforeEach)
+        // → exactly 6 months remaining (day-based proration).
+        $monthsRemaining = 6;
         $expectedAmount = $monthlyDiff * $monthsRemaining;
 
         $response = $this->actingAs($user, 'sanctum')
@@ -107,6 +119,48 @@ describe('POST /api/payment/upgrade', function () {
         $response->assertOk();
         expect($response->json('upgrade_amount'))->toBe($expectedAmount);
         expect($response->json('months_remaining'))->toBe(9);
+    });
+
+    it('uses day-based proration so a month-end yearly start is not over-billed', function () {
+        // Regression guard. Start 30 Apr, viewed 15 Jun (time frozen in
+        // beforeEach). The old `12 - current_period_start->diffInMonths(now())`
+        // reported 11 months remaining: Carbon under-counts elapsed months when
+        // the period anniversary day falls in a month that has fewer days, so
+        // the proration over-billed by a whole month. Day-based proration
+        // (days remaining ÷ avg days per month) correctly reports 10.
+        $user = User::factory()->create();
+        Subscription::factory()
+            ->plan('standard')
+            ->billingCycle('yearly')
+            ->create([
+                'user_id' => $user->id,
+                'status' => 'active',
+                'current_period_start' => Carbon::parse('2026-04-30 12:00:00'),
+                'current_period_end' => Carbon::parse('2027-04-30 12:00:00'),
+                'amount' => 10000,
+            ]);
+
+        Http::fake([
+            '*/api/orders' => Http::response([
+                'id' => fake()->uuid(),
+                'token' => 'test_token_month_end',
+                'state' => 'pending',
+                'created_at' => now()->toIso8601String(),
+            ], 200),
+        ]);
+
+        $standardPlan = SubscriptionPlan::findBySlug('standard');
+        $familyPlan = SubscriptionPlan::findBySlug('family');
+        $standardPrice = $standardPlan->getLaunchPriceForCycle('yearly') ?? $standardPlan->getPriceForCycle('yearly');
+        $familyPrice = $familyPlan->getLaunchPriceForCycle('yearly') ?? $familyPlan->getPriceForCycle('yearly');
+        $monthlyDiff = (int) round(($familyPrice - $standardPrice) / 12);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/upgrade', ['plan' => 'family']);
+
+        $response->assertOk();
+        expect($response->json('months_remaining'))->toBe(10);
+        expect($response->json('upgrade_amount'))->toBe($monthlyDiff * 10);
     });
 
     it('charges full month difference for monthly upgrade', function () {

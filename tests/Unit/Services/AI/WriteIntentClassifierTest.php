@@ -34,6 +34,18 @@ describe('WriteIntentClassifier::classify — positive cases (write intents)', f
         expect($result['reason'])->toContain('investment_account');
         expect($result['reason'])->toContain('stocks and shares isa');
     });
+
+    it('prefers an explicit goal noun over an incidental property keyword', function () {
+        // June13 keyword-precedence bug: "house" is a property keyword listed
+        // before goal in ENTITY_KEYWORDS, so this clear goal message used to
+        // route to a property capture (Fyn answered about the existing main
+        // residence instead of creating the goal). The explicit "goal" noun
+        // names the object of the write; "house deposit" only says what the
+        // goal is FOR. Goal must win.
+        $result = $this->classifier->classify('add a goal to save £25,000 for a house deposit by 2029');
+        expect($result)->not->toBeNull();
+        expect($result['entity_type'])->toBe('goal');
+    });
 });
 
 describe('WriteIntentClassifier::classify — F-6 interrogative guard', function () {

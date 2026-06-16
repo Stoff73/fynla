@@ -12,6 +12,25 @@ use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Observers\RecommendationTrackingObserver;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
+use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\AI\Memory\Recall\RecallScorer;
+use App\Services\AI\Memory\Recall\SparseRecallScorer;
+use App\Services\AI\Pointers\FetchDispatcher;
+use App\Services\AI\Pointers\FetchHandlerRegistry;
+use App\Services\AI\Pointers\Handlers\CrossModulePlanHandler;
+use App\Services\AI\Pointers\Handlers\EstatePlanHandler;
+use App\Services\AI\Pointers\Handlers\InvestmentPlanHandler;
+use App\Services\AI\Pointers\Handlers\ProtectionPlanHandler;
+use App\Services\AI\Pointers\Handlers\RecommendationHandler;
+use App\Services\AI\Pointers\Handlers\RetirementPlanHandler;
+use App\Services\AI\Pointers\Handlers\SavingsPlanHandler;
+use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
+use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
+use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
 use App\Services\Gamification\LevelUpCollector;
 use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
@@ -63,6 +82,59 @@ class AppServiceProvider extends ServiceProvider
                 return new Client(apiKey: $apiKey);
             });
         }
+
+        // CoALA pointer registry — FetchHandlerRegistry has no zero-arg constructor so
+        // it must be bound explicitly with its three proof handlers injected. PointerRegistry
+        // and FetchDispatcher each depend on FetchHandlerRegistry and auto-wire once it is
+        // resolvable, so plain singleton() calls are sufficient for them.
+        $this->app->singleton(FetchHandlerRegistry::class, function ($app) {
+            return new FetchHandlerRegistry([
+                $app->make(TaxAllowanceHandler::class),
+                $app->make(UserFinancialHandler::class),
+                $app->make(RecommendationHandler::class),
+                $app->make(RetirementPlanHandler::class),
+                $app->make(SavingsPlanHandler::class),
+                $app->make(InvestmentPlanHandler::class),
+                $app->make(ProtectionPlanHandler::class),
+                $app->make(EstatePlanHandler::class),
+                $app->make(CrossModulePlanHandler::class),
+            ]);
+        });
+
+        $this->app->singleton(PointerRegistry::class);
+        // FetchDispatcher depends on the request-scoped FetchProvenanceCollector,
+        // so it must re-resolve per request (a singleton would capture a stale collector).
+        $this->app->bind(FetchDispatcher::class);
+
+        // Request-scoped provenance accumulator — one instance per request, reset per turn.
+        $this->app->scoped(FetchProvenanceCollector::class);
+
+        // Request-scoped semantic-snapshot holder — assembler stamps, persistEpisode reads.
+        $this->app->scoped(SemanticSnapshotHolder::class);
+
+        // Request-scoped procedural-contribution accumulator (Phase 4c) — the
+        // assembler records overlay/fca_block procedures it injected; Phase 4e
+        // reads it at persistEpisode time. One instance per request, reset per turn.
+        $this->app->scoped(ProceduralContributionCollector::class);
+
+        // Request-scoped procedural-version holder (Phase 4e) — the tool-schema
+        // assembler (4b), prompt-overlay assembler (4c) and onboarding director
+        // (4d) record each active procedure_id@version they resolved; Phase 4e
+        // reads it at persistEpisode time and stamps it onto the episode blob,
+        // the ai_messages.procedural_version column and the audit attestation.
+        // One instance per request, reset per turn alongside the holders above.
+        $this->app->scoped(ProceduralVersionHolder::class);
+
+        // Procedural corpus loader — singleton so the in-memory corpus + 60s
+        // re-stat throttle persist within a request (and across requests under Octane).
+        $this->app->singleton(ProceduralCorpusLoader::class);
+
+        // CoALA Phase 6 — relevance-ranked episodic recall (sparse token-overlap).
+        // Dense embedding implementation is the deferred drop-in (CSJ 2026-06-01).
+        $this->app->bind(
+            RecallScorer::class,
+            SparseRecallScorer::class,
+        );
 
         // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(

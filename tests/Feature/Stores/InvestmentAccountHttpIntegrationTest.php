@@ -36,7 +36,15 @@ it('creates an investment account via POST and records FORM audit context', func
         'account_type' => 'gia',
     ]);
 
-    $account = InvestmentAccount::where('provider', 'Hargreaves Lansdown')->first();
+    // Scope to the acting user (freshly created per test) and take the newest
+    // row. The InvestmentAccount factory's default provider is also
+    // "Hargreaves Lansdown", so an unscoped where(provider)->first() can return
+    // a row another test committed/leaked — whose CREATED audit doesn't exist in
+    // this transaction — yielding a flaky null. user_id isolates this test's row.
+    $account = InvestmentAccount::where('user_id', $this->user->id)
+        ->where('provider', 'Hargreaves Lansdown')
+        ->latest('id')
+        ->first();
     $auditRow = AuditLog::where('model_type', InvestmentAccount::class)
         ->where('model_id', $account->id)
         ->where('action', AuditLog::ACTION_CREATED)

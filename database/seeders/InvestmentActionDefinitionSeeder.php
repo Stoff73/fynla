@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 /**
  * Seed the investment_action_definitions table with all action types.
  *
- * Seeds 18 agent-sourced and 3 goal-sourced action definitions.
+ * Seeds 18 agent-sourced, 3 goal-sourced, and 3 strategy catalogue definitions.
  * Uses updateOrCreate on `key` for idempotency.
  *
  * Run: php artisan db:seed --class=InvestmentActionDefinitionSeeder --force
@@ -19,7 +19,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
 {
     public function run(): void
     {
-        $definitions = $this->getDefinitions();
+        $definitions = array_merge($this->getDefinitions(), $this->getStrategyDefinitions());
 
         foreach ($definitions as $definition) {
             InvestmentActionDefinition::updateOrCreate(
@@ -27,6 +27,59 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 $definition
             );
         }
+    }
+
+    /**
+     * source='strategy' catalogue rows for the cross-module plan composer.
+     * strategy_type matches the slugs InvestmentRecommendationAdapter emits;
+     * required_data keys are drawn from ModuleAvailabilityProvider::forModule('investment').
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getStrategyDefinitions(): array
+    {
+        $rows = [
+            [
+                'strategy_type' => 'rebalance_to_target',
+                'category' => 'Rebalancing',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['gia_holdings', 'risk_profile_set'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'reduce_platform_fees',
+                'category' => 'Fee Analysis',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['gia_holdings'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'set_risk_profile',
+                'category' => 'Risk Profile',
+                'priority' => 'high',
+                'claim_tier' => 'judgement',
+                'required_data' => ['risk_profile_set'],
+                'sequencing' => ['do_before' => ['rebalance_to_target'], 'conflicts_with' => []],
+            ],
+        ];
+
+        return array_map(static function (array $row): array {
+            return array_merge([
+                'key' => 'strategy_'.$row['strategy_type'],
+                'source' => 'strategy',
+                'title_template' => $row['strategy_type'],
+                'description_template' => 'Computed by the investment plan source.',
+                'action_template' => null,
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [],
+                'is_enabled' => true,
+                'sort_order' => 100,
+                'notes' => 'Strategy catalogue row for the cross-module plan composer.',
+            ], $row);
+        }, $rows);
     }
 
     private function getDefinitions(): array

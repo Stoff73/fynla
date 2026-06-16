@@ -1,0 +1,75 @@
+[
+    {
+        "name": "delegate_to_capture",
+        "description": "Internal. Emit this when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture mid-conversation. Never shown to the user. The orchestrator will hand off to data-capture Fyn and re-invoke you once capture is complete.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "description": "Why capture is needed (e.g. \"retirement advice blocked on missing pension data\")."
+                },
+                "entity_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Record types to capture (dc_pension, savings_account, property, etc.). Drawn from data_capture persona allowed_tools."
+                },
+                "fields_needed": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Optional. Specific fields required to unblock the advice answer."
+                }
+            },
+            "required": [
+                "reason",
+                "entity_types"
+            ],
+            "additionalProperties": false
+        }
+    },
+    {
+        "name": "capture_complete",
+        "description": "Internal. Emit this when you (data-capture Fyn) have finished capturing the records the user described. The orchestrator will return control to advice Fyn.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "summary": {
+                    "type": "string",
+                    "description": "Short user-facing recap (e.g. \"Added Scottish Widows SIPP £50k\")."
+                },
+                "records_created": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": [
+                                    "integer",
+                                    "string"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "description": "Structured list of records created or updated this sub-conversation."
+                }
+            },
+            "required": [
+                "summary",
+                "records_created"
+            ],
+            "additionalProperties": false
+        }
+    }
+]

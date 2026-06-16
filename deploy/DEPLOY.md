@@ -84,6 +84,49 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 7. Smoke test `https://fynla.org`
 8. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
 
+## CoALA memory subsystem — post-deploy (coala branch and later)
+
+Once the coala line ships, every deploy — dev **and** prod — appends the CoALA
+memory command chain to the finalise steps above. Dev deploys today (pre-coala
+`dev`) don't run them; the commands don't exist on that branch yet.
+
+Order matters. `fyn:episodic:backfill-blobs` runs immediately after
+`php artisan migrate --force` (it depends on the Phase 2 episode-columns
+migration); the three corpus validators run after the cache-clear chain:
+
+```bash
+php artisan migrate --force
+php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
+# ... cache-clear chain as above (ends config:cache — never optimize) ...
+php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex && php artisan fyn:procedural:validate
+```
+
+What each command does:
+
+| Command | What it validates / does |
+|---------|--------------------------|
+| `fyn:episodic:backfill-blobs` | Backfills episodic `.md` blobs for legacy `ai_messages` rows (writes the blob, populates `blob_md_path`/`blob_md_sha256`). Idempotent — skips rows already backfilled, so it's safe in every deploy even though it only does real work once. |
+| `fyn:semantic:reindex` | Validates the Fyn semantic corpus and writes the cached index (sparse, no embeddings) to the path in `config('fyn.memory.semantic_index')`. |
+| `fyn:pointers:reindex` | Validates the Fyn pointer corpus by loading every pointer through the registry. Writes no index file — the registry reads the corpus at runtime; this is the deploy-time safety net. |
+| `fyn:procedural:validate` | Strict-loads the Fyn procedural corpus and lists the active procedures per kind/module. |
+
+**Fail-closed semantics: a non-zero exit from any of the three validators is a
+deploy gate failure.** Each returns exit 1 when its corpus fails validation —
+don't smoke test or call the deploy done until all three exit 0; fix the corpus
+(or roll the pull back) first. Runtime serving degrades rather than crashes on
+a bad corpus, which is exactly why the gate lives in the deploy chain — without
+it a broken corpus ships silently.
+
+These commands don't disturb the route:cache/optimize ban above — they touch
+only the Fyn corpora, the semantic index file, and episodic blobs, never the
+route or config caches.
+
+Not part of the deploy chain (for completeness): `fyn:episodic:reconcile`
+(scheduler, daily) and `fyn:episodic:cold-archive` (scheduler, weekly) run on
+their own; `fyn:episodic:purge --force` (6-year FCA retention) and
+`fyn:user:erase {user} --force` (GDPR erasure) are operator-run and dry-run
+without `--force`.
+
 ## Environment config templates
 
 - `deploy/csjones-fynla/.env.production` — template for the dev `.env`. Has `APP_ENV=staging`, `REVOLUT_SANDBOX=true`, `LIFECYCLE_TEST_RECIPIENT=chris@fynla.org`.

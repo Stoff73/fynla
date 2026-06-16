@@ -1,6 +1,73 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-12 — end-of-day wrap, session 1. **Track 2 (CoALA) fully landed on `coala`** (PRs #532–#536/#539/#540/#543/#545; suite 4,963/0). Dev got ISA shared-allowance #542 + Bed-and-ISA cap #544, README v1.0 #537, DEPLOY fix #541, Phailanx mobile pages #538. All loose threads closed. csjones NOT yet caught up (dev @ `7b9152b` vs deployed `d0f7cf6`). Handover: `June/June13Updates/handover-2026-06-13-session-1.md`. Prior sections preserved beneath.*
+*Last updated: 2026-06-15 — end-of-day wrap, session 3. **Built the cross-module plan composer backend, Phases 1–4 (core)** — TDD, byte-identity-pinned. Two open PRs to dev: **#558** (Phases 1–3: generalised composer + 5 module sources + Fyn-reachable handlers/pointers) and **#559** (Phase 4: composite plan — affordability + goals + life-events, stacked on #558). 215 composer-area tests green; tax byte-identical throughout. Nothing deployed (in PRs). **NEXT SESSION: Phase 5 (surfaces — aggregator wire-through + `/holistic-plan` web + net-new `/m`), then Phase 6 (E2E).** Handover: `June/June16Updates/handover-2026-06-16-session-1.md`. Plan: `docs/superpowers/plans/2026-06-15-cross-module-plan-composer.md`.*
+
+*Prior: 2026-06-15 — context-clear wrap, session 2. **Built CoALA Phase 6** (gated learning), 13 tasks subagent-driven, merged to dev (PR #554, `fae710c`), suite 5030/0; deployed + live-E2E-verified on csjones. Wrote + approved the **cross-module plan composer spec**. Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.*
+
+*Prior: 2026-06-15 — session start. Live-verified the #552 fix end-to-end (advice-Fyn "add a goal to save £25,000 for a house deposit" → **goal** capture, Goal #2240 written, no property deflection). Doc-hygiene: marked the "#2 advice-Fyn deflection" item RESOLVED.*
+
+*Prior: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
+
+## 2026-06-15 — Session 3: cross-module plan composer Phases 1–4 (end-of-day; two PRs to dev, nothing deployed)
+
+Handover: `June/June16Updates/handover-2026-06-16-session-1.md`. Plan: `docs/superpowers/plans/2026-06-15-cross-module-plan-composer.md`. Spec: `docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md`.
+- **Phase 1 (PR #558)** — generalised the tax composer **byte-identically**: `StrategyRecommendation` nullable cost fields (null-omitted → tax serialises identically), `ModuleStrategySource`, `ComposedModulePlanService`, `TaxStrategySource`, `ComposedTaxPlanService`→facade. `planDigest` parity + golden masters green.
+- **Phase 2 (PR #558)** — `strategy_type` migration (5 non-tax tables) + `ModuleAvailabilityProvider` (non-tax `required_data` vocabulary) + 5 module sources (Retirement reference inline; Savings/Investment/Protection/Estate subagent-built) each with adapter + source + `source='strategy'` catalogue rows + tests; vocabulary guard test.
+- **Phase 3 core (PR #558)** — `ModulePlanHandler` + 5 concretes registered in `FetchHandlerRegistry`; 5 tool-mode pointers (reindex green); golden baselines recaptured. **Every module reachable via Fyn.**
+- **Phase 4 core (PR #559, stacked on #558)** — `CompositePlanService` (affordability rank+annotate, nothing dropped) + goals-as-demands (effective surplus) + near-term life-event capital; `CrossModulePlanHandler` + `cross-module-plan` pointer.
+
+### Outstanding (cross-module composer)
+- [ ] **NEXT: Phase 5 — surfaces** — `RecommendationsAggregatorService` wire-through (5 non-tax composed plans); `/holistic-plan` web composite view; **net-new `/m` holistic screen** (no mobile holistic surface exists — Rule #19 gap). UI + browser-test heavy. PR to dev after.
+- [ ] **Phase 6 — full suite + browser E2E** (web + `/m`, Rule #14). PR to dev after.
+- [ ] **Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — ~19 non-tax advisory narratives NOT auto-generated (Rule #16); composer works without them. Needs CSJ: draft descriptively or author personally.
+- [ ] **Task 4.4 — episodic recall de-ranking (DEFERRED)** — needs deterministic episode-payload analysis (`FynMemoryStore::recall`), not a fuzzy heuristic.
+- [ ] **Merge order:** #558 (Phases 1–3) BEFORE #559 (Phase 4). #557 closed (superseded by #558).
+- [ ] **Deploy** (after merge): 1 new migration in #558 (`2026_06_16_000001_add_strategy_type_to_non_tax_action_definitions`) → `migrate --force`. Backend-only, no Vite rebuild yet.
+
+### Tech debt noted (targeted self-audit)
+- [ ] Adapter category→strategy_type maps are heuristic (tested vs hand-built recs, not live agent output for every category) — Phase 6 E2E should confirm fired strategies match catalogue rows.
+- [ ] Some seeded strategies may never *fire* via the source path (e.g. investment fee triggers need account data) — they still lock correctly when data is missing.
+
+## 2026-06-15 — Session 2: CoALA Phase 6 built + cross-module composer spec (context-clear; dev @ fae710c, prod pre-Phase-6)
+
+Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.
+- **CoALA Phase 6 (gated learning actions) — built, reviewed, merged to dev (PR #554, `fae710c`).** (A) session→per-user-semantic promotion (human-reviewed; `ProposedFactSynthesiser` → `proposed_semantic_facts` → `/admin/proposed-facts` → `SemanticFactPromoter` → `UserSemanticStore` → `retrieveForUser`); (B) procedure-amendment proposals (engineering-reviewed, never auto-applied; `/admin/proposed-amendments`); (C) sparse `RecallScorer` recall in the planner. `FYN_LEARNING_ENABLED` default OFF; no-auto-apply invariant tested; `FynSystemPrompt` byte-invariant untouched. Suite 5030/0. 13 tasks subagent-driven (each spec + code-quality reviewed + a final holistic review).
+- **Deployed to csjones + live-E2E-verified with real xAI** (synthesised durable figure-free facts → staged → approved in the admin UI → per-user store). Both admin surfaces browser-walked (local + csjones).
+- **Cross-module plan composer spec written + approved** (`docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md`, CoALA-native) — parked pending its implementation plan; Phase 6 (its substrate dependency) is now in place.
+
+### Outstanding
+- [ ] **NEXT: cross-module plan composer** — write the implementation plan (`superpowers:writing-plans`) from the approved spec, then build (subagent-driven). **Supersedes** the old "author non-tax catalogue metadata" item below (that's now consumer-first inside the composer).
+- [ ] **csjones has `FYN_LEARNING_ENABLED=true`** — left on as the test venue (ongoing 30-min stale-scan synthesis cost). Revert if unwanted: `sed -i 's/^FYN_LEARNING_ENABLED=.*/FYN_LEARNING_ENABLED=false/' .env && php artisan config:cache`.
+- [ ] **Local `public/build/` is now CSJONES-configured** (rebuilt for the Phase 6 deploy) — any PROD deploy needs `./deploy/fynla-org/build.sh` FIRST.
+- [ ] **Prod (`main`) is pre-CoALA + pre-Phase-6** (last release #549, 2026-06-13). A `dev → main` release (incl. #550 CoALA + Phase 6's 2 migrations + default-off flag; no corpus reindex) is CSJ's call.
+- [ ] A1 (session-end episode consolidation) deferred per CSJ — synthesiser reads the transcript directly.
+- [ ] 3 untracked unknown-provenance files in the tree (`docs/diagrams/fyn-turn-lifecycle.excalidraw`, `June/June15Updates/2026-06-15-fyn-system-prompt-build-walkthrough.md`, `.claude/skills/excalidraw/scripts/__pycache__/`) — left untracked.
+
+## 2026-06-14 — Session 1: write-intent classifier goal-precedence fix (end-of-day; dev @ b78409a5, prod unchanged)
+
+Handover: `June/June15Updates/handover-2026-06-15-session-1.md`.
+- **#552** `WriteIntentClassifier` now prefers an explicit goal noun (`goal` / `savings goal` / `target`) over an incidental asset keyword — "add a goal to save £25,000 for a house deposit" routes to a **goal** capture, not property (matched "house"). Pure precedence change (`goal` was already the last entry, so the set of non-null results is unchanged); conservative verb + question guards untouched. Added a `WriteIntentClassifierTest` case (TDD: RED→GREEN). 407 AI unit tests green, Pint clean. Admin-merged to dev, deployed csjones (backend-only, no `public/build/` rebuild).
+- CLAUDE.md metrics table refreshed during vault-sync (Vue 691→674, PHP Services 359→400, Controllers 120→122, Models 127→128 — verified against actual counts).
+- Resolves the deferred precedence bug noted in `feedback_advice_fyn_capture_deflection_partial.md`. The **#2 advice-Fyn deflection** item (below) is **RESOLVED** by #551 (focus-null capture-turn fix) + #552 (precedence) — only the evidence-gated refusal-recovery guard remains deferred.
+
+## 2026-06-13 — Session 2: dashboard parity, ISA fixes, Fyn deflection, FULL PROD RELEASE (context-clear; dev @ 2386915, main @ 2905c62, prod current)
+
+Handover: `June/June13Updates/handover-2026-06-13-session-2-clear.md`.
+- **#546** web `/dashboard` module parity (all-module focus tabs + unlock-row capture pre-seed) + desktop sidebar Tax Strategy nav entry.
+- **#547** ISA calc counts S&S ISA subscriptions toward the allowance (was Cash-ISA-only → headroom over-stated).
+- **#548** Fyn `create_investment_account` captures the ISA subscription + advice-Fyn deflection carve-out (**PARTIAL** — still intermittently deflects; see memory).
+- **#549** `dev → main` release deployed to **fynla.org** (rsync, 5 migrations, 6 catalogue seeders, `config:cache`); verified prod end-to-end (web + `/m`).
+- Azlan savetax journey re-tested GREEN on csjones (recording verified). Insights "featured" = **keep May fallback** (answered, no change).
+
+### Outstanding
+- [x] **The #2 advice-Fyn deflection is RESOLVED** (not "PARTIAL" — that framing was stale vs the memory file). Real root cause was the capture-turn focus-null mis-framing, fixed in **PR #551** (expanded the `inferFocusesFromEntityTypes` map + non-null `'savings'` fallback in `handleInlineCapture` so a cleared capture can never be re-framed as advice; 15-case `InlineCaptureFlowTest` + suite 4,981 green). The separate `WriteIntentClassifier` precedence bug is fixed in **PR #552** — **re-verified live end-to-end 2026-06-15** ("add a goal to save £25,000 for a house deposit" → goal capture, `Goal` row `home_deposit` £25k written, zero property deflection). Only the **post-stream refusal-recovery guard** stays deferred: "add only on fresh evidence" — none seen. See `feedback_advice_fyn_capture_deflection_partial.md`.
+- [ ] **Local `public/build/` is PROD-configured** — rebuild with `./deploy/csjones-fynla/build.sh` before any csjones deploy.
+- [ ] **coala→dev landing programme** (deferred; own spec/plan; worktree `~/Desktop/fynla-coala`; 224 commits ahead).
+- [ ] Author non-tax module catalogue `required_data`/`sequencing` metadata (null by design today — only tax authored).
+- [ ] A1/A2 overlay flip-to-active needs `provider: xai` variants (coala work).
+- [ ] Pre-existing May-29 `CollisionServiceProvider` error in prod `laravel.log` (dev dep via a cron path; 0 today) — minor tidy-up.
+- [ ] vault `UKTaxes.md` Current State stale (carried).
+- [x] ~~deploy dev → csjones~~ DONE. ~~Azlan re-test on csjones~~ DONE. ~~eyeball gamified web dashboard~~ DONE (#546). ~~desktop sidebar Tax Strategy nav~~ DONE (#546). ~~insights featured judgement call~~ ANSWERED (keep May).
 
 ## 2026-06-12 — Session 1: Track 2 executed + merged; loose threads closed (end-of-day; dev @ 7b9152b, coala @ 10193e2)
 

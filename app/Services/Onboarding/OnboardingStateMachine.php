@@ -6,6 +6,9 @@ namespace App\Services\Onboarding;
 
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Pure state config for the Fyn-driven onboarding flow.
@@ -196,11 +199,18 @@ final class OnboardingStateMachine
         return self::STATE_CAMPAIGN_SYNTHESIS;
     }
 
+    /** Memoised effective transition table (corpus-merged or in-code fallback). */
+    private static ?array $transitionTableCache = null;
+
     /**
-     * Complete state table. See fynOnboardFix.md §5.2 for the reference
-     * table this was built from.
+     * The authoritative in-code transition table. Source of truth for the
+     * PHP-only fields (callable `next`, callable `prompt_text`, `skip_if`) and
+     * the fallback when the corpus workflow procedure is absent / malformed.
+     * Phase 4d moves the DATA subset of this table to
+     * fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md; the merge
+     * in transitionTable() overlays that data while keeping these PHP-only fields.
      */
-    public static function states(): array
+    private static function inCodeStates(): array
     {
         return [
             self::STATE_PATH_CHOICE => [
@@ -622,6 +632,114 @@ final class OnboardingStateMachine
                 'next' => null,
             ],
         ];
+    }
+
+    /**
+     * Public transition table. Routes through transitionTable() so every
+     * consumer (OnboardingChatDirector, AiChatController) transparently gets the
+     * corpus-backed DATA subset merged over the in-code base when the workflow
+     * procedure is present, and the pure in-code table otherwise. No consumer
+     * signature changes.
+     */
+    public static function states(): array
+    {
+        return self::transitionTable();
+    }
+
+    /**
+     * Resolve the active onboarding workflow procedure, parse its DATA subset,
+     * and merge it over the in-code base: the corpus is authoritative for DATA
+     * fields; the in-code table is authoritative for PHP-only fields (callable
+     * `next`, callable `prompt_text`, `skip_if`). Falls back to inCodeStates()
+     * on absent / malformed corpus or any fault — never throws.
+     *
+     * Memoised per request (deterministic pure function of corpus + code).
+     */
+    public static function transitionTable(): array
+    {
+        if (self::$transitionTableCache !== null) {
+            return self::$transitionTableCache;
+        }
+
+        $base = self::inCodeStates();
+
+        try {
+            $corpus = app(ProceduralCorpusLoader::class)->load();
+            $procedure = $corpus->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
+            if ($procedure === null) {
+                return self::$transitionTableCache = $base;
+            }
+
+            $data = OnboardingWorkflowTable::fromProcedure($procedure);
+            if ($data === null) {
+                return self::$transitionTableCache = $base;
+            }
+
+            // State-id set + order MUST match the in-code table, else fall back.
+            if (array_keys($data) !== array_keys($base)) {
+                Log::notice('[OnboardingStateMachine] Corpus workflow ignored: state-id set mismatch with in-code table — falling back to in-code states.', [
+                    'corpus_states' => count($data),
+                    'in_code_states' => count($base),
+                ]);
+
+                return self::$transitionTableCache = $base;
+            }
+
+            return self::$transitionTableCache = self::mergeTable($base, $data);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return self::$transitionTableCache = $base;
+        }
+    }
+
+    /**
+     * Test/deploy hook — clear the memoised transition table so the next
+     * states() / transitionTable() call re-reads the corpus. Used by the 4e
+     * stamping tests (each drives its own temp corpus) and after a corpus
+     * hot-reload. Idempotent and side-effect-free in production.
+     */
+    public static function flushTransitionTableCache(): void
+    {
+        self::$transitionTableCache = null;
+    }
+
+    /**
+     * Overlay the corpus DATA fields onto the in-code base, in the in-code key
+     * order. PHP-only fields are never overwritten:
+     *   - `skip_if` is ignored entirely (not present in the corpus).
+     *   - `next` / `prompt_text` are kept from code whenever the in-code value
+     *     is a callable reference (a string containing '::') OR the corpus value
+     *     is a descriptive marker array ({branch:…} / {builder:…}).
+     *
+     * @param  array<string, array<string, mixed>>  $base
+     * @param  array<string, array<string, mixed>>  $data
+     * @return array<string, array<string, mixed>>
+     */
+    private static function mergeTable(array $base, array $data): array
+    {
+        $merged = [];
+        foreach ($base as $id => $codeState) {
+            $corpusState = $data[$id] ?? [];
+            $out = $codeState; // preserves in-code key order + PHP-only fields
+            foreach ($corpusState as $key => $value) {
+                if ($key === 'skip_if') {
+                    continue;
+                }
+                if ($key === 'next' || $key === 'prompt_text') {
+                    $codeValue = $codeState[$key] ?? null;
+                    $codeIsCallable = is_string($codeValue) && str_contains($codeValue, '::');
+                    $corpusIsMarker = is_array($value);
+                    if ($codeIsCallable || $corpusIsMarker) {
+                        continue; // keep the in-code callable
+                    }
+                }
+                $out[$key] = $value; // corpus wins on DATA fields, in place
+            }
+            $merged[$id] = $out;
+        }
+
+        return $merged;
     }
 
     public static function getState(string $stateId): ?array

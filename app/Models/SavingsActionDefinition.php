@@ -28,6 +28,7 @@ class SavingsActionDefinition extends Model
         'claim_tier',
         'required_data',
         'sequencing',
+        'strategy_type',
     ];
 
     protected $casts = [

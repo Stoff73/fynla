@@ -15,12 +15,16 @@ use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
+use App\Services\AI\Loop\FynLoop;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Gamification\PointsService;
 use App\ValueObjects\CaptureContext;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +74,8 @@ final class OnboardingChatDirector
         private readonly HouseholdProvisioner $householdProvisioner,
         private readonly MemoryRetrieverService $memory,
         private readonly RecordDuplicateChecker $duplicateChecker,
+        private readonly FynLoop $fynLoop,
+        private readonly ProceduralVersionHolder $proceduralVersions,
     ) {}
 
     /**
@@ -106,12 +112,16 @@ final class OnboardingChatDirector
         User $user,
         AiConversation $conversation,
         string $message,
-        ?string $currentRoute = null
+        ?string $currentRoute = null,
+        bool $persistUserMessage = true
     ): \Generator {
         // Persist the user message immediately so the conversation history
         // reflects the real interaction even if the rest of this generator
-        // fails.
-        $this->saveMessage($conversation, 'user', $message);
+        // fails. Skipped when re-streaming an already-persisted queued turn
+        // (FR-M7 concurrent-turn queue) so we don't duplicate the user row.
+        if ($persistUserMessage) {
+            $this->saveMessage($conversation, 'user', $message);
+        }
 
         // Phase 11 — OnboardingFactExtractor runs speculatively on every
         // user message and parks structured facts into
@@ -146,6 +156,13 @@ final class OnboardingChatDirector
 
             return;
         }
+
+        // Phase 4e — stamp the active onboarding workflow procedure version onto
+        // the turn so persistEpisode can bind it onto the episode. Recorded only
+        // when the corpus actually supplies the workflow procedure (the merge
+        // path transitionTable() takes); empty corpus → records nothing → null
+        // stamp, matching the in-code-table fallback. Never breaks the turn.
+        $this->recordActiveWorkflowVersion();
 
         // Asset capture is the delegated turn. Both the journey/focus
         // STATE_ASSET_CAPTURE and the SaveTax campaign STATE_CAMPAIGN_*
@@ -1571,12 +1588,13 @@ final class OnboardingChatDirector
         $answerBuffer = '';
 
         try {
-            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+            $generator = $this->fynLoop->stream(
                 $user,
                 $conversation,
                 $message,
                 $currentRoute,
-                $systemPrompt,
+                persona: null,
+                systemPromptOverride: $systemPrompt,
                 allowedTools: null,
                 persistUserMessage: false,
                 toolsListOverride: $filtered,
@@ -2104,31 +2122,31 @@ PROMPT;
         }
 
         // Swap the coordinating agent's system prompt for this turn only.
-        // We do this by calling chat() with a short-lived prompt override —
-        // see CoordinatingAgent::chatWithPromptOverride() below.
+        // The streamed turn (and its unified-focus set/clear) runs through
+        // FynLoop::stream so the focus and the stream that reads it share one
+        // CoordinatingAgent instance — see FynLoop::stream().
         [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
-        if ($unifiedFocus !== null) {
-            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
-        }
 
         try {
-            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+            $generator = $this->fynLoop->stream(
                 $user,
                 $conversation,
                 $message,
                 $currentRoute,
-                $restrictedPrompt,
-                $allowedTools,
-                persistUserMessage: false, // already saved at top of handleUserMessage
                 // May18 tripled-ack Fix A only fires under the data_capture
                 // persona (HasAiChat::captureTurnCompleteDirective gates on it).
                 // This IS a capture turn, so opt in — otherwise the xai model
                 // re-narrates "Got it — recording those now." on every agent-loop
-                // continuation and the ack stacks ×N. personaOverride only tags
-                // the assistant message + enables the directive; tool gating and
-                // the prompt come from the override args above, so it is safe here.
-                personaOverride: 'data_capture',
+                // continuation and the ack stacks ×N. The persona only tags
+                // the assistant message + enables the directive (FynLoop::stream
+                // forwards it as personaOverride); tool gating and the prompt
+                // come from the override args above, so it is safe here.
+                persona: 'data_capture',
+                systemPromptOverride: $restrictedPrompt,
+                allowedTools: $allowedTools,
+                persistUserMessage: false, // already saved at top of handleUserMessage
+                unifiedFocus: $unifiedFocus,
             );
 
             // FR-M14 — buffered sentence-level content filter.
@@ -2256,15 +2274,11 @@ PROMPT;
             ];
 
             return;
-        } finally {
-            // Always clear the unified onboarding focus — including the
-            // \Throwable path above, which returns before this point. A
-            // leaked focus would make the next advice turn on this agent
-            // build an onboarding-mode FynTurnContext.
-            if ($unifiedFocus !== null) {
-                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
-            }
         }
+        // The unified onboarding focus is set and cleared inside
+        // FynLoop::stream (on the same agent instance it streams on), so no
+        // focus-clear is needed here — FynLoop's own finally covers the
+        // generator-throw path.
 
         // A1 — honour the QUESTION EXCEPTION's "Do NOT advance past it". A
         // question turn that captured nothing must stay on the current
@@ -2996,12 +3010,16 @@ PROMPT;
         // Mirror handleAssetCaptureTurn: derive the focus from the
         // CaptureContext and carry it for the duration of the turn (no-op
         // under legacy — the property is only read on the unified path).
+        // The `?? 'savings'` fallback is the deflection guarantee: a turn that
+        // reached handleInlineCapture is a write the classifier or the LLM
+        // delegate_to_capture path has ALREADY cleared, so it must stay in
+        // capture mode even when the entity type has no module focus (e.g. an
+        // LLM-emitted entity the map below doesn't know). A null focus here
+        // demotes the turn to advice mode, the CAPTURE bucket is dropped, and
+        // the model deflects with the security refusal (June13 §6c).
         $unifiedFocus = FynPromptMode::isUnified()
-            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? null)
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? 'savings')
             : null;
-        if ($unifiedFocus !== null) {
-            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
-        }
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
         $llmEmittedFills = [];
@@ -3009,53 +3027,45 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        try {
-            // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
-            // chat() turn that emitted delegate_to_capture already saved the
-            // user message. Re-saving from inside the inline-capture turn would
-            // produce a duplicate row in ai_messages.
-            $generator = $this->coordinatingAgent->chatWithPromptOverride(
-                user: $user,
-                conversation: $conversation,
-                message: $message,
-                currentRoute: $currentRoute,
-                systemPromptOverride: null,
-                allowedTools: $allowedTools,
-                persistUserMessage: false,
-                toolsListOverride: null,
-                personaOverride: 'data_capture',
-            );
+        // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
+        // chat() turn that emitted delegate_to_capture already saved the
+        // user message. Re-saving from inside the inline-capture turn would
+        // produce a duplicate row in ai_messages. The streamed turn (and its
+        // unified-focus set/clear) runs through FynLoop::stream so the focus
+        // and the stream that reads it share one CoordinatingAgent instance.
+        $generator = $this->fynLoop->stream(
+            $user,
+            $conversation,
+            $message,
+            $currentRoute,
+            persona: 'data_capture',
+            allowedTools: $allowedTools,
+            persistUserMessage: false,
+            unifiedFocus: $unifiedFocus,
+        );
 
-            foreach ($generator as $event) {
-                $type = $event['type'] ?? '';
+        foreach ($generator as $event) {
+            $type = $event['type'] ?? '';
 
-                if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
-                    continue;
-                }
-
-                if ($type === 'fill_form') {
-                    $llmEmittedFills[] = (array) ($event['fields'] ?? []);
-                }
-
-                // Track every record persisted by a create_* / direct-write handler
-                // so the closing capture_complete event carries the full list.
-                if ($type === 'entity_created') {
-                    $recordsCreated[] = [
-                        'type' => (string) ($event['entity_type'] ?? ''),
-                        'id' => $event['entity_id'] ?? null,
-                        'name' => (string) ($event['name'] ?? ''),
-                    ];
-                }
-
-                yield $event;
+            if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
+                continue;
             }
-        } finally {
-            // Always clear the carried focus — including the generator-throw
-            // path — so the next advice turn on this agent is not misframed
-            // as onboarding capture.
-            if ($unifiedFocus !== null) {
-                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+
+            if ($type === 'fill_form') {
+                $llmEmittedFills[] = (array) ($event['fields'] ?? []);
             }
+
+            // Track every record persisted by a create_* / direct-write handler
+            // so the closing capture_complete event carries the full list.
+            if ($type === 'entity_created') {
+                $recordsCreated[] = [
+                    'type' => (string) ($event['entity_type'] ?? ''),
+                    'id' => $event['entity_id'] ?? null,
+                    'name' => (string) ($event['name'] ?? ''),
+                ];
+            }
+
+            yield $event;
         }
 
         // Gamification: the inline-capture path (advice-mode write handoff, incl.
@@ -3304,6 +3314,15 @@ PROMPT;
                 'savings_account', 'cash_account' => 'savings',
                 'dc_pension', 'db_pension', 'pension' => 'retirement',
                 'investment_account', 'holding' => 'investment',
+                'goal', 'life_event' => 'goals',
+                'business_interest', 'business' => 'business',
+                // Net-worth + estate-planning records share the Estate focus —
+                // its tool hint (create_property/asset/liability/gift/chattel)
+                // is the closest match and, critically, keeps the turn in
+                // capture mode so FynCaptureTurnInstructions are injected.
+                'property', 'mortgage', 'asset', 'liability',
+                'estate_gift', 'gift', 'chattel',
+                'will', 'power_of_attorney', 'trust' => 'estate',
                 default => null,
             };
             if ($focus !== null && ! in_array($focus, $focuses, true)) {
@@ -3312,5 +3331,25 @@ PROMPT;
         }
 
         return $focuses;
+    }
+
+    /**
+     * Resolve and record the active onboarding workflow procedure_id@version
+     * into the request-scoped ProceduralVersionHolder. Degrades silently — a
+     * missing/malformed corpus records nothing and never throws.
+     */
+    private function recordActiveWorkflowVersion(): void
+    {
+        try {
+            $procedure = app(ProceduralCorpusLoader::class)
+                ->load()
+                ->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
+
+            if ($procedure !== null) {
+                $this->proceduralVersions->add($procedure->procedureId, $procedure->version);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

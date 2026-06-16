@@ -582,8 +582,7 @@ describe('Holdings CRUD Operations', function () {
 
 describe('Security and Authorization', function () {
     it('requires authentication for all endpoints', function () {
-        // Create a fresh test client without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $endpoints = [
             ['POST', '/api/investment/optimization/efficient-frontier'],

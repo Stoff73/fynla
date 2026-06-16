@@ -169,3 +169,24 @@
 - Commits today (dev): 12; PRs merged: #532–#545 (Track 2 + follow-ups + cleanup), suite 4,963/0 on coala
 - Status: 0 uncommitted (two long-standing untracked docs only)
 - Next: CSJ — deploy dev→csjones (June13Updates/deploy-2026-06-13.md), Azlan re-test, gamified dashboard eyeball; then the coala→dev landing programme
+
+## 2026-06-13 — session 2 (context-clear)
+- Handover: [[handover-2026-06-13-session-2-clear]]
+- Branch: dev (main @ 2905c62, dev-ahead 0); prod fynla.org current
+- Shipped: #546 web dashboard parity + sidebar Tax Strategy; #547 ISA calc counts S&S ISA subs; #548 ISA tool capture + Fyn deflection carve-out (PARTIAL); #549 dev→main release deployed to prod (5 migrations, catalogue seeders), verified end-to-end web + /m. Azlan re-test GREEN on csjones.
+- Status: 0 uncommitted (working tree clean except 2 long-standing untracked docs). All merged + deployed.
+- Next: CSJ to pick — eval-driven #2 deflection fix / non-tax catalogue metadata / coala→dev landing.
+
+## 2026-06-14 — session 1 (eod)
+- Handover: [[handover-2026-06-15-session-1]]
+- Branch: dev @ b78409a5 (pushed); local sitting on merged fix/write-intent-goal-precedence
+- Commits this session: 1 (PR #552); admin-merged to dev, deployed csjones
+- Status: clean except two pre-existing untracked docs + CLAUDE.md metrics refresh (committed in wrap)
+- Shipped: WriteIntentClassifier goal/property keyword-precedence fix (explicit goal noun wins over incidental asset keyword; "add a goal for a house deposit" → goal, not property). TDD'd; 407 AI unit tests green. Resolves the precedence bug flagged in feedback_advice_fyn_capture_deflection_partial.
+- Next: CSJ — optional live /m+web confirm of goal-capture; dev → main release when CSJ decides (this fix + #546–#551 ride the next prod release); #2 advice-Fyn deflection eval-driven fix still open
+
+## 2026-06-15 — session 2 (context-clear)
+- Handover: [[handover-2026-06-15-session-2-clear]]
+- Branch: docs/session-2026-06-15-clear (Phase 6 built on coala-phase-6-learning → dev via #554)
+- Shipped: CoALA Phase 6 (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (fae710c), suite 5030/0; deployed + live-E2E-verified on csjones. Cross-module composer spec written + approved (parked).
+- Next: write the cross-module plan composer implementation plan (superpowers:writing-plans) from docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md, then build.

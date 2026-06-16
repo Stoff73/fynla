@@ -138,27 +138,51 @@ final class WriteIntentClassifier
             return null;
         }
 
+        // June13Updates — keyword-precedence guard. When the message names a
+        // goal explicitly ("add a goal to save for a house deposit"), that
+        // goal noun is the OBJECT of the write; any asset keyword present
+        // ("house") only describes what the goal is FOR. ENTITY_KEYWORDS
+        // lists property/savings/etc. before goal, so without this check an
+        // incidental asset word wins and the message mis-routes to that
+        // asset's capture. Prefer the explicit goal noun. This is a pure
+        // precedence change: `goal` is already the last entry, so any message
+        // caught here would have produced a non-null result anyway — the
+        // conservative false-positive contract (verb required, question
+        // guard) is untouched.
+        $goalKeyword = $this->firstMatch($normalised, self::ENTITY_KEYWORDS['goal']);
+        if ($goalKeyword !== null) {
+            return $this->buildResult('goal', $matchedVerb, $goalKeyword);
+        }
+
         foreach (self::ENTITY_KEYWORDS as $entityType => $keywords) {
             $matchedEntity = $this->firstMatch($normalised, $keywords);
             if ($matchedEntity !== null) {
-                return [
-                    'entity_type' => $entityType,
-                    'matched_verb' => $matchedVerb,
-                    'matched_entity_keyword' => $matchedEntity,
-                    'fields_needed' => $this->fieldsNeededFor($entityType),
-                    'reason' => sprintf(
-                        'Detected write intent (%s) for %s — phrase "%s".',
-                        $matchedVerb,
-                        $entityType,
-                        $matchedEntity,
-                    ),
-                ];
+                return $this->buildResult($entityType, $matchedVerb, $matchedEntity);
             }
         }
 
         // Verb matched but no entity matched — ambiguous, return null so the
         // LLM still owns the turn. We do NOT fabricate an entity_type guess.
         return null;
+    }
+
+    /**
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}
+     */
+    private function buildResult(string $entityType, string $matchedVerb, string $matchedEntity): array
+    {
+        return [
+            'entity_type' => $entityType,
+            'matched_verb' => $matchedVerb,
+            'matched_entity_keyword' => $matchedEntity,
+            'fields_needed' => $this->fieldsNeededFor($entityType),
+            'reason' => sprintf(
+                'Detected write intent (%s) for %s — phrase "%s".',
+                $matchedVerb,
+                $entityType,
+                $matchedEntity,
+            ),
+        ];
     }
 
     /**
