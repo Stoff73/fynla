@@ -7,6 +7,13 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use Database\Seeders\TaxConfigurationSeeder;
 
+beforeEach(function () {
+    // The gate-tagging contract is path-independent; exercise it on the raw
+    // per-agent path. The composed path is covered separately in
+    // RecommendationsAggregatorComposedModulesTest.
+    config(['coordination.composed_module_plans' => false]);
+});
+
 it('does not emit estate recommendations when estate KYC is unmet', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
