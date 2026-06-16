@@ -916,6 +916,97 @@ final class OnboardingStateMachine
         return self::STATE_PROFILE_REVIEW_FAMILY;
     }
 
+    /**
+     * Normalise a yes/no answer (bubble id or free text) to 'yes' or 'no'.
+     * Bubble clicks send the literal bubble id ('yes' / 'no'); free text is
+     * matched on a leading 'yes'. Anything else is treated as 'no' so the flow
+     * advances rather than looping (the verify bubbles are explicit Yes/No).
+     */
+    private static function normaliseYesNo(string $answer): string
+    {
+        return str_starts_with(mb_strtolower(trim($answer)), 'yes') ? 'yes' : 'no';
+    }
+
+    /** Stamp the section into context and enter the verify sub-flow. */
+    public static function enterCampaignVerify(User $user, string $section): string
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['verify_section'] = $section;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        return 'campaign_verify_more';
+    }
+
+    /** The section currently being verified (from context). */
+    private static function verifySection(User $user): string
+    {
+        return (string) (($user->onboarding_fyn_context['verify_section'] ?? '') ?: '');
+    }
+
+    /** verify_more: "yes" loops back to the section's capture entry; "no" → navigate. */
+    public static function nextFromVerifyMore(string $answer, User $user): string
+    {
+        if (self::normaliseYesNo($answer) === 'yes') {
+            $section = self::verifySection($user);
+
+            return self::campaignVerifyConfig()[$section]['entry'] ?? self::STATE_CAMPAIGN_SYNTHESIS;
+        }
+
+        return 'campaign_verify_navigate';
+    }
+
+    /** verify_navigate: "no" → edit; "yes" → advance past the verified section. */
+    public static function nextFromVerifyNavigate(string $answer, User $user): string
+    {
+        if (self::normaliseYesNo($answer) === 'no') {
+            return 'campaign_verify_edit';
+        }
+
+        return self::nextCampaignSection(self::verifySection($user), $user->refresh());
+    }
+
+    /** Resolved navigate_to for the verify_navigate state (null = inline confirm). */
+    public static function verifyNavigateRoute(User $user): ?string
+    {
+        $section = self::verifySection($user);
+
+        return self::campaignVerifyConfig()[$section]['route'] ?? null;
+    }
+
+    /**
+     * Prompt for verify_more, section-aware. Signature mirrors the other
+     * callable prompt builders (buildPersonalPrompt): invoked by
+     * resolvePromptText/invokeCallableString as ($answer, $user).
+     */
+    public static function verifyPromptMore(string $answer, User $user): string
+    {
+        $label = self::sectionLabel(self::verifySection($user));
+
+        return "Anything else to add to your {$label}?";
+    }
+
+    /** Prompt for verify_navigate, section-aware (navigation vs inline confirm). */
+    public static function verifyPromptNavigate(string $answer, User $user): string
+    {
+        if (self::verifyNavigateRoute($user) === null) {
+            // Inline confirm (charitable giving): no screen.
+            return "I've recorded that. Does it look right?";
+        }
+
+        return "I've added that — taking you to the screen now. Is this information correct?";
+    }
+
+    /** Human label for a campaign section, for verify prompts. */
+    private static function sectionLabel(string $section): string
+    {
+        return [
+            'income' => 'income', 'savings' => 'savings', 'investments' => 'investments',
+            'pensions' => 'pensions', 'giving' => 'charitable giving', 'spouse' => 'spouse details',
+            'expenditure' => 'expenditure',
+        ][$section] ?? 'details';
+    }
+
     public static function nextFromEmploymentMore(string $answer, User $user): string
     {
         $normalised = mb_strtolower(trim($answer));
