@@ -43,6 +43,14 @@
       <div class="md-bottom-pad" aria-hidden="true"></div>
     </main>
 
+    <!-- Onboarding continue nudge — when the verify flow has navigated a
+         mid-onboarding user here and minimised the dock, this points them back to
+         the chat so they know they can carry on. Tapping opens Fyn; hidden once
+         Fyn is open or onboarding is complete. Plain text only — Rule #15. -->
+    <div v-if="showOnboardingNudge" class="md-fyn-nudge">
+      <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Tap the chat below to continue with Fyn</button>
+    </div>
+
     <!-- Docked Fyn bar -->
     <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
@@ -206,6 +214,14 @@ export default {
   computed: {
     activePath() {
       return this.$route ? this.$route.path : '';
+    },
+    // The campaign verify flow navigates a mid-onboarding user to this screen and
+    // minimises the dock — leaving no cue that Fyn is waiting to carry on. Show a
+    // nudge above the docked bar pointing them back to the chat. Tapping opens
+    // Fyn; it hides once the chat is open or onboarding is complete.
+    // onboardingActive comes from the onboardingChat mixin.
+    showOnboardingNudge() {
+      return this.onboardingActive && !this.fynOpen;
     },
     fynIcon() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';
