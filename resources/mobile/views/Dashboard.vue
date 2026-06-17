@@ -924,12 +924,21 @@ export default {
       }
     },
   },
-  mounted() {
-    this.loadUser();
+  async mounted() {
     this.load();
     // Deliver any celebration missed since last open (server-persisted
     // pending_celebration_level surfaced via GET /api/gamification/status).
     store.fetchStatus();
+    // Campaign / onboarding arrivals land here with Fyn ready to guide them — the
+    // registration hand-off promises "your dashboard with Fyn open". Open the chat
+    // immediately so the greeting shows, instead of leaving it docked behind the
+    // nudge. Await loadUser first so onboardingActive reflects the real user (on a
+    // cold / token-only arrival store.user is still null at mount). Module screens
+    // keep the nudge; the dashboard is the onboarding home, so Fyn leads here.
+    await this.loadUser();
+    if (this.onboardingActive) {
+      this.openFyn();
+    }
   },
 };
 </script>
