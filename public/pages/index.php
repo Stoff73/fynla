@@ -229,16 +229,16 @@ try {
              The figure counts up to its value when scrolled into view (JS). -->
         <div class="feature-savetax">
           <p class="feature-savetax__headline">You could save tax today</p>
-          <?php if ($homeSaveTaxFigure): ?>
+          <?php if ($homeSaveTaxFigure) { ?>
             <p
               class="feature-savetax__figure"
               id="savetax-counter"
               data-count-to="<?= (int) ($homeSaveTaxEstimate['savings_total'] ?? 0) ?>"
               data-count-prefix="£"
             >£0</p>
-          <?php endif; ?>
+          <?php } ?>
           <p class="feature-savetax__sub">
-            <?php if ($homeSaveTaxFigure): ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php endif; ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
+            <?php if ($homeSaveTaxFigure) { ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php } ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
           </p>
           <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
         </div>
@@ -632,6 +632,9 @@ try {
   <script src="/pages/js/site.js?v=112" defer></script>
   <!-- Page-specific interactions (carousel, video, accordion, insights, demo modal) -->
   <script src="/pages/js/index.js?v=113" defer></script>
+  <!-- Cookie consent — server-rendered pages don't mount the SPA banner, so the
+       prompt must appear here at the landing, persisted via localStorage. -->
+  <script src="/pages/js/cookie-consent.js?v=1" defer></script>
 
 </body>
 </html>
