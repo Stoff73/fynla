@@ -1,13 +1,23 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-16 — context-clear wrap, session 2. **Cross-module composer Phases 5–6 DONE + the whole composer (Phases 1–5) + CoALA (Phases 1–6) SHIPPED TO PROD (fynla.org).** Then started **SaveTax verify-after-capture**: backend (Tasks 1–6) + the two `/m` screens + Cash Management nav (Tasks 7–9) done, committed, pushed, GREEN on `savetax-verify-capture`. Paused at Task 10 (a real refactor — CSJ chose **Option B**: resume onboarding in the dock). **NEXT SESSION (mandate): land Option B + the `/m` E2E + open the dev PR.** Handover: `June/June16Updates/handover-2026-06-16-session-2-clear.md`. Plan: `docs/superpowers/plans/2026-06-16-savetax-verify-after-capture.md`.*
+*Last updated: 2026-06-17 — context-clear wrap, session 2. **SaveTax verify-after-capture is COMPLETE + LIVE ON PROD (fynla.org)** — Option B landed, the verify FLOW corrected to CSJ's exact spec, and the income section walked E2E on prod. Three prod releases today (PRs #563→#568): (1) Option B + 3 fixes + time-estimate + de-jank + nudge; (2) cookie-consent-at-landing + `/m` Fyn auto-open; (3) verify-flow rework (one gate → navigate+confirm → advice; `/income` shows employer·role; chat persists). Suite 5121/0. Handover: `June/June17Updates/handover-2026-06-17-session-2-clear-precompact.md`. Canonical sequence memory: `feedback_savetax_verify_sequence_canonical`.*
+
+## 2026-06-17 — Session 2: SaveTax verify-after-capture DONE + on PROD (clear)
+
+- [x] **Option B landed** — resume the persisted onboarding conversation in the dock (`onboardingChat.js` mixin + `loadTranscript`); `handleCampaignVerifyEdit` (update-only, honesty-gated); 3 fixes (`Investment\InvestmentAccount` ns, store-boundary reads, honest verify-edit ack). PRs #563→#564, on prod.
+- [x] **Time-estimate greeting** (3-5 min base + 1 min/asset beyond first), **de-jank** (suppress premature confirm + defer close), **"Tap the chat below to continue with Fyn" nudge**.
+- [x] **Cookie consent at the landing/funnel + `/m` Fyn auto-open** — vanilla `public/pages/js/cookie-consent.js` on `index/savetax/savetax-plan.php` (persists, same `localStorage['cookie_consent']`); `Dashboard.vue mounted()` auto-opens Fyn for onboarding arrivals. PRs #565→#566, on prod.
+- [x] **Verify FLOW correction → CSJ's exact spec** — one existing gate → navigate+confirm (with nudge) → "Yes" → THEN section advice → next section; verify BEFORE advice; `/income` shows employer·role·amount; full chat transcript persists across navigation. `campaign_verify_more` now orphaned (golden-master parity only). PRs #567→#568, on prod, income E2E-verified live.
+- [ ] **Optional parity confirmation** — walk the remaining sections on prod (savings → investments → pensions → giving → spouse → expenditure); same generic verify mechanics, screens already list records. Confirmation, not new work.
+- [ ] **Cleanup (future):** remove orphaned `campaign_verify_more` state (code + corpus + flow tests).
+- [ ] **Untested:** iOS Safari iframe-localStorage partitioning for the `/m` cookie banner on a real device.
 
 ## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
 
 - [x] **Composer Phase 5** — `RecommendationsAggregatorService` wire-through (`COMPOSED_MODULE_PLANS` flag, default ON), `/holistic-plan` web composite view + `GET /api/holistic/composite-plan`, net-new `/m` holistic screen. PR #561, browser-verified.
 - [x] **Composer Phase 6** — full suite green (5110), golden masters, web + `/m` E2E.
 - [x] **Merged #558→#559→#560→#561 to dev; #562 dev→main; FULL PROD DEPLOY** (CoALA Phases 1–6 + composer Phases 1–5, 11 migrations, corpus reindex, strategy seeders). `/m` holistic browser-verified on fynla.org. Also deployed dev→csjones. `FYN_LEARNING_ENABLED` OFF on prod; `COMPOSED_MODULE_PLANS` ON.
-- [ ] **SaveTax verify-after-capture — NEXT: land Option B + E2E.** Backend + screens done + green on `savetax-verify-capture`. Option B = resume the persisted onboarding conversation in `MobileChrome`'s dock (Dashboard-scoped chat unmounts on nav). See plan §"Task 10 (REVISED)". Then `/m` E2E (csjones) + dev PR.
+- [x] **SaveTax verify-after-capture — DONE + on PROD (2026-06-17).** Option B landed, flow corrected, income E2E-verified on prod. See the 2026-06-17 section above.
 - [ ] **Composer Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — still open; composer works without them.
 - [ ] **Composer Task 4.4 — episodic recall de-ranking (DEFERRED)** — still open.
 

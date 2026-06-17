@@ -190,3 +190,11 @@
 - Branch: docs/session-2026-06-15-clear (Phase 6 built on coala-phase-6-learning → dev via #554)
 - Shipped: CoALA Phase 6 (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (fae710c), suite 5030/0; deployed + live-E2E-verified on csjones. Cross-module composer spec written + approved (parked).
 - Next: write the cross-module plan composer implementation plan (superpowers:writing-plans) from docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md, then build.
+
+## 2026-06-17 — session 2 (context-clear)
+- Handover: [[handover-2026-06-17-session-2-clear-precompact]] (rewritten from the PreCompact stub; supersedes session-1-clear)
+- Branch: main @ 9a304d6 (= origin/main = prod); 0/0 with origin
+- Commits this session: 17 (SaveTax verify-after-capture arc; PRs #563→#568)
+- Status: clean (only long-standing untracked docs)
+- Shipped to PROD (fynla.org), 3 releases: (1) Option B resume-in-dock + 3 fixes + time-estimate + de-jank + nudge (#563→#564); (2) cookie-consent-at-landing + /m Fyn auto-open (#565→#566); (3) verify FLOW correction to CSJ's exact spec — one gate → navigate+confirm+nudge → advice; /income shows employer·role; chat persists (#567→#568). Suite 5121/0; income E2E-verified live on prod.
+- Next: SaveTax onboarding DONE + live. Optional: walk remaining sections on prod for parity confirmation. Cleanup: remove orphaned campaign_verify_more state. Canonical sequence: memory feedback_savetax_verify_sequence_canonical.
