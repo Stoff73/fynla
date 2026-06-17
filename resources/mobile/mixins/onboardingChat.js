@@ -205,6 +205,22 @@ export default {
         // Mid-campaign verify navigate or the terminal turn. Captured here; the
         // caller decides how the surface presents it after the stream.
         cursor.navigation = ev.route_path;
+        // A verify-navigate turn carries the Gate-2 confirm ("is this
+        // correct?") AND a route to the section's screen. The confirm belongs
+        // on THAT screen, once the user can see it — not in this dock, before
+        // they've been taken there. When we're navigating to a DIFFERENT
+        // screen, drop the just-streamed confirm bubble from this (source)
+        // dock; the destination dock re-presents it on open. Scoped to turns
+        // that actually carry bubbles, so the terminal (bubble-less) turn and
+        // the destination re-emit (route === current screen, kept open) are
+        // left untouched.
+        const navigatingAway = this.$route && this.$route.path !== ev.route_path;
+        if (navigatingAway && cursor.reply && cursor.reply.bubbles && cursor.reply.bubbles.length) {
+          const idx = this.messages.indexOf(cursor.reply);
+          if (idx !== -1) this.messages.splice(idx, 1);
+          cursor.reply.text = '';
+          cursor.reply.bubbles = [];
+        }
         return;
       }
       if (ev.type === 'level_up') {
@@ -308,9 +324,14 @@ export default {
       if (!ONBOARDING_NAV_ROUTES.includes(routePath)) return;
       if (this.$route && this.$route.path === routePath) return;
       this.closeFyn();
-      this.$nextTick(() => {
+      // Let the dock's slide-down animation play out before swapping the route.
+      // closeFyn starts a 300ms transform transition (.md-fyn in dashboard.css);
+      // pushing on the next tick unmounts this whole view ~5% into the slide, so
+      // the close is cut off and the hand-off looks abrupt. Match the CSS
+      // duration so the dock minimises smoothly, THEN navigate.
+      window.setTimeout(() => {
         if (this.$route.path !== routePath) this.$router.push(routePath);
-      });
+      }, 300);
     },
   },
 };
