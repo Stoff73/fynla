@@ -407,6 +407,10 @@ class UserProfileService
             'other' => (float) ($person->annual_other_income ?? 0),
         ];
         $sources['total'] = array_sum($sources);
+        // Identifying detail so the verify screen shows WHAT the user entered
+        // (employer + role), not just the employment amount.
+        $sources['employer'] = $person->employer ?: null;
+        $sources['occupation'] = $person->occupation ?: null;
 
         return $sources;
     }

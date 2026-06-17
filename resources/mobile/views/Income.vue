@@ -15,7 +15,10 @@
         <p class="m-section-label" style="margin-top:0">Your income</p>
         <p v-if="!userRows.length" class="m-sub" style="margin-bottom:0">No income recorded yet.</p>
         <div v-for="row in userRows" :key="row.key" class="inc-row">
-          <span class="inc-row__label">{{ row.label }}</span>
+          <span class="inc-row__label">
+            {{ row.label }}
+            <span v-if="row.detail" class="inc-row__detail">{{ row.detail }}</span>
+          </span>
           <span class="inc-row__amt">{{ fmt(row.amount) }}</span>
         </div>
       </div>
@@ -66,7 +69,14 @@ export default {
   methods: {
     fmt(v) { return formatCurrency(v); },
     rowsFor(income) {
-      return SOURCES.map(s => ({ ...s, amount: Number(income[s.key]) || 0 })).filter(r => r.amount > 0);
+      return SOURCES.map((s) => {
+        const row = { ...s, amount: Number(income[s.key]) || 0, detail: '' };
+        // Show the employer + role the user entered under the Employment row.
+        if (s.key === 'employment') {
+          row.detail = [income.employer, income.occupation].filter(Boolean).join(' · ');
+        }
+        return row;
+      }).filter(r => r.amount > 0);
     },
     async load() {
       this.loading = true; this.error = ''; this.summary = null;
@@ -84,6 +94,7 @@ export default {
 <style scoped>
 .inc-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--horizon-100); }
 .inc-row:last-of-type { border-bottom: 0; }
-.inc-row__label { font-size: 14px; font-weight: 700; color: var(--horizon-500); }
+.inc-row__label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; color: var(--horizon-500); }
+.inc-row__detail { font-size: 12px; font-weight: 400; color: var(--neutral-500); }
 .inc-row__amt { font-size: 14px; color: var(--neutral-600); white-space: nowrap; }
 </style>
