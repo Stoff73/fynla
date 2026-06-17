@@ -8,12 +8,9 @@ use App\Agents\CoordinatingAgent;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
-use App\Models\DCPension;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
-use App\Models\InvestmentAccount;
 use App\Models\OnboardingProgress;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
@@ -26,6 +23,9 @@ use App\Services\AI\RecordDuplicateChecker;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Gamification\PointsService;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -2479,23 +2479,26 @@ PROMPT;
         }
 
         $ack = trim($contentBuffer);
-        if ($ack !== '') {
-            yield ['type' => 'content', 'text' => $ack];
-        }
 
-        // Honesty gate — if the model applied no update, do NOT advance and let
-        // the next turn claim "I've added that". Re-ask and stay on the edit
-        // state so the user can give the specific value.
+        // Honesty gate — if the model applied no update this turn, do NOT advance
+        // AND do NOT surface its acknowledgement. grok will sometimes narrate a
+        // change ("Got it — updated your balance to £X") without actually calling
+        // a write tool; showing that ack would have Fyn claim a change it never
+        // made. Suppress it, re-ask for the specific value, and stay on the edit
+        // state so the next turn cannot falsely claim success.
         if ($toolCallsSeen === 0) {
-            if ($ack === '') {
-                yield ['type' => 'content', 'text' => "I didn't catch what to change. Could you tell me the specific value, for example \"change my Cash ISA balance to £25,000\"?"];
-            }
+            yield ['type' => 'content', 'text' => "I wasn't able to apply that change. Could you tell me the specific value, for example \"change my Cash ISA balance to £25,000\"?"];
             yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
 
             return;
         }
 
-        // Update applied — advance to re-show Gate 2 (campaign_verify_navigate).
+        // A write tool ran — safe to surface the model's acknowledgement, then
+        // advance to re-show Gate 2 (campaign_verify_navigate).
+        if ($ack !== '') {
+            yield ['type' => 'content', 'text' => $ack];
+        }
+
         $this->recordProgress(
             $user,
             $currentStateId,
@@ -2557,21 +2560,23 @@ PROMPT;
     {
         switch ($section) {
             case 'savings':
-                $rows = SavingsAccount::where('user_id', $user->id)->get()
+                // Read through the canonical SavingsStore (store-boundary rule):
+                // the director never queries App\Models\SavingsAccount directly.
+                $rows = app(SavingsStore::class)->forUser($user)
                     ->map(fn ($a): string => "- entity_type: savings_account, entity_id: {$a->id} — \"{$a->account_name}\" at {$a->institution}, current balance £".number_format((float) $a->current_balance).($a->is_isa ? ' (ISA)' : ''))
                     ->implode("\n");
 
                 return "Their savings accounts:\n".($rows !== '' ? $rows : '- (none on file)');
 
             case 'investments':
-                $rows = InvestmentAccount::where('user_id', $user->id)->get()
+                $rows = app(InvestmentAccountStore::class)->forUser($user)
                     ->map(fn ($a): string => "- entity_type: investment_account, entity_id: {$a->id} — \"{$a->account_name}\"")
                     ->implode("\n");
 
                 return "Their investment accounts:\n".($rows !== '' ? $rows : '- (none on file)');
 
             case 'pensions':
-                $rows = DCPension::where('user_id', $user->id)->get()
+                $rows = app(PensionStore::class)->forUserByType($user, 'dc')
                     ->map(fn ($p): string => "- entity_type: dc_pension, entity_id: {$p->id} — \"{$p->scheme_name}\" (".($p->provider ?: 'provider unknown').'), current value £'.number_format((float) $p->current_fund_value))
                     ->implode("\n");
 
