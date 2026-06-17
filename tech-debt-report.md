@@ -1,34 +1,37 @@
-# Tech Debt Report — Session 2026-06-16 (SaveTax verify Option B)
+# Tech Debt Report — Session 2026-06-17 (SaveTax verify Option B — landing + fixes)
 
-**Files analysed:** 3 (`resources/mobile/mixins/onboardingChat.js` new; `resources/mobile/views/Dashboard.vue`; `resources/mobile/components/MobileChrome.vue`)
-**Issues found:** 2 (1 fixed during audit; 1 deferred suggestion)
-**Severity breakdown:** 0 critical, 0 warnings, 2 suggestions
+**Files analysed:** 4 (`app/Services/Onboarding/OnboardingChatDirector.php`; `resources/mobile/mixins/onboardingChat.js`; `resources/mobile/views/Dashboard.vue`; `resources/mobile/components/MobileChrome.vue`)
+**Issues found:** 4 (3 fixed this session; 1 deferred suggestion)
+**Severity breakdown:** 0 critical, 0 warnings, 4 suggestions
 
 ## Critical Issues
-None.
+None remaining. (Two were found and fixed this session — see below.)
 
 ## Warnings
 None.
 
 ## Suggestions
 
-### 1. [FIXED THIS AUDIT] Redundant data keys + `onboardingActive` computed shadowing the mixin — Category 1 (duplication) / Category 6 (inconsistency)
-When the shared `onboardingChat` mixin was introduced, both `Dashboard.vue` and `MobileChrome.vue` initially still redeclared the mixin-owned reactive state (`conversationId`, `resumeId`, `messages`, `draft`, `sending`, `fynStarted`) and `Dashboard.vue` redeclared the mixin's `onboardingActive` computed. Vue merges these with the component winning, so values were identical and harmless — but a future change to the mixin's defaults/logic would be silently overridden (a stale-shadow trap). **Fixed in-audit:** removed the duplicated keys from both components' `data()` and the duplicated `onboardingActive` from `Dashboard.vue`; they now come solely from the mixin. Re-built + browser-verified the dock-resume still works.
+### 1. [FIXED THIS SESSION] Wrong `InvestmentAccount` namespace — Category 2/3 (runtime fatal)
+`OnboardingChatDirector` imported `App\Models\InvestmentAccount`, which does not exist (the model is `App\Models\Investment\InvestmentAccount`). The `campaign_verify_edit` investments branch would have fatalled at runtime with "Class not found"; `php -l` and the 318-test onboarding suite missed it because no test exercises that branch. **Fixed** — import corrected to the real namespace.
 
-### 2. `loadUser()` + `firstName` computed duplicated between `Dashboard.vue` and `MobileChrome.vue` — Category 1 (duplication)
-Both components define an identical `loadUser()` method and `firstName` computed (general user-state helpers the mixin depends on via `this.loadUser()` / `this.firstName`). This is **pre-existing** (predates this session) and consistent with the accepted isolated-mobile-bundle duplication convention (see the standing `formatCurrency` note below). They are deliberately NOT in the `onboardingChat` mixin because they're user-state, not chat, concerns.
-**Suggested fix:** if a future pass touches both files, extract a small shared `userState` mixin (`loadUser` + `firstName`). Defer otherwise — no behavioural impact.
+### 2. [FIXED THIS SESSION] Store-boundary violation in `verifyEditRecordContext` — Category 6 (architecture)
+The verify-edit prompt builder queried `SavingsAccount` / `DCPension` / `InvestmentAccount` directly, failing `SavingsStoreBoundaryTest` + `PensionStoreBoundaryTest` (those models must only be touched inside their canonical store set). **Fixed** — reads now route through `SavingsStore::forUser` / `InvestmentAccountStore::forUser` / `PensionStore::forUserByType`, matching `CoordinatingAgent`. Architecture suite back to 0 failed.
+
+### 3. [FIXED THIS SESSION] Verify-edit honesty gate surfaced false success claims — Category 5/6 (Fyn honesty)
+The handler yielded the model's acknowledgement *before* the no-tool-call gate, so when grok narrated "Got it — updated your balance to £X" without calling a write tool, Fyn showed a false success claim. **Fixed** — the ack is yielded only after a write tool ran; a no-tool-call turn shows an honest "I wasn't able to apply that change" and holds the edit state. (Data integrity was already safe — the gate never falsely advanced.)
+
+### 4. `handleCampaignVerifyEdit` (~122 lines) + `sectionLabelForEdit` duplicate — Category 1/4
+`handleCampaignVerifyEdit` exceeds the 50-line soft guideline, but it mirrors the existing long delegated-turn handler `handleAssetCaptureTurn` (the generator try/catch + event-routing shape is intrinsic). `sectionLabelForEdit` (director) duplicates `OnboardingStateMachine::sectionLabel` (both private — section→label maps). **Suggested fix:** extract a shared section-label helper if a future pass touches both; defer otherwise (no behavioural impact).
 
 ## Non-issues checked & cleared
-- The new mixin has **no** `console.log`/`dd`/`dump`/debug leftovers, and no empty catches that hide a real failure (the catches set a user-facing fallback message — intentional graceful degradation for a network/stream error).
-- No hardcoded hex / banned colour classes — the mixin is JS-only; the new dock bubble markup reuses the existing `.md-fyn__bubbles`/`.md-fyn__bubble` classes from `dashboard.css`.
-- No acronyms (Rule #9), no scores (Rule #12) in any user-facing string. Icons: the dock bubbles are text buttons; the only new icon surface (the Cash Management drawer-nav group) is the already-approved drawer surface, built last session.
-- `send` (~50 lines) and `handleFynEvent` (~50 lines) sit at the soft length threshold but are lifted verbatim from the previously-working `Dashboard.vue` — extracting them into the mixin REDUCED total duplication (`Dashboard.vue` shed ~233 lines net).
+- No `console.log`/`dd`/`dump`/debug leftovers in the director or the mixin.
+- The verify-edit catch sets a user-facing fallback message and re-emits the state (intentional graceful degradation, not a swallowed exception).
+- No hardcoded hex / banned colours / scores / acronyms / decorative icons in the new code; dock bubbles reuse existing `.md-fyn__bubble` classes; the Cash Management drawer-nav group is the already-approved drawer surface.
+- `update_record` honesty gate verified live: a grok turn that narrated a change without a tool call did NOT advance, create a duplicate, or corrupt data (balance held).
 
----
-
-## Standing note (still open from 2026-06-04 audit)
-**Duplicated local `formatCurrency()` across mobile views** — 9+ mobile views each define an identical local `formatCurrency()` (incl. `Income.vue`/`Expenditure.vue` added last session). Accepted isolated-mobile-bundle convention; candidate for a single shared `resources/mobile/format.js`. Low priority — defer unless touching these files.
+## Standing note (still open from prior audits)
+**Duplicated local `formatCurrency()` across mobile views** — 9+ mobile views (incl. `Income.vue`/`Expenditure.vue`) each define an identical `formatCurrency()`; accepted isolated-mobile-bundle convention. Low priority. Also `loadUser()` + `firstName` are duplicated between `Dashboard.vue` and `MobileChrome.vue` (deliberately kept out of the `onboardingChat` mixin as user-state, not chat, concerns) — candidate for a small shared `userState` mixin if both files are touched again.
 
 ---
 *Generated by tech-debt-session skill*
