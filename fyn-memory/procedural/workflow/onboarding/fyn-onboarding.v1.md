@@ -165,13 +165,13 @@ campaign_bank_accounts:
   turn_type: delegated
   prompt_text: "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"
   capture_field: null
-  next: campaign_advice_savings
+  next: { branch: enterCampaignVerify }
 
 campaign_investment_accounts:
   turn_type: delegated
   prompt_text: 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
   capture_field: null
-  next: campaign_advice_investments
+  next: { branch: enterCampaignVerify }
 
 campaign_dob:
   turn_type: grouped_extract
@@ -201,7 +201,7 @@ campaign_pension_history:
   extraction_tool: capture_pension_history
   retry_text: 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.'
   clarify_single_figure: true
-  next: campaign_advice_pensions
+  next: { branch: enterCampaignVerify }
 
 campaign_charitable_giving:
   turn_type: grouped_extract
@@ -231,7 +231,7 @@ campaign_spouse_household:
   capture_field: null
   extraction_tool: capture_spouse_household_data
   retry_text: 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?'
-  next: campaign_advice_spouse
+  next: { branch: enterCampaignVerify }
 
 campaign_spouse_non_working_assets:
   turn_type: grouped_extract
@@ -239,7 +239,7 @@ campaign_spouse_non_working_assets:
   capture_field: null
   extraction_tool: capture_spouse_non_working_assets
   retry_text: 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".'
-  next: campaign_advice_spouse
+  next: { branch: enterCampaignVerify }
 
 campaign_terminal:
   turn_type: terminal

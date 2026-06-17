@@ -14,7 +14,7 @@
 // specific affordances (the dashboard's level wheel / `pulseWheel`); everything
 // shared lives here. `pulseWheel` is a no-op by default and overridden by the
 // dashboard, so the level-up frame is safe to handle from either surface.
-import { apiPost, apiStream } from '../api.js';
+import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 
 // The routes the onboarding chat may navigate the /m surface to: the per-section
@@ -97,46 +97,57 @@ export default {
 
     // Resume the onboarding conversation on the docked Fyn bar (a module screen).
     // The campaign verify flow navigates the user to a section's screen mid-chat;
-    // when they reopen the dock here, re-emit the CURRENT pending onboarding turn
-    // (e.g. the Gate-2 "Is this information correct?" + Yes/No bubbles) instead of
-    // a fresh advice greeting. Mechanism: /onboarding/start returns the existing
-    // conversation id (resume event) for a mid-flow user; the `continue` action
-    // re-emits the saved step's turn into the same conversation.
+    // /m has no <keep-alive>, so the chat was unmounted on the way here. We load
+    // the FULL persisted transcript so the whole conversation is shown — not just
+    // the current turn — because the session must persist the entire time the
+    // user is logged in. Bubbles for the latest turn ride along in the message
+    // metadata, so the waiting "Is this correct?" Yes/No stays tappable.
     async resumeOnboardingInDock() {
       if (this.sending) return;
       this.sending = true;
       this.resumeId = null;
-      const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
-      this.messages.push(cursor.reply);
-      this.$nextTick(this.scrollFyn);
       try {
+        // /onboarding/start emits a `resume` event carrying the existing
+        // conversation id (captured by handleFynEvent → this.conversationId).
+        const probe = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
         await apiStream(
           '/api/ai-chat/onboarding/start',
           {},
           store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
-          (ev) => this.handleFynEvent(cursor, ev),
+          () => {},
+          (ev) => this.handleFynEvent(probe, ev),
         );
         if (this.conversationId) {
-          // Re-emit the saved step so the waiting verify turn (and its bubbles)
-          // render here. streamFynAction reuses this placeholder reply.
-          await this.streamFynAction(this.conversationId, 'continue', cursor);
-          // The verify-navigate turn re-emits its navigation event; the guard in
-          // handleOnboardingNavigation no-ops when we're already on that screen,
-          // so the dock stays open with the Gate-2 bubbles.
-          if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
-        } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
-          cursor.reply.text = `Hi ${this.firstName}. What would you like to look at?`;
+          await this.loadTranscript(this.conversationId);
+        } else if (!this.messages.length) {
+          this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
         }
-        if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } catch (e) {
-        if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
-          cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
+        if (!this.messages.length) {
+          this.messages.push({ role: 'fyn', text: 'Sorry, I had trouble loading that just now. Please try again.' });
         }
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
       }
+    },
+
+    // Load the full persisted conversation transcript into `messages`, so the
+    // chat shows everything said so far. Bubbles live in each assistant message's
+    // metadata; only the latest turn keeps them tappable (earlier turns are
+    // already answered).
+    async loadTranscript(conversationId) {
+      const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
+      const msgs = (res && res.ok && (res.data?.data?.messages || res.data?.messages)) || [];
+      if (!msgs.length) return;
+      const mapped = msgs.map((m) => ({
+        role: m.role === 'user' ? 'user' : 'fyn',
+        text: m.content || '',
+        bubbles: (m.metadata && Array.isArray(m.metadata.bubbles)) ? m.metadata.bubbles.slice() : [],
+      }));
+      mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; });
+      this.messages = mapped;
+      this.$nextTick(this.scrollFyn);
     },
 
     // Stream a director action (resume / continue / something_else) into the
