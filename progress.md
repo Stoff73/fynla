@@ -198,3 +198,10 @@
 - Status: clean (only long-standing untracked docs)
 - Shipped to PROD (fynla.org), 3 releases: (1) Option B resume-in-dock + 3 fixes + time-estimate + de-jank + nudge (#563→#564); (2) cookie-consent-at-landing + /m Fyn auto-open (#565→#566); (3) verify FLOW correction to CSJ's exact spec — one gate → navigate+confirm+nudge → advice; /income shows employer·role; chat persists (#567→#568). Suite 5121/0; income E2E-verified live on prod.
 - Next: SaveTax onboarding DONE + live. Optional: walk remaining sections on prod for parity confirmation. Cleanup: remove orphaned campaign_verify_more state. Canonical sequence: memory feedback_savetax_verify_sequence_canonical.
+
+## 2026-06-17 — end-of-day wrap (eod handover dated 2026-06-18)
+- Handover: [[handover-2026-06-18-session-1]] (comprehensive eod; full day's arc + tomorrow's pickup)
+- Branch: main @ 01166a9 (= origin/main = prod); 0/0
+- Day total: 19 commits — SaveTax verify-after-capture DONE + live on prod (3 releases #563→#568), + session housekeeping (handover repair, metrics refresh).
+- New memory: feedback_fyn_session_persists_while_logged_in (coding rule: never clear Fyn chat while logged in).
+- Next: nothing mandated — SaveTax onboarding done + live. Optional prod parity walk of remaining sections; cleanup of orphaned campaign_verify_more state.

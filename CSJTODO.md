@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-17 — context-clear wrap, session 2. **SaveTax verify-after-capture is COMPLETE + LIVE ON PROD (fynla.org)** — Option B landed, the verify FLOW corrected to CSJ's exact spec, and the income section walked E2E on prod. Three prod releases today (PRs #563→#568): (1) Option B + 3 fixes + time-estimate + de-jank + nudge; (2) cookie-consent-at-landing + `/m` Fyn auto-open; (3) verify-flow rework (one gate → navigate+confirm → advice; `/income` shows employer·role; chat persists). Suite 5121/0. Handover: `June/June17Updates/handover-2026-06-17-session-2-clear-precompact.md`. Canonical sequence memory: `feedback_savetax_verify_sequence_canonical`.*
+*Last updated: 2026-06-17 — end-of-day wrap. **SaveTax verify-after-capture is COMPLETE + LIVE ON PROD (fynla.org)** — Option B landed, the verify FLOW corrected to CSJ's exact spec, income section walked E2E on prod. Three prod releases (PRs #563→#568): (1) Option B + 3 fixes + time-estimate + de-jank + nudge; (2) cookie-consent-at-landing + `/m` Fyn auto-open; (3) verify-flow rework (one gate → navigate+confirm → advice; `/income` shows employer·role; chat persists). Suite 5121/0. main = origin/main = prod (0/0), tree clean. New memories: `feedback_savetax_verify_sequence_canonical`, `feedback_fyn_session_persists_while_logged_in`. EOD handover: `June/June18Updates/handover-2026-06-18-session-1.md`.*
 
 ## 2026-06-17 — Session 2: SaveTax verify-after-capture DONE + on PROD (clear)
 
