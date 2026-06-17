@@ -1,35 +1,37 @@
-# Tech Debt Report — Session 2026-06-04 (end-of-day)
+# Tech Debt Report — Session 2026-06-17 (SaveTax verify Option B — landing + fixes)
 
-**Files analysed:** 14 (3 backend, 11 mobile frontend incl. 10 new views)
-**Issues found:** 3 (all minor; 1 fixed during audit)
-**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
+**Files analysed:** 4 (`app/Services/Onboarding/OnboardingChatDirector.php`; `resources/mobile/mixins/onboardingChat.js`; `resources/mobile/views/Dashboard.vue`; `resources/mobile/components/MobileChrome.vue`)
+**Issues found:** 4 (3 fixed this session; 1 deferred suggestion)
+**Severity breakdown:** 0 critical, 0 warnings, 4 suggestions
 
 ## Critical Issues
-None.
+None remaining. (Two were found and fixed this session — see below.)
 
 ## Warnings
-None. (Icons/glyph and hardcoded-hex sweeps run during the work + the workflow's reviewer agents kept the new module views palette-token-clean.)
+None.
 
 ## Suggestions
 
-### 1. [FIXED THIS AUDIT] Hardcoded hex in `TaxStrategy.vue` — Category 3 (CSS governance, Rule #11)
-4 hardcoded hex values (`#F1F3F6` dividers ×2, `#EEEDFB` violet tint ×2) were introduced when the view was first written, before the workflow reviewers established the token-only pattern in the sibling module views. **Fixed in-audit:** dividers → `var(--horizon-100)`, violet tints → `color-mix(in srgb, var(--violet-500) 12%, var(--white))` (matching the module-view tag pattern). Now grep-clean.
+### 1. [FIXED THIS SESSION] Wrong `InvestmentAccount` namespace — Category 2/3 (runtime fatal)
+`OnboardingChatDirector` imported `App\Models\InvestmentAccount`, which does not exist (the model is `App\Models\Investment\InvestmentAccount`). The `campaign_verify_edit` investments branch would have fatalled at runtime with "Class not found"; `php -l` and the 318-test onboarding suite missed it because no test exercises that branch. **Fixed** — import corrected to the real namespace.
 
-### 2. Duplicated local `formatCurrency()` across mobile views — Category 1 (duplication)
-9 mobile views each define an identical local `formatCurrency()` (en-GB GBP, maxFractionDigits 0). This is the **accepted convention** for the isolated mobile bundle (it cannot import the web app's `currencyMixin`), and the Investment views already share `investmentFormat.js`. Candidate for a single shared `resources/mobile/format.js` the other views import — low priority, no behavioural impact.
-**Suggested fix:** extract one shared `formatCurrency` (and the `humanise`/`capitalise` helpers that also recur) into `resources/mobile/format.js`; import across views. Defer unless touching these files again.
+### 2. [FIXED THIS SESSION] Store-boundary violation in `verifyEditRecordContext` — Category 6 (architecture)
+The verify-edit prompt builder queried `SavingsAccount` / `DCPension` / `InvestmentAccount` directly, failing `SavingsStoreBoundaryTest` + `PensionStoreBoundaryTest` (those models must only be touched inside their canonical store set). **Fixed** — reads now route through `SavingsStore::forUser` / `InvestmentAccountStore::forUser` / `PensionStore::forUserByType`, matching `CoordinatingAgent`. Architecture suite back to 0 failed.
 
-### 3. Mobile detail/drill-down views have no automated tests — coverage
-The 10 mobile views (TaxStrategy + 4 modules × overview/drill-down + investment) are verified live in Playwright only (consistent with the existing mobile dock, which also has no frontend unit tests). Backend changes ARE covered: `FynMeteringTest` (provider-aware soft-degrade, both branches) + 248 onboarding tests green.
-**Suggested fix:** none required now; note for a future mobile test-harness pass.
+### 3. [FIXED THIS SESSION] Verify-edit honesty gate surfaced false success claims — Category 5/6 (Fyn honesty)
+The handler yielded the model's acknowledgement *before* the no-tool-call gate, so when grok narrated "Got it — updated your balance to £X" without calling a write tool, Fyn showed a false success claim. **Fixed** — the ack is yielded only after a write tool ran; a no-tool-call turn shows an honest "I wasn't able to apply that change" and holds the edit state. (Data integrity was already safe — the gate never falsely advanced.)
+
+### 4. `handleCampaignVerifyEdit` (~122 lines) + `sectionLabelForEdit` duplicate — Category 1/4
+`handleCampaignVerifyEdit` exceeds the 50-line soft guideline, but it mirrors the existing long delegated-turn handler `handleAssetCaptureTurn` (the generator try/catch + event-routing shape is intrinsic). `sectionLabelForEdit` (director) duplicates `OnboardingStateMachine::sectionLabel` (both private — section→label maps). **Suggested fix:** extract a shared section-label helper if a future pass touches both; defer otherwise (no behavioural impact).
 
 ## Non-issues checked & cleared
-- `/100` occurrences are percentage math (salary × pct ÷ 100, ownership_percentage ÷ 100), **not** quality scores — Rule #12 compliant.
-- Every `v-for` has a `:key` (multi-line; the heuristic grep flagged the line above the `:key`).
-- No `console.log`/`dd`/`dump`/debug leftovers.
-- No banned colour classes (gray/primary/secondary/amber/orange).
-- Backend files have `declare(strict_types=1)`.
-- No acronyms in user-facing text except ISA (account-type labels spelled out via `investmentFormat.js`).
+- No `console.log`/`dd`/`dump`/debug leftovers in the director or the mixin.
+- The verify-edit catch sets a user-facing fallback message and re-emits the state (intentional graceful degradation, not a swallowed exception).
+- No hardcoded hex / banned colours / scores / acronyms / decorative icons in the new code; dock bubbles reuse existing `.md-fyn__bubble` classes; the Cash Management drawer-nav group is the already-approved drawer surface.
+- `update_record` honesty gate verified live: a grok turn that narrated a change without a tool call did NOT advance, create a duplicate, or corrupt data (balance held).
+
+## Standing note (still open from prior audits)
+**Duplicated local `formatCurrency()` across mobile views** — 9+ mobile views (incl. `Income.vue`/`Expenditure.vue`) each define an identical `formatCurrency()`; accepted isolated-mobile-bundle convention. Low priority. Also `loadUser()` + `firstName` are duplicated between `Dashboard.vue` and `MobileChrome.vue` (deliberately kept out of the `onboardingChat` mixin as user-state, not chat, concerns) — candidate for a small shared `userState` mixin if both files are touched again.
 
 ---
 *Generated by tech-debt-session skill*

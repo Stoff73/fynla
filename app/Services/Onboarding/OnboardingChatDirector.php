@@ -23,6 +23,9 @@ use App\Services\AI\RecordDuplicateChecker;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Gamification\PointsService;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -163,6 +166,19 @@ final class OnboardingChatDirector
         // path transitionTable() takes); empty corpus → records nothing → null
         // stamp, matching the in-code-table fallback. Never breaks the turn.
         $this->recordActiveWorkflowVersion();
+
+        // SaveTax verify edit (campaign_verify_edit) is a delegated turn, but it
+        // must UPDATE the section's existing record/field — NOT run the asset
+        // CAPTURE handler. handleAssetCaptureTurn keys off onboarding_fyn_selection
+        // and runs the create-oriented gap-fill, so an edit there creates a
+        // duplicate (multi-record sections) or no-ops (profile sections) while
+        // Fyn falsely advances claiming "I've added that". Route it to a dedicated
+        // update-only handler before the generic delegated branch below.
+        if ($currentStateId === 'campaign_verify_edit') {
+            yield from $this->handleCampaignVerifyEdit($user, $conversation, $message, $currentRoute, $currentStateId, $state);
+
+            return;
+        }
 
         // Asset capture is the delegated turn. Both the journey/focus
         // STATE_ASSET_CAPTURE and the SaveTax campaign STATE_CAMPAIGN_*
@@ -637,6 +653,20 @@ final class OnboardingChatDirector
                 $promptText,
                 ['metadata' => $metadata]
             );
+
+            // Verify-navigate: a bubbles state can carry a navigate_to (closure or
+            // string). When it resolves to a route, emit a navigation event so the
+            // /m chat minimises + routes to the section's screen while these bubbles
+            // wait for the user to reopen. Null route = inline confirm (no nav).
+            $navigateTo = $state['navigate_to'] ?? null;
+            $route = is_callable($navigateTo) ? $navigateTo($user) : $navigateTo;
+            if (is_string($route) && $route !== '') {
+                yield [
+                    'type' => 'navigation',
+                    'route_path' => $route,
+                    'description' => $stateId,
+                ];
+            }
         } else {
             // free_text / grouped_extract / terminal — plain content event.
             // Grouped_extract turns emit a prompt too so the user knows what
@@ -2358,6 +2388,241 @@ PROMPT;
         }
 
         yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * SaveTax verify edit (campaign_verify_edit). The user answered the Gate-2
+     * "is this correct?" with NO and described the correction. UPDATE the
+     * existing record/field for the section being verified — never create a new
+     * one. The section's existing records (with their ids) are surfaced in the
+     * prompt and the tool set is restricted to update_record / update_profile /
+     * set_expenditure, so a create (and the duplicate it would produce) is
+     * impossible. Only advances to re-show Gate 2 when an update actually
+     * applied; otherwise re-asks, so Fyn never claims a change it did not make.
+     */
+    private function handleCampaignVerifyEdit(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        ?string $currentRoute,
+        string $currentStateId,
+        array $state
+    ): \Generator {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $section = (string) (($context['verify_section'] ?? '') ?: '');
+
+        $toolCallsSeen = 0;
+        $contentBuffer = '';
+
+        try {
+            $generator = $this->fynLoop->stream(
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                persona: 'data_capture',
+                systemPromptOverride: $this->buildVerifyEditPrompt($user, $section),
+                // The capture bucket (FynCaptureTurnInstructions) is create-oriented
+                // and references the focus's create_ tools; stripping them to
+                // update-only confuses the model into the security refusal. Keep the
+                // full focus tool set (its Retraction clause already routes a
+                // correction to update_record/update_profile) and supply the record
+                // ids it normally lacks via the prompt appendix below.
+                allowedTools: OnboardingPromptBuilder::toolsForFocus($this->verifyEditFocus($section)),
+                persistUserMessage: false, // already saved at top of handleUserMessage
+                unifiedFocus: $this->verifyEditFocus($section),
+            );
+
+            foreach ($generator as $event) {
+                $type = $event['type'] ?? '';
+
+                if ($type === 'content') {
+                    $contentBuffer .= (string) ($event['text'] ?? '');
+
+                    continue;
+                }
+
+                if ($type === 'tool_use' || $type === 'tool_success') {
+                    $toolCallsSeen++;
+                    yield $event;
+
+                    continue;
+                }
+
+                if ($type === 'fill_form') {
+                    yield $event;
+
+                    continue;
+                }
+
+                // Swallow the delegated chat's own `done` — the terminal `done`
+                // is emitted by the next turn (or the re-ask) below. Mirrors
+                // handleAssetCaptureTurn's done-swallow.
+                if ($type === 'done') {
+                    continue;
+                }
+
+                yield $event;
+            }
+        } catch (\Throwable $e) {
+            Log::error('[OnboardingChatDirector] Verify edit delegation failed', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'verify_section' => $section,
+                'error' => $e->getMessage(),
+            ]);
+
+            yield ['type' => 'content', 'text' => 'I had trouble applying that change. Could you tell me the specific value, for example "change my Cash ISA balance to £25,000"?'];
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+            return;
+        }
+
+        $ack = trim($contentBuffer);
+
+        // Honesty gate — if the model applied no update this turn, do NOT advance
+        // AND do NOT surface its acknowledgement. grok will sometimes narrate a
+        // change ("Got it — updated your balance to £X") without actually calling
+        // a write tool; showing that ack would have Fyn claim a change it never
+        // made. Suppress it, re-ask for the specific value, and stay on the edit
+        // state so the next turn cannot falsely claim success.
+        if ($toolCallsSeen === 0) {
+            yield ['type' => 'content', 'text' => "I wasn't able to apply that change. Could you tell me the specific value, for example \"change my Cash ISA balance to £25,000\"?"];
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+            return;
+        }
+
+        // A write tool ran — safe to surface the model's acknowledgement, then
+        // advance to re-show Gate 2 (campaign_verify_navigate).
+        if ($ack !== '') {
+            yield ['type' => 'content', 'text' => $ack];
+        }
+
+        $this->recordProgress(
+            $user,
+            $currentStateId,
+            ['verify_section' => $section, 'raw_message' => mb_substr($message, 0, 500)]
+        );
+
+        $nextStateId = OnboardingStateMachine::getNextStateId($currentStateId, $message, $user->refresh());
+        if ($nextStateId === null) {
+            return;
+        }
+
+        $user->onboarding_fyn_step = $nextStateId;
+        $user->save();
+
+        yield ['type' => 'onboarding_advance', 'from_step' => $currentStateId, 'to_step' => $nextStateId];
+
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState === null) {
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Build the system prompt for a verify-edit turn: the unified Fyn prompt
+     * plus an explicit instruction to UPDATE the section's existing data, with
+     * the section's records (and their ids) listed so update_record can target
+     * the right row. Under legacy prompt mode the unified prompt is empty, so we
+     * fall back to the asset-capture prompt as the base.
+     */
+    private function buildVerifyEditPrompt(User $user, string $section): string
+    {
+        $base = FynPromptMode::isUnified()
+            ? FynSystemPrompt::text()
+            : $this->promptBuilder->buildAssetCapturePrompt($user, $this->verifyEditFocus($section), null);
+
+        $records = $this->verifyEditRecordContext($user, $section);
+
+        // The capture bucket's Retraction clause already routes a correction to
+        // update_record/update_profile; its only gap is that it "will not have
+        // prior record ids in this turn". Supply those ids here as plain
+        // REFERENCE DATA (not directive instructions — an instruction-style
+        // override block trips the model's prompt-injection refusal). The
+        // Retraction clause then has what it needs to update the existing row.
+        $instruction = "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section)
+            ." (the user just said one of these was wrong and will correct it; update the matching record/field with update_record/update_profile rather than adding a new one):\n"
+            .$records;
+
+        return $base.$instruction;
+    }
+
+    /**
+     * Human-readable list of the section's existing records (with ids/entity
+     * types) for the verify-edit prompt, or a note that the section is stored
+     * as profile fields (update_profile).
+     */
+    private function verifyEditRecordContext(User $user, string $section): string
+    {
+        switch ($section) {
+            case 'savings':
+                // Read through the canonical SavingsStore (store-boundary rule):
+                // the director never queries App\Models\SavingsAccount directly.
+                $rows = app(SavingsStore::class)->forUser($user)
+                    ->map(fn ($a): string => "- entity_type: savings_account, entity_id: {$a->id} — \"{$a->account_name}\" at {$a->institution}, current balance £".number_format((float) $a->current_balance).($a->is_isa ? ' (ISA)' : ''))
+                    ->implode("\n");
+
+                return "Their savings accounts:\n".($rows !== '' ? $rows : '- (none on file)');
+
+            case 'investments':
+                $rows = app(InvestmentAccountStore::class)->forUser($user)
+                    ->map(fn ($a): string => "- entity_type: investment_account, entity_id: {$a->id} — \"{$a->account_name}\"")
+                    ->implode("\n");
+
+                return "Their investment accounts:\n".($rows !== '' ? $rows : '- (none on file)');
+
+            case 'pensions':
+                $rows = app(PensionStore::class)->forUserByType($user, 'dc')
+                    ->map(fn ($p): string => "- entity_type: dc_pension, entity_id: {$p->id} — \"{$p->scheme_name}\" (".($p->provider ?: 'provider unknown').'), current value £'.number_format((float) $p->current_fund_value))
+                    ->implode("\n");
+
+                return "Their pensions:\n".($rows !== '' ? $rows : '- (none on file)');
+
+            case 'income':
+                return 'Their income is stored on their profile (use update_profile): '
+                    .'annual_employment_income £'.number_format((float) $user->annual_employment_income).', '
+                    .'annual_self_employment_income £'.number_format((float) $user->annual_self_employment_income).', '
+                    .'annual_rental_income £'.number_format((float) $user->annual_rental_income).', '
+                    .'annual_dividend_income £'.number_format((float) $user->annual_dividend_income).'.';
+
+            case 'expenditure':
+                return 'Their expenditure is stored on their profile (use update_profile or set_expenditure): '
+                    .'monthly_expenditure £'.number_format((float) $user->monthly_expenditure).' per month.';
+
+            case 'giving':
+                return 'Their charitable giving is stored on their profile (use update_profile).';
+
+            case 'spouse':
+                return "Their spouse's details are stored on the linked spouse profile (use update_profile).";
+
+            default:
+                return 'Update the relevant existing record or profile field for this section.';
+        }
+    }
+
+    /** Onboarding capture focus for a verify-edit section (keeps the turn in capture mode). */
+    private function verifyEditFocus(string $section): string
+    {
+        return match ($section) {
+            'savings' => 'savings',
+            'investments' => 'investment',
+            'pensions' => 'retirement',
+            default => 'savetax',
+        };
+    }
+
+    /** Human label for a verify section, for the edit prompt. */
+    private function sectionLabelForEdit(string $section): string
+    {
+        return [
+            'income' => 'income', 'savings' => 'savings', 'investments' => 'investments',
+            'pensions' => 'pensions', 'giving' => 'charitable giving',
+            'spouse' => 'spouse details', 'expenditure' => 'expenditure',
+        ][$section] ?? 'details';
     }
 
     /**

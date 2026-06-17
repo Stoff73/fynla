@@ -166,6 +166,29 @@ final class OnboardingStateMachine
     }
 
     /**
+     * SaveTax verify sub-flow config: for each campaign section, the /m screen to
+     * navigate to for the "is this correct?" confirm (null = inline confirm, no
+     * navigation — used for charitable giving) and the section's capture-entry
+     * state to loop back to on "anything else to add?". The single source of truth
+     * for the per-section verify behaviour; the three generic verify states read
+     * the current section from users.onboarding_fyn_context['verify_section'].
+     *
+     * @return array<string, array{route:?string, entry:string}>
+     */
+    public static function campaignVerifyConfig(): array
+    {
+        return [
+            'income' => ['route' => '/income', 'entry' => self::STATE_BASE_EMPLOYMENT],
+            'savings' => ['route' => '/savings', 'entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS],
+            'investments' => ['route' => '/investment', 'entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS],
+            'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
+            'giving' => ['route' => null, 'entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING],
+            'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
+            'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
+        ];
+    }
+
+    /**
      * Resolve the entry state of the next non-skipped campaign section after
      * the given section. Returns STATE_CAMPAIGN_SYNTHESIS when all sections are
      * exhausted, so the flow ends with a ranked consolidated plan before the
@@ -380,7 +403,7 @@ final class OnboardingStateMachine
                 // of its reordered section flow, then heads to the holistic
                 // terminal; the standard flow keeps the profile-review pause.
                 'next' => fn (string $answer, User $user): string => $user->onboarding_fyn_path === 'campaign'
-                    ? self::nextCampaignSection('expenditure', $user)
+                    ? self::enterCampaignVerify($user, 'expenditure')
                     : self::STATE_PROFILE_REVIEW_EXPENDITURE,
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
@@ -499,7 +522,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_charitable_giving',
                 'retry_text' => 'Just an annual figure works — e.g. "about £500" or "none".',
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('giving', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'giving'),
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
@@ -560,36 +583,36 @@ final class OnboardingStateMachine
                 'turn_type' => 'advice',
                 'advice_section' => 'income',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('income', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'income'),
             ],
             self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'savings',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
             ],
             self::STATE_CAMPAIGN_ADVICE_INVESTMENTS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'investments',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
             self::STATE_CAMPAIGN_ADVICE_PENSIONS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'pensions',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
             ],
             self::STATE_CAMPAIGN_ADVICE_SPOUSE => [
                 'turn_type' => 'advice',
                 'advice_section' => 'spouse',
                 'capture_field' => null,
-                // Advance past the spouse section like every other advice state
-                // (nextCampaignSection returns STATE_CAMPAIGN_TERMINAL once the
-                // sections are exhausted). This MUST NOT point back at itself —
-                // advice turns auto-advance with no user input, so a self-edge
-                // recurses forever, persisting an identical message each pass.
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
+                // Enter the verify sub-flow for the spouse section (like every
+                // other advice state now). The verify flow's "yes" branch calls
+                // nextCampaignSection('spouse'), which returns STATE_CAMPAIGN_TERMINAL
+                // once the sections are exhausted — so advancement still happens,
+                // just behind the verify gate. This MUST NOT point back at itself.
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
             ],
             self::STATE_CAMPAIGN_SYNTHESIS => [
                 'turn_type' => 'advice',
@@ -599,6 +622,41 @@ final class OnboardingStateMachine
                 // auto-advance and a self-edge recurses unbounded (the 2026-06-07
                 // campaign_advice_spouse incident, PR #504).
                 'next' => self::STATE_CAMPAIGN_TERMINAL,
+            ],
+            // ── SaveTax verify sub-flow (generic; section in context) ──────
+            // Entered via enterCampaignVerify() which stamps verify_section.
+            'campaign_verify_more' => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::verifyPromptMore',
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => 'Yes, add more'],
+                    ['id' => 'no', 'label' => "No, that's everything"],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromVerifyMore',
+            ],
+            // Bubbles state that ALSO emits a navigation event when navigate_to
+            // resolves to a route (director extension): the chat minimises + routes,
+            // and the "is this correct?" bubbles wait for the user to reopen.
+            // navigate_to is a code-only closure (null for charitable giving =
+            // inline confirm, no navigation).
+            'campaign_verify_navigate' => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::verifyPromptNavigate',
+                'navigate_to' => fn (User $user): ?string => self::verifyNavigateRoute($user),
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => "Yes, that's right"],
+                    ['id' => 'no', 'label' => 'No, change something'],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromVerifyNavigate',
+            ],
+            'campaign_verify_edit' => [
+                'turn_type' => 'delegated',
+                'prompt_text' => 'No problem — what needs changing?',
+                'capture_field' => null,
+                // After the edit is applied, re-show the screen + re-ask "correct?".
+                'next' => 'campaign_verify_navigate',
             ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',
@@ -893,6 +951,97 @@ final class OnboardingStateMachine
         return self::STATE_PROFILE_REVIEW_FAMILY;
     }
 
+    /**
+     * Normalise a yes/no answer (bubble id or free text) to 'yes' or 'no'.
+     * Bubble clicks send the literal bubble id ('yes' / 'no'); free text is
+     * matched on a leading 'yes'. Anything else is treated as 'no' so the flow
+     * advances rather than looping (the verify bubbles are explicit Yes/No).
+     */
+    private static function normaliseYesNo(string $answer): string
+    {
+        return str_starts_with(mb_strtolower(trim($answer)), 'yes') ? 'yes' : 'no';
+    }
+
+    /** Stamp the section into context and enter the verify sub-flow. */
+    public static function enterCampaignVerify(User $user, string $section): string
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['verify_section'] = $section;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        return 'campaign_verify_more';
+    }
+
+    /** The section currently being verified (from context). */
+    private static function verifySection(User $user): string
+    {
+        return (string) (($user->onboarding_fyn_context['verify_section'] ?? '') ?: '');
+    }
+
+    /** verify_more: "yes" loops back to the section's capture entry; "no" → navigate. */
+    public static function nextFromVerifyMore(string $answer, User $user): string
+    {
+        if (self::normaliseYesNo($answer) === 'yes') {
+            $section = self::verifySection($user);
+
+            return self::campaignVerifyConfig()[$section]['entry'] ?? self::STATE_CAMPAIGN_SYNTHESIS;
+        }
+
+        return 'campaign_verify_navigate';
+    }
+
+    /** verify_navigate: "no" → edit; "yes" → advance past the verified section. */
+    public static function nextFromVerifyNavigate(string $answer, User $user): string
+    {
+        if (self::normaliseYesNo($answer) === 'no') {
+            return 'campaign_verify_edit';
+        }
+
+        return self::nextCampaignSection(self::verifySection($user), $user->refresh());
+    }
+
+    /** Resolved navigate_to for the verify_navigate state (null = inline confirm). */
+    public static function verifyNavigateRoute(User $user): ?string
+    {
+        $section = self::verifySection($user);
+
+        return self::campaignVerifyConfig()[$section]['route'] ?? null;
+    }
+
+    /**
+     * Prompt for verify_more, section-aware. Signature mirrors the other
+     * callable prompt builders (buildPersonalPrompt): invoked by
+     * resolvePromptText/invokeCallableString as ($answer, $user).
+     */
+    public static function verifyPromptMore(string $answer, User $user): string
+    {
+        $label = self::sectionLabel(self::verifySection($user));
+
+        return "Anything else to add to your {$label}?";
+    }
+
+    /** Prompt for verify_navigate, section-aware (navigation vs inline confirm). */
+    public static function verifyPromptNavigate(string $answer, User $user): string
+    {
+        if (self::verifyNavigateRoute($user) === null) {
+            // Inline confirm (charitable giving): no screen.
+            return "I've recorded that. Does it look right?";
+        }
+
+        return "I've added that — taking you to the screen now. Is this information correct?";
+    }
+
+    /** Human label for a campaign section, for verify prompts. */
+    private static function sectionLabel(string $section): string
+    {
+        return [
+            'income' => 'income', 'savings' => 'savings', 'investments' => 'investments',
+            'pensions' => 'pensions', 'giving' => 'charitable giving', 'spouse' => 'spouse details',
+            'expenditure' => 'expenditure',
+        ][$section] ?? 'details';
+    }
+
     public static function nextFromEmploymentMore(string $answer, User $user): string
     {
         $normalised = mb_strtolower(trim($answer));
@@ -1046,8 +1195,18 @@ final class OnboardingStateMachine
         $recap = $bits === [] ? '' : ' You told us you\'re '.self::joinWithAnd($bits).'.';
         $assetsLine = $assets === [] ? '' : ' You also mentioned '.self::joinWithAnd($assets).'.';
 
+        // Time estimate: the detailed onboarding averages 3-5 minutes, plus a
+        // minute for every asset the user picked beyond the first on the funnel's
+        // final (multi-select) screen — each extra asset is one more section Fyn
+        // walks through. The range grows with the selection (1 asset → 3-5,
+        // 3 assets → 5-7) so the expectation Fyn sets matches the work ahead.
+        $assetChoices = is_array($funnel['assets'] ?? null) ? $funnel['assets'] : [];
+        $extraMinutes = max(0, count($assetChoices) - 1);
+        $estimateLow = 3 + $extraMinutes;
+        $estimateHigh = 5 + $extraMinutes;
+
         return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
-            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details. "
+            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow}-{$estimateHigh} minutes. "
             ."Let's start with your income — your employer or business, your role, and your gross annual income.";
     }
 

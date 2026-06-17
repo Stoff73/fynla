@@ -1,6 +1,15 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-15 — end-of-day wrap, session 3. **Built the cross-module plan composer backend, Phases 1–4 (core)** — TDD, byte-identity-pinned. Two open PRs to dev: **#558** (Phases 1–3: generalised composer + 5 module sources + Fyn-reachable handlers/pointers) and **#559** (Phase 4: composite plan — affordability + goals + life-events, stacked on #558). 215 composer-area tests green; tax byte-identical throughout. Nothing deployed (in PRs). **NEXT SESSION: Phase 5 (surfaces — aggregator wire-through + `/holistic-plan` web + net-new `/m`), then Phase 6 (E2E).** Handover: `June/June16Updates/handover-2026-06-16-session-1.md`. Plan: `docs/superpowers/plans/2026-06-15-cross-module-plan-composer.md`.*
+*Last updated: 2026-06-16 — context-clear wrap, session 2. **Cross-module composer Phases 5–6 DONE + the whole composer (Phases 1–5) + CoALA (Phases 1–6) SHIPPED TO PROD (fynla.org).** Then started **SaveTax verify-after-capture**: backend (Tasks 1–6) + the two `/m` screens + Cash Management nav (Tasks 7–9) done, committed, pushed, GREEN on `savetax-verify-capture`. Paused at Task 10 (a real refactor — CSJ chose **Option B**: resume onboarding in the dock). **NEXT SESSION (mandate): land Option B + the `/m` E2E + open the dev PR.** Handover: `June/June16Updates/handover-2026-06-16-session-2-clear.md`. Plan: `docs/superpowers/plans/2026-06-16-savetax-verify-after-capture.md`.*
+
+## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
+
+- [x] **Composer Phase 5** — `RecommendationsAggregatorService` wire-through (`COMPOSED_MODULE_PLANS` flag, default ON), `/holistic-plan` web composite view + `GET /api/holistic/composite-plan`, net-new `/m` holistic screen. PR #561, browser-verified.
+- [x] **Composer Phase 6** — full suite green (5110), golden masters, web + `/m` E2E.
+- [x] **Merged #558→#559→#560→#561 to dev; #562 dev→main; FULL PROD DEPLOY** (CoALA Phases 1–6 + composer Phases 1–5, 11 migrations, corpus reindex, strategy seeders). `/m` holistic browser-verified on fynla.org. Also deployed dev→csjones. `FYN_LEARNING_ENABLED` OFF on prod; `COMPOSED_MODULE_PLANS` ON.
+- [ ] **SaveTax verify-after-capture — NEXT: land Option B + E2E.** Backend + screens done + green on `savetax-verify-capture`. Option B = resume the persisted onboarding conversation in `MobileChrome`'s dock (Dashboard-scoped chat unmounts on nav). See plan §"Task 10 (REVISED)". Then `/m` E2E (csjones) + dev PR.
+- [ ] **Composer Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — still open; composer works without them.
+- [ ] **Composer Task 4.4 — episodic recall de-ranking (DEFERRED)** — still open.
 
 *Prior: 2026-06-15 — context-clear wrap, session 2. **Built CoALA Phase 6** (gated learning), 13 tasks subagent-driven, merged to dev (PR #554, `fae710c`), suite 5030/0; deployed + live-E2E-verified on csjones. Wrote + approved the **cross-module plan composer spec**. Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.*
 
