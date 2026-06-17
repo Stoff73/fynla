@@ -122,6 +122,18 @@
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p>{{ m.text || (sending && i === messages.length - 1 ? '…' : '') }}</p>
+          <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
+               which the director matches back to the bubble. -->
+          <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
+            <button
+              v-for="b in m.bubbles"
+              :key="b.id"
+              type="button"
+              class="md-fyn__bubble"
+              :disabled="sending"
+              @click="chooseBubble(b, m)"
+            >{{ b.label }}</button>
+          </div>
         </div>
       </div>
 
@@ -138,8 +150,14 @@
 </template>
 
 <script>
-import { apiGet, apiPost, apiStream } from '../api.js';
+import { apiGet, apiPost } from '../api.js';
 import { store } from '../store.js';
+// Shared Fyn onboarding-chat client. The campaign verify flow navigates the user
+// to a section's screen mid-onboarding; when they reopen the docked Fyn bar here,
+// the mixin resumes the persisted onboarding conversation and re-shows the waiting
+// Gate-2 turn (resumeOnboardingInDock). Provides send / scrollFyn / ensureConversation
+// / handleFynEvent / chooseBubble / handleOnboardingNavigation too.
+import onboardingChat from '../mixins/onboardingChat.js';
 
 const NAV_ICON = {
   net_worth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
@@ -159,6 +177,7 @@ const NAV_ICON = {
 
 export default {
   name: 'MobileChrome',
+  mixins: [onboardingChat],
   props: {
     // Optional page title shown on the gradient hero band at the top of the page.
     title: { type: String, default: '' },
@@ -180,11 +199,8 @@ export default {
       drawerMounted: false,
       fynOpen: false,
       fynMounted: false,
-      fynStarted: false,
-      conversationId: null,
-      messages: [],
-      draft: '',
-      sending: false,
+      // conversationId / resumeId / messages / draft / sending / fynStarted come
+      // from the onboardingChat mixin (the shared chat client owns that state).
     };
   },
   computed: {
@@ -299,47 +315,26 @@ export default {
     reportFynProblem() {
       store.openBugReport(this.conversationId);
     },
-    initFyn() {
+    // First-open initialiser. Mid-onboarding users resume the persisted
+    // onboarding conversation here — the campaign verify flow may have navigated
+    // them to this screen with a waiting Gate-2 turn, so the dock re-shows it
+    // (resumeOnboardingInDock) rather than a fresh advice greeting. Everyone else
+    // gets a short greeting and free chat. send / scrollFyn / ensureConversation
+    // / chooseBubble come from the shared onboardingChat mixin.
+    async initFyn() {
       if (this.fynStarted) return;
       this.fynStarted = true;
-      if (!this.messages.length) {
+      // Ensure the user is loaded before deciding onboarding-resume vs advice. On
+      // a cold page load (e.g. a refresh / deep-link onto a verify screen) store.user
+      // is still being fetched; a stale null would wrongly fall to the advice
+      // greeting instead of resuming the waiting onboarding turn. loadUser is
+      // idempotent (returns early when store.user is already set — the usual
+      // client-side-nav case), so this adds no delay in the common path.
+      await this.loadUser();
+      if (this.onboardingActive) {
+        this.resumeOnboardingInDock();
+      } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
-      }
-    },
-    scrollFyn() {
-      const b = this.$refs.fynBody;
-      if (b) b.scrollTop = b.scrollHeight;
-    },
-    async ensureConversation() {
-      if (this.conversationId) return this.conversationId;
-      const res = await apiPost('/api/ai-chat/conversations', {}, store.token);
-      this.conversationId = res.data?.data?.id ?? res.data?.id ?? res.data?.conversation?.id ?? null;
-      return this.conversationId;
-    },
-    async send(preset) {
-      const text = (preset || this.draft || '').trim();
-      if (!text || this.sending) return;
-      this.sending = true;
-      this.draft = '';
-      this.messages.push({ role: 'user', text });
-      const cursor = { reply: { role: 'fyn', text: '' }, got: false };
-      this.messages.push(cursor.reply);
-      this.$nextTick(this.scrollFyn);
-      try {
-        const cid = await this.ensureConversation();
-        if (!cid) { cursor.reply.text = 'Sorry, I could not start a conversation just now.'; return; }
-        await apiStream(
-          `/api/ai-chat/conversations/${cid}/messages`,
-          { message: text, current_route: this.activePath || '/dashboard' },
-          store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
-        );
-        if (!cursor.got && !cursor.reply.text) cursor.reply.text = 'Sorry, I had trouble responding just now.';
-      } catch (e) {
-        cursor.reply.text = 'Sorry, something went wrong. Please try again.';
-      } finally {
-        this.sending = false;
-        this.$nextTick(this.scrollFyn);
       }
     },
     async loadUser() {

@@ -1,35 +1,34 @@
-# Tech Debt Report — Session 2026-06-04 (end-of-day)
+# Tech Debt Report — Session 2026-06-16 (SaveTax verify Option B)
 
-**Files analysed:** 14 (3 backend, 11 mobile frontend incl. 10 new views)
-**Issues found:** 3 (all minor; 1 fixed during audit)
-**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
+**Files analysed:** 3 (`resources/mobile/mixins/onboardingChat.js` new; `resources/mobile/views/Dashboard.vue`; `resources/mobile/components/MobileChrome.vue`)
+**Issues found:** 2 (1 fixed during audit; 1 deferred suggestion)
+**Severity breakdown:** 0 critical, 0 warnings, 2 suggestions
 
 ## Critical Issues
 None.
 
 ## Warnings
-None. (Icons/glyph and hardcoded-hex sweeps run during the work + the workflow's reviewer agents kept the new module views palette-token-clean.)
+None.
 
 ## Suggestions
 
-### 1. [FIXED THIS AUDIT] Hardcoded hex in `TaxStrategy.vue` — Category 3 (CSS governance, Rule #11)
-4 hardcoded hex values (`#F1F3F6` dividers ×2, `#EEEDFB` violet tint ×2) were introduced when the view was first written, before the workflow reviewers established the token-only pattern in the sibling module views. **Fixed in-audit:** dividers → `var(--horizon-100)`, violet tints → `color-mix(in srgb, var(--violet-500) 12%, var(--white))` (matching the module-view tag pattern). Now grep-clean.
+### 1. [FIXED THIS AUDIT] Redundant data keys + `onboardingActive` computed shadowing the mixin — Category 1 (duplication) / Category 6 (inconsistency)
+When the shared `onboardingChat` mixin was introduced, both `Dashboard.vue` and `MobileChrome.vue` initially still redeclared the mixin-owned reactive state (`conversationId`, `resumeId`, `messages`, `draft`, `sending`, `fynStarted`) and `Dashboard.vue` redeclared the mixin's `onboardingActive` computed. Vue merges these with the component winning, so values were identical and harmless — but a future change to the mixin's defaults/logic would be silently overridden (a stale-shadow trap). **Fixed in-audit:** removed the duplicated keys from both components' `data()` and the duplicated `onboardingActive` from `Dashboard.vue`; they now come solely from the mixin. Re-built + browser-verified the dock-resume still works.
 
-### 2. Duplicated local `formatCurrency()` across mobile views — Category 1 (duplication)
-9 mobile views each define an identical local `formatCurrency()` (en-GB GBP, maxFractionDigits 0). This is the **accepted convention** for the isolated mobile bundle (it cannot import the web app's `currencyMixin`), and the Investment views already share `investmentFormat.js`. Candidate for a single shared `resources/mobile/format.js` the other views import — low priority, no behavioural impact.
-**Suggested fix:** extract one shared `formatCurrency` (and the `humanise`/`capitalise` helpers that also recur) into `resources/mobile/format.js`; import across views. Defer unless touching these files again.
-
-### 3. Mobile detail/drill-down views have no automated tests — coverage
-The 10 mobile views (TaxStrategy + 4 modules × overview/drill-down + investment) are verified live in Playwright only (consistent with the existing mobile dock, which also has no frontend unit tests). Backend changes ARE covered: `FynMeteringTest` (provider-aware soft-degrade, both branches) + 248 onboarding tests green.
-**Suggested fix:** none required now; note for a future mobile test-harness pass.
+### 2. `loadUser()` + `firstName` computed duplicated between `Dashboard.vue` and `MobileChrome.vue` — Category 1 (duplication)
+Both components define an identical `loadUser()` method and `firstName` computed (general user-state helpers the mixin depends on via `this.loadUser()` / `this.firstName`). This is **pre-existing** (predates this session) and consistent with the accepted isolated-mobile-bundle duplication convention (see the standing `formatCurrency` note below). They are deliberately NOT in the `onboardingChat` mixin because they're user-state, not chat, concerns.
+**Suggested fix:** if a future pass touches both files, extract a small shared `userState` mixin (`loadUser` + `firstName`). Defer otherwise — no behavioural impact.
 
 ## Non-issues checked & cleared
-- `/100` occurrences are percentage math (salary × pct ÷ 100, ownership_percentage ÷ 100), **not** quality scores — Rule #12 compliant.
-- Every `v-for` has a `:key` (multi-line; the heuristic grep flagged the line above the `:key`).
-- No `console.log`/`dd`/`dump`/debug leftovers.
-- No banned colour classes (gray/primary/secondary/amber/orange).
-- Backend files have `declare(strict_types=1)`.
-- No acronyms in user-facing text except ISA (account-type labels spelled out via `investmentFormat.js`).
+- The new mixin has **no** `console.log`/`dd`/`dump`/debug leftovers, and no empty catches that hide a real failure (the catches set a user-facing fallback message — intentional graceful degradation for a network/stream error).
+- No hardcoded hex / banned colour classes — the mixin is JS-only; the new dock bubble markup reuses the existing `.md-fyn__bubbles`/`.md-fyn__bubble` classes from `dashboard.css`.
+- No acronyms (Rule #9), no scores (Rule #12) in any user-facing string. Icons: the dock bubbles are text buttons; the only new icon surface (the Cash Management drawer-nav group) is the already-approved drawer surface, built last session.
+- `send` (~50 lines) and `handleFynEvent` (~50 lines) sit at the soft length threshold but are lifted verbatim from the previously-working `Dashboard.vue` — extracting them into the mixin REDUCED total duplication (`Dashboard.vue` shed ~233 lines net).
+
+---
+
+## Standing note (still open from 2026-06-04 audit)
+**Duplicated local `formatCurrency()` across mobile views** — 9+ mobile views each define an identical local `formatCurrency()` (incl. `Income.vue`/`Expenditure.vue` added last session). Accepted isolated-mobile-bundle convention; candidate for a single shared `resources/mobile/format.js`. Low priority — defer unless touching these files.
 
 ---
 *Generated by tech-debt-session skill*
