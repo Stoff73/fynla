@@ -460,14 +460,14 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_ADVICE_SAVINGS,
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'turn_type' => 'delegated',
                 'prompt_text' => 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
@@ -513,7 +513,7 @@ final class OnboardingStateMachine
                 // director asks the disambiguation rather than re-prompting
                 // blindly. See OnboardingChatDirector::emitSingleFigureClarification.
                 'clarify_single_figure' => true,
-                'next' => self::STATE_CAMPAIGN_ADVICE_PENSIONS,
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
             ],
             // ── Giving section ────────────────────────────────────────────
             self::STATE_CAMPAIGN_CHARITABLE_GIVING => [
@@ -554,7 +554,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_household_data',
                 'retry_text' => 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?',
-                'next' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
                 'skip_if' => [self::class, 'skipIfNotDualEarner'],
             ],
             self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => [
@@ -563,7 +563,7 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_non_working_assets',
                 'retry_text' => 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".',
-                'next' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
                 'skip_if' => [self::class, 'skipIfNotSingleEarnerCouple'],
             ],
             // Terminal state for the campaign branch. turn_type=terminal mirrors
@@ -579,40 +579,41 @@ final class OnboardingStateMachine
             // ── Per-section advice (auto-advancing) ───────────────────────
             // Each fires after its section's capture, relays the relevant
             // tax-engine recommendation, then continues to the next section.
+            // Advice now fires AFTER the user has confirmed the section's screen
+            // (verify_navigate "yes" → this advice → next section). Each relays
+            // its tax-engine recommendation, then continues to the next section.
             self::STATE_CAMPAIGN_ADVICE_INCOME => [
                 'turn_type' => 'advice',
                 'advice_section' => 'income',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'income'),
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('income', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'savings',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_INVESTMENTS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'investments',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_PENSIONS => [
                 'turn_type' => 'advice',
                 'advice_section' => 'pensions',
                 'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SPOUSE => [
                 'turn_type' => 'advice',
                 'advice_section' => 'spouse',
                 'capture_field' => null,
-                // Enter the verify sub-flow for the spouse section (like every
-                // other advice state now). The verify flow's "yes" branch calls
-                // nextCampaignSection('spouse'), which returns STATE_CAMPAIGN_TERMINAL
-                // once the sections are exhausted — so advancement still happens,
-                // just behind the verify gate. This MUST NOT point back at itself.
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
+                // Last section's advice → nextCampaignSection('spouse') returns
+                // STATE_CAMPAIGN_TERMINAL once the sections are exhausted. This
+                // MUST NOT point back at itself.
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
             ],
             self::STATE_CAMPAIGN_SYNTHESIS => [
                 'turn_type' => 'advice',
@@ -970,7 +971,26 @@ final class OnboardingStateMachine
         $user->onboarding_fyn_context = $context;
         $user->save();
 
-        return 'campaign_verify_more';
+        // Go straight to navigate-and-confirm. The section's own capture
+        // "anything else?" gate already covered "more"; we never ask it again.
+        return 'campaign_verify_navigate';
+    }
+
+    /**
+     * The per-section advice state shown AFTER the user confirms the screen
+     * (verify_navigate "yes"), or null for sections with no advice turn
+     * (giving, expenditure). The advice used to precede the verify; it now
+     * follows the confirmation.
+     */
+    private static function campaignSectionAdvice(string $section): ?string
+    {
+        return [
+            'income' => self::STATE_CAMPAIGN_ADVICE_INCOME,
+            'savings' => self::STATE_CAMPAIGN_ADVICE_SAVINGS,
+            'investments' => self::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
+            'pensions' => self::STATE_CAMPAIGN_ADVICE_PENSIONS,
+            'spouse' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
+        ][$section] ?? null;
     }
 
     /** The section currently being verified (from context). */
@@ -991,14 +1011,20 @@ final class OnboardingStateMachine
         return 'campaign_verify_navigate';
     }
 
-    /** verify_navigate: "no" → edit; "yes" → advance past the verified section. */
+    /** verify_navigate: "no" → edit; "yes" → section advice (then next section). */
     public static function nextFromVerifyNavigate(string $answer, User $user): string
     {
         if (self::normaliseYesNo($answer) === 'no') {
             return 'campaign_verify_edit';
         }
 
-        return self::nextCampaignSection(self::verifySection($user), $user->refresh());
+        // Confirmed — show this section's tax advice now (after the confirm),
+        // then advance. Sections with no advice (giving, expenditure) go
+        // straight to the next section.
+        $section = self::verifySection($user);
+
+        return self::campaignSectionAdvice($section)
+            ?? self::nextCampaignSection($section, $user->refresh());
     }
 
     /** Resolved navigate_to for the verify_navigate state (null = inline confirm). */
@@ -1049,11 +1075,11 @@ final class OnboardingStateMachine
             return self::STATE_BASE_EMPLOYMENT;
         }
 
-        // End of the income section. The savetax campaign shows its income
-        // advice (which then continues through the reordered section flow);
+        // End of the income section. The savetax campaign enters the verify
+        // flow (navigate to /income → confirm → income advice → next section);
         // the standard flow goes to expenditure.
         if ($user->onboarding_fyn_path === 'campaign') {
-            return self::STATE_CAMPAIGN_ADVICE_INCOME;
+            return self::enterCampaignVerify($user, 'income');
         }
 
         return self::STATE_BASE_EXPENDITURE;

@@ -22,15 +22,16 @@ it('maps every navigable campaign section to a route and capture-entry state', f
         ->and($config['giving']['route'])->toBeNull();
 });
 
-it('stamps the verify section into context and enters campaign_verify_more', function (): void {
+it('stamps the verify section into context and goes straight to navigate/confirm', function (): void {
     $user = User::factory()->create([
         'onboarding_fyn_path' => 'campaign',
         'onboarding_fyn_context' => [],
     ]);
 
+    // No redundant "anything else?" gate — straight to the navigate/confirm.
     $next = OnboardingStateMachine::enterCampaignVerify($user, 'savings');
 
-    expect($next)->toBe('campaign_verify_more')
+    expect($next)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('savings');
 });
 
@@ -72,7 +73,7 @@ it('defines the three generic verify states with the right turn types', function
         ->and($states['campaign_verify_navigate']['navigate_to'])->toBeInstanceOf(Closure::class);
 });
 
-it('routes each section-end into the verify flow instead of straight to the next section', function (): void {
+it('routes each section CAPTURE-end straight into navigate/confirm (no extra gate)', function (): void {
     $m = new ReflectionMethod(OnboardingStateMachine::class, 'inCodeStates');
     $m->setAccessible(true);
     $states = $m->invoke(null);
@@ -81,17 +82,30 @@ it('routes each section-end into the verify flow instead of straight to the next
         'marital_status' => 'married',
     ]);
 
+    // Capture-ends enter the navigate/confirm directly — never the (now removed)
+    // redundant "anything else?" verify gate.
     foreach ([
-        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME,
-        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SAVINGS,
-        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
-        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
-        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
+        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
+        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+        OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
+        OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
         OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING,
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
-        expect($resolved)->toBe('campaign_verify_more', "state {$stateId} should enter verify");
+        expect($resolved)->toBe('campaign_verify_navigate', "state {$stateId} should enter navigate/confirm");
+    }
+
+    // Advice now fires AFTER the confirm and continues to the next section —
+    // never back into the verify flow.
+    foreach ([
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME,
+        OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SAVINGS,
+    ] as $stateId) {
+        $next = $states[$stateId]['next'];
+        $resolved = is_callable($next) ? $next('', $user) : $next;
+        expect($resolved)->not->toBe('campaign_verify_navigate')
+            ->and($resolved)->not->toBe('campaign_verify_more');
     }
 });
 

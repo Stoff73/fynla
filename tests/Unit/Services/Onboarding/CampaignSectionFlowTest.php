@@ -128,21 +128,21 @@ it('drops the recap and asks the plain income question once income is captured',
     expect(SM::buildWorkPrompt('', $u))->not->toContain('thanks for those answers');
 });
 
-it('inserts a per-section advice turn between a section and the next', function () {
+it('runs verify+confirm before the section advice, then advice → next section', function () {
     $u = campaignUser(['funnel_answers' => ['assets' => ['savings', 'investments', 'pension']]]);
 
-    // Savings' last capture (bank accounts) → savings advice → verify sub-flow.
-    // (The verify flow carries on to the investments entry on "is this correct? yes"
-    // — see CampaignVerifyFlowTest for the full advice→verify→next-section walk.)
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_SAVINGS)
-        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe('campaign_verify_more');
+    // Savings' last capture (bank accounts) → navigate/confirm (no advice yet).
+    // After "is this correct? yes" the savings advice fires, then advances to the
+    // investments entry. (See CampaignVerifyFlowTest for the full walk.)
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe('campaign_verify_navigate')
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
 
-    // Pensions' last capture (history) → pensions advice → next section.
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_PENSIONS);
+    // Pensions' last capture (history) → navigate/confirm.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe('campaign_verify_navigate');
 
-    // Income end (employment-more "no") → income advice → verify sub-flow.
-    expect(SM::nextFromEmploymentMore('No', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_INCOME)
-        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->toBe('campaign_verify_more');
+    // Income end (employment-more "no") → navigate/confirm; income advice → next section.
+    expect(SM::nextFromEmploymentMore('No', $u))->toBe('campaign_verify_navigate')
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->not->toBe('campaign_verify_navigate');
 });
 
 it('marks every advice state as an auto-advancing advice turn with a section', function () {
@@ -176,12 +176,13 @@ it('never lets a campaign advice state auto-advance back into itself', function 
         expect(SM::getNextStateId($id, '', $u))->not->toBe($id);
     }
 
-    // Spouse advice now enters the verify sub-flow (advice → campaign_verify_more);
-    // the verify flow then carries on to the expenditure section on "correct? yes"
-    // (nextCampaignSection('spouse') — see CampaignVerifyFlowTest). The invariant
-    // this test guards is only that no advice state self-edges.
+    // Spouse advice now fires after the confirm and continues to the next section
+    // (nextCampaignSection('spouse')) — never back into the verify flow, never
+    // itself. The invariant this test guards is only that no advice state self-edges.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SPOUSE, '', $u))
-        ->toBe('campaign_verify_more');
+        ->not->toBe(SM::STATE_CAMPAIGN_ADVICE_SPOUSE)
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SPOUSE, '', $u))
+        ->not->toBe('campaign_verify_navigate');
 });
 
 it('section order matches the single source-of-truth array', function () {
