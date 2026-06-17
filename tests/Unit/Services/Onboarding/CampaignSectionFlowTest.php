@@ -84,6 +84,40 @@ it('opens the income-first entry with the funnel recap greeting', function () {
         ->and($prompt)->not->toContain('date of birth');     // DOB deferred
 });
 
+it('states a 3-5 minute estimate when one asset is selected', function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings']],
+    ]);
+
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 3-5 minutes');
+});
+
+it('adds a minute per asset beyond the first to the time estimate', function () {
+    // 3 assets selected → base 3-5 + (3 - 1) = 5-7 minutes.
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings', 'pension', 'isa']],
+    ]);
+
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 5-7 minutes');
+});
+
+it('falls back to the 3-5 minute estimate when no assets are selected', function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => ['employment' => 'full-time', 'assets' => []],
+    ]);
+
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 3-5 minutes');
+});
+
 it('drops the recap and asks the plain income question once income is captured', function () {
     $u = campaignUser([
         'employment_status' => 'full_time',

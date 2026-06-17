@@ -1195,8 +1195,18 @@ final class OnboardingStateMachine
         $recap = $bits === [] ? '' : ' You told us you\'re '.self::joinWithAnd($bits).'.';
         $assetsLine = $assets === [] ? '' : ' You also mentioned '.self::joinWithAnd($assets).'.';
 
+        // Time estimate: the detailed onboarding averages 3-5 minutes, plus a
+        // minute for every asset the user picked beyond the first on the funnel's
+        // final (multi-select) screen — each extra asset is one more section Fyn
+        // walks through. The range grows with the selection (1 asset → 3-5,
+        // 3 assets → 5-7) so the expectation Fyn sets matches the work ahead.
+        $assetChoices = is_array($funnel['assets'] ?? null) ? $funnel['assets'] : [];
+        $extraMinutes = max(0, count($assetChoices) - 1);
+        $estimateLow = 3 + $extraMinutes;
+        $estimateHigh = 5 + $extraMinutes;
+
         return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
-            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details. "
+            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow}-{$estimateHigh} minutes. "
             ."Let's start with your income — your employer or business, your role, and your gross annual income.";
     }
 
