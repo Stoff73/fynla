@@ -43,6 +43,14 @@
       <div class="md-bottom-pad" aria-hidden="true"></div>
     </main>
 
+    <!-- Onboarding continue nudge — when the verify flow has navigated a
+         mid-onboarding user here and minimised the dock, this points them back to
+         the chat so they know they can carry on. Tapping opens Fyn; hidden once
+         Fyn is open or onboarding is complete. Plain text only — Rule #15. -->
+    <div v-if="showOnboardingNudge" class="md-fyn-nudge">
+      <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Tap the chat below to continue with Fyn</button>
+    </div>
+
     <!-- Docked Fyn bar -->
     <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
@@ -122,6 +130,18 @@
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p>{{ m.text || (sending && i === messages.length - 1 ? '…' : '') }}</p>
+          <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
+               which the director matches back to the bubble. -->
+          <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
+            <button
+              v-for="b in m.bubbles"
+              :key="b.id"
+              type="button"
+              class="md-fyn__bubble"
+              :disabled="sending"
+              @click="chooseBubble(b, m)"
+            >{{ b.label }}</button>
+          </div>
         </div>
       </div>
 
@@ -138,8 +158,14 @@
 </template>
 
 <script>
-import { apiGet, apiPost, apiStream } from '../api.js';
+import { apiGet, apiPost } from '../api.js';
 import { store } from '../store.js';
+// Shared Fyn onboarding-chat client. The campaign verify flow navigates the user
+// to a section's screen mid-onboarding; when they reopen the docked Fyn bar here,
+// the mixin resumes the persisted onboarding conversation and re-shows the waiting
+// Gate-2 turn (resumeOnboardingInDock). Provides send / scrollFyn / ensureConversation
+// / handleFynEvent / chooseBubble / handleOnboardingNavigation too.
+import onboardingChat from '../mixins/onboardingChat.js';
 
 const NAV_ICON = {
   net_worth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
@@ -153,10 +179,13 @@ const NAV_ICON = {
   tax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
   admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
   holistic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3"/></svg>',
+  income: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  expenditure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4m-7 6h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>',
 };
 
 export default {
   name: 'MobileChrome',
+  mixins: [onboardingChat],
   props: {
     // Optional page title shown on the gradient hero band at the top of the page.
     title: { type: String, default: '' },
@@ -178,16 +207,21 @@ export default {
       drawerMounted: false,
       fynOpen: false,
       fynMounted: false,
-      fynStarted: false,
-      conversationId: null,
-      messages: [],
-      draft: '',
-      sending: false,
+      // conversationId / resumeId / messages / draft / sending / fynStarted come
+      // from the onboardingChat mixin (the shared chat client owns that state).
     };
   },
   computed: {
     activePath() {
       return this.$route ? this.$route.path : '';
+    },
+    // The campaign verify flow navigates a mid-onboarding user to this screen and
+    // minimises the dock — leaving no cue that Fyn is waiting to carry on. Show a
+    // nudge above the docked bar pointing them back to the chat. Tapping opens
+    // Fyn; it hides once the chat is open or onboarding is complete.
+    // onboardingActive comes from the onboardingChat mixin.
+    showOnboardingNudge() {
+      return this.onboardingActive && !this.fynOpen;
     },
     fynIcon() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';
@@ -211,6 +245,10 @@ export default {
     },
     navSections() {
       return [
+        { group: 'Cash Management', links: [
+          { slug: 'income', label: 'Income', icon: NAV_ICON.income, route: '/income' },
+          { slug: 'expenditure', label: 'Expenditure', icon: NAV_ICON.expenditure, route: '/expenditure' },
+        ] },
         { group: 'Finances', links: [
           { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
           { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
@@ -293,47 +331,26 @@ export default {
     reportFynProblem() {
       store.openBugReport(this.conversationId);
     },
-    initFyn() {
+    // First-open initialiser. Mid-onboarding users resume the persisted
+    // onboarding conversation here — the campaign verify flow may have navigated
+    // them to this screen with a waiting Gate-2 turn, so the dock re-shows it
+    // (resumeOnboardingInDock) rather than a fresh advice greeting. Everyone else
+    // gets a short greeting and free chat. send / scrollFyn / ensureConversation
+    // / chooseBubble come from the shared onboardingChat mixin.
+    async initFyn() {
       if (this.fynStarted) return;
       this.fynStarted = true;
-      if (!this.messages.length) {
+      // Ensure the user is loaded before deciding onboarding-resume vs advice. On
+      // a cold page load (e.g. a refresh / deep-link onto a verify screen) store.user
+      // is still being fetched; a stale null would wrongly fall to the advice
+      // greeting instead of resuming the waiting onboarding turn. loadUser is
+      // idempotent (returns early when store.user is already set — the usual
+      // client-side-nav case), so this adds no delay in the common path.
+      await this.loadUser();
+      if (this.onboardingActive) {
+        this.resumeOnboardingInDock();
+      } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
-      }
-    },
-    scrollFyn() {
-      const b = this.$refs.fynBody;
-      if (b) b.scrollTop = b.scrollHeight;
-    },
-    async ensureConversation() {
-      if (this.conversationId) return this.conversationId;
-      const res = await apiPost('/api/ai-chat/conversations', {}, store.token);
-      this.conversationId = res.data?.data?.id ?? res.data?.id ?? res.data?.conversation?.id ?? null;
-      return this.conversationId;
-    },
-    async send(preset) {
-      const text = (preset || this.draft || '').trim();
-      if (!text || this.sending) return;
-      this.sending = true;
-      this.draft = '';
-      this.messages.push({ role: 'user', text });
-      const cursor = { reply: { role: 'fyn', text: '' }, got: false };
-      this.messages.push(cursor.reply);
-      this.$nextTick(this.scrollFyn);
-      try {
-        const cid = await this.ensureConversation();
-        if (!cid) { cursor.reply.text = 'Sorry, I could not start a conversation just now.'; return; }
-        await apiStream(
-          `/api/ai-chat/conversations/${cid}/messages`,
-          { message: text, current_route: this.activePath || '/dashboard' },
-          store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
-        );
-        if (!cursor.got && !cursor.reply.text) cursor.reply.text = 'Sorry, I had trouble responding just now.';
-      } catch (e) {
-        cursor.reply.text = 'Sorry, something went wrong. Please try again.';
-      } finally {
-        this.sending = false;
-        this.$nextTick(this.scrollFyn);
       }
     },
     async loadUser() {

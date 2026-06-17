@@ -51,6 +51,10 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
             OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS,
+            // SaveTax verify sub-flow (generic; section carried in onboarding_fyn_context)
+            'campaign_verify_more',
+            'campaign_verify_navigate',
+            'campaign_verify_edit',
         ];
 
         foreach ($expected as $id) {

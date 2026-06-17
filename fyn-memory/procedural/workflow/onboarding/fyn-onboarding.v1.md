@@ -284,6 +284,30 @@ campaign_synthesis:
   capture_field: null
   next: campaign_terminal
 
+campaign_verify_more:
+  turn_type: bubbles
+  prompt_text: { builder: verifyPromptMore }
+  bubbles:
+    - { id: 'yes', label: 'Yes, add more' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromVerifyMore }
+
+campaign_verify_navigate:
+  turn_type: bubbles
+  prompt_text: { builder: verifyPromptNavigate }
+  bubbles:
+    - { id: 'yes', label: "Yes, that's right" }
+    - { id: 'no', label: 'No, change something' }
+  capture_field: null
+  next: { branch: nextFromVerifyNavigate }
+
+campaign_verify_edit:
+  turn_type: delegated
+  prompt_text: 'No problem — what needs changing?'
+  capture_field: null
+  next: campaign_verify_navigate
+
 asset_capture:
   turn_type: delegated
   prompt_text: { builder: buildAssetCaptureIntro }

@@ -92,6 +92,13 @@ class UserProfileService
                 'email' => $user->spouse->email,
             ] : null,
             'income_occupation' => $this->buildIncomeOccupation($user),
+            // Flat per-source income for the user and (when linked) the spouse —
+            // consumed by the /m Income screen. Additive; never read by existing
+            // consumers of income_occupation.
+            'income_summary' => [
+                'user' => $this->incomeSources($user),
+                'spouse' => $user->spouse ? $this->incomeSources($user->spouse) : null,
+            ],
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
@@ -381,6 +388,27 @@ class UserProfileService
         }
 
         return $totalContributions;
+    }
+
+    /**
+     * Flat per-source annual income for one person (user or spouse), for the /m
+     * Income screen. Raw earned/investment columns only, symmetric across user and
+     * spouse; rental is property-derived and shown on the property/net-worth screens.
+     *
+     * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}
+     */
+    private function incomeSources(User $person): array
+    {
+        $sources = [
+            'employment' => (float) ($person->annual_employment_income ?? 0),
+            'self_employment' => (float) ($person->annual_self_employment_income ?? 0),
+            'dividend' => (float) ($person->annual_dividend_income ?? 0),
+            'interest' => (float) ($person->annual_interest_income ?? 0),
+            'other' => (float) ($person->annual_other_income ?? 0),
+        ];
+        $sources['total'] = array_sum($sources);
+
+        return $sources;
     }
 
     /**
