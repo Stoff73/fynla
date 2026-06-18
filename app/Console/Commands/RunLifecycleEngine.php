@@ -32,7 +32,7 @@ class RunLifecycleEngine extends Command
             Log::error('Lifecycle engine refusing to run: stale test users present', [
                 'count' => $staleTestUsers,
             ]);
-            $this->error("Refusing to run — {$staleTestUsers} test users still exist. Run 'php artisan lifecycle:e2e-cleanup' first.");
+            $this->error("Refusing to run — {$staleTestUsers} test users still exist. Delete the is_lifecycle_test_user rows before running.");
 
             return Command::FAILURE;
         }
