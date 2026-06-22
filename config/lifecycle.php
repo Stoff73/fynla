@@ -15,7 +15,6 @@ return [
     ],
 
     // Timing knobs (all in days)
-    'trial_restart_days' => 14,
     'magic_link_ttl_days' => 7,
     'discount_code_ttl_days' => 7,
     'cancellation_feedback_delay_days' => 3,
