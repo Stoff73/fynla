@@ -35,14 +35,6 @@ export const ROUTE_CAPABILITY = {
     '/goals': 'goals',
 };
 
-/** Module key → human label for the teaser/upgrade page heading. */
-export const MODULE_LABELS = {
-    estate: 'Estate Planning',
-    letter_to_spouse: 'Letter to Spouse',
-    holistic_plan: 'Holistic Plan',
-    what_if: 'What If Scenarios',
-};
-
 /** Resolve the capability key for a route path + query, or null if ungated. */
 export function capabilityForRoute(path, query = {}) {
     // Letter to Spouse / Expression of Wishes uses a query param, not a unique path.
