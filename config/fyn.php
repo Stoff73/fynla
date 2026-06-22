@@ -47,10 +47,8 @@ return [
      * actions read/write these paths once the adapters are wired.
      */
     'memory' => [
-        'root' => base_path('fyn-memory'),
         'procedural_path' => base_path('fyn-memory/procedural'),
         'episodic_rubric' => base_path('fyn-memory/episodic/RUBRIC.md'),
-        'episodic_template' => base_path('fyn-memory/episodic/_TEMPLATE.md'),
         'episodic_path' => base_path('fyn-memory/episodic/episodes'),
         'semantic_path' => base_path('fyn-memory/semantic'),
         'semantic_index' => storage_path('app/memory/semantic/index.json'),
@@ -58,7 +56,6 @@ return [
         'pointers_path' => base_path('fyn-memory/procedural/pointers'),
         'procedural_reload_interval' => (int) env('FYN_PROCEDURAL_RELOAD_INTERVAL', 60),
         'user_semantic_path' => storage_path('app/memory/semantic-user'),
-        'recall_top_k' => (int) env('FYN_RECALL_TOP_K', 5),
     ],
 
     /*
