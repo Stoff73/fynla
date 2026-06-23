@@ -205,3 +205,17 @@
 - Day total: 19 commits — SaveTax verify-after-capture DONE + live on prod (3 releases #563→#568), + session housekeeping (handover repair, metrics refresh).
 - New memory: feedback_fyn_session_persists_while_logged_in (coding rule: never clear Fyn chat while logged in).
 - Next: nothing mandated — SaveTax onboarding done + live. Optional prod parity walk of remaining sections; cleanup of orphaned campaign_verify_more state.
+
+## 2026-06-18 — session 2 (end-of-day)  [separate from the SP1/SP3 plan above]
+- Repo-wide ponytail over-engineering audit (5 parallel hunters) + draw.io service-layers diagram.
+- Actioned the zero-risk dead-code tier on branch `deadcode-cleanup` (worktree off dev): -971 lines / 17 files, commit `bf92123`. NOT pushed (CSJ: test + push next session).
+- Handover: [[handover-2026-06-19-session-1]]
+- Next: test + push `deadcode-cleanup`, open PR to dev; decide deferred audit tiers + whether to commit the diagrams.
+
+## 2026-06-23 — session 1 (end-of-day; work performed 2026-06-22)
+- Handover: [[handover-2026-06-23-session-1]]
+- Branch: main @ 7389d7d (= origin/main = prod); 0/0
+- Carried the 2026-06-19 deadcode-cleanup handover all the way to PROD: tested + pushed `deadcode-cleanup` (#569), actioned all 3 deferred audit tiers as #570 (sanitizeHtml→DOMPurify XSS fix, 7 dead Notification classes, 4 unused frontend exports, draw.io service-layers diagram), released dev→main (#571), deployed to BOTH dev (csjones) AND prod (fynla.org). Net −1,095 lines, no migrations. Prod smoke green; prod log 0 errors post-deploy.
+- Deliberately NOT done: taxConfig Vuex getters left in (CSJ-confirmed — "~18 dead" estimate was unreliable, store heavily used, Rule #2 API, negligible payoff); 2 tier-2-gated Estate sanitizeHtml surfaces (LPA, Will review) not directly clicked (no tier-2 local user) — verified via shared-function + render-path proof.
+- Investigated the prod log on CSJ request: errors are historical (forge/APP_KEY config-cache race dominates, mitigated); the 06-16 ai_conversations.status='paused' truncation is already RESOLVED (enum migrated, 67 rows paused fine). Future pass: confirm TransientToken::$id family fully fixed.
+- Next: nothing mandated — cleanup programme complete + on prod. Housekeeping: remove stale worktree fynla-deadcode-cleanup.

@@ -1,6 +1,35 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-17 — end-of-day wrap. **SaveTax verify-after-capture is COMPLETE + LIVE ON PROD (fynla.org)** — Option B landed, the verify FLOW corrected to CSJ's exact spec, income section walked E2E on prod. Three prod releases (PRs #563→#568): (1) Option B + 3 fixes + time-estimate + de-jank + nudge; (2) cookie-consent-at-landing + `/m` Fyn auto-open; (3) verify-flow rework (one gate → navigate+confirm → advice; `/income` shows employer·role; chat persists). Suite 5121/0. main = origin/main = prod (0/0), tree clean. New memories: `feedback_savetax_verify_sequence_canonical`, `feedback_fyn_session_persists_while_logged_in`. EOD handover: `June/June18Updates/handover-2026-06-18-session-1.md`.*
+*Last updated: 2026-06-23 — end-of-day wrap (session 1; work 2026-06-22). Carried the dead-code cleanup all the way to **PROD**: #569 (zero-risk dead code), #570 (sanitizeHtml→DOMPurify XSS fix + 7 dead Notification classes + 4 unused frontend exports + draw.io diagram), #571 (dev→main release). Deployed to BOTH dev (csjones) AND prod (fynla.org); net −1,095 lines, no migrations; prod smoke green, 0 errors post-deploy. EOD handover: `June/June23Updates/handover-2026-06-23-session-1.md`.*
+
+## 2026-06-23 — Session 1: cleanup tier-2 shipped to dev + prod (end-of-day)
+
+main @ `7389d7d` = origin/main = prod (0/0). **Cleanup programme complete and live on prod — nothing mandated next.**
+- [x] **Tested + pushed `deadcode-cleanup` → #569 → merged to dev + main + prod** (static dangling-ref sweep + Retirement/Savings suites 154 pass + architecture 117 pass).
+- [x] **sanitizeHtml → DOMPurify** (#570) — closes latent XSS; same export, 3 callers unchanged; browser-verified (function + render-path + Fyn chat surface).
+- [x] **7 dead Notification classes removed** (#570) — push path via `PushNotificationService` confirmed intended/active; 8 active classes kept.
+- [x] **4 unused frontend exports removed** (#570) — `PLAN_LABELS`, `tierAccess.MODULE_LABELS`, `ALLOWED_SIGNUP_SOURCES`, `awinTracking.isEnabled`.
+- [x] **draw.io diagrams committed** (#570) — `docs/diagrams/fynla-service-layers.*` + generator.
+- [x] **Released dev→main (#571) + deployed prod** — non-git manual upload (rm 16 dead files + rsync 8 modified PHP + dump-autoload + build upload + config:cache).
+- [ ] **taxConfig Vuex getters — LEFT IN (CSJ-confirmed).** "~18 dead" estimate was unreliable; store heavily used; Rule #2 API; negligible payoff. Not a TODO — recorded as a decision.
+- [ ] **Optional:** tier-2-account eyeball of the 2 Estate sanitizeHtml surfaces (LPA, Will review) on prod — not clickable locally (tier gate).
+- [ ] **Housekeeping:** remove stale worktree `/Users/CSJ/Desktop/fynla-deadcode-cleanup` (`rm -rf` + `git worktree prune` + `git branch -D deadcode-cleanup` — this git lacks `worktree remove`).
+
+### Deferred audit tiers NOT actioned (still open, CSJ decision)
+- [ ] `composed_module_plans` rollback flag (~200 lines) — deliberate live-rollback safety net; CSJ's call.
+- [ ] Stylistic shrinks: `titleCase()` dedup (49 inline idioms), a few `foreach`→`collect()->map()`.
+- [ ] `PolicyCRUDTrait` inline-into-`ProtectionController` (~143 lines).
+- [ ] Future code pass: confirm no un-guarded `currentAccessToken()->id` remains (`TransientToken::$id` family, ~117 historical prod-log hits, last 2026-05-11).
+
+## 2026-06-18 — Session 2: ponytail audit + zero-risk dead-code removal (end-of-day; committed-not-pushed)
+
+Branch `deadcode-cleanup` (worktree `/Users/CSJ/Desktop/fynla-deadcode-cleanup`, off `origin/dev`), commit `bf92123`. **Next session: test + push + PR to dev.**
+- [x] **Repo-wide ponytail audit** — 5 parallel hunters (deps / PHP abstractions / PHP stdlib / frontend / dead flags). Deps lean, routes clean, abstractions lean, `formatCurrency`/mixins/dup-API clean. Full ranked report delivered in chat (~1,450 high-confidence recoverable lines).
+- [x] **draw.io service-layers diagram** — `docs/diagrams/fynla-service-layers.{drawio,svg,png,drawio.png}` + `gen_service_layers.py`. **Untracked in main dir** (not committed — branch-gate).
+- [x] **Zero-risk dead-code tier committed** (`bf92123`, −971 lines): 7 orphan commands, `initializeFundBalances()`/`calculateTotalPensionPot()`, 4 Savings goal methods + 2 Request classes, 8 unread config keys, 2 stale-ref fixes. `php -l` clean, 0 dangling refs, 214 targeted tests green.
+- [x] **test + push `deadcode-cleanup` + open PR to `dev`** — DONE 2026-06-23 (#569 → dev → main → prod).
+- [x] **Deferred audit tiers** — DONE/decided 2026-06-23: notifications ✓ (#570), `sanitizeHtml`→DOMPurify ✓ (#570), frontend dead exports (4) ✓ (#570). taxConfig getters LEFT IN (CSJ). Still open (see new section above): `composed_module_plans` flag, stylistic shrinks, `PolicyCRUDTrait` inline.
+- [x] **Decide diagrams** — DONE 2026-06-23: committed via #570.
 
 ## 2026-06-17 — Session 2: SaveTax verify-after-capture DONE + on PROD (clear)
 
