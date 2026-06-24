@@ -6,20 +6,20 @@
   <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fynla Features — Compare Financial Planning Tools | Fynla</title>
+  <title>Financial Planning Tools &amp; Software — 30+ Features | Fynla</title>
   <meta name="description" content="See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning." />
   <link rel="canonical" href="https://fynla.org/features" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Fynla Features — Compare Financial Planning Tools | Fynla" />
+  <meta property="og:title"       content="Financial Planning Tools &amp; Software — 30+ Features | Fynla" />
   <meta property="og:description" content="See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning." />
   <meta property="og:image"       content="https://fynla.org/images/og/features.jpg" />
   <meta property="og:url"         content="https://fynla.org/features" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Fynla Features — Compare Financial Planning Tools | Fynla" />
+  <meta name="twitter:title"       content="Financial Planning Tools &amp; Software — 30+ Features | Fynla" />
   <meta name="twitter:description" content="See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/features.jpg" />
 
@@ -32,7 +32,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Fynla Features — Compare Financial Planning Tools",
+    "name": "Financial Planning Tools & Software — 30+ Features",
     "url": "https://fynla.org/features",
     "description": "See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning.",
     "publisher": {

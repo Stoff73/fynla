@@ -35,21 +35,21 @@ try {
   <link rel="preload" as="image" href="/images/Website/Homepage-Header-Desktopv3.png"
         fetchpriority="high" media="(min-width: 1024px)" />
 
-  <title>Fyn, your financial companion | Fynla</title>
-  <meta name="description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <title>Financial Planning Software for UK Households | Fynla</title>
+  <meta name="description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <link rel="canonical" href="https://fynla.org/" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Fyn, your financial companion | Fynla" />
-  <meta property="og:description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <meta property="og:title" content="Financial Planning Software for UK Households | Fynla" />
+  <meta property="og:description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <meta property="og:image" content="https://fynla.org/images/og/index.jpg" />
   <meta property="og:url" content="https://fynla.org/" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Fyn, your financial companion | Fynla" />
-  <meta name="twitter:description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <meta name="twitter:title" content="Financial Planning Software for UK Households | Fynla" />
+  <meta name="twitter:description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <meta name="twitter:image" content="https://fynla.org/images/og/index.jpg" />
 
   <!-- hreflang -->
