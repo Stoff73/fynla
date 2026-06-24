@@ -219,3 +219,10 @@
 - Deliberately NOT done: taxConfig Vuex getters left in (CSJ-confirmed — "~18 dead" estimate was unreliable, store heavily used, Rule #2 API, negligible payoff); 2 tier-2-gated Estate sanitizeHtml surfaces (LPA, Will review) not directly clicked (no tier-2 local user) — verified via shared-function + render-path proof.
 - Investigated the prod log on CSJ request: errors are historical (forge/APP_KEY config-cache race dominates, mitigated); the 06-16 ai_conversations.status='paused' truncation is already RESOLVED (enum migrated, 67 rows paused fine). Future pass: confirm TransientToken::$id family fully fixed.
 - Next: nothing mandated — cleanup programme complete + on prod. Housekeeping: remove stale worktree fynla-deadcode-cleanup.
+
+## 2026-06-24 — session 1 (end-of-day; handover dated 2026-06-25)  [discrete deploy task, outside the SP1 plan]
+- Handover: [[handover-2026-06-25-session-1]]
+- Branch: main @ cc8d677 (= origin/main = prod); 0/0
+- Day total: 11 commits — merged + deployed **PR #572** (Phailanx: SEO mojibake fixes, /public/→clean 301, sitemap tidy, consumer titles, homepage Latest-news bar, SPA→PHP marketing nav handoff, fresh-checkout fix) to dev (csjones) → main (prod) via release **#573**. Deployed to BOTH environments, browser-verified, prod log clean.
+- Fixed one bug found in dev verify: news-bar supporting cards omitted `window.FYNLA_BASE` → 404 on /fynla subdir (`3e9e7cb` + `80aa2aa` asset-version bump). Prod-neutral.
+- Next: nothing mandated — #572 complete + live. Optional: device check of news bar / handoff; standing tier-2 Estate sanitizeHtml eyeball.

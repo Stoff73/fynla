@@ -1,6 +1,15 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-23 — end-of-day wrap (session 1; work 2026-06-22). Carried the dead-code cleanup all the way to **PROD**: #569 (zero-risk dead code), #570 (sanitizeHtml→DOMPurify XSS fix + 7 dead Notification classes + 4 unused frontend exports + draw.io diagram), #571 (dev→main release). Deployed to BOTH dev (csjones) AND prod (fynla.org); net −1,095 lines, no migrations; prod smoke green, 0 errors post-deploy. EOD handover: `June/June23Updates/handover-2026-06-23-session-1.md`.*
+*Last updated: 2026-06-24 — end-of-day wrap (session 1). Merged + deployed **PR #572** (Phailanx: SEO fixes + homepage Latest-news bar + SPA→PHP marketing nav handoff + fresh-checkout fix) to dev (csjones) → main (prod, fynla.org) via release **#573**; fixed a news-bar `FYNLA_BASE` subdirectory 404 bug. Both live + browser-verified; prod log clean. EOD handover: `June/June25Updates/handover-2026-06-25-session-1.md`.*
+
+## 2026-06-24 — Session 1: PR #572 SEO + news bar + SPA nav handoff shipped to dev + prod (end-of-day)
+
+main @ `cc8d677` = origin/main = prod (0/0). **PR #572 complete and live on both environments — nothing mandated next.**
+- [x] **Merged + deployed PR #572** (Phailanx) — SEO mojibake fixes (24 pages), `/public/`→clean 301, sitemap tidy (drop `/version`, link `/help`), consumer titles, homepage Latest-news bar (from `/api/news`), SPA→PHP marketing nav handoff, fresh-checkout `.gitignore` fix. logic-guard protected-file gate approved via `logic-change-approved` label + admin-merge.
+- [x] **Fixed news-bar `FYNLA_BASE` bug** (`3e9e7cb`) — supporting cards hardcoded `/insights/<slug>`, 404'd on the `/fynla` subdirectory; `+80aa2aa` asset version bump 114→115. Prod-neutral (FYNLA_BASE='' on root).
+- [x] **Released dev→main (#573) + deployed BOTH** csjones (dev) and fynla.org (prod). Manifest md5 local↔prod identical (`d6526fff…`); prod log 0 errors; SPA→PHP handoff + news bar browser-verified on both envs.
+- [x] **Session-start housekeeping** — removed stale `deadcode-cleanup` worktree + branch + `/tmp/fynla-main-planning-backup/`; spot-confirmed both `currentAccessToken()->id` sites guarded (`AdminController:128`, `SessionService:58`) — TransientToken family clean.
+- [ ] **Optional:** device / fresh-eyes check of Latest-news bar + SPA→PHP handoff on prod.
 
 ## 2026-06-23 — Session 1: cleanup tier-2 shipped to dev + prod (end-of-day)
 
