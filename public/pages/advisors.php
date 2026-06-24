@@ -6,21 +6,21 @@
   <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fynla for Advisers â€” Help Your Clients Plan Better | Fynla</title>
-  <meta name="description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place â€” so clients arrive prepared and meetings are more productive." />
+  <title>Fynla for Advisers — Help Your Clients Plan Better | Fynla</title>
+  <meta name="description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place — so clients arrive prepared and meetings are more productive." />
   <link rel="canonical" href="https://fynla.org/advisors" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Fynla for Advisers â€” Help Your Clients Plan Better | Fynla" />
-  <meta property="og:description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place â€” so clients arrive prepared and meetings are more productive." />
+  <meta property="og:title"       content="Fynla for Advisers — Help Your Clients Plan Better | Fynla" />
+  <meta property="og:description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place — so clients arrive prepared and meetings are more productive." />
   <meta property="og:image"       content="https://fynla.org/images/og/advisors.jpg" />
   <meta property="og:url"         content="https://fynla.org/advisors" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Fynla for Advisers â€” Help Your Clients Plan Better | Fynla" />
-  <meta name="twitter:description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place â€” so clients arrive prepared and meetings are more productive." />
+  <meta name="twitter:title"       content="Fynla for Advisers — Help Your Clients Plan Better | Fynla" />
+  <meta name="twitter:description" content="Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place — so clients arrive prepared and meetings are more productive." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/advisors.jpg" />
 
   <!-- hreflang -->
@@ -32,9 +32,9 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Fynla for Advisers â€” Help Your Clients Plan Better",
+    "name": "Fynla for Advisers — Help Your Clients Plan Better",
     "url": "https://fynla.org/advisors",
-    "description": "Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place â€” so clients arrive prepared and meetings are more productive.",
+    "description": "Fynla helps financial advisers give clients a platform to organise pensions, savings, property, and protection in one place — so clients arrive prepared and meetings are more productive.",
     "publisher": {
       "@type": "Organization",
       "name": "Fynla",
@@ -43,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
+  <!-- Critical CSS — above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-500:#717171;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-70:rgba(255,255,255,0.70);--white-80:rgba(255,255,255,0.80);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -88,7 +88,7 @@
           <span class="advisors-hero__accent">advisers</span>
         </h1>
         <p class="advisors-hero__lead">
-          Help your clients see their complete financial picture â€” before, between, and after your meetings.
+          Help your clients see their complete financial picture — before, between, and after your meetings.
         </p>
       </div>
     </section>
@@ -99,7 +99,7 @@
     <section id="intro" class="advisors-intro" aria-labelledby="intro-heading">
       <div class="advisors-intro__inner">
         <p class="advisors-intro__body">
-          Your clients' financial lives don't pause between appointments. Fynla gives them a platform to organise their pensions, savings, investments, property, and protection in one place â€” so when they sit down with you, the fact-finding is already done. You spend less time gathering data and more time giving advice. Fynla doesn't replace what you do. It makes what you do more effective.
+          Your clients' financial lives don't pause between appointments. Fynla gives them a platform to organise their pensions, savings, investments, property, and protection in one place — so when they sit down with you, the fact-finding is already done. You spend less time gathering data and more time giving advice. Fynla doesn't replace what you do. It makes what you do more effective.
         </p>
       </div>
     </section>
@@ -111,13 +111,13 @@
       <div class="advisors-why__inner">
         <h2 id="why-heading" class="advisors-why__heading">Why Fynla for advisers</h2>
         <p class="advisors-why__subtext">
-          Fynla isn't a competitor to your advice â€” it's a complement. Here's why advisers are recommending Fynla to their clients.
+          Fynla isn't a competitor to your advice — it's a complement. Here's why advisers are recommending Fynla to their clients.
         </p>
         <div class="advisors-why__grid">
 
           <article class="advisors-why__card">
             <h3 class="advisors-why__card-title">Clients arrive prepared</h3>
-            <p class="advisors-why__card-body">Your clients enter their financial data into Fynla before your meeting. You get a complete picture of pensions, property, savings, investments, and protection â€” without spending 45 minutes on fact-finding.</p>
+            <p class="advisors-why__card-body">Your clients enter their financial data into Fynla before your meeting. You get a complete picture of pensions, property, savings, investments, and protection — without spending 45 minutes on fact-finding.</p>
           </article>
 
           <article class="advisors-why__card">
@@ -127,7 +127,7 @@
 
           <article class="advisors-why__card">
             <h3 class="advisors-why__card-title">No product conflicts</h3>
-            <p class="advisors-why__card-body">Fynla doesn't sell products, recommend providers, or earn commission. It's a planning tool that supports your advice â€” not a platform that competes with it.</p>
+            <p class="advisors-why__card-body">Fynla doesn't sell products, recommend providers, or earn commission. It's a planning tool that supports your advice — not a platform that competes with it.</p>
           </article>
 
           <article class="advisors-why__card">
@@ -137,7 +137,7 @@
 
           <article class="advisors-why__card">
             <h3 class="advisors-why__card-title">Built on UK rules</h3>
-            <p class="advisors-why__card-body">Income tax bands, National Insurance, pension Annual Allowance, Inheritance Tax nil rate bands, ISA limits â€” all current UK tax rules are built in. No US-centric assumptions.</p>
+            <p class="advisors-why__card-body">Income tax bands, National Insurance, pension Annual Allowance, Inheritance Tax nil rate bands, ISA limits — all current UK tax rules are built in. No US-centric assumptions.</p>
           </article>
 
           <article class="advisors-why__card">
@@ -166,7 +166,7 @@
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
             </div>
             <h3 class="advisors-features__card-title">Net worth dashboard</h3>
-            <p class="advisors-features__card-body">Clients see their complete balance sheet â€” assets, liabilities, and property â€” before you even meet. No more chasing statements.</p>
+            <p class="advisors-features__card-body">Clients see their complete balance sheet — assets, liabilities, and property — before you even meet. No more chasing statements.</p>
             <ul class="advisors-features__tags" aria-label="Includes">
               <li class="advisors-features__tag">Assets</li>
               <li class="advisors-features__tag">Liabilities</li>
@@ -179,7 +179,7 @@
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <h3 class="advisors-features__card-title">Pension tracker</h3>
-            <p class="advisors-features__card-body">All their pensions in one place â€” workplace, personal, Self-Invested Personal Pension, state pension. Growth projections and consolidation analysis ready for your review.</p>
+            <p class="advisors-features__card-body">All their pensions in one place — workplace, personal, Self-Invested Personal Pension, state pension. Growth projections and consolidation analysis ready for your review.</p>
             <ul class="advisors-features__tags" aria-label="Includes">
               <li class="advisors-features__tag">Workplace</li>
               <li class="advisors-features__tag">Personal</li>
@@ -192,7 +192,7 @@
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
             </div>
             <h3 class="advisors-features__card-title">Protection gap analysis</h3>
-            <p class="advisors-features__card-body">Clients see exactly where their life cover, income protection, and critical illness cover falls short â€” giving you a clear conversation starter.</p>
+            <p class="advisors-features__card-body">Clients see exactly where their life cover, income protection, and critical illness cover falls short — giving you a clear conversation starter.</p>
             <ul class="advisors-features__tags" aria-label="Includes">
               <li class="advisors-features__tag">Life cover</li>
               <li class="advisors-features__tag">Income protection</li>
@@ -228,7 +228,7 @@
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             </div>
             <h3 class="advisors-features__card-title">In Case of Emergency letters</h3>
-            <p class="advisors-features__card-body">A complete financial summary your clients can share with family. Auto-generated from their Fynla data â€” the feature every adviser wishes their clients had.</p>
+            <p class="advisors-features__card-body">A complete financial summary your clients can share with family. Auto-generated from their Fynla data — the feature every adviser wishes their clients had.</p>
             <ul class="advisors-features__tags" aria-label="Includes">
               <li class="advisors-features__tag">Auto-generated</li>
               <li class="advisors-features__tag">Shareable</li>

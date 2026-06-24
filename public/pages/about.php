@@ -43,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
        Everything below the fold lives in the external files. -->
   <style>
     /* tokens */
@@ -63,7 +63,7 @@
     /* nav skeleton */
     .site-header{position:sticky;top:0;z-index:50;background:var(--white);box-shadow:var(--shadow-sm);border-bottom:1px solid var(--light-gray);}
     .nav-primary__inner{max-width:80rem;margin:0 auto;padding:0 1rem;display:flex;align-items:center;justify-content:flex-start;height:4rem;position:relative;}
-    /* about hero â€” above fold */
+    /* about hero — above fold */
     .about-hero{background:linear-gradient(to right,var(--horizon-500),var(--raspberry-500));overflow:hidden;}
     .about-hero__inner{max-width:80rem;margin:0 auto;padding:2.5rem 1rem;}
     .about-hero__heading{font-size:clamp(2rem,8vw,4rem);font-weight:900;line-height:1.1;color:var(--white);margin-bottom:0.75rem;}

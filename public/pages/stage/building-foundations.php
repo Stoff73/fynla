@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>First-Time Buyer Financial Planning â€” Building Foundations | Fynla</title>
+  <title>First-Time Buyer Financial Planning — Building Foundations | Fynla</title>
   <meta name="description" content="Saving for your first home? Fynla tracks your ISA savings, models mortgage affordability, monitors pension growth, and helps you build wealth with confidence." />
   <link rel="canonical" href="https://fynla.org/stage/building-foundations" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="First-Time Buyer Financial Planning â€” Building Foundations | Fynla" />
+  <meta property="og:title"       content="First-Time Buyer Financial Planning — Building Foundations | Fynla" />
   <meta property="og:description" content="Saving for your first home? Fynla tracks your ISA savings, models mortgage affordability, monitors pension growth, and helps you build wealth with confidence." />
   <meta property="og:image"       content="https://fynla.org/images/og/stage-building-foundations.jpg" />
   <meta property="og:url"         content="https://fynla.org/stage/building-foundations" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="First-Time Buyer Financial Planning â€” Building Foundations | Fynla" />
+  <meta name="twitter:title"       content="First-Time Buyer Financial Planning — Building Foundations | Fynla" />
   <meta name="twitter:description" content="Saving for your first home? Fynla tracks your ISA savings, models mortgage affordability, monitors pension growth, and helps you build wealth with confidence." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/stage-building-foundations.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "First-Time Buyer Financial Planning â€” Building Foundations",
+    "name": "First-Time Buyer Financial Planning — Building Foundations",
     "url": "https://fynla.org/stage/building-foundations",
     "description": "Saving for your first home? Fynla tracks your ISA savings, models mortgage affordability, monitors pension growth, and helps you build wealth with confidence.",
     "publisher": { "@type": "Organization", "name": "Fynla", "url": "https://fynla.org" }

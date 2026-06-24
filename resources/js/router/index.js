@@ -1553,6 +1553,27 @@ router.beforeEach(async (to, from, next) => {
     return next(false); // cancel the in-frame SPA nav; the frame is reloading into /m/app
   }
 
+  // ── Server-rendered marketing pages ──────────────────────────────────────
+  // The marketing site is served as static PHP pages (public/pages/*.php), but
+  // the SPA still carries Vue routes for some of them (e.g. '/' -> LandingPage).
+  // A client-side nav from a SPA page (e.g. /insights) would render the STALE
+  // Vue component instead of the live PHP page. Force a full document load so
+  // the server serves the current page. /insights* is genuinely SPA (excluded).
+  // Only intercept real in-app navigations, never the initial boot.
+  const isServerRenderedPage = (path) => {
+    if (path === '/insights' || path.startsWith('/insights/')) return false;
+    const exact = ['/', '/how-it-works', '/features', '/pricing', '/about',
+      '/advisors', '/security', '/faq', '/contact', '/help', '/calculators',
+      '/learn'];
+    if (exact.includes(path)) return true;
+    return ['/why-fynla/', '/stage/', '/compare/', '/features/', '/learn/']
+      .some((p) => path.startsWith(p));
+  };
+  if (from.name != null && to.path !== from.path && isServerRenderedPage(to.path)) {
+    window.location.assign(routerBase.replace(/\/$/, '') + to.fullPath);
+    return next(false); // cancel SPA nav; the browser is loading the PHP page
+  }
+
   const isAuthenticated = store.getters['auth/isAuthenticated'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
   // Use to.matched.some() rather than to.meta — child routes do NOT inherit

@@ -7,20 +7,20 @@
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Contact &amp; Support | Fynla</title>
-  <meta name="description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries â€” we'd love to hear from you." />
+  <meta name="description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries — we'd love to hear from you." />
   <link rel="canonical" href="https://fynla.org/contact" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:title"       content="Contact &amp; Support | Fynla" />
-  <meta property="og:description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries â€” we'd love to hear from you." />
+  <meta property="og:description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries — we'd love to hear from you." />
   <meta property="og:image"       content="https://fynla.org/images/og/contact.jpg" />
   <meta property="og:url"         content="https://fynla.org/contact" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="Contact &amp; Support | Fynla" />
-  <meta name="twitter:description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries â€” we'd love to hear from you." />
+  <meta name="twitter:description" content="Get in touch with the Fynla team. Questions about your account, technical support, or general enquiries — we'd love to hear from you." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/contact.jpg" />
 
   <!-- hreflang -->
@@ -44,7 +44,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
+  <!-- Critical CSS — above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--spring-600:#059669;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-500:#717171;--light-blue-100:#DDE2EF;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-80:rgba(255,255,255,0.80);--white-70:rgba(255,255,255,0.70);--white-60:rgba(255,255,255,0.60);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -105,7 +105,7 @@
         <h2 id="form-heading" class="contact-form-section__heading">Send us a message</h2>
 
         <?php
-        /* Simple server-side math captcha â€” generate two random numbers.
+        /* Simple server-side math captcha — generate two random numbers.
            The POST handler in Laravel will validate the answer. */
         $captchaA = rand(1, 10);
         $captchaB = rand(1, 10);
@@ -184,10 +184,10 @@
             ></textarea>
           </div>
 
-          <!-- Math captcha â€” rendered server-side -->
+          <!-- Math captcha — rendered server-side -->
           <div class="contact-form__field">
             <label class="contact-form__label" for="contact-captcha">
-              Verify you're human â€” what is <?= (int)$captchaA ?> + <?= (int)$captchaB ?>?
+              Verify you're human — what is <?= (int)$captchaA ?> + <?= (int)$captchaB ?>?
               <span class="contact-form__required" aria-label="required">*</span>
             </label>
             <input type="hidden" name="captcha_a" value="<?= (int)$captchaA ?>" />
@@ -209,7 +209,7 @@
             <button type="submit" class="contact-form__submit">Send message</button>
           </div>
 
-          <!-- Status messages â€” shown by JS after AJAX, or by server redirect -->
+          <!-- Status messages — shown by JS after AJAX, or by server redirect -->
           <p class="contact-form__success" id="form-success" hidden>Your message has been sent. We'll get back to you soon.</p>
           <p class="contact-form__error"   id="form-error"   hidden>Something went wrong. Please try again or email us directly.</p>
         </form>

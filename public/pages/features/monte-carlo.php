@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monte Carlo Simulations â€” Model Investment Outcomes | Fynla</title>
+  <title>Monte Carlo Simulations — Model Investment Outcomes | Fynla</title>
   <meta name="description" content="Run Monte Carlo simulations on your investment portfolio with Fynla. Model thousands of market scenarios to understand the probability of reaching your financial goals." />
   <link rel="canonical" href="https://fynla.org/features/monte-carlo" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="Monte Carlo Simulations â€” Model Investment Outcomes | Fynla" />
+  <meta property="og:title"       content="Monte Carlo Simulations — Model Investment Outcomes | Fynla" />
   <meta property="og:description" content="Run Monte Carlo simulations on your investment portfolio with Fynla. Model thousands of market scenarios to understand the probability of reaching your financial goals." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-monte-carlo.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/monte-carlo" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Monte Carlo Simulations â€” Model Investment Outcomes | Fynla" />
+  <meta name="twitter:title"       content="Monte Carlo Simulations — Model Investment Outcomes | Fynla" />
   <meta name="twitter:description" content="Run Monte Carlo simulations on your investment portfolio with Fynla. Model thousands of market scenarios to understand the probability of reaching your financial goals." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-monte-carlo.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Monte Carlo Simulations â€” Model Investment Outcomes",
+    "headline": "Monte Carlo Simulations — Model Investment Outcomes",
     "description": "Run Monte Carlo simulations on your investment portfolio with Fynla. Model thousands of market scenarios to understand the probability of reaching your financial goals.",
     "url": "https://fynla.org/features/monte-carlo",
     "publisher": {
@@ -210,7 +210,7 @@
         ],
         [
           'q' => 'Is the Monte Carlo analysis the same as what an IFA would do?',
-          'a' => 'Many IFAs use similar Monte Carlo tools â€” but charge Â£1,000+ for the privilege. Fynla puts the same analytical power in your hands for a fraction of the cost.',
+          'a' => 'Many IFAs use similar Monte Carlo tools — but charge £1,000+ for the privilege. Fynla puts the same analytical power in your hands for a fraction of the cost.',
         ],
         [
           'q' => 'Can I see individual scenario paths?',
@@ -228,7 +228,7 @@
     $module = [
       'id'      => 'final-cta',
       'heading' => 'How Confident Is Your Plan? Find Out in Minutes.',
-      'subtext' => 'The demo runs Monte Carlo simulations on sample data so you can see exactly how it works â€” no maths degree required.',
+      'subtext' => 'The demo runs Monte Carlo simulations on sample data so you can see exactly how it works — no maths degree required.',
       'actions' => [
         ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],

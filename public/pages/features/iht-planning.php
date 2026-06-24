@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Inheritance Tax Planning â€” Calculate and Reduce Your Inheritance Tax | Fynla</title>
+  <title>Inheritance Tax Planning — Calculate and Reduce Your Inheritance Tax | Fynla</title>
   <meta name="description" content="Plan your Inheritance Tax with Fynla. Calculate your Inheritance Tax liability, track nil-rate bands, model gifting strategies, and protect your estate for your family." />
   <link rel="canonical" href="https://fynla.org/features/iht-planning" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="Inheritance Tax Planning â€” Calculate and Reduce Your Inheritance Tax | Fynla" />
+  <meta property="og:title"       content="Inheritance Tax Planning — Calculate and Reduce Your Inheritance Tax | Fynla" />
   <meta property="og:description" content="Plan your Inheritance Tax with Fynla. Calculate your Inheritance Tax liability, track nil-rate bands, model gifting strategies, and protect your estate for your family." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-iht-planning.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/iht-planning" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Inheritance Tax Planning â€” Calculate and Reduce Your Inheritance Tax | Fynla" />
+  <meta name="twitter:title"       content="Inheritance Tax Planning — Calculate and Reduce Your Inheritance Tax | Fynla" />
   <meta name="twitter:description" content="Plan your Inheritance Tax with Fynla. Calculate your Inheritance Tax liability, track nil-rate bands, model gifting strategies, and protect your estate for your family." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-iht-planning.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Inheritance Tax Planning â€” Calculate and Reduce Your Inheritance Tax",
+    "headline": "Inheritance Tax Planning — Calculate and Reduce Your Inheritance Tax",
     "description": "Plan your Inheritance Tax with Fynla. Calculate your Inheritance Tax liability, track nil-rate bands, model gifting strategies, and protect your estate for your family.",
     "url": "https://fynla.org/features/iht-planning",
     "publisher": {
@@ -274,7 +274,7 @@
       'items'    => [
         [
           'q' => 'Is Fynla giving me tax advice?',
-          'a' => 'No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we\'d recommend consulting a qualified adviser â€” and Fynla gives you the numbers to make that conversation productive.',
+          'a' => 'No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we\'d recommend consulting a qualified adviser — and Fynla gives you the numbers to make that conversation productive.',
         ],
         [
           'q' => 'Does Fynla cover the April 2027 pension Inheritance Tax changes?',
@@ -304,7 +304,7 @@
     $module = [
       'id'      => 'final-cta',
       'heading' => 'Don\'t Leave Your Family a Tax Bill They Didn\'t Expect',
-      'subtext' => 'It takes 10 minutes to see your Inheritance Tax exposure. The demo lets you explore with sample data â€” no sign-up needed.',
+      'subtext' => 'It takes 10 minutes to see your Inheritance Tax exposure. The demo lets you explore with sample data — no sign-up needed.',
       'actions' => [
         ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
