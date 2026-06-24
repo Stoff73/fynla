@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Protection Gap Analysis â€” Understand Your Insurance Needs | Fynla</title>
+  <title>Protection Gap Analysis — Understand Your Insurance Needs | Fynla</title>
   <meta name="description" content="Analyse your protection gap with Fynla. Understand your life insurance, critical illness, and income protection needs based on your actual financial position." />
   <link rel="canonical" href="https://fynla.org/features/protection-gap" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="Protection Gap Analysis â€” Understand Your Insurance Needs | Fynla" />
+  <meta property="og:title"       content="Protection Gap Analysis — Understand Your Insurance Needs | Fynla" />
   <meta property="og:description" content="Analyse your protection gap with Fynla. Understand your life insurance, critical illness, and income protection needs based on your actual financial position." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-protection-gap.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/protection-gap" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Protection Gap Analysis â€” Understand Your Insurance Needs | Fynla" />
+  <meta name="twitter:title"       content="Protection Gap Analysis — Understand Your Insurance Needs | Fynla" />
   <meta name="twitter:description" content="Analyse your protection gap with Fynla. Understand your life insurance, critical illness, and income protection needs based on your actual financial position." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-protection-gap.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Protection Gap Analysis â€” Understand Your Insurance Needs",
+    "headline": "Protection Gap Analysis — Understand Your Insurance Needs",
     "description": "Analyse your protection gap with Fynla. Understand your life insurance, critical illness, and income protection needs based on your actual financial position.",
     "url": "https://fynla.org/features/protection-gap",
     "publisher": {
@@ -264,7 +264,7 @@
       'items'    => [
         [
           'q' => 'Does Fynla sell insurance?',
-          'a' => 'No. Fynla calculates your protection gap â€” we don\'t sell insurance products, earn commissions, or recommend specific providers.',
+          'a' => 'No. Fynla calculates your protection gap — we don\'t sell insurance products, earn commissions, or recommend specific providers.',
         ],
         [
           'q' => 'What\'s the difference between life insurance, income protection, and critical illness?',
@@ -276,10 +276,10 @@
         ],
         [
           'q' => 'What about my employer\'s death-in-service benefit?',
-          'a' => 'Add it in. Most employers offer 2â€“4Ã— salary. Fynla includes this in your existing cover and shows the remaining gap.',
+          'a' => 'Add it in. Most employers offer 2–4× salary. Fynla includes this in your existing cover and shows the remaining gap.',
         ],
         [
-          'q' => 'My partner works â€” does that change my protection needs?',
+          'q' => 'My partner works — does that change my protection needs?',
           'a' => 'Absolutely. A dual-income household has a different protection need. Fynla models both scenarios and accounts for the surviving partner\'s income.',
         ],
       ],
@@ -293,7 +293,7 @@
     <?php
     $module = [
       'id'      => 'final-cta',
-      'heading' => 'The Number You Don\'t Want to Need â€” But Need to Know',
+      'heading' => 'The Number You Don\'t Want to Need — But Need to Know',
       'subtext' => 'It takes 10 minutes to see your family\'s protection gap. The demo uses sample data so you can explore without entering personal details.',
       'actions' => [
         ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],

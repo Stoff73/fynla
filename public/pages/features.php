@@ -6,20 +6,20 @@
   <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fynla Features â€” Compare Financial Planning Tools | Fynla</title>
+  <title>Fynla Features — Compare Financial Planning Tools | Fynla</title>
   <meta name="description" content="See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning." />
   <link rel="canonical" href="https://fynla.org/features" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Fynla Features â€” Compare Financial Planning Tools | Fynla" />
+  <meta property="og:title"       content="Fynla Features — Compare Financial Planning Tools | Fynla" />
   <meta property="og:description" content="See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning." />
   <meta property="og:image"       content="https://fynla.org/images/og/features.jpg" />
   <meta property="og:url"         content="https://fynla.org/features" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Fynla Features â€” Compare Financial Planning Tools | Fynla" />
+  <meta name="twitter:title"       content="Fynla Features — Compare Financial Planning Tools | Fynla" />
   <meta name="twitter:description" content="See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/features.jpg" />
 
@@ -32,7 +32,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Fynla Features â€” Compare Financial Planning Tools",
+    "name": "Fynla Features — Compare Financial Planning Tools",
     "url": "https://fynla.org/features",
     "description": "See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning.",
     "publisher": {
@@ -43,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
        Everything below the fold lives in the external files. -->
   <style>
     /* tokens */
@@ -63,7 +63,7 @@
     /* nav skeleton */
     .site-header{position:sticky;top:0;z-index:50;background:var(--white);box-shadow:var(--shadow-sm);border-bottom:1px solid var(--light-gray);}
     .nav-primary__inner{max-width:80rem;margin:0 auto;padding:0 1rem;display:flex;align-items:center;justify-content:flex-start;height:4rem;position:relative;}
-    /* features hero â€” above fold */
+    /* features hero — above fold */
     .feat-hero{background:linear-gradient(to right,var(--horizon-500),var(--raspberry-500));overflow:hidden;}
     .feat-hero__inner{max-width:80rem;margin:0 auto;padding:2.5rem 1rem;}
     .feat-hero__heading{font-size:clamp(2.25rem,8vw,4.5rem);font-weight:900;color:var(--white);margin-bottom:1rem;line-height:1.1;}
@@ -255,7 +255,7 @@
               <tr class="feat-row">
                 <td class="feat-cell feat-cell--feature">
                   <p class="feat-cell__name">Net worth dashboard</p>
-                  <p class="feat-cell__desc">Everything you own minus everything you owe â€” one clear number.</p>
+                  <p class="feat-cell__desc">Everything you own minus everything you owe — one clear number.</p>
                 </td>
                 <td class="feat-cell feat-cell--fynla feat-cell--mid">
                   <span class="feat-dot feat-dot--full" aria-label="Full feature"></span>
@@ -468,7 +468,7 @@
       'reviews' => [
         [
           'name' => 'Stephen D.',
-          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed â€” very technical analysis of workplace pension options broken down in a very easy to understand way."',
+          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way."',
         ],
         [
           'name' => 'Mia R.',
@@ -480,15 +480,15 @@
         ],
         [
           'name' => 'Neil S.',
-          'text' => '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save Â£1,400 a year!"',
+          'text' => '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save £1,400 a year!"',
         ],
         [
           'name' => 'Ron B.',
-          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless â€” intuitive, genuinely useful, and asks exactly the right questions. I can\'t imagine going back to spreadsheets."',
+          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions. I can\'t imagine going back to spreadsheets."',
         ],
         [
           'name' => 'Michael H.',
-          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules â€” ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
+          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
         ],
       ],
     ];

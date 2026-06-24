@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>In Case of Emergency Letters â€” Secure Financial Instructions for Your Family | Fynla</title>
+  <title>In Case of Emergency Letters — Secure Financial Instructions for Your Family | Fynla</title>
   <meta name="description" content="Create an In Case of Emergency letter with Fynla. Store essential financial details, account information, and instructions for your loved ones in one secure place." />
   <link rel="canonical" href="https://fynla.org/features/ice-letters" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="In Case of Emergency Letters â€” Secure Financial Instructions for Your Family | Fynla" />
+  <meta property="og:title"       content="In Case of Emergency Letters — Secure Financial Instructions for Your Family | Fynla" />
   <meta property="og:description" content="Create an In Case of Emergency letter with Fynla. Store essential financial details, account information, and instructions for your loved ones in one secure place." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-ice-letters.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/ice-letters" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="In Case of Emergency Letters â€” Secure Financial Instructions for Your Family | Fynla" />
+  <meta name="twitter:title"       content="In Case of Emergency Letters — Secure Financial Instructions for Your Family | Fynla" />
   <meta name="twitter:description" content="Create an In Case of Emergency letter with Fynla. Store essential financial details, account information, and instructions for your loved ones in one secure place." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-ice-letters.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "In Case of Emergency Letters â€” Secure Financial Instructions for Your Family",
+    "headline": "In Case of Emergency Letters — Secure Financial Instructions for Your Family",
     "description": "Create an In Case of Emergency letter with Fynla. Store essential financial details, account information, and instructions for your loved ones in one secure place.",
     "url": "https://fynla.org/features/ice-letters",
     "publisher": {
@@ -207,7 +207,7 @@
       'items'    => [
         [
           'q' => 'What is included in the In Case of Emergency letter?',
-          'a' => 'The In Case of Emergency letter is a comprehensive summary of your entire financial life â€” accounts, policies, pensions, property, debts, contacts, and instructions â€” designed so your family can quickly understand and access everything if the worst happens.',
+          'a' => 'The In Case of Emergency letter is a comprehensive summary of your entire financial life — accounts, policies, pensions, property, debts, contacts, and instructions — designed so your family can quickly understand and access everything if the worst happens.',
         ],
         [
           'q' => 'Is the letter automatically kept up to date?',
@@ -223,7 +223,7 @@
         ],
         [
           'q' => 'Do I need a will as well as an In Case of Emergency letter?',
-          'a' => 'Yes. An In Case of Emergency letter complements a will â€” it doesn\'t replace one. Your will is the legal document that determines who gets what. Your letter is the practical guide that helps your family navigate the process.',
+          'a' => 'Yes. An In Case of Emergency letter complements a will — it doesn\'t replace one. Your will is the legal document that determines who gets what. Your letter is the practical guide that helps your family navigate the process.',
         ],
       ],
     ];
@@ -237,7 +237,7 @@
     $module = [
       'id'      => 'final-cta',
       'heading' => '15 Minutes Now Could Save Your Family Months of Stress',
-      'subtext' => 'The demo includes a sample In Case of Emergency letter so you can see exactly what it looks like. It\'s the feature people didn\'t know they needed â€” until they see it.',
+      'subtext' => 'The demo includes a sample In Case of Emergency letter so you can see exactly what it looks like. It\'s the feature people didn\'t know they needed — until they see it.',
       'actions' => [
         ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
