@@ -6,20 +6,20 @@
   <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Security &amp; Privacy â€” Your Data is Protected | Fynla</title>
+  <title>Security &amp; Privacy — Your Data is Protected | Fynla</title>
   <meta name="description" content="Learn how Fynla protects your financial data. AES-256 encryption, multi-factor authentication, GDPR compliance, and UK-hosted servers. Your data is never sold or shared." />
   <link rel="canonical" href="https://fynla.org/security" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Security &amp; Privacy â€” Your Data is Protected | Fynla" />
+  <meta property="og:title"       content="Security &amp; Privacy — Your Data is Protected | Fynla" />
   <meta property="og:description" content="Learn how Fynla protects your financial data. AES-256 encryption, multi-factor authentication, GDPR compliance, and UK-hosted servers. Your data is never sold or shared." />
   <meta property="og:image"       content="https://fynla.org/images/og/security.jpg" />
   <meta property="og:url"         content="https://fynla.org/security" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Security &amp; Privacy â€” Your Data is Protected | Fynla" />
+  <meta name="twitter:title"       content="Security &amp; Privacy — Your Data is Protected | Fynla" />
   <meta name="twitter:description" content="Learn how Fynla protects your financial data. AES-256 encryption, multi-factor authentication, GDPR compliance, and UK-hosted servers. Your data is never sold or shared." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/security.jpg" />
 
@@ -32,7 +32,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Security & Privacy â€” Your Data is Protected",
+    "name": "Security & Privacy — Your Data is Protected",
     "url": "https://fynla.org/security",
     "description": "Learn how Fynla protects your financial data. AES-256 encryption, multi-factor authentication, GDPR compliance, and UK-hosted servers.",
     "publisher": {
@@ -43,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
+  <!-- Critical CSS — above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--spring-600:#059669;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-500:#717171;--light-blue-100:#DDE2EF;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-70:rgba(255,255,255,0.70);--white-60:rgba(255,255,255,0.60);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -99,7 +99,7 @@
     <section id="intro" class="security-intro" aria-labelledby="intro-heading">
       <div class="security-intro__inner">
         <p class="security-intro__body">
-          Your financial data is among the most sensitive information you have. At Fynla, protecting it isn't just a technical requirement â€” it's a core value.
+          Your financial data is among the most sensitive information you have. At Fynla, protecting it isn't just a technical requirement — it's a core value.
           We don't sell your data, we don't share it with third parties, and we don't earn commission from financial product providers.
           Every decision we make about how your data is stored, accessed, and protected is guided by one principle: your information belongs to you.
         </p>

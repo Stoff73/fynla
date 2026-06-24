@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Our Approach to Financial Planning â€” Fynla</title>
+  <title>Our Approach to Financial Planning — Fynla</title>
   <meta name="description" content="Fynla puts you in control of your financial plan. No jargon, no sales, no commission. See your complete financial picture and plan your future with confidence." />
   <link rel="canonical" href="https://fynla.org/why-fynla/our-approach" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Our Approach to Financial Planning â€” Fynla" />
+  <meta property="og:title"       content="Our Approach to Financial Planning — Fynla" />
   <meta property="og:description" content="Fynla puts you in control of your financial plan. No jargon, no sales, no commission. See your complete financial picture and plan your future with confidence." />
   <meta property="og:image"       content="https://fynla.org/images/og/why-fynla-our-approach.jpg" />
   <meta property="og:url"         content="https://fynla.org/why-fynla/our-approach" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Our Approach to Financial Planning â€” Fynla" />
+  <meta name="twitter:title"       content="Our Approach to Financial Planning — Fynla" />
   <meta name="twitter:description" content="Fynla puts you in control of your financial plan. No jargon, no sales, no commission. See your complete financial picture and plan your future with confidence." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/why-fynla-our-approach.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Our Approach to Financial Planning â€” Fynla",
+    "name": "Our Approach to Financial Planning — Fynla",
     "url": "https://fynla.org/why-fynla/our-approach",
     "description": "Fynla puts you in control of your financial plan. No jargon, no sales, no commission.",
     "publisher": {
@@ -40,7 +40,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero. -->
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero. -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--spring-600:#059669;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-500:#717171;--neutral-600:#4B5563;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-10:rgba(255,255,255,0.10);--white-70:rgba(255,255,255,0.70);--white-80:rgba(255,255,255,0.80);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-xl:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}

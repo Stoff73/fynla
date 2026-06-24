@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>One Platform for Your Entire Financial Life â€” Fynla</title>
-  <meta name="description" content="Pensions, property, savings, investments, protection, tax, estate â€” all in one place. Fynla is the financial planning platform you don't outgrow." />
+  <title>One Platform for Your Entire Financial Life — Fynla</title>
+  <meta name="description" content="Pensions, property, savings, investments, protection, tax, estate — all in one place. Fynla is the financial planning platform you don't outgrow." />
   <link rel="canonical" href="https://fynla.org/why-fynla/one-platform" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="One Platform for Your Entire Financial Life â€” Fynla" />
-  <meta property="og:description" content="Pensions, property, savings, investments, protection, tax, estate â€” all in one place. Fynla is the financial planning platform you don't outgrow." />
+  <meta property="og:title"       content="One Platform for Your Entire Financial Life — Fynla" />
+  <meta property="og:description" content="Pensions, property, savings, investments, protection, tax, estate — all in one place. Fynla is the financial planning platform you don't outgrow." />
   <meta property="og:image"       content="https://fynla.org/images/og/why-fynla-one-platform.jpg" />
   <meta property="og:url"         content="https://fynla.org/why-fynla/one-platform" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="One Platform for Your Entire Financial Life â€” Fynla" />
-  <meta name="twitter:description" content="Pensions, property, savings, investments, protection, tax, estate â€” all in one place. Fynla is the financial planning platform you don't outgrow." />
+  <meta name="twitter:title"       content="One Platform for Your Entire Financial Life — Fynla" />
+  <meta name="twitter:description" content="Pensions, property, savings, investments, protection, tax, estate — all in one place. Fynla is the financial planning platform you don't outgrow." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/why-fynla-one-platform.jpg" />
 
   <!-- hreflang -->
@@ -29,9 +29,9 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "One Platform for Your Entire Financial Life â€” Fynla",
+    "name": "One Platform for Your Entire Financial Life — Fynla",
     "url": "https://fynla.org/why-fynla/one-platform",
-    "description": "Pensions, property, savings, investments, protection, tax, estate â€” all in one place. Fynla is the financial planning platform you don't outgrow.",
+    "description": "Pensions, property, savings, investments, protection, tax, estate — all in one place. Fynla is the financial planning platform you don't outgrow.",
     "publisher": {
       "@type": "Organization",
       "name": "Fynla",
@@ -40,7 +40,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero. -->
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero. -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--spring-600:#059669;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-500:#717171;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-10:rgba(255,255,255,0.10);--white-30:rgba(255,255,255,0.30);--white-70:rgba(255,255,255,0.70);--white-90:rgba(255,255,255,0.90);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-xl:0.75rem;--radius-2xl:1rem;--radius-card:0.75rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -222,7 +222,7 @@
       'reviews' => [
         [
           'name' => 'Stephen D.',
-          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed â€” very technical analysis of workplace pension options broken down in a very easy to understand way."',
+          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way."',
         ],
         [
           'name' => 'Mia R.',
@@ -234,11 +234,11 @@
         ],
         [
           'name' => 'Ron B.',
-          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless â€” intuitive, genuinely useful, and asks exactly the right questions."',
+          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions."',
         ],
         [
           'name' => 'Michael H.',
-          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules â€” ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
+          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
         ],
       ],
     ];

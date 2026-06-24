@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pension Tracker â€” Every Pension in One Dashboard | Fynla</title>
+  <title>Pension Tracker — Every Pension in One Dashboard | Fynla</title>
   <meta name="description" content="Track every pension in one dashboard with Fynla. Workplace, personal, Self-Invested Personal Pension, and State Pension tracking with retirement income projections and contribution analysis." />
   <link rel="canonical" href="https://fynla.org/features/pension-tracker" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="Pension Tracker â€” Every Pension in One Dashboard | Fynla" />
+  <meta property="og:title"       content="Pension Tracker — Every Pension in One Dashboard | Fynla" />
   <meta property="og:description" content="Track every pension in one dashboard with Fynla. Workplace, personal, Self-Invested Personal Pension, and State Pension tracking with retirement income projections." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-pension-tracker.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/pension-tracker" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Pension Tracker â€” Every Pension in One Dashboard | Fynla" />
+  <meta name="twitter:title"       content="Pension Tracker — Every Pension in One Dashboard | Fynla" />
   <meta name="twitter:description" content="Track every pension in one dashboard with Fynla. Workplace, personal, Self-Invested Personal Pension, and State Pension tracking with retirement income projections." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-pension-tracker.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Pension Tracker â€” Every Pension in One Dashboard",
+    "headline": "Pension Tracker — Every Pension in One Dashboard",
     "description": "Track every pension in one dashboard with Fynla. Workplace, personal, Self-Invested Personal Pension, and State Pension tracking with retirement income projections.",
     "url": "https://fynla.org/features/pension-tracker",
     "publisher": {
@@ -276,7 +276,7 @@
       'items'    => [
         [
           'q' => 'Can Fynla connect directly to my pension providers?',
-          'a' => 'Currently, you add your pension details manually â€” provider, value, contribution rate, and fund type. The manual setup takes about 5 minutes per pension.',
+          'a' => 'Currently, you add your pension details manually — provider, value, contribution rate, and fund type. The manual setup takes about 5 minutes per pension.',
         ],
         [
           'q' => 'Does the retirement calculator include the state pension?',
@@ -288,11 +288,11 @@
         ],
         [
           'q' => 'Should I consolidate my pensions?',
-          'a' => 'That depends on your specific situation â€” fees, fund performance, guaranteed benefits, and employer match all factor in. Fynla gives you the data to make that decision.',
+          'a' => 'That depends on your specific situation — fees, fund performance, guaranteed benefits, and employer match all factor in. Fynla gives you the data to make that decision.',
         ],
         [
           'q' => 'How accurate is the retirement date?',
-          'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity â€” but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
+          'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
         ],
       ],
     ];
@@ -306,7 +306,7 @@
     $module = [
       'id'      => 'final-cta',
       'heading' => 'Stop guessing what your retirement looks like',
-      'subtext' => 'Add your pensions in under 10 minutes. See what you\'ve really got â€” and what you need to do about it.',
+      'subtext' => 'Add your pensions in under 10 minutes. See what you\'ve really got — and what you need to do about it.',
       'actions' => [
         ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],

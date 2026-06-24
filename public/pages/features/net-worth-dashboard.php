@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Net Worth Dashboard â€” Track Your Complete Financial Picture | Fynla</title>
+  <title>Net Worth Dashboard — Track Your Complete Financial Picture | Fynla</title>
   <meta name="description" content="Track your complete net worth with Fynla. See all your assets, liabilities, property, pensions, and investments in one real-time dashboard. Set up in 15 minutes." />
   <link rel="canonical" href="https://fynla.org/features/net-worth-dashboard" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="Net Worth Dashboard â€” Track Your Complete Financial Picture | Fynla" />
+  <meta property="og:title"       content="Net Worth Dashboard — Track Your Complete Financial Picture | Fynla" />
   <meta property="og:description" content="Track your complete net worth with Fynla. See all your assets, liabilities, property, pensions, and investments in one real-time dashboard." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-net-worth-dashboard.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/net-worth-dashboard" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Net Worth Dashboard â€” Track Your Complete Financial Picture | Fynla" />
+  <meta name="twitter:title"       content="Net Worth Dashboard — Track Your Complete Financial Picture | Fynla" />
   <meta name="twitter:description" content="Track your complete net worth with Fynla. See all your assets, liabilities, property, pensions, and investments in one real-time dashboard." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-net-worth-dashboard.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Net Worth Dashboard â€” Track Your Complete Financial Picture",
+    "headline": "Net Worth Dashboard — Track Your Complete Financial Picture",
     "description": "Track your complete net worth with Fynla. See all your assets, liabilities, property, pensions, and investments in one real-time dashboard.",
     "url": "https://fynla.org/features/net-worth-dashboard",
     "publisher": {
@@ -40,7 +40,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” tokens, reset, skip-nav, nav skeleton, hero only -->
+  <!-- Critical CSS — tokens, reset, skip-nav, nav skeleton, hero only -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-400:#34D399;--spring-500:#20B486;--spring-600:#059669;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-400:#9CA3AF;--neutral-500:#717171;--neutral-600:#4B5563;--light-blue-100:#DDE2EF;--light-blue-500:#6C83BC;--light-pink-50:#FDF0F4;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-70:rgba(255,255,255,0.70);--white-80:rgba(255,255,255,0.80);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-xl:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -275,7 +275,7 @@
       'items'    => [
         [
           'q' => 'How do I value my property?',
-          'a' => 'Enter your best estimate of current market value. You can update this periodically â€” many people check Zoopla or Rightmove for comparable sales. Fynla doesn\'t auto-value property, so you stay in control of the estimate.',
+          'a' => 'Enter your best estimate of current market value. You can update this periodically — many people check Zoopla or Rightmove for comparable sales. Fynla doesn\'t auto-value property, so you stay in control of the estimate.',
         ],
         [
           'q' => 'Do I need to connect my bank accounts?',
@@ -283,11 +283,11 @@
         ],
         [
           'q' => 'How often should I update my data?',
-          'a' => 'Property and pension values: every 3â€“6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.',
+          'a' => 'Property and pension values: every 3–6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.',
         ],
         [
           'q' => 'Is net worth the same as wealth?',
-          'a' => 'Net worth is a snapshot of assets minus liabilities at a point in time. It doesn\'t account for your earning capacity, pension income rights, or state benefits â€” but it\'s the best single measure of your financial position.',
+          'a' => 'Net worth is a snapshot of assets minus liabilities at a point in time. It doesn\'t account for your earning capacity, pension income rights, or state benefits — but it\'s the best single measure of your financial position.',
         ],
       ],
     ];

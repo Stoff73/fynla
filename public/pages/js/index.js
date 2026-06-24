@@ -479,4 +479,26 @@
     }
   }
 
+  /* ----------------------------------------------------------------
+     LATEST NEWS BAR — newest article from /api/news. Hidden unless the
+     fetch returns an item (graceful degradation: no bar if news is empty
+     or the API is unavailable).
+     ---------------------------------------------------------------- */
+  (function initLatestNews() {
+    var bar = document.getElementById('latest-news');
+    var txt = document.getElementById('latest-news-text');
+    if (!bar || !txt) return;
+    fetch((window.FYNLA_BASE || '') + '/api/news')
+      .then(function (res) { if (!res.ok) throw new Error('news unavailable'); return res.json(); })
+      .then(function (data) {
+        var items = (data && data.data) ? data.data : data;
+        var latest = items && items[0];
+        if (!latest || !latest.title) return;
+        txt.textContent = latest.title;
+        bar.href = latest.url || ((window.FYNLA_BASE || '') + '/news/' + latest.slug);
+        bar.hidden = false;
+      })
+      .catch(function () { /* leave hidden */ });
+  })();
+
 })();

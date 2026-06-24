@@ -6,21 +6,21 @@
   <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Help &amp; Documentation â€” Using Fynla | Fynla</title>
-  <meta name="description" content="Comprehensive guide to using Fynla â€” getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
+  <title>Help &amp; Documentation — Using Fynla | Fynla</title>
+  <meta name="description" content="Comprehensive guide to using Fynla — getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
   <link rel="canonical" href="https://fynla.org/help" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Help &amp; Documentation â€” Using Fynla | Fynla" />
-  <meta property="og:description" content="Comprehensive guide to using Fynla â€” getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
+  <meta property="og:title"       content="Help &amp; Documentation — Using Fynla | Fynla" />
+  <meta property="og:description" content="Comprehensive guide to using Fynla — getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
   <meta property="og:image"       content="https://fynla.org/images/og/help.jpg" />
   <meta property="og:url"         content="https://fynla.org/help" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Help &amp; Documentation â€” Using Fynla | Fynla" />
-  <meta name="twitter:description" content="Comprehensive guide to using Fynla â€” getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
+  <meta name="twitter:title"       content="Help &amp; Documentation — Using Fynla | Fynla" />
+  <meta name="twitter:description" content="Comprehensive guide to using Fynla — getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/help.jpg" />
 
   <!-- hreflang -->
@@ -32,9 +32,9 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Help & Documentation â€” Using Fynla",
+    "name": "Help & Documentation — Using Fynla",
     "url": "https://fynla.org/help",
-    "description": "Comprehensive guide to using Fynla financial planning platform â€” getting started, modules, family management, and troubleshooting.",
+    "description": "Comprehensive guide to using Fynla financial planning platform — getting started, modules, family management, and troubleshooting.",
     "publisher": {
       "@type": "Organization",
       "name": "Fynla",
@@ -43,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
+  <!-- Critical CSS — above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-400:#9CA3AF;--neutral-500:#717171;--neutral-600:#4B5563;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-70:rgba(255,255,255,0.70);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-sm:0.375rem;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);--shadow-lg:0 10px 15px -3px rgba(0,0,0,0.10),0 4px 6px -4px rgba(0,0,0,0.10);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -149,7 +149,7 @@
             <div class="help-section__body">
               <h3 class="help-section__subheading">Key Concepts</h3>
               <ul class="help-section__list">
-                <li><strong>Modules:</strong> Five main areas â€” Protection, Estate, Retirement, Investment, and Savings</li>
+                <li><strong>Modules:</strong> Five main areas — Protection, Estate, Retirement, Investment, and Savings</li>
                 <li><strong>Plans:</strong> Consolidated views combining data from multiple modules</li>
                 <li><strong>Agents:</strong> AI-powered analysis engines that generate recommendations</li>
                 <li><strong>Spouse Linking:</strong> Connect two accounts for joint financial planning</li>
@@ -292,7 +292,7 @@
               <ul class="help-section__list help-section__list--disc">
                 <li><strong>Potentially Exempt Transfers:</strong> Gifts to individuals, exempt after 7 years</li>
                 <li><strong>Chargeable Lifetime Transfers:</strong> Gifts to trusts, subject to Inheritance Tax immediately</li>
-                <li><strong>Taper Relief:</strong> Reduces Inheritance Tax on gifts made 3â€“7 years before death</li>
+                <li><strong>Taper Relief:</strong> Reduces Inheritance Tax on gifts made 3–7 years before death</li>
               </ul>
             </div>
 
@@ -362,7 +362,7 @@
               <ul class="help-section__list help-section__list--disc">
                 <li><strong>Account Types:</strong> Current Account, Savings Account, Cash ISA</li>
                 <li><strong>Access Types:</strong> Immediate Access, Notice Period, Fixed Term</li>
-                <li><strong>Emergency Fund:</strong> Calculate recommended emergency fund (3â€“6 months expenses)</li>
+                <li><strong>Emergency Fund:</strong> Calculate recommended emergency fund (3–6 months expenses)</li>
                 <li><strong>Savings Goals:</strong> Track progress toward specific financial goals</li>
               </ul>
             </div>
@@ -450,11 +450,11 @@
                 ['q' => 'How do I add a protection policy?',
                  'a' => 'Go to Protection module â†’ Policy Details tab â†’ click "Add Policy". Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.'],
                 ['q' => 'How is Inheritance Tax calculated?',
-                 'a' => 'Inheritance Tax is charged at 40% on your estate above the tax-free allowances: Â£325k basic allowance (transferable to spouse), Â£175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of Â£650k basic plus Â£350k home allowance on second death.'],
+                 'a' => 'Inheritance Tax is charged at 40% on your estate above the tax-free allowances: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.'],
                 ['q' => 'What is the difference between Defined Contribution and Defined Benefit pensions?',
-                 'a' => 'Defined Contribution (money purchase) pensions are pot-based â€” you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
+                 'a' => 'Defined Contribution (money purchase) pensions are pot-based — you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
                 ['q' => 'Can I have multiple ISAs?',
-                 'a' => 'Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed Â£20,000 per tax year (6 April to 5 April).'],
+                 'a' => 'Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (6 April to 5 April).'],
                 ['q' => 'How do I link my spouse account?',
                  'a' => 'Go to User Profile â†’ Family tab â†’ Add Family Member â†’ Select "spouse" and enter their email. If they have an account, it will link automatically. If not, the system creates an account and emails them login details.'],
                 ['q' => 'Can I export my data?',

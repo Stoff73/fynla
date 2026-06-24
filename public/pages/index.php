@@ -35,21 +35,21 @@ try {
   <link rel="preload" as="image" href="/images/Website/Homepage-Header-Desktopv3.png"
         fetchpriority="high" media="(min-width: 1024px)" />
 
-  <title>Fyn, your financial companion | Fynla</title>
-  <meta name="description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <title>Financial Planning Software for UK Households | Fynla</title>
+  <meta name="description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <link rel="canonical" href="https://fynla.org/" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Fyn, your financial companion | Fynla" />
-  <meta property="og:description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <meta property="og:title" content="Financial Planning Software for UK Households | Fynla" />
+  <meta property="og:description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <meta property="og:image" content="https://fynla.org/images/og/index.jpg" />
   <meta property="og:url" content="https://fynla.org/" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Fyn, your financial companion | Fynla" />
-  <meta name="twitter:description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <meta name="twitter:title" content="Financial Planning Software for UK Households | Fynla" />
+  <meta name="twitter:description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <meta name="twitter:image" content="https://fynla.org/images/og/index.jpg" />
 
   <!-- hreflang -->
@@ -59,7 +59,7 @@ try {
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=123" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=125" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -430,6 +430,13 @@ try {
           </div>
         </div>
 
+        <!-- Latest news bar — newest article from /api/news. Hidden until the
+             fetch succeeds (graceful degradation); plain text, no icons. -->
+        <a id="latest-news" class="latest-news" href="/news" hidden>
+          <span class="latest-news__badge">Latest news</span>
+          <span id="latest-news-text" class="latest-news__text"></span>
+        </a>
+
         <p class="insights-footer">
           <a href="/insights" class="insights-footer__link">See all insights &rarr;</a>
         </p>
@@ -631,7 +638,7 @@ try {
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
   <script src="/pages/js/site.js?v=112" defer></script>
   <!-- Page-specific interactions (carousel, video, accordion, insights, demo modal) -->
-  <script src="/pages/js/index.js?v=113" defer></script>
+  <script src="/pages/js/index.js?v=114" defer></script>
   <!-- Cookie consent — server-rendered pages don't mount the SPA banner, so the
        prompt must appear here at the landing, persisted via localStorage. -->
   <script src="/pages/js/cookie-consent.js?v=1" defer></script>

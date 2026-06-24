@@ -6,20 +6,20 @@
   <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
   <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How Fynla Works â€” Simple Financial Planning in 3 Steps | Fynla</title>
+  <title>How Fynla Works — Simple Financial Planning in 3 Steps | Fynla</title>
   <meta name="description" content="See how Fynla helps you centralise your finances, get personalised insights, and take action on your savings, investments, pensions, and estate planning. Three steps, 15 minutes." />
   <link rel="canonical" href="https://fynla.org/how-it-works" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="How Fynla Works â€” Simple Financial Planning in 3 Steps | Fynla" />
+  <meta property="og:title"       content="How Fynla Works — Simple Financial Planning in 3 Steps | Fynla" />
   <meta property="og:description" content="See how Fynla helps you centralise your finances, get personalised insights, and take action on your savings, investments, pensions, and estate planning." />
   <meta property="og:image"       content="https://fynla.org/images/og/how-it-works.jpg" />
   <meta property="og:url"         content="https://fynla.org/how-it-works" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="How Fynla Works â€” Simple Financial Planning in 3 Steps | Fynla" />
+  <meta name="twitter:title"       content="How Fynla Works — Simple Financial Planning in 3 Steps | Fynla" />
   <meta name="twitter:description" content="See how Fynla helps you centralise your finances, get personalised insights, and take action on your savings, investments, pensions, and estate planning." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/how-it-works.jpg" />
 
@@ -32,7 +32,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "How Fynla Works â€” Simple Financial Planning in 3 Steps",
+    "name": "How Fynla Works — Simple Financial Planning in 3 Steps",
     "url": "https://fynla.org/how-it-works",
     "description": "See how Fynla helps you centralise your finances, get personalised insights, and take action on your savings, investments, pensions, and estate planning.",
     "publisher": {
@@ -43,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
        Everything below the fold lives in the external files. -->
   <style>
     /* tokens */
@@ -60,10 +60,10 @@
     /* skip-nav */
     .skip-nav{position:absolute;top:-100%;left:1rem;background:var(--raspberry-500);color:var(--white);padding:0.5rem 1rem;border-radius:var(--radius-md);font-weight:600;z-index:9999;transition:top 0.2s;}
     .skip-nav:focus{top:1rem;}
-    /* nav skeleton â€” prevents layout shift before global.css loads */
+    /* nav skeleton — prevents layout shift before global.css loads */
     .site-header{position:sticky;top:0;z-index:50;background:var(--white);box-shadow:var(--shadow-sm);border-bottom:1px solid var(--light-gray);}
     .nav-primary__inner{max-width:80rem;margin:0 auto;padding:0 1rem;display:flex;align-items:center;justify-content:flex-start;height:4rem;position:relative;}
-    /* hero critical â€” above fold */
+    /* hero critical — above fold */
     .hiw-hero{background:linear-gradient(to right,var(--horizon-500),var(--raspberry-500));overflow:hidden;}
     .hiw-hero__inner{max-width:80rem;margin:0 auto;padding:2.5rem 1rem;}
     .hiw-hero__heading{font-size:clamp(2.25rem,8vw,4.5rem);line-height:1;font-weight:900;color:var(--white);margin-bottom:1rem;}
@@ -507,7 +507,7 @@
       'reviews' => [
         [
           'name' => 'Stephen D.',
-          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed â€” very technical analysis of workplace pension options broken down in a very easy to understand way."',
+          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way."',
         ],
         [
           'name' => 'Mia R.',
@@ -519,15 +519,15 @@
         ],
         [
           'name' => 'Neil S.',
-          'text' => '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save Â£1,400 a year!"',
+          'text' => '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save £1,400 a year!"',
         ],
         [
           'name' => 'Ron B.',
-          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless â€” intuitive, genuinely useful, and asks exactly the right questions. I can\'t imagine going back to spreadsheets."',
+          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions. I can\'t imagine going back to spreadsheets."',
         ],
         [
           'name' => 'Michael H.',
-          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules â€” ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
+          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
         ],
       ],
     ];
