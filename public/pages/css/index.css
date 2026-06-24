@@ -401,15 +401,15 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin: 1.5rem 0 0;
+  /* Match the width of the latest-insights grid (.insights-dynamic, 72rem) */
+  max-width: 72rem;
+  margin: 1.5rem auto 0;
   padding: 0.75rem 1.25rem;
   background: var(--white);
   border-radius: var(--radius-full);
   box-shadow: 0 1px 2px 0 var(--black-05);
   text-decoration: none;
-  transition: box-shadow 0.15s ease;
 }
-.latest-news:hover { box-shadow: var(--shadow-lg); }
 .latest-news__badge {
   flex-shrink: 0;
   font-size: 0.6875rem;
@@ -426,7 +426,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.15s ease;
 }
+/* No hover on the white box; pink the article title on hover instead. */
+.latest-news:hover .latest-news__text { color: var(--raspberry-500); }
 
 /* ===================================================================
    STATS BAR MODULE  [id=stats]
