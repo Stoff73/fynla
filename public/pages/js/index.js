@@ -307,7 +307,7 @@
 
         var supEl = document.getElementById('insights-supporting');
         supEl.innerHTML = supporting.slice(0, 2).map(function (a) {
-          return '<a href="/insights/' + a.slug + '" class="insights-support-card">' +
+          return '<a href="' + (window.FYNLA_BASE||'') + '/insights/' + a.slug + '" class="insights-support-card">' +
                  '<div class="insights-support-card__thumb">' +
                  (a.image_card
                    ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" onerror="this.parentElement.style.display=\'none\'" />'
