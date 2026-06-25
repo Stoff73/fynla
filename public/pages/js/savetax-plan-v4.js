@@ -271,7 +271,7 @@
       el = document.createElement('p');
       el.id = 'reg-error';
       el.setAttribute('role', 'alert');
-      el.style.cssText = 'color:#A93257;font-size:13px;line-height:1.4;margin:8px 0 0;';
+      el.style.cssText = 'color:#FFFFFF;font-size:13px;line-height:1.4;margin:8px 0 0;';
       btn.parentNode.insertBefore(el, btn);
     }
     el.textContent = msg || '';

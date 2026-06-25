@@ -61,7 +61,7 @@ try {
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
-  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=8" />
+  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=9" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -109,7 +109,7 @@ try {
           </div>
 
           <p class="campaign-hero__subtext" id="hero-subtext">
-            This is an <strong>average</strong> based on the answers you gave — not your personal tax saving. To get your personal tax strategy, register for free and continue with Fyn, who'll work it out from your full situation and remember everything you've told us so far.
+            This is an <strong>average</strong> from your answers — not your personal saving. Register free and continue with Fyn to get your personal tax strategy.
           </p>
         </div>
 
@@ -159,10 +159,19 @@ try {
               <p class="sp4-combined__total-label">Allowances relevant to you 2026/27</p>
               <p class="sp4-combined__total-figure" id="allowances-total">£96,330</p>
             </div>
-            <p class="sp4-combined__body" id="meaning-body">
-              <strong>What does this mean?</strong> These are the tax-free and tax-relievable allowances that apply to your situation this year. Below, we've highlighted the ones you're entitled to and greyed out those that don't apply — so you can see exactly where your opportunities are. Fyn can help you use them together to keep more of what you earn.
-            </p>
+            <details class="sp4-combined__meaning-detail">
+              <summary class="sp4-combined__meaning-summary">What does this mean?</summary>
+              <p class="sp4-combined__body" id="meaning-body">
+                These are the tax-free and tax-relievable allowances that apply to your situation this year. Below, we've highlighted the ones you're entitled to and greyed out those that don't apply — so you can see exactly where your opportunities are. Fyn can help you use them together to keep more of what you earn.
+              </p>
+            </details>
           </div>
+        </div>
+
+        <!-- Find out how + register CTA (top — mirrors the one below the grid) -->
+        <div class="sp4-combined__cta sp4-combined__cta--top">
+          <p class="sp4-combined__cta-text">Find out how</p>
+          <a href="#hero" class="sp4-combined__cta-btn">Register for free</a>
         </div>
 
         <!-- Personalised allowances grid -->
@@ -207,7 +216,7 @@ try {
 
   <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/savetax-plan-v4.js?v=10" defer></script>
+  <script src="/pages/js/savetax-plan-v4.js?v=11" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
   <script src="/pages/js/cookie-consent.js?v=1" defer></script>
 
