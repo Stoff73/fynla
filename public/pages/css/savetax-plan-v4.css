@@ -207,6 +207,19 @@
 }
 .sp4-combined__body strong { color: var(--horizon-500); }
 
+/* Collapsible "What does this mean?" disclosure */
+.sp4-combined__meaning-summary {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+  cursor: pointer;
+}
+.sp4-combined__meaning-summary:hover { text-decoration: underline; }
+.sp4-combined__meaning-detail[open] .sp4-combined__meaning-summary { margin-bottom: 0.5rem; }
+
+/* Top "Find out how" CTA — tighter spacing than the one below the grid */
+.sp4-combined__cta--top { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+
 /* "Find out how" + register CTA below the allowances grid */
 .sp4-combined__cta {
   margin-top: 2.5rem;
