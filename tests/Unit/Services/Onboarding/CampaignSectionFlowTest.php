@@ -30,13 +30,12 @@ it('walks every section in order for a fully-loaded married dual-earner', functi
         'funnel_answers' => ['assets' => ['savings', 'investments', 'pension']],
     ]);
 
+    // spouse — household_calculation_mode is already known (dual_earner), so the
+    // spouse-work question skips itself straight to household data.
     expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)       // savings
         ->and(SM::nextCampaignSection('savings', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS) // investments
         ->and(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_DOB)        // pensions (DOB first)
-        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING) // giving
-        // spouse — household_calculation_mode is already known (dual_earner),
-        // so the spouse-work question skips itself straight to household data.
-        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD)
+        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD) // spouse (dual-earner → household)
         ->and(SM::nextCampaignSection('spouse', $u))->toBe(SM::STATE_BASE_EXPENDITURE)         // expenditure
         ->and(SM::nextCampaignSection('expenditure', $u))->toBe(SM::STATE_CAMPAIGN_SYNTHESIS); // synthesis then terminal
 });
@@ -46,9 +45,8 @@ it('skips savings, investments and spouse sections for a single user with no cas
 
     // income → (savings skip, investments skip) → pensions
     expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_DOB)
-        // pensions → giving → (spouse skip: single) → expenditure
-        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING)
-        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
+        // pensions → (spouse skip: single) → expenditure
+        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
 });
 
 it('keeps savings when the user holds an ISA (cash-like asset)', function () {
@@ -187,6 +185,6 @@ it('never lets a campaign advice state auto-advance back into itself', function 
 
 it('section order matches the single source-of-truth array', function () {
     expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
-        'income', 'savings', 'investments', 'pensions', 'giving', 'spouse', 'expenditure',
+        'income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure',
     ]);
 });

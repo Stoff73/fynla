@@ -140,7 +140,6 @@ final class OnboardingStateMachine
         'savings',
         'investments',
         'pensions',
-        'giving',
         'spouse',
         'expenditure',
     ];
@@ -159,7 +158,6 @@ final class OnboardingStateMachine
             'savings' => ['entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS, 'skip' => [self::class, 'skipSectionIfNoCash']],
             'investments' => ['entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'skip' => [self::class, 'skipSectionIfNoInvestments']],
             'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB, 'skip' => null],
-            'giving' => ['entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING, 'skip' => null],
             'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
             'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],
         ];
@@ -182,7 +180,6 @@ final class OnboardingStateMachine
             'savings' => ['route' => '/savings', 'entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS],
             'investments' => ['route' => '/investment', 'entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS],
             'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
-            'giving' => ['route' => null, 'entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING],
             'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
             'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
         ];
@@ -514,15 +511,6 @@ final class OnboardingStateMachine
                 // blindly. See OnboardingChatDirector::emitSingleFigureClarification.
                 'clarify_single_figure' => true,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
-            ],
-            // ── Giving section ────────────────────────────────────────────
-            self::STATE_CAMPAIGN_CHARITABLE_GIVING => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => 'One more — do you make any charitable donations through Gift Aid? If you donate at the higher or additional rate, there\'s extra relief you can reclaim. Roughly how much per year? Say "none" if you don\'t donate.',
-                'capture_field' => null,
-                'extraction_tool' => 'capture_charitable_giving',
-                'retry_text' => 'Just an annual figure works — e.g. "about £500" or "none".',
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'giving'),
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
@@ -1063,7 +1051,7 @@ final class OnboardingStateMachine
     {
         return [
             'income' => 'income', 'savings' => 'savings', 'investments' => 'investments',
-            'pensions' => 'pensions', 'giving' => 'charitable giving', 'spouse' => 'spouse details',
+            'pensions' => 'pensions', 'spouse' => 'spouse details',
             'expenditure' => 'expenditure',
         ][$section] ?? 'details';
     }
