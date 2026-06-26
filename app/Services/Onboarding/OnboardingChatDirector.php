@@ -841,6 +841,12 @@ final class OnboardingChatDirector
             return null;
         }
 
+        // Spouse section: one short line + the saving figure (CSJ 2.8/10),
+        // rather than voicing the individual strategy titles.
+        if ($section === 'spouse') {
+            return $this->buildSpouseAdvice($plan, $wanted);
+        }
+
         $lines = [];
         foreach ($plan['items'] as $item) {
             if (! in_array($item['type'] ?? '', $wanted, true)) {
@@ -858,6 +864,47 @@ final class OnboardingChatDirector
         }
 
         return $lines === [] ? null : implode("\n\n", $lines);
+    }
+
+    /**
+     * Spouse-section advice (CSJ 2.8/10): a single short line plus a figure.
+     * Primary figure is the combined annual tax saving of the spouse strategies
+     * in the plan; when the engine has no quantified saving yet, fall back to
+     * the spouse's headline unused allowances (Personal Allowance + ISA) from
+     * TaxConfigService (Rule #2). Returns null when there is no spouse
+     * opportunity at all, so Fyn never promises a saving that doesn't exist.
+     *
+     * @param  array<string,mixed>  $plan
+     * @param  list<string>  $wanted
+     */
+    private function buildSpouseAdvice(array $plan, array $wanted): ?string
+    {
+        $hasSpouseStrategy = false;
+        $saving = 0.0;
+        foreach ($plan['items'] as $item) {
+            if (in_array($item['type'] ?? '', $wanted, true)) {
+                $hasSpouseStrategy = true;
+                $saving += (float) ($item['estimated_annual_tax_saved'] ?? 0);
+            }
+        }
+
+        if (! $hasSpouseStrategy) {
+            return null;
+        }
+
+        if ($saving > 0) {
+            $figure = sprintf(' — around £%s a year', number_format((int) round($saving)));
+        } else {
+            $tax = app(TaxConfigService::class);
+            $allowance = (float) ($tax->getIncomeTax()['personal_allowance'] ?? 0)
+                + (float) ($tax->getISAAllowances()['annual_allowance'] ?? 0);
+            $figure = $allowance > 0
+                ? sprintf(' — they have around £%s of unused allowances', number_format((int) round($allowance)))
+                : '';
+        }
+
+        return "You can definitely save money with your spouse's allowances{$figure}. "
+            ."We've added this to your actions list which we'll take you to shortly.";
     }
 
     /**
