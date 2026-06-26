@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Models\RecommendationTracking;
 use App\Models\UserGamification;
 use App\Services\Gamification\LevelService;
 use App\Traits\StructuredLogging;
@@ -40,8 +41,15 @@ class MobileLevelService
         $points = (int) (UserGamification::where('user_id', $userId)->value('total_points') ?? 0);
         $progress = $this->levels->progress($points);
 
-        $total = count($nextActions);
-        $completed = count(array_filter($nextActions, static fn ($a) => ($a['done'] ?? false) === true));
+        // "X of Y actions complete" (Rule #12 display) as a running tally:
+        // X = every action the user has banked (completed recommendations,
+        // tracked), Y = those plus the open actions currently shown. Completed
+        // actions are replaced in the list by the next-best (NextActionsService),
+        // so they're counted here rather than shown ticked (CSJ 4.1/4.4).
+        $completed = (int) RecommendationTracking::where('user_id', $userId)
+            ->where('status', 'completed')
+            ->count();
+        $total = $completed + count($nextActions);
 
         return [
             'level' => $progress['level'],
