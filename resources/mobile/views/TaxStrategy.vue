@@ -140,7 +140,12 @@ export default {
     isHousehold() { return ['dual_earner', 'single_earner_couple'].includes(this.calculationMode); },
     userAllowances() { return this.dashboard?.user_allowances || []; },
     spouseAllowances() { return this.dashboard?.spouse_allowances || null; },
-    recommendations() { return this.dashboard?.recommendations || []; },
+    // 3.3 — the page's actions are the composed tax plan (the same canonical
+    // source the dashboard uses via NextActionsService → ComposedTaxPlanService),
+    // so the two never disagree. The allowance grid below still comes from the
+    // calculator payload. Items carry the same shape (type/title/description/
+    // category/estimated_annual_tax_saved) the rows render.
+    recommendations() { return this.dashboard?.composed_plan?.items || []; },
     individualRecommendations() { return this.recommendations.filter((r) => r.category !== 'household'); },
     householdRecommendations() { return this.recommendations.filter((r) => r.category === 'household'); },
     householdIntro() {

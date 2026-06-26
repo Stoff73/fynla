@@ -186,11 +186,20 @@ class NextActionsService
             ->pluck('recommendation_id')
             ->all();
 
-        // Drop recommendations with no human-readable text — a blank rec renders
-        // as an empty row / "How do I ''?" and is worse than showing nothing.
-        $all = array_filter($all, static fn (array $rec): bool => trim((string) ($rec['recommendation_text'] ?? '')) !== '');
+        // Drop blank recs (a blank renders as an empty row / "How do I ''?")
+        // AND completed recs: a completed action is banked toward the wheel
+        // count and replaced by the next-best, so it leaves the actionable
+        // list rather than sitting there ticked (CSJ 4.4 — replace done with a
+        // new one; the running tally is counted in MobileLevelService).
+        $all = array_filter($all, static function (array $rec) use ($completedIds): bool {
+            if (trim((string) ($rec['recommendation_text'] ?? '')) === '') {
+                return false;
+            }
 
-        return array_map(function (array $rec) use ($completedIds): array {
+            return ! in_array((string) ($rec['recommendation_id'] ?? ''), $completedIds, true);
+        });
+
+        return array_map(function (array $rec): array {
             $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
 
@@ -203,7 +212,9 @@ class NextActionsService
                     ? 'You could save £'.number_format($benefit)
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
                 'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
-                'done' => in_array($id, $completedIds, true),
+                // Open only — completed recs are excluded above and replaced by
+                // the next-best, so every shown recommendation is actionable.
+                'done' => false,
                 // Tapping a recommendation deep-links to the module screen where
                 // the user actions it (NOT a templated Fyn message).
                 'action' => ['kind' => 'navigate', 'payload' => $this->moduleRoute((string) ($rec['module'] ?? 'general'))],
@@ -294,16 +305,18 @@ class NextActionsService
         $items = [];
 
         foreach (array_slice($plan['locked'], 0, self::MAX_STRATEGY_UNLOCKS) as $locked) {
-            $missingLabel = isset($locked['missing'][0])
-                ? HouseholdFinancialContext::labelFor((string) $locked['missing'][0])
-                : 'a detail';
+            $noun = $this->unlockNounFor((string) ($locked['missing'][0] ?? ''));
 
             $items[] = [
                 'id' => 'strategy_unlock:'.$locked['strategy_type'],
                 'type' => 'unlock',
                 'module' => 'tax',
-                'title' => 'Unlock a tax strategy',
-                'meta' => 'Tell us about your '.$missingLabel,
+                // Per-item label (CSJ 4.2): name the specific missing detail
+                // ("Unlock pension info" / "Enter your pension details") rather
+                // than a generic "Unlock a tax strategy" — the user has already
+                // seen a strategy for what they have; this is about adding more.
+                'title' => 'Unlock '.$noun.' info',
+                'meta' => 'Enter your '.$noun.' details',
                 'value' => $weight,
                 'done' => false,
                 'action' => ['kind' => 'fyn_capture', 'payload' => 'tax'],
@@ -311,6 +324,25 @@ class NextActionsService
         }
 
         return $items;
+    }
+
+    /**
+     * Short noun for an unlock card title, derived from the missing data point
+     * (CSJ 4.2). Keeps the card item-specific ("pension", "ISA") rather than the
+     * verbose data-point label; falls back to the household-context label.
+     */
+    private function unlockNounFor(string $missingKey): string
+    {
+        return match ($missingKey) {
+            'pension_contributions', 'workplace_pension', 'pension_input_history' => 'pension',
+            'isa_subscriptions_ytd' => 'ISA',
+            'gia_holdings' => 'investment',
+            'dividend_income' => 'dividend',
+            'savings_balances' => 'savings',
+            'annual_income' => 'income',
+            'spouse_income' => "spouse's income",
+            default => HouseholdFinancialContext::labelFor($missingKey),
+        };
     }
 
     private function moduleLabel(string $module): string

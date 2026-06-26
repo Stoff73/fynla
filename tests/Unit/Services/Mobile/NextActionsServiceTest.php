@@ -37,7 +37,7 @@ it('sorts by value descending', function () {
     expect($values)->toEqual($sorted);
 });
 
-it('marks a recommendation item done when a matching completed tracking row exists', function () {
+it('excludes a completed recommendation from the list (banked + replaced by next-best)', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
     // Stub the aggregator with one stable recommendation so the id is deterministic
@@ -57,7 +57,7 @@ it('marks a recommendation item done when a matching completed tracking row exis
         ]]);
     app()->instance(RecommendationsAggregatorService::class, $aggregator);
 
-    // Matching completed tracking row drives the done=true branch.
+    // A matching completed tracking row removes the rec from the actionable list.
     RecommendationTracking::create([
         'user_id' => $user->id,
         'recommendation_id' => $recommendationId,
@@ -70,10 +70,10 @@ it('marks a recommendation item done when a matching completed tracking row exis
 
     $items = app(NextActionsService::class)->build($user->id);
 
+    // Completed recs are banked toward the wheel count + replaced, not shown
+    // ticked — so the rec is absent from the actionable list (CSJ 4.4).
     $item = collect($items)->firstWhere('id', $recommendationId);
-    expect($item)->not->toBeNull()
-        ->and($item['type'])->toBe('recommendation')
-        ->and($item['done'])->toBeTrue();
+    expect($item)->toBeNull();
 });
 
 it('deep-links a tax recommendation to the tax strategy screen', function () {

@@ -98,8 +98,6 @@
 
             <!-- Actions for the selected card -->
             <section class="md-recs is-open" :aria-label="activeCard.label + ' actions'">
-              <p v-if="!activeCard.locked && activeRecCount" class="md-recs__count">{{ activeDoneCount }} of {{ activeRecCount }} done</p>
-
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
                   <li v-if="!visibleActions.length" class="md-rec md-rec--empty">
@@ -541,12 +539,6 @@ export default {
       const remaining = all.filter((a) => !this.skippedIds.includes(a.id));
       return remaining.length ? remaining : all;
     },
-    activeDoneCount() {
-      return this.activeActions.filter((a) => a.type === 'recommendation' && a.done).length;
-    },
-    activeRecCount() {
-      return this.activeActions.filter((a) => a.type === 'recommendation').length;
-    },
     suggestions() {
       const top = (this.focusAreas[0] && this.focusAreas[0].actions) || [];
       return top
@@ -654,13 +646,17 @@ export default {
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
-    async load() {
-      this.loading = true;
-      this.error = '';
+    async load({ silent = false } = {}) {
+      // silent=true: refetch in the background (e.g. after a check-off) without
+      // a loading flash or replacing the dashboard with an error state.
+      if (!silent) {
+        this.loading = true;
+        this.error = '';
+      }
       try {
         const res = await apiGet('/api/v1/mobile/dashboard', store.token);
         if (!res.ok) {
-          this.error = 'We could not load your dashboard. Please try again.';
+          if (!silent) this.error = 'We could not load your dashboard. Please try again.';
           return;
         }
         const d = res.data?.data || res.data || {};
@@ -693,9 +689,9 @@ export default {
           this.milestoneToast = nw[0] || goal[0] || ms[0];
         }
       } catch (e) {
-        this.error = 'Network error. Please try again.';
+        if (!silent) this.error = 'Network error. Please try again.';
       } finally {
-        this.loading = false;
+        if (!silent) this.loading = false;
       }
     },
     selectArea(i) {
@@ -780,7 +776,10 @@ export default {
           module: item.module || 'general',
           recommendation_text: item.title || '',
         }, store.token)
-          .then(() => store.fetchStatus())
+          // Refetch the dashboard silently so the completed action is replaced
+          // by the next-best and the wheel "X of Y" running tally updates, plus
+          // the gamification status for the level ring / celebration (4.1/4.4).
+          .then(() => Promise.all([store.fetchStatus(), this.load({ silent: true })]))
           .then(() => {
             this.level = store.gamification.level;
             this.progressPercent = store.gamification.progressPercent;
