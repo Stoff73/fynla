@@ -126,6 +126,15 @@ final class OnboardingStateMachine
     public const STATE_CAMPAIGN_SYNTHESIS = 'campaign_synthesis';
 
     /**
+     * Marker a prompt string can carry to render as multiple chat bubbles —
+     * e.g. a "what we've heard" recap followed by the actual question. The
+     * director (emitTurnForState) splits content prompts on this and emits an
+     * onboarding_advance between the parts so the /m chat opens a fresh bubble.
+     * Invisible control char so it never shows if a surface doesn't split.
+     */
+    public const BUBBLE_BREAK = "\x1E";
+
+    /**
      * SaveTax campaign section order — THE single source of truth for the
      * campaign question sequence. To reorder the journey, reorder this array;
      * nothing else needs to change. Each section maps to an entry state and an
@@ -1007,8 +1016,8 @@ final class OnboardingStateMachine
         }
 
         // Confirmed — show this section's tax advice now (after the confirm),
-        // then advance. Sections with no advice (giving, expenditure) go
-        // straight to the next section.
+        // then advance. Sections with no advice (expenditure) go straight to
+        // the next section.
         $section = self::verifySection($user);
 
         return self::campaignSectionAdvice($section)
@@ -1217,11 +1226,13 @@ final class OnboardingStateMachine
         $assetChoices = is_array($funnel['assets'] ?? null) ? $funnel['assets'] : [];
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
-        $estimateHigh = 5 + $extraMinutes;
 
+        // Two bubbles: the recap + time estimate ("what we've heard"), then the
+        // bold income question on its own. BUBBLE_BREAK splits them in the dock.
         return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
-            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow}-{$estimateHigh} minutes. "
-            ."Let's start with your income — your employer or business, your role, and your gross annual income.";
+            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
+            .self::BUBBLE_BREAK
+            ."**Let's start with your income.** Tell me your employer or business, your role, and your gross annual income (this includes bonuses and commissions).";
     }
 
     /** Join a list into "a, b and c". */

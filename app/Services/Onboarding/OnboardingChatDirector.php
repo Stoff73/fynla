@@ -668,22 +668,39 @@ final class OnboardingChatDirector
                 ];
             }
         } else {
-            // free_text / grouped_extract / terminal — plain content event.
-            // Grouped_extract turns emit a prompt too so the user knows what
-            // to type; the tool call happens on their next user message.
-            yield ['type' => 'content', 'text' => $promptText];
-
+            // free_text / grouped_extract / terminal — content event(s). A
+            // prompt may carry BUBBLE_BREAK markers to render as separate chat
+            // bubbles (e.g. a "what we've heard" recap then the question). Each
+            // part is its own saved message so the transcript re-renders the
+            // same bubbles on resume; an onboarding_advance between parts makes
+            // the /m chat open a fresh bubble. Single-part prompts behave
+            // exactly as before (one content event, one saved message).
             $metadata = ['onboarding_step' => $stateId];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
 
-            $assistantMessage = $this->saveMessage(
-                $conversation,
-                'assistant',
-                $promptText,
-                ['metadata' => $metadata]
-            );
+            $parts = array_values(array_filter(
+                array_map('trim', explode(OnboardingStateMachine::BUBBLE_BREAK, $promptText)),
+                static fn (string $p): bool => $p !== ''
+            ));
+            if ($parts === []) {
+                $parts = [$promptText];
+            }
+
+            $assistantMessage = null;
+            foreach ($parts as $i => $part) {
+                if ($i > 0) {
+                    yield ['type' => 'onboarding_advance', 'from_step' => $stateId, 'to_step' => $stateId];
+                }
+                yield ['type' => 'content', 'text' => $part];
+                $assistantMessage = $this->saveMessage(
+                    $conversation,
+                    'assistant',
+                    $part,
+                    ['metadata' => $metadata]
+                );
+            }
 
             // For grouped_extract states, the frontend needs the skip_link
             // (and any other action affordances) out-of-band — emit a
@@ -2697,10 +2714,27 @@ PROMPT;
             OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
+            OnboardingStateMachine::STATE_BASE_WORK => $this->incomeAck($user),
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
             OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING => $this->charitableGivingAck($user),
             default => null,
         };
+    }
+
+    /**
+     * "What we've heard" recap after the income capture — echoes the gross
+     * annual figure so the next question (the savings/ISA section) reads as a
+     * fresh bubble rather than an abrupt jump.
+     */
+    private function incomeAck(User $user): string
+    {
+        $income = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0);
+        if ($income <= 0) {
+            return 'Got it — thanks.';
+        }
+
+        return sprintf('Got it — £%s a year, noted.', number_format($income, 0));
     }
 
     /**

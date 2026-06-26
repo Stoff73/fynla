@@ -82,7 +82,7 @@ it('opens the income-first entry with the funnel recap greeting', function () {
         ->and($prompt)->not->toContain('date of birth');     // DOB deferred
 });
 
-it('states a 3-5 minute estimate when one asset is selected', function () {
+it('states a 3 minute estimate when one asset is selected', function () {
     $u = campaignUser([
         'first_name' => 'Trapper',
         'employment_status' => 'full_time',
@@ -90,11 +90,11 @@ it('states a 3-5 minute estimate when one asset is selected', function () {
         'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings']],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 3-5 minutes');
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
 });
 
 it('adds a minute per asset beyond the first to the time estimate', function () {
-    // 3 assets selected → base 3-5 + (3 - 1) = 5-7 minutes.
+    // 3 assets selected → base 3 + (3 - 1) = 5 minutes (single low number).
     $u = campaignUser([
         'first_name' => 'Trapper',
         'employment_status' => 'full_time',
@@ -102,10 +102,10 @@ it('adds a minute per asset beyond the first to the time estimate', function () 
         'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings', 'pension', 'isa']],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 5-7 minutes');
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 5 minutes');
 });
 
-it('falls back to the 3-5 minute estimate when no assets are selected', function () {
+it('falls back to the 3 minute estimate when no assets are selected', function () {
     $u = campaignUser([
         'first_name' => 'Trapper',
         'employment_status' => 'full_time',
@@ -113,7 +113,7 @@ it('falls back to the 3-5 minute estimate when no assets are selected', function
         'funnel_answers' => ['employment' => 'full-time', 'assets' => []],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 3-5 minutes');
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
 });
 
 it('drops the recap and asks the plain income question once income is captured', function () {

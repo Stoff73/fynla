@@ -16,6 +16,7 @@
 // dashboard, so the level-up frame is safe to handle from either surface.
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
+import { renderFynText } from '../utils/fynText.js';
 
 // The routes the onboarding chat may navigate the /m surface to: the per-section
 // verify destinations (campaign_verify_navigate → the section's screen) plus the
@@ -49,6 +50,12 @@ export default {
     // it with the real wheel animation. The full fireworks takeover is driven
     // separately by the shared GamificationCelebration via store.pendingCelebration.
     pulseWheel() {},
+    // Render a Fyn bubble's text: escape HTML, then turn **bold** into <strong>
+    // (the SaveTax onboarding bolds the question line). Used via v-html in the
+    // dock + dashboard bubble templates.
+    fynHtml(text) {
+      return renderFynText(text);
+    },
 
     scrollFyn() {
       const b = this.$refs.fynBody;

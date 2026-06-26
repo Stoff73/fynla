@@ -203,14 +203,6 @@ campaign_pension_history:
   clarify_single_figure: true
   next: { branch: enterCampaignVerify }
 
-campaign_charitable_giving:
-  turn_type: grouped_extract
-  prompt_text: 'One more — do you make any charitable donations through Gift Aid? If you donate at the higher or additional rate, there''s extra relief you can reclaim. Roughly how much per year? Say "none" if you don''t donate.'
-  capture_field: null
-  extraction_tool: capture_charitable_giving
-  retry_text: 'Just an annual figure works — e.g. "about £500" or "none".'
-  next: { branch: nextCampaignSection }
-
 campaign_spouse_work:
   turn_type: bubbles
   prompt_text: 'Does your spouse work?'
