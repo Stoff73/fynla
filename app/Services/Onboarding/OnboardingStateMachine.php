@@ -568,7 +568,7 @@ final class OnboardingStateMachine
             // a `navigate` SSE event when this state is reached.
             self::STATE_CAMPAIGN_TERMINAL => [
                 'turn_type' => 'terminal',
-                'prompt_text' => 'All set, {first_name} — let me show you your tax position.',
+                'prompt_text' => "We've created your personal tax strategy, {first_name}.",
                 'capture_field' => null,
                 'navigate_to' => '/tax-strategy',
                 'next' => self::STATE_DONE,

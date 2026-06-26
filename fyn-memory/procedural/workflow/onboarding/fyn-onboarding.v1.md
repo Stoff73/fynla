@@ -235,7 +235,7 @@ campaign_spouse_non_working_assets:
 
 campaign_terminal:
   turn_type: terminal
-  prompt_text: 'All set, {first_name} — let me show you your tax position.'
+  prompt_text: "We've created your personal tax strategy, {first_name}."
   capture_field: null
   navigate_to: /tax-strategy
   next: done

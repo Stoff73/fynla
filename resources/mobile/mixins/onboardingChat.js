@@ -273,6 +273,13 @@ export default {
 
     chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
+      // Navigation bubble (e.g. the terminal "Take me to my tax strategy") —
+      // go straight to the route; never send the label as a message.
+      if (bubble.route) {
+        if (message && message.bubbles) message.bubbles = [];
+        this.handleOnboardingNavigation(bubble.route);
+        return;
+      }
       // Resume re-engagement bubbles (Continue / Something else) are director
       // actions — route to the action endpoint and consume the bubbles so they
       // can't be re-tapped. Regular onboarding bubbles send their label.

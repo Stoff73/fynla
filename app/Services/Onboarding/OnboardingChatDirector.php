@@ -2661,20 +2661,28 @@ PROMPT;
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
 
-        yield ['type' => 'content', 'text' => $celebration];
+        // The user taps a button to view their strategy rather than being
+        // auto-navigated, so the "we've created your tax strategy" message lands
+        // first. The route-carrying bubble navigates on tap (handled in the /m
+        // chooseBubble + web handleQuickReplySelect) — no auto navigation event.
+        $bubbles = [[
+            'id' => 'view_strategy',
+            'label' => 'Take me to my tax strategy',
+            'route' => $nextRoute,
+        ]];
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $celebration,
+            'bubbles' => $bubbles,
+        ];
 
         $assistantMessage = $this->saveMessage(
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => $stateId]]
+            ['metadata' => ['onboarding_step' => $stateId, 'bubbles' => $bubbles]]
         );
-
-        yield [
-            'type' => 'navigation',
-            'route_path' => $nextRoute,
-            'description' => $stateId,
-        ];
 
         yield [
             'type' => 'onboarding_complete',
