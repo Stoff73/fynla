@@ -1,6 +1,18 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-24 — end-of-day wrap (session 1). Merged + deployed **PR #572** (Phailanx: SEO fixes + homepage Latest-news bar + SPA→PHP marketing nav handoff + fresh-checkout fix) to dev (csjones) → main (prod, fynla.org) via release **#573**; fixed a news-bar `FYNLA_BASE` subdirectory 404 bug. Both live + browser-verified; prod log clean. EOD handover: `June/June25Updates/handover-2026-06-25-session-1.md`.*
+*Last updated: 2026-06-26 — end-of-day wrap. **/m fixes programme: Batches 1–4 of 7 shipped to dev + csjones-verified** (PRs #574–577). Full suite 5121 green. Prod UNTOUCHED. Plan: `June/June25Updates/m-fixes-plan.md`. EOD handover: `June/June27Updates/handover-2026-06-27-session-1.md`.*
+
+## 2026-06-26 — /m fixes programme: Batches 1–4 shipped to dev (end-of-day)
+
+CSJ's ~30-item `/m` fix list → 7 build batches (1 PR/surface, verify each on csjones). **Batches 1–4 DONE + verified on dev; Batches 5–7 remain.** Worktree `fynla-m-funnel` on `m-freemium` (ready for Batch 5). Read `June/June25Updates/m-fixes-plan.md` first.
+- [x] **Batch 1 — Funnel (#574):** collapsible, top "Find out how" CTA, white reg error, lean calc copy.
+- [x] **Batch 2 — Onboarding (#575):** income-first 2-bubbles + bold + bracket, 5-min, no Gift Aid, recap-split + bold renderer, spouse line + figure, terminal tax-strategy button. Core live-verified on /m w/ real xAI.
+- [x] **Batch 3 — Actions single-source (#576):** running-tally count (0/4→1/5), replace-on-done, per-item unlock labels, Tax Strategy = `composed_plan.items`. API-verified on csjones.
+- [x] **Batch 4 — Tax Strategy page (#577):** Available-in-green, personalised intro (gated on onboarding_completed), lean copy, back-CTA. Live-DOM-verified.
+- [ ] **Batch 5 — Freemium (MAPPED, not started):** 5.1 "X of Y accounts" + upgrade link (Savings/Investment/Pension/Protection), 5.2 Fyn accounts-left + at-cap upgrade, 5.3 Holistic Plan → premium gate (Goals stays free). Touches LIVE tier system.
+- [ ] **Batch 6 — Bugs:** 6.1 reg-fail → SaveTax onboarding entry lost, 6.2 bank→savings type, 6.4 Goals add/edit buttons.
+- [ ] **Batch 7 — Sweep:** "partner"→"spouse" everywhere (keep "civil partner"); edit-details page+data-specific Fyn opener.
+- [ ] **Decision:** 3.3 nuance (Tax Strategy shows completed actions dashboard hides — also exclude, or keep overview?). Desktop-web Tax Strategy parity (Rule 19) flagged. dev→prod release of B1–4 pending (CSJ's call).
 
 ## 2026-06-24 — Session 1: PR #572 SEO + news bar + SPA nav handoff shipped to dev + prod (end-of-day)
 
