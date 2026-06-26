@@ -1198,6 +1198,12 @@ export default {
         //     onboarding bubbles are never navigation intents.
         async handleQuickReplySelect(bubble, msg) {
             if (this.streaming || this.loading) return;
+            // Navigation bubble (e.g. the terminal "Take me to my tax strategy")
+            // — route straight there; never send the label as a message.
+            if (bubble && bubble.route) {
+                this.handleNavigation(bubble.route);
+                return;
+            }
             const isActionBubble = Boolean(msg?.metadata?.action_bubbles);
             const id = (bubble && bubble.id) ? String(bubble.id).trim() : '';
             const label = (bubble && bubble.label) ? bubble.label.trim() : '';

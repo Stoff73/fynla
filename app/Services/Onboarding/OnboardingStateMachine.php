@@ -126,6 +126,15 @@ final class OnboardingStateMachine
     public const STATE_CAMPAIGN_SYNTHESIS = 'campaign_synthesis';
 
     /**
+     * Marker a prompt string can carry to render as multiple chat bubbles —
+     * e.g. a "what we've heard" recap followed by the actual question. The
+     * director (emitTurnForState) splits content prompts on this and emits an
+     * onboarding_advance between the parts so the /m chat opens a fresh bubble.
+     * Invisible control char so it never shows if a surface doesn't split.
+     */
+    public const BUBBLE_BREAK = "\x1E";
+
+    /**
      * SaveTax campaign section order — THE single source of truth for the
      * campaign question sequence. To reorder the journey, reorder this array;
      * nothing else needs to change. Each section maps to an entry state and an
@@ -140,7 +149,6 @@ final class OnboardingStateMachine
         'savings',
         'investments',
         'pensions',
-        'giving',
         'spouse',
         'expenditure',
     ];
@@ -159,7 +167,6 @@ final class OnboardingStateMachine
             'savings' => ['entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS, 'skip' => [self::class, 'skipSectionIfNoCash']],
             'investments' => ['entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'skip' => [self::class, 'skipSectionIfNoInvestments']],
             'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB, 'skip' => null],
-            'giving' => ['entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING, 'skip' => null],
             'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
             'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],
         ];
@@ -182,7 +189,6 @@ final class OnboardingStateMachine
             'savings' => ['route' => '/savings', 'entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS],
             'investments' => ['route' => '/investment', 'entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS],
             'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
-            'giving' => ['route' => null, 'entry' => self::STATE_CAMPAIGN_CHARITABLE_GIVING],
             'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
             'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
         ];
@@ -515,15 +521,6 @@ final class OnboardingStateMachine
                 'clarify_single_figure' => true,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
             ],
-            // ── Giving section ────────────────────────────────────────────
-            self::STATE_CAMPAIGN_CHARITABLE_GIVING => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => 'One more — do you make any charitable donations through Gift Aid? If you donate at the higher or additional rate, there\'s extra relief you can reclaim. Roughly how much per year? Say "none" if you don\'t donate.',
-                'capture_field' => null,
-                'extraction_tool' => 'capture_charitable_giving',
-                'retry_text' => 'Just an annual figure works — e.g. "about £500" or "none".',
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'giving'),
-            ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
                 'prompt_text' => 'Does your spouse work?',
@@ -571,7 +568,7 @@ final class OnboardingStateMachine
             // a `navigate` SSE event when this state is reached.
             self::STATE_CAMPAIGN_TERMINAL => [
                 'turn_type' => 'terminal',
-                'prompt_text' => 'All set, {first_name} — let me show you your tax position.',
+                'prompt_text' => "We've created your personal tax strategy, {first_name}.",
                 'capture_field' => null,
                 'navigate_to' => '/tax-strategy',
                 'next' => self::STATE_DONE,
@@ -1019,8 +1016,8 @@ final class OnboardingStateMachine
         }
 
         // Confirmed — show this section's tax advice now (after the confirm),
-        // then advance. Sections with no advice (giving, expenditure) go
-        // straight to the next section.
+        // then advance. Sections with no advice (expenditure) go straight to
+        // the next section.
         $section = self::verifySection($user);
 
         return self::campaignSectionAdvice($section)
@@ -1051,11 +1048,13 @@ final class OnboardingStateMachine
     public static function verifyPromptNavigate(string $answer, User $user): string
     {
         if (self::verifyNavigateRoute($user) === null) {
-            // Inline confirm (charitable giving): no screen.
+            // Inline confirm: no screen to navigate to.
             return "I've recorded that. Does it look right?";
         }
 
-        return "I've added that — taking you to the screen now. Is this information correct?";
+        $section = self::sectionLabel(self::verifySection($user));
+
+        return "I've added that — I'm taking you to your {$section} page now. Take a look and check everything's correct, then tap the chat to confirm.";
     }
 
     /** Human label for a campaign section, for verify prompts. */
@@ -1063,7 +1062,7 @@ final class OnboardingStateMachine
     {
         return [
             'income' => 'income', 'savings' => 'savings', 'investments' => 'investments',
-            'pensions' => 'pensions', 'giving' => 'charitable giving', 'spouse' => 'spouse details',
+            'pensions' => 'pensions', 'spouse' => 'spouse details',
             'expenditure' => 'expenditure',
         ][$section] ?? 'details';
     }
@@ -1229,11 +1228,13 @@ final class OnboardingStateMachine
         $assetChoices = is_array($funnel['assets'] ?? null) ? $funnel['assets'] : [];
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
-        $estimateHigh = 5 + $extraMinutes;
 
+        // Two bubbles: the recap + time estimate ("what we've heard"), then the
+        // bold income question on its own. BUBBLE_BREAK splits them in the dock.
         return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
-            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow}-{$estimateHigh} minutes. "
-            ."Let's start with your income — your employer or business, your role, and your gross annual income.";
+            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
+            .self::BUBBLE_BREAK
+            ."**Let's start with your income.** Tell me your employer or business, your role, and your gross annual income (this includes bonuses and commissions).";
     }
 
     /** Join a list into "a, b and c". */

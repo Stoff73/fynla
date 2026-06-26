@@ -168,7 +168,8 @@ describe('STATE_CAMPAIGN_TERMINAL', function () {
         $state = OnboardingStateMachine::states()[OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL];
 
         // turn_type=terminal mirrors STATE_DONE; OnboardingChatDirector reads
-        // navigate_to and emits a `navigate` SSE event when this state is reached.
+        // navigate_to and offers it as a "Take me to my tax strategy" button
+        // (route-carrying quick_replies bubble) when this state is reached.
         expect($state['turn_type'])->toBe('terminal');
         expect($state['navigate_to'])->toBe('/tax-strategy');
         expect($state['next'])->toBe(OnboardingStateMachine::STATE_DONE);

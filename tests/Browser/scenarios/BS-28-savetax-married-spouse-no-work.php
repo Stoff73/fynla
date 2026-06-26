@@ -41,7 +41,8 @@ declare(strict_types=1);
  *      else").
  *      → capture_spouse_non_working_assets fires; tax_strategy_household_inputs
  *         row created with the non-working-spouse fields populated.
- *   7. STATE_CAMPAIGN_TERMINAL → navigate to /tax-strategy.
+ *   7. STATE_CAMPAIGN_TERMINAL → "We've created your personal tax strategy" +
+ *      tap "Take me to my tax strategy" button → /tax-strategy.
  *   8. browser_snapshot → docs/savetax-verification/BS-28/01-asset-shifting.png
  *      Assertions on rendered page:
  *        - HouseholdView renders TWO AllowanceGrid (user + spouse).

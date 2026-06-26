@@ -30,13 +30,12 @@ it('walks every section in order for a fully-loaded married dual-earner', functi
         'funnel_answers' => ['assets' => ['savings', 'investments', 'pension']],
     ]);
 
+    // spouse — household_calculation_mode is already known (dual_earner), so the
+    // spouse-work question skips itself straight to household data.
     expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)       // savings
         ->and(SM::nextCampaignSection('savings', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS) // investments
         ->and(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_DOB)        // pensions (DOB first)
-        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING) // giving
-        // spouse — household_calculation_mode is already known (dual_earner),
-        // so the spouse-work question skips itself straight to household data.
-        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD)
+        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD) // spouse (dual-earner → household)
         ->and(SM::nextCampaignSection('spouse', $u))->toBe(SM::STATE_BASE_EXPENDITURE)         // expenditure
         ->and(SM::nextCampaignSection('expenditure', $u))->toBe(SM::STATE_CAMPAIGN_SYNTHESIS); // synthesis then terminal
 });
@@ -46,9 +45,8 @@ it('skips savings, investments and spouse sections for a single user with no cas
 
     // income → (savings skip, investments skip) → pensions
     expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_DOB)
-        // pensions → giving → (spouse skip: single) → expenditure
-        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_CHARITABLE_GIVING)
-        ->and(SM::nextCampaignSection('giving', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
+        // pensions → (spouse skip: single) → expenditure
+        ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
 });
 
 it('keeps savings when the user holds an ISA (cash-like asset)', function () {
@@ -84,7 +82,7 @@ it('opens the income-first entry with the funnel recap greeting', function () {
         ->and($prompt)->not->toContain('date of birth');     // DOB deferred
 });
 
-it('states a 3-5 minute estimate when one asset is selected', function () {
+it('states a 3 minute estimate when one asset is selected', function () {
     $u = campaignUser([
         'first_name' => 'Trapper',
         'employment_status' => 'full_time',
@@ -92,11 +90,11 @@ it('states a 3-5 minute estimate when one asset is selected', function () {
         'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings']],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 3-5 minutes');
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
 });
 
 it('adds a minute per asset beyond the first to the time estimate', function () {
-    // 3 assets selected → base 3-5 + (3 - 1) = 5-7 minutes.
+    // 3 assets selected → base 3 + (3 - 1) = 5 minutes (single low number).
     $u = campaignUser([
         'first_name' => 'Trapper',
         'employment_status' => 'full_time',
@@ -104,10 +102,10 @@ it('adds a minute per asset beyond the first to the time estimate', function () 
         'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings', 'pension', 'isa']],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 5-7 minutes');
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 5 minutes');
 });
 
-it('falls back to the 3-5 minute estimate when no assets are selected', function () {
+it('falls back to the 3 minute estimate when no assets are selected', function () {
     $u = campaignUser([
         'first_name' => 'Trapper',
         'employment_status' => 'full_time',
@@ -115,7 +113,7 @@ it('falls back to the 3-5 minute estimate when no assets are selected', function
         'funnel_answers' => ['employment' => 'full-time', 'assets' => []],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 3-5 minutes');
+    expect(SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
 });
 
 it('drops the recap and asks the plain income question once income is captured', function () {
@@ -187,6 +185,6 @@ it('never lets a campaign advice state auto-advance back into itself', function 
 
 it('section order matches the single source-of-truth array', function () {
     expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
-        'income', 'savings', 'investments', 'pensions', 'giving', 'spouse', 'expenditure',
+        'income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure',
     ]);
 });

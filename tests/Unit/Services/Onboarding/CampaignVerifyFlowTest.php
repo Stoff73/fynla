@@ -11,15 +11,14 @@ use Database\Seeders\TaxConfigurationSeeder;
 it('maps every navigable campaign section to a route and capture-entry state', function (): void {
     $config = OnboardingStateMachine::campaignVerifyConfig();
 
-    // Charity verifies inline (no route); the rest navigate.
+    // Every section navigates to its screen for the confirm.
     expect($config['income']['route'])->toBe('/income')
         ->and($config['income']['entry'])->toBe(OnboardingStateMachine::STATE_BASE_EMPLOYMENT)
         ->and($config['savings']['route'])->toBe('/savings')
         ->and($config['investments']['route'])->toBe('/investment')
         ->and($config['pensions']['route'])->toBe('/retirement')
         ->and($config['spouse']['route'])->toBe('/income')
-        ->and($config['expenditure']['route'])->toBe('/expenditure')
-        ->and($config['giving']['route'])->toBeNull();
+        ->and($config['expenditure']['route'])->toBe('/expenditure');
 });
 
 it('stamps the verify section into context and goes straight to navigate/confirm', function (): void {
@@ -47,18 +46,18 @@ it('routes verify_more yes back to the section entry and no to navigate', functi
         ->toBe('campaign_verify_navigate');
 });
 
-it('routes verify_navigate no to edit and yes to the next section', function (): void {
+it('routes verify_navigate no to edit and yes to the section advice', function (): void {
     $user = User::factory()->create([
         'onboarding_fyn_path' => 'campaign',
-        'onboarding_fyn_context' => ['verify_section' => 'giving'],
+        'onboarding_fyn_context' => ['verify_section' => 'pensions'],
         'marital_status' => 'single',
     ]);
 
     expect(OnboardingStateMachine::nextFromVerifyNavigate('no', $user))
         ->toBe('campaign_verify_edit');
-    // 'giving' → next section is 'spouse' (skipped: single) → 'expenditure' entry.
+    // Confirmed → the section's advice turn fires (before the next section).
     expect(OnboardingStateMachine::nextFromVerifyNavigate('yes', $user))
-        ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS);
 });
 
 it('defines the three generic verify states with the right turn types', function (): void {
@@ -89,7 +88,6 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
         OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
         OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
         OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
-        OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING,
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
