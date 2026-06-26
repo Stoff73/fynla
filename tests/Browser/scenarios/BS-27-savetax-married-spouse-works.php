@@ -36,7 +36,8 @@ declare(strict_types=1);
  *      (~£40,000), psa_band, spouse ISA balance, etc.
  *      → capture_spouse_household_data fires; tax_strategy_household_inputs
  *         row created.
- *   8. STATE_CAMPAIGN_TERMINAL → navigate to /tax-strategy.
+ *   8. STATE_CAMPAIGN_TERMINAL → "We've created your personal tax strategy" +
+ *      tap "Take me to my tax strategy" button → /tax-strategy.
  *   9. browser_snapshot → docs/savetax-verification/BS-27/01-twin-grids.png
  *      Assertions on rendered page:
  *        - HouseholdView renders TWO AllowanceGrid (user + spouse).

@@ -54,9 +54,10 @@ declare(strict_types=1);
  *        - STATE_CAMPAIGN_INVESTMENT_ACCOUNTS: any/none.
  *        - STATE_CAMPAIGN_PENSION_CONTRIBS: any SIPP.
  *        - STATE_CAMPAIGN_SPOUSE_WORK: SKIPPED (single user — skipIfNotMarried).
- *        - STATE_CAMPAIGN_TERMINAL: navigate event → /tax-strategy.
+ *        - STATE_CAMPAIGN_TERMINAL: "We've created your personal tax strategy"
+ *          + a "Take me to my tax strategy" button (tap → /tax-strategy).
  *
- *   7. Land on /tax-strategy.
+ *   7. Tap "Take me to my tax strategy" → land on /tax-strategy.
  *      browser_snapshot → docs/savetax-verification/BS-26/01-terminal.png
  *
  *      Assertions on the rendered page:
