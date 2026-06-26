@@ -10,6 +10,11 @@
     </div>
 
     <template v-else>
+      <!-- Personalised intro — shown once onboarding is complete (CSJ 3.2). -->
+      <div v-if="personalisedIntro" class="m-card mts-intro">
+        <p class="mts-intro__text">{{ personalisedIntro }}</p>
+      </div>
+
       <!-- Strategies first: household coordination, then recommended actions.
            Allowance detail (headroom + per-allowance bars) sits below. -->
       <!-- Household coordination (married / joint — only in household mode) -->
@@ -35,7 +40,7 @@
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">Recommended actions</p>
         <p v-if="!individualRecommendations.length" class="m-sub" style="margin-bottom:0">
-          Nothing to act on right now — your allowances are well-utilised and there's no tax-band optimisation to make at your current income.
+          Your allowances are well-utilised — nothing to act on right now.
         </p>
         <div v-else>
           <article v-for="rec in individualRecommendations" :key="rec.type" class="mts-rec" :class="{ 'mts-rec--warning': rec.category === 'warning' }">
@@ -61,11 +66,11 @@
         </div>
       </div>
 
-      <!-- Headroom hero -->
+      <!-- Available-allowance hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Allowance headroom available</p>
-        <p class="m-metric">{{ fmt(totalHeadroom) }}</p>
-        <p class="m-hero-sub">Across {{ headroomCount }} {{ headroomCount === 1 ? 'allowance' : 'allowances' }} you haven't fully used this year.</p>
+        <p class="m-sub m-label">Allowance available</p>
+        <p class="m-metric mts-available">{{ fmt(totalHeadroom) }}</p>
+        <p class="m-hero-sub">Across {{ headroomCount }} unused {{ headroomCount === 1 ? 'allowance' : 'allowances' }}.</p>
       </div>
 
       <!-- User allowances -->
@@ -103,6 +108,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Back to the dashboard — see the full action list (CSJ 3.5). -->
+      <button type="button" class="m-btn mts-back" @click="goBack">See all your actions to get more for your money</button>
     </template>
   </MobileChrome>
 </template>
@@ -146,12 +154,23 @@ export default {
     // calculator payload. Items carry the same shape (type/title/description/
     // category/estimated_annual_tax_saved) the rows render.
     recommendations() { return this.dashboard?.composed_plan?.items || []; },
+    personalisedIntro() {
+      // Shown once onboarding is complete (CSJ 3.2): a personal line naming the
+      // user + the saving the composed plan found, so /tax-strategy doesn't open
+      // cold after the onboarding hand-off.
+      if (!store.user || !store.user.onboarding_completed) return '';
+      const name = store.user.first_name || 'there';
+      const saving = Number(this.dashboard?.composed_plan?.combined_annual_saving) || 0;
+      return saving > 0
+        ? `Here's your personal tax strategy, ${name}. From what you told us, we've found around ${this.fmt(Math.round(saving))} a year you could keep.`
+        : `Here's your personal tax strategy, ${name}. From what you told us, here's how to make the most of your allowances.`;
+    },
     individualRecommendations() { return this.recommendations.filter((r) => r.category !== 'household'); },
     householdRecommendations() { return this.recommendations.filter((r) => r.category === 'household'); },
     householdIntro() {
       return this.calculationMode === 'single_earner_couple'
-        ? 'The non-working spouse has a full set of unused tax-free allowances. Moving assets into their name uses those allowances without giving up household ownership — spousal transfers between UK-domiciled spouses are exempt from both Capital Gains Tax and Inheritance Tax.'
-        : 'These actions only work because both partners contribute. Spousal transfers between UK-domiciled spouses are exempt from Capital Gains Tax and Inheritance Tax.';
+        ? "Move assets into your spouse's name to use their unused allowances. Spousal transfers are exempt from Capital Gains and Inheritance Tax."
+        : 'Coordinate as a household. Spousal transfers are exempt from Capital Gains and Inheritance Tax.';
     },
     householdHeading() {
       return this.calculationMode === 'single_earner_couple'
@@ -169,7 +188,7 @@ export default {
     remainingLabel(a) {
       if (a.available === false) return 'Not available';
       if (Number(a.utilisation_pct) >= 100 || Number(a.remaining) <= 0) return 'Fully used';
-      return `${this.fmt(a.remaining)} of headroom`;
+      return `${this.fmt(a.remaining)} available`;
     },
     nextStep(rec) { return NEXT_STEPS[rec.type] || null; },
     goToNextStep(rec) {
@@ -196,6 +215,10 @@ export default {
 </script>
 
 <style scoped>
+.mts-available { color: var(--spring-600); }
+.mts-intro { background: var(--eggshell-500); }
+.mts-intro__text { font-size: 14px; font-weight: 700; color: var(--horizon-500); line-height: 1.5; }
+.mts-back { margin-top: 4px; }
 .mts-allow { padding: 12px 0; border-bottom: 1px solid var(--horizon-100); }
 .mts-allow:first-of-type { padding-top: 4px; }
 .mts-allow:last-of-type { border-bottom: 0; padding-bottom: 0; }
