@@ -1048,11 +1048,13 @@ final class OnboardingStateMachine
     public static function verifyPromptNavigate(string $answer, User $user): string
     {
         if (self::verifyNavigateRoute($user) === null) {
-            // Inline confirm (charitable giving): no screen.
+            // Inline confirm: no screen to navigate to.
             return "I've recorded that. Does it look right?";
         }
 
-        return "I've added that — taking you to the screen now. Is this information correct?";
+        $section = self::sectionLabel(self::verifySection($user));
+
+        return "I've added that — I'm taking you to your {$section} page now. Take a look and check everything's correct, then tap the chat to confirm.";
     }
 
     /** Human label for a campaign section, for verify prompts. */
