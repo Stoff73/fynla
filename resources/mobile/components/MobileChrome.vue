@@ -24,7 +24,7 @@
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
-        <button v-if="editDetails" type="button" class="md-edit-details" @click="openFynWith('What would you like to update?')">
+        <button v-if="editDetails" type="button" class="md-edit-details" @click="openFynWith(editPrompt || 'What would you like to update?')">
           Edit details
         </button>
       </div>
@@ -195,6 +195,10 @@ export default {
     loadingLabel: { type: String, default: '' },
     // Show the "Edit details" button under the header (opens Fyn pre-asked).
     editDetails: { type: Boolean, default: true },
+    // Page/data-specific opener for "Edit details" (/m 7-D): the parent passes a
+    // message naming the current page's real holdings (e.g. "I'd like to update
+    // my savings: Cash ISA, Barclays Saver."). Falls back to a generic prompt.
+    editPrompt: { type: String, default: '' },
     // Show a Back button to the left of Edit details (sub-pages). The parent
     // owns the destination via @back.
     back: { type: Boolean, default: false },

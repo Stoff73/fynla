@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your savings">
+  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your savings" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your savings…</p>
     </div>
@@ -102,6 +102,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -119,6 +120,10 @@ export default {
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
+    editPrompt() {
+      return buildEditPrompt('savings', "I'd like to add a savings account.",
+        this.accounts.map((a) => a.provider || a.institution || 'Savings account'));
+    },
     isaAllowance() { return this.payload?.isa_allowance || null; },
     emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
     expenditure() { return this.payload?.expenditure_profile || null; },

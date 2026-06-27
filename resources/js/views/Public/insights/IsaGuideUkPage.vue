@@ -288,7 +288,7 @@
               Fynla helps you see your ISAs alongside your pensions, savings and investments in a single dashboard. You can track your ISA contributions against your annual allowance, model different savings scenarios, and see how your ISAs fit into your broader financial plan.
             </p>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
-              <strong class="text-horizon-500">Plan together:</strong> Fynla also lets you link your account with your spouse or partner, so both of you can see the full household picture and plan your ISA and pension strategy together.
+              <strong class="text-horizon-500">Plan together:</strong> Fynla also lets you link your account with your spouse, so both of you can see the full household picture and plan your ISA and pension strategy together.
             </p>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
               <strong class="text-horizon-500">Powered by Fynla Brain&reg;:</strong> Our Fynla Brain&reg; runs the calculations behind the scenes &mdash; modelling growth projections, tax efficiency and different allocation strategies &mdash; so you can focus on making decisions, not building spreadsheets.

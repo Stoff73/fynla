@@ -204,11 +204,11 @@
         </div>
       </section>
 
-      <!-- Q3: Spouse or partner -->
+      <!-- Q3: Spouse -->
       <section class="qr-screen" id="s-spouse" aria-labelledby="q3-heading">
-        <h2 class="qr-q" id="q3-heading" tabindex="-1">Do you have a spouse or partner?</h2>
+        <h2 class="qr-q" id="q3-heading" tabindex="-1">Do you have a spouse?</h2>
         <p class="qr-q-sub">Couples may be able to transfer allowances and split income to reduce their overall tax bill.</p>
-        <div class="qr-options qr-options--pair" role="group" aria-label="Spouse or partner options">
+        <div class="qr-options qr-options--pair" role="group" aria-label="Spouse options">
 
           <button type="button" class="qr-opt qr-opt--square" data-value="yes" aria-pressed="false">
             <span class="qr-opt__label">Yes</span>
@@ -233,9 +233,9 @@
 
       <!-- Q4: Spouse income (conditional — shown only if Q3=Yes) -->
       <section class="qr-screen" id="s-spouse-income" aria-labelledby="q4-heading">
-        <h2 class="qr-q" id="q4-heading" tabindex="-1">What is your spouse or partner's annual income?</h2>
+        <h2 class="qr-q" id="q4-heading" tabindex="-1">What is your spouse's annual income?</h2>
         <p class="qr-q-sub">Their gross income before tax. This helps us identify allowance transfer opportunities.</p>
-        <div class="qr-options" role="group" aria-label="Spouse or partner annual income options">
+        <div class="qr-options" role="group" aria-label="Spouse annual income options">
           <button type="button" class="qr-opt" data-value="zero" aria-pressed="false">
             <span class="qr-opt__label">No income</span>
             <span class="qr-opt__check" aria-hidden="true">

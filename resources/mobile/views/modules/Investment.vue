@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="your investments">
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="your investments" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your investments…</p>
     </div>
@@ -71,6 +71,7 @@ import { apiGet } from '../../api.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 export default {
   name: 'MobileInvestment',
@@ -83,6 +84,10 @@ export default {
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
+    editPrompt() {
+      return buildEditPrompt('investments', "I'd like to add an investment account.",
+        this.accounts.map((a) => a.provider || a.platform || 'Investment account'));
+    },
     riskProfile() { return this.payload?.risk_profile || null; },
     riskLabel() {
       const r = this.riskProfile?.risk_category || this.riskProfile?.attitude_to_risk || this.riskProfile?.risk_level;

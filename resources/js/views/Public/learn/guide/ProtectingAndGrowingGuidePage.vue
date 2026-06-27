@@ -135,7 +135,7 @@
             </li>
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>
-              <span>Both partners should know where everything is &mdash; In Case of Emergency letters help.</span>
+              <span>Both spouses should know where everything is &mdash; In Case of Emergency letters help.</span>
             </li>
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>
@@ -157,7 +157,7 @@
             </li>
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>
-              <span>Make sure both partners are building adequate retirement provision.</span>
+              <span>Make sure both spouses are building adequate retirement provision.</span>
             </li>
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>

@@ -2,7 +2,7 @@
   <div class="mb-6">
     <PlanSectionHeader
       title="Joint Estate Overview"
-      subtitle="Side-by-side estate positions for both partners"
+      subtitle="Side-by-side estate positions for both spouses"
       color="violet"
     />
 

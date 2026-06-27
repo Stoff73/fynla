@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection">
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your protection position…</p>
     </div>
@@ -73,6 +73,7 @@
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -102,6 +103,11 @@ export default {
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     profile() { return this.payload?.profile || {}; },
+
+    editPrompt() {
+      return buildEditPrompt('protection cover', "I'd like to add a protection policy.",
+        this.policies.map((p) => p.provider || p.typeLabel));
+    },
 
     // Flatten the index payload's grouped policies into a single tappable list.
     policies() {

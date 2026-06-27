@@ -209,7 +209,7 @@ export default {
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: ${TEXT_COLORS.primary}; margin-top: 2px;">
                     <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${SUCCESS_COLORS[500]};"></span>
-                    <span style="flex: 1;">${vm.spouseName || 'Partner'}:</span>
+                    <span style="flex: 1;">${vm.spouseName || 'Spouse'}:</span>
                     <span style="font-weight: 600;">${spouseDisplay}</span>
                   </div>
                 </div>

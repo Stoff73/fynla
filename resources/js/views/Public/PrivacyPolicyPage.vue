@@ -54,7 +54,7 @@
           <p class="text-neutral-500 leading-relaxed mb-5">We do <strong>not</strong> store credit card numbers, bank sort codes, or bank account numbers for payment purposes. All payment processing is handled by our third-party payment processor.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">(d) Family Data</h3>
-          <p class="text-neutral-500 leading-relaxed mb-5">Spouse or partner details (name, date of birth, income) and dependant information (name, date of birth, relationship) for joint financial planning.</p>
+          <p class="text-neutral-500 leading-relaxed mb-5">Spouse details (name, date of birth, income) and dependant information (name, date of birth, relationship) for joint financial planning.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">(e) Health-Related Data</h3>
           <p class="text-neutral-500 leading-relaxed mb-5">General health status and smoking status only. These are used for protection needs assessment and life expectancy estimates. We do not collect detailed medical records. This is special category data processed with your explicit consent (see Section 5).</p>
@@ -79,7 +79,7 @@
 
           <p class="text-neutral-500 leading-relaxed mb-3"><strong>From third parties</strong> &mdash; address data from GetAddress.io (postcodes only).</p>
 
-          <p class="text-neutral-500 leading-relaxed"><strong>Linked spouse or partner</strong> &mdash; where both parties have active accounts and have mutually linked their profiles, financial data is shared between accounts for joint financial planning.</p>
+          <p class="text-neutral-500 leading-relaxed"><strong>Linked spouse</strong> &mdash; where both parties have active accounts and have mutually linked their profiles, financial data is shared between accounts for joint financial planning.</p>
         </section>
 
         <!-- 4. Lawful Basis -->

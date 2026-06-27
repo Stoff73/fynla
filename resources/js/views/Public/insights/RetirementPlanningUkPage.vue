@@ -240,7 +240,7 @@
               Our proprietary Fynla Brain&reg; runs the calculations &mdash; including pension projections, tax modelling and Monte Carlo simulations &mdash; so you do not have to build your own spreadsheets.
             </p>
             <p class="text-sm text-neutral-500 leading-relaxed">
-              You can also link your account with your spouse or partner, so both of you can see the full household picture and plan together.
+              You can also link your account with your spouse, so both of you can see the full household picture and plan together.
             </p>
           </div>
 

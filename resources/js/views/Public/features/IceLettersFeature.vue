@@ -33,7 +33,7 @@ export default {
         points: [
           {
             title: "It's all in your head",
-            body: "You know where the savings accounts are, who the pension providers are, and where the will is kept. Your partner probably doesn't. Your children definitely don't.",
+            body: "You know where the savings accounts are, who the pension providers are, and where the will is kept. Your spouse probably doesn't. Your children definitely don't.",
           },
           {
             title: "Grief plus admin is brutal",

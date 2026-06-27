@@ -133,7 +133,7 @@ export default {
         </div>
 
         <div v-if="spouse">
-            <h4 class="text-sm font-bold text-horizon-500 uppercase tracking-wide mb-2">Partner</h4>
+            <h4 class="text-sm font-bold text-horizon-500 uppercase tracking-wide mb-2">Spouse</h4>
             <dl class="text-sm">
                 <div class="flex justify-between py-1 border-b border-light-gray last:border-0">
                     <dt class="text-neutral-500">Name</dt>
