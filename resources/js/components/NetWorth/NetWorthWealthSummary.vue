@@ -139,7 +139,7 @@ export default {
     },
 
     spouseUserName() {
-      return this.$store.getters['userProfile/spouse']?.name || 'Partner';
+      return this.$store.getters['userProfile/spouse']?.name || 'Spouse';
     },
 
     /**

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="your retirement">
+  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="your retirement" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your retirement position…</p>
     </div>
@@ -123,6 +123,7 @@ import { store } from '../../store.js';
 import { apiGet, apiPost } from '../../api.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -157,6 +158,10 @@ export default {
     accountCount() { return this.data?.account_count ?? (this.dcPensions.length + this.dbPensions.length); },
     accountLimit() { return this.data?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
+    editPrompt() {
+      return buildEditPrompt('pensions', "I'd like to add a pension.",
+        this.pensions.map((p) => p.name));
+    },
     projectedIncome() { return Number(this.analysis?.projected_income || 0); },
     targetIncome() { return Number(this.analysis?.target_income || 0); },
     incomeGap() {

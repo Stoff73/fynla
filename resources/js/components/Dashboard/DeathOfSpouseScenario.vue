@@ -20,7 +20,7 @@
           ? 'bg-white text-horizon-500 shadow-sm'
           : 'text-neutral-500 hover:text-horizon-500'"
       >
-        If your partner passes away
+        If your spouse passes away
       </button>
     </div>
 
@@ -39,7 +39,7 @@
     <div v-else-if="scenario" class="space-y-5">
       <!-- Surviving spouse position -->
       <div>
-        <p class="text-sm font-bold text-horizon-500 mb-3">Surviving Partner's Position</p>
+        <p class="text-sm font-bold text-horizon-500 mb-3">Surviving Spouse's Position</p>
         <div class="grid grid-cols-2 gap-3">
           <div class="bg-eggshell-500 rounded-lg p-3">
             <p class="text-xs text-neutral-500">Total Assets</p>
@@ -92,7 +92,7 @@
             <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(scenario.income_impact.income_before) }}/year</span>
           </div>
           <div class="flex justify-between py-1">
-            <span class="text-sm text-neutral-500">Surviving partner's income after</span>
+            <span class="text-sm text-neutral-500">Surviving spouse's income after</span>
             <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(scenario.income_impact.income_after) }}/year</span>
           </div>
           <div v-if="scenario.income_impact.income_lost > 0" class="flex justify-between py-1 border-t border-light-gray pt-2">

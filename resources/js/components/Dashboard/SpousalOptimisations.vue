@@ -16,7 +16,7 @@
     <!-- No recommendations -->
     <div v-else-if="optimisations.length === 0" class="text-center py-6">
       <p class="text-neutral-500">No spousal optimisations available.</p>
-      <p class="text-xs text-neutral-400 mt-1">Optimisations require a linked partner with data sharing enabled.</p>
+      <p class="text-xs text-neutral-400 mt-1">Optimisations require a linked spouse with data sharing enabled.</p>
     </div>
 
     <!-- Recommendations -->

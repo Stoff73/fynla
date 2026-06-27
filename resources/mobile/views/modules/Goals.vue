@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals">
+  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your goals…</p>
     </div>
@@ -74,6 +74,7 @@
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -102,6 +103,10 @@ export default {
     savedLabel() {
       if (!this.totalGoals) return 'No goals set yet.';
       return `${this.fmt(this.totalCurrent)} of ${this.fmt(this.totalTarget)} saved so far.`;
+    },
+    editPrompt() {
+      return buildEditPrompt('goals', "I'd like to add a new goal.",
+        this.goals.map((g) => g.name || g.goal_name));
     },
   },
   async created() { await this.load(); },

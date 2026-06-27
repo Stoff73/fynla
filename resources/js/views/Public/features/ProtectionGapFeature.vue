@@ -33,7 +33,7 @@ export default {
         points: [
           {
             title: "Workplace cover isn't enough",
-            body: "Most employer life insurance pays 2-4x salary. If you have a £300,000 mortgage, two kids, and a non-working partner, that doesn't come close.",
+            body: "Most employer life insurance pays 2-4x salary. If you have a £300,000 mortgage, two kids, and a non-working spouse, that doesn't come close.",
           },
           {
             title: "Income protection is forgotten",

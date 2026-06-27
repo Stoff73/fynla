@@ -187,8 +187,8 @@ export const FAQ_CATEGORIES = [
       },
       {
         id: 'partner-works-protection',
-        q: 'My partner works — does that change my protection needs?',
-        a: 'Absolutely. A dual-income household has a different protection need. Fynla models both scenarios and accounts for the surviving partner\'s income.',
+        q: 'My spouse works — does that change my protection needs?',
+        a: 'Absolutely. A dual-income household has a different protection need. Fynla models both scenarios and accounts for the surviving spouse\'s income.',
       },
       {
         id: 'iht-2027-changes',
@@ -228,7 +228,7 @@ export const FAQ_CATEGORIES = [
       {
         id: 'ice-who-to-give',
         q: 'Who should I give the ICE letter to?',
-        a: 'At minimum, your partner/spouse and your solicitor. Some people also give a copy to an adult child or trusted family member. Store a physical copy in a fireproof safe or with your will.',
+        a: 'At minimum, your spouse and your solicitor. Some people also give a copy to an adult child or trusted family member. Store a physical copy in a fireproof safe or with your will.',
       },
       {
         id: 'ice-vs-will',

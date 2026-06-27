@@ -78,7 +78,7 @@
           <p class="text-neutral-500 leading-relaxed mb-5">You are responsible for the accuracy of the information you provide. The quality and relevance of the Service's outputs depend on the accuracy of your inputs. We are not liable for any inaccuracies in the Service's outputs that result from incorrect or incomplete information provided by you.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">One Account Per Person</h3>
-          <p class="text-neutral-500 leading-relaxed">Each individual may hold only one account. Spouse and partner accounts are separate accounts that may be linked for joint financial planning purposes where both parties consent.</p>
+          <p class="text-neutral-500 leading-relaxed">Each individual may hold only one account. Spouse accounts are separate accounts that may be linked for joint financial planning purposes where both parties consent.</p>
         </section>
 
         <!-- 5. Subscription Plans and Pricing -->
