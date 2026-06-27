@@ -113,7 +113,7 @@ class CoordinatingAgent extends BaseAgent
      */
     private const SAVINGS_ACCOUNT_TYPES = [
         'easy_access', 'notice', 'fixed', 'fixed_term',
-        'regular_saver', 'cash_isa', 'junior_isa',
+        'regular_saver', 'cash_isa', 'junior_isa', 'current_account',
     ];
 
     public function __construct(
@@ -2217,7 +2217,15 @@ class CoordinatingAgent extends BaseAgent
                     'instant_access' => 'easy_access',
                     'instant access' => 'easy_access',
                     'easy access' => 'easy_access',
-                    'current_account' => 'easy_access',
+                    // A bank/current account is a distinct canonical type, not a
+                    // savings product (/bug 6.2). 'current_account' is whitelisted
+                    // above so it passes straight through; only free-text synonyms
+                    // need mapping here.
+                    'bank' => 'current_account',
+                    'bank account' => 'current_account',
+                    'bank_account' => 'current_account',
+                    'current' => 'current_account',
+                    'current account' => 'current_account',
                     'isa' => 'cash_isa',
                     'cash isa' => 'cash_isa',
                     'junior isa' => 'junior_isa',
