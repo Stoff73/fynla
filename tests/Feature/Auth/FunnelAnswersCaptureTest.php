@@ -147,6 +147,26 @@ it('maps funnel spouseIncome onto household_calculation_mode so Fyn never re-ask
     expect($existing->fresh()->household_calculation_mode)->toBe('dual_earner');
 });
 
+it('preserves funnel_answers on re-registration when the second attempt omits them (bug 6.1)', function () use ($answers) {
+    $email = 'funnel-reregister@example.com';
+
+    // First attempt comes via the /savetax funnel, carrying funnel_answers.
+    $this->postJson('/api/auth/register', funnelPayload([
+        'email' => $email,
+        'funnel_answers' => $answers,
+    ]))->assertStatus(201);
+
+    // A second attempt on the same email (e.g. SPA re-register after an
+    // abandoned verification) does NOT resend funnel_answers — it must not
+    // null them, or the user loses the SaveTax onboarding entry point.
+    $this->postJson('/api/auth/register', funnelPayload([
+        'email' => $email,
+    ]))->assertStatus(201);
+
+    $pending = PendingRegistration::where('email', $email)->first();
+    expect($pending->funnel_answers)->toEqual($answers);
+});
+
 it('accepts registration when funnel_answers is omitted (direct signup)', function () {
     $this->postJson('/api/auth/register', funnelPayload([
         'email' => 'funnel-omitted@example.com',

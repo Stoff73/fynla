@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals">
+  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your goals…</p>
     </div>
@@ -37,7 +37,10 @@
 
       <!-- Goals list -->
       <div class="m-card">
-        <p class="m-section-label" style="margin-top:0">Your goals</p>
+        <div class="mg-head" style="margin-top:0">
+          <p class="m-section-label">Your goals</p>
+          <button type="button" class="mg-action" @click="addGoal">Add goal</button>
+        </div>
         <p v-if="!goals.length" class="m-sub" style="margin-bottom:0">
           You haven't set any goals yet.
         </p>
@@ -56,6 +59,9 @@
             <div class="mg-goal__foot">
               <span class="mg-goal__amounts">{{ fmt(goal.current_amount) }} of {{ fmt(goal.target_amount) }}</span>
               <span class="mg-goal__remaining">{{ remainingLabel(goal) }}</span>
+            </div>
+            <div class="mg-goal__actions">
+              <button type="button" class="mg-action" @click="editGoal(goal)">Edit</button>
             </div>
           </div>
         </div>
@@ -123,6 +129,13 @@ export default {
       return 'Target date passed';
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
+    // Goals add/edit run through Fyn (no standalone goal form on /m), reusing
+    // MobileChrome's openFynWith — the same dock the "Edit details" button uses.
+    addGoal() { this.$refs.chrome?.openFynWith('I\'d like to add a new goal.'); },
+    editGoal(goal) {
+      const name = goal.name || goal.goal_name || 'goal';
+      this.$refs.chrome?.openFynWith(`I'd like to update my "${name}" goal.`);
+    },
     async load() {
       this.loading = true;
       this.error = '';
@@ -168,6 +181,12 @@ export default {
 .mts-allow__remain--violet { color: var(--violet-500); }
 .mts-allow__remain--raspberry { color: var(--raspberry-500); }
 .mts-allow__used { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
+
+.mg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mg-head .m-section-label { margin: 0; }
+.mg-action { background: transparent; border: 0; padding: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); cursor: pointer; }
+.mg-action:active { opacity: 0.7; }
+.mg-goal__actions { display: flex; justify-content: flex-end; margin-top: 8px; }
 
 .mg-goal { padding: 14px 0; border-bottom: 1px solid var(--light-gray); }
 .mg-goal:first-child { padding-top: 4px; }
