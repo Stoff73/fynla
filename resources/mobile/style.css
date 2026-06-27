@@ -88,6 +88,14 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F
 .m-net-worth .m-metric { font-size: 44px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
 .m-net-worth .m-insight { font-size: 14px; line-height: 1.45; color: #E8ECF3; margin-top: 6px; }
 .m-section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; margin: 18px 4px 8px; }
+/* Free-tier account-cap nudge (/m freemium 5.1) — section header with "X of Y used" + Upgrade */
+.m-cap-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 18px 4px 8px; }
+.m-cap-head .m-section-label { margin: 0; }
+.m-cap { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
+.m-cap__count { font-size: 12px; font-weight: 700; color: var(--neutral-500); white-space: nowrap; }
+.m-cap__count--full { color: var(--raspberry-500); }
+.m-cap__upgrade { background: transparent; border: 0; padding: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); cursor: pointer; }
+.m-cap__upgrade:active { opacity: 0.7; }
 .m-module { padding: 16px 18px; }
 .m-module-link { display: block; text-decoration: none; color: inherit; transition: transform 0.05s ease, box-shadow 0.15s ease; }
 .m-module-link:active { transform: scale(0.99); }

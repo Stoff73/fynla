@@ -46,7 +46,13 @@
 
       <!-- Pensions list -->
       <div class="m-card">
-        <p class="m-section-label" style="margin-top:0">Your pensions</p>
+        <div class="m-cap-head" style="margin-top:0">
+          <p class="m-section-label">Your pensions</p>
+          <div v-if="accountLimit" class="m-cap">
+            <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} pensions used</span>
+            <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
+          </div>
+        </div>
         <p v-if="!pensions.length" class="m-sub" style="margin-bottom:0">
           No pensions recorded yet. Add a pension to see your full retirement picture.
         </p>
@@ -116,6 +122,7 @@
 import { store } from '../../store.js';
 import { apiGet, apiPost } from '../../api.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { upgradeMixin } from '../../mixins/upgrade.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -131,6 +138,7 @@ const TYPE_LABELS = {
 export default {
   name: 'MobileRetirement',
   components: { MobileChrome },
+  mixins: [upgradeMixin],
   data: () => ({
     loading: true,
     error: '',
@@ -144,6 +152,11 @@ export default {
     dcPensions() { return this.data?.dc_pensions || []; },
     dbPensions() { return this.data?.db_pensions || []; },
     statePension() { return this.data?.state_pension || null; },
+    // Free-tier cap nudge (5.1). Gate counts DC+DB only (state pension excluded);
+    // account_limit null = unlimited tier → hide nudge.
+    accountCount() { return this.data?.account_count ?? (this.dcPensions.length + this.dbPensions.length); },
+    accountLimit() { return this.data?.account_limit ?? null; },
+    atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     projectedIncome() { return Number(this.analysis?.projected_income || 0); },
     targetIncome() { return Number(this.analysis?.target_income || 0); },
     incomeGap() {

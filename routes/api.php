@@ -1046,7 +1046,7 @@ Route::middleware('auth:sanctum')->prefix('household')->group(function () {
 });
 
 // Holistic Planning routes (coordinating agent)
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('holistic')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:pro', 'holistic.full'])->prefix('holistic')->group(function () {
     // Main holistic analysis and plan
     Route::post('/analyze', [HolisticPlanningController::class, 'analyze']);
     Route::post('/plan', [HolisticPlanningController::class, 'plan']);
