@@ -26,6 +26,7 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
@@ -59,6 +60,7 @@ class SavingsController extends Controller
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly SavingsStore $savingsStore,
         private readonly SavingsAccountNormaliser $normaliser,
+        private readonly TierGate $tierGate,
     ) {}
 
     /**
@@ -158,6 +160,11 @@ class SavingsController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accounts,
+                // Free-tier cap surfacing (/m freemium 5.1). countForUser is the gate's
+                // own primary-owner-only count (the same source canCreate uses), NOT the
+                // joint-aware list above, so "X of Y used" can't contradict the gate.
+                'account_count' => $this->savingsStore->countForUser($user),
+                'account_limit' => $this->tierGate->hardLimit($user, SavingsStore::ENTITY_KEY),
                 'goals' => $goals,
                 'expenditure_profile' => $expenditureProfile,
                 'isa_allowance' => $isaAllowance,

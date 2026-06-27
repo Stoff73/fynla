@@ -28,7 +28,13 @@
 
       <!-- Accounts list -->
       <div class="m-card">
-        <p class="m-section-label" style="margin-top:0">Investment accounts</p>
+        <div class="m-cap-head" style="margin-top:0">
+          <p class="m-section-label">Investment accounts</p>
+          <div v-if="accountLimit" class="m-cap">
+            <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} accounts used</span>
+            <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
+          </div>
+        </div>
         <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
           You haven't added any investment accounts yet.
         </p>
@@ -64,13 +70,19 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { upgradeMixin } from '../../mixins/upgrade.js';
 
 export default {
   name: 'MobileInvestment',
   components: { MobileChrome },
+  mixins: [upgradeMixin],
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     accounts() { return this.payload?.accounts || []; },
+    // Free-tier cap nudge (5.1). account_limit null = unlimited tier → hide nudge.
+    accountCount() { return this.payload?.account_count ?? this.accounts.length; },
+    accountLimit() { return this.payload?.account_limit ?? null; },
+    atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     riskProfile() { return this.payload?.risk_profile || null; },
     riskLabel() {
       const r = this.riskProfile?.risk_category || this.riskProfile?.attitude_to_risk || this.riskProfile?.risk_level;

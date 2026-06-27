@@ -5,7 +5,14 @@
     :loading="loading"
     loading-label="your holistic plan"
   >
-    <div v-if="error" class="m-card m-state">
+    <!-- Premium gate (/m freemium 5.3) — Holistic Plan is Tier 2+ -->
+    <div v-if="upgradeLocked" class="m-card m-state">
+      <p class="m-section-label" style="margin-top:0">A premium feature</p>
+      <p class="m-sub">Your Holistic Plan brings every module together into one plan, ranked against what you can afford. It's part of Tier 2 and above.</p>
+      <button class="m-btn" @click="goUpgrade">Upgrade your plan</button>
+    </div>
+
+    <div v-else-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
     </div>
@@ -62,6 +69,7 @@
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import { upgradeMixin } from '../mixins/upgrade.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -100,7 +108,8 @@ const AFFORDABILITY_LABELS = {
 export default {
   name: 'MobileHolisticPlan',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', plan: null }),
+  mixins: [upgradeMixin],
+  data: () => ({ loading: true, error: '', upgradeLocked: false, plan: null }),
   computed: {
     items() { return Array.isArray(this.plan?.items) ? this.plan.items : []; },
     locked() { return Array.isArray(this.plan?.locked) ? this.plan.locked : []; },
@@ -144,11 +153,17 @@ export default {
     async load() {
       this.loading = true;
       this.error = '';
+      this.upgradeLocked = false;
       this.plan = null;
       try {
-        const { ok, data } = await apiGet('/api/holistic/composite-plan', store.token);
-        if (ok) this.plan = data?.data || {};
-        else this.error = data?.message || 'We could not load your holistic plan.';
+        const { ok, status, data } = await apiGet('/api/holistic/composite-plan', store.token);
+        if (ok) {
+          this.plan = data?.data || {};
+        } else if (status === 403 && data?.error === 'upgrade_required') {
+          this.upgradeLocked = true;
+        } else {
+          this.error = data?.message || 'We could not load your holistic plan.';
+        }
       } catch (e) {
         this.error = 'Network error. Please try again.';
       } finally {

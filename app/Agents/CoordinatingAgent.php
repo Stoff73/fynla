@@ -75,6 +75,7 @@ use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\WhatIf\WhatIfScenarioService;
@@ -2180,6 +2181,18 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
+    /**
+     * Free-tier "accounts-left" note appended to a successful create confirmation
+     * (/m freemium 5.2). $used is the gate-accurate primary-owner count so the
+     * note agrees with what the tier gate enforces. Empty on unlimited tiers.
+     */
+    private function tierCapNote(User $user, string $entityKey, int $used): string
+    {
+        $cap = app(TierGate::class)->hardLimit($user, $entityKey);
+
+        return $cap === null ? '' : " That's {$used} of {$cap} on your plan.";
+    }
+
     private function handleCreateSavingsAccount(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
@@ -2254,6 +2267,16 @@ class CoordinatingAgent extends BaseAgent
                 'errors' => $e->errors,
                 'message' => 'Validation failed for savings account.',
             ];
+        } catch (TierLimitExceededException $e) {
+            // Free-tier cap reached (/m freemium 5.2). Savings lacked this catch,
+            // so an at-cap Fyn add surfaced an ungraceful error. Tell the user
+            // plainly and point them to upgrade (the Upgrade control lives on the
+            // Savings screen — Fyn speaks plain text, no in-chat link).
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_exceeded',
+                'message' => "You've reached your plan's limit of {$e->hardLimit} savings accounts. To add more, upgrade your plan.",
+            ];
         }
 
         $this->invalidateUserCache($user->id);
@@ -2265,7 +2288,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys($canonical),
-            'message' => "I've added your \"{$account->account_name}\" savings account.",
+            'message' => "I've added your \"{$account->account_name}\" savings account.".$this->tierCapNote($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user)),
         ];
     }
 
@@ -2407,7 +2430,7 @@ class CoordinatingAgent extends BaseAgent
             return [
                 'error' => true,
                 'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached the investment account limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
+                'message' => "You've reached your plan's limit of {$e->hardLimit} investment accounts. To add more, upgrade your plan.",
             ];
         }
 
@@ -2434,7 +2457,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys(array_diff_key($canonical, ['user_id' => null])),
-            'message' => "I've added your \"{$account->account_name}\" investment account.",
+            'message' => "I've added your \"{$account->account_name}\" investment account.".$this->tierCapNote($user, InvestmentAccountStore::ENTITY_KEY, InvestmentAccount::where('user_id', $user->id)->count()),
         ];
     }
 
@@ -2566,7 +2589,7 @@ class CoordinatingAgent extends BaseAgent
             return [
                 'error' => true,
                 'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your tier's pension limit. Upgrade to add more.",
+                'message' => "You've reached your plan's limit of {$e->hardLimit} pensions. To add more, upgrade your plan.",
             ];
         }
 
@@ -2579,7 +2602,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $pension->id,
             'name' => $pension->scheme_name,
             'persisted_fields' => array_keys(array_diff_key($canonical, ['type' => null])),
-            'message' => "I've added your \"{$pension->scheme_name}\" pension.",
+            'message' => "I've added your \"{$pension->scheme_name}\" pension.".$this->tierCapNote($user, PensionStore::ENTITY_KEY, DCPension::where('user_id', $user->id)->count() + DBPension::where('user_id', $user->id)->count()),
         ];
     }
 

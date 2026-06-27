@@ -97,13 +97,25 @@ class SavingsStore
             ->get();
     }
 
+    /**
+     * Gate-accurate count of the user's savings accounts: primary-owner rows
+     * only, matching what canCreate enforces (joint-owned accounts don't count
+     * toward the cap). Single source for both create() and the free-tier cap
+     * surfaced on the savings screen (/m freemium 5.1), so the displayed
+     * "X of Y" can never diverge from the gate.
+     */
+    public function countForUser(User $user): int
+    {
+        return SavingsAccount::where('user_id', $user->id)->count();
+    }
+
     // ---------- Writes ----------
 
     public function create(array $data, User $user, IngestSource $source): SavingsAccount
     {
         $this->validateCanonical($data);
 
-        $count = SavingsAccount::where('user_id', $user->id)->count();
+        $count = $this->countForUser($user);
         if (! $this->tierGate->canCreate($user, self::ENTITY_KEY, $count)) {
             throw new TierLimitExceededException(
                 self::ENTITY_KEY,
