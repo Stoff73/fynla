@@ -226,3 +226,13 @@
 - Day total: 11 commits — merged + deployed **PR #572** (Phailanx: SEO mojibake fixes, /public/→clean 301, sitemap tidy, consumer titles, homepage Latest-news bar, SPA→PHP marketing nav handoff, fresh-checkout fix) to dev (csjones) → main (prod) via release **#573**. Deployed to BOTH environments, browser-verified, prod log clean.
 - Fixed one bug found in dev verify: news-bar supporting cards omitted `window.FYNLA_BASE` → 404 on /fynla subdir (`3e9e7cb` + `80aa2aa` asset-version bump). Prod-neutral.
 - Next: nothing mandated — #572 complete + live. Optional: device check of news bar / handoff; standing tier-2 Estate sanitizeHtml eyeball.
+
+## 2026-06-27 — session 1 (end-of-day; handover dated 2026-06-28)  [/m fixes programme — outside the SP1 plan]
+- Handover: [[handover-2026-06-28-session-1]]
+- Branch: main @ cffc424 (docs only); all engineering on worktree → dev @ 267f35f. Prod UNTOUCHED.
+- Shipped **Batches 5/6/7 of the /m fixes programme** (programme now COMPLETE):
+  - **#578 Freemium** — account caps + Upgrade on Savings/Investment/Pension (Protection dropped, no cap); Holistic Plan → Tier 2+ gate (EnsureFullHolisticAccess); Fyn at-cap fix (savings catch missing) + accounts-left note. Live-verified on /m.
+  - **#579 bugs** — 6.1 reg continuity (PendingRegistration preserves funnel_answers), 6.2 bank→current_account (un-coerced), 6.4 Goals Add/Edit buttons. 6.1/6.2 unit-verified; 6.4 buttons render live.
+  - **#580 sweep** — partner→spouse (funnel + ~34 SPA; KEPT 8 non-spouse traps per CSJ + civil partner); 7-D page/data-specific edit-details opener. Funnel + SPA-bundle + 7-D live-verified.
+- Full suite 5131 green each batch. No migrations added.
+- Next: nothing mandated — programme done. Open: dev→prod release of B1–7 (CSJ's call); remove Goal 291 test data on csjones (CSJ to OK).
