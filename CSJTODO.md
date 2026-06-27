@@ -1,6 +1,17 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-26 — end-of-day wrap. **/m fixes programme: Batches 1–4 of 7 shipped to dev + csjones-verified** (PRs #574–577). Full suite 5121 green. Prod UNTOUCHED. Plan: `June/June25Updates/m-fixes-plan.md`. EOD handover: `June/June27Updates/handover-2026-06-27-session-1.md`.*
+*Last updated: 2026-06-27 — end-of-day wrap. **/m fixes programme COMPLETE — all 7 batches shipped to dev + csjones-verified** (Batches 5/6/7 today: PRs #578/#579/#580). dev @ `267f35f`. Full suite 5131 green. Prod UNTOUCHED. Only open item: dev→prod release of B1–7 (CSJ's call). EOD handover: `June/June28Updates/handover-2026-06-28-session-1.md`.*
+
+## 2026-06-27 — /m fixes programme COMPLETE: Batches 5–7 shipped to dev (end-of-day)
+
+Batches 5/6/7 landed today; the 7-batch programme is finished. All on dev (`267f35f`) + csjones-verified. Prod UNTOUCHED.
+- [x] **Batch 5 — Freemium (#578):** account caps + Upgrade on Savings/Investment/Pension (Protection dropped — no tier cap, CSJ); Holistic Plan → Tier 2+ gate (`EnsureFullHolisticAccess`); Fyn at-cap fix (savings catch was missing) + accounts-left note. Live-verified on /m (caps 1/3·0/2·0/5, Holistic gate, Upgrade→settings). New `FreemiumCapsTest`.
+- [x] **Batch 6 — Bugs (#579):** 6.1 reg continuity (`PendingRegistration` preserves `funnel_answers`); 6.2 bank→`current_account` (un-coerced); 6.4 Goals Add/Edit buttons. 6.1/6.2 unit-verified; 6.4 buttons render live.
+- [x] **Batch 7 — Sweep (#580):** partner→spouse (funnel + ~34 SPA; KEPT 8 non-spouse traps per CSJ + "civil partner"); 7-D page/data-specific edit-details opener (`editPrompt`/`buildEditPrompt`). Funnel + SPA-bundle + 7-D all live-verified.
+- [ ] **OPEN — dev→prod release of Batches 1–7** (CSJ's call; no migrations added, copy/middleware/view only). Reconcile prod drift on release.
+- [ ] **Cleanup:** remove Goal id=291 ("House deposit") from `savetaxb2test`/Hawkeye on csjones (test data; needs DB delete — CSJ to OK).
+
+### Superseded (done)
 
 ## 2026-06-26 — /m fixes programme: Batches 1–4 shipped to dev (end-of-day)
 
@@ -9,10 +20,10 @@ CSJ's ~30-item `/m` fix list → 7 build batches (1 PR/surface, verify each on c
 - [x] **Batch 2 — Onboarding (#575):** income-first 2-bubbles + bold + bracket, 5-min, no Gift Aid, recap-split + bold renderer, spouse line + figure, terminal tax-strategy button. Core live-verified on /m w/ real xAI.
 - [x] **Batch 3 — Actions single-source (#576):** running-tally count (0/4→1/5), replace-on-done, per-item unlock labels, Tax Strategy = `composed_plan.items`. API-verified on csjones.
 - [x] **Batch 4 — Tax Strategy page (#577):** Available-in-green, personalised intro (gated on onboarding_completed), lean copy, back-CTA. Live-DOM-verified.
-- [ ] **Batch 5 — Freemium (MAPPED, not started):** 5.1 "X of Y accounts" + upgrade link (Savings/Investment/Pension/Protection), 5.2 Fyn accounts-left + at-cap upgrade, 5.3 Holistic Plan → premium gate (Goals stays free). Touches LIVE tier system.
-- [ ] **Batch 6 — Bugs:** 6.1 reg-fail → SaveTax onboarding entry lost, 6.2 bank→savings type, 6.4 Goals add/edit buttons.
-- [ ] **Batch 7 — Sweep:** "partner"→"spouse" everywhere (keep "civil partner"); edit-details page+data-specific Fyn opener.
-- [ ] **Decision:** 3.3 nuance (Tax Strategy shows completed actions dashboard hides — also exclude, or keep overview?). Desktop-web Tax Strategy parity (Rule 19) flagged. dev→prod release of B1–4 pending (CSJ's call).
+- [x] **Batch 5 — Freemium (#578):** DONE 2026-06-27 (see section above).
+- [x] **Batch 6 — Bugs (#579):** DONE 2026-06-27 (see section above).
+- [x] **Batch 7 — Sweep (#580):** DONE 2026-06-27 (see section above).
+- [ ] **Decision (still open):** 3.3 nuance (Tax Strategy shows completed actions dashboard hides — also exclude, or keep overview?). Desktop-web Tax Strategy parity (Rule 19) flagged. dev→prod release now covers B1–7 (CSJ's call).
 
 ## 2026-06-24 — Session 1: PR #572 SEO + news bar + SPA nav handoff shipped to dev + prod (end-of-day)
 
