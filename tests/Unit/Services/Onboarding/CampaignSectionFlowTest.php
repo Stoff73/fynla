@@ -83,6 +83,26 @@ it('skips the pension questions entirely when the user did not tick pension', fu
     expect(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
 });
 
+it('frames the date-of-birth question without pensions when no pension was ticked', function () {
+    // The pensions section always captures DOB (needed for tax/retirement maths),
+    // but a user who did not tick "pension" must not be told Fyn is now "looking
+    // at pensions" — the entry prompt is what they actually read.
+    $u = campaignUser(['funnel_answers' => ['assets' => ['bank', 'savings', 'property']]]);
+
+    $prompt = strtolower(SM::resolvePromptText(SM::getState(SM::STATE_CAMPAIGN_DOB), $u));
+
+    expect($prompt)->toContain('date of birth')
+        ->and($prompt)->not->toContain('pension')
+        ->and($prompt)->not->toContain('retirement');
+});
+
+it('keeps the pensions framing on the date-of-birth question when pension was ticked', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['pension']]]);
+
+    expect(SM::resolvePromptText(SM::getState(SM::STATE_CAMPAIGN_DOB), $u))
+        ->toContain('pensions and retirement');
+});
+
 it('only asks ISA when ISA was ticked, bank/savings otherwise', function () {
     $isaOnly = campaignUser(['funnel_answers' => ['assets' => ['isa']]]);
     $bankOnly = campaignUser(['funnel_answers' => ['assets' => ['bank']]]);

@@ -482,7 +482,7 @@ final class OnboardingStateMachine
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
                 'turn_type' => 'grouped_extract',
-                'prompt_text' => "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.",
+                'prompt_text' => self::class.'::buildCampaignDobPrompt',
                 'extraction_tool' => 'capture_personal_details',
                 'retry_text' => 'Could you give me your date of birth — for example 12 January 1985?',
                 // Pension questions only if the user ticked "pension"; otherwise
@@ -1462,6 +1462,23 @@ final class OnboardingStateMachine
     public static function skipIfNoBankOrSavings(User $user): bool
     {
         return ! self::funnelHasAnyAsset($user, ['bank', 'savings']);
+    }
+
+    /**
+     * DOB-capture prompt for the pensions section. DOB is always captured (it
+     * feeds tax/retirement maths regardless), but only a user who ticked
+     * "pension" on the funnel is told Fyn is now looking at pensions —
+     * otherwise the question is framed neutrally so a user who did not pick a
+     * pension is never asked about one they don't have. Pairs with
+     * nextFromCampaignDob, which gates the pension questions that follow.
+     */
+    public static function buildCampaignDobPrompt(string $answer, User $user): string
+    {
+        if (self::funnelHasAnyAsset($user, ['pension'])) {
+            return "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.";
+        }
+
+        return "Next, what's your date of birth? Something like 12 January 1985.";
     }
 
     /**
