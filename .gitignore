@@ -95,3 +95,6 @@ fynlaBrain/
 # Python bytecode (e.g. the excalidraw skill's compose.py cache)
 __pycache__/
 *.pyc
+
+# Local-only security review (kept out of history — may contain vuln detail)
+docs/security/security-review-2026-06-09.md
