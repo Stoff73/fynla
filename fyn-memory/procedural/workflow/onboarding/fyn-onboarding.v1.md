@@ -163,13 +163,13 @@ campaign_isa_holdings:
 
 campaign_bank_accounts:
   turn_type: delegated
-  prompt_text: "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"
+  prompt_text: "Now your savings — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"
   capture_field: null
   next: { branch: enterCampaignVerify }
 
 campaign_investment_accounts:
   turn_type: delegated
-  prompt_text: 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
+  prompt_text: 'Any investment accounts — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
   capture_field: null
   next: { branch: enterCampaignVerify }
 

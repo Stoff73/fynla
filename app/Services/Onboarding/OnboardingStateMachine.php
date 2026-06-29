@@ -466,7 +466,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
+                'prompt_text' => "Now your savings — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
                 // Only ask about bank/savings if the user ticked bank or savings.
@@ -475,7 +475,7 @@ final class OnboardingStateMachine
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
+                'prompt_text' => 'Any investment accounts — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
