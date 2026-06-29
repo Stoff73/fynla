@@ -62,7 +62,10 @@ export default {
 
             // Unordered lists: lines starting with - or *
             text = text.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
-            text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="list-disc ml-4 my-2 space-y-1">$&</ul>');
+            // Strip the newlines the list consumed so the later \n→<br> pass
+            // doesn't inject a stray <br> between items (which double-spaced the
+            // list); spacing comes from space-y-1 alone.
+            text = text.replace(/(?:<li>.*<\/li>\n?)+/g, m => '<ul class="list-disc ml-4 my-2 space-y-1">' + m.replace(/\n/g, '') + '</ul>');
 
             // Numbered lists: lines starting with 1. 2. etc.
             text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
