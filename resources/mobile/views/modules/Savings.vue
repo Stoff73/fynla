@@ -1,7 +1,7 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your savings" :edit-prompt="editPrompt">
+  <MobileChrome title="Bank accounts & cash" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your bank accounts" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
-      <p class="m-sub">Loading your savings…</p>
+      <p class="m-sub">Loading your bank accounts…</p>
     </div>
 
     <div v-else-if="error" class="m-card m-state">
@@ -12,9 +12,45 @@
     <template v-else>
       <!-- Total cash hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Total cash savings</p>
+        <p class="m-sub m-label">Total cash</p>
         <p class="m-metric">{{ fmt(totalCash) }}</p>
         <p class="m-hero-sub">{{ accountCountLabel }}</p>
+      </div>
+
+      <!-- Accounts list (directly under the total) -->
+      <div class="m-card">
+        <div class="m-cap-head" style="margin-top:0">
+          <p class="m-section-label">Bank accounts</p>
+          <div v-if="accountLimit" class="m-cap">
+            <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} accounts used</span>
+            <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
+          </div>
+        </div>
+        <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
+          You haven't added any bank accounts yet.
+        </p>
+        <div v-else>
+          <button
+            v-for="acct in accounts"
+            :key="acct.id"
+            type="button"
+            class="ms-acct"
+            @click="openAccount(acct.id)"
+          >
+            <div class="ms-acct__main">
+              <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Bank account' }}</span>
+              <span class="ms-acct__meta">
+                <span v-if="acct.is_isa" class="ms-acct__tag">ISA</span>
+                <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
+                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+              </span>
+            </div>
+            <div class="ms-acct__right">
+              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__view">View</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       <!-- Emergency fund runway -->
@@ -57,42 +93,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Accounts list -->
-      <div class="m-card">
-        <div class="m-cap-head" style="margin-top:0">
-          <p class="m-section-label">Savings accounts</p>
-          <div v-if="accountLimit" class="m-cap">
-            <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} accounts used</span>
-            <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
-          </div>
-        </div>
-        <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
-          You haven't added any savings accounts yet.
-        </p>
-        <div v-else>
-          <button
-            v-for="acct in accounts"
-            :key="acct.id"
-            type="button"
-            class="ms-acct"
-            @click="openAccount(acct.id)"
-          >
-            <div class="ms-acct__main">
-              <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Savings account' }}</span>
-              <span class="ms-acct__meta">
-                <span v-if="acct.is_isa" class="ms-acct__tag">ISA</span>
-                <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
-                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
-              </span>
-            </div>
-            <div class="ms-acct__right">
-              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
-              <span class="ms-acct__view">View</span>
-            </div>
-          </button>
-        </div>
-      </div>
     </template>
   </MobileChrome>
 </template>
@@ -121,8 +121,8 @@ export default {
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     editPrompt() {
-      return buildEditPrompt('savings', "I'd like to add a savings account.",
-        this.accounts.map((a) => a.provider || a.institution || 'Savings account'));
+      return buildEditPrompt('savings', "I'd like to add a bank account.",
+        this.accounts.map((a) => a.provider || a.institution || 'Bank account'));
     },
     isaAllowance() { return this.payload?.isa_allowance || null; },
     emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
@@ -214,7 +214,7 @@ export default {
       try {
         const { ok, data } = await apiGet('/api/savings', store.token);
         if (ok) this.payload = data?.data || data || {};
-        else this.error = data?.message || 'We could not load your savings.';
+        else this.error = data?.message || 'We could not load your bank accounts.';
       } catch (e) {
         this.error = 'Network error. Please try again.';
       } finally {

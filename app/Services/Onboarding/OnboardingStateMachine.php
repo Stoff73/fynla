@@ -1102,7 +1102,7 @@ final class OnboardingStateMachine
     private static function sectionLabel(string $section): string
     {
         return [
-            'income' => 'income', 'savings' => 'savings', 'investments' => 'investments',
+            'income' => 'income', 'savings' => 'bank accounts', 'investments' => 'investments',
             'pensions' => 'pensions', 'spouse' => 'spouse details',
             'expenditure' => 'expenditure',
         ][$section] ?? 'details';

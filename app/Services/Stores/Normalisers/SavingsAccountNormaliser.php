@@ -88,7 +88,9 @@ class SavingsAccountNormaliser
     public function fromFyn(array $toolParams): array
     {
         $isIsa = (bool) ($toolParams['is_isa'] ?? false);
-        $accountType = $toolParams['account_type'] ?? 'easy_access';
+        // An untyped account is a current/bank account by default, not a savings
+        // product (CSJ: only store a savings type when the user stipulates one).
+        $accountType = $toolParams['account_type'] ?? 'current_account';
 
         $dbAccountType = match ($accountType) {
             'fixed_term' => 'fixed',

@@ -244,6 +244,13 @@ describe('extractSavingsAccounts', function () {
         expect($out)->toBe([]);
     });
 
+    it('defaults a provider+balance with no savings signal to current_account', function () {
+        $out = $this->extractor->extractSavingsAccounts('I have £5,000 with Halifax');
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['account_type'])->toBe('current_account');
+    });
+
     it('detects fixed term bonds', function () {
         $out = $this->extractor->extractSavingsAccounts(
             'Santander 2 year fixed rate bond £20k'

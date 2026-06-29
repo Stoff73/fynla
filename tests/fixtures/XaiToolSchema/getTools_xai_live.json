@@ -486,7 +486,7 @@
                                 "type": "null"
                             }
                         ],
-                        "description": "Product type. \"current_account\" for current/checking accounts. \"savings_account\" or \"easy_access\" for savings. \"notice\" for notice accounts. \"fixed\" for fixed term. \"cash_isa\" for Cash ISA. \"premium_bonds\" for NS&I Premium Bonds. \"nsi\" for other NS&I products."
+                        "description": "Product type. DEFAULT to \"current_account\" for any everyday bank or current account, and whenever the user does NOT name a specific savings product. Only use a savings type when the user explicitly says so: \"easy_access\" or \"savings_account\" for a savings account, \"notice\" for notice accounts, \"fixed\" for fixed term, \"cash_isa\" for a Cash ISA, \"premium_bonds\" for NS&I Premium Bonds, \"nsi\" for other NS&I products."
                     },
                     "institution": {
                         "type": [

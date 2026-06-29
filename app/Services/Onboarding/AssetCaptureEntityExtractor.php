@@ -514,11 +514,15 @@ final class AssetCaptureEntityExtractor
 
         $isIsa = preg_match('/\bisa\b|individual[\s-]savings[\s-]account/u', $lower) === 1;
 
+        // Only classify as a savings product on an explicit savings signal; a
+        // bare provider + balance ("Barclays, £5,000") is a current/bank account
+        // by default (CSJ: don't assume savings unless the user stipulates it).
         $accountType = match (true) {
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b|\b\d+[\s-]year\s+bond\b/u', $lower) === 1 => 'fixed_term',
             preg_match('/\bnotice[\s-]account\b|\b\d+[\s-]day\s+notice\b/u', $lower) === 1 => 'notice',
             preg_match('/\bregular[\s-]saver\b|\bmonthly[\s-]saver\b/u', $lower) === 1 => 'regular_saver',
-            default => 'easy_access',
+            $hasSavingsSignal => 'easy_access',
+            default => 'current_account',
         };
 
         $accountName = $this->composeSavingsName($provider, $lower, $isIsa);
