@@ -19,12 +19,14 @@
 
       <!-- Action row under the header: Back (left) + Edit details. Back shows on
            sub-pages (the parent passes :back and handles @back). -->
-      <div v-if="!loading && (back || editDetails)" class="md-page-actions">
+      <div v-if="!loading && (back || (editDetails && !showOnboardingNudge))" class="md-page-actions">
         <button v-if="back" type="button" class="md-back-btn" @click="$emit('back')">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
-        <button v-if="editDetails" type="button" class="md-edit-details" @click="openFynWith(editPrompt || 'What would you like to update?')">
+        <!-- Hidden during the onboarding verify step: the on-page Continue/Edit
+             bubbles below replace it (Edit there opens Fyn to change details). -->
+        <button v-if="editDetails && !showOnboardingNudge" type="button" class="md-edit-details" @click="openFynWith(editPrompt || 'What would you like to update?')">
           Edit details
         </button>
       </div>
@@ -43,12 +45,13 @@
       <div class="md-bottom-pad" aria-hidden="true"></div>
     </main>
 
-    <!-- Onboarding continue nudge — when the verify flow has navigated a
-         mid-onboarding user here and minimised the dock, this points them back to
-         the chat so they know they can carry on. Tapping opens Fyn; hidden once
-         Fyn is open or onboarding is complete. Plain text only — Rule #15. -->
-    <div v-if="showOnboardingNudge" class="md-fyn-nudge">
-      <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Tap the chat below to continue with Fyn</button>
+    <!-- Onboarding verify actions — when the verify flow has navigated a
+         mid-onboarding user here to check a section, these replace the old nudge
+         banner. Continue confirms and carries the onboarding on; Edit opens Fyn
+         to change the details. Styled as the chat quick-reply pills. -->
+    <div v-if="showOnboardingNudge" class="md-verify-actions">
+      <button type="button" class="md-fyn__bubble" :disabled="sending" @click="verifyContinue">Continue</button>
+      <button type="button" class="md-fyn__bubble" :disabled="sending" @click="verifyEdit">Edit</button>
     </div>
 
     <!-- Docked Fyn bar -->
@@ -331,6 +334,16 @@ export default {
     openFynWith(message) {
       this.openFyn();
       this.$nextTick(() => { if (message) this.send(message); });
+    },
+    // Onboarding verify actions (on-page, in place of the nudge banner). Both
+    // send the verify-confirm answer the chat bubbles would, so the director's
+    // nextFromVerifyNavigate routes the same way: Continue → confirm + advance;
+    // Edit → "No, change something" → the edit flow.
+    verifyContinue() {
+      this.openFynWith("Yes, that's right");
+    },
+    verifyEdit() {
+      this.openFynWith("No, change something");
     },
     reportFynProblem() {
       store.openBugReport(this.conversationId);
