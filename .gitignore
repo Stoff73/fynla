@@ -91,3 +91,7 @@ March/*/CSJTODO.md
 mcp-servers/
 fynlaBrain/
 .smoke-evidence/
+
+# Python bytecode (e.g. the excalidraw skill's compose.py cache)
+__pycache__/
+*.pyc
