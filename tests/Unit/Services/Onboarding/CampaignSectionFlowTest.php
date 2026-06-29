@@ -103,6 +103,33 @@ it('keeps the pensions framing on the date-of-birth question when pension was ti
         ->toContain('pensions and retirement');
 });
 
+it('asks only about bank accounts when savings was not ticked', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['bank']]]);
+
+    $prompt = strtolower(SM::resolvePromptText(SM::getState(SM::STATE_CAMPAIGN_BANK_ACCOUNTS), $u));
+
+    expect($prompt)->toContain('bank account')
+        ->and($prompt)->not->toContain('savings account');
+});
+
+it('asks only about savings accounts when bank was not ticked', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['savings']]]);
+
+    $prompt = strtolower(SM::resolvePromptText(SM::getState(SM::STATE_CAMPAIGN_BANK_ACCOUNTS), $u));
+
+    expect($prompt)->toContain('savings account')
+        ->and($prompt)->not->toContain('bank account');
+});
+
+it('mentions both bank and savings accounts when both were ticked', function () {
+    $u = campaignUser(['funnel_answers' => ['assets' => ['bank', 'savings']]]);
+
+    $prompt = strtolower(SM::resolvePromptText(SM::getState(SM::STATE_CAMPAIGN_BANK_ACCOUNTS), $u));
+
+    expect($prompt)->toContain('bank accounts')
+        ->and($prompt)->toContain('savings accounts');
+});
+
 it('only asks ISA when ISA was ticked, bank/savings otherwise', function () {
     $isaOnly = campaignUser(['funnel_answers' => ['assets' => ['isa']]]);
     $bankOnly = campaignUser(['funnel_answers' => ['assets' => ['bank']]]);

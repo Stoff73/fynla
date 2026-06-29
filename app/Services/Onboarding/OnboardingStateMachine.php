@@ -466,7 +466,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?",
+                'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
                 // Only ask about bank/savings if the user ticked bank or savings.
@@ -1462,6 +1462,28 @@ final class OnboardingStateMachine
     public static function skipIfNoBankOrSavings(User $user): bool
     {
         return ! self::funnelHasAnyAsset($user, ['bank', 'savings']);
+    }
+
+    /**
+     * Savings-section capture prompt, scoped to what the user ticked. Reached
+     * only when bank or savings was selected (skipIfNoBankOrSavings), so it
+     * names just the held cash type(s) — a user who ticked only "savings" is
+     * never asked about bank accounts, and vice versa.
+     */
+    public static function buildCampaignBankAccountsPrompt(string $answer, User $user): string
+    {
+        $hasBank = self::funnelHasAnyAsset($user, ['bank']);
+        $hasSavings = self::funnelHasAnyAsset($user, ['savings']);
+
+        if ($hasBank && $hasSavings) {
+            return "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?";
+        }
+
+        if ($hasBank) {
+            return "Now your bank accounts. For each, what's the balance and the interest rate?";
+        }
+
+        return "Now your savings accounts. For each, what's the balance and the interest rate?";
     }
 
     /**
