@@ -2204,9 +2204,9 @@ class CoordinatingAgent extends BaseAgent
         // model only sometimes self-corrected on a retry, so the record was
         // intermittently never created and the capture turn re-narrated.
         // Coerce a recognised synonym / unknown value to a sensible default
-        // BEFORE validation so a plain "savings account" lands on the first
-        // call. easy_access is the correct default for an untyped savings
-        // account; cash_isa when the user flagged it as an ISA.
+        // BEFORE validation. An untyped account defaults to current_account —
+        // a bank account, not a savings product — unless the user stipulates a
+        // savings type (those map below) or flags it as an ISA (then cash_isa).
         if (isset($input['account_type'])) {
             if (! in_array($input['account_type'], self::SAVINGS_ACCOUNT_TYPES, true)) {
                 $synonyms = [
@@ -2234,7 +2234,7 @@ class CoordinatingAgent extends BaseAgent
                 ];
                 $key = strtolower((string) $input['account_type']);
                 $input['account_type'] = $synonyms[$key]
-                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'easy_access');
+                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'current_account');
             }
         }
 
