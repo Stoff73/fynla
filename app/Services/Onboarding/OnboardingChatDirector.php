@@ -1853,6 +1853,13 @@ final class OnboardingChatDirector
         // freshly-written columns.
         $user->refresh();
 
+        // Cross-check the captured income against the funnel band the user
+        // picked on the website. On a contradiction, challenge + hold here.
+        $challenged = yield from $this->maybeChallengeIncome($user, $conversation, $currentStateId, $captureDetails);
+        if ($challenged) {
+            return;
+        }
+
         yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
     }
 
@@ -2177,6 +2184,41 @@ final class OnboardingChatDirector
 
         return "Earlier you told us {$whose}, but you've entered {$entered}. "
             ."That changes your tax-saving calculation — {$question}";
+    }
+
+    /**
+     * If the just-captured income contradicts the funnel band, park a
+     * pending_income_challenge flag, emit the challenge + Continue/Change
+     * bubbles, and yield nothing further. Returns true when it challenged
+     * (caller must NOT advance), false otherwise.
+     */
+    private function maybeChallengeIncome(User $user, AiConversation $conversation, string $stateId, array $captureDetails): \Generator
+    {
+        $mismatch = $this->detectIncomeFunnelMismatch($user, $stateId, $captureDetails);
+        if ($mismatch === null) {
+            return false;
+        }
+
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['pending_income_challenge'] = $mismatch;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $text = $this->buildIncomeChallenge($mismatch, $user);
+        $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => ['onboarding_step' => $stateId, 'income_challenge' => true],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $text,
+            'bubbles' => [
+                ['id' => 'continue', 'label' => 'Continue'],
+                ['id' => 'change', 'label' => 'Change'],
+            ],
+        ];
+
+        return true;
     }
 
     /**
