@@ -2176,7 +2176,10 @@ final class OnboardingChatDirector
             return null;
         }
 
-        $enteredRaw = $captureDetails['details']['annual_income'] ?? null;
+        // $captureDetails is the handler's `details` array (assigned from
+        // $event['details'] in handleGroupedExtractTurn), so annual_income is a
+        // direct key here — NOT nested under another 'details'.
+        $enteredRaw = $captureDetails['annual_income'] ?? null;
         if ($enteredRaw === null) {
             // Spouse income is optional; user-income absence is handled by the
             // income-required retry, not here.

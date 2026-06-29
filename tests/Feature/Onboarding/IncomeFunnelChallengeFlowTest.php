@@ -37,7 +37,7 @@ it('challenges and holds base_work when the income contradicts the funnel band',
     $events = drain($m->invoke(
         $director, $user, $conversation,
         OnboardingStateMachine::STATE_BASE_WORK,
-        ['details' => ['annual_income' => 50000.0]]
+        ['annual_income' => 50000.0]
     ));
 
     $types = array_column($events, 'type');
@@ -64,7 +64,7 @@ it('does not challenge when the income is in-band', function () {
     $events = drain($m->invoke(
         $director, $user, $conversation,
         OnboardingStateMachine::STATE_BASE_WORK,
-        ['details' => ['annual_income' => 80000.0]]
+        ['annual_income' => 80000.0]
     ));
     expect($events)->toBe([]);
     $user->refresh();

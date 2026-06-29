@@ -23,7 +23,7 @@ it('flags a user income that falls outside the funnel band', function () {
         'funnel_answers' => ['income' => '100001_125140'],
     ]);
     $result = invokeDetect($user, OnboardingStateMachine::STATE_BASE_WORK, [
-        'details' => ['annual_income' => 50000.0],
+        'annual_income' => 50000.0,
     ]);
     expect($result)->toMatchArray(['field' => 'self', 'band' => '100001_125140', 'entered' => 50000.0]);
 });
@@ -33,7 +33,7 @@ it('does not flag a user income inside the funnel band', function () {
         'funnel_answers' => ['income' => '50271_100000'],
     ]);
     $result = invokeDetect($user, OnboardingStateMachine::STATE_BASE_WORK, [
-        'details' => ['annual_income' => 80000.0],
+        'annual_income' => 80000.0,
     ]);
     expect($result)->toBeNull();
 });
@@ -41,7 +41,7 @@ it('does not flag a user income inside the funnel band', function () {
 it('never flags when the user has no funnel answers', function () {
     $user = User::factory()->create(['funnel_answers' => null]);
     $result = invokeDetect($user, OnboardingStateMachine::STATE_BASE_WORK, [
-        'details' => ['annual_income' => 50000.0],
+        'annual_income' => 50000.0,
     ]);
     expect($result)->toBeNull();
 });
@@ -51,7 +51,7 @@ it('flags a spouse income that contradicts the funnel spouse band', function () 
         'funnel_answers' => ['spouseIncome' => 'zero'],
     ]);
     $result = invokeDetect($user, OnboardingStateMachine::STATE_BASE_SPOUSE, [
-        'details' => ['annual_income' => 40000.0],
+        'annual_income' => 40000.0,
     ]);
     expect($result)->toMatchArray(['field' => 'spouse', 'band' => 'zero', 'entered' => 40000.0]);
 });
@@ -61,7 +61,7 @@ it('skips the spouse check when no spouse income was captured', function () {
         'funnel_answers' => ['spouseIncome' => 'zero'],
     ]);
     $result = invokeDetect($user, OnboardingStateMachine::STATE_BASE_SPOUSE, [
-        'details' => ['annual_income' => null],
+        'annual_income' => null,
     ]);
     expect($result)->toBeNull();
 });
