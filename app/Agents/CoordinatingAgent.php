@@ -1380,6 +1380,7 @@ class CoordinatingAgent extends BaseAgent
                 'already_linked' => $result['already_linked'],
                 'email_sent' => $result['email_sent'],
                 'first_name' => $firstName,
+                'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ],
         ];
     }

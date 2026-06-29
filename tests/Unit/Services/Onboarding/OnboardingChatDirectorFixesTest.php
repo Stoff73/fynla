@@ -248,3 +248,24 @@ describe('Fix §4: base_expenditure syncs into ExpenditureProfile', function () 
         expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
     });
 });
+
+describe('capture_spouse_details surfaces the entered income', function () {
+    it('returns the entered spouse annual_income in the capture details', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $agent = app(CoordinatingAgent::class);
+        $m = new ReflectionMethod($agent, 'handleCaptureSpouseDetails');
+        $m->setAccessible(true);
+
+        $result = $m->invoke($agent, [
+            'first_name' => 'Sam',
+            'last_name' => 'Carter',
+            'date_of_birth' => '1985-01-12',
+            'email' => 'sam.spouse.'.uniqid().'@example.com',
+            'annual_income' => 0,
+        ], $user);
+
+        expect($result)->toHaveKey('details')
+            ->and($result['details'])->toHaveKey('annual_income')
+            ->and($result['details']['annual_income'])->toBe(0.0);
+    });
+});
