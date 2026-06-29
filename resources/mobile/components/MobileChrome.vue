@@ -340,10 +340,24 @@ export default {
     // nextFromVerifyNavigate routes the same way: Continue → confirm + advance;
     // Edit → "No, change something" → the edit flow.
     verifyContinue() {
-      this.openFynWith("Yes, that's right");
+      this.verifyAnswer("Yes, that's right");
     },
     verifyEdit() {
-      this.openFynWith("No, change something");
+      this.verifyAnswer("No, change something");
+    },
+    // Open Fyn and FULLY resume the EXISTING onboarding conversation (sets
+    // conversationId + loads the transcript) BEFORE sending the answer, so it
+    // continues the same session. Without awaiting the resume, send()'s
+    // ensureConversation() runs while conversationId is still null and starts a
+    // brand-new conversation — the prior transcript would look lost. fynStarted
+    // is set first so initFyn's fire-and-forget resume doesn't double-run.
+    async verifyAnswer(answer) {
+      this.fynStarted = true;
+      this.openFyn();
+      if (this.onboardingActive && !this.conversationId) {
+        await this.resumeOnboardingInDock();
+      }
+      this.send(answer);
     },
     reportFynProblem() {
       store.openBugReport(this.conversationId);

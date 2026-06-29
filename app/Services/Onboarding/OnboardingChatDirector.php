@@ -689,10 +689,14 @@ final class OnboardingChatDirector
             $navigateTo = $state['navigate_to'] ?? null;
             $route = is_callable($navigateTo) ? $navigateTo($user) : $navigateTo;
             if (is_string($route) && $route !== '') {
+                $ctx = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
                 yield [
                     'type' => 'navigation',
                     'route_path' => $route,
                     'description' => $stateId,
+                    // The section being verified (income/spouse/…); the /m surface
+                    // uses it to label the screen (e.g. income vs spouse income).
+                    'section' => ((string) ($ctx['verify_section'] ?? '')) ?: null,
                 ];
             }
         } else {
