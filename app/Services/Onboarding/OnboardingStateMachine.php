@@ -466,7 +466,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Now your savings — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
+                'prompt_text' => "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?",
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
                 // Only ask about bank/savings if the user ticked bank or savings.

@@ -163,7 +163,7 @@ campaign_isa_holdings:
 
 campaign_bank_accounts:
   turn_type: delegated
-  prompt_text: "Now your savings — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"
+  prompt_text: "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?"
   capture_field: null
   next: { branch: enterCampaignVerify }
 
