@@ -111,7 +111,7 @@ describe('Fix §3: handleCaptureWorkDetails supports partial capture', function 
             ->and((float) $user->annual_employment_income)->toBe(50000.0);
     });
 
-    it('saves non-empty fields and reports missing when employer is blank', function () {
+    it('requires only income — blank employer and occupation do not block', function () {
         $user = User::factory()->create([
             'employment_status' => 'employed',
             'employer' => null,
@@ -119,18 +119,37 @@ describe('Fix §3: handleCaptureWorkDetails supports partial capture', function 
             'annual_employment_income' => null,
         ]);
 
+        // Income given, employer/occupation blank → nothing missing, flow advances.
         $result = invokeCaptureWorkDetails($user, [
             'employer' => '',
-            'occupation' => 'Chief Marketing Officer',
+            'occupation' => '',
             'annual_income' => 50000,
         ]);
 
         $user->refresh();
         expect($result['onboarding_capture'])->toBeTrue()
-            ->and($result['details']['missing'])->toBe(['employer'])
+            ->and($result['details']['missing'])->toBe([])
             ->and($user->employer ?? '')->toBe('')
-            ->and($user->occupation)->toBe('Chief Marketing Officer')
+            ->and($user->occupation ?? '')->toBe('')
             ->and((float) $user->annual_employment_income)->toBe(50000.0);
+    });
+
+    it('reports missing only when income is absent', function () {
+        $user = User::factory()->create([
+            'employment_status' => 'employed',
+            'employer' => null,
+            'occupation' => null,
+            'annual_employment_income' => null,
+        ]);
+
+        // Employer/occupation present but no income → still need the income.
+        $result = invokeCaptureWorkDetails($user, [
+            'employer' => 'Dentsu',
+            'occupation' => 'Chief Marketing Officer',
+            'annual_income' => null,
+        ]);
+
+        expect($result['details']['missing'])->toBe(['annual_income']);
     });
 
     it('accumulates across turns without overwriting previously-saved fields', function () {
@@ -227,5 +246,26 @@ describe('Fix §4: base_expenditure syncs into ExpenditureProfile', function () 
         invokePersistCapture($user, OnboardingStateMachine::STATE_BASE_EXPENDITURE, 0);
 
         expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
+    });
+});
+
+describe('capture_spouse_details surfaces the entered income', function () {
+    it('returns the entered spouse annual_income in the capture details', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $agent = app(CoordinatingAgent::class);
+        $m = new ReflectionMethod($agent, 'handleCaptureSpouseDetails');
+        $m->setAccessible(true);
+
+        $result = $m->invoke($agent, [
+            'first_name' => 'Sam',
+            'last_name' => 'Carter',
+            'date_of_birth' => '1985-01-12',
+            'email' => 'sam.spouse.'.uniqid().'@example.com',
+            'annual_income' => 0,
+        ], $user);
+
+        expect($result)->toHaveKey('details')
+            ->and($result['details'])->toHaveKey('annual_income')
+            ->and($result['details']['annual_income'])->toBe(0.0);
     });
 });

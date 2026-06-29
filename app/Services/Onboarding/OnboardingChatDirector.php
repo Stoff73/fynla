@@ -160,6 +160,34 @@ final class OnboardingChatDirector
             return;
         }
 
+        // Income-challenge resolution (pending_income_challenge parked by
+        // maybeChallengeIncome). The user is answering "is X right?" — handle
+        // it before any normal turn routing.
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        if (isset($context['pending_income_challenge'])) {
+            $reply = mb_strtolower(trim($message));
+
+            // Clear the flag on every branch — Continue always ends the loop.
+            unset($context['pending_income_challenge']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if ($reply === 'continue') {
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
+            if ($reply === 'change') {
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+                return;
+            }
+            // Anything else: the user typed a new figure instead of tapping —
+            // fall through to the normal capture path below, which re-captures
+            // and re-runs the challenge check.
+        }
+
         // Phase 4e — stamp the active onboarding workflow procedure version onto
         // the turn so persistEpisode can bind it onto the episode. Recorded only
         // when the corpus actually supplies the workflow procedure (the merge
@@ -537,7 +565,7 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_DEPENDANTS => 'noting whether you have dependants',
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => 'noting your dependants',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'noting your employment situation',
-            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your employer and role',
+            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your income',
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',
@@ -661,10 +689,14 @@ final class OnboardingChatDirector
             $navigateTo = $state['navigate_to'] ?? null;
             $route = is_callable($navigateTo) ? $navigateTo($user) : $navigateTo;
             if (is_string($route) && $route !== '') {
+                $ctx = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
                 yield [
                     'type' => 'navigation',
                     'route_path' => $route,
                     'description' => $stateId,
+                    // The section being verified (income/spouse/…); the /m surface
+                    // uses it to label the screen (e.g. income vs spouse income).
+                    'section' => ((string) ($ctx['verify_section'] ?? '')) ?: null,
                 ];
             }
         } else {
@@ -1853,6 +1885,23 @@ final class OnboardingChatDirector
         // freshly-written columns.
         $user->refresh();
 
+        // Cross-check the captured income against the funnel band the user
+        // picked on the website. On a contradiction, challenge + hold here.
+        $challenged = yield from $this->maybeChallengeIncome($user, $conversation, $currentStateId, $captureDetails);
+        if ($challenged) {
+            return;
+        }
+
+        yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+    }
+
+    /**
+     * Advance from a just-completed capture state to the next state and emit
+     * its turn. Extracted from handleGroupedExtractTurn so the income-challenge
+     * Continue branch can resume the advance after the user confirms.
+     */
+    private function advanceFromState(User $user, AiConversation $conversation, string $currentStateId, string $message): \Generator
+    {
         $nextStateId = OnboardingStateMachine::getNextStateId(
             $currentStateId,
             $message,
@@ -2100,6 +2149,111 @@ final class OnboardingChatDirector
         };
 
         return 'Thanks — I still need '.$list.'. Could you share '.(count($friendly) === 1 ? 'that' : 'those').'?';
+    }
+
+    /**
+     * Cross-check a just-captured income figure against the band the user
+     * picked on the SaveTax funnel. Returns the mismatch payload to challenge,
+     * or null when there is nothing to challenge (no funnel band, unknown band,
+     * no figure captured, or the figure is in-band).
+     *
+     * @return array{field: string, band: string, entered: float}|null
+     */
+    private function detectIncomeFunnelMismatch(User $user, string $stateId, array $captureDetails): ?array
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if ($funnel === []) {
+            return null;
+        }
+
+        if ($stateId === OnboardingStateMachine::STATE_BASE_WORK) {
+            $field = 'self';
+            $band = (string) ($funnel['income'] ?? '');
+        } elseif ($stateId === OnboardingStateMachine::STATE_BASE_SPOUSE) {
+            $field = 'spouse';
+            $band = (string) ($funnel['spouseIncome'] ?? '');
+        } else {
+            return null;
+        }
+
+        if (! FunnelIncomeBand::isKnown($band)) {
+            return null;
+        }
+
+        // $captureDetails is the handler's `details` array (assigned from
+        // $event['details'] in handleGroupedExtractTurn), so annual_income is a
+        // direct key here — NOT nested under another 'details'.
+        $enteredRaw = $captureDetails['annual_income'] ?? null;
+        if ($enteredRaw === null) {
+            // Spouse income is optional; user-income absence is handled by the
+            // income-required retry, not here.
+            return null;
+        }
+        $entered = (float) $enteredRaw;
+
+        if (FunnelIncomeBand::inBand($band, $entered)) {
+            return null;
+        }
+
+        return ['field' => $field, 'band' => $band, 'entered' => $entered];
+    }
+
+    /**
+     * Plain-text challenge naming what the user told the funnel and what they
+     * just entered. No icons (Rule #15); British spelling.
+     *
+     * @param  array{field: string, band: string, entered: float}  $mismatch
+     */
+    private function buildIncomeChallenge(array $mismatch, User $user): string
+    {
+        $bandLabel = FunnelIncomeBand::label($mismatch['band']);
+        $entered = '£'.number_format($mismatch['entered']);
+
+        if ($mismatch['field'] === 'spouse') {
+            $whose = "your spouse's income was {$bandLabel}";
+            $question = "is {$entered} right for them?";
+        } else {
+            $whose = "your income was {$bandLabel}";
+            $question = "is {$entered} right?";
+        }
+
+        return "Earlier you told us {$whose}, but you've entered {$entered}. "
+            ."That changes your tax-saving calculation — {$question}";
+    }
+
+    /**
+     * If the just-captured income contradicts the funnel band, park a
+     * pending_income_challenge flag, emit the challenge + Continue/Change
+     * bubbles, and yield nothing further. Returns true when it challenged
+     * (caller must NOT advance), false otherwise.
+     */
+    private function maybeChallengeIncome(User $user, AiConversation $conversation, string $stateId, array $captureDetails): \Generator
+    {
+        $mismatch = $this->detectIncomeFunnelMismatch($user, $stateId, $captureDetails);
+        if ($mismatch === null) {
+            return false;
+        }
+
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['pending_income_challenge'] = $mismatch;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $text = $this->buildIncomeChallenge($mismatch, $user);
+        $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => ['onboarding_step' => $stateId, 'income_challenge' => true],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $text,
+            'bubbles' => [
+                ['id' => 'continue', 'label' => 'Continue'],
+                ['id' => 'change', 'label' => 'Change'],
+            ],
+        ];
+
+        return true;
     }
 
     /**

@@ -1319,6 +1319,15 @@
   color: var(--horizon-600);
   border: 1px solid var(--horizon-100);
 }
+/* Bullet lists inside a Fyn bubble (funnel recap "what you've told me"). */
+.md-fyn__msg ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.md-fyn__msg li {
+  margin: 0.125rem 0;
+}
 
 .md-fyn__prompts {
   padding: 0.75rem 1rem;
@@ -1846,6 +1855,25 @@
 }
 .md-fyn__bubble:hover { background: var(--raspberry-500); color: var(--white); }
 .md-fyn__bubble:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Onboarding verify actions — on-page Continue/Edit pills (same style as the
+   chat quick-replies) sitting just above the docked Fyn bar, replacing the
+   old "tap the chat to continue" nudge banner. */
+.md-verify-actions {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 9;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.md-verify-actions .md-fyn__bubble {
+  min-width: 6rem;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(31, 42, 68, 0.18);
+}
 
 /* Nudge — sits just above the docked Fyn bar, points the user into Fyn. */
 .md-fyn-nudge {

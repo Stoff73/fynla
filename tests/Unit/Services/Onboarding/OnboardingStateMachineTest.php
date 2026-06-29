@@ -51,6 +51,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
             OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS,
             // SaveTax verify sub-flow (generic; section carried in onboarding_fyn_context)
+            'campaign_verify_announce',
             'campaign_verify_more',
             'campaign_verify_navigate',
             'campaign_verify_edit',
@@ -396,18 +397,20 @@ describe('OnboardingStateMachine::interpolate + resolvePromptText', function () 
         expect($text)->toContain('spouse');
     });
 
-    it('uses trade-name phrasing in base_work for self-employed users', function () {
+    it('asks self-employed users for income only', function () {
         $user = User::factory()->create(['employment_status' => 'self_employed']);
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
         $text = OnboardingStateMachine::resolvePromptText($state, $user);
-        expect($text)->toContain('trade or business name');
+        expect($text)->toContain('gross annual self-employment income')
+            ->and($text)->not->toContain('trade or business name');
     });
 
-    it('uses company phrasing in base_work for employed users', function () {
+    it('asks employed users for income only', function () {
         $user = User::factory()->create(['employment_status' => 'employed']);
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
         $text = OnboardingStateMachine::resolvePromptText($state, $user);
-        expect($text)->toContain('company you work for');
+        expect($text)->toContain('gross annual income')
+            ->and($text)->not->toContain('company you work for');
     });
 });
 

@@ -190,7 +190,7 @@ export default {
       this.$nextTick(this.scrollFyn);
       try {
         await this.streamFynAction(this.conversationId, action, cursor);
-        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
+        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
@@ -223,6 +223,10 @@ export default {
         // Mid-campaign verify navigate or the terminal turn. Captured here; the
         // caller decides how the surface presents it after the stream.
         cursor.navigation = ev.route_path;
+        // Section being verified (income/spouse/…) — the destination screen uses
+        // it to label itself (e.g. the income page shows "Your income" vs "Your
+        // spouse's income"). Carried as a route query on push.
+        cursor.navSection = ev.section || null;
         // A verify-navigate turn carries the Gate-2 confirm ("is this
         // correct?") AND a route to the section's screen. The confirm belongs
         // on THAT screen, once the user can see it — not in this dock, before
@@ -327,7 +331,7 @@ export default {
           const idx = this.messages.indexOf(cursor.reply);
           if (idx !== -1) this.messages.splice(idx, 1);
         }
-        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
+        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
@@ -345,9 +349,13 @@ export default {
     // in front, then route. When the chat re-emits a navigation for the screen
     // we're ALREADY on (the dock re-showing the Gate-2 turn), keep the chat open
     // so the bubbles stay visible. Unknown desktop-only routes are ignored.
-    handleOnboardingNavigation(routePath) {
+    handleOnboardingNavigation(routePath, section = null) {
       if (!ONBOARDING_NAV_ROUTES.includes(routePath)) return;
       if (this.$route && this.$route.path === routePath) return;
+      // Carry the verified section as a query so the destination screen can
+      // label itself (e.g. /income → "Your income" vs "Your spouse's income").
+      // route_path stays clean for the matching above; the query rides on push.
+      const target = section ? `${routePath}?section=${encodeURIComponent(section)}` : routePath;
       this.closeFyn();
       // Let the dock's slide-down animation play out before swapping the route.
       // closeFyn starts a 300ms transform transition (.md-fyn in dashboard.css);
@@ -355,7 +363,7 @@ export default {
       // the close is cut off and the hand-off looks abrupt. Match the CSS
       // duration so the dock minimises smoothly, THEN navigate.
       window.setTimeout(() => {
-        if (this.$route.path !== routePath) this.$router.push(routePath);
+        if (this.$route.path !== routePath) this.$router.push(target);
       }, 300);
     },
   },

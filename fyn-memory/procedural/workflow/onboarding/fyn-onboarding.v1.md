@@ -111,7 +111,7 @@ base_work:
   turn_type: grouped_extract
   prompt_text: { builder: buildWorkPrompt }
   extraction_tool: capture_work_details
-  retry_text: 'I need three things: the company or trade name, your position, and your gross annual income in GBP. Could you share all three?'
+  retry_text: 'I just need your gross annual income in GBP — could you share that?'
   next: base_employment_more
 
 base_employment_more:
@@ -163,13 +163,13 @@ campaign_isa_holdings:
 
 campaign_bank_accounts:
   turn_type: delegated
-  prompt_text: "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?"
+  prompt_text: "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?"
   capture_field: null
   next: { branch: enterCampaignVerify }
 
 campaign_investment_accounts:
   turn_type: delegated
-  prompt_text: 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
+  prompt_text: 'Any investment accounts — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
   capture_field: null
   next: { branch: enterCampaignVerify }
 
@@ -178,7 +178,7 @@ campaign_dob:
   prompt_text: "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985."
   extraction_tool: capture_personal_details
   retry_text: 'Could you give me your date of birth — for example 12 January 1985?'
-  next: campaign_occupational_scheme
+  next: { branch: nextFromCampaignDob }
 
 campaign_occupational_scheme:
   turn_type: delegated
@@ -284,6 +284,14 @@ campaign_verify_more:
     - { id: 'no', label: "No, that's everything" }
   capture_field: null
   next: { branch: nextFromVerifyMore }
+
+campaign_verify_announce:
+  turn_type: bubbles
+  prompt_text: { builder: verifyPromptAnnounce }
+  bubbles:
+    - { id: 'okay', label: 'Okay' }
+  capture_field: null
+  next: campaign_verify_navigate
 
 campaign_verify_navigate:
   turn_type: bubbles

@@ -129,7 +129,7 @@ it('embeds the per-state label in the welcome-back greeting for every supported 
     'base_dependants' => [OnboardingStateMachine::STATE_BASE_DEPENDANTS, 'noting whether you have dependants'],
     'base_dependants_detail' => [OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL, 'noting your dependants'],
     'base_employment' => [OnboardingStateMachine::STATE_BASE_EMPLOYMENT, 'noting your employment situation'],
-    'base_work' => [OnboardingStateMachine::STATE_BASE_WORK, 'capturing your employer and role'],
+    'base_work' => [OnboardingStateMachine::STATE_BASE_WORK, 'capturing your income'],
     'base_retirement_date' => [OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE, 'noting when you retired'],
     'base_expenditure' => [OnboardingStateMachine::STATE_BASE_EXPENDITURE, 'noting your monthly expenditure'],
     'asset_capture' => [OnboardingStateMachine::STATE_ASSET_CAPTURE, 'mapping your protection records'],

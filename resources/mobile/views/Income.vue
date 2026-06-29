@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Income" subtitle="What you (and your spouse) earn each year" :loading="loading" loading-label="your income">
+  <MobileChrome title="Income" :subtitle="incomeSubtitle" :loading="loading" loading-label="your income">
     <div v-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
@@ -58,6 +58,11 @@ export default {
   components: { MobileChrome },
   data: () => ({ loading: true, error: '', summary: null }),
   computed: {
+    // "Your income" normally; "Your spouse's income" when the onboarding verify
+    // navigated here for the spouse section (carried as ?section=spouse).
+    incomeSubtitle() {
+      return this.$route.query.section === 'spouse' ? "Your spouse's income" : 'Your income';
+    },
     userIncome() { return this.summary?.user || {}; },
     spouseIncome() { return this.summary?.spouse || null; },
     hasSpouse() { return !!this.spouseIncome; },

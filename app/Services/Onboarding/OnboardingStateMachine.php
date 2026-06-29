@@ -377,7 +377,7 @@ final class OnboardingStateMachine
                 'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildWorkPrompt',
                 'extraction_tool' => 'capture_work_details',
-                'retry_text' => 'I need three things: the company or trade name, your position, and your gross annual income in GBP. Could you share all three?',
+                'retry_text' => 'I just need your gross annual income in GBP — could you share that?',
                 'next' => self::STATE_BASE_EMPLOYMENT_MORE,
             ],
             // Phase 10 — multi-job loop. After the first job is captured,
@@ -461,27 +461,33 @@ final class OnboardingStateMachine
                 'prompt_text' => "Let's look at your ISAs. Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?",
                 'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+                // Only ask about ISAs if the user ticked "ISA" on the funnel.
+                'skip_if' => [self::class, 'skipIfNoIsa'],
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
+                'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
+                // Only ask about bank/savings if the user ticked bank or savings.
+                'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
+                'prompt_text' => 'Any investment accounts — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
                 'turn_type' => 'grouped_extract',
-                'prompt_text' => "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.",
+                'prompt_text' => self::class.'::buildCampaignDobPrompt',
                 'extraction_tool' => 'capture_personal_details',
                 'retry_text' => 'Could you give me your date of birth — for example 12 January 1985?',
-                'next' => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+                // Pension questions only if the user ticked "pension"; otherwise
+                // DOB is captured and we skip straight to the next section.
+                'next' => self::class.'::nextFromCampaignDob',
                 'skip_if' => [self::class, 'skipIfDobSet'],
             ],
             self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
@@ -633,11 +639,28 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'next' => self::class.'::nextFromVerifyMore',
             ],
+            // Announce-before-navigate: Fyn says it's taking the user to the
+            // section's page and waits for an explicit "Okay" tap BEFORE the
+            // navigation fires. Without this gate the navigate event fired in the
+            // same turn as the message, so the chat minimised and the user never
+            // saw/acknowledged the handoff — it "just transitioned". No navigate_to
+            // here on purpose; the Okay tap advances to campaign_verify_navigate,
+            // which owns the actual navigation.
+            'campaign_verify_announce' => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::verifyPromptAnnounce',
+                'bubbles' => [
+                    ['id' => 'okay', 'label' => 'Okay'],
+                ],
+                'capture_field' => null,
+                'next' => 'campaign_verify_navigate',
+            ],
             // Bubbles state that ALSO emits a navigation event when navigate_to
             // resolves to a route (director extension): the chat minimises + routes,
             // and the "is this correct?" bubbles wait for the user to reopen.
             // navigate_to is a code-only closure (null for charitable giving =
-            // inline confirm, no navigation).
+            // inline confirm, no navigation). Reached only AFTER the user taps
+            // Okay on campaign_verify_announce.
             'campaign_verify_navigate' => [
                 'turn_type' => 'bubbles',
                 'prompt_text' => self::class.'::verifyPromptNavigate',
@@ -968,9 +991,11 @@ final class OnboardingStateMachine
         $user->onboarding_fyn_context = $context;
         $user->save();
 
-        // Go straight to navigate-and-confirm. The section's own capture
-        // "anything else?" gate already covered "more"; we never ask it again.
-        return 'campaign_verify_navigate';
+        // Announce first: Fyn states it's taking the user to the section page and
+        // waits for an "Okay" tap before navigating (campaign_verify_announce →
+        // campaign_verify_navigate). The section's own capture "anything else?"
+        // gate already covered "more"; we never ask it again.
+        return 'campaign_verify_announce';
     }
 
     /**
@@ -1044,6 +1069,22 @@ final class OnboardingStateMachine
         return "Anything else to add to your {$label}?";
     }
 
+    /**
+     * Prompt for verify_announce, section-aware. Fyn states the upcoming
+     * transition and waits for an Okay tap before the navigation fires.
+     */
+    public static function verifyPromptAnnounce(string $answer, User $user): string
+    {
+        if (self::verifyNavigateRoute($user) === null) {
+            // No screen to navigate to — confirm inline, no announce needed.
+            return "I've recorded that. Does it look right?";
+        }
+
+        $section = self::sectionLabel(self::verifySection($user));
+
+        return "I've saved your {$section}. Next I'll take you to your {$section} page so you can check everything's correct — tap Okay when you're ready.";
+    }
+
     /** Prompt for verify_navigate, section-aware (navigation vs inline confirm). */
     public static function verifyPromptNavigate(string $answer, User $user): string
     {
@@ -1054,7 +1095,7 @@ final class OnboardingStateMachine
 
         $section = self::sectionLabel(self::verifySection($user));
 
-        return "I've added that — I'm taking you to your {$section} page now. Take a look and check everything's correct, then tap the chat to confirm.";
+        return "Here's your {$section} page — take a look and check everything's correct, then tell me: does it look right?";
     }
 
     /** Human label for a campaign section, for verify prompts. */
@@ -1181,7 +1222,7 @@ final class OnboardingStateMachine
      */
     private static function buildFunnelRecapPrompt(string $firstName, array $funnel): string
     {
-        $bits = [];
+        $points = [];
 
         $employmentLabel = [
             'full-time' => 'working full-time',
@@ -1191,21 +1232,31 @@ final class OnboardingStateMachine
             'not-employed' => 'not currently employed',
         ][$funnel['employment'] ?? ''] ?? null;
         if ($employmentLabel) {
-            $bits[] = $employmentLabel;
+            $points[] = ucfirst($employmentLabel);
         }
 
         $incomeLabel = [
             'upto_50270' => 'earning up to £50,270',
-            '50271_100000' => 'a higher-rate taxpayer',
-            '100001_125140' => 'in the £100k Personal Allowance taper band',
-            'over_125140' => 'an additional-rate taxpayer',
+            '50271_100000' => 'earning £50,271 to £100,000',
+            '100001_125140' => 'earning £100,001 to £125,140',
+            'over_125140' => 'earning above £125,140',
         ][$funnel['income'] ?? ''] ?? null;
         if ($incomeLabel) {
-            $bits[] = $incomeLabel;
+            $points[] = ucfirst($incomeLabel);
         }
 
         if (($funnel['spouse'] ?? '') === 'yes') {
-            $bits[] = 'with a spouse or partner';
+            // Spouse income is only collected on the funnel when the spouse has
+            // income (the "No income"/zero option and the no-spouse path leave it
+            // unset), so the band→phrase map omits zero — an unset/zero band falls
+            // through to '' and we recap just the spouse, no income line.
+            $spouseIncomeSuffix = [
+                'upto_50270' => ' earning up to £50,270',
+                '50271_100000' => ' earning £50,271 to £100,000',
+                '100001_125140' => ' earning £100,001 to £125,140',
+                'over_125140' => ' earning above £125,140',
+            ][$funnel['spouseIncome'] ?? ''] ?? '';
+            $points[] = 'You have a spouse'.$spouseIncomeSuffix;
         }
 
         $assetMap = [
@@ -1216,9 +1267,9 @@ final class OnboardingStateMachine
             fn ($a) => $assetMap[$a] ?? null,
             is_array($funnel['assets'] ?? null) ? $funnel['assets'] : []
         )));
-
-        $recap = $bits === [] ? '' : ' You told us you\'re '.self::joinWithAnd($bits).'.';
-        $assetsLine = $assets === [] ? '' : ' You also mentioned '.self::joinWithAnd($assets).'.';
+        if ($assets !== []) {
+            $points[] = 'You have '.self::joinWithAnd($assets);
+        }
 
         // Time estimate: the detailed onboarding averages 3-5 minutes, plus a
         // minute for every asset the user picked beyond the first on the funnel's
@@ -1229,12 +1280,21 @@ final class OnboardingStateMachine
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
 
-        // Two bubbles: the recap + time estimate ("what we've heard"), then the
-        // bold income question on its own. BUBBLE_BREAK splits them in the dock.
-        return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
-            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
+        // First bubble: greet, list the funnel answers as bullet points (one per
+        // line so they read clearly), then the profile/time line. Markdown "- "
+        // bullets render as a list on both surfaces (web AiMessageContent +
+        // /m renderFynText). BUBBLE_BREAK then splits the bold income question
+        // off as its own bubble in the dock.
+        $intro = "Hi {$firstName}, I'm Fyn — thanks for those answers.";
+        if ($points !== []) {
+            $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
+            $intro .= " Here's what you've told me:\n\n{$bullets}";
+        }
+
+        return $intro
+            ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
             .self::BUBBLE_BREAK
-            ."**Let's start with your income.** Tell me your employer or business, your role, and your gross annual income (this includes bonuses and commissions).";
+            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
     }
 
     /** Join a list into "a, b and c". */
@@ -1306,14 +1366,14 @@ final class OnboardingStateMachine
         }
 
         if ($status === 'self_employed') {
-            return 'Brilliant. Let me know your trade or business name, your main role, and your gross annual self-employment income — all in one go is fine.';
+            return "Brilliant. What's your gross annual self-employment income? This includes bonuses and commissions.";
         }
 
         if ($status === 'part_time') {
-            return 'Lovely. Share the company you work for part-time, your position, and your gross annual income from that role.';
+            return "Lovely. What's your gross annual income from that role? This includes bonuses and commissions.";
         }
 
-        return 'Brilliant. Share the company you work for, your position, and your gross annual income — all in one go is fine.';
+        return "Brilliant. What's your gross annual income? This includes bonuses and commissions.";
     }
 
     public static function nextFromAddMore(string $answer, User $user): string
@@ -1386,6 +1446,75 @@ final class OnboardingStateMachine
     public static function skipSectionIfNoInvestments(User $user): bool
     {
         return ! self::funnelHasAnyAsset($user, ['investments']);
+    }
+
+    /**
+     * Per-question gates inside the savings section. Fyn must only ask about the
+     * specific products the user ticked on the funnel — the section-level
+     * skipSectionIfNoCash runs the section if ANY cash-like asset is held, so
+     * these stop the ISA question firing for a savings-only user (and vice versa).
+     */
+    public static function skipIfNoIsa(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['isa']);
+    }
+
+    public static function skipIfNoBankOrSavings(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['bank', 'savings']);
+    }
+
+    /**
+     * Savings-section capture prompt, scoped to what the user ticked. Reached
+     * only when bank or savings was selected (skipIfNoBankOrSavings), so it
+     * names just the held cash type(s) — a user who ticked only "savings" is
+     * never asked about bank accounts, and vice versa.
+     */
+    public static function buildCampaignBankAccountsPrompt(string $answer, User $user): string
+    {
+        $hasBank = self::funnelHasAnyAsset($user, ['bank']);
+        $hasSavings = self::funnelHasAnyAsset($user, ['savings']);
+
+        if ($hasBank && $hasSavings) {
+            return "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?";
+        }
+
+        if ($hasBank) {
+            return "Now your bank accounts. For each, what's the balance and the interest rate?";
+        }
+
+        return "Now your savings accounts. For each, what's the balance and the interest rate?";
+    }
+
+    /**
+     * DOB-capture prompt for the pensions section. DOB is always captured (it
+     * feeds tax/retirement maths regardless), but only a user who ticked
+     * "pension" on the funnel is told Fyn is now looking at pensions —
+     * otherwise the question is framed neutrally so a user who did not pick a
+     * pension is never asked about one they don't have. Pairs with
+     * nextFromCampaignDob, which gates the pension questions that follow.
+     */
+    public static function buildCampaignDobPrompt(string $answer, User $user): string
+    {
+        if (self::funnelHasAnyAsset($user, ['pension'])) {
+            return "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.";
+        }
+
+        return "Next, what's your date of birth? Something like 12 January 1985.";
+    }
+
+    /**
+     * Pensions-section entry routing after DOB. DOB is always captured (it's
+     * needed for tax/retirement), but the pension questions + the pension verify
+     * only fire when the user ticked "pension" on the funnel — otherwise we skip
+     * straight to the next section, so Fyn never asks about a pension the user
+     * doesn't have.
+     */
+    public static function nextFromCampaignDob(string $answer, User $user): string
+    {
+        return self::funnelHasAnyAsset($user, ['pension'])
+            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            : self::nextCampaignSection('pensions', $user);
     }
 
     /** True if the user's funnel answers list at least one of the given assets. */
