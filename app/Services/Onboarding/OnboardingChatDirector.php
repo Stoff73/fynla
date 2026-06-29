@@ -160,6 +160,34 @@ final class OnboardingChatDirector
             return;
         }
 
+        // Income-challenge resolution (pending_income_challenge parked by
+        // maybeChallengeIncome). The user is answering "is X right?" — handle
+        // it before any normal turn routing.
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        if (isset($context['pending_income_challenge'])) {
+            $reply = mb_strtolower(trim($message));
+
+            // Clear the flag on every branch — Continue always ends the loop.
+            unset($context['pending_income_challenge']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if ($reply === 'continue') {
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
+            if ($reply === 'change') {
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+                return;
+            }
+            // Anything else: the user typed a new figure instead of tapping —
+            // fall through to the normal capture path below, which re-captures
+            // and re-runs the challenge check.
+        }
+
         // Phase 4e — stamp the active onboarding workflow procedure version onto
         // the turn so persistEpisode can bind it onto the episode. Recorded only
         // when the corpus actually supplies the workflow procedure (the merge

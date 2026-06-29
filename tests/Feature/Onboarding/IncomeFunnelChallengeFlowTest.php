@@ -70,3 +70,43 @@ it('does not challenge when the income is in-band', function () {
     $user->refresh();
     expect($user->onboarding_fyn_context['pending_income_challenge'] ?? null)->toBeNull();
 });
+
+it('advances when the user taps Continue on the income challenge', function () {
+    $user = User::factory()->create([
+        'employment_status' => 'employed',
+        'funnel_answers' => ['income' => '100001_125140'],
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_WORK,
+        'annual_employment_income' => 50000,
+        'onboarding_fyn_context' => ['pending_income_challenge' => ['field' => 'self', 'band' => '100001_125140', 'entered' => 50000.0]],
+    ]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+
+    drain($director->handleUserMessage($user, $conversation, 'Continue'));
+    $user->refresh();
+
+    expect($user->onboarding_fyn_context['pending_income_challenge'] ?? null)->toBeNull()
+        ->and($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_BASE_WORK); // advanced
+});
+
+it('re-asks the income question when the user taps Change', function () {
+    $user = User::factory()->create([
+        'employment_status' => 'employed',
+        'funnel_answers' => ['income' => '100001_125140'],
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_WORK,
+        'annual_employment_income' => 50000,
+        'onboarding_fyn_context' => ['pending_income_challenge' => ['field' => 'self', 'band' => '100001_125140', 'entered' => 50000.0]],
+    ]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+
+    $events = drain($director->handleUserMessage($user, $conversation, 'Change'));
+    $user->refresh();
+
+    $content = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($user->onboarding_fyn_context['pending_income_challenge'] ?? null)->toBeNull()
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK) // held for re-ask
+        ->and(strtolower($content))->toContain('income');
+});
