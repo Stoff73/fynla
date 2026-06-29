@@ -1,7 +1,7 @@
 <template>
-  <MobileChrome title="Bank accounts & cash" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your savings" :edit-prompt="editPrompt">
+  <MobileChrome title="Bank accounts & cash" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your bank accounts" :edit-prompt="editPrompt">
     <div v-if="loading" class="m-card m-state">
-      <p class="m-sub">Loading your savings…</p>
+      <p class="m-sub">Loading your bank accounts…</p>
     </div>
 
     <div v-else-if="error" class="m-card m-state">
@@ -12,7 +12,7 @@
     <template v-else>
       <!-- Total cash hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Total cash savings</p>
+        <p class="m-sub m-label">Total cash</p>
         <p class="m-metric">{{ fmt(totalCash) }}</p>
         <p class="m-hero-sub">{{ accountCountLabel }}</p>
       </div>
@@ -121,8 +121,8 @@ export default {
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     editPrompt() {
-      return buildEditPrompt('savings', "I'd like to add a savings account.",
-        this.accounts.map((a) => a.provider || a.institution || 'Savings account'));
+      return buildEditPrompt('savings', "I'd like to add a bank account.",
+        this.accounts.map((a) => a.provider || a.institution || 'Bank account'));
     },
     isaAllowance() { return this.payload?.isa_allowance || null; },
     emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
@@ -214,7 +214,7 @@ export default {
       try {
         const { ok, data } = await apiGet('/api/savings', store.token);
         if (ok) this.payload = data?.data || data || {};
-        else this.error = data?.message || 'We could not load your savings.';
+        else this.error = data?.message || 'We could not load your bank accounts.';
       } catch (e) {
         this.error = 'Network error. Please try again.';
       } finally {

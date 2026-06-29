@@ -2287,6 +2287,10 @@ class CoordinatingAgent extends BaseAgent
 
         $this->invalidateUserCache($user->id);
 
+        // A current account isn't a "savings account" (CSJ: don't call a bank
+        // account savings); other types keep their existing wording.
+        $typeLabel = $account->account_type === 'current_account' ? 'current account' : 'savings account';
+
         return [
             'success' => true,
             'created' => true,
@@ -2294,7 +2298,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys($canonical),
-            'message' => "I've added your \"{$account->account_name}\" savings account.".$this->tierCapNote($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user)),
+            'message' => "I've added your \"{$account->account_name}\" {$typeLabel}.".$this->tierCapNote($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user)),
         ];
     }
 
