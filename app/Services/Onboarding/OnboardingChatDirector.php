@@ -1853,6 +1853,16 @@ final class OnboardingChatDirector
         // freshly-written columns.
         $user->refresh();
 
+        yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+    }
+
+    /**
+     * Advance from a just-completed capture state to the next state and emit
+     * its turn. Extracted from handleGroupedExtractTurn so the income-challenge
+     * Continue branch can resume the advance after the user confirms.
+     */
+    private function advanceFromState(User $user, AiConversation $conversation, string $currentStateId, string $message): \Generator
+    {
         $nextStateId = OnboardingStateMachine::getNextStateId(
             $currentStateId,
             $message,
