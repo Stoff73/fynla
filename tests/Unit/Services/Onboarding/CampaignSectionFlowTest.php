@@ -32,7 +32,9 @@ it('walks every section in order for a fully-loaded married dual-earner', functi
 
     // spouse — household_calculation_mode is already known (dual_earner), so the
     // spouse-work question skips itself straight to household data.
-    expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)       // savings
+    // Savings entry is BANK_ACCOUNTS here: this user holds savings but NOT an ISA,
+    // so the ISA question is skipped and the section opens on bank/savings.
+    expect(SM::nextCampaignSection('income', $u))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS)     // savings (no ISA → bank)
         ->and(SM::nextCampaignSection('savings', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS) // investments
         ->and(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_DOB)        // pensions (DOB first)
         ->and(SM::nextCampaignSection('pensions', $u))->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD) // spouse (dual-earner → household)
@@ -59,12 +61,34 @@ it('resolves the pensions entry past DOB once a date of birth is known', functio
     $u = campaignUser([
         'date_of_birth' => '1985-01-12',
         'employment_status' => 'full_time',
-        'funnel_answers' => ['assets' => []],
+        'funnel_answers' => ['assets' => ['pension']],
     ]);
 
     // pensions entry is DOB, but skipIfDobSet → transitively advances to the
-    // workplace-pension capture (employed, so it isn't skipped).
+    // workplace-pension capture (employed + pension ticked, so it isn't skipped).
     expect(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+});
+
+it('skips the pension questions entirely when the user did not tick pension', function () {
+    // DOB set so the pensions entry advances past DOB; no "pension" funnel asset
+    // → nextFromCampaignDob routes straight to the next section, never asking
+    // about workplace/personal pensions.
+    $u = campaignUser([
+        'date_of_birth' => '1985-01-12',
+        'employment_status' => 'full_time',
+        'marital_status' => 'single',
+        'funnel_answers' => ['assets' => ['savings']],
+    ]);
+
+    expect(SM::nextCampaignSection('investments', $u))->toBe(SM::STATE_BASE_EXPENDITURE);
+});
+
+it('only asks ISA when ISA was ticked, bank/savings otherwise', function () {
+    $isaOnly = campaignUser(['funnel_answers' => ['assets' => ['isa']]]);
+    $bankOnly = campaignUser(['funnel_answers' => ['assets' => ['bank']]]);
+
+    expect(SM::nextCampaignSection('income', $isaOnly))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)
+        ->and(SM::nextCampaignSection('income', $bankOnly))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS);
 });
 
 it('opens the income-first entry with the funnel recap greeting', function () {

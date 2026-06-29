@@ -461,12 +461,16 @@ final class OnboardingStateMachine
                 'prompt_text' => "Let's look at your ISAs. Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?",
                 'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+                // Only ask about ISAs if the user ticked "ISA" on the funnel.
+                'skip_if' => [self::class, 'skipIfNoIsa'],
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'turn_type' => 'delegated',
                 'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
+                // Only ask about bank/savings if the user ticked bank or savings.
+                'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
@@ -481,7 +485,9 @@ final class OnboardingStateMachine
                 'prompt_text' => "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.",
                 'extraction_tool' => 'capture_personal_details',
                 'retry_text' => 'Could you give me your date of birth — for example 12 January 1985?',
-                'next' => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+                // Pension questions only if the user ticked "pension"; otherwise
+                // DOB is captured and we skip straight to the next section.
+                'next' => self::class.'::nextFromCampaignDob',
                 'skip_if' => [self::class, 'skipIfDobSet'],
             ],
             self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
@@ -1430,6 +1436,36 @@ final class OnboardingStateMachine
     public static function skipSectionIfNoInvestments(User $user): bool
     {
         return ! self::funnelHasAnyAsset($user, ['investments']);
+    }
+
+    /**
+     * Per-question gates inside the savings section. Fyn must only ask about the
+     * specific products the user ticked on the funnel — the section-level
+     * skipSectionIfNoCash runs the section if ANY cash-like asset is held, so
+     * these stop the ISA question firing for a savings-only user (and vice versa).
+     */
+    public static function skipIfNoIsa(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['isa']);
+    }
+
+    public static function skipIfNoBankOrSavings(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['bank', 'savings']);
+    }
+
+    /**
+     * Pensions-section entry routing after DOB. DOB is always captured (it's
+     * needed for tax/retirement), but the pension questions + the pension verify
+     * only fire when the user ticked "pension" on the funnel — otherwise we skip
+     * straight to the next section, so Fyn never asks about a pension the user
+     * doesn't have.
+     */
+    public static function nextFromCampaignDob(string $answer, User $user): string
+    {
+        return self::funnelHasAnyAsset($user, ['pension'])
+            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            : self::nextCampaignSection('pensions', $user);
     }
 
     /** True if the user's funnel answers list at least one of the given assets. */

@@ -178,7 +178,7 @@ campaign_dob:
   prompt_text: "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985."
   extraction_tool: capture_personal_details
   retry_text: 'Could you give me your date of birth — for example 12 January 1985?'
-  next: campaign_occupational_scheme
+  next: { branch: nextFromCampaignDob }
 
 campaign_occupational_scheme:
   turn_type: delegated
