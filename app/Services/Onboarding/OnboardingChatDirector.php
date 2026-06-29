@@ -2103,6 +2103,73 @@ final class OnboardingChatDirector
     }
 
     /**
+     * Cross-check a just-captured income figure against the band the user
+     * picked on the SaveTax funnel. Returns the mismatch payload to challenge,
+     * or null when there is nothing to challenge (no funnel band, unknown band,
+     * no figure captured, or the figure is in-band).
+     *
+     * @return array{field: string, band: string, entered: float}|null
+     */
+    private function detectIncomeFunnelMismatch(User $user, string $stateId, array $captureDetails): ?array
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if ($funnel === []) {
+            return null;
+        }
+
+        if ($stateId === OnboardingStateMachine::STATE_BASE_WORK) {
+            $field = 'self';
+            $band = (string) ($funnel['income'] ?? '');
+        } elseif ($stateId === OnboardingStateMachine::STATE_BASE_SPOUSE) {
+            $field = 'spouse';
+            $band = (string) ($funnel['spouseIncome'] ?? '');
+        } else {
+            return null;
+        }
+
+        if (! FunnelIncomeBand::isKnown($band)) {
+            return null;
+        }
+
+        $enteredRaw = $captureDetails['details']['annual_income'] ?? null;
+        if ($enteredRaw === null) {
+            // Spouse income is optional; user-income absence is handled by the
+            // income-required retry, not here.
+            return null;
+        }
+        $entered = (float) $enteredRaw;
+
+        if (FunnelIncomeBand::inBand($band, $entered)) {
+            return null;
+        }
+
+        return ['field' => $field, 'band' => $band, 'entered' => $entered];
+    }
+
+    /**
+     * Plain-text challenge naming what the user told the funnel and what they
+     * just entered. No icons (Rule #15); British spelling.
+     *
+     * @param  array{field: string, band: string, entered: float}  $mismatch
+     */
+    private function buildIncomeChallenge(array $mismatch, User $user): string
+    {
+        $bandLabel = FunnelIncomeBand::label($mismatch['band']);
+        $entered = '£'.number_format($mismatch['entered']);
+
+        if ($mismatch['field'] === 'spouse') {
+            $whose = "your spouse's income was {$bandLabel}";
+            $question = "is {$entered} right for them?";
+        } else {
+            $whose = "your income was {$bandLabel}";
+            $question = "is {$entered} right?";
+        }
+
+        return "Earlier you told us {$whose}, but you've entered {$entered}. "
+            ."That changes your tax-saving calculation — {$question}";
+    }
+
+    /**
      * Build the restricted system prompt for grouped-extract turns. Must
      * stay narrow — we do not want Claude to answer the user, we just
      * want it to call the single extraction tool with parsed fields.
