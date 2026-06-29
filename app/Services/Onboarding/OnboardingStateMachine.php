@@ -1246,7 +1246,17 @@ final class OnboardingStateMachine
         }
 
         if (($funnel['spouse'] ?? '') === 'yes') {
-            $points[] = 'You have a spouse or partner';
+            // Spouse income is only collected on the funnel when the spouse has
+            // income (the "No income"/zero option and the no-spouse path leave it
+            // unset), so the band→phrase map omits zero — an unset/zero band falls
+            // through to '' and we recap just the spouse, no income line.
+            $spouseIncomeSuffix = [
+                'upto_50270' => ' earning up to £50,270',
+                '50271_100000' => ' earning £50,271 to £100,000',
+                '100001_125140' => ' earning £100,001 to £125,140',
+                'over_125140' => ' earning above £125,140',
+            ][$funnel['spouseIncome'] ?? ''] ?? '';
+            $points[] = 'You have a spouse'.$spouseIncomeSuffix;
         }
 
         $assetMap = [

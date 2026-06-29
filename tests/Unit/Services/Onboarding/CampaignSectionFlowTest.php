@@ -106,6 +106,37 @@ it('opens the income-first entry with the funnel recap greeting', function () {
         ->and($prompt)->not->toContain('date of birth');     // DOB deferred
 });
 
+it('recaps the spouse income band when the spouse has income', function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => [
+            'employment' => 'full-time', 'income' => '100001_125140',
+            'spouse' => 'yes', 'spouseIncome' => '50271_100000', 'assets' => ['savings'],
+        ],
+    ]);
+
+    expect(SM::buildWorkPrompt('', $u))
+        ->toContain('spouse earning £50,271 to £100,000');
+});
+
+it('omits the spouse income line when the spouse has no income', function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => [
+            'employment' => 'full-time', 'income' => '100001_125140',
+            'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => ['savings'],
+        ],
+    ]);
+
+    $prompt = SM::buildWorkPrompt('', $u);
+    expect($prompt)->toContain('You have a spouse')
+        ->and($prompt)->not->toContain('spouse earning');
+});
+
 it('states a 3 minute estimate when one asset is selected', function () {
     $u = campaignUser([
         'first_name' => 'Trapper',
