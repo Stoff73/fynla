@@ -1319,6 +1319,15 @@
   color: var(--horizon-600);
   border: 1px solid var(--horizon-100);
 }
+/* Bullet lists inside a Fyn bubble (funnel recap "what you've told me"). */
+.md-fyn__msg ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.md-fyn__msg li {
+  margin: 0.125rem 0;
+}
 
 .md-fyn__prompts {
   padding: 0.75rem 1rem;

@@ -377,7 +377,7 @@ final class OnboardingStateMachine
                 'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildWorkPrompt',
                 'extraction_tool' => 'capture_work_details',
-                'retry_text' => 'I need three things: the company or trade name, your position, and your gross annual income in GBP. Could you share all three?',
+                'retry_text' => 'I just need your gross annual income in GBP — could you share that?',
                 'next' => self::STATE_BASE_EMPLOYMENT_MORE,
             ],
             // Phase 10 — multi-job loop. After the first job is captured,
@@ -1181,7 +1181,7 @@ final class OnboardingStateMachine
      */
     private static function buildFunnelRecapPrompt(string $firstName, array $funnel): string
     {
-        $bits = [];
+        $points = [];
 
         $employmentLabel = [
             'full-time' => 'working full-time',
@@ -1191,7 +1191,7 @@ final class OnboardingStateMachine
             'not-employed' => 'not currently employed',
         ][$funnel['employment'] ?? ''] ?? null;
         if ($employmentLabel) {
-            $bits[] = $employmentLabel;
+            $points[] = ucfirst($employmentLabel);
         }
 
         $incomeLabel = [
@@ -1201,11 +1201,11 @@ final class OnboardingStateMachine
             'over_125140' => 'an additional-rate taxpayer',
         ][$funnel['income'] ?? ''] ?? null;
         if ($incomeLabel) {
-            $bits[] = $incomeLabel;
+            $points[] = ucfirst($incomeLabel);
         }
 
         if (($funnel['spouse'] ?? '') === 'yes') {
-            $bits[] = 'with a spouse or partner';
+            $points[] = 'You have a spouse or partner';
         }
 
         $assetMap = [
@@ -1216,9 +1216,9 @@ final class OnboardingStateMachine
             fn ($a) => $assetMap[$a] ?? null,
             is_array($funnel['assets'] ?? null) ? $funnel['assets'] : []
         )));
-
-        $recap = $bits === [] ? '' : ' You told us you\'re '.self::joinWithAnd($bits).'.';
-        $assetsLine = $assets === [] ? '' : ' You also mentioned '.self::joinWithAnd($assets).'.';
+        if ($assets !== []) {
+            $points[] = 'You have '.self::joinWithAnd($assets);
+        }
 
         // Time estimate: the detailed onboarding averages 3-5 minutes, plus a
         // minute for every asset the user picked beyond the first on the funnel's
@@ -1229,12 +1229,21 @@ final class OnboardingStateMachine
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
 
-        // Two bubbles: the recap + time estimate ("what we've heard"), then the
-        // bold income question on its own. BUBBLE_BREAK splits them in the dock.
-        return "Hi {$firstName}, I'm Fyn — thanks for those answers.{$recap}{$assetsLine} "
-            ."I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
+        // First bubble: greet, list the funnel answers as bullet points (one per
+        // line so they read clearly), then the profile/time line. Markdown "- "
+        // bullets render as a list on both surfaces (web AiMessageContent +
+        // /m renderFynText). BUBBLE_BREAK then splits the bold income question
+        // off as its own bubble in the dock.
+        $intro = "Hi {$firstName}, I'm Fyn — thanks for those answers.";
+        if ($points !== []) {
+            $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
+            $intro .= " Here's what you've told me:\n\n{$bullets}";
+        }
+
+        return $intro
+            ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
             .self::BUBBLE_BREAK
-            ."**Let's start with your income.** Tell me your employer or business, your role, and your gross annual income (this includes bonuses and commissions).";
+            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
     }
 
     /** Join a list into "a, b and c". */
@@ -1306,14 +1315,14 @@ final class OnboardingStateMachine
         }
 
         if ($status === 'self_employed') {
-            return 'Brilliant. Let me know your trade or business name, your main role, and your gross annual self-employment income — all in one go is fine.';
+            return "Brilliant. What's your gross annual self-employment income? This includes bonuses and commissions.";
         }
 
         if ($status === 'part_time') {
-            return 'Lovely. Share the company you work for part-time, your position, and your gross annual income from that role.';
+            return "Lovely. What's your gross annual income from that role? This includes bonuses and commissions.";
         }
 
-        return 'Brilliant. Share the company you work for, your position, and your gross annual income — all in one go is fine.';
+        return "Brilliant. What's your gross annual income? This includes bonuses and commissions.";
     }
 
     public static function nextFromAddMore(string $answer, User $user): string

@@ -111,7 +111,7 @@ base_work:
   turn_type: grouped_extract
   prompt_text: { builder: buildWorkPrompt }
   extraction_tool: capture_work_details
-  retry_text: 'I need three things: the company or trade name, your position, and your gross annual income in GBP. Could you share all three?'
+  retry_text: 'I just need your gross annual income in GBP — could you share that?'
   next: base_employment_more
 
 base_employment_more:

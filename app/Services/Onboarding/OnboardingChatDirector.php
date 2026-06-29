@@ -537,7 +537,7 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_DEPENDANTS => 'noting whether you have dependants',
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => 'noting your dependants',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'noting your employment situation',
-            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your employer and role',
+            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your income',
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',

@@ -1452,10 +1452,10 @@ class CoordinatingAgent extends BaseAgent
      * annual_self_employment_income instead of annual_employment_income.
      *
      * Accepts partial payloads: whichever non-empty fields are present get
-     * written, and the return value reports any still-missing fields so the
-     * director can emit a targeted retry instead of re-asking for all three.
-     * Fields already populated on the user row count as present — this lets
-     * multi-turn extraction accumulate without re-asking.
+     * written. Only annual_income is required to advance — onboarding asks for
+     * income alone, so a blank employer/occupation is reported but never blocks
+     * the flow. Fields already populated on the user row count as present — this
+     * lets multi-turn extraction accumulate without re-asking.
      */
     private function handleCaptureWorkDetails(array $input, User $user): array
     {
@@ -1487,13 +1487,10 @@ class CoordinatingAgent extends BaseAgent
 
         $user->save();
 
+        // Only income is required to advance — onboarding asks for income alone.
+        // Employer and occupation are still written when the user volunteers them
+        // (above), but a blank one must not block the flow.
         $missing = [];
-        if (trim((string) ($user->employer ?? '')) === '') {
-            $missing[] = 'employer';
-        }
-        if (trim((string) ($user->occupation ?? '')) === '') {
-            $missing[] = 'occupation';
-        }
         if ((float) ($user->{$incomeField} ?? 0) <= 0) {
             $missing[] = 'annual_income';
         }
