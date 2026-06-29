@@ -554,8 +554,21 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
-                                // Informational — the director transitioned from one
-                                // state to another. No UI change yet; logged for debug.
+                                // The director split a multi-part prompt (e.g. the
+                                // funnel recap → the income question) with this marker.
+                                // Flush the current streaming text into its own bubble
+                                // so the next part starts fresh — matching the /m dock
+                                // and the resume render, where the DB rows are separate
+                                // messages. Without this the parts merge into one bubble.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
@@ -1051,6 +1064,17 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
+                                // See sendMessage handler — flush the streaming text so
+                                // a split multi-part prompt renders as separate bubbles.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
@@ -1286,6 +1310,17 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
+                                // See sendMessage handler — flush the streaming text so
+                                // a split multi-part prompt renders as separate bubbles.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
