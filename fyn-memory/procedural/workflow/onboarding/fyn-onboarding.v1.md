@@ -285,6 +285,14 @@ campaign_verify_more:
   capture_field: null
   next: { branch: nextFromVerifyMore }
 
+campaign_verify_announce:
+  turn_type: bubbles
+  prompt_text: { builder: verifyPromptAnnounce }
+  bubbles:
+    - { id: 'okay', label: 'Okay' }
+  capture_field: null
+  next: campaign_verify_navigate
+
 campaign_verify_navigate:
   turn_type: bubbles
   prompt_text: { builder: verifyPromptNavigate }

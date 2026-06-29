@@ -27,10 +27,10 @@ it('stamps the verify section into context and goes straight to navigate/confirm
         'onboarding_fyn_context' => [],
     ]);
 
-    // No redundant "anything else?" gate — straight to the navigate/confirm.
+    // Announce-before-navigate: enter the Okay gate first, not navigate directly.
     $next = OnboardingStateMachine::enterCampaignVerify($user, 'savings');
 
-    expect($next)->toBe('campaign_verify_navigate')
+    expect($next)->toBe('campaign_verify_announce')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('savings');
 });
 
@@ -65,11 +65,14 @@ it('defines the three generic verify states with the right turn types', function
     $m->setAccessible(true);
     $states = $m->invoke(null);
 
-    expect($states)->toHaveKeys(['campaign_verify_more', 'campaign_verify_navigate', 'campaign_verify_edit'])
+    expect($states)->toHaveKeys(['campaign_verify_announce', 'campaign_verify_more', 'campaign_verify_navigate', 'campaign_verify_edit'])
+        ->and($states['campaign_verify_announce']['turn_type'])->toBe('bubbles')
         ->and($states['campaign_verify_more']['turn_type'])->toBe('bubbles')
         ->and($states['campaign_verify_navigate']['turn_type'])->toBe('bubbles')
         ->and($states['campaign_verify_edit']['turn_type'])->toBe('delegated')
-        ->and($states['campaign_verify_navigate']['navigate_to'])->toBeInstanceOf(Closure::class);
+        ->and($states['campaign_verify_navigate']['navigate_to'])->toBeInstanceOf(Closure::class)
+        // The announce step must NOT navigate — that's the whole point of the gate.
+        ->and($states['campaign_verify_announce']['navigate_to'] ?? null)->toBeNull();
 });
 
 it('routes each section CAPTURE-end straight into navigate/confirm (no extra gate)', function (): void {
@@ -81,8 +84,8 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
         'marital_status' => 'married',
     ]);
 
-    // Capture-ends enter the navigate/confirm directly — never the (now removed)
-    // redundant "anything else?" verify gate.
+    // Capture-ends enter the announce gate (Okay → navigate/confirm) — never the
+    // (now removed) redundant "anything else?" verify gate.
     foreach ([
         OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
         OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
@@ -91,7 +94,7 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
-        expect($resolved)->toBe('campaign_verify_navigate', "state {$stateId} should enter navigate/confirm");
+        expect($resolved)->toBe('campaign_verify_announce', "state {$stateId} should enter the announce gate");
     }
 
     // Advice now fires AFTER the confirm and continues to the next section —

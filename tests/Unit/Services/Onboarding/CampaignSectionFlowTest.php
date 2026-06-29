@@ -129,17 +129,17 @@ it('drops the recap and asks the plain income question once income is captured',
 it('runs verify+confirm before the section advice, then advice → next section', function () {
     $u = campaignUser(['funnel_answers' => ['assets' => ['savings', 'investments', 'pension']]]);
 
-    // Savings' last capture (bank accounts) → navigate/confirm (no advice yet).
-    // After "is this correct? yes" the savings advice fires, then advances to the
-    // investments entry. (See CampaignVerifyFlowTest for the full walk.)
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe('campaign_verify_navigate')
+    // Savings' last capture (bank accounts) → announce gate (Okay → navigate/confirm).
+    // After Okay + "is this correct? yes" the savings advice fires, then advances to
+    // the investments entry. (See CampaignVerifyFlowTest for the full walk.)
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe('campaign_verify_announce')
         ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
 
-    // Pensions' last capture (history) → navigate/confirm.
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe('campaign_verify_navigate');
+    // Pensions' last capture (history) → announce gate.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe('campaign_verify_announce');
 
-    // Income end (employment-more "no") → navigate/confirm; income advice → next section.
-    expect(SM::nextFromEmploymentMore('No', $u))->toBe('campaign_verify_navigate')
+    // Income end (employment-more "no") → announce gate; income advice → next section.
+    expect(SM::nextFromEmploymentMore('No', $u))->toBe('campaign_verify_announce')
         ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->not->toBe('campaign_verify_navigate');
 });
 

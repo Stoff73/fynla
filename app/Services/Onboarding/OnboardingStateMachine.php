@@ -633,11 +633,28 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'next' => self::class.'::nextFromVerifyMore',
             ],
+            // Announce-before-navigate: Fyn says it's taking the user to the
+            // section's page and waits for an explicit "Okay" tap BEFORE the
+            // navigation fires. Without this gate the navigate event fired in the
+            // same turn as the message, so the chat minimised and the user never
+            // saw/acknowledged the handoff — it "just transitioned". No navigate_to
+            // here on purpose; the Okay tap advances to campaign_verify_navigate,
+            // which owns the actual navigation.
+            'campaign_verify_announce' => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::verifyPromptAnnounce',
+                'bubbles' => [
+                    ['id' => 'okay', 'label' => 'Okay'],
+                ],
+                'capture_field' => null,
+                'next' => 'campaign_verify_navigate',
+            ],
             // Bubbles state that ALSO emits a navigation event when navigate_to
             // resolves to a route (director extension): the chat minimises + routes,
             // and the "is this correct?" bubbles wait for the user to reopen.
             // navigate_to is a code-only closure (null for charitable giving =
-            // inline confirm, no navigation).
+            // inline confirm, no navigation). Reached only AFTER the user taps
+            // Okay on campaign_verify_announce.
             'campaign_verify_navigate' => [
                 'turn_type' => 'bubbles',
                 'prompt_text' => self::class.'::verifyPromptNavigate',
@@ -968,9 +985,11 @@ final class OnboardingStateMachine
         $user->onboarding_fyn_context = $context;
         $user->save();
 
-        // Go straight to navigate-and-confirm. The section's own capture
-        // "anything else?" gate already covered "more"; we never ask it again.
-        return 'campaign_verify_navigate';
+        // Announce first: Fyn states it's taking the user to the section page and
+        // waits for an "Okay" tap before navigating (campaign_verify_announce →
+        // campaign_verify_navigate). The section's own capture "anything else?"
+        // gate already covered "more"; we never ask it again.
+        return 'campaign_verify_announce';
     }
 
     /**
@@ -1044,6 +1063,22 @@ final class OnboardingStateMachine
         return "Anything else to add to your {$label}?";
     }
 
+    /**
+     * Prompt for verify_announce, section-aware. Fyn states the upcoming
+     * transition and waits for an Okay tap before the navigation fires.
+     */
+    public static function verifyPromptAnnounce(string $answer, User $user): string
+    {
+        if (self::verifyNavigateRoute($user) === null) {
+            // No screen to navigate to — confirm inline, no announce needed.
+            return "I've recorded that. Does it look right?";
+        }
+
+        $section = self::sectionLabel(self::verifySection($user));
+
+        return "I've saved your {$section}. Next I'll take you to your {$section} page so you can check everything's correct — tap Okay when you're ready.";
+    }
+
     /** Prompt for verify_navigate, section-aware (navigation vs inline confirm). */
     public static function verifyPromptNavigate(string $answer, User $user): string
     {
@@ -1054,7 +1089,7 @@ final class OnboardingStateMachine
 
         $section = self::sectionLabel(self::verifySection($user));
 
-        return "I've added that — I'm taking you to your {$section} page now. Take a look and check everything's correct, then tap the chat to confirm.";
+        return "Here's your {$section} page — take a look and check everything's correct, then tell me: does it look right?";
     }
 
     /** Human label for a campaign section, for verify prompts. */
