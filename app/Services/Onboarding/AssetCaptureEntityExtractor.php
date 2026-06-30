@@ -545,6 +545,7 @@ final class AssetCaptureEntityExtractor
     private function composeSavingsName(?string $provider, string $lowerChunk, bool $isIsa): string
     {
         $suffix = match (true) {
+            $isIsa && preg_match('/stocks?[\s&and-]+shares?|\bs&s\b/u', $lowerChunk) === 1 => 'Stocks & Shares Individual Savings Account',
             $isIsa => 'Cash Individual Savings Account',
             preg_match('/\beasy[\s-]access\b/u', $lowerChunk) === 1 => 'Easy Access Saver',
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b/u', $lowerChunk) === 1 => 'Fixed Term Bond',

@@ -190,7 +190,7 @@ class JourneyFieldResolver
         ],
         'savings_accounts' => [
             'label' => 'Your savings accounts',
-            'fyn_prompt' => "Tell me about your savings and current accounts — just the bank name, the balance, and whether it's a cash ISA if you know. You can list several in one go and I'll add them all at once.",
+            'fyn_prompt' => "Tell me about your savings and current accounts — the bank name, the balance, and whether it's a cash ISA. If any is a cash ISA, tell me how much you've paid into it this tax year too. You can list several in one go and I'll add them all at once.",
             'why' => [
                 'budgeting' => 'Tracks your cash savings, emergency fund, and tax-free savings allowances',
                 'savings' => 'Captures your existing savings balances so I can assess your emergency fund cover, Individual Savings Account allowance usage, and rate competitiveness',
@@ -238,7 +238,7 @@ class JourneyFieldResolver
         ],
         'investment_accounts' => [
             'label' => 'Your investment accounts',
-            'fyn_prompt' => 'What investment accounts are you running? A Stocks & Shares ISA, a General Investment Account, bonds, company share schemes — provider and current value is enough to start. List as many as you have.',
+            'fyn_prompt' => 'What investment accounts are you running? A Stocks & Shares ISA, a General Investment Account, bonds, company share schemes — provider and current value is enough to start, plus the amount paid into any Stocks & Shares ISA this tax year. List as many as you have.',
             'why' => [
                 'investment' => 'Analyse your portfolio, track performance, and optimise asset allocation',
                 'estate' => 'Investment assets form part of your taxable estate',
