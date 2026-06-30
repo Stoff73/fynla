@@ -21,7 +21,6 @@ use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\Coordination\ComposedTaxPlanService;
-use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Gamification\PointsService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
@@ -955,6 +954,11 @@ final class OnboardingChatDirector
      */
     private function buildSynthesisAdvice(User $user): ?string
     {
+        // Recompute on the freshly written records (not the model loaded at the
+        // start of the turn) so the plan voiced here is identical to the one
+        // /tax-strategy renders next — chat and dashboard must never disagree.
+        $user->refresh();
+
         try {
             $plan = app(ComposedTaxPlanService::class)->forUser($user);
         } catch (\Throwable $e) {
@@ -970,56 +974,46 @@ final class OnboardingChatDirector
             return null;
         }
 
-        // Build a type → title map for humanising conflict notes.
-        $typeToTitle = [];
+        // Mirror the /tax-strategy dashboard exactly. That page renders
+        // composed_plan.items as "title — saves £X a year" (TaxStrategy.vue), and
+        // shows NEITHER the locked strategies NOR conflict notes. We voice the same
+        // items, in the same order, as markdown "- " bullets (the format every other
+        // recap screen uses — see buildFunnelRecapPrompt), so the summary reflects
+        // exactly what the user entered and matches the page they tap through to.
+        $bullets = [];
         foreach ($plan['items'] as $item) {
-            $type = (string) ($item['type'] ?? '');
             $title = trim((string) ($item['title'] ?? ''));
-            if ($type !== '' && $title !== '') {
-                $typeToTitle[$type] = $title;
+            if ($title === '') {
+                continue;
             }
-        }
-
-        $lines = ['Here is your plan, in the order I suggest tackling it:'];
-        foreach ($plan['items'] as $item) {
             $saving = $item['estimated_annual_tax_saved'] ?? null;
             $savingFormatted = is_numeric($saving) ? number_format((int) round((float) $saving)) : '';
-            // Skip the suffix when the title already quotes the amount
-            // ("Save around £24 a year by …" must not gain "— around £24 a year").
+            // Skip the suffix when the title already quotes the amount.
             $savingText = $savingFormatted !== '' && (float) $saving > 0
-                && ! str_contains((string) $item['title'], '£'.$savingFormatted)
-                ? sprintf(' — around £%s a year', $savingFormatted)
+                && ! str_contains($title, '£'.$savingFormatted)
+                ? sprintf(' — saves around £%s a year', $savingFormatted)
                 : '';
-            $lines[] = sprintf('%d. %s%s', $item['sequence_position'], $item['title'], $savingText);
+            $bullets[] = sprintf('- %s%s', $title, $savingText);
+        }
 
-            $conflictNote = trim((string) ($item['conflict_note'] ?? ''));
-            if ($conflictNote !== '') {
-                // Replace type tokens in the note with the item's title where known,
-                // then fall back to underscores → spaces for any remaining tokens.
-                foreach ($typeToTitle as $type => $title) {
-                    $conflictNote = str_replace($type, $title, $conflictNote);
-                }
-                $conflictNote = str_replace('_', ' ', $conflictNote);
-                $lines[] = '   Note: '.$conflictNote;
-            }
+        if ($bullets === []) {
+            return null;
+        }
+
+        // Blank line before the bullet block so markdown renders it as a list on
+        // both surfaces (web AiMessageContent + /m renderFynText).
+        $lines = ["Here's your tax plan, built from what you told me — in the order I'd tackle it:", ''];
+        foreach ($bullets as $bullet) {
+            $lines[] = $bullet;
         }
 
         $total = (float) ($plan['combined_annual_saving'] ?? 0.0);
         if ($total > 0) {
+            $lines[] = '';
             $lines[] = sprintf('Together these are worth roughly £%s a year.', number_format((int) round($total)));
         }
 
-        foreach (array_slice($plan['locked'], 0, 1) as $locked) {
-            $missingFields = array_map(
-                fn (string $f): string => HouseholdFinancialContext::labelFor($f),
-                (array) ($locked['missing'] ?? [])
-            );
-            $lines[] = sprintf(
-                'One more strategy is waiting — tell me about your %s and I can check it for you.',
-                implode(' and your ', $missingFields),
-            );
-        }
-
+        $lines[] = '';
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
