@@ -13,6 +13,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Gamification\PointsService;
@@ -97,7 +98,7 @@ class UserProfileService
             // consumers of income_occupation.
             'income_summary' => [
                 'user' => $this->incomeSources($user),
-                'spouse' => $user->spouse ? $this->incomeSources($user->spouse) : null,
+                'spouse' => $this->spouseIncomeSources($user),
             ],
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
@@ -413,6 +414,41 @@ class UserProfileService
         $sources['occupation'] = $person->occupation ?: null;
 
         return $sources;
+    }
+
+    /**
+     * Spouse income for the /m Income screen's spouse-verify view.
+     *
+     * A linked spouse account returns its own income sources. Otherwise the
+     * SaveTax campaign captures the spouse's income on the household input (no
+     * account is linked during onboarding — linking is surfaced later via the
+     * dashboard), so surface that figure as the spouse's employment income.
+     * Returns null when there is no spouse income to show.
+     *
+     * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}|null
+     */
+    private function spouseIncomeSources(User $user): ?array
+    {
+        if ($user->spouse) {
+            return $this->incomeSources($user->spouse);
+        }
+
+        $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
+            ->value('spouse_annual_income') ?? 0);
+        if ($spouseIncome <= 0) {
+            return null;
+        }
+
+        return [
+            'employment' => $spouseIncome,
+            'self_employment' => 0.0,
+            'dividend' => 0.0,
+            'interest' => 0.0,
+            'other' => 0.0,
+            'total' => $spouseIncome,
+            'employer' => null,
+            'occupation' => null,
+        ];
     }
 
     /**
