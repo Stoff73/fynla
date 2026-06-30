@@ -1,6 +1,14 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-29 — end-of-day. **Two features shipped to dev: PR #581 (SaveTax onboarding) + PR #582 (bank accounts / current-account default).** dev @ `5e2e21b`. Full suite 5162 green. Prod UNTOUCHED. Open: dev→prod release of B1–7 + #581 + #582 (CSJ's call). EOD handover: `June/June30Updates/handover-2026-06-30-session-1.md`.*
+*Last updated: 2026-06-30 — context-clear. **Session 2: 9 more PRs (#583–#591) merged to dev + deployed to csjones /m** (SaveTax onboarding, ISA routing/wording, PA-taper advice, gamification, pension Qs). dev @ `0a42695` (Merge #591). Prod UNTOUCHED. Open: dev→prod release now covers #581–#591 (CSJ's call). Handover: `June/June30Updates/handover-2026-06-30-session-3-clear.md`.*
+
+## 2026-06-30 — session 2: SaveTax onboarding / ISA / gamification / pension push (#583–#591, dev)
+
+All merged to dev (`0a42695`) + deployed to csjones /m, browser-verified. Prod UNTOUCHED.
+- [x] **#583** spouse-or-partner → spouse on the two spouse-only sites (clears 2 of 5 stragglers). **#584** PA-taper 60%-trap advice personalised into two figures (£100–125k). **#585** Cash vs S&S ISA routing + this-year subscription capture. **#586** drop pension carry-forward question. **#587** show spouse's income on spouse verify screen.
+- [x] **#588** gamification hero card — dynamic actions-to-next-level (0%→4…75%→1; NOT a banned score, CSJ-approved). **#589** pension cards under hero (retirement /m). **#590** present ISAs as ISAs (root: `OnboardingStateMachine:1076` sectionLabel) + split mobile Savings grouping. **#591** "Cash ISA Accounts" wording (no pluralised acronym — CSJ pushback).
+- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#591 (CSJ's call; no new migrations; corpus + m-build + build + changed PHP).
+- [ ] **Deferred:** 3 remaining "spouse or partner" stragglers (`JourneyFieldResolver:287`, `public/pages/savetax-v2.php:210,237`); Anthropic `create_savings_account.md` current_account parity.
 
 ## 2026-06-29 — SaveTax onboarding (#581) + bank accounts (#582) shipped to dev (end-of-day)
 
