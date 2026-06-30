@@ -17,7 +17,7 @@
         <p class="m-hero-sub">{{ accountCountLabel }}</p>
       </div>
 
-      <!-- Accounts list (directly under the total) -->
+      <!-- Bank accounts (excludes ISAs — a Cash ISA is cash, not a bank account) -->
       <div class="m-card">
         <div class="m-cap-head" style="margin-top:0">
           <p class="m-section-label">Bank accounts</p>
@@ -26,12 +26,12 @@
             <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
           </div>
         </div>
-        <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
+        <p v-if="!bankAccounts.length" class="m-sub" style="margin-bottom:0">
           You haven't added any bank accounts yet.
         </p>
         <div v-else>
           <button
-            v-for="acct in accounts"
+            v-for="acct in bankAccounts"
             :key="acct.id"
             type="button"
             class="ms-acct"
@@ -40,7 +40,32 @@
             <div class="ms-acct__main">
               <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Bank account' }}</span>
               <span class="ms-acct__meta">
-                <span v-if="acct.is_isa" class="ms-acct__tag">ISA</span>
+                <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
+                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+              </span>
+            </div>
+            <div class="ms-acct__right">
+              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__view">View</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cash ISAs (a Cash ISA is cash held in an ISA wrapper — shown here, never as a bank account) -->
+      <div v-if="cashIsas.length" class="m-card">
+        <p class="m-section-label" style="margin-top:0">Cash ISAs</p>
+        <div>
+          <button
+            v-for="acct in cashIsas"
+            :key="acct.id"
+            type="button"
+            class="ms-acct"
+            @click="openAccount(acct.id)"
+          >
+            <div class="ms-acct__main">
+              <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Cash ISA' }}</span>
+              <span class="ms-acct__meta">
                 <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
                 <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
               </span>
@@ -116,6 +141,10 @@ export default {
   data: () => ({ loading: true, error: '', payload: null }),
   computed: {
     accounts() { return this.payload?.accounts || []; },
+    // CSJ: a Cash ISA is cash held in an ISA wrapper — it is NOT a bank account,
+    // so group it separately on the cash page.
+    bankAccounts() { return this.accounts.filter((a) => !a.is_isa); },
+    cashIsas() { return this.accounts.filter((a) => a.is_isa); },
     // Free-tier cap nudge (5.1). account_limit null = unlimited tier → hide nudge.
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },

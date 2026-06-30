@@ -1056,7 +1056,7 @@ final class OnboardingStateMachine
      */
     public static function verifyPromptMore(string $answer, User $user): string
     {
-        $label = self::sectionLabel(self::verifySection($user));
+        $label = self::sectionLabel(self::verifySection($user), $user);
 
         return "Anything else to add to your {$label}?";
     }
@@ -1072,7 +1072,7 @@ final class OnboardingStateMachine
             return "I've recorded that. Does it look right?";
         }
 
-        $section = self::sectionLabel(self::verifySection($user));
+        $section = self::sectionLabel(self::verifySection($user), $user);
 
         return "I've saved your {$section}. Next I'll take you to your {$section} page so you can check everything's correct — tap Okay when you're ready.";
     }
@@ -1085,14 +1085,30 @@ final class OnboardingStateMachine
             return "I've recorded that. Does it look right?";
         }
 
-        $section = self::sectionLabel(self::verifySection($user));
+        $section = self::sectionLabel(self::verifySection($user), $user);
 
         return "Here's your {$section} page — take a look and check everything's correct, then tell me: does it look right?";
     }
 
-    /** Human label for a campaign section, for verify prompts. */
-    private static function sectionLabel(string $section): string
+    /**
+     * Human label for a campaign section, for verify prompts. The savings
+     * section spans bank accounts AND ISAs (a Cash ISA is cash held in an ISA
+     * wrapper), so its label reflects what the user actually holds — it never
+     * calls an ISA a "bank account" (CSJ).
+     */
+    private static function sectionLabel(string $section, ?User $user = null): string
     {
+        if ($section === 'savings' && $user !== null) {
+            $hasIsa = self::funnelHasAnyAsset($user, ['isa']);
+            $hasBank = self::funnelHasAnyAsset($user, ['bank', 'savings']);
+
+            return match (true) {
+                $hasIsa && $hasBank => 'savings and ISAs',
+                $hasIsa => 'ISAs',
+                default => 'bank accounts',
+            };
+        }
+
         return [
             'income' => 'income', 'savings' => 'bank accounts', 'investments' => 'investments',
             'pensions' => 'pensions', 'spouse' => 'spouse details',
