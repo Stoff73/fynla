@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\AiConversation;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use Illuminate\Support\Carbon;
@@ -1445,7 +1446,18 @@ final class OnboardingStateMachine
 
     public static function skipSectionIfNoInvestments(User $user): bool
     {
-        return ! self::funnelHasAnyAsset($user, ['investments']);
+        if (self::funnelHasAnyAsset($user, ['investments'])) {
+            return false;
+        }
+
+        // A Stocks & Shares ISA captured during the ISA-holdings step is an
+        // investment — run the investments section so it surfaces on /investment
+        // even when the user ticked only "ISA" (not "investments") on the funnel
+        // (CSJ): cash ISA shows in the cash section, S&S ISA on the next screen.
+        return ! InvestmentAccount::query()
+            ->where('user_id', $user->id)
+            ->where('account_type', 'isa')
+            ->exists();
     }
 
     /**
