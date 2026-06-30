@@ -89,7 +89,7 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
     foreach ([
         OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
         OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
-        OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
+        OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
         OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
     ] as $stateId) {
         $next = $states[$stateId]['next'];

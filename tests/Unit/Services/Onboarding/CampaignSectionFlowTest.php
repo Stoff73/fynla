@@ -237,8 +237,9 @@ it('runs verify+confirm before the section advice, then advice → next section'
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe('campaign_verify_announce')
         ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
 
-    // Pensions' last capture (history) → announce gate.
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_HISTORY, '', $u))->toBe('campaign_verify_announce');
+    // Pensions' last capture (personal contributions) → announce gate.
+    // The carry-forward history question was removed (CSJ).
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_CONTRIBS, '', $u))->toBe('campaign_verify_announce');
 
     // Income end (employment-more "no") → announce gate; income advice → next section.
     expect(SM::nextFromEmploymentMore('No', $u))->toBe('campaign_verify_announce')
