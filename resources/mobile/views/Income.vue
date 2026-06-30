@@ -7,11 +7,11 @@
 
     <template v-else>
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Your total annual income</p>
-        <p class="m-metric">{{ fmt(userTotal) }}</p>
+        <p class="m-sub m-label">{{ isSpouseView ? "Your spouse's total annual income" : 'Your total annual income' }}</p>
+        <p class="m-metric">{{ fmt(isSpouseView ? spouseTotal : userTotal) }}</p>
       </div>
 
-      <div class="m-card">
+      <div v-if="!isSpouseView" class="m-card">
         <p class="m-section-label" style="margin-top:0">Your income</p>
         <p v-if="!userRows.length" class="m-sub" style="margin-bottom:0">No income recorded yet.</p>
         <div v-for="row in userRows" :key="row.key" class="inc-row">
@@ -23,7 +23,7 @@
         </div>
       </div>
 
-      <div v-if="hasSpouse" class="m-card">
+      <div v-if="isSpouseView || hasSpouse" class="m-card">
         <p class="m-section-label" style="margin-top:0">Your spouse's income</p>
         <p v-if="!spouseRows.length" class="m-sub" style="margin-bottom:0">No spouse income recorded yet.</p>
         <div v-for="row in spouseRows" :key="row.key" class="inc-row">
@@ -58,10 +58,11 @@ export default {
   components: { MobileChrome },
   data: () => ({ loading: true, error: '', summary: null }),
   computed: {
-    // "Your income" normally; "Your spouse's income" when the onboarding verify
-    // navigated here for the spouse section (carried as ?section=spouse).
+    // Spouse-verify view: the onboarding verify navigated here for the spouse
+    // section (carried as ?section=spouse) — focus the screen on the spouse.
+    isSpouseView() { return this.$route.query.section === 'spouse'; },
     incomeSubtitle() {
-      return this.$route.query.section === 'spouse' ? "Your spouse's income" : 'Your income';
+      return this.isSpouseView ? "Your spouse's income" : 'Your income';
     },
     userIncome() { return this.summary?.user || {}; },
     spouseIncome() { return this.summary?.spouse || null; },
@@ -69,6 +70,7 @@ export default {
     userRows() { return this.rowsFor(this.userIncome); },
     spouseRows() { return this.rowsFor(this.spouseIncome || {}); },
     userTotal() { return Number(this.userIncome.total) || this.userRows.reduce((s, r) => s + r.amount, 0); },
+    spouseTotal() { return Number((this.spouseIncome || {}).total) || this.spouseRows.reduce((s, r) => s + r.amount, 0); },
   },
   async created() { await this.load(); },
   methods: {
