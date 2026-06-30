@@ -191,17 +191,8 @@ campaign_pension_contribs:
   turn_type: delegated
   prompt_text: 'Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?'
   capture_field: null
-  next: campaign_pension_history
-  advance_on_answered_question: true
-
-campaign_pension_history:
-  turn_type: grouped_extract
-  prompt_text: 'Quick one — to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don''t know exact numbers, rough figures are fine, and "zero" is a valid answer.'
-  capture_field: null
-  extraction_tool: capture_pension_history
-  retry_text: 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.'
-  clarify_single_figure: true
   next: { branch: enterCampaignVerify }
+  advance_on_answered_question: true
 
 campaign_spouse_work:
   turn_type: bubbles

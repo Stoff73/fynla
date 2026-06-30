@@ -511,22 +511,13 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => 'Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?',
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_PENSION_HISTORY,
-                'advance_on_answered_question' => true,
-            ],
-            self::STATE_CAMPAIGN_PENSION_HISTORY => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => 'Quick one — to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don\'t know exact numbers, rough figures are fine, and "zero" is a valid answer.',
-                'capture_field' => null,
-                'extraction_tool' => 'capture_pension_history',
-                'retry_text' => 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.',
-                // A lone figure ("Around £90,000") is fatally ambiguous for
-                // carry-forward — total-across-three-years vs per-year give
-                // opposite answers. When the model declines to extract it, the
-                // director asks the disambiguation rather than re-prompting
-                // blindly. See OnboardingChatDirector::emitSingleFigureClarification.
-                'clarify_single_figure' => true,
+                // Carry-forward question removed (CSJ — Fyn does not need to ask
+                // about prior-years' pension contributions): the pensions section
+                // ends at personal contributions and goes straight to the verify
+                // gate. The now-unreachable STATE_CAMPAIGN_PENSION_HISTORY state
+                // was deleted.
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
+                'advance_on_answered_question' => true,
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
