@@ -218,7 +218,7 @@ class SaveTaxEstimateService
 
             // Spouse's own per-person allowances (household view).
             $spouseIncome = $spouseBand !== null ? self::BAND_INCOME[$spouseBand] : 0;
-            $items[] = $this->personalAllowanceItem('spouse_pa', "Spouse's Personal Allowance", $spouseIncome);
+            $items[] = $this->personalAllowanceItem('spouse_pa', "Spouse's Personal Allowance", $spouseIncome, isSpouse: true);
 
             // Starting Rate for Savings — a non-earning spouse can receive up to
             // £5,000 of savings interest tax-free. Greyed unless the spouse has
@@ -267,7 +267,7 @@ class SaveTaxEstimateService
      *
      * @return array<string,mixed>
      */
-    private function personalAllowanceItem(string $key, string $label, int $income): array
+    private function personalAllowanceItem(string $key, string $label, int $income, bool $isSpouse = false): array
     {
         $amount = (int) round($this->personalAllowance($income));
         $taper = $this->taperThreshold();
@@ -290,7 +290,12 @@ class SaveTaxEstimateService
         } elseif ($income > $additional) {
             $item['note'] = 'Income over '.$this->money($additional).' has tapered your Personal Allowance away entirely.';
         } elseif ($income > 0) {
-            $item['note'] = 'Automatically used against your income.';
+            // The spouse card omits this — in the generalised (unregistered) estimate
+            // we don't know the spouse's actual position, so "automatically used
+            // against your income" would be inaccurate (CSJ).
+            if (! $isSpouse) {
+                $item['note'] = 'Automatically used against your income.';
+            }
         } else {
             $item['note'] = 'Not yet used — available to set against income or savings.';
         }
