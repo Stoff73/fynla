@@ -1,6 +1,15 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-30 — context-clear. **Session 2: 9 more PRs (#583–#591) merged to dev + deployed to csjones /m** (SaveTax onboarding, ISA routing/wording, PA-taper advice, gamification, pension Qs). dev @ `0a42695` (Merge #591). Prod UNTOUCHED. Open: dev→prod release now covers #581–#591 (CSJ's call). Handover: `June/June30Updates/handover-2026-06-30-session-3-clear.md`.*
+*Last updated: 2026-06-30 — end-of-day. **Session 3: PRs #592 + #593 merged to dev + deployed csjones + live-verified** (savetax /m synthesis recap → bullets matching dashboard; spouse PA card "automatically used" note removed). dev @ `03b851f` (Merge #593). Prod UNTOUCHED. Open: dev→prod release now covers #581–#593 (CSJ's call). Handover: `July/July1Updates/handover-2026-07-01-session-1.md`.*
+
+## 2026-06-30 — session 3: savetax web/m fixes (#592 + #593, dev, live-verified)
+
+Both merged to dev (`03b851f`) + deployed csjones + **browser-verified**. Prod UNTOUCHED.
+- [x] **#592** savetax `/m` final synthesis recap now mirrors the `/tax-strategy` dashboard `composed_plan.items` as bullets (`buildSynthesisAdvice`): dropped numbering, conflict notes, and the "tell me about your GIA holdings" locked-tease; fresh-user recompute. Verified live on /m (7-item £24,834 plan == dashboard).
+- [x] **#593** removed inaccurate "Automatically used against your income." subtext from the **spouse** Personal Allowance card on the unregistered savetax-plan page (`SaveTaxEstimateService`, `isSpouse` flag). Reproduced + verified gone on csjones.
+- [ ] **CONFIRM where #593 was tested** (csjones vs prod). If prod, it needs the prod release.
+- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#593 (CSJ's call).
+- [ ] **Worktree cleanup**: 7 merged feature worktrees removable (keep `fynla-coala`); `fynla-recap` has a 109M vendor copy.
 
 ## 2026-06-30 — session 2: SaveTax onboarding / ISA / gamification / pension push (#583–#591, dev)
 

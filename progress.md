@@ -236,3 +236,10 @@
   - **#580 sweep** — partner→spouse (funnel + ~34 SPA; KEPT 8 non-spouse traps per CSJ + civil partner); 7-D page/data-specific edit-details opener. Funnel + SPA-bundle + 7-D live-verified.
 - Full suite 5131 green each batch. No migrations added.
 - Next: nothing mandated — programme done. Open: dev→prod release of B1–7 (CSJ's call); remove Goal 291 test data on csjones (CSJ to OK).
+
+## 2026-06-30 — session 3 (end-of-day)
+- Handover: [[handover-2026-07-01-session-1]]
+- Branch: main (feature work on dev via worktrees)
+- Shipped: PR #592 (savetax /m synthesis recap → bullets matching the /tax-strategy dashboard) + PR #593 (removed inaccurate "automatically used" note from the spouse Personal Allowance card). Both merged to dev `03b851f`, deployed csjones, live-verified in browser.
+- Tests: SaveTaxEstimate 17 ✓, onboarding 97 ✓, synthesis 4 ✓. Prod UNTOUCHED.
+- Next: confirm whether #593 was tested on prod (if so it needs the prod release); decide dev→main release (#581–#593); clean up 7 merged worktrees (keep coala).
