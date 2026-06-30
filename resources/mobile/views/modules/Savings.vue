@@ -54,7 +54,7 @@
 
       <!-- Cash ISAs (a Cash ISA is cash held in an ISA wrapper — shown here, never as a bank account) -->
       <div v-if="cashIsas.length" class="m-card">
-        <p class="m-section-label" style="margin-top:0">Cash ISAs</p>
+        <p class="m-section-label" style="margin-top:0">Cash ISA Accounts</p>
         <div>
           <button
             v-for="acct in cashIsas"

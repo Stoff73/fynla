@@ -1103,8 +1103,8 @@ final class OnboardingStateMachine
             $hasBank = self::funnelHasAnyAsset($user, ['bank', 'savings']);
 
             return match (true) {
-                $hasIsa && $hasBank => 'savings and ISAs',
-                $hasIsa => 'ISAs',
+                $hasIsa && $hasBank => 'savings and ISA accounts',
+                $hasIsa => 'ISA accounts',
                 default => 'bank accounts',
             };
         }
