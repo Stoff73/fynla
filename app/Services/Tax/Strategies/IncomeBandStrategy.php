@@ -56,21 +56,46 @@ final class IncomeBandStrategy implements TaxStrategy
             $inBandSlice = $taxableIncome - $taperThreshold;
             $contribution = min($inBandSlice, $availableAA);
             if ($contribution > 0) {
-                $saving = $contribution * $taperEffectiveRate;
+                // Split the 60% saving into the two mechanisms the user can see
+                // in their own figures (CSJ): (1) Personal Allowance reclaimed —
+                // £1 of allowance restored for every £2 contributed in this band,
+                // and that allowance was being taxed at the higher rate; (2)
+                // direct higher-rate relief on the whole contribution. Every
+                // figure derives from the same rounded contribution so the two
+                // parts always sum to the headline total. Rates from
+                // TaxConfigService (Rule #2) — never hardcoded.
+                $displayContribution = (int) (round($contribution / 100) * 100);
+                $paReclaimed = (int) ($displayContribution / 2);
+                $paReclaimSaving = (int) round($paReclaimed * $higherRate);
+                $directRelief = (int) round($displayContribution * $higherRate);
+                $totalSaving = $paReclaimSaving + $directRelief;
+                $paReclaimPct = (int) round($higherRate * 50);
+                $higherRatePct = (int) round($higherRate * 100);
+                $effectivePct = (int) round($taperEffectiveRate * 100);
+
                 $recommendations[] = new StrategyRecommendation(
                     type: 'pa_taper_rescue',
                     category: StrategyCategory::IncomeBand,
                     priority: StrategyPriority::High,
                     title: 'Reclaim your Personal Allowance with a pension contribution',
                     description: sprintf(
-                        'Income between £%s and £%s is taxed at 60%% because the Personal Allowance tapers in this band. A £%s pension contribution drops you below £%s and saves around £%s in tax this year.',
+                        "For your income of £%s, a £%s pension contribution would:\n\n"
+                        ."Reclaim £%s of your Personal Allowance, saving £%s (%d%% of your contribution).\n\n"
+                        ."Reduce your income tax at %d%% by £%s.\n\n"
+                        ."Together that's £%s back this year — income between £%s and £%s is taxed at %d%%.",
+                        number_format((int) round($taxableIncome)),
+                        number_format($displayContribution),
+                        number_format($paReclaimed),
+                        number_format($paReclaimSaving),
+                        $paReclaimPct,
+                        $higherRatePct,
+                        number_format($directRelief),
+                        number_format($totalSaving),
                         number_format((int) $taperThreshold),
                         number_format((int) $additionalRateThreshold),
-                        number_format((int) round($contribution / 100) * 100),
-                        number_format((int) $taperThreshold),
-                        number_format((int) round($saving)),
+                        $effectivePct,
                     ),
-                    estimatedAnnualTaxSaved: round($saving, 2),
+                    estimatedAnnualTaxSaved: (float) $totalSaving,
                     extra: [
                         'suggested_contribution' => round($contribution, 2),
                         'effective_marginal_rate' => round($taperEffectiveRate, 4),
