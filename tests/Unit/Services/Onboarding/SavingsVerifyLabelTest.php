@@ -24,8 +24,8 @@ it('labels the savings verify section by what the user holds, never calling an I
         expect($prompt)->not->toContain($notExpected);
     }
 })->with([
-    'ISA only → ISAs' => [['isa'], 'your ISAs?', 'bank accounts'],
+    'ISA only → ISA accounts' => [['isa'], 'your ISA accounts?', 'bank accounts'],
     'bank only → bank accounts' => [['bank'], 'your bank accounts?', ''],
     'savings only → bank accounts' => [['savings'], 'your bank accounts?', ''],
-    'both → savings and ISAs' => [['isa', 'bank'], 'your savings and ISAs?', ''],
+    'both → savings and ISA accounts' => [['isa', 'bank'], 'your savings and ISA accounts?', ''],
 ]);
