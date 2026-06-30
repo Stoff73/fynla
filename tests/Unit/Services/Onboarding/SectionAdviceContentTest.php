@@ -46,11 +46,18 @@ it('produces income-tax advice for a 60% tax-trap earner', function () {
 
     // Catalogue-driven output: strategy title/description from the plan — the
     // old hardcoded intro "Here's where you stand on income tax." is gone.
-    // pa_taper_rescue fires for this earner and its title references pension
-    // contribution; the description contains the saving figure in £.
+    // pa_taper_rescue fires for this earner and its description breaks the 60%
+    // saving into the two mechanisms with this user's own figures (CSJ):
+    // £120k income → £20k contribution → reclaim £10k PA (saving £4k, 20%) +
+    // £8k higher-rate relief (40%) = £12k total.
     expect($advice)->toBeString()
-        ->and($advice)->toContain('Personal Allowance')  // pa_taper_rescue strategy
-        ->and($advice)->toContain('£');                  // engine-derived figure
+        ->and($advice)->toContain('Personal Allowance')
+        ->and($advice)->toContain('For your income of £120,000')
+        ->and($advice)->toContain('a £20,000 pension contribution')
+        ->and($advice)->toContain('Reclaim £10,000 of your Personal Allowance, saving £4,000 (20% of your contribution)')
+        ->and($advice)->toContain('Reduce your income tax at 40% by £8,000')
+        ->and($advice)->toContain("Together that's £12,000 back this year")
+        ->and($advice)->toContain('income between £100,000 and £125,140 is taxed at 60%');
 });
 
 it('returns null when a section has no relevant recommendations', function () {
