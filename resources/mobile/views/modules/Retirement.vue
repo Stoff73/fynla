@@ -27,24 +27,7 @@
         </div>
       </div>
 
-      <!-- Headline figures -->
-      <div class="m-card m-detail-rows">
-        <p class="m-section-label" style="margin-top:0">Overview</p>
-        <div class="m-detail-row">
-          <span class="m-detail-key">Total pension wealth</span>
-          <span class="m-detail-value">{{ fmt(totalPensionWealth) }}</span>
-        </div>
-        <div class="m-detail-row">
-          <span class="m-detail-key">Years to retirement</span>
-          <span class="m-detail-value">{{ yearsToRetirement != null ? yearsToRetirement : '—' }}</span>
-        </div>
-        <div class="m-detail-row">
-          <span class="m-detail-key">Target retirement age</span>
-          <span class="m-detail-value">{{ targetRetirementAge || '—' }}</span>
-        </div>
-      </div>
-
-      <!-- Pensions list -->
+      <!-- Pensions list (CSJ: pension account cards near the top, under the hero) -->
       <div class="m-card">
         <div class="m-cap-head" style="margin-top:0">
           <p class="m-section-label">Your pensions</p>
@@ -73,6 +56,23 @@
               <span class="mr-pension__view">View</span>
             </span>
           </button>
+        </div>
+      </div>
+
+      <!-- Headline figures -->
+      <div class="m-card m-detail-rows">
+        <p class="m-section-label" style="margin-top:0">Overview</p>
+        <div class="m-detail-row">
+          <span class="m-detail-key">Total pension wealth</span>
+          <span class="m-detail-value">{{ fmt(totalPensionWealth) }}</span>
+        </div>
+        <div class="m-detail-row">
+          <span class="m-detail-key">Years to retirement</span>
+          <span class="m-detail-value">{{ yearsToRetirement != null ? yearsToRetirement : '—' }}</span>
+        </div>
+        <div class="m-detail-row">
+          <span class="m-detail-key">Target retirement age</span>
+          <span class="m-detail-value">{{ targetRetirementAge || '—' }}</span>
         </div>
       </div>
 
