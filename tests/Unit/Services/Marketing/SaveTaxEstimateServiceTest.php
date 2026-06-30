@@ -142,6 +142,25 @@ it('adds spouse-transfer levers when the spouse earns nothing', function () {
         ->and(lineAmount($result, 'marriage_allowance'))->toBe(0);     // higher-rate recipient is NOT eligible
 });
 
+it('omits the "automatically used" note from the spouse Personal Allowance card', function () {
+    // In the generalised (unregistered) estimate we don't know the spouse's real
+    // position, so the shared PA builder must NOT claim their allowance is
+    // "automatically used against your income" — only the user's own card may (CSJ).
+    $result = $this->service->estimate([
+        'income' => '50271_100000',
+        'spouse' => 'yes',
+        'spouseIncome' => 'upto_50270', // working spouse: income > 0, not tapered
+        'assets' => [],
+    ]);
+
+    $spousePa = collect($result['allowances']['items'])->firstWhere('key', 'spouse_pa');
+    $userPa = collect($result['allowances']['items'])->firstWhere('key', 'personal_allowance');
+
+    expect($spousePa)->not->toBeNull()
+        ->and($spousePa['note'] ?? '')->not->toContain('Automatically used') // dropped for the spouse card
+        ->and($userPa['note'] ?? '')->toContain('Automatically used');       // kept on the user's own card
+});
+
 it('offers Marriage Allowance only to a basic-rate recipient with a £0 spouse', function () {
     $basic = $this->service->estimate(['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
     expect(lineAmount($basic, 'marriage_allowance'))->toBe(252); // £1,260 × 20%
