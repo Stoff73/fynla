@@ -58,7 +58,7 @@ use Illuminate\Support\Facades\Log;
  * Every structured turn (bubbles + parsed free text) is deterministic —
  * no LLM call. Only asset_capture invokes Claude.
  */
-class OnboardingChatDirector
+final class OnboardingChatDirector
 {
     /**
      * Hard cap on how many advice turns may auto-advance within a single
