@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Models\Goal;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserMilestone;
@@ -152,6 +153,91 @@ class MilestoneDetectionService
         }
 
         return $new;
+    }
+
+    /**
+     * WP-5b — the milestones the user can achieve NEXT, each with the
+     * concrete step that gets them there. One per flavour so the list stays
+     * motivating rather than exhaustive: the next net-worth threshold (with
+     * the £ distance), the next progress step for each active goal, and any
+     * unearned journey milestones.
+     *
+     * @return array<int,array{title: string, steps: string}>
+     */
+    public function upcoming(User $user, ?float $netWorth = null): array
+    {
+        $upcoming = [];
+
+        // Next net-worth threshold — with the distance when we know the total.
+        if ($netWorth !== null) {
+            foreach (self::NET_WORTH_THRESHOLDS as $threshold) {
+                if ($netWorth < $threshold) {
+                    $away = $threshold - $netWorth;
+                    $upcoming[] = [
+                        'title' => 'Net worth £'.number_format($threshold),
+                        'steps' => 'Add to your savings, investments or pension — you\'re £'.number_format((int) round($away)).' away.',
+                    ];
+                    break;
+                }
+            }
+        }
+
+        // Next progress step per active goal (capped so goals don't swamp
+        // it). progress_percentage is a computed accessor, not a column, so
+        // the filter/sort/cap happen in PHP.
+        $goals = Goal::forUserOrJoint($user->id)
+            ->get()
+            ->filter(fn (Goal $g): bool => (float) $g->progress_percentage < 100)
+            ->sortByDesc(fn (Goal $g): float => (float) $g->progress_percentage)
+            ->take(3);
+        foreach ($goals as $goal) {
+            $progress = (float) $goal->progress_percentage;
+            foreach (self::GOAL_THRESHOLDS as $threshold) {
+                if ($progress < $threshold) {
+                    $name = (string) ($goal->goal_name ?? $goal->name ?? 'your goal');
+                    $target = (float) $goal->target_amount;
+                    $current = (float) $goal->current_amount;
+                    $needed = max(0.0, $target * ($threshold / 100) - $current);
+                    $upcoming[] = [
+                        'title' => ($threshold >= 100 ? 'Reach ' : $threshold.'% of ').$name,
+                        'steps' => $needed > 0 && $target > 0
+                            ? 'Put £'.number_format((int) round($needed)).' more towards it.'
+                            : 'Keep contributing towards this goal.',
+                    ];
+                    break;
+                }
+            }
+        }
+
+        // Unearned journey milestones — the step is the action itself.
+        $earnedTypes = UserMilestone::where('user_id', $user->id)
+            ->whereIn('milestone_type', ['campaign', 'action', 'tax_savings'])
+            ->pluck('milestone_type')
+            ->all();
+
+        if (! empty($user->funnel_answers)) {
+            if (! (bool) $user->onboarding_completed && ! in_array('campaign', $earnedTypes, true)) {
+                $upcoming[] = [
+                    'title' => 'Complete your tax profile',
+                    'steps' => 'Finish your chat with Fyn — a few questions to go.',
+                ];
+            }
+            if (! in_array('tax_savings', $earnedTypes, true)) {
+                $upcoming[] = [
+                    'title' => 'Find your first tax saving',
+                    'steps' => 'Add your accounts and pension details so your tax plan can quantify a saving.',
+                ];
+            }
+        }
+
+        if (! in_array('action', $earnedTypes, true)) {
+            $upcoming[] = [
+                'title' => 'Complete your first action',
+                'steps' => 'Mark any recommended action on your dashboard as done.',
+            ];
+        }
+
+        return $upcoming;
     }
 
     /**

@@ -84,8 +84,20 @@
 
       <!-- Milestones tab -->
       <template v-else-if="tab === 'milestones'">
+        <!-- Next up — milestones the user can achieve, with the step that
+             gets them there (WP-5b). -->
+        <div v-if="upcoming.length" class="m-card">
+          <p class="m-section-label" style="margin-top:0">Next up</p>
+          <div class="ma-badges">
+            <div v-for="(up, i) in upcoming" :key="'up-' + i" class="ma-badge">
+              <span class="ma-badge__title">{{ up.title }}</span>
+              <span class="ma-badge__desc">{{ up.steps }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="m-card">
-          <p class="m-section-label" style="margin-top:0">Financial milestones</p>
+          <p class="m-section-label" style="margin-top:0">Reached</p>
           <p v-if="!milestones.length" class="m-sub" style="margin-bottom:0">
             No milestones reached yet — keep building your plan.
           </p>
@@ -138,6 +150,7 @@ export default {
       achievements: [],
       completed: [],
       milestones: [],
+      upcoming: [],
       activity: [],
     };
   },
@@ -182,6 +195,7 @@ export default {
         this.achievements = Array.isArray(d.achievements) ? d.achievements : [];
         this.completed = Array.isArray(d.completed) ? d.completed : [];
         this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
+        this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
       } catch (e) {
         this.error = 'Network error. Please try again.';
