@@ -7,6 +7,7 @@ use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\GDPR\ConsentService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -217,4 +218,70 @@ it('routes to advice when fyn_flow_enabled is false even if active_campaign and 
     expect($types)->toContain('thinking');
     expect(array_column(array_filter($events, fn ($e) => ($e['type'] ?? '') === 'content'), 'text'))
         ->toContain('advice-flow-disabled');
+});
+
+// ── Test 5: queued path — completed user + active_campaign → director ─────────
+//
+// The streamQueuedMessage seam must honour the same predicate as sendMessage.
+// Before the DRY fix its inline predicate lacks the active_campaign arm, so a
+// re-entry user's queued turn mis-routes to advice (emits 'thinking'). After
+// the fix the director path is taken (no 'thinking' event).
+
+it('routes a re-entry user\'s queued turn through the director (streamQueuedMessage seam)', function (): void {
+    $user = User::factory()->create([
+        'onboarding_completed' => true,
+        'active_campaign' => 'pensioncheck',
+        'onboarding_fyn_step' => 'base_work',
+        'is_preview_user' => false,
+    ]);
+    grantCampaignDispatchConsent($user);
+    $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
+
+    // Enqueue a message exactly as the frontend does when a turn is in-flight.
+    $queued = app(ConcurrentTurnQueue::class)->enqueue($conv, 'queued campaign message');
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson("/api/ai-chat/conversations/{$conv->id}/messages/{$queued->id}/stream");
+
+    $response->assertOk();
+    $events = parseCampaignDispatchSse($response->streamedContent());
+    $types = array_column($events, 'type');
+
+    // Director path does not emit 'thinking'; advice path does.
+    expect($types)->not->toContain('thinking');
+    expect($types)->not->toContain('error');
+});
+
+// ── Test 6: action endpoint — completed user + active_campaign → director ─────
+//
+// The action seam must also honour the campaign-re-entry arm. Before the DRY
+// fix its inline predicate lacks active_campaign, so a re-entry user's
+// Continue/Edit pill press gets the "I'm not sure what to do with that right
+// now." no-op instead of reaching handleAction.
+
+it('routes a re-entry user\'s action press through the director (action seam)', function (): void {
+    $user = User::factory()->create([
+        'onboarding_completed' => true,
+        'active_campaign' => 'pensioncheck',
+        'onboarding_fyn_step' => 'base_work',
+        'is_preview_user' => false,
+    ]);
+    grantCampaignDispatchConsent($user);
+    $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson("/api/ai-chat/conversations/{$conv->id}/action", ['action' => 'continue']);
+
+    $response->assertOk();
+    $events = parseCampaignDispatchSse($response->streamedContent());
+
+    // The no-op yields exactly "I'm not sure what to do with that right now."
+    // Director reaching handleAction with 'continue' on a non-terminal state
+    // either yields content that is NOT that string, or yields a retry prompt.
+    $allText = implode(' ', array_column(
+        array_filter($events, fn ($e) => ($e['type'] ?? '') === 'content'),
+        'text'
+    ));
+    expect($allText)->not->toContain("I'm not sure what to do with that right now.");
+    expect(array_column($events, 'type'))->not->toContain('error');
 });

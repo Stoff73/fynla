@@ -230,9 +230,7 @@ class AiChatController extends Controller
         //   2. Otherwise (post-onboarding OR paused via the welcome-back
         //      "Something else" handoff which nulls onboarding_fyn_step) →
         //      AdviceFyn — read-only tools only. Write intents surface from
-        //      onboarding, not from chat. Matches the /action endpoint check
-        //      at AiChatController::postAction so a paused user does not
-        //      silently no-op when they ask a free-text question.
+        //      onboarding, not from chat.
         //   Campaign re-entry (map §4, canonical contract amendment): a completed
         //   user with an active_campaign set is also routed to OnboardingChatDirector
         //   — the one write state — so they walk the campaign funnel. The
@@ -240,9 +238,9 @@ class AiChatController extends Controller
         //   signalled purely by active_campaign being non-null. A null
         //   onboarding_fyn_step (paused mid-campaign) falls back to advice so a
         //   paused user can still get answers without their step being lost.
-        $inOnboarding = ($user->onboarding_completed === false || $user->active_campaign !== null)
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        //   The predicate is centralised in routesToOnboardingDirector() and
+        //   shared by streamQueuedMessage and action to keep all three in sync.
+        $inOnboarding = $this->routesToOnboardingDirector($user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
             try {
@@ -415,9 +413,7 @@ class AiChatController extends Controller
 
         $message = $queued->content;
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        $inOnboarding = $this->routesToOnboardingDirector($user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
             try {
@@ -796,9 +792,7 @@ class AiChatController extends Controller
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        $inOnboarding = $this->routesToOnboardingDirector($user);
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
             try {
@@ -860,5 +854,23 @@ class AiChatController extends Controller
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * The Fyn dispatch predicate: does this user's message belong to the
+     * onboarding director (the one write state)? True mid-onboarding, and
+     * during campaign re-entry (active_campaign set by onboarding/start;
+     * cleared at campaign terminal and on the "Something else" pause).
+     * Canonical contract: April/April24Updates/spec/00-canonical.md.
+     *
+     * Used by sendMessage, streamQueuedMessage, and action — all three seams
+     * must honour the same predicate, so a single helper replaces the old
+     * sync-by-comment pattern.
+     */
+    private function routesToOnboardingDirector(User $user): bool
+    {
+        return ($user->onboarding_completed === false || $user->active_campaign !== null)
+            && $user->onboarding_fyn_step !== null
+            && (bool) config('onboarding.fyn_flow_enabled', true);
     }
 }
