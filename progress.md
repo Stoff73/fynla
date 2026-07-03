@@ -243,3 +243,14 @@
 - Shipped: PR #592 (savetax /m synthesis recap → bullets matching the /tax-strategy dashboard) + PR #593 (removed inaccurate "automatically used" note from the spouse Personal Allowance card). Both merged to dev `03b851f`, deployed csjones, live-verified in browser.
 - Tests: SaveTaxEstimate 17 ✓, onboarding 97 ✓, synthesis 4 ✓. Prod UNTOUCHED.
 - Next: confirm whether #593 was tested on prod (if so it needs the prod release); decide dev→main release (#581–#593); clean up 7 merged worktrees (keep coala).
+
+## 2026-07-03 — session 2 (context-clear)
+- Handover: [[handover-2026-07-03-session-2-clear]]
+- Branch: main (docs only); all engineering on fynla-fixes worktree → dev @ c836fb9 (Merge #605). Prod UNTOUCHED.
+- Shipped **the WP-5c milestone programme** (specced from CSJ's "only 4 milestones?" question, approved same session):
+  - **#603 WP-5c-i** — catalogue 5 → 18 families (tax actioned/ISA/Annual Allowance yearly + strategy firsts, emergency fund, first ISA, pension pot, on-track, will, registered Lasting Power of Attorney, protection adequate, estate start, mortgage paydown, module profiles, anniversaries, household). Included the Fyn prompt snapshot regen #585 missed (dev test red since fa068a7).
+  - **#606 WP-5c-ii** (recreation of #604 — GitHub auto-closed it when #603's head branch, its base, was deleted on merge) — pages uncapped: grouped next-per-family upcoming with £ distances, Done 25/page, feed cursor + infinite scroll.
+  - **#605 WP-5c-iii** — nudge layer: MilestoneCollector, Fyn speaks mints in capture turns, flag-gated push (GAMIFICATION_PUSH_ENABLED OFF), deep-link routes, dashboard hero nudge, tax-savings detection on dashboard read (scoped ComposedTaxPlanService memo). Live bug found+fixed: wheel SVG spill swallowed nudge taps (z-index 3).
+- **Campaign playbook written** — July/July3Updates/campaign-playbook.md: the full SaveTax template (funnel → onboarding → verify → synthesis → landing → gamification) incl. Fyn formatting standard F1–F15, screens inventory, per-campaign checklist, fit notes. All six module strategy sources exist; property has none.
+- Full suite green per slice: 5,256 → 5,264 → 5,271. Each slice deployed to csjones + live-verified BEFORE merge (deploy-gate order). csjones back on dev @ c836fb9.
+- Next: nothing in flight. Open (CSJ): dev→prod release (#581–#606, no new WP-5c migrations); campaign #2 green-light (re-entry decision + 6 generalisation points, playbook §6).

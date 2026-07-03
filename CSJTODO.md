@@ -1,6 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-30 — end-of-day. **Session 3: PRs #592 + #593 merged to dev + deployed csjones + live-verified** (savetax /m synthesis recap → bullets matching dashboard; spouse PA card "automatically used" note removed). dev @ `03b851f` (Merge #593). Prod UNTOUCHED. Open: dev→prod release now covers #581–#593 (CSJ's call). Handover: `July/July1Updates/handover-2026-07-01-session-1.md`.*
+*Last updated: 2026-07-03 — session 2 (context-clear). **WP-5c complete: PRs #603 + #606(=#604) + #605 merged to dev + deployed csjones + live-verified** (18-family milestone catalogue, uncapped progress pages + grouped upcoming, nudge layer). dev @ `c836fb9` (Merge #605). Prod UNTOUCHED. Open: dev→prod release now covers #581–#606 (CSJ's call). Campaign playbook written (`July/July3Updates/campaign-playbook.md`). Handover: `July/July3Updates/handover-2026-07-03-session-2-clear.md`.*
+
+## 2026-07-03 — session 2: WP-5c milestones programme + campaign playbook (#603–#606, dev, live-verified)
+
+All merged to dev (`c836fb9`) + deployed csjones (code + fresh /m bundle) + browser-verified; full suite green at every slice (5,256 → 5,264 → 5,271). Prod UNTOUCHED. Spec: `July/July3Updates/wp5c-milestones-spec.md` (CSJ-approved: yearly repeats yes, push flag-gated yes).
+- [x] **#603 WP-5c-i** — milestone catalogue 5 → 18 families (tax actioned/ISA/pension Annual Allowance yearly, strategy firsts, emergency fund, first ISA, pension pot, on-track, will, registered Lasting Power of Attorney, protection adequate, estate start, mortgage paydown, module profiles, anniversaries, household). Build catches: `has_will=false` rows don't mint; draft LPAs don't count; savings reads via `SavingsStore` (locked boundary). Includes the Fyn prompt snapshot regen #585 missed (dev test red since `fa068a7`).
+- [x] **#606 (= #604, auto-closed by GitHub on base-branch delete) WP-5c-ii** — pages uncapped: grouped next-per-family upcoming with £ distances, Done 25/page load-more, activity feed cursor pagination + infinite scroll.
+- [x] **#605 WP-5c-iii** — nudge layer: `MilestoneCollector`, Fyn speaks mints in capture turns ("That's a milestone: …"), flag-gated push (`GAMIFICATION_PUSH_ENABLED` OFF), deep-link routes on upcoming steps, dashboard hero nudge (`next_milestone`), tax-savings detection on the dashboard read via scoped `ComposedTaxPlanService` memo. Live bug found+fixed: level wheel SVG spill swallowed nudge taps (z-index 3).
+- [x] **Campaign playbook** — `July/July3Updates/campaign-playbook.md`: end-to-end SaveTax template (funnel → onboarding → verify → synthesis → landing → gamification) incl. the Fyn formatting standard F1–F15 + screens inventory + per-campaign checklist + fit notes (retirement/investment/savings/property/IHT). All six module strategy sources already exist; property has none.
+- [x] **System maps** — `savetax-recs-gamification-map.md` (current-state recs→actions→gamification→nudges, integration gaps).
+- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#606 (CSJ's call; no new migrations in WP-5c).
+- [ ] **OPEN — campaign #2 pre-work** (when green-lit): existing-user re-entry decision (blueprint §existing-users) + 6 generalisation points (playbook §6).
+- [ ] **Deferred (spec-recorded):** `pa_restored` milestone (needs adjusted net income from the tax engine); desktop achievements/milestones/history parity; milestone email loop; `campaign_verify_more` orphan cleanup.
+- [ ] **CONFIRM where #593 was tested** (csjones vs prod) — carried; moot if the prod release ships.
+
+## 2026-07-03 — session 1: savetax issues batch + gamification overhaul (#594–#602, dev, live-verified)
+
+All merged to dev (`a6d0009`) + deployed csjones + browser-verified; 5,235 tests green. Prod UNTOUCHED. System map: `July/July3Updates/gamification-recs-tasks-map.md`; blueprint: `July/July3Updates/campaign-blueprint.md`.
+- [x] **#594** July3 `issues.md` batch (8 user-reported savetax /m onboarding issues: error colour, reg-form flash, DOB short-format confirm-back, edit-flow return, actions-logged notices, bold Fyn questions, tax-strategy Continue button) + 2 pre-existing recap/ack dedup bugs. **#595** savetax-plan-v4.js cache-buster v12.
+- [x] **#596 WP-1 capture integrity (P0):** no phantom records from intent-only messages; failed captures surface to the user (kills D1/D2). **#597 WP-2** one actions model across every surface (D8/D9). **#598 WP-3** activity history feed from `point_awards` (D4). **#599 WP-4** achievements = earned things, not live counters (D6/D7). **#600 WP-5** journey milestones + self-healing detection (D5). **#601 WP-6** SaveTax graduates land on tax actions first (D10). **#602 WP-5b** upcoming milestones with the steps to reach them.
+- [x] **Worktree cleanup** — 7 merged feature worktrees removed (kept `fynla-coala`; `fynla-fixes` on `dev` is the working worktree).
+- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#602 (CSJ's call).
+- [ ] **CONFIRM where #593 was tested** (csjones vs prod) — carried from 2026-06-30; if CSJ saw the spouse-PA bug on prod, prod still has it until the release.
 
 ## 2026-06-30 — session 3: savetax web/m fixes (#592 + #593, dev, live-verified)
 
@@ -9,7 +31,7 @@ Both merged to dev (`03b851f`) + deployed csjones + **browser-verified**. Prod U
 - [x] **#593** removed inaccurate "Automatically used against your income." subtext from the **spouse** Personal Allowance card on the unregistered savetax-plan page (`SaveTaxEstimateService`, `isSpouse` flag). Reproduced + verified gone on csjones.
 - [ ] **CONFIRM where #593 was tested** (csjones vs prod). If prod, it needs the prod release.
 - [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#593 (CSJ's call).
-- [ ] **Worktree cleanup**: 7 merged feature worktrees removable (keep `fynla-coala`); `fynla-recap` has a 109M vendor copy.
+- [x] **Worktree cleanup**: DONE 2026-07-03 — all 7 removed (kept `fynla-coala`).
 
 ## 2026-06-30 — session 2: SaveTax onboarding / ISA / gamification / pension push (#583–#591, dev)
 
