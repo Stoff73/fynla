@@ -40,11 +40,7 @@ class NextActionsService
     {
         $user = User::findOrFail($userId);
 
-        return $this->rank(array_merge(
-            $this->recommendationItems($userId),
-            $this->unlockItems($user),
-            $this->strategyUnlockItems($user),
-        ));
+        return array_slice($this->applyCampaignAffinity($user, $this->rankAll($user, $userId)), 0, self::MAX_ITEMS);
     }
 
     /**
@@ -59,6 +55,16 @@ class NextActionsService
     {
         $user = User::findOrFail($userId);
 
+        return $this->applyCampaignAffinity($user, $this->rankAll($user, $userId));
+    }
+
+    /**
+     * The merged, value-ranked open list shared by build()/buildAll().
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function rankAll(User $user, int $userId): array
+    {
         $items = array_merge(
             $this->recommendationItems($userId),
             $this->unlockItems($user),
@@ -88,8 +94,15 @@ class NextActionsService
         $recItems = $this->recommendationItems($userId);
         $unlocks = array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
 
-        // Top card = the unified <=4 (recs + unlocks), same ranking as build().
-        $top = $this->rank(array_merge($recItems, $unlocks));
+        // Top card = the unified <=4 (recs + unlocks), same ranking as build()
+        // including the WP-6 campaign affinity (tax first for SaveTax users).
+        // Affinity runs BEFORE the 4-slot cut so a lower-value tax item can
+        // still be lifted into the card.
+        $merged = array_merge($recItems, $unlocks);
+        usort($merged, static function (array $a, array $b): int {
+            return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
+        });
+        $top = array_slice($this->applyCampaignAffinity($user, $merged), 0, self::MAX_ITEMS);
 
         // Group real recommendations by module for the per-area cards.
         $byModule = [];
@@ -197,6 +210,34 @@ class NextActionsService
         });
 
         return array_slice($items, 0, self::MAX_ITEMS);
+    }
+
+    /**
+     * WP-6 — campaign affinity. A SaveTax arrival who has just finished the
+     * tax-focused onboarding should land on TAX actions first, not generic
+     * cross-module warnings (the 2026-07-03 walk graduate saw Will/LPA/
+     * critical-illness as their entire top-4). Tax-module items — real
+     * strategies and strategy unlocks alike — sort ahead of everything else
+     * for campaign users; within each tier the normal value ranking holds.
+     * Non-campaign users are untouched.
+     *
+     * @param  array<int,array<string,mixed>>  $items
+     * @return array<int,array<string,mixed>>
+     */
+    private function applyCampaignAffinity(User $user, array $items): array
+    {
+        if (empty($user->funnel_answers)) {
+            return $items;
+        }
+
+        usort($items, static function (array $a, array $b): int {
+            $aTax = ($a['module'] ?? '') === 'tax' ? 1 : 0;
+            $bTax = ($b['module'] ?? '') === 'tax' ? 1 : 0;
+
+            return [$bTax, $b['value'], $a['module']] <=> [$aTax, $a['value'], $b['module']];
+        });
+
+        return $items;
     }
 
     /**
