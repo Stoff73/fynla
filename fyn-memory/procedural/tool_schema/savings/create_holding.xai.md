@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_holding",
-    "description": "Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings (e.g. \"in my SIPP I hold Apple and Microsoft\" → two tool calls).",
+    "description": "Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings (e.g. \"in my SIPP I hold Apple and Microsoft\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

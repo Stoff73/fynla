@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_mortgage",
-    "description": "Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. The form will be filled in front of the user. After filling, ask if they want to add more details before saving. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.",
+    "description": "Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. The form will be filled in front of the user. After filling, ask if they want to add more details before saving. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

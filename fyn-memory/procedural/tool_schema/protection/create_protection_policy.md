@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_protection_policy",
-    "description": "Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. life insurance AND critical illness).",
+    "description": "Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. life insurance AND critical illness). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

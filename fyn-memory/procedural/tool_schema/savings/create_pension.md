@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_pension",
-    "description": "Create a pension for the user. Handles both Defined Contribution (workplace, Self-Invested Personal Pension, personal) and Defined Benefit (final salary, career average) pensions. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions.",
+    "description": "Create a pension for the user. Handles both Defined Contribution (workplace, Self-Invested Personal Pension, personal) and Defined Benefit (final salary, career average) pensions. Omit every field the user did not state — never fill unknown fields with 0 or placeholder values. If the user has only asked to add a pension without giving any details yet, do NOT call this tool — ask for the scheme, provider, and value first; never invent a scheme name. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions.",
     "parameters": {
         "type": "object",
         "properties": {

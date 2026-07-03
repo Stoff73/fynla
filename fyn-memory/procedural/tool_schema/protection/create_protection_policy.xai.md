@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_protection_policy",
-    "description": "Create a protection insurance policy. Handles life insurance, critical illness, and income protection. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. \"Aviva life insurance £300k and Vitality critical illness £100k\" → two tool calls).",
+    "description": "Create a protection insurance policy. Handles life insurance, critical illness, and income protection. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. \"Aviva life insurance £300k and Vitality critical illness £100k\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

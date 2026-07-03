@@ -290,6 +290,43 @@ describe('extractPensions', function () {
     });
 });
 
+// ─── WP-1 — intent-only guard ───────────────────────────────────────
+// "Help me add my pension details" names an entity TYPE with no facts; the
+// gap-fill used to materialise a placeholder record from it (the 2026-07-03
+// phantom "Personal Pension"). An add/update request with no figure must
+// extract nothing, for every focus.
+
+describe('intent-only guard (extractForFocus)', function () {
+    it('extracts nothing from the Edit-details opener strings', function () {
+        foreach ([
+            'retirement' => 'Help me add my pension details',
+            'savings' => 'Help me add my savings details',
+            'investment' => 'Help me add my investment details',
+            'protection' => 'Help me add my protection cover details',
+        ] as $focus => $opener) {
+            expect($this->extractor->extractForFocus($focus, $opener))->toBe([]);
+        }
+    });
+
+    it('extracts nothing from hand-typed intent requests without figures', function () {
+        expect($this->extractor->extractForFocus('retirement', 'I want to add my workplace pension'))->toBe([])
+            ->and($this->extractor->extractForFocus('savings', "I'd like to update my savings: Cash ISA, Barclays Saver."))->toBe([]);
+    });
+
+    it('still extracts when the intent request carries a figure', function () {
+        $out = $this->extractor->extractForFocus('retirement', 'Help me add my Aviva workplace pension worth £50k');
+
+        expect($out)->toHaveCount(1)
+            ->and($out[0]['provider'])->toBe('Aviva')
+            ->and($out[0]['current_fund_value'])->toEqual(50000.0);
+    });
+
+    it('still extracts plain statements that are not intent requests', function () {
+        expect($this->extractor->extractForFocus('retirement', 'I have a workplace pension with Aviva'))
+            ->toHaveCount(1);
+    });
+});
+
 // ─── Investments ────────────────────────────────────────────────────
 
 describe('extractInvestmentAccounts', function () {
