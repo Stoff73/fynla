@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Models\Estate\LastingPowerOfAttorney;
+use App\Models\Estate\Will;
 use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\Gamification\PointsService;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Carbon;
 
 /**
@@ -33,8 +38,67 @@ class MilestoneDetectionService
     /** Goal-progress thresholds in percent. */
     private const GOAL_THRESHOLDS = [25, 50, 75, 100];
 
+    /** WP-5c — combined pension value thresholds in GBP. */
+    private const PENSION_POT_THRESHOLDS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000];
+
+    /** WP-5c — emergency-fund runway thresholds in months of spending. */
+    private const EMERGENCY_FUND_MONTHS = [1, 3, 6];
+
+    /** WP-5c — mortgage paydown thresholds as % of the original loan. */
+    private const MORTGAGE_PAID_PERCENTS = [25, 50, 75, 100];
+
+    /** WP-5c — cumulative actioned annual tax savings thresholds in GBP. */
+    private const TAX_ACTIONED_THRESHOLDS = [250, 500, 1000, 2500, 5000];
+
+    /** WP-5c — allowance-usage thresholds in percent (per tax year). */
+    private const ALLOWANCE_USED_PERCENTS = [50, 100];
+
+    /**
+     * WP-5c — strategy type → named-first family (spec §7.2: pension, ISA,
+     * Gift Aid, salary sacrifice, Marriage Allowance).
+     */
+    private const STRATEGY_FAMILIES = [
+        'pa_taper_rescue' => 'pension',
+        'additional_rate_avoidance' => 'pension',
+        'pension_aa_carry_forward' => 'pension',
+        'tapered_annual_allowance' => 'pension',
+        'non_earner_spouse_pension' => 'pension',
+        'junior_pension' => 'pension',
+        'isa_topup_vs_psa' => 'isa',
+        'bed_and_isa' => 'isa',
+        'isa_topup_spouse' => 'isa',
+        'lifetime_isa' => 'isa',
+        'junior_isa' => 'isa',
+        'isa_coordination' => 'isa',
+        'gift_aid_higher_rate_relief' => 'gift_aid',
+        'salary_sacrifice_ni' => 'salary_sacrifice',
+        'marriage_allowance_transfer' => 'marriage_allowance',
+    ];
+
+    public const STRATEGY_FAMILY_LABELS = [
+        'pension' => "You've completed your first pension tax action.",
+        'isa' => "You've completed your first ISA action.",
+        'gift_aid' => "You've claimed your first Gift Aid relief.",
+        'salary_sacrifice' => "You've set up your first salary sacrifice saving.",
+        'marriage_allowance' => "You've used the Marriage Allowance transfer.",
+    ];
+
+    /**
+     * WP-5c — module key → stable reference id for module_profile rows
+     * (reference_id is an integer column; module keys are strings).
+     */
+    public const MODULE_IDS = [
+        'retirement' => 1,
+        'protection' => 2,
+        'savings' => 3,
+        'investment' => 4,
+        'estate' => 5,
+        'goals' => 6,
+    ];
+
     public function __construct(
         private readonly PointsService $points,
+        private readonly SavingsStore $savingsStore,
     ) {}
 
     /**
@@ -276,7 +340,403 @@ class MilestoneDetectionService
             ));
         }
 
+        // WP-5c — anniversaries: one per completed year with Fynla.
+        if ($user->created_at !== null) {
+            $years = min(100, (int) floor($user->created_at->diffInDays(Carbon::now()) / 365.25));
+            for ($y = 1; $y <= $years; $y++) {
+                $new = array_merge($new, $this->recordOnce(
+                    $user,
+                    'anniversary',
+                    null,
+                    $y,
+                    $y === 1 ? 'A year of planning with Fynla.' : $y.' years of planning with Fynla.',
+                ));
+            }
+        }
+
+        // WP-5c — household: a mutual spouse link.
+        if ($user->spouse_id) {
+            $spouse = User::find($user->spouse_id);
+            if ($spouse && (int) $spouse->spouse_id === (int) $user->id) {
+                $new = array_merge($new, $this->recordOnce(
+                    $user,
+                    'household',
+                    null,
+                    1,
+                    "You've linked your household — planning together.",
+                ));
+            }
+        }
+
         return $new;
+    }
+
+    /**
+     * WP-5c — combined pension value crossing a threshold. The total comes
+     * from the dashboard's net-worth breakdown, already computed on the read.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectPensionPot(User $user, float $total): array
+    {
+        $new = [];
+
+        foreach (self::PENSION_POT_THRESHOLDS as $threshold) {
+            if ($total < $threshold) {
+                break;
+            }
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'pension_pot',
+                null,
+                $threshold,
+                'Your pension savings have passed £'.number_format($threshold).'.',
+            ));
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — emergency-fund runway reaching 1/3/6 months of spending.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectEmergencyFund(User $user, float $months): array
+    {
+        $new = [];
+
+        foreach (self::EMERGENCY_FUND_MONTHS as $threshold) {
+            if ($months < $threshold) {
+                break;
+            }
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'emergency_fund',
+                null,
+                $threshold,
+                $threshold === 1
+                    ? 'Your emergency fund covers a month of your spending.'
+                    : "Your emergency fund covers {$threshold} months of your spending.",
+            ));
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — projected retirement income meeting the target, first time.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectRetirementOnTrack(User $user, float $projected, float $target): array
+    {
+        if ($target <= 0 || $projected < $target) {
+            return [];
+        }
+
+        return $this->recordOnce(
+            $user,
+            'retirement_on_track',
+            null,
+            1,
+            "You're on track for the retirement you've planned.",
+        );
+    }
+
+    /**
+     * WP-5c — every protection gap closed while holding at least one policy.
+     * (Protection-wide rather than life-only: the dashboard read exposes the
+     * critical-gaps count, not a per-type gap.)
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectProtectionAdequate(User $user, int $policyCount, int $criticalGaps): array
+    {
+        if ($policyCount < 1 || $criticalGaps !== 0) {
+            return [];
+        }
+
+        return $this->recordOnce(
+            $user,
+            'protection_adequate',
+            null,
+            1,
+            'Your protection now covers what your family would need.',
+        );
+    }
+
+    /**
+     * WP-5c — mortgage paydown at 25/50/75/100% of the original loan, per
+     * mortgage. Cheap indexed query (a user typically has 0–2 mortgages).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectMortgagesPaid(User $user): array
+    {
+        $new = [];
+
+        $mortgages = Mortgage::query()
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+            ->get(['id', 'original_loan_amount', 'outstanding_balance']);
+
+        foreach ($mortgages as $mortgage) {
+            $original = (float) $mortgage->original_loan_amount;
+            if ($original <= 0) {
+                continue;
+            }
+            $paidPct = (1 - ((float) $mortgage->outstanding_balance / $original)) * 100;
+
+            foreach (self::MORTGAGE_PAID_PERCENTS as $pct) {
+                if ($paidPct < $pct) {
+                    break;
+                }
+                $new = array_merge($new, $this->recordOnce(
+                    $user,
+                    'mortgage_paid',
+                    $mortgage->id,
+                    $pct,
+                    match ($pct) {
+                        25 => "You've paid off a quarter of your mortgage.",
+                        50 => "You've paid off half your mortgage.",
+                        75 => "You've paid off three-quarters of your mortgage.",
+                        default => "You've paid off your mortgage.",
+                    },
+                ));
+            }
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — will and Lasting Power of Attorney in place. Two cheap exists
+     * queries on indexed user_id.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectEstateBasics(User $user): array
+    {
+        $new = [];
+
+        // A Will row is a profile answer — has_will=false means "no will".
+        if (Will::where('user_id', $user->id)->where('has_will', true)->exists()) {
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'will_in_place',
+                null,
+                1,
+                'Your will is in place.',
+            ));
+        }
+
+        // An LPA is in place once registered, not while drafted.
+        if (LastingPowerOfAttorney::where('user_id', $user->id)->registered()->exists()) {
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'lpa_in_place',
+                null,
+                1,
+                'Your Lasting Power of Attorney is in place.',
+            ));
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — first ISA opened (cash or Stocks & Shares). ISAs are individual
+     * by law, so both lookups are user_id-only.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectIsaFirst(User $user): array
+    {
+        // Already minted → skip the store read on every dashboard load.
+        if (UserMilestone::where('user_id', $user->id)->where('milestone_type', 'isa_first')->exists()) {
+            return [];
+        }
+
+        // Savings reads flow through the canonical store (SavingsStoreBoundary);
+        // InvestmentAccount reads are unrestricted (its boundary guards writes).
+        $hasIsa = $this->savingsStore->forUser($user)->contains(fn ($a): bool => (bool) $a->is_isa)
+            || InvestmentAccount::where('user_id', $user->id)->isa()->exists();
+
+        if (! $hasIsa) {
+            return [];
+        }
+
+        return $this->recordOnce(
+            $user,
+            'isa_first',
+            null,
+            1,
+            "You've opened your first ISA.",
+        );
+    }
+
+    /**
+     * WP-5c — a module's profile is complete when its prerequisite gate is
+     * open and advice is flowing. The caller derives that from the dashboard's
+     * focus-area cards (locked === false), so this adds zero queries.
+     *
+     * @param  array<int,string>  $completeModules  module keys (see MODULE_IDS)
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectModuleProfiles(User $user, array $completeModules): array
+    {
+        $new = [];
+
+        foreach ($completeModules as $module) {
+            $referenceId = self::MODULE_IDS[$module] ?? null;
+            if ($referenceId === null) {
+                continue;
+            }
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'module_profile',
+                $referenceId,
+                1,
+                "Your {$module} profile is complete.",
+            ));
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — ISA / pension Annual Allowance usage crossing 50% and 100% for
+     * the current tax year. Positions come from the tax-strategy allowance
+     * grid already in the payload; reference_id is the tax-year start so the
+     * milestone repeats each year (CSJ decision 2026-07-03).
+     *
+     * @param  string  $taxYear  e.g. "2026/27"
+     * @param  array<int,array<string,mixed>>  $positions  allowance-grid rows
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectTaxYearAllowances(User $user, string $taxYear, array $positions): array
+    {
+        $year = (int) substr($taxYear, 0, 4);
+        if ($year < 2000) {
+            return [];
+        }
+
+        $byKey = [];
+        foreach ($positions as $position) {
+            if (is_array($position) && isset($position['key'])) {
+                $byKey[(string) $position['key']] = $position;
+            }
+        }
+
+        $families = [
+            'isa_allowance' => ['isa_used', 'your ISA allowance'],
+            'pension_annual_allowance' => ['pension_aa_used', 'your pension Annual Allowance'],
+        ];
+
+        $new = [];
+        foreach ($families as $positionKey => [$type, $name]) {
+            $position = $byKey[$positionKey] ?? null;
+            if ($position === null || ! ($position['available'] ?? true) || (float) ($position['amount'] ?? 0) <= 0) {
+                continue;
+            }
+            $pct = (float) ($position['utilisation_pct'] ?? 0);
+
+            foreach (self::ALLOWANCE_USED_PERCENTS as $threshold) {
+                if ($pct < $threshold) {
+                    break;
+                }
+                $new = array_merge($new, $this->recordOnce(
+                    $user,
+                    $type,
+                    $year,
+                    $threshold,
+                    ($threshold >= 100 ? "You've used all of " : "You've used half of ").$name." for {$taxYear}.",
+                ));
+            }
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — cumulative annual tax saving from completed plan actions: a
+     * first-action milestone, then £ thresholds. The caller sums completed
+     * items' savings from the composed plan already in the payload.
+     * (Ceiling: completing both members of a conflict pair counts both — the
+     * user did do both actions.)
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectTaxActioned(User $user, float $cumulativeAnnualSaving): array
+    {
+        if ($cumulativeAnnualSaving <= 0) {
+            return [];
+        }
+
+        $new = $this->recordOnce(
+            $user,
+            'tax_actioned',
+            null,
+            1,
+            "You've actioned your first tax saving.",
+        );
+
+        foreach (self::TAX_ACTIONED_THRESHOLDS as $threshold) {
+            if ($cumulativeAnnualSaving < $threshold) {
+                break;
+            }
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'tax_actioned',
+                null,
+                $threshold,
+                "Actions you've completed are saving you £".number_format($threshold).' a year in tax.',
+            ));
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5c — named strategy firsts, minted from the recommendation-completed
+     * observer. The recommendation id is 'tax_' + strategy type.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectStrategyFirst(User $user, string $recommendationId): array
+    {
+        if (! str_starts_with($recommendationId, 'tax_')) {
+            return [];
+        }
+
+        $family = self::STRATEGY_FAMILIES[substr($recommendationId, 4)] ?? null;
+        if ($family === null) {
+            return [];
+        }
+
+        return $this->recordOnce(
+            $user,
+            'strategy:'.$family,
+            null,
+            1,
+            self::STRATEGY_FAMILY_LABELS[$family],
+        );
+    }
+
+    /**
+     * WP-5c — first completed estate action, minted from the observer.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectEstateActionCompleted(User $user): array
+    {
+        return $this->recordOnce(
+            $user,
+            'estate_plan_started',
+            null,
+            1,
+            "You've started planning your estate.",
+        );
     }
 
     /**

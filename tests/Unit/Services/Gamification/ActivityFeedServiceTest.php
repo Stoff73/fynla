@@ -64,7 +64,12 @@ it('names completed actions with their real wording', function () {
 
     $feed = app(ActivityFeedService::class)->feed($user);
 
-    expect($feed[0]['label'])->toBe('Completed: Reclaim your Personal Allowance with a pension contribution');
+    // WP-5c: completing a named tax strategy also mints its strategy-first
+    // milestone, so the completion is one of two events for this act.
+    $labels = array_column($feed, 'label');
+
+    expect($labels)->toContain('Completed: Reclaim your Personal Allowance with a pension contribution')
+        ->and($labels)->toContain('Completed a first pension tax action');
 });
 
 it('hides plumbing events: daily logins and verify steps', function () {

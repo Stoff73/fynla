@@ -96,11 +96,48 @@ class MobileDashboardController extends Controller
                 'progress_percentage' => (float) $g->progress_percentage,
             ])->all();
 
+            // WP-5c — module profiles are complete where the focus-area card
+            // is unlocked (gate open + advice flowing); derived from the
+            // payload, zero extra queries.
+            $completeModules = [];
+            foreach (($data['focus_areas'] ?? []) as $area) {
+                if (($area['key'] ?? '') !== 'top' && ($area['locked'] ?? true) === false) {
+                    $completeModules[] = (string) $area['key'];
+                }
+            }
+
+            $modules = $data['modules'] ?? [];
+            $savings = $modules['savings'] ?? [];
+            $retirement = $modules['retirement'] ?? [];
+            $protection = $modules['protection'] ?? [];
+            $assets = $data['net_worth']['breakdown']['assets'] ?? [];
+
             return array_merge(
                 $milestones,
                 $this->milestones->detectGoals($user, $goals),
-                // WP-5 — journey milestones (profile complete, first action).
+                // WP-5 — journey milestones (profile complete, first action;
+                // WP-5c adds anniversaries + household).
                 $this->milestones->detectJourney($user),
+                // WP-5c — figures already computed in the aggregated payload.
+                $this->milestones->detectPensionPot($user, (float) ($assets['pensions'] ?? 0)),
+                $this->milestones->detectEmergencyFund($user, (float) ($savings['emergency_fund_months'] ?? 0)),
+                $this->milestones->detectRetirementOnTrack(
+                    $user,
+                    (float) ($retirement['projected_income'] ?? 0),
+                    (float) ($retirement['target_income'] ?? 0),
+                ),
+                ($protection['status'] ?? '') === 'active'
+                    ? $this->milestones->detectProtectionAdequate(
+                        $user,
+                        (int) ($protection['policy_count'] ?? 0),
+                        (int) ($protection['critical_gaps'] ?? 1),
+                    )
+                    : [],
+                $this->milestones->detectModuleProfiles($user, $completeModules),
+                // WP-5c — cheap indexed lookups.
+                $this->milestones->detectMortgagesPaid($user),
+                $this->milestones->detectEstateBasics($user),
+                $this->milestones->detectIsaFirst($user),
             );
         } catch (\Throwable $e) {
             Log::warning('Milestone detection failed', [

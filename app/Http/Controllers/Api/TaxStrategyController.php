@@ -38,12 +38,27 @@ final class TaxStrategyController extends Controller
         // WP-5 — the first quantified annual saving is a milestone; detected
         // here because the composed plan is already in hand (recomputing it
         // in a generic detection pass would double the cost). Never breaks
-        // the read.
+        // the read. WP-5c adds tax-year allowance usage (from the grid in the
+        // payload) and the cumulative actioned saving (from completed items).
         try {
-            app(MilestoneDetectionService::class)->detectTaxSavingsIdentified(
+            $milestones = app(MilestoneDetectionService::class);
+            $milestones->detectTaxSavingsIdentified(
                 $user,
                 (float) ($payload['composed_plan']['combined_annual_saving'] ?? 0),
             );
+            $milestones->detectTaxYearAllowances(
+                $user,
+                (string) ($payload['tax_year'] ?? ''),
+                (array) ($payload['user_allowances'] ?? []),
+            );
+
+            $actioned = 0.0;
+            foreach ((array) ($payload['composed_plan']['items'] ?? []) as $item) {
+                if (is_array($item) && ($item['completed'] ?? false)) {
+                    $actioned += (float) ($item['estimated_annual_tax_saved'] ?? 0);
+                }
+            }
+            $milestones->detectTaxActioned($user, $actioned);
         } catch (\Throwable $e) {
             // best-effort
         }

@@ -7,6 +7,7 @@ namespace App\Services\Gamification;
 use App\Models\PointAward;
 use App\Models\RecommendationTracking;
 use App\Models\User;
+use App\Services\Mobile\MilestoneDetectionService;
 use Illuminate\Support\Collection;
 
 /**
@@ -141,6 +142,26 @@ final class ActivityFeedService
             return ['kind' => 'milestone', 'label' => 'Reached '.$m[1].'% of a goal'];
         }
 
+        // WP-5c — the rest of the milestone catalogue (also covers the WP-5
+        // journey flavours, which previously fell through to null). Key shape:
+        // milestone:{type}:{ref}:{threshold}, where type itself may contain
+        // ':' (strategy:isa) — so parse from the end.
+        if (str_starts_with($key, 'milestone:')) {
+            $parts = explode(':', substr($key, strlen('milestone:')));
+            if (count($parts) >= 3) {
+                $threshold = (float) array_pop($parts);
+                $ref = (int) array_pop($parts);
+                $type = implode(':', $parts);
+                $label = $this->milestoneFeedLabel($type, $ref, $threshold);
+
+                if ($label !== null) {
+                    return ['kind' => 'milestone', 'label' => $label];
+                }
+            }
+
+            return null;
+        }
+
         if (str_starts_with($key, 'streak:')) {
             $days = (int) explode(':', $key)[1];
 
@@ -154,5 +175,48 @@ final class ActivityFeedService
         }
 
         return null;
+    }
+
+    /**
+     * WP-5c — terse feed labels for the expanded milestone catalogue.
+     * (Fuller sentences live on the milestones page; the feed stays short.)
+     */
+    private function milestoneFeedLabel(string $type, int $ref, float $threshold): ?string
+    {
+        if (str_starts_with($type, 'strategy:')) {
+            $family = str_replace('_', ' ', substr($type, strlen('strategy:')));
+
+            return 'Completed a first '.($family === 'isa' ? 'ISA' : $family).' tax action';
+        }
+
+        $taxYear = fn (): string => $ref.'/'.substr((string) ($ref + 1), -2);
+
+        return match ($type) {
+            'campaign' => 'Completed the tax profile',
+            'action' => 'Completed a first action',
+            'tax_savings' => 'Found £'.number_format($threshold).' a year of possible tax savings',
+            'pension_pot' => 'Pension savings passed £'.number_format($threshold),
+            'emergency_fund' => $threshold <= 1
+                ? 'Emergency fund reached a month of spending'
+                : 'Emergency fund reached '.(int) $threshold.' months of spending',
+            'retirement_on_track' => 'On track for retirement',
+            'protection_adequate' => 'Protection needs covered',
+            'mortgage_paid' => (int) $threshold >= 100
+                ? 'Paid off a mortgage'
+                : 'Paid off '.(int) $threshold.'% of a mortgage',
+            'will_in_place' => 'Put a will in place',
+            'lpa_in_place' => 'Put a Lasting Power of Attorney in place',
+            'estate_plan_started' => 'Started estate planning',
+            'isa_first' => 'Opened a first ISA',
+            'isa_used' => ($threshold >= 100 ? 'Used the full ' : 'Used half the ').$taxYear().' ISA allowance',
+            'pension_aa_used' => ($threshold >= 100 ? 'Used the full ' : 'Used half the ').$taxYear().' pension Annual Allowance',
+            'module_profile' => 'Completed the '.(array_search($ref, MilestoneDetectionService::MODULE_IDS, true) ?: 'module').' profile',
+            'anniversary' => $threshold <= 1 ? 'One year with Fynla' : (int) $threshold.' years with Fynla',
+            'household' => 'Linked the household',
+            'tax_actioned' => $threshold <= 1
+                ? 'Actioned a first tax saving'
+                : 'Actions now saving £'.number_format($threshold).' a year in tax',
+            default => null,
+        };
     }
 }
