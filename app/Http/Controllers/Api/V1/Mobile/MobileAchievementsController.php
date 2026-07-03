@@ -229,6 +229,86 @@ class MobileAchievementsController extends Controller
                 : sprintf("You're %d%% of the way to %s.", (int) $threshold, $goalName);
         }
 
+        // WP-5c — the expanded catalogue.
+        if ($m->milestone_type === 'pension_pot') {
+            return 'Your pension savings have passed £'.number_format($threshold).'.';
+        }
+
+        if ($m->milestone_type === 'emergency_fund') {
+            return $threshold <= 1
+                ? 'Your emergency fund covers a month of your spending.'
+                : 'Your emergency fund covers '.(int) $threshold.' months of your spending.';
+        }
+
+        if ($m->milestone_type === 'retirement_on_track') {
+            return "You're on track for the retirement you've planned.";
+        }
+
+        if ($m->milestone_type === 'protection_adequate') {
+            return 'Your protection now covers what your family would need.';
+        }
+
+        if ($m->milestone_type === 'mortgage_paid') {
+            return match ((int) $threshold) {
+                25 => "You've paid off a quarter of your mortgage.",
+                50 => "You've paid off half your mortgage.",
+                75 => "You've paid off three-quarters of your mortgage.",
+                default => "You've paid off your mortgage.",
+            };
+        }
+
+        if ($m->milestone_type === 'will_in_place') {
+            return 'Your will is in place.';
+        }
+
+        if ($m->milestone_type === 'lpa_in_place') {
+            return 'Your Lasting Power of Attorney is in place.';
+        }
+
+        if ($m->milestone_type === 'estate_plan_started') {
+            return "You've started planning your estate.";
+        }
+
+        if ($m->milestone_type === 'isa_first') {
+            return "You've opened your first ISA.";
+        }
+
+        if ($m->milestone_type === 'isa_used' || $m->milestone_type === 'pension_aa_used') {
+            $name = $m->milestone_type === 'isa_used' ? 'your ISA allowance' : 'your pension Annual Allowance';
+            $year = (int) $m->reference_id;
+            $yearLabel = $year.'/'.substr((string) ($year + 1), -2);
+
+            return ($threshold >= 100 ? "You've used all of " : "You've used half of ").$name.' for '.$yearLabel.'.';
+        }
+
+        if ($m->milestone_type === 'module_profile') {
+            $module = array_search((int) $m->reference_id, MilestoneDetectionService::MODULE_IDS, true);
+
+            return 'Your '.($module !== false ? $module : 'module').' profile is complete.';
+        }
+
+        if ($m->milestone_type === 'anniversary') {
+            return $threshold <= 1
+                ? 'A year of planning with Fynla.'
+                : (int) $threshold.' years of planning with Fynla.';
+        }
+
+        if ($m->milestone_type === 'household') {
+            return "You've linked your household — planning together.";
+        }
+
+        if ($m->milestone_type === 'tax_actioned') {
+            return $threshold <= 1
+                ? "You've actioned your first tax saving."
+                : "Actions you've completed are saving you £".number_format($threshold).' a year in tax.';
+        }
+
+        if (str_starts_with($m->milestone_type, 'strategy:')) {
+            $family = substr($m->milestone_type, strlen('strategy:'));
+
+            return MilestoneDetectionService::STRATEGY_FAMILY_LABELS[$family] ?? 'You completed a first tax strategy action.';
+        }
+
         return 'Milestone reached';
     }
 }
