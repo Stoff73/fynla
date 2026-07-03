@@ -14,6 +14,7 @@ use App\Models\UserGamification;
 use App\Models\UserMilestone;
 use App\Services\Gamification\LevelService;
 use App\Services\Mobile\MilestoneDetectionService;
+use App\Services\NetWorth\NetWorthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -42,11 +43,35 @@ class MobileAchievementsController extends Controller
                     // but shown nowhere; surface them so done work has a home.
                     'completed' => $this->completedActions($user),
                     'milestones' => $this->milestones($user),
+                    // WP-5b — the milestones the user can achieve next, with
+                    // the concrete step for each.
+                    'upcoming' => $this->upcomingMilestones($user),
                 ],
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Fetching achievements');
         }
+    }
+
+    /**
+     * WP-5b — upcoming milestones with the step needed for each. Net worth
+     * comes from the day-cached calculation so the "£X away" figure is cheap
+     * on repeat reads; a calculation failure degrades to the list without
+     * distances rather than breaking the page.
+     *
+     * @return array<int,array{title: string, steps: string}>
+     */
+    private function upcomingMilestones(User $user): array
+    {
+        $netWorth = null;
+        try {
+            $nw = app(NetWorthService::class)->getCachedNetWorth($user);
+            $netWorth = (float) ($nw['net_worth'] ?? 0);
+        } catch (\Throwable $e) {
+            // best-effort — upcoming still renders without the £-away figure
+        }
+
+        return app(MilestoneDetectionService::class)->upcoming($user, $netWorth);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Goal;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserMilestone;
@@ -77,6 +78,62 @@ it('ignores a zero saving', function () {
     $user = User::factory()->create();
 
     expect(app(MilestoneDetectionService::class)->detectTaxSavingsIdentified($user, 0.0))->toBe([]);
+});
+
+it('lists the next net-worth threshold with the distance to it', function () {
+    $user = User::factory()->create();
+
+    $upcoming = app(MilestoneDetectionService::class)->upcoming($user, 15520.0);
+
+    $netWorth = collect($upcoming)->firstWhere('title', 'Net worth £25,000');
+    expect($netWorth)->not->toBeNull()
+        ->and($netWorth['steps'])->toContain("you're £9,480 away");
+});
+
+it('lists the next goal step with the amount still needed', function () {
+    $user = User::factory()->create();
+    Goal::create([
+        'user_id' => $user->id,
+        'goal_name' => 'House deposit',
+        'goal_type' => 'home_deposit',
+        'target_amount' => 40000,
+        'current_amount' => 12000,
+        'status' => 'active',
+        'target_date' => now()->addYears(3),
+    ]);
+
+    $upcoming = app(MilestoneDetectionService::class)->upcoming($user);
+
+    $goalStep = collect($upcoming)->firstWhere('title', '50% of House deposit');
+    expect($goalStep)->not->toBeNull()
+        ->and($goalStep['steps'])->toContain('£8,000 more');
+});
+
+it('lists unearned journey milestones with the action that earns them', function () {
+    $user = User::factory()->create([
+        'onboarding_completed' => false,
+        'funnel_answers' => ['assets' => ['bank']],
+    ]);
+
+    $titles = array_column(app(MilestoneDetectionService::class)->upcoming($user), 'title');
+
+    expect($titles)->toContain('Complete your tax profile')
+        ->and($titles)->toContain('Find your first tax saving')
+        ->and($titles)->toContain('Complete your first action');
+});
+
+it('drops journey milestones from upcoming once earned', function () {
+    $user = User::factory()->create([
+        'onboarding_completed' => true,
+        'funnel_answers' => ['assets' => ['bank']],
+    ]);
+    $service = app(MilestoneDetectionService::class);
+    $service->detectJourney($user); // earns 'campaign'
+
+    $titles = array_column($service->upcoming($user), 'title');
+
+    expect($titles)->not->toContain('Complete your tax profile')
+        ->and($titles)->toContain('Complete your first action');
 });
 
 it('self-heals the milestones page: journey milestones appear on the progress read', function () {
