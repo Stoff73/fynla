@@ -233,7 +233,14 @@ class AiChatController extends Controller
         //      onboarding, not from chat. Matches the /action endpoint check
         //      at AiChatController::postAction so a paused user does not
         //      silently no-op when they ask a free-text question.
-        $inOnboarding = $user->onboarding_completed === false
+        //   Campaign re-entry (map §4, canonical contract amendment): a completed
+        //   user with an active_campaign set is also routed to OnboardingChatDirector
+        //   — the one write state — so they walk the campaign funnel. The
+        //   onboarding_completed flag is never modified by re-entry; re-entry is
+        //   signalled purely by active_campaign being non-null. A null
+        //   onboarding_fyn_step (paused mid-campaign) falls back to advice so a
+        //   paused user can still get answers without their step being lost.
+        $inOnboarding = ($user->onboarding_completed === false || $user->active_campaign !== null)
             && $user->onboarding_fyn_step !== null
             && (bool) config('onboarding.fyn_flow_enabled', true);
 
