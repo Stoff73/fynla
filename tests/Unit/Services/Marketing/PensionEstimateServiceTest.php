@@ -337,13 +337,18 @@ it('gives a higher-rate tax relief note for 50271_100000 earners', function () {
         ->toContain('Self Assessment');
 });
 
-it('gives a taper-zone note for the 100001_125140 band mentioning Personal Allowance', function () {
+it('gives a taper-zone note for the 100001_125140 band citing the PA taper start, not the higher-rate threshold', function () {
     $result = $this->service->estimate(['income' => '100001_125140']);
 
-    // Note must mention the 60% effective rate and the Personal Allowance — no acronyms
+    // The Personal Allowance taper starts at £100,000 — not the higher-rate threshold (£50,270).
+    // Pin both rendered £ figures from TaxConfigService so any key regression fails here.
+    // Seeded values: personal_allowance_taper_threshold=100000, additional_rate_threshold=125140.
     expect($result['tax_relief_note'])
         ->toContain('60%')
-        ->toContain('Personal Allowance');
+        ->toContain('Personal Allowance')
+        ->toContain('£100,000')        // PA taper start — income_tax.personal_allowance_taper_threshold
+        ->toContain('£125,140')        // additional-rate threshold — income_tax.additional_rate_threshold
+        ->not->toContain('£50,270');   // higher-rate threshold must NOT appear here (wrong concept)
 });
 
 it('gives an additional-rate relief note for over_125140 earners', function () {

@@ -178,6 +178,9 @@ class PensionEstimateService
     private function taxReliefNote(string $incomeBand, float $incomeMidpoint): string
     {
         $higherThreshold = (int) $this->taxConfig->get('income_tax.higher_rate_threshold', 50270);
+        // The Personal Allowance taper starts at £100,000 — a separate threshold from the
+        // higher-rate boundary (£50,270). Source: income_tax.personal_allowance_taper_threshold.
+        $paTaperStart = (int) $this->taxConfig->get('income_tax.personal_allowance_taper_threshold', 100000);
         $additionalThreshold = (int) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
 
         if ($incomeMidpoint > $additionalThreshold) {
@@ -186,9 +189,9 @@ class PensionEstimateService
         }
 
         if ($incomeBand === '100001_125140') {
-            // Personal Allowance taper zone — £1 lost per £2 over £100k creates an
+            // Personal Allowance taper zone — £1 lost per £2 over £100,000 creates an
             // effective 60% rate; a pension contribution restores the allowance.
-            return 'Income between '.$this->money($higherThreshold).' and '.$this->money($additionalThreshold)
+            return 'Income between '.$this->money($paTaperStart).' and '.$this->money($additionalThreshold)
                 .' is subject to an effective 60% tax rate due to the Personal Allowance taper; '
                 .'pension contributions in this range attract higher-rate relief and can restore your '
                 .'Personal Allowance.';
