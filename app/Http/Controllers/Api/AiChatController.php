@@ -587,7 +587,20 @@ class AiChatController extends Controller
             ], 403);
         }
 
-        if ($user->onboarding_completed === true) {
+        // Resolve the re-entry campaign before the completed check so a completed
+        // user arriving via a reentry-enabled campaign can bypass the 409 gate
+        // and start a fresh campaign session (or resume a mid-campaign one).
+        $from = $request->input('from');
+        $campaignMap = (array) config('onboarding.campaign_map', []);
+        $reentryCampaign = is_string($from)
+            && isset($campaignMap[$from])
+            && ($campaignMap[$from]['reentry'] ?? false)
+            ? $campaignMap[$from] : null;
+
+        // 409 only when the user is completed AND no reentry-enabled campaign matched.
+        // Completed users with a valid reentry campaign fall through to the resume
+        // branch (mid-campaign, step non-null) or the fresh re-entry path below.
+        if ($user->onboarding_completed === true && $reentryCampaign === null) {
             return response()->json([
                 'success' => false,
                 'reason' => 'already_completed',
@@ -638,15 +651,19 @@ class AiChatController extends Controller
             ]);
         }
 
-        // Fresh start — create the conversation and stream turn 1.
+        // Fresh start (or fresh campaign re-entry) — create the conversation and stream turn 1.
+        // Re-entry sessions carry an additional metadata.campaign key so the onboarding
+        // scope query and any post-session tooling can distinguish them from first-time flows.
+        $conversationMetadata = ['source' => 'fyn_onboarding'];
+        if ($reentryCampaign !== null) {
+            $conversationMetadata['campaign'] = $reentryCampaign['selection'];
+        }
         $conversation = AiConversation::create([
             'user_id' => $user->id,
             'status' => 'active',
             'model_used' => 'director',
             'title' => 'Onboarding',
-            'metadata' => [
-                'source' => 'fyn_onboarding',
-            ],
+            'metadata' => $conversationMetadata,
         ]);
 
         // INV-2.2.5 — entry-source dispatch. When the request carries a
@@ -665,8 +682,9 @@ class AiChatController extends Controller
         // misclassified as a life-stage journey. Unknown / missing `from`
         // falls through to STATE_PATH_CHOICE. Adding a new entry source
         // requires only a config change — no controller change.
-        $from = $request->input('from');
-        $campaignMap = (array) config('onboarding.campaign_map', []);
+        //
+        // $from and $campaignMap are already resolved above the completed-user
+        // gate (re-entry gate reads them to derive $reentryCampaign).
         $journeyMap = (array) config('onboarding.journey_map', []);
         $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
         $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
@@ -694,6 +712,12 @@ class AiChatController extends Controller
             // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
             $user->onboarding_fyn_step = $campaignEntry['entry'];
             $startStateId = $campaignEntry['entry'];
+            // Re-entry: stamp active_campaign so routesToOnboardingDirector routes
+            // subsequent messages from this completed user to the director while
+            // the campaign session is in progress.
+            if ($reentryCampaign !== null) {
+                $user->active_campaign = $matchedCampaign;
+            }
         } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;
