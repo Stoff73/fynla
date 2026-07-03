@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\RetirementProfile;
+use App\Models\StatePension;
+use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
 
 /**
@@ -139,4 +142,115 @@ it('pensioncheck C3 state constants resolve to non-empty strings (state-table en
 
 it('sectionOrderFor falls back to savetax for an unrecognised selection', function (): void {
     expect(SM::sectionOrderFor('unknown_campaign'))->toBe(SM::sectionOrderFor('savetax'));
+});
+
+// ── 3. Task C2 — data-presence skip predicates ────────────────────────────────
+//
+// Each test creates a user with or without the relevant data and calls the
+// predicate directly to verify the skip decision.  The composite "existing
+// user" test calls campaignSections() to assert the wiring is live.
+
+// ─ skipSectionIfIncomeKnown ──────────────────────────────────────────────────
+
+it('skipSectionIfIncomeKnown returns true when employment_status is set', function (): void {
+    $user = User::factory()->create(['employment_status' => 'employed']);
+    expect(SM::skipSectionIfIncomeKnown($user))->toBeTrue();
+});
+
+it('skipSectionIfIncomeKnown returns false when employment_status is null', function (): void {
+    $user = User::factory()->create(['employment_status' => null]);
+    expect(SM::skipSectionIfIncomeKnown($user))->toBeFalse();
+});
+
+// ─ skipSectionIfStatePensionKnown ────────────────────────────────────────────
+
+it('skipSectionIfStatePensionKnown returns true when a state_pensions row exists', function (): void {
+    $user = User::factory()->create();
+    StatePension::factory()->create(['user_id' => $user->id]);
+    expect(SM::skipSectionIfStatePensionKnown($user))->toBeTrue();
+});
+
+it('skipSectionIfStatePensionKnown returns false when no state_pensions row exists', function (): void {
+    $user = User::factory()->create();
+    expect(SM::skipSectionIfStatePensionKnown($user))->toBeFalse();
+});
+
+// ─ skipSectionIfGoalsKnown ───────────────────────────────────────────────────
+
+it('skipSectionIfGoalsKnown returns true when retirement_profiles row has both target fields set', function (): void {
+    $user = User::factory()->create();
+    RetirementProfile::factory()->create([
+        'user_id' => $user->id,
+        'target_retirement_age' => 65,
+        'target_retirement_income' => 30000,
+    ]);
+    expect(SM::skipSectionIfGoalsKnown($user))->toBeTrue();
+});
+
+it('skipSectionIfGoalsKnown returns false when retirement_profiles row has target_retirement_income null', function (): void {
+    $user = User::factory()->create();
+    RetirementProfile::factory()->create([
+        'user_id' => $user->id,
+        'target_retirement_age' => 65,
+        'target_retirement_income' => null,
+    ]);
+    expect(SM::skipSectionIfGoalsKnown($user))->toBeFalse();
+});
+
+it('skipSectionIfGoalsKnown returns false when no retirement_profiles row exists', function (): void {
+    $user = User::factory()->create();
+    expect(SM::skipSectionIfGoalsKnown($user))->toBeFalse();
+});
+
+// ─ skipSectionIfExpenditureKnown ─────────────────────────────────────────────
+
+it('skipSectionIfExpenditureKnown returns true when monthly_expenditure is greater than zero', function (): void {
+    $user = User::factory()->create(['monthly_expenditure' => 2500]);
+    expect(SM::skipSectionIfExpenditureKnown($user))->toBeTrue();
+});
+
+it('skipSectionIfExpenditureKnown returns false when monthly_expenditure is null', function (): void {
+    $user = User::factory()->create(['monthly_expenditure' => null]);
+    expect(SM::skipSectionIfExpenditureKnown($user))->toBeFalse();
+});
+
+it('skipSectionIfExpenditureKnown returns false when monthly_expenditure is zero (mirrors skipIfExpenditureSet)', function (): void {
+    $user = User::factory()->create(['monthly_expenditure' => 0]);
+    expect(SM::skipSectionIfExpenditureKnown($user))->toBeFalse();
+});
+
+// ─ Composite — existing SaveTax user fixture ─────────────────────────────────
+//
+// A user who has already been through the SaveTax onboarding: employment_status
+// and monthly_expenditure are populated; no state_pensions or retirement_profiles
+// row exists (those are new to pensioncheck).  Walking campaignSections through
+// the predicate wiring should yield income and expenditure skipped.
+
+it('existing user with income and expenditure known skips those sections in the pensioncheck walk', function (): void {
+    $user = User::factory()->create([
+        'onboarding_fyn_selection' => 'pensioncheck',
+        'employment_status' => 'employed',
+        'monthly_expenditure' => 2500,
+        'marital_status' => 'married',
+    ]);
+    // No StatePension or RetirementProfile rows created.
+
+    $sections = SM::campaignSections('pensioncheck');
+    $order = SM::sectionOrderFor('pensioncheck');
+    $visited = [];
+    foreach ($order as $sectionId) {
+        $section = $sections[$sectionId] ?? null;
+        if ($section === null) {
+            continue;
+        }
+        $skip = $section['skip'];
+        if (is_callable($skip) && $skip($user)) {
+            continue;
+        }
+        $visited[] = $sectionId;
+    }
+
+    // income (employment_status set) and expenditure (monthly_expenditure > 0) are
+    // skipped; pensions, state_pension, retirement_goals, and spouse are visited.
+    expect($visited)->toBe(['pensions', 'state_pension', 'retirement_goals', 'spouse']);
 });

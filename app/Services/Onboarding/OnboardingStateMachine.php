@@ -208,12 +208,12 @@ final class OnboardingStateMachine
         // state_pension / retirement_goals entry states land in Task C3.
         // Data-presence skips (skipSectionIfIncomeKnown etc.) land in Task C2.
         return [
-            'income' => ['entry' => self::STATE_BASE_EMPLOYMENT, 'skip' => null],        // C2 adds data-presence skip
-            'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB, 'skip' => null],
-            'state_pension' => ['entry' => self::STATE_CAMPAIGN2_STATE_PENSION, 'skip' => null],   // C2 adds skip
-            'retirement_goals' => ['entry' => self::STATE_CAMPAIGN2_RETIREMENT_GOALS, 'skip' => null], // C2 adds skip
-            'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
-            'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],  // C2 adds skip
+            'income' => ['entry' => self::STATE_BASE_EMPLOYMENT,           'skip' => [self::class, 'skipSectionIfIncomeKnown']],
+            'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB,              'skip' => null],
+            'state_pension' => ['entry' => self::STATE_CAMPAIGN2_STATE_PENSION,   'skip' => [self::class, 'skipSectionIfStatePensionKnown']],
+            'retirement_goals' => ['entry' => self::STATE_CAMPAIGN2_RETIREMENT_GOALS, 'skip' => [self::class, 'skipSectionIfGoalsKnown']],
+            'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK,      'skip' => [self::class, 'skipIfNotMarried']],
+            'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE,          'skip' => [self::class, 'skipSectionIfExpenditureKnown']],
         ];
     }
 
@@ -1540,6 +1540,65 @@ final class OnboardingStateMachine
     public static function skipSectionIfNoCash(User $user): bool
     {
         return ! self::funnelHasAnyAsset($user, ['savings', 'bank', 'isa']);
+    }
+
+    // ─── Pensioncheck data-presence skip predicates (Task C2) ────────────────
+    //
+    // These are section-level skips for the pensioncheck campaign.  A returning
+    // user who already completed the relevant section of the SaveTax onboarding
+    // should not be asked the same questions again.
+    //
+    // Note: income is stored directly on the users table — there is no separate
+    // job_employment relation in this codebase.  employment_status being non-null
+    // is the reliable signal that the income section has been completed.
+
+    /**
+     * Skip the income section when the user's employment status is already known.
+     *
+     * Income data (annual_employment_income / annual_self_employment_income) is
+     * stored on the users table, not a separate relation.  employment_status is
+     * the entry field for the income section and serves as the presence indicator.
+     */
+    public static function skipSectionIfIncomeKnown(User $user): bool
+    {
+        return ! empty($user->employment_status);
+    }
+
+    /**
+     * Skip the state_pension section when a state_pensions row already exists.
+     */
+    public static function skipSectionIfStatePensionKnown(User $user): bool
+    {
+        return $user->statePension()->exists();
+    }
+
+    /**
+     * Skip the retirement_goals section when the retirement_profiles row exists
+     * AND both target_retirement_age and target_retirement_income are populated.
+     *
+     * target_retirement_age is NOT NULL in the schema, so the meaningful guard is
+     * target_retirement_income (which is nullable) — both are checked explicitly
+     * to future-proof against schema changes.
+     */
+    public static function skipSectionIfGoalsKnown(User $user): bool
+    {
+        $profile = $user->retirementProfile;
+
+        return $profile !== null
+            && $profile->target_retirement_age !== null
+            && $profile->target_retirement_income !== null;
+    }
+
+    /**
+     * Skip the expenditure section when monthly_expenditure is already recorded.
+     *
+     * Mirrors skipIfExpenditureSet: treats 0 as not-known (a stored zero is
+     * indistinguishable from an uninitialised default in the legacy flow).
+     */
+    public static function skipSectionIfExpenditureKnown(User $user): bool
+    {
+        return (float) ($user->monthly_expenditure ?? 0) > 0
+            || (float) ($user->annual_expenditure ?? 0) > 0;
     }
 
     public static function skipSectionIfNoInvestments(User $user): bool
