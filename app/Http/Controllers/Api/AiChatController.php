@@ -678,7 +678,7 @@ class AiChatController extends Controller
             && ! empty($user->funnel_answers)
             && isset($campaignMap['savetax'])) {
             $campaignEntry = $campaignMap['savetax'];
-            $matchedCampaign = $campaignEntry['selection'] ?? null;
+            $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         }
 
         if ($matchedCampaign !== null) {

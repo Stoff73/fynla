@@ -55,14 +55,13 @@ it('sets campaign path, selection and step for from=savetax', function () {
 
 it('has a valid state id for every configured campaign entry', function () {
     $campaignMap = config('onboarding.campaign_map', []);
+    // states() is the authoritative in-code state table (inCodeStates() is private).
     $validStates = array_keys(OnboardingStateMachine::states());
 
     expect($campaignMap)->toBeArray()->not->toBeEmpty();
 
     foreach ($campaignMap as $key => $value) {
-        if (! is_array($value)) {
-            continue;
-        }
+        expect($value)->toBeArray("campaign_map entry '{$key}' must be array-shaped, not a bare string");
         expect($value)->toHaveKeys(['selection', 'entry', 'reentry']);
         expect($validStates)->toContain($value['entry']);
     }
