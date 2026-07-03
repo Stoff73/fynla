@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var answers = { employment: null, income: null, spouse: null, spouseIncome: null, assets: [] };
+  var answers = { campaign: 'savetax', employment: null, income: null, spouse: null, spouseIncome: null, assets: [] };
   var current = 'employment';
 
   // Persist the funnel answers so the plan page personalises from the real

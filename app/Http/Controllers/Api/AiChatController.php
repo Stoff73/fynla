@@ -690,16 +690,16 @@ class AiChatController extends Controller
         $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
-        // Funnel fallback: a user who arrived via the /savetax funnel carries
-        // durable funnel_answers. The transient `from=savetax` query is lost
+        // Funnel fallback: a user who arrived via an acquisition funnel carries
+        // durable funnel_answers. The transient `from=<campaign>` query is lost
         // across the mobile handoff (the iframe is replaced with /m/app), so
-        // key the savetax campaign off funnel_answers too — both mobile and
-        // desktop funnel users then get the campaign onboarding (greet + recap).
-        if ($matchedCampaign === null && $matchedJourney === null
-            && ! empty($user->funnel_answers)
-            && isset($campaignMap['savetax'])) {
-            $campaignEntry = $campaignMap['savetax'];
-            $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
+        // key the campaign off funnel_answers['campaign'] instead — both mobile
+        // and desktop funnel users then get the right campaign onboarding.
+        // Legacy rows that predate the stamp default to 'savetax'.
+        if ($matchedCampaign === null && $matchedJourney === null && ! empty($user->funnel_answers)) {
+            $funnelCampaign = $user->funnel_answers['campaign'] ?? 'savetax';
+            $campaignEntry = $campaignMap[$funnelCampaign] ?? null;
+            $matchedCampaign = $campaignEntry['selection'] ?? null;
         }
 
         if ($matchedCampaign !== null) {

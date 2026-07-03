@@ -28,6 +28,14 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     OnboardingStateMachine::flushTransitionTableCache();
+
+    // Synthetic reentry-enabled campaign injected only for this test suite.
+    // Must NOT appear in config/onboarding.php — a later task owns that entry.
+    config()->set('onboarding.campaign_map.pensioncheck', [
+        'selection' => 'pensioncheck',
+        'entry' => 'base_work',
+        'reentry' => true,
+    ]);
 });
 
 it('sets campaign path, selection and step for from=savetax', function () {
@@ -43,6 +51,65 @@ it('sets campaign path, selection and step for from=savetax', function () {
 
     $response = $this->withToken($token)
         ->postJson('/api/ai-chat/onboarding/start', ['from' => 'savetax']);
+
+    $response->assertOk();
+    expect($response->headers->get('Content-Type'))->toContain('text/event-stream');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_path)->toBe('campaign');
+    expect($user->onboarding_fyn_selection)->toBe('savetax');
+    expect($user->onboarding_fyn_step)->toBe('base_work');
+});
+
+/**
+ * Task A6 — funnel_answers.campaign fallback (G2).
+ *
+ * When the user arrives at /api/ai-chat/onboarding/start without a `from=`
+ * parameter but carries durable funnel_answers stamped by the savetax funnel,
+ * the controller must key the campaign off funnel_answers['campaign'] rather
+ * than hard-coding 'savetax'. Legacy rows that predate the stamp default to
+ * 'savetax'.
+ */
+it('routes to the campaign named in funnel_answers.campaign when no from= is supplied', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_path' => null,
+        'onboarding_fyn_selection' => null,
+        'funnel_answers' => ['campaign' => 'pensioncheck', 'employment' => 'full-time'],
+    ]);
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
+    $token = $user->createToken('test')->plainTextToken;
+
+    // No `from=` — the controller must read funnel_answers['campaign'] instead.
+    $response = $this->withToken($token)
+        ->postJson('/api/ai-chat/onboarding/start');
+
+    $response->assertOk();
+    expect($response->headers->get('Content-Type'))->toContain('text/event-stream');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_path)->toBe('campaign');
+    expect($user->onboarding_fyn_selection)->toBe('pensioncheck');
+    expect($user->onboarding_fyn_step)->toBe('base_work');
+});
+
+it('falls back to savetax when funnel_answers carries no campaign key (legacy row)', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_path' => null,
+        'onboarding_fyn_selection' => null,
+        // Pre-stamp funnel_answers: has employment/income but no campaign key.
+        'funnel_answers' => ['employment' => 'full-time', 'income' => 'upto_50270'],
+    ]);
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withToken($token)
+        ->postJson('/api/ai-chat/onboarding/start');
 
     $response->assertOk();
     expect($response->headers->get('Content-Type'))->toContain('text/event-stream');
