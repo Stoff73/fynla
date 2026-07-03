@@ -10,6 +10,7 @@ use App\Http\Requests\TaxStrategyCalculateRequest;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Tax\TaxStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,6 +34,19 @@ final class TaxStrategyController extends Controller
         $payload = $this->service->getDashboardPayload($user);
         $payload['composed_plan'] = $this->composedTaxPlan->forUser($user);
         $payload = $this->attachCompletionState($user, $payload);
+
+        // WP-5 — the first quantified annual saving is a milestone; detected
+        // here because the composed plan is already in hand (recomputing it
+        // in a generic detection pass would double the cost). Never breaks
+        // the read.
+        try {
+            app(MilestoneDetectionService::class)->detectTaxSavingsIdentified(
+                $user,
+                (float) ($payload['composed_plan']['combined_annual_saving'] ?? 0),
+            );
+        } catch (\Throwable $e) {
+            // best-effort
+        }
 
         return response()->json(['data' => $payload]);
     }

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserGamification;
 use App\Models\UserMilestone;
 use App\Services\Gamification\LevelService;
+use App\Services\Mobile\MilestoneDetectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -152,6 +153,16 @@ class MobileAchievementsController extends Controller
      */
     private function milestones(User $user): array
     {
+        // WP-5 — self-healing: detection used to run only on the /m dashboard
+        // read, so a user who never opened it saw an empty milestones page.
+        // The journey flavours are cheap; net-worth/goal detection still runs
+        // on the dashboard read where the aggregates are already computed.
+        try {
+            app(MilestoneDetectionService::class)->detectJourney($user);
+        } catch (\Throwable $e) {
+            // Never let detection break the page.
+        }
+
         return UserMilestone::where('user_id', $user->id)
             ->orderByDesc('achieved_at')
             ->get()
@@ -170,6 +181,18 @@ class MobileAchievementsController extends Controller
 
         if ($m->milestone_type === 'net_worth') {
             return 'Your net worth has passed £'.number_format($threshold).'.';
+        }
+
+        if ($m->milestone_type === 'campaign') {
+            return 'You completed your tax profile.';
+        }
+
+        if ($m->milestone_type === 'action') {
+            return 'You completed your first action.';
+        }
+
+        if ($m->milestone_type === 'tax_savings') {
+            return 'We found £'.number_format($threshold).' a year you could save in tax.';
         }
 
         if ($m->milestone_type === 'goal') {
