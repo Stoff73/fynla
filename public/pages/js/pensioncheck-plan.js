@@ -198,7 +198,7 @@
     rows.forEach(function (row, i) {
       var html =
         '<div class="sp4-alw sp4-alw--on">' +
-          '<span class="sp4-alw__check" aria-hidden="true">&#10003;</span>' +
+          '<span class="sp4-alw__check" aria-hidden="true"></span>' +
           '<div class="sp4-alw__body">' +
             '<div class="sp4-alw__row">' +
               '<span class="sp4-alw__label">' + esc(row.label) + '</span>' +
@@ -293,7 +293,7 @@
       var initials = c.name.split(/[ &]+/).map(function (w) { return w[0]; }).slice(0, 2).join('');
       return (
         '<article class="sp4-proof-card">' +
-          '<div class="sp4-proof-card__stars" aria-label="5 out of 5 stars">' + '★★★★★' + '</div>' +
+          '<p class="sp4-proof-card__stars">Rated 5 out of 5</p>' +
           '<p class="sp4-proof-card__quote">' + c.quote + '</p>' +
           '<div class="sp4-proof-card__person">' +
             '<span class="sp4-proof-card__avatar" aria-hidden="true">' + initials + '</span>' +
@@ -329,8 +329,7 @@
       el = document.createElement('p');
       el.id = 'reg-error';
       el.setAttribute('role', 'alert');
-      // Savannah Sand 500 — the palette's yellow tone for contrast on dark card.
-      el.style.cssText = 'color:#E6C9A8;font-size:13px;font-weight:700;line-height:1.4;margin:8px 0 0;';
+      el.className = 'sp4-reg-error';
       btn.parentNode.insertBefore(el, btn);
     }
     el.textContent = msg || '';
