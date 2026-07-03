@@ -19,6 +19,20 @@
 
     <div class="max-w-2xl w-full">
       <div class="auth-card rounded-2xl py-8 px-6 sm:px-12 lg:px-16 space-y-6">
+        <!-- Funnel hand-off (from=savetax et al): the user already filled the
+             compact register form on the campaign page, so re-showing this
+             page's full form (behind the verification modal, and again in the
+             gap between verifying and the dashboard redirect) reads as a
+             confusing flash of a second registration form. Hold on a quiet
+             setup panel instead — the form only returns if they close the
+             modal without verifying. -->
+        <div v-if="funnelHandoff" class="py-10 flex flex-col items-center gap-5">
+          <img :src="logoImage" alt="Fynla" class="h-[75px] w-auto">
+          <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
+          <p class="text-body-sm text-neutral-500 text-center">Setting up your account…</p>
+        </div>
+
+        <template v-else>
         <div>
           <div class="flex justify-center">
             <router-link to="/" class="inline-block hover:opacity-85 transition-opacity">
@@ -179,6 +193,7 @@
           By creating an account, you agree to our <router-link to="/terms" class="text-raspberry-500 hover:text-raspberry-600 underline">Terms of Service</router-link> and <router-link to="/privacy" class="text-raspberry-500 hover:text-raspberry-600 underline">Privacy Policy</router-link>
         </p>
       </form>
+        </template>
       </div>
 
       <!-- Links below the box -->
@@ -244,6 +259,10 @@ export default {
     const pendingId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
+    // Funnel hand-off in progress: hide this page's registration form (the
+    // user already registered on the campaign page) and hold on a quiet
+    // setup panel until the post-verification redirect fires.
+    const funnelHandoff = ref(false);
 
     const restoreModal = ref({
       visible: false,
@@ -280,6 +299,7 @@ export default {
       if (stashed && stashed.pending_id) {
         pendingId.value = stashed.pending_id;
         pendingEmail.value = stashed.email || '';
+        funnelHandoff.value = true;
         showVerificationModal.value = true;
       }
     });
@@ -431,6 +451,9 @@ export default {
       showVerificationModal.value = false;
       pendingId.value = null;
       pendingEmail.value = '';
+      // Funnel user closed the modal without verifying — surface the normal
+      // registration form so they aren't stranded on the setup panel.
+      funnelHandoff.value = false;
     };
 
     const onRestoreCancel = () => {
@@ -474,6 +497,7 @@ export default {
       showVerificationModal,
       pendingId,
       pendingEmail,
+      funnelHandoff,
       restoreModal,
       handleRegister,
       handleVerified,

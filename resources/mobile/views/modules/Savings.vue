@@ -224,7 +224,13 @@ export default {
       return `${this.fmt(this.isaRemaining)} remaining`;
     },
   },
-  async created() { await this.load(); },
+  async created() {
+    await this.load();
+    // Same-route verify refresh: the onboarding chat bumps this after
+    // applying an edit on this very screen — refetch so the page shows the
+    // just-edited figures (no remount happens without a route change).
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
+  },
   methods: {
     fmt(v) { return formatCurrency(v); },
     rate(r) {

@@ -271,7 +271,10 @@
       el = document.createElement('p');
       el.id = 'reg-error';
       el.setAttribute('role', 'alert');
-      el.style.cssText = 'color:#FFFFFF;font-size:13px;line-height:1.4;margin:8px 0 0;';
+      // Savannah Sand 500 — the palette's yellow tone. White blended into the
+      // card's white text and users missed the error (took three attempts on
+      // an existing email before noticing). Bold weight for extra contrast.
+      el.style.cssText = 'color:#E6C9A8;font-size:13px;font-weight:700;line-height:1.4;margin:8px 0 0;';
       btn.parentNode.insertBefore(el, btn);
     }
     el.textContent = msg || '';

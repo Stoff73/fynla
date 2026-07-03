@@ -245,6 +245,15 @@ export default {
         }
         return;
       }
+      if (ev.type === 'onboarding_complete') {
+        // The campaign terminal has flipped users.onboarding_completed
+        // server-side. Mirror it locally so the on-page verify pills
+        // (Continue / Edit) and the onboarding-resume branches stop
+        // rendering — without this a stale store.user keeps a "Continue"
+        // pill on the tax-strategy screen after the terminal.
+        if (store.user) store.user.onboarding_completed = true;
+        return;
+      }
       if (ev.type === 'level_up') {
         // A write this turn crossed a level threshold. The frame arrives AFTER
         // `done`, so the reply is already on screen. Stash it; the caller fires
@@ -351,7 +360,17 @@ export default {
     // so the bubbles stay visible. Unknown desktop-only routes are ignored.
     handleOnboardingNavigation(routePath, section = null) {
       if (!ONBOARDING_NAV_ROUTES.includes(routePath)) return;
-      if (this.$route && this.$route.path === routePath) return;
+      if (this.$route && this.$route.path === routePath) {
+        // Re-verify on the screen the user is ALREADY on (a verify-edit just
+        // applied here): close the chat so they actually see the updated page
+        // — the Gate-2 confirm waits as the on-page Continue/Edit pills and
+        // in the transcript on reopen. Bump the refresh tick so the screen
+        // refetches the just-edited figures (no remount without a route
+        // change, so the mounted-time data is stale).
+        this.closeFyn();
+        store.bumpScreenRefresh();
+        return;
+      }
       // Carry the verified section as a query so the destination screen can
       // label itself (e.g. /income → "Your income" vs "Your spouse's income").
       // route_path stays clean for the matching above; the query rides on push.

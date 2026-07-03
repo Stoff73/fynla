@@ -17,6 +17,14 @@ export const store = reactive({
     nextActions: [],
   },
   pendingCelebration: null, // { level, level_name, next_actions } | null
+  // Same-route verify refresh: bumped when the onboarding chat applies an
+  // edit and re-verifies the screen the user is already on — the module
+  // screens watch this and refetch, since no remount happens without a
+  // route change.
+  screenRefreshTick: 0,
+  bumpScreenRefresh() {
+    this.screenRefreshTick += 1;
+  },
   // Bug-report sheet context. Opened from the floating FAB (no conversation) or
   // from the Fyn chat header (carries the active conversationId so the report
   // captures the transcript). Shared here because the sheet lives in App.vue
