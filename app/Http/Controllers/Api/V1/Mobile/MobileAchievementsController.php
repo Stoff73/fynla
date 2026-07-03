@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
 use App\Models\PointAward;
+use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserGamification;
 use App\Models\UserMilestone;
@@ -35,12 +36,38 @@ class MobileAchievementsController extends Controller
                 'data' => [
                     'achievements' => $this->achievements($user),
                     'next' => $this->nextActions->build($user->id),
+                    // WP-2 — completed actions were saved (recommendation_tracking)
+                    // but shown nowhere; surface them so done work has a home.
+                    'completed' => $this->completedActions($user),
                     'milestones' => $this->milestones($user),
                 ],
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Fetching achievements');
         }
+    }
+
+    /**
+     * WP-2 — the user's completed actions (recommendation_tracking rows),
+     * newest first, in the same lean shape the Next list uses so the /m
+     * template renders both with one card style.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function completedActions(User $user): array
+    {
+        return RecommendationTracking::where('user_id', $user->id)
+            ->completed()
+            ->orderByDesc('completed_at')
+            ->limit(50)
+            ->get()
+            ->map(static fn (RecommendationTracking $row): array => [
+                'id' => (string) $row->recommendation_id,
+                'title' => (string) $row->recommendation_text,
+                'module' => (string) ($row->module ?? 'general'),
+                'completed_at' => $row->completed_at?->toIso8601String(),
+            ])
+            ->all();
     }
 
     /**

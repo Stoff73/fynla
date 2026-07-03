@@ -16,69 +16,71 @@
         <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
       </div>
 
-      <!-- Empty state -->
-      <div v-else-if="moduleSections.length === 0" class="bg-light-blue-100 border border-light-gray rounded-lg flex flex-col items-center justify-center h-64 text-center">
-        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4">
-          <svg class="w-8 h-8 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h3 class="text-h4 font-bold text-horizon-500 mb-2">No actions needed</h3>
-        <p class="text-body text-neutral-500">Your financial plans have no outstanding recommendations.</p>
-      </div>
-
       <template v-else>
-        <!-- Top Priority Actions -->
+        <!-- WP-2 (one actions model) — this page is the desktop home of the
+             SAME unified actions list the dashboard and /m consume
+             (RecommendationsAggregator ids via GET /api/recommendations/actions):
+             every open action, ranked, uncapped, with the same mark-done —
+             plus the completed history that previously had no home. -->
         <div class="top-priorities module-gradient">
           <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center gap-2">
-            Top Priority Actions
-            <span class="text-xs font-bold text-white bg-raspberry-500 px-2 py-0.5 rounded-full">{{ topActions.length }}</span>
+            Your actions
+            <span class="text-xs font-bold text-white bg-raspberry-500 px-2 py-0.5 rounded-full">{{ openActions.length }}</span>
           </h3>
-          <div class="space-y-2.5">
+
+          <div v-if="!openActions.length" class="text-body-sm text-neutral-500">
+            You're all caught up — nothing to action right now.
+          </div>
+
+          <div v-else class="space-y-2.5">
             <div
-              v-for="(action, index) in topActions"
-              :key="'top-' + action.id"
+              v-for="(action, index) in openActions"
+              :key="action.id"
               class="action-row"
-              @click="goToAction(action)"
             >
-              <div class="flex items-center gap-3.5">
+              <div class="flex items-center gap-3.5 min-w-0 cursor-pointer" @click="goToAction(action)">
                 <div class="order-num">{{ index + 1 }}</div>
-                <div>
+                <div class="min-w-0">
                   <div class="text-[15px] font-semibold text-horizon-500">{{ action.title }}</div>
-                  <div class="text-xs text-neutral-500 mt-0.5">{{ action.moduleName }}</div>
+                  <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(action.module) }}<span v-if="action.meta"> · {{ action.meta }}</span></div>
                 </div>
               </div>
               <div class="flex items-center gap-2.5 flex-shrink-0">
                 <span
-                  class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                  :class="priorityClass(action.priority)"
-                >{{ action.priority }}</span>
-                <span v-if="action.estimated_impact" class="text-sm font-bold text-spring-600">{{ formatCurrency(action.estimated_impact) }}</span>
+                  v-if="action.type !== 'recommendation'"
+                  class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700"
+                >Unlock</span>
+                <button
+                  v-if="action.type === 'recommendation'"
+                  type="button"
+                  class="text-xs font-semibold text-spring-700 border border-spring-500 rounded-full px-3 py-1 hover:bg-spring-50 transition-colors disabled:opacity-60"
+                  :disabled="marking === action.id"
+                  @click.stop="markDone(action)"
+                >
+                  Mark as done
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Module cards grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-6">
-          <div
-            v-for="section in moduleSections"
-            :key="section.type"
-            class="module-card module-gradient"
-          >
-            <div class="flex items-center justify-between mb-4 pb-3 border-b border-light-gray">
-              <h2 class="text-[15px] font-bold text-horizon-500">{{ section.label }}</h2>
-              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
-                {{ section.actions.length }} {{ section.actions.length === 1 ? 'action' : 'actions' }}
-              </span>
-            </div>
-            <div class="space-y-1.5">
-              <ActionSummaryCard
-                v-for="action in section.actions"
-                :key="action.id"
-                :action="action"
-                :plan-type="section.type"
-              />
+        <!-- Done — the completed history (recommendation_tracking), newest first. -->
+        <div v-if="completedActions.length" class="top-priorities module-gradient mt-6">
+          <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center gap-2">
+            Done
+            <span class="text-xs font-bold text-white bg-spring-500 px-2 py-0.5 rounded-full">{{ completedActions.length }}</span>
+          </h3>
+          <div class="space-y-2.5">
+            <div
+              v-for="row in completedActions"
+              :key="'done-' + row.id"
+              class="action-row action-row--done"
+            >
+              <div class="min-w-0">
+                <div class="text-[15px] font-semibold text-horizon-500">{{ row.recommendation_text }}</div>
+                <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(row.module) }}</div>
+              </div>
+              <span class="text-xs font-bold text-spring-700 whitespace-nowrap flex-shrink-0">Done {{ doneDate(row) }}</span>
             </div>
           </div>
         </div>
@@ -89,16 +91,37 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
-import ActionSummaryCard from '@/components/Actions/ActionSummaryCard.vue';
+import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
-
 import logger from '@/utils/logger';
+
+// Desktop route per module — where an action is taken.
+const MODULE_ROUTES = {
+  protection: '/protection',
+  savings: '/savings',
+  investment: '/investments',
+  retirement: '/pension',
+  estate: '/estate',
+  goals: '/goals',
+  tax: '/tax-strategy',
+};
+
+const MODULE_LABELS = {
+  protection: 'Protection',
+  savings: 'Savings',
+  investment: 'Investment',
+  retirement: 'Retirement',
+  estate: 'Estate Planning',
+  goals: 'Goals',
+  tax: 'Tax Strategy',
+  general: 'General',
+};
+
 export default {
   name: 'ActionsDashboard',
 
   components: {
     AppLayout,
-    ActionSummaryCard,
   },
 
   mixins: [currencyMixin],
@@ -106,7 +129,9 @@ export default {
   data() {
     return {
       loading: true,
-      planTypes: ['protection', 'savings', 'investment', 'retirement', 'estate'],
+      marking: null,
+      openActions: [],
+      completedActions: [],
     };
   },
 
@@ -114,62 +139,57 @@ export default {
     onboardingSelection() {
       return this.$store.state.auth?.user?.onboarding_fyn_selection ?? null;
     },
-    moduleSections() {
-      const config = [
-        { type: 'protection', label: 'Protection' },
-        { type: 'savings', label: 'Savings' },
-        { type: 'investment', label: 'Investment' },
-        { type: 'retirement', label: 'Retirement' },
-        { type: 'estate', label: 'Estate Planning' },
-      ];
-      return config
-        .map(c => {
-          const plan = this.$store.getters['plans/getPlan'](c.type);
-          const actions = plan?.actions || [];
-          return { ...c, actions };
-        })
-        .filter(s => s.actions.length > 0);
-    },
-
-    totalActions() {
-      return this.moduleSections.reduce((sum, s) => sum + s.actions.length, 0);
-    },
-
-    topActions() {
-      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-      const allActions = this.moduleSections.flatMap(s =>
-        s.actions.map(a => ({ ...a, moduleName: s.label, moduleType: s.type }))
-      );
-      return allActions
-        .sort((a, b) => (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3))
-        .slice(0, 3);
-    },
   },
 
   methods: {
-    priorityClass(priority) {
-      const classes = {
-        critical: 'bg-raspberry-100 text-raspberry-700',
-        high: 'bg-raspberry-50 text-raspberry-600',
-        medium: 'bg-violet-100 text-violet-700',
-        low: 'bg-eggshell-500 text-neutral-500',
-      };
-      return classes[priority] || classes.medium;
+    moduleLabel(module) {
+      return MODULE_LABELS[module] || MODULE_LABELS.general;
     },
 
     goToAction(action) {
-      this.$router.push(`/actions/${action.moduleType}/${action.id}`);
+      const route = MODULE_ROUTES[action.module];
+      if (route) this.$router.push(route);
+    },
+
+    doneDate(row) {
+      if (!row.completed_at) return '';
+      const d = new Date(row.completed_at);
+      return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB');
+    },
+
+    // Same completion write every other surface uses (stable aggregator id),
+    // then reload so the item moves into Done.
+    async markDone(action) {
+      if (!action.id || this.marking) return;
+      this.marking = action.id;
+      try {
+        await api.post(`/recommendations/${action.id}/mark-done`, {
+          module: action.module || 'general',
+          recommendation_text: action.title || '',
+        });
+        await this.load();
+      } catch (e) {
+        logger.error('[Actions] mark-done failed:', e);
+      } finally {
+        this.marking = null;
+      }
+    },
+
+    async load() {
+      try {
+        const { data } = await api.get('/recommendations/actions');
+        this.openActions = data?.data?.open ?? [];
+        this.completedActions = data?.data?.completed ?? [];
+      } catch (e) {
+        logger.error('[Actions] Failed to fetch unified actions:', e);
+      }
     },
   },
 
   async mounted() {
     this.loading = true;
     try {
-      await Promise.all(
-        this.planTypes.map(type => this.$store.dispatch('plans/fetchPlan', type))
-      );
-    } catch (e) {
-      logger.error('[Actions] Failed to fetch plans:', e);
+      await this.load();
     } finally {
       this.loading = false;
     }
@@ -202,24 +222,15 @@ export default {
   padding: 14px 18px;
   @apply bg-eggshell-500 border border-transparent;
   border-radius: 10px;
-  cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-row:hover {
   @apply border-light-gray bg-white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
 }
 
-.module-card {
-  @apply bg-white rounded-card border border-light-gray p-6;
-  transition: all 0.2s;
-}
-
-.module-card:hover {
-  @apply border-horizon-300;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+.action-row--done {
+  opacity: 0.8;
 }
 </style>

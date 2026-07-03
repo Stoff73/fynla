@@ -56,11 +56,31 @@
               </div>
             </div>
             <p v-if="rec.description" class="mts-rec__desc">{{ rec.description }}</p>
-            <div v-if="rec.requires_advice || nextStep(rec)" class="mts-rec__foot">
+            <div class="mts-rec__foot">
               <button v-if="nextStep(rec)" type="button" class="mts-rec__cta" @click="goToNextStep(rec)">
                 {{ nextStep(rec).label }}
               </button>
+              <!-- WP-2 — the same mark-done the dashboard actions carry, keyed
+                   on the same stable recommendation_id so completion syncs
+                   across every surface. -->
+              <button type="button" class="mts-rec__done" :disabled="marking === rec.recommendation_id" @click="markDone(rec)">
+                Mark as done
+              </button>
               <span v-if="rec.requires_advice" class="mts-rec__advice">Speak to an adviser</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- Done — completed strategies stay visible here (the dashboard
+             replaces them; the tax page keeps the overview). -->
+        <div v-if="completedRecommendations.length" class="mts-done">
+          <p class="m-section-label">Done</p>
+          <article v-for="rec in completedRecommendations" :key="rec.type" class="mts-rec mts-rec--done">
+            <div class="mts-rec__top">
+              <div class="mts-rec__title-wrap">
+                <h3 class="mts-rec__title">{{ rec.title }}</h3>
+              </div>
+              <span class="mts-rec__done-tag">Done{{ doneDate(rec) }}</span>
             </div>
           </article>
         </div>
@@ -117,7 +137,7 @@
 
 <script>
 import { store } from '../store.js';
-import { apiGet } from '../api.js';
+import { apiGet, apiPost } from '../api.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -141,7 +161,7 @@ const NEXT_STEPS = {
 export default {
   name: 'MobileTaxStrategy',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', dashboard: null }),
+  data: () => ({ loading: true, error: '', dashboard: null, marking: null }),
   computed: {
     taxYear() { return this.dashboard?.tax_year || ''; },
     calculationMode() { return this.dashboard?.calculation_mode || 'single'; },
@@ -165,7 +185,10 @@ export default {
         ? `Here's your personal tax strategy, ${name}. From what you told us, we've found around ${this.fmt(Math.round(saving))} a year you could keep.`
         : `Here's your personal tax strategy, ${name}. From what you told us, here's how to make the most of your allowances.`;
     },
-    individualRecommendations() { return this.recommendations.filter((r) => r.category !== 'household'); },
+    // Open (not completed) items only — completed ones move to the Done group
+    // below so the page keeps the overview while the dashboard replaces them.
+    individualRecommendations() { return this.recommendations.filter((r) => r.category !== 'household' && !r.completed); },
+    completedRecommendations() { return this.recommendations.filter((r) => r.category !== 'household' && r.completed); },
     householdRecommendations() { return this.recommendations.filter((r) => r.category === 'household'); },
     householdIntro() {
       return this.calculationMode === 'single_earner_couple'
@@ -196,6 +219,28 @@ export default {
       if (step) this.$router.push(step.route);
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
+    doneDate(rec) {
+      if (!rec.completed_at) return '';
+      const d = new Date(rec.completed_at);
+      return isNaN(d.getTime()) ? '' : ` ${d.toLocaleDateString('en-GB')}`;
+    },
+    // WP-2 — same completion write the dashboard uses (stable aggregator id),
+    // then a silent reload so the item moves to Done and the level updates.
+    async markDone(rec) {
+      if (!rec.recommendation_id || this.marking) return;
+      this.marking = rec.recommendation_id;
+      try {
+        await apiPost(`/api/recommendations/${rec.recommendation_id}/mark-done`, {
+          module: 'tax',
+          recommendation_text: rec.title || rec.type,
+        }, store.token);
+        await Promise.all([store.fetchStatus(), this.load()]);
+      } catch (e) {
+        /* leave the item open on failure */
+      } finally {
+        this.marking = null;
+      }
+    },
     async load() {
       this.loading = true;
       this.error = '';
@@ -216,6 +261,22 @@ export default {
 
 <style scoped>
 .mts-available { color: var(--spring-600); }
+/* WP-2 — mark-done affordance + Done group. */
+.mts-rec__done {
+  padding: 6px 12px;
+  background: var(--white);
+  color: var(--spring-700);
+  border: 1px solid var(--spring-500);
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mts-rec__done:disabled { opacity: 0.6; cursor: default; }
+.mts-rec--done { opacity: 0.75; }
+.mts-rec__done-tag { font-size: 12px; font-weight: 700; color: var(--spring-700); white-space: nowrap; }
+.mts-done { margin-top: 12px; }
 .mts-intro { background: var(--eggshell-500); }
 .mts-intro__text { font-size: 14px; font-weight: 700; color: var(--horizon-500); line-height: 1.5; }
 .mts-back { margin-top: 4px; }

@@ -45,7 +45,7 @@
             {{ rec.description }}
           </p>
 
-          <div v-if="rec.requires_advice || nextStep(rec)" class="flex items-center gap-3 mt-4 pt-3 border-t border-light-gray">
+          <div class="flex items-center gap-3 mt-4 pt-3 border-t border-light-gray">
             <button
               v-if="nextStep(rec)"
               type="button"
@@ -53,6 +53,17 @@
               @click="goToNextStep(rec)"
             >
               {{ nextStep(rec).label }}
+            </button>
+            <!-- WP-2 — the same mark-done the dashboard actions carry, keyed
+                 on the same stable recommendation_id so completion syncs
+                 across every surface. -->
+            <button
+              type="button"
+              class="text-body-sm font-semibold text-spring-700 border border-spring-500 rounded-full px-3 py-1 hover:bg-spring-50 transition-colors disabled:opacity-60"
+              :disabled="marking === rec.recommendation_id"
+              @click="markDone(rec)"
+            >
+              Mark as done
             </button>
             <span
               v-if="rec.requires_advice"
@@ -63,6 +74,22 @@
           </div>
         </div>
       </article>
+    </div>
+
+    <!-- Done — completed strategies stay visible on the tax page (the
+         dashboard replaces them; this page keeps the overview). -->
+    <div v-if="completedItems.length" class="mt-6">
+      <h3 class="text-h5 font-bold text-horizon-500 mb-3">Done</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <article
+          v-for="rec in completedItems"
+          :key="rec.type"
+          class="rounded-card border border-light-gray bg-white opacity-75 p-5 flex items-start justify-between gap-4"
+        >
+          <h3 class="font-bold text-horizon-500 leading-snug text-body">{{ rec.title }}</h3>
+          <span class="text-caption font-bold text-spring-700 whitespace-nowrap">Done{{ doneDate(rec) }}</span>
+        </article>
+      </div>
     </div>
   </section>
 </template>
@@ -101,11 +128,16 @@ export default {
       default: () => ['household'],
     },
   },
+  data() {
+    return { marking: null };
+  },
   computed: {
     ...mapGetters('taxStrategy', ['recommendations']),
+    // Open (not completed) items only — completed ones move to the Done
+    // group so the page keeps the overview (WP-2).
     items() {
       const filtered = this.recommendations.filter(
-        (rec) => !this.excludeCategories.includes(rec.category ?? 'household'),
+        (rec) => !this.excludeCategories.includes(rec.category ?? 'household') && !rec.completed,
       );
       return [...filtered].sort((a, b) => {
         if (a.category === 'warning' && b.category !== 'warning') return -1;
@@ -114,6 +146,11 @@ export default {
         const bx = Number(b.estimated_annual_tax_saved) || 0;
         return bx - ax;
       });
+    },
+    completedItems() {
+      return this.recommendations.filter(
+        (rec) => !this.excludeCategories.includes(rec.category ?? 'household') && rec.completed,
+      );
     },
   },
   methods: {
@@ -127,6 +164,25 @@ export default {
     cardBorderClass(rec) {
       if (rec.category === 'warning') return 'border-violet-200';
       return 'border-light-gray';
+    },
+    doneDate(rec) {
+      if (!rec.completed_at) return '';
+      const d = new Date(rec.completed_at);
+      return isNaN(d.getTime()) ? '' : ` ${d.toLocaleDateString('en-GB')}`;
+    },
+    // WP-2 — same completion write the dashboard uses (stable aggregator id),
+    // then refresh the tax dashboard so the item moves to Done.
+    async markDone(rec) {
+      if (!rec.recommendation_id || this.marking) return;
+      this.marking = rec.recommendation_id;
+      try {
+        await this.$store.dispatch('taxStrategy/markRecommendationDone', {
+          recommendationId: rec.recommendation_id,
+          recommendationText: rec.title || rec.type,
+        });
+      } finally {
+        this.marking = null;
+      }
     },
   },
 };
