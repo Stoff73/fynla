@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Anthropic\Client;
 use App\Models\AiConversation;
+use App\Models\OnboardingProgress;
 use App\Models\PointAward;
 use App\Models\User;
 use App\Models\UserConsent;
@@ -86,19 +87,21 @@ function makeExitCampaignConversation(User $user, string $campaign = 'pensionche
 // ── Test 1: re-entry user hits campaign terminal ─────────────────────────────
 
 it('clears active_campaign and does not re-fire completion side effects when a re-entry user hits the campaign terminal', function (): void {
+    // Seed a known completed_at so we can assert it is byte-identical after
+    // the stream. A broken guard calls $user->onboarding_completed_at = now(),
+    // which overwrites this value.
+    $originalCompletedAt = now()->subDays(10)->startOfSecond();
+
     $user = makeReentryExitUser([
         'active_campaign' => 'pensioncheck',
         'onboarding_fyn_path' => 'campaign',
         'onboarding_fyn_selection' => 'pensioncheck',
         'onboarding_fyn_step' => 'campaign_synthesis',
+        'onboarding_completed_at' => $originalCompletedAt,
     ]);
 
-    // Simulate that the terminal completion award already exists (the user has
-    // been through the terminal once before on a prior re-entry run). The dedup
-    // key for the terminal step award is "onboarding:campaign_terminal" (from
-    // recordProgress → PointsService::award). The guard in
-    // emitTerminalNavigationTurn must not call recordProgress for a re-entry
-    // user, so this row's count must stay at exactly 1 after the second run.
+    // Pre-create the PointAward row for "onboarding:campaign_terminal" to
+    // simulate the user having completed the terminal on a prior re-entry run.
     PointAward::create([
         'user_id' => $user->id,
         'source_type' => 'onboarding',
@@ -126,14 +129,21 @@ it('clears active_campaign and does not re-fire completion side effects when a r
     expect($user->onboarding_fyn_step)->toBeNull();
     // Re-entry user was already completed — must remain true.
     expect($user->onboarding_completed)->toBeTrue();
-    // Completion side effects must not double-fire: the terminal award row
-    // (dedup key "onboarding:campaign_terminal") must still be exactly 1 —
-    // the pre-existing row, not a duplicate.
+
+    // Guard-dependent assertion 1: onboarding_completed_at must be byte-identical
+    // to the seeded value. A broken guard calls $user->onboarding_completed_at = now()
+    // which overwrites the original timestamp.
+    expect($user->onboarding_completed_at->toIso8601String())
+        ->toBe($originalCompletedAt->toIso8601String());
+
+    // Guard-dependent assertion 2: no OnboardingProgress row for campaign_terminal.
+    // OnboardingProgress::create inside recordProgress is non-deduped — a broken
+    // guard fires recordProgress unconditionally, creating a duplicate progress row.
     expect(
-        PointAward::where('user_id', $user->id)
-            ->where('dedup_key', 'onboarding:campaign_terminal')
+        OnboardingProgress::where('user_id', $user->id)
+            ->where('step_name', 'campaign_terminal')
             ->count()
-    )->toBe(1);
+    )->toBe(0);
 });
 
 // ── Test 2: fresh user hits campaign terminal ─────────────────────────────────
