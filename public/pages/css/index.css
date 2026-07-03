@@ -205,15 +205,15 @@
 .feature-savetax__cta:active { transform: translateY(0); }
 
 /* Pension-check highlight — representative projected pot + CTA into the funnel.
-   Mirrors the feature-savetax card pattern; gradient uses horizon-600/violet-500
-   to distinguish the two campaign cards visually. Palette tokens only, no hex. */
+   Mirrors the feature-savetax card pattern exactly (same gradient tokens, same
+   structure). Visual differentiation between the two cards is a CSJ design call. */
 .feature-pensioncheck {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, var(--horizon-600) 0%, var(--violet-500) 100%);
+  background: linear-gradient(135deg, var(--horizon-500) 0%, var(--light-blue-500) 100%);
   border-radius: var(--radius-card, 0.75rem);
   padding: 2rem 1.5rem;
   width: 80%;
