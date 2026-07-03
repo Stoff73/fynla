@@ -665,7 +665,8 @@ class AiChatController extends Controller
         $from = $request->input('from');
         $campaignMap = (array) config('onboarding.campaign_map', []);
         $journeyMap = (array) config('onboarding.journey_map', []);
-        $matchedCampaign = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
         // Funnel fallback: a user who arrived via the /savetax funnel carries
@@ -676,7 +677,8 @@ class AiChatController extends Controller
         if ($matchedCampaign === null && $matchedJourney === null
             && ! empty($user->funnel_answers)
             && isset($campaignMap['savetax'])) {
-            $matchedCampaign = $campaignMap['savetax'];
+            $campaignEntry = $campaignMap['savetax'];
+            $matchedCampaign = $campaignEntry['selection'] ?? null;
         }
 
         if ($matchedCampaign !== null) {
@@ -687,8 +689,8 @@ class AiChatController extends Controller
             // open at base_work (income details) with the recap greeting; DOB is
             // deferred to the pensions section. Sequence is driven by
             // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
-            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_WORK;
-            $startStateId = OnboardingStateMachine::STATE_BASE_WORK;
+            $user->onboarding_fyn_step = $campaignEntry['entry'];
+            $startStateId = $campaignEntry['entry'];
         } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;

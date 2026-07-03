@@ -73,6 +73,9 @@ return [
     |
     */
     'campaign_map' => [
-        'savetax' => 'savetax',
+        // value shape: selection id, entry state id (literal string — must match an
+        // OnboardingStateMachine::STATE_* constant; asserted by OnboardingStartCampaignMapTest),
+        // and whether completed users may re-enter this campaign (Task A4).
+        'savetax' => ['selection' => 'savetax', 'entry' => 'base_work', 'reentry' => false],
     ],
 ];
