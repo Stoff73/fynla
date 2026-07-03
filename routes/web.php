@@ -614,6 +614,33 @@ Route::middleware('redirect.authed')->group(function () {
     });
 }); // end public-facing pages group
 
+// ─── Pension Check campaign ──────────────────────────────────────────────────
+// /pensioncheck       = pension-check questionnaire funnel (entry gate)
+// /pensioncheck/plan  = projected-pot estimate + register card
+// More-specific routes MUST be declared before /pensioncheck.
+
+// Real Pension Check funnel pages — guests only. Authenticated users are
+// redirected to the dashboard by redirect.authed middleware.
+Route::middleware('redirect.authed')->group(function () {
+    Route::get('/pensioncheck/plan', function () {
+        ob_start();
+        include public_path('pages/pensioncheck-plan.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/pensioncheck', function () {
+        ob_start();
+        include public_path('pages/pensioncheck.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+}); // end Pension Check funnel group
+
 // ─── Save Tax campaign ───────────────────────────────────────────────────────
 // /savetax          = quick-registration questionnaire funnel (entry gate)
 // /savetax/v2       = mockup: gradient bg + continue-required flow
@@ -709,6 +736,7 @@ Route::get('/m/app/{any?}', function () {
 Route::get('/mockup/dashboard', function () {
     ob_start();
     include public_path('pages/dashboard-mockup.php');
+
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8']);
 });
 
