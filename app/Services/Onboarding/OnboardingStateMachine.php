@@ -126,6 +126,13 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_SYNTHESIS = 'campaign_synthesis';
 
+    // PensionCheck campaign entry states — turn types and prompt data added in
+    // Task C3. The constants are defined here so the pensioncheck section arrays
+    // can reference them now; inCodeStates() entries follow in C3.
+    public const STATE_CAMPAIGN2_STATE_PENSION = 'campaign2_state_pension';
+
+    public const STATE_CAMPAIGN2_RETIREMENT_GOALS = 'campaign2_retirement_goals';
+
     /**
      * Marker a prompt string can carry to render as multiple chat bubbles —
      * e.g. a "what we've heard" recap followed by the actual question. The
@@ -136,34 +143,55 @@ final class OnboardingStateMachine
     public const BUBBLE_BREAK = "\x1E";
 
     /**
-     * SaveTax campaign section order — THE single source of truth for the
-     * campaign question sequence. To reorder the journey, reorder this array;
-     * nothing else needs to change. Each section maps to an entry state and an
-     * optional whole-section skip predicate (see campaignSections()).
+     * Per-campaign section walk orders — the single source of truth for each
+     * campaign's question sequence. To reorder a journey, reorder its entry;
+     * nothing else needs to change. Each section id maps to an entry state and
+     * an optional whole-section skip predicate (see campaignSections()).
      *
-     * The journey is section-led: lead with income (most relevant to the tax
-     * goal), defer date of birth to the pensions section, and skip whole
-     * sections the funnel says the user doesn't have.
+     * savetax: section-led, income first (most relevant to the tax goal), DOB
+     * deferred to the pensions section; whole sections skipped via funnel.
+     *
+     * pensioncheck: income first for context, then pensions + state-pension +
+     * retirement-goals, spouse income for household, then expenditure for
+     * retirement-gap modelling.
      */
-    public const CAMPAIGN_SECTION_ORDER = [
-        'income',
-        'savings',
-        'investments',
-        'pensions',
-        'spouse',
-        'expenditure',
+    public const CAMPAIGN_SECTION_ORDERS = [
+        'savetax' => ['income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure'],
+        'pensioncheck' => ['income', 'pensions', 'state_pension', 'retirement_goals', 'spouse', 'expenditure'],
     ];
 
     /**
+     * Deprecated alias kept for backward compatibility — use sectionOrderFor().
+     * Points to the savetax walk, which is unchanged.
+     *
+     * @deprecated use self::sectionOrderFor('savetax')
+     */
+    public const CAMPAIGN_SECTION_ORDER = self::CAMPAIGN_SECTION_ORDERS['savetax'];
+
+    /**
+     * Return the ordered section list for the given campaign selection.
+     * Falls back to 'savetax' for any unrecognised selection.
+     *
+     * @return list<string>
+     */
+    public static function sectionOrderFor(string $selection): array
+    {
+        return self::CAMPAIGN_SECTION_ORDERS[$selection] ?? self::CAMPAIGN_SECTION_ORDERS['savetax'];
+    }
+
+    /**
      * Section id → entry state + optional whole-section skip predicate.
-     * The resolver (nextCampaignSection) walks CAMPAIGN_SECTION_ORDER and
+     * The resolver (nextCampaignSection) walks sectionOrderFor($selection) and
      * returns the entry state of the first non-skipped section.
+     *
+     * pensioncheck skips are data-presence guards added in Task C2; null
+     * placeholders are in place until then.
      *
      * @return array<string, array{entry:string, skip:?callable}>
      */
-    public static function campaignSections(): array
+    public static function campaignSections(string $selection = 'savetax'): array
     {
-        return [
+        $savetax = [
             'income' => ['entry' => self::STATE_BASE_EMPLOYMENT, 'skip' => null],
             'savings' => ['entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS, 'skip' => [self::class, 'skipSectionIfNoCash']],
             'investments' => ['entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'skip' => [self::class, 'skipSectionIfNoInvestments']],
@@ -171,10 +199,26 @@ final class OnboardingStateMachine
             'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
             'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],
         ];
+
+        if ($selection !== 'pensioncheck') {
+            return $savetax;
+        }
+
+        // pensioncheck section map (§5 of the pensioncheck spec).
+        // state_pension / retirement_goals entry states land in Task C3.
+        // Data-presence skips (skipSectionIfIncomeKnown etc.) land in Task C2.
+        return [
+            'income' => ['entry' => self::STATE_BASE_EMPLOYMENT, 'skip' => null],        // C2 adds data-presence skip
+            'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB, 'skip' => null],
+            'state_pension' => ['entry' => self::STATE_CAMPAIGN2_STATE_PENSION, 'skip' => null],   // C2 adds skip
+            'retirement_goals' => ['entry' => self::STATE_CAMPAIGN2_RETIREMENT_GOALS, 'skip' => null], // C2 adds skip
+            'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
+            'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],  // C2 adds skip
+        ];
     }
 
     /**
-     * SaveTax verify sub-flow config: for each campaign section, the /m screen to
+     * Per-campaign verify sub-flow config: for each section, the /m screen to
      * navigate to for the "is this correct?" confirm (null = inline confirm, no
      * navigation — used for charitable giving) and the section's capture-entry
      * state to loop back to on "anything else to add?". The single source of truth
@@ -183,13 +227,28 @@ final class OnboardingStateMachine
      *
      * @return array<string, array{route:?string, entry:string}>
      */
-    public static function campaignVerifyConfig(): array
+    public static function campaignVerifyConfig(string $selection = 'savetax'): array
     {
-        return [
+        $savetax = [
             'income' => ['route' => '/income', 'entry' => self::STATE_BASE_EMPLOYMENT],
             'savings' => ['route' => '/savings', 'entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS],
             'investments' => ['route' => '/investment', 'entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS],
             'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
+            'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
+            'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
+        ];
+
+        if ($selection !== 'pensioncheck') {
+            return $savetax;
+        }
+
+        // pensioncheck verify routes: retirement module for pension-related
+        // sections; income for spouse; expenditure for expenditure.
+        return [
+            'income' => ['route' => '/income', 'entry' => self::STATE_BASE_EMPLOYMENT],
+            'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
+            'state_pension' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN2_STATE_PENSION],
+            'retirement_goals' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN2_RETIREMENT_GOALS],
             'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
             'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
         ];
@@ -201,11 +260,15 @@ final class OnboardingStateMachine
      * exhausted, so the flow ends with a ranked consolidated plan before the
      * terminal navigation turn. This is what makes the sequence reorderable
      * from one array.
+     *
+     * The section order and section map are resolved from the user's
+     * onboarding_fyn_selection so savetax and pensioncheck walk different paths.
      */
     public static function nextCampaignSection(string $afterSection, User $user): string
     {
-        $order = self::CAMPAIGN_SECTION_ORDER;
-        $sections = self::campaignSections();
+        $selection = $user->onboarding_fyn_selection ?? 'savetax';
+        $order = self::sectionOrderFor($selection);
+        $sections = self::campaignSections($selection);
         $idx = array_search($afterSection, $order, true);
         if ($idx === false) {
             return self::STATE_CAMPAIGN_SYNTHESIS;
@@ -1018,8 +1081,9 @@ final class OnboardingStateMachine
     {
         if (self::normaliseYesNo($answer) === 'yes') {
             $section = self::verifySection($user);
+            $selection = $user->onboarding_fyn_selection ?? 'savetax';
 
-            return self::campaignVerifyConfig()[$section]['entry'] ?? self::STATE_CAMPAIGN_SYNTHESIS;
+            return self::campaignVerifyConfig($selection)[$section]['entry'] ?? self::STATE_CAMPAIGN_SYNTHESIS;
         }
 
         return 'campaign_verify_navigate';
@@ -1045,8 +1109,9 @@ final class OnboardingStateMachine
     public static function verifyNavigateRoute(User $user): ?string
     {
         $section = self::verifySection($user);
+        $selection = $user->onboarding_fyn_selection ?? 'savetax';
 
-        return self::campaignVerifyConfig()[$section]['route'] ?? null;
+        return self::campaignVerifyConfig($selection)[$section]['route'] ?? null;
     }
 
     /**
