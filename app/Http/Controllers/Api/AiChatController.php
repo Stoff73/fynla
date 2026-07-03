@@ -697,9 +697,10 @@ class AiChatController extends Controller
         // and desktop funnel users then get the right campaign onboarding.
         // Legacy rows that predate the stamp default to 'savetax'.
         if ($matchedCampaign === null && $matchedJourney === null && ! empty($user->funnel_answers)) {
-            $funnelCampaign = $user->funnel_answers['campaign'] ?? 'savetax';
+            $rawCampaign = $user->funnel_answers['campaign'] ?? null;
+            $funnelCampaign = is_string($rawCampaign) ? $rawCampaign : 'savetax';
             $campaignEntry = $campaignMap[$funnelCampaign] ?? null;
-            $matchedCampaign = $campaignEntry['selection'] ?? null;
+            $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         }
 
         if ($matchedCampaign !== null) {

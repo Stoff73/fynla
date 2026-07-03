@@ -120,6 +120,32 @@ it('falls back to savetax when funnel_answers carries no campaign key (legacy ro
     expect($user->onboarding_fyn_step)->toBe('base_work');
 });
 
+it('falls back to savetax (no 500) when funnel_answers.campaign is a non-string value', function () {
+    // A hostile or corrupted payload could store campaign as an array or object.
+    // The fallback must treat any non-string value as absent and default to 'savetax'.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_path' => null,
+        'onboarding_fyn_selection' => null,
+        'funnel_answers' => ['campaign' => ['x'], 'employment' => 'full-time'],
+    ]);
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withToken($token)
+        ->postJson('/api/ai-chat/onboarding/start');
+
+    // Must not 500 — array campaign is rejected and savetax legacy default applies.
+    $response->assertOk();
+    expect($response->headers->get('Content-Type'))->toContain('text/event-stream');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_path)->toBe('campaign');
+    expect($user->onboarding_fyn_selection)->toBe('savetax');
+});
+
 it('has a valid state id for every configured campaign entry', function () {
     $campaignMap = config('onboarding.campaign_map', []);
     // states() is the authoritative in-code state table (inCodeStates() is private).
