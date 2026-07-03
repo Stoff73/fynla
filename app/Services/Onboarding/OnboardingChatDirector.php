@@ -22,7 +22,9 @@ use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
+use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -3801,6 +3803,28 @@ PROMPT;
                 'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
                 'records_created' => $recordsCreated,
             ];
+
+            // WP-5c-iii — a capture can cross a milestone (first ISA, will in
+            // place, mortgage paydown); run the cheap detections and let Fyn
+            // acknowledge the first mint in the same turn, plain text.
+            // Detection failures never break the capture stream.
+            try {
+                $milestones = app(MilestoneDetectionService::class);
+                $milestones->detectIsaFirst($user);
+                $milestones->detectEstateBasics($user);
+                $milestones->detectMortgagesPaid($user);
+
+                $mint = app(MilestoneCollector::class)->first();
+                if ($mint !== null) {
+                    $sentence = "That's a milestone: ".lcfirst($mint['label']);
+                    yield ['type' => 'content', 'text' => $sentence];
+                    $this->saveMessage($conversation, 'assistant', $sentence, [
+                        'metadata' => ['milestone_ack' => $mint['type']],
+                    ]);
+                }
+            } catch (\Throwable) {
+                // best-effort
+            }
         }
     }
 

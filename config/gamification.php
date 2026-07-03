@@ -33,4 +33,8 @@ return [
     // Sort weight given to a KYC "unlock" action when interleaved with real
     // recommendations in the mobile next-actions list (tunable).
     'unlock_action_weight' => 65,
+
+    // WP-5c-iii — push notification on newly-earned milestones. Flag-gated
+    // (CSJ decision 2026-07-03): OFF by default, one send per mint when on.
+    'push_enabled' => env('GAMIFICATION_PUSH_ENABLED', false),
 ];

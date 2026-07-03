@@ -12,6 +12,7 @@ use App\Models\Mortgage;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserMilestone;
+use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
@@ -101,6 +102,7 @@ class MilestoneDetectionService
         private readonly PointsService $points,
         private readonly SavingsStore $savingsStore,
         private readonly TaxConfigService $taxConfig,
+        private readonly MilestoneCollector $collector,
     ) {}
 
     /**
@@ -136,10 +138,13 @@ class MilestoneDetectionService
                     ['threshold' => $threshold],
                 );
 
+                $label = 'Your net worth has passed £'.number_format($threshold).'.';
+                $this->minted($user, 'net_worth', $label);
+
                 $new[] = [
                     'type' => 'net_worth',
                     'threshold' => $threshold,
-                    'label' => 'Your net worth has passed £'.number_format($threshold).'.',
+                    'label' => $label,
                     'share_type' => 'net_worth_milestone',
                 ];
             }
@@ -184,6 +189,7 @@ class MilestoneDetectionService
                 $label = $threshold >= 100
                     ? sprintf('You\'ve reached your goal: %s.', $goalName)
                     : sprintf('You\'re %d%% of the way to %s.', $threshold, $goalName);
+                $this->minted($user, 'goal', $label);
 
                 $new[] = [
                     'type' => 'goal',
@@ -478,7 +484,31 @@ class MilestoneDetectionService
             ];
         }
 
-        return $upcoming;
+        // WP-5c-iii — each step deep-links to the /m surface where the user
+        // acts on it (route names from resources/mobile/router.js).
+        $routeFor = static function (array $item): string {
+            if (str_contains($item['title'], 'will') || str_contains($item['title'], 'Lasting Power')) {
+                return 'm-estate';
+            }
+            if (str_contains($item['title'], 'tax saving')) {
+                return 'tax-strategy';
+            }
+
+            return match ($item['group']) {
+                'Wealth', 'Property' => 'm-net-worth',
+                'Goals' => 'm-goals',
+                'Tax year' => 'tax-strategy',
+                'Savings' => 'm-savings',
+                'Retirement' => 'm-retirement',
+                'Protection & estate' => 'm-protection',
+                default => 'dashboard',
+            };
+        };
+
+        return array_map(
+            static fn (array $item): array => $item + ['route' => $routeFor($item)],
+            $upcoming,
+        );
     }
 
     /**
@@ -978,11 +1008,37 @@ class MilestoneDetectionService
             ['threshold' => $threshold],
         );
 
+        $this->minted($user, $type, $label);
+
         return [[
             'type' => $type,
             'threshold' => $threshold,
             'label' => $label,
             'share_type' => 'app_referral',
         ]];
+    }
+
+    /**
+     * WP-5c-iii — every fresh mint lands in the request-scoped collector (so
+     * the surface that caused it can acknowledge it in the same turn) and,
+     * flag-gated, goes out as a push notification. Never throws, never fires
+     * for preview personas.
+     */
+    private function minted(User $user, string $type, string $label): void
+    {
+        try {
+            $this->collector->record($type, $label);
+
+            if ((bool) config('gamification.push_enabled', false) && ! $user->is_preview_user) {
+                app(PushNotificationService::class)->sendToUser(
+                    $user->id,
+                    'Milestone reached',
+                    $label,
+                    ['type' => 'milestone', 'milestone_type' => $type],
+                );
+            }
+        } catch (\Throwable) {
+            // best-effort — a nudge failure must never break detection
+        }
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\Mobile\MobileLevelService;
@@ -66,6 +67,20 @@ class MobileDashboardController extends Controller
             // and only on this mobile-only endpoint, so a web read can't consume
             // a milestone before the mobile user sees its share prompt.
             $data['new_milestones'] = $this->detectMilestones($request->user(), $data);
+
+            // WP-5c-iii — one persistent hero nudge: the nearest upcoming
+            // milestone with its step (computed after detection so the earned
+            // state is fresh). Never breaks the read.
+            try {
+                $upcoming = $this->milestones->upcoming(
+                    $request->user(),
+                    (float) ($data['net_worth']['total'] ?? 0),
+                    (float) ($data['net_worth']['breakdown']['assets']['pensions'] ?? 0),
+                );
+                $data['next_milestone'] = $upcoming[0] ?? null;
+            } catch (\Throwable $e) {
+                $data['next_milestone'] = null;
+            }
 
             return response()->json([
                 'success' => true,
@@ -138,6 +153,12 @@ class MobileDashboardController extends Controller
                 $this->milestones->detectMortgagesPaid($user),
                 $this->milestones->detectEstateBasics($user),
                 $this->milestones->detectIsaFirst($user),
+                // WP-5c-iii — the tax-savings milestone no longer waits for a
+                // /tax-strategy visit: the focus-areas build already composed
+                // the plan for strategy unlocks (when the tax gate is open),
+                // and the scoped memo hands it over for free. Declines (null)
+                // when the plan was never composed this request.
+                $this->detectTaxSavingsFromMemo($user),
             );
         } catch (\Throwable $e) {
             Log::warning('Milestone detection failed', [
@@ -148,5 +169,24 @@ class MobileDashboardController extends Controller
 
             return [];
         }
+    }
+
+    /**
+     * WP-5c-iii — first-quantified-saving detection from the request-scoped
+     * composed-plan memo. Never composes the plan itself.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function detectTaxSavingsFromMemo(User $user): array
+    {
+        $plan = app(ComposedTaxPlanService::class)->forUserIfComputed($user);
+        if ($plan === null) {
+            return [];
+        }
+
+        return $this->milestones->detectTaxSavingsIdentified(
+            $user,
+            (float) ($plan['combined_annual_saving'] ?? 0),
+        );
     }
 }
