@@ -59,6 +59,13 @@
               <span class="ma-badge__status">{{ completedLabel(item) }}</span>
             </div>
           </div>
+          <!-- WP-5c-ii — done work is never truncated; load the rest on demand. -->
+          <button
+            v-if="completed.length < completedTotal"
+            class="m-btn ma-more"
+            :disabled="loadingMoreCompleted"
+            @click="loadMoreCompleted"
+          >{{ loadingMoreCompleted ? 'Loading…' : 'Show more' }}</button>
         </div>
 
         <!-- Earned — badges; earned ones prominent, unearned muted. -->
@@ -84,16 +91,19 @@
 
       <!-- Milestones tab -->
       <template v-else-if="tab === 'milestones'">
-        <!-- Next up — milestones the user can achieve, with the step that
-             gets them there (WP-5b). -->
+        <!-- Next up — the next milestone from every family that applies,
+             grouped, each with the step that gets there (WP-5b + WP-5c-ii). -->
         <div v-if="upcoming.length" class="m-card">
           <p class="m-section-label" style="margin-top:0">Next up</p>
-          <div class="ma-badges">
-            <div v-for="(up, i) in upcoming" :key="'up-' + i" class="ma-badge">
-              <span class="ma-badge__title">{{ up.title }}</span>
-              <span class="ma-badge__desc">{{ up.steps }}</span>
+          <template v-for="section in groupedUpcoming" :key="'grp-' + section.group">
+            <p class="ma-group">{{ section.group }}</p>
+            <div class="ma-badges">
+              <div v-for="(up, i) in section.items" :key="section.group + '-' + i" class="ma-badge">
+                <span class="ma-badge__title">{{ up.title }}</span>
+                <span class="ma-badge__desc">{{ up.steps }}</span>
+              </div>
             </div>
-          </div>
+          </template>
         </div>
 
         <div class="m-card">
@@ -128,6 +138,11 @@
               <span class="ma-history__date">{{ formatDate(ev.occurred_at) }}</span>
             </div>
           </div>
+          <!-- WP-5c-ii — infinite scroll: the sentinel loads the next page of
+               the ledger as it comes into view; cursor null = fully loaded. -->
+          <div v-if="activityCursor" ref="historySentinel" class="ma-sentinel">
+            <span v-if="loadingMoreActivity" class="m-sub">Loading more…</span>
+          </div>
         </div>
       </template>
     </template>
@@ -149,13 +164,51 @@ export default {
       error: '',
       achievements: [],
       completed: [],
+      completedTotal: 0,
+      completedPage: 1,
+      loadingMoreCompleted: false,
       milestones: [],
       upcoming: [],
       activity: [],
+      activityCursor: null,
+      loadingMoreActivity: false,
+      historyObserver: null,
     };
+  },
+  computed: {
+    // WP-5c-ii — group the upcoming list by its group field, preserving the
+    // backend's order (Wealth, Goals, Tax year, Savings, Retirement,
+    // Protection & estate, Property, Journey).
+    groupedUpcoming() {
+      const sections = [];
+      for (const up of this.upcoming) {
+        const group = up.group || 'Milestones';
+        const last = sections[sections.length - 1];
+        if (last && last.group === group) {
+          last.items.push(up);
+        } else {
+          sections.push({ group, items: [up] });
+        }
+      }
+      return sections;
+    },
+  },
+  watch: {
+    // The history sentinel only exists while its tab is active — re-arm the
+    // observer on each switch in.
+    tab(next) {
+      if (next === 'history') {
+        this.$nextTick(() => this.armHistoryObserver());
+      } else {
+        this.disarmHistoryObserver();
+      }
+    },
   },
   async created() {
     await this.load();
+  },
+  beforeUnmount() {
+    this.disarmHistoryObserver();
   },
   methods: {
     goBack() {
@@ -194,13 +247,65 @@ export default {
         const d = res.data?.data || {};
         this.achievements = Array.isArray(d.achievements) ? d.achievements : [];
         this.completed = Array.isArray(d.completed) ? d.completed : [];
+        this.completedTotal = Number(d.completed_total) || this.completed.length;
+        this.completedPage = 1;
         this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
         this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
+        this.activityCursor = act.ok ? (act.data?.next_cursor ?? null) : null;
       } catch (e) {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
+      }
+    },
+    // WP-5c-ii — next page of completed actions, appended.
+    async loadMoreCompleted() {
+      if (this.loadingMoreCompleted) return;
+      this.loadingMoreCompleted = true;
+      try {
+        const next = this.completedPage + 1;
+        const res = await apiGet(`/api/v1/mobile/achievements/completed?page=${next}`, store.token);
+        const d = res.ok ? (res.data?.data || {}) : {};
+        if (Array.isArray(d.completed) && d.completed.length) {
+          this.completed = this.completed.concat(d.completed);
+          this.completedPage = next;
+          this.completedTotal = Number(d.completed_total) || this.completedTotal;
+        }
+      } finally {
+        this.loadingMoreCompleted = false;
+      }
+    },
+    // WP-5c-ii — next page of the activity ledger (cursor on the last row).
+    async loadMoreActivity() {
+      if (this.loadingMoreActivity || !this.activityCursor) return;
+      this.loadingMoreActivity = true;
+      try {
+        const res = await apiGet(`/api/gamification/activity?before=${this.activityCursor}`, store.token);
+        if (res.ok) {
+          const events = Array.isArray(res.data?.data) ? res.data.data : [];
+          this.activity = this.activity.concat(events);
+          this.activityCursor = res.data?.next_cursor ?? null;
+        }
+      } finally {
+        this.loadingMoreActivity = false;
+      }
+    },
+    armHistoryObserver() {
+      this.disarmHistoryObserver();
+      const sentinel = this.$refs.historySentinel;
+      if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+      this.historyObserver = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          this.loadMoreActivity();
+        }
+      }, { rootMargin: '200px' });
+      this.historyObserver.observe(sentinel);
+    },
+    disarmHistoryObserver() {
+      if (this.historyObserver) {
+        this.historyObserver.disconnect();
+        this.historyObserver = null;
       }
     },
   },
@@ -249,6 +354,19 @@ export default {
 .ma-badge__desc { font-size: 13px; color: var(--neutral-500); line-height: 1.4; }
 .ma-badge__status { font-size: 12px; font-weight: 700; color: var(--neutral-500); }
 .ma-badge.is-earned .ma-badge__status { color: var(--spring-600); }
+
+/* WP-5c-ii — grouped Next up, load-more, history sentinel. */
+.ma-group {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--neutral-500);
+}
+.ma-group:first-of-type { margin-top: 8px; }
+.ma-more { width: 100%; margin-top: 12px; }
+.ma-sentinel { min-height: 24px; text-align: center; padding: 6px 0; }
 
 /* WP-3 — activity history rows. */
 .ma-history { display: flex; flex-direction: column; }

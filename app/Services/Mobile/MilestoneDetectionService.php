@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\Gamification\PointsService;
 use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Carbon;
 
 /**
@@ -99,6 +100,7 @@ class MilestoneDetectionService
     public function __construct(
         private readonly PointsService $points,
         private readonly SavingsStore $savingsStore,
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     /**
@@ -220,35 +222,45 @@ class MilestoneDetectionService
     }
 
     /**
-     * WP-5b — the milestones the user can achieve NEXT, each with the
-     * concrete step that gets them there. One per flavour so the list stays
-     * motivating rather than exhaustive: the next net-worth threshold (with
-     * the £ distance), the next progress step for each active goal, and any
-     * unearned journey milestones.
+     * WP-5b/WP-5c-ii — the milestones the user can achieve NEXT: the next
+     * unearned milestone from every family that applies, grouped for the
+     * milestones page, each with the concrete step (and the distance where
+     * the figure is in hand). Event-celebration families (strategy firsts,
+     * estate start, anniversaries) are deliberately absent — they aren't
+     * targets a user picks.
      *
-     * @return array<int,array{title: string, steps: string}>
+     * @return array<int,array{group: string, title: string, steps: string}>
      */
-    public function upcoming(User $user, ?float $netWorth = null): array
+    public function upcoming(User $user, ?float $netWorth = null, ?float $pensionPot = null): array
     {
+        $earned = UserMilestone::where('user_id', $user->id)
+            ->get(['milestone_type', 'reference_id', 'threshold']);
+
+        $has = static fn (string $type, ?int $ref = null, ?float $threshold = null): bool => $earned->contains(
+            static fn (UserMilestone $m): bool => $m->milestone_type === $type
+                && ($ref === null || (int) $m->reference_id === $ref)
+                && ($threshold === null || abs((float) $m->threshold - $threshold) < 0.01)
+        );
+
         $upcoming = [];
 
-        // Next net-worth threshold — with the distance when we know the total.
-        if ($netWorth !== null) {
-            foreach (self::NET_WORTH_THRESHOLDS as $threshold) {
-                if ($netWorth < $threshold) {
-                    $away = $threshold - $netWorth;
-                    $upcoming[] = [
-                        'title' => 'Net worth £'.number_format($threshold),
-                        'steps' => 'Add to your savings, investments or pension — you\'re £'.number_format((int) round($away)).' away.',
-                    ];
-                    break;
-                }
+        // ── Wealth: next net-worth threshold (skip anything the live figure
+        // has already passed — those mint on the next dashboard read).
+        foreach (self::NET_WORTH_THRESHOLDS as $threshold) {
+            if ($has('net_worth', null, (float) $threshold) || ($netWorth !== null && $netWorth >= $threshold)) {
+                continue;
             }
+            $upcoming[] = [
+                'group' => 'Wealth',
+                'title' => 'Net worth £'.number_format($threshold),
+                'steps' => $netWorth !== null
+                    ? 'Add to your savings, investments or pension — you\'re £'.number_format((int) round($threshold - $netWorth)).' away.'
+                    : 'Add to your savings, investments or pension.',
+            ];
+            break;
         }
 
-        // Next progress step per active goal (capped so goals don't swamp
-        // it). progress_percentage is a computed accessor, not a column, so
-        // the filter/sort/cap happen in PHP.
+        // ── Goals: next progress step per active goal (top 3 by progress).
         $goals = Goal::forUserOrJoint($user->id)
             ->get()
             ->filter(fn (Goal $g): bool => (float) $g->progress_percentage < 100)
@@ -263,6 +275,7 @@ class MilestoneDetectionService
                     $current = (float) $goal->current_amount;
                     $needed = max(0.0, $target * ($threshold / 100) - $current);
                     $upcoming[] = [
+                        'group' => 'Goals',
                         'title' => ($threshold >= 100 ? 'Reach ' : $threshold.'% of ').$name,
                         'steps' => $needed > 0 && $target > 0
                             ? 'Put £'.number_format((int) round($needed)).' more towards it.'
@@ -273,31 +286,195 @@ class MilestoneDetectionService
             }
         }
 
-        // Unearned journey milestones — the step is the action itself.
-        $earnedTypes = UserMilestone::where('user_id', $user->id)
-            ->whereIn('milestone_type', ['campaign', 'action', 'tax_savings'])
-            ->pluck('milestone_type')
-            ->all();
-
-        if (! empty($user->funnel_answers)) {
-            if (! (bool) $user->onboarding_completed && ! in_array('campaign', $earnedTypes, true)) {
+        // ── Tax year: allowance usage repeats per tax year; actioned savings
+        // climb a cumulative ladder.
+        $taxYear = $this->taxConfig->getTaxYear();
+        $year = (int) substr($taxYear, 0, 4);
+        if ($year >= 2000) {
+            if (! $has('isa_used', $year, 50.0)) {
                 $upcoming[] = [
+                    'group' => 'Tax year',
+                    'title' => "Use half your ISA allowance ({$taxYear})",
+                    'steps' => 'Pay into an ISA — contributions this tax year count towards it.',
+                ];
+            } elseif (! $has('isa_used', $year, 100.0)) {
+                $upcoming[] = [
+                    'group' => 'Tax year',
+                    'title' => "Use your full ISA allowance ({$taxYear})",
+                    'steps' => 'Top up your ISA before 5 April.',
+                ];
+            }
+
+            if (! $has('pension_aa_used', $year, 50.0)) {
+                $upcoming[] = [
+                    'group' => 'Tax year',
+                    'title' => "Use half your pension Annual Allowance ({$taxYear})",
+                    'steps' => 'Add to your pension contributions this tax year.',
+                ];
+            } elseif (! $has('pension_aa_used', $year, 100.0)) {
+                $upcoming[] = [
+                    'group' => 'Tax year',
+                    'title' => "Use your full pension Annual Allowance ({$taxYear})",
+                    'steps' => 'Add to your pension contributions this tax year.',
+                ];
+            }
+        }
+
+        if (! $has('tax_actioned', null, 1.0)) {
+            $upcoming[] = [
+                'group' => 'Tax year',
+                'title' => 'Action your first tax saving',
+                'steps' => 'Mark a tax-plan action as done once you\'ve completed it.',
+            ];
+        } else {
+            foreach (self::TAX_ACTIONED_THRESHOLDS as $threshold) {
+                if (! $has('tax_actioned', null, (float) $threshold)) {
+                    $upcoming[] = [
+                        'group' => 'Tax year',
+                        'title' => '£'.number_format($threshold).' a year of tax savings actioned',
+                        'steps' => 'Complete more of the actions in your tax plan.',
+                    ];
+                    break;
+                }
+            }
+        }
+
+        // ── Savings.
+        foreach (self::EMERGENCY_FUND_MONTHS as $months) {
+            if (! $has('emergency_fund', null, (float) $months)) {
+                $upcoming[] = [
+                    'group' => 'Savings',
+                    'title' => $months === 1
+                        ? 'Emergency fund covering a month of spending'
+                        : "Emergency fund covering {$months} months of spending",
+                    'steps' => 'Top up your easy-access savings.',
+                ];
+                break;
+            }
+        }
+        if (! $has('isa_first')) {
+            $upcoming[] = [
+                'group' => 'Savings',
+                'title' => 'Open your first ISA',
+                'steps' => 'Interest and gains inside an ISA stay tax-free.',
+            ];
+        }
+
+        // ── Retirement.
+        foreach (self::PENSION_POT_THRESHOLDS as $threshold) {
+            if ($has('pension_pot', null, (float) $threshold) || ($pensionPot !== null && $pensionPot >= $threshold)) {
+                continue;
+            }
+            $upcoming[] = [
+                'group' => 'Retirement',
+                'title' => 'Pension savings £'.number_format($threshold),
+                'steps' => $pensionPot !== null && $pensionPot > 0
+                    ? 'Add to your pension — you\'re £'.number_format((int) round($threshold - $pensionPot)).' away.'
+                    : 'Add to your pension, or record one you already have.',
+            ];
+            break;
+        }
+        if (! $has('retirement_on_track')) {
+            $upcoming[] = [
+                'group' => 'Retirement',
+                'title' => 'On track for retirement',
+                'steps' => 'Add your pensions and set your retirement target so we can check.',
+            ];
+        }
+
+        // ── Protection & estate.
+        if (! $has('protection_adequate')) {
+            $upcoming[] = [
+                'group' => 'Protection & estate',
+                'title' => 'Cover your protection needs',
+                'steps' => 'Close the gaps shown in your protection section.',
+            ];
+        }
+        if (! $has('will_in_place')) {
+            $upcoming[] = [
+                'group' => 'Protection & estate',
+                'title' => 'Put your will in place',
+                'steps' => 'Record your will in the estate section — or make one if you haven\'t.',
+            ];
+        }
+        if (! $has('lpa_in_place')) {
+            $upcoming[] = [
+                'group' => 'Protection & estate',
+                'title' => 'Put a Lasting Power of Attorney in place',
+                'steps' => 'Register a Lasting Power of Attorney and record it in the estate section.',
+            ];
+        }
+
+        // ── Property: next paydown step per mortgage, with the £ to get there.
+        $mortgages = Mortgage::query()
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+            ->get(['id', 'original_loan_amount', 'outstanding_balance']);
+        foreach ($mortgages as $mortgage) {
+            $original = (float) $mortgage->original_loan_amount;
+            if ($original <= 0) {
+                continue;
+            }
+            $balance = (float) $mortgage->outstanding_balance;
+            foreach (self::MORTGAGE_PAID_PERCENTS as $pct) {
+                if ($has('mortgage_paid', (int) $mortgage->id, (float) $pct)) {
+                    continue;
+                }
+                $toGo = max(0.0, $balance - $original * (1 - $pct / 100));
+                $upcoming[] = [
+                    'group' => 'Property',
+                    'title' => $pct >= 100 ? 'Pay off your mortgage' : "Pay off {$pct}% of your mortgage",
+                    'steps' => $toGo > 0
+                        ? 'Pay down £'.number_format((int) round($toGo)).' more.'
+                        : 'Keep up your repayments.',
+                ];
+                break;
+            }
+        }
+
+        // ── Journey: the original WP-5b items, plus the remaining module
+        // profiles (one combined line, not six) and the household link.
+        if (! empty($user->funnel_answers)) {
+            if (! (bool) $user->onboarding_completed && ! $has('campaign')) {
+                $upcoming[] = [
+                    'group' => 'Journey',
                     'title' => 'Complete your tax profile',
                     'steps' => 'Finish your chat with Fyn — a few questions to go.',
                 ];
             }
-            if (! in_array('tax_savings', $earnedTypes, true)) {
+            if (! $has('tax_savings')) {
                 $upcoming[] = [
+                    'group' => 'Journey',
                     'title' => 'Find your first tax saving',
                     'steps' => 'Add your accounts and pension details so your tax plan can quantify a saving.',
                 ];
             }
         }
 
-        if (! in_array('action', $earnedTypes, true)) {
+        if (! $has('action')) {
             $upcoming[] = [
+                'group' => 'Journey',
                 'title' => 'Complete your first action',
                 'steps' => 'Mark any recommended action on your dashboard as done.',
+            ];
+        }
+
+        $remainingModules = array_keys(array_filter(
+            self::MODULE_IDS,
+            static fn (int $id): bool => ! $has('module_profile', $id),
+        ));
+        if ($remainingModules !== []) {
+            $upcoming[] = [
+                'group' => 'Journey',
+                'title' => 'Complete your remaining profiles',
+                'steps' => 'Still to complete: '.implode(', ', $remainingModules).'.',
+            ];
+        }
+
+        if ($user->spouse_id && ! $has('household')) {
+            $upcoming[] = [
+                'group' => 'Journey',
+                'title' => 'Link your household',
+                'steps' => 'Ask your spouse to link their account with yours.',
             ];
         }
 
