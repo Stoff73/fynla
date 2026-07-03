@@ -16,7 +16,7 @@ effective_from: 2026-06-02
         "properties": {
             "date_of_birth": {
                 "type": "string",
-                "description": "Date of birth in YYYY-MM-DD format, parsed from natural language like \"12 January 1985\". Only include this field if the user explicitly stated a date of birth."
+                "description": "Date of birth in YYYY-MM-DD format, parsed from natural language like \"12 January 1985\". Short formats are fine: read numeric dates as UK day-first (\"19/02/1982\" is 19 February), and expand a two-digit year to the century that gives a plausible adult age (\"19/02/82\" or \"19 Feb 82\" is 1982-02-19, not 2082). Only include this field if the user explicitly stated a date of birth."
             },
             "marital_status": {
                 "type": "string",

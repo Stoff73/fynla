@@ -60,6 +60,22 @@ it('produces income-tax advice for a 60% tax-trap earner', function () {
         ->and($advice)->toContain('income between £100,000 and £125,140 is taxed at 60%');
 });
 
+it('tells the user the advice was logged to their actions list', function () {
+    $user = User::factory()->create([
+        'onboarding_fyn_path' => 'campaign',
+        'marital_status' => 'single',
+        'household_calculation_mode' => 'single',
+        'date_of_birth' => '1985-01-12',
+        'annual_employment_income' => 120000,
+    ]);
+
+    // Every voiced strategy is a composed-plan item — exactly what the actions
+    // list shows — so each section's advice must say it was logged rather than
+    // landing there silently (issues.md 2026-07-03).
+    expect(adviceFor($user, 'income'))
+        ->toContain("I've added this to your actions list to come back to later.");
+});
+
 it('returns null when a section has no relevant recommendations', function () {
     $user = User::factory()->create([
         'onboarding_fyn_path' => 'campaign',

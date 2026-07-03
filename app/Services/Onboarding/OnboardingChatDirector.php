@@ -20,6 +20,7 @@ use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
+use App\Services\AI\Support\AckSentenceDeduper;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\PointsService;
 use App\Services\Stores\InvestmentAccountStore;
@@ -187,6 +188,35 @@ final class OnboardingChatDirector
             // and re-runs the challenge check.
         }
 
+        // Short-format DOB confirm resolution (pending_dob_confirm parked by
+        // maybeConfirmShortDob). The user is answering "is 19th February 1982
+        // correct?" — handle it before any normal turn routing.
+        if (isset($context['pending_dob_confirm'])) {
+            $reply = mb_strtolower(trim($message));
+
+            unset($context['pending_dob_confirm']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if (str_starts_with($reply, 'yes')) {
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
+            if (str_starts_with($reply, 'no')) {
+                // Wrong date — clear it and re-ask the DOB question.
+                $user->date_of_birth = null;
+                $user->save();
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+            // Anything else: the user typed a corrected date instead of
+            // tapping — fall through to the normal capture path, which
+            // re-captures and re-runs the confirm check.
+        }
+
         // Phase 4e — stamp the active onboarding workflow procedure version onto
         // the turn so persistEpisode can bind it onto the episode. Recorded only
         // when the corpus actually supplies the workflow procedure (the merge
@@ -231,7 +261,7 @@ final class OnboardingChatDirector
         // saving an LLM round-trip whenever the user volunteered the
         // facts earlier in the conversation.
         if (($state['turn_type'] ?? '') === 'grouped_extract') {
-            $hydrated = $this->hydrateFromParking($user, $conversation, $currentStateId, $state);
+            $hydrated = $this->hydrateFromParking($user, $conversation, $currentStateId, $state, $message);
             if ($hydrated !== null) {
                 yield from $hydrated;
 
@@ -894,7 +924,17 @@ final class OnboardingChatDirector
             }
         }
 
-        return $lines === [] ? null : implode("\n\n", $lines);
+        if ($lines === []) {
+            return null;
+        }
+
+        // Every voiced strategy is a composed-plan item, which is exactly what
+        // the actions list on the dashboard / Tax Strategy page shows — tell
+        // the user it's been logged so nothing lands there silently. The
+        // spouse section already says this in its own wording.
+        $lines[] = "I've added this to your actions list to come back to later.";
+
+        return implode("\n\n", $lines);
     }
 
     /**
@@ -1465,6 +1505,7 @@ final class OnboardingChatDirector
         AiConversation $conversation,
         string $currentStateId,
         array $state,
+        string $message = '',
     ): ?\Generator {
         $extractionTool = (string) ($state['extraction_tool'] ?? '');
         $parked = $conversation->onboarding_parked_facts ?? [];
@@ -1505,7 +1546,7 @@ final class OnboardingChatDirector
         // Emit the same shape handleGroupedExtractTurn produces on a
         // successful capture so downstream consumers (frontend store) see
         // no difference.
-        return (function () use ($user, $conversation, $currentStateId, $result) {
+        return (function () use ($user, $conversation, $currentStateId, $result, $message) {
             if (($result['onboarding_capture'] ?? false) === true) {
                 yield [
                     'type' => 'onboarding_field_captured',
@@ -1525,6 +1566,21 @@ final class OnboardingChatDirector
             $this->flushParkedFactsForState($conversation, $currentStateId);
 
             $user->refresh();
+
+            // A DOB given in a short two-digit-year format required a century
+            // inference — confirm it back in full before carrying on. The
+            // parking fast-path must not skip the confirm the grouped-extract
+            // path asks (the fact extractor parses the same short formats).
+            $confirming = yield from $this->maybeConfirmShortDob(
+                $user,
+                $conversation,
+                $currentStateId,
+                (array) ($result['details'] ?? []),
+                $message
+            );
+            if ($confirming) {
+                return;
+            }
 
             $nextStateId = OnboardingStateMachine::getNextStateId(
                 $currentStateId,
@@ -1883,6 +1939,13 @@ final class OnboardingChatDirector
         // picked on the website. On a contradiction, challenge + hold here.
         $challenged = yield from $this->maybeChallengeIncome($user, $conversation, $currentStateId, $captureDetails);
         if ($challenged) {
+            return;
+        }
+
+        // A DOB given in a short two-digit-year format required a century
+        // inference — confirm it back in full before carrying on.
+        $confirming = yield from $this->maybeConfirmShortDob($user, $conversation, $currentStateId, $captureDetails, $message);
+        if ($confirming) {
             return;
         }
 
@@ -2251,6 +2314,64 @@ final class OnboardingChatDirector
     }
 
     /**
+     * If the DOB just captured on the campaign DOB state came from a
+     * short two-digit-year format ("19/02/82", "19 Feb 82"), the century was
+     * inferred — park a pending_dob_confirm flag and confirm the full date
+     * back ("Your date of birth is 19th February 1982 — is that correct?")
+     * before advancing. Returns true when it asked (caller must NOT advance),
+     * false otherwise. Full-format dates advance exactly as before — no
+     * extra gate.
+     */
+    private function maybeConfirmShortDob(User $user, AiConversation $conversation, string $stateId, array $captureDetails, string $rawMessage): \Generator
+    {
+        if ($stateId !== OnboardingStateMachine::STATE_CAMPAIGN_DOB) {
+            return false;
+        }
+
+        $dob = (string) ($captureDetails['date_of_birth'] ?? '');
+        if ($dob === '') {
+            return false;
+        }
+
+        // Century inference only happens on a two-digit year: numeric
+        // ("19/02/82") or textual-month ("19 Feb 82") forms. A four-digit
+        // year needs no confirm.
+        $numericShort = preg_match('#\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2}(?!\d)#', $rawMessage) === 1;
+        $textualShort = preg_match('/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\.?,?\s+\d{2}(?!\d)/i', $rawMessage) === 1;
+        if (! $numericShort && ! $textualShort) {
+            return false;
+        }
+
+        try {
+            $formatted = Carbon::parse($dob)->format('jS F Y');
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['pending_dob_confirm'] = ['dob' => $dob];
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $text = "Your date of birth is **{$formatted}** — is that correct?";
+        $bubbles = [
+            ['id' => 'yes', 'label' => "Yes, that's right"],
+            ['id' => 'no', 'label' => 'No, change it'],
+        ];
+        $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => ['onboarding_step' => $stateId, 'dob_confirm' => true, 'bubbles' => $bubbles],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $text,
+            'bubbles' => $bubbles,
+        ];
+
+        return true;
+    }
+
+    /**
      * Build the restricted system prompt for grouped-extract turns. Must
      * stay narrow — we do not want Claude to answer the user, we just
      * want it to call the single extraction tool with parsed fields.
@@ -2269,7 +2390,7 @@ final class OnboardingChatDirector
         $knownFactsBlock = $this->memory->renderKnownFactsBlock($user, $conversation);
 
         $instructions = match ($toolName) {
-            'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
+            'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Dates may arrive in short formats — read numeric dates as UK day-first ("19/02/1982" is 19 February) and expand a two-digit year to the century that gives a plausible adult age ("19/02/82" or "19 Feb 82" → 1982-02-19, never 2082). Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
             'capture_spouse_details' => 'Extract the user\'s spouse or partner details. You need their first name, date of birth, and email address. If they mention an annual income, extract it too. Do NOT invent missing fields — if the user did not provide all three required fields, return an error.',
             'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an age and a relationship (child, parent, or other_dependent). First names are optional. Map phrases: "son", "daughter", "step-daughter", "step-son", "kid", "child" → child. "mother", "father", "mum", "dad", "mum-in-law", etc. → parent. Sibling, nephew, elderly relative, friend → other_dependent. If the user says "two kids aged 4 and 7" return two entries with relationship=child.',
             'capture_work_details' => 'Extract the user\'s employer or trade name, their role/position, and their gross annual income in GBP. Strip currency symbols and commas before returning the number. "75k" means 75000. Do not invent fields.',
@@ -2623,6 +2744,10 @@ PROMPT;
         $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
         $section = (string) (($context['verify_section'] ?? '') ?: '');
 
+        // Snapshot the section's records before the edit so the read-back
+        // below can name exactly what changed (and its resulting amount).
+        $preEdit = $this->verifyEditSnapshot($user, $section);
+
         $toolCallsSeen = 0;
         $contentBuffer = '';
 
@@ -2709,6 +2834,21 @@ PROMPT;
         // advance to re-show Gate 2 (campaign_verify_navigate).
         if ($ack !== '') {
             yield ['type' => 'content', 'text' => $ack];
+        }
+
+        // Deterministic read-back: name the resulting records from the
+        // database — "add £20 to HSBC" must come back as the stored total, so
+        // the user acknowledges the actual balance, not the model's
+        // paraphrase of the instruction.
+        $readBack = $this->verifyEditReadBack($user, $section, $preEdit);
+        if ($readBack !== null) {
+            // Same-step advance so the /m dock opens a fresh bubble — matches
+            // the reloaded transcript, where this is its own message row.
+            yield ['type' => 'onboarding_advance', 'from_step' => $currentStateId, 'to_step' => $currentStateId];
+            yield ['type' => 'content', 'text' => $readBack];
+            $this->saveMessage($conversation, 'assistant', $readBack, [
+                'metadata' => ['onboarding_step' => $currentStateId, 'verify_edit_readback' => true],
+            ]);
         }
 
         $this->recordProgress(
@@ -2814,6 +2954,70 @@ PROMPT;
             default:
                 return 'Update the relevant existing record or profile field for this section.';
         }
+    }
+
+    /**
+     * Snapshot a verify section's records (id → label + headline amount) so
+     * the post-edit read-back can diff before/after. Profile-backed sections
+     * (income, expenditure, giving, spouse) return null — the model's prose
+     * acknowledgement stands there.
+     *
+     * @return array<int, array{label: string, amount: float}>|null
+     */
+    private function verifyEditSnapshot(User $user, string $section): ?array
+    {
+        return match ($section) {
+            'savings' => app(SavingsStore::class)->forUser($user)
+                ->mapWithKeys(fn ($a): array => [$a->id => [
+                    'label' => trim((string) $a->account_name.($a->institution ? ' at '.$a->institution : '')),
+                    'amount' => (float) $a->current_balance,
+                ]])->all(),
+            'investments' => app(InvestmentAccountStore::class)->forUser($user)
+                ->mapWithKeys(fn ($a): array => [$a->id => [
+                    'label' => (string) $a->account_name,
+                    'amount' => (float) $a->current_value,
+                ]])->all(),
+            'pensions' => app(PensionStore::class)->forUserByType($user, 'dc')
+                ->mapWithKeys(fn ($p): array => [$p->id => [
+                    'label' => (string) $p->scheme_name,
+                    'amount' => (float) $p->current_fund_value,
+                ]])->all(),
+            default => null,
+        };
+    }
+
+    /**
+     * Deterministic post-edit acknowledgement: re-read the section's records
+     * and name exactly what changed with its resulting amount. Null when the
+     * section isn't record-backed or nothing detectably changed.
+     */
+    private function verifyEditReadBack(User $user, string $section, ?array $before): ?string
+    {
+        if ($before === null) {
+            return null;
+        }
+        $after = $this->verifyEditSnapshot($user, $section);
+        if ($after === null) {
+            return null;
+        }
+
+        $noun = $section === 'savings' ? 'balance' : 'value';
+        $lines = [];
+        foreach ($after as $id => $row) {
+            $prev = $before[$id] ?? null;
+            if ($prev === null) {
+                $lines[] = sprintf('Added %s — %s £%s.', $row['label'], $noun, number_format($row['amount']));
+            } elseif (abs($prev['amount'] - $row['amount']) > 0.005 || $prev['label'] !== $row['label']) {
+                $lines[] = sprintf('Updated %s — %s now £%s.', $row['label'], $noun, number_format($row['amount']));
+            }
+        }
+        foreach ($before as $id => $row) {
+            if (! array_key_exists($id, $after)) {
+                $lines[] = sprintf('Removed %s.', $row['label']);
+            }
+        }
+
+        return $lines === [] ? null : implode("\n", $lines);
     }
 
     /** Onboarding capture focus for a verify-edit section (keeps the turn in capture mode). */
@@ -3261,72 +3465,13 @@ PROMPT;
 
     /**
      * A2 — collapse the repeated short acks the model emits once per
-     * agent-loop pass ("Got it — recording those now.Recorded." family).
-     * On each continuation the model re-narrates its acknowledgment and the
-     * buffered prose stacks; the May-18 captureTurnCompleteDirective dampens
-     * this but does not eliminate it.
-     *
-     * A consecutive sentence is dropped when, against its predecessor, it is:
-     *   (a) identical (case-insensitive); or
-     *   (b) a short (<=6 words) textual prefix-duplicate of it
-     *       ("Recorded the ISA." + "Recorded."); or
-     *   (c) a bare standalone acknowledgment ("Recorded.", "Got it.",
-     *       "Done.", "Noted.") following ANY prior sentence — a bare ack
-     *       carries no information regardless of what preceded it; the
-     *       closed set in isBareAck() never matches informative content.
-     *
-     * The split pattern uses `\s*` (not `\s+`) so "now.Recorded." splits into
-     * two sentences despite the missing space. Legitimate multi-sentence
-     * answers survive untouched: a substantive follow-on ("It saves Y.", "Now
-     * your savings outside an ISA.") is neither a prefix-duplicate nor a bare
-     * ack, and the new record-stating ack ("Recorded — two ISAs …") is long
-     * enough never to qualify as the short predecessor in (c).
+     * agent-loop pass. Extracted to AckSentenceDeduper so HasAiChat can
+     * apply the SAME dedupe when persisting delegated data_capture turns —
+     * the live stream and the reloaded transcript must show the same text.
      */
     private function dedupeAckSentences(string $text): string
     {
-        // Split after sentence punctuation followed by whitespace OR directly
-        // by an uppercase/£ start ("now.Recorded." has no space). A full stop
-        // followed by a digit or lowercase is NOT a boundary — "3.25%" and
-        // "e.g. rates" must survive intact (live-browser regression 2026-06-11:
-        // the old `\s*` split decimals and re-joined them as "3. 25%").
-        $sentences = preg_split('/(?<=[.!?])\s+|(?<=[.!?])(?=[A-Z£])/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $deduped = [];
-        foreach ($sentences as $s) {
-            $prev = $deduped === [] ? null : end($deduped);
-            if ($prev !== null && (strcasecmp($prev, $s) === 0
-                || (str_word_count($s) <= 6 && str_word_count($prev) <= 6
-                    && (str_starts_with(strtolower($prev), strtolower(rtrim($s, '.!?')))
-                        || str_starts_with(strtolower($s), strtolower(rtrim($prev, '.!?')))))
-                || $this->isBareAck($s))) {
-                continue;
-            }
-            $deduped[] = $s;
-        }
-
-        return implode(' ', $deduped);
-    }
-
-    /**
-     * A2 — is the sentence a bare standalone acknowledgment with no payload?
-     * The closed re-narration family the model stacks ("Recorded.", "Got it.",
-     * "Done.", "Noted.", "Got it — recording those now."). Matched on the
-     * sentence's lowercased alphabetic content so trailing punctuation, the
-     * em-dash, and casing don't matter. A record-stating ack that names what
-     * was captured ("Recorded — two ISAs totalling £22,000.") carries extra
-     * words and is NOT bare, so it never matches.
-     */
-    private function isBareAck(string $sentence): bool
-    {
-        $core = strtolower(trim(preg_replace('/[^\p{L}\s]+/u', ' ', $sentence) ?? ''));
-        $core = trim(preg_replace('/\s+/', ' ', $core) ?? '');
-
-        return in_array($core, [
-            'recorded',
-            'got it',
-            'done',
-            'noted',
-            'got it recording those now',
-        ], true);
+        return AckSentenceDeduper::dedupe($text);
     }
 
     // ─── Terminal state ───────────────────────────────────────────────────

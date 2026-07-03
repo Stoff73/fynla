@@ -72,7 +72,13 @@ export default {
     userTotal() { return Number(this.userIncome.total) || this.userRows.reduce((s, r) => s + r.amount, 0); },
     spouseTotal() { return Number((this.spouseIncome || {}).total) || this.spouseRows.reduce((s, r) => s + r.amount, 0); },
   },
-  async created() { await this.load(); },
+  async created() {
+    await this.load();
+    // Same-route verify refresh: the onboarding chat bumps this after
+    // applying an edit on this very screen — refetch so the page shows the
+    // just-edited figures (no remount happens without a route change).
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
+  },
   methods: {
     fmt(v) { return formatCurrency(v); },
     rowsFor(income) {

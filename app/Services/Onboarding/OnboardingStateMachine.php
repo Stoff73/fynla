@@ -459,7 +459,7 @@ final class OnboardingStateMachine
             // ── Savings section (entry: ISA) ──────────────────────────────
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Let's look at your ISAs. Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?",
+                'prompt_text' => "Let's look at your ISAs. **Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?**",
                 'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
                 // Only ask about ISAs if the user ticked "ISA" on the funnel.
@@ -485,7 +485,7 @@ final class OnboardingStateMachine
                 'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildCampaignDobPrompt',
                 'extraction_tool' => 'capture_personal_details',
-                'retry_text' => 'Could you give me your date of birth — for example 12 January 1985?',
+                'retry_text' => 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85?',
                 // Pension questions only if the user ticked "pension"; otherwise
                 // DOB is captured and we skip straight to the next section.
                 'next' => self::class.'::nextFromCampaignDob',
@@ -493,7 +493,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on.",
+                'prompt_text' => "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on.",
                 'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_PENSION_CONTRIBS,
                 'skip_if' => [self::class, 'skipIfNotEmployed'],
@@ -509,7 +509,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_PENSION_CONTRIBS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => 'Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?',
+                'prompt_text' => 'Beyond the workplace pension we covered, **do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?**',
                 'capture_field' => null,
                 // Carry-forward question removed (CSJ — Fyn does not need to ask
                 // about prior-years' pension contributions): the pensions section
@@ -545,7 +545,7 @@ final class OnboardingStateMachine
             // mirroring the capture_personal_details / capture_dependants pattern.
             self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD => [
                 'turn_type' => 'grouped_extract',
-                'prompt_text' => 'Great. How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?',
+                'prompt_text' => 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**',
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_household_data',
                 'retry_text' => 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?',
@@ -554,7 +554,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => [
                 'turn_type' => 'grouped_extract',
-                'prompt_text' => "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?",
+                'prompt_text' => "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. **Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?**",
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_non_working_assets',
                 'retry_text' => 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".',
@@ -1069,12 +1069,12 @@ final class OnboardingStateMachine
     {
         if (self::verifyNavigateRoute($user) === null) {
             // No screen to navigate to — confirm inline, no announce needed.
-            return "I've recorded that. Does it look right?";
+            return "I've recorded that. **Does it look right?**";
         }
 
         $section = self::sectionLabel(self::verifySection($user), $user);
 
-        return "I've saved your {$section}. Next I'll take you to your {$section} page so you can check everything's correct — tap Okay when you're ready.";
+        return "I've saved your {$section}. Next I'll take you to your {$section} page so you can check everything's correct — **tap Okay when you're ready.**";
     }
 
     /** Prompt for verify_navigate, section-aware (navigation vs inline confirm). */
@@ -1082,12 +1082,12 @@ final class OnboardingStateMachine
     {
         if (self::verifyNavigateRoute($user) === null) {
             // Inline confirm: no screen to navigate to.
-            return "I've recorded that. Does it look right?";
+            return "I've recorded that. **Does it look right?**";
         }
 
         $section = self::sectionLabel(self::verifySection($user), $user);
 
-        return "Here's your {$section} page — take a look and check everything's correct, then tell me: does it look right?";
+        return "Here's your {$section} page — take a look and check everything's correct, then tell me: **does it look right?**";
     }
 
     /**
@@ -1355,17 +1355,21 @@ final class OnboardingStateMachine
      * Builds a personalised work prompt that matches the user's chosen
      * employment_status (self-employed users get "trade name" wording).
      */
-    public static function buildWorkPrompt(string $answer, User $user): string
+    public static function buildWorkPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $status = $user->employment_status ?? 'employed';
 
         // SaveTax campaign funnel arrivals open here (income-first). On the first
         // work turn — before any income is captured — greet with the funnel recap
         // (which leads straight into the income question). Employment is already
-        // known from the funnel, so we never re-ask it.
+        // known from the funnel, so we never re-ask it. Delivered ONCE per
+        // conversation: the welcome-back resume ('continue') re-emits this
+        // state's turn, and without the delivered-check the full recap +
+        // question would repeat as duplicate transcript rows.
         $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
         $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
-        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && $noIncomeYet) {
+        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && $noIncomeYet
+            && ! self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)) {
             $firstName = trim((string) ($user->first_name ?? '')) !== ''
                 ? trim((string) $user->first_name)
                 : 'there';
@@ -1382,6 +1386,28 @@ final class OnboardingStateMachine
         }
 
         return "Brilliant. What's your gross annual income? This includes bonuses and commissions.";
+    }
+
+    /**
+     * Has a turn for the given state already been persisted in this
+     * conversation? Every emitTurnForState save stamps metadata.onboarding_step,
+     * so this survives across surfaces (desktop start → /m dock resume). Used
+     * to deliver one-off content (the funnel recap) exactly once.
+     */
+    private static function stateTurnAlreadyDelivered(?AiConversation $conversation, string $stateId): bool
+    {
+        if ($conversation === null) {
+            return false;
+        }
+
+        try {
+            return $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('metadata->onboarding_step', $stateId)
+                ->exists();
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public static function nextFromAddMore(string $answer, User $user): string
@@ -1495,14 +1521,14 @@ final class OnboardingStateMachine
         $hasSavings = self::funnelHasAnyAsset($user, ['savings']);
 
         if ($hasBank && $hasSavings) {
-            return "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?";
+            return "Now your savings — bank accounts and savings accounts. **For each, what's the balance and the interest rate?**";
         }
 
         if ($hasBank) {
-            return "Now your bank accounts. For each, what's the balance and the interest rate?";
+            return "Now your bank accounts. **For each, what's the balance and the interest rate?**";
         }
 
-        return "Now your savings accounts. For each, what's the balance and the interest rate?";
+        return "Now your savings accounts. **For each, what's the balance and the interest rate?**";
     }
 
     /**
@@ -1516,10 +1542,10 @@ final class OnboardingStateMachine
     public static function buildCampaignDobPrompt(string $answer, User $user): string
     {
         if (self::funnelHasAnyAsset($user, ['pension'])) {
-            return "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985.";
+            return "Now let's look at pensions and retirement — for that **I need your date of birth.** Something like 12 January 1985 or 12/01/85.";
         }
 
-        return "Next, what's your date of birth? Something like 12 January 1985.";
+        return "Next, **what's your date of birth?** Something like 12 January 1985 or 12/01/85.";
     }
 
     /**

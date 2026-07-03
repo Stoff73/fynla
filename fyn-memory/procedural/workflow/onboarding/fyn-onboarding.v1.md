@@ -157,13 +157,13 @@ campaign_intro:
 
 campaign_isa_holdings:
   turn_type: delegated
-  prompt_text: "Let's look at your ISAs. Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?"
+  prompt_text: "Let's look at your ISAs. **Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?**"
   capture_field: null
   next: campaign_bank_accounts
 
 campaign_bank_accounts:
   turn_type: delegated
-  prompt_text: "Now your savings — bank accounts and savings accounts. For each, what's the balance and the interest rate?"
+  prompt_text: "Now your savings — bank accounts and savings accounts. **For each, what's the balance and the interest rate?**"
   capture_field: null
   next: { branch: enterCampaignVerify }
 
@@ -175,21 +175,21 @@ campaign_investment_accounts:
 
 campaign_dob:
   turn_type: grouped_extract
-  prompt_text: "Now let's look at pensions and retirement — for that I need your date of birth. Something like 12 January 1985."
+  prompt_text: "Now let's look at pensions and retirement — for that **I need your date of birth.** Something like 12 January 1985 or 12/01/85."
   extraction_tool: capture_personal_details
-  retry_text: 'Could you give me your date of birth — for example 12 January 1985?'
+  retry_text: 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85?'
   next: { branch: nextFromCampaignDob }
 
 campaign_occupational_scheme:
   turn_type: delegated
-  prompt_text: "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on."
+  prompt_text: "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on."
   capture_field: null
   next: campaign_pension_contribs
   advance_on_answered_question: true
 
 campaign_pension_contribs:
   turn_type: delegated
-  prompt_text: 'Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?'
+  prompt_text: 'Beyond the workplace pension we covered, **do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?**'
   capture_field: null
   next: { branch: enterCampaignVerify }
   advance_on_answered_question: true
@@ -210,7 +210,7 @@ campaign_spouse_work:
 
 campaign_spouse_household:
   turn_type: grouped_extract
-  prompt_text: 'Great. How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?'
+  prompt_text: 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**'
   capture_field: null
   extraction_tool: capture_spouse_household_data
   retry_text: 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?'
@@ -218,7 +218,7 @@ campaign_spouse_household:
 
 campaign_spouse_non_working_assets:
   turn_type: grouped_extract
-  prompt_text: "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?"
+  prompt_text: "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. **Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?**"
   capture_field: null
   extraction_tool: capture_spouse_non_working_assets
   retry_text: 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".'

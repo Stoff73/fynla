@@ -1229,15 +1229,27 @@ class CoordinatingAgent extends BaseAgent
             // Parse DOB — accept YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY and
             // natural-language forms. Slashed DD/MM/YYYY is UK-ambiguous
             // with MDY, so handle it explicitly so "10/04/1985" parses as
-            // the 10th of April rather than October 4.
+            // the 10th of April rather than October 4. Two-digit years
+            // ("19/02/82") resolve to the century that gives an age inside
+            // the 18–105 bounds — exactly one century can qualify.
             $carbonDob = null;
             try {
-                if (preg_match('#^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$#', $dob, $m)) {
+                if (preg_match('#^(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})$#', $dob, $m)) {
                     $d = (int) $m[1];
                     $mo = (int) $m[2];
-                    $y = (int) $m[3];
                     if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                        $carbonDob = Carbon::create($y, $mo, $d, 0, 0, 0);
+                        if (strlen($m[3]) === 2) {
+                            foreach ([1900 + (int) $m[3], 2000 + (int) $m[3]] as $y) {
+                                $candidate = Carbon::create($y, $mo, $d, 0, 0, 0);
+                                $candidateAge = (int) $candidate->diffInYears(Carbon::now());
+                                if (! $candidate->isFuture() && $candidateAge >= 18 && $candidateAge <= 105) {
+                                    $carbonDob = $candidate;
+                                    break;
+                                }
+                            }
+                        } else {
+                            $carbonDob = Carbon::create((int) $m[3], $mo, $d, 0, 0, 0);
+                        }
                     }
                 }
                 if ($carbonDob === null) {

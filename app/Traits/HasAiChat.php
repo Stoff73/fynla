@@ -39,6 +39,7 @@ use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
+use App\Services\AI\Support\AckSentenceDeduper;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Eval\EvalBypassGate;
@@ -875,6 +876,15 @@ trait HasAiChat
         // persisted assistant message (it breaks the chat bubble + the
         // BS-20 visible-text contract).
         $sanitisedResponse = XaiFunctionCallLeakStripper::stripLeakedToolCallMarkup($fullResponse);
+
+        // A2 — delegated data-capture turns dedupe the model's stacked
+        // re-narrated acks on the live stream (OnboardingChatDirector's
+        // buffer); persist the SAME deduped text so the reloaded transcript
+        // matches what streamed — before this, the row kept the doubled
+        // "Recorded — …Recorded — …" verbatim.
+        if ($this->personaOverride === 'data_capture') {
+            $sanitisedResponse = AckSentenceDeduper::dedupe($sanitisedResponse);
+        }
 
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
 
