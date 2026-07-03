@@ -32,7 +32,9 @@ use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
 use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\LevelUpCollector;
+use App\Services\Gamification\MilestoneCollector;
 use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
 use App\Services\Lifecycle\LifecycleEngine;
 use App\Services\Lifecycle\LifecycleSnapshotService;
@@ -60,6 +62,15 @@ class AppServiceProvider extends ServiceProvider
         // Request-scoped collector that surfaces in-turn gamification level-ups
         // to the SSE/API layer (one instance per request).
         $this->app->scoped(LevelUpCollector::class);
+
+        // WP-5c-iii — same pattern for in-turn milestone mints (Fyn appends a
+        // plain-text acknowledgement in the same capture turn).
+        $this->app->scoped(MilestoneCollector::class);
+
+        // WP-5c-iii — scoped so its per-request memo works: the dashboard read
+        // composes the tax plan once (strategy unlocks) and milestone
+        // detection reuses it via forUserIfComputed().
+        $this->app->scoped(ComposedTaxPlanService::class);
 
         // Register both AI client singletons — runtime provider selection happens
         // in HasAiChat/HasAiGuardrails via cache check (admin toggle)

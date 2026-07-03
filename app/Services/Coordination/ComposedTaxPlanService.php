@@ -16,6 +16,17 @@ use App\Services\Coordination\PlanSources\TaxStrategySource;
  */
 final class ComposedTaxPlanService
 {
+    /**
+     * WP-5c-iii — per-request memo (the service is container-scoped). The
+     * dashboard read composes the plan for strategy unlocks; memoising lets
+     * milestone detection reuse it in the same request instead of paying for
+     * a second composition — and forUserIfComputed() lets it decline when the
+     * plan was never needed (e.g. the tax gate is closed).
+     *
+     * @var array<int, array{items: list<array<string,mixed>>, combined_annual_saving: float, locked: list<array{strategy_type: string, missing: list<string>}>}>
+     */
+    private array $memo = [];
+
     public function __construct(
         private readonly ComposedModulePlanService $composedModulePlanService,
         private readonly TaxStrategySource $taxSource,
@@ -26,7 +37,18 @@ final class ComposedTaxPlanService
      */
     public function forUser(User $user): array
     {
-        return $this->composedModulePlanService->forSource($this->taxSource, $user);
+        return $this->memo[$user->id] ??= $this->composedModulePlanService->forSource($this->taxSource, $user);
+    }
+
+    /**
+     * WP-5c-iii — the memoised plan if some earlier caller this request
+     * already composed it; null otherwise (never triggers a composition).
+     *
+     * @return array{items: list<array<string,mixed>>, combined_annual_saving: float, locked: list<array{strategy_type: string, missing: list<string>}>}|null
+     */
+    public function forUserIfComputed(User $user): ?array
+    {
+        return $this->memo[$user->id] ?? null;
     }
 
     /**

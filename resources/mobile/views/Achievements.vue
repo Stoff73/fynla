@@ -98,10 +98,18 @@
           <template v-for="section in groupedUpcoming" :key="'grp-' + section.group">
             <p class="ma-group">{{ section.group }}</p>
             <div class="ma-badges">
-              <div v-for="(up, i) in section.items" :key="section.group + '-' + i" class="ma-badge">
+              <!-- WP-5c-iii — each step deep-links to the surface where the
+                   user acts on it. -->
+              <button
+                v-for="(up, i) in section.items"
+                :key="section.group + '-' + i"
+                type="button"
+                class="ma-badge ma-badge--link"
+                @click="goToUpcoming(up)"
+              >
                 <span class="ma-badge__title">{{ up.title }}</span>
                 <span class="ma-badge__desc">{{ up.steps }}</span>
-              </div>
+              </button>
             </div>
           </template>
         </div>
@@ -213,6 +221,12 @@ export default {
   methods: {
     goBack() {
       this.$router.push({ name: 'dashboard' });
+    },
+    // WP-5c-iii — an upcoming milestone deep-links to where the user acts.
+    goToUpcoming(up) {
+      if (up && up.route) {
+        this.$router.push({ name: up.route }).catch(() => {});
+      }
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -354,6 +368,17 @@ export default {
 .ma-badge__desc { font-size: 13px; color: var(--neutral-500); line-height: 1.4; }
 .ma-badge__status { font-size: 12px; font-weight: 700; color: var(--neutral-500); }
 .ma-badge.is-earned .ma-badge__status { color: var(--spring-600); }
+
+/* WP-5c-iii — upcoming steps are tappable deep-links. */
+.ma-badge--link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 /* WP-5c-ii — grouped Next up, load-more, history sentinel. */
 .ma-group {

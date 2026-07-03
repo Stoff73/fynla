@@ -43,6 +43,17 @@
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
           </button>
+          <!-- WP-5c-iii — one persistent milestone nudge, tappable through to
+               the surface where the user acts on it. -->
+          <button
+            v-if="nextMilestone"
+            type="button"
+            class="md-next-milestone"
+            @click="goToMilestone"
+          >
+            <span class="md-next-milestone__title">Next milestone: {{ nextMilestone.title }}</span>
+            <span class="md-next-milestone__steps">{{ nextMilestone.steps }}</span>
+          </button>
         </div>
 
         <!-- Callout: rank statement + focus-area carousel + actions -->
@@ -419,6 +430,7 @@ export default {
       actionsTotal: 0,
       percentile: 57,
       pulsing: false,
+      nextMilestone: null,
       // drawer / fyn
       milestoneToast: null,
       drawerOpen: false,
@@ -679,6 +691,9 @@ export default {
         this.actionsCompleted = lv.actions_completed ?? 0;
         this.actionsTotal = lv.actions_total ?? 0;
         this.percentile = d.percentile ?? 57;
+        // WP-5c-iii — one persistent nudge under the wheel: the nearest
+        // upcoming milestone with the step to reach it.
+        this.nextMilestone = d.next_milestone || null;
 
         // Surface the single most significant newly-crossed milestone (each
         // fires once server-side). Highest net-worth threshold, else highest goal.
@@ -728,6 +743,16 @@ export default {
     },
     goToAchievements() {
       this.$router.push('/achievements');
+    },
+    // WP-5c-iii — the milestone nudge deep-links to the surface where the
+    // user acts on it (route name from the backend; achievements fallback).
+    goToMilestone() {
+      const name = this.nextMilestone?.route;
+      if (name) {
+        this.$router.push({ name }).catch(() => this.$router.push('/achievements'));
+      } else {
+        this.$router.push('/achievements');
+      }
     },
     // Tapping an action row: an unlock card sends the user into Fyn to capture
     // the missing module data; a recommendation opens a Fyn chat about it.
