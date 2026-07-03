@@ -96,7 +96,12 @@ class MobileDashboardController extends Controller
                 'progress_percentage' => (float) $g->progress_percentage,
             ])->all();
 
-            return array_merge($milestones, $this->milestones->detectGoals($user, $goals));
+            return array_merge(
+                $milestones,
+                $this->milestones->detectGoals($user, $goals),
+                // WP-5 — journey milestones (profile complete, first action).
+                $this->milestones->detectJourney($user),
+            );
         } catch (\Throwable $e) {
             Log::warning('Milestone detection failed', [
                 'user_id' => $user->id,

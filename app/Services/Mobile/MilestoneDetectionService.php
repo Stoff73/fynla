@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\Gamification\PointsService;
@@ -151,5 +152,114 @@ class MilestoneDetectionService
         }
 
         return $new;
+    }
+
+    /**
+     * WP-5 — journey milestones: completing the onboarding profile and
+     * completing a first action. Cheap queries, safe to run on every
+     * dashboard/progress-page read — which also makes the milestones page
+     * self-healing (detection previously ran only on the /m dashboard read,
+     * so a user who never opened it earned nothing).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectJourney(User $user): array
+    {
+        $new = [];
+
+        if ((bool) $user->onboarding_completed && ! empty($user->funnel_answers)) {
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'campaign',
+                null,
+                1,
+                'You completed your tax profile.',
+            ));
+        }
+
+        $hasCompletedAction = RecommendationTracking::where('user_id', $user->id)
+            ->completed()
+            ->exists();
+        if ($hasCompletedAction) {
+            $new = array_merge($new, $this->recordOnce(
+                $user,
+                'action',
+                null,
+                1,
+                'You completed your first action.',
+            ));
+        }
+
+        return $new;
+    }
+
+    /**
+     * WP-5 — the first time the composed tax plan quantifies an annual
+     * saving. Called from the tax-strategy read, where the plan is already
+     * computed (composing it again here would double the cost). The
+     * threshold stores the rounded amount so the milestone title can quote
+     * it.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function detectTaxSavingsIdentified(User $user, float $combinedAnnualSaving): array
+    {
+        if ($combinedAnnualSaving <= 0) {
+            return [];
+        }
+
+        // One per user — the FIRST quantified find is the milestone; the
+        // figure evolving later is normal plan drift, not a new milestone.
+        if (UserMilestone::where('user_id', $user->id)->where('milestone_type', 'tax_savings')->exists()) {
+            return [];
+        }
+
+        $amount = (int) round($combinedAnnualSaving);
+
+        return $this->recordOnce(
+            $user,
+            'tax_savings',
+            null,
+            $amount,
+            'We found £'.number_format($amount).' a year you could save in tax.',
+        );
+    }
+
+    /**
+     * firstOrCreate + award plumbing shared by the journey milestone
+     * flavours.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function recordOnce(User $user, string $type, ?int $referenceId, int|float $threshold, string $label): array
+    {
+        $record = UserMilestone::firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'milestone_type' => $type,
+                'reference_id' => $referenceId,
+                'threshold' => $threshold,
+            ],
+            ['achieved_at' => Carbon::now()],
+        );
+
+        if (! $record->wasRecentlyCreated) {
+            return [];
+        }
+
+        $this->points->award(
+            $user,
+            'milestone',
+            'milestone:'.$type.':'.($referenceId ?? 0).':'.$threshold,
+            (int) config('gamification.points.milestone'),
+            ['threshold' => $threshold],
+        );
+
+        return [[
+            'type' => $type,
+            'threshold' => $threshold,
+            'label' => $label,
+            'share_type' => 'app_referral',
+        ]];
     }
 }
