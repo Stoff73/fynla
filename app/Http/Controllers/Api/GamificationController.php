@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserGamification;
+use App\Services\Gamification\ActivityFeedService;
 use App\Services\Gamification\LevelService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,5 +49,18 @@ class GamificationController extends Controller
         UserGamification::where('user_id', $user->id)->update(['pending_celebration_level' => null]);
 
         return response()->json(['acknowledged' => true]);
+    }
+
+    /**
+     * WP-3 — the activity history: everything the user has done (onboarding
+     * answers, records added, actions completed, milestones, streaks),
+     * newest first, translated from the point_awards ledger. Events and
+     * dates only — never point values (Rule #12).
+     */
+    public function activity(Request $request, ActivityFeedService $feed): JsonResponse
+    {
+        return response()->json([
+            'data' => $feed->feed($request->user()),
+        ]);
     }
 }

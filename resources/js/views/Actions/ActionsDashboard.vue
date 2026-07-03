@@ -84,6 +84,22 @@
             </div>
           </div>
         </div>
+
+        <!-- Activity — everything you've done, newest first (WP-3: the
+             ledger-backed history; events and dates, never points). -->
+        <div v-if="activity.length" class="top-priorities module-gradient mt-6">
+          <h3 class="text-lg font-bold text-horizon-500 mb-4">Activity</h3>
+          <div class="divide-y divide-light-gray">
+            <div
+              v-for="(ev, i) in activity"
+              :key="'act-' + i"
+              class="flex items-baseline justify-between gap-4 py-2.5"
+            >
+              <span class="text-body-sm font-semibold text-horizon-500">{{ ev.label }}</span>
+              <span class="text-caption text-neutral-500 whitespace-nowrap">{{ activityDate(ev) }}</span>
+            </div>
+          </div>
+        </div>
       </template>
     </div>
   </AppLayout>
@@ -132,6 +148,7 @@ export default {
       marking: null,
       openActions: [],
       completedActions: [],
+      activity: [],
     };
   },
 
@@ -175,11 +192,21 @@ export default {
       }
     },
 
+    activityDate(ev) {
+      if (!ev.occurred_at) return '';
+      const d = new Date(ev.occurred_at);
+      return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB');
+    },
+
     async load() {
       try {
-        const { data } = await api.get('/recommendations/actions');
+        const [{ data }, activityRes] = await Promise.all([
+          api.get('/recommendations/actions'),
+          api.get('/gamification/activity'),
+        ]);
         this.openActions = data?.data?.open ?? [];
         this.completedActions = data?.data?.completed ?? [];
+        this.activity = activityRes?.data?.data ?? [];
       } catch (e) {
         logger.error('[Actions] Failed to fetch unified actions:', e);
       }
