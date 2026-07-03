@@ -13,7 +13,6 @@ use App\Models\User;
 use App\Models\UserGamification;
 use App\Models\UserMilestone;
 use App\Services\Gamification\LevelService;
-use App\Services\Mobile\NextActionsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +21,6 @@ class MobileAchievementsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly NextActionsService $nextActions,
         private readonly LevelService $levels,
     ) {}
 
@@ -31,11 +29,14 @@ class MobileAchievementsController extends Controller
         try {
             $user = $request->user();
 
+            // WP-4 — the old `next` list (the dashboard's top-4 repeated) is
+            // gone: actions live on the dashboard; this page is what the user
+            // has DONE and earned. Dropping it also saves a full
+            // recommendations aggregation per page load.
             return response()->json([
                 'success' => true,
                 'data' => [
                     'achievements' => $this->achievements($user),
-                    'next' => $this->nextActions->build($user->id),
                     // WP-2 — completed actions were saved (recommendation_tracking)
                     // but shown nowhere; surface them so done work has a home.
                     'completed' => $this->completedActions($user),
@@ -110,22 +111,34 @@ class MobileAchievementsController extends Controller
             ];
         }
 
-        $recCount = $awards->where('source_type', 'recommendation')->count();
+        // WP-4 — a badge is a fixed goal, not a live counter. "Actioned 0
+        // recommendations" read as broken; the badge is now "First action
+        // completed", stamped with the first recommendation award's date.
+        $firstRecAward = $awards
+            ->where('source_type', 'recommendation')
+            ->sortBy('id')
+            ->first();
         $out[] = [
             'key' => 'recs_actioned',
-            'title' => 'Actioned '.$recCount.' recommendation'.($recCount === 1 ? '' : 's'),
-            'description' => 'Keep acting on recommendations to progress.',
-            'earned' => $recCount > 0,
-            'earned_at' => null,
+            'title' => 'First action completed',
+            'description' => 'You completed your first recommended action.',
+            'earned' => $firstRecAward !== null,
+            'earned_at' => $firstRecAward?->created_at?->toIso8601String(),
         ];
 
-        $streak = $g?->login_streak_days ?? 0;
+        // WP-4 — earned off the PERSISTED streak award, not the live counter:
+        // login_streak_days resets when a run breaks, which un-earned the
+        // badge, and "1-day check-in streak — Not yet earned" read as broken.
+        $streakAward = $awards
+            ->filter(fn ($a) => str_starts_with($a->dedup_key, 'streak:'))
+            ->sortBy('id')
+            ->first();
         $out[] = [
             'key' => 'streak',
-            'title' => $streak.'-day check-in streak',
-            'description' => 'Log in daily to keep your streak.',
-            'earned' => $streak >= 3,
-            'earned_at' => null,
+            'title' => '3-day check-in streak',
+            'description' => 'Check in three days in a row.',
+            'earned' => $streakAward !== null,
+            'earned_at' => $streakAward?->created_at?->toIso8601String(),
         ];
 
         return $out;

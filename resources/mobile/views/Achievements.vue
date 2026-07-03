@@ -45,34 +45,10 @@
     </div>
 
     <template v-else>
-      <!-- Achievements tab -->
+      <!-- Achievements tab. WP-4: the old "Next" section (the dashboard's
+           top-4 actions repeated) is gone — actions live on the dashboard;
+           this page is what the user has DONE and earned. -->
       <template v-if="tab === 'achievements'">
-        <!-- Next — the up-to-four next actions to take. Tapping any one opens Fyn
-             to collect the information that action needs. -->
-        <div class="m-card">
-          <p class="m-section-label" style="margin-top:0">Next</p>
-          <p v-if="!next.length" class="m-sub" style="margin-bottom:0">
-            You're all caught up — nothing to action right now.
-          </p>
-          <div v-else>
-            <button
-              v-for="item in next"
-              :key="item.id"
-              type="button"
-              class="ma-next"
-              :class="{ 'is-unlock': item.type === 'unlock' }"
-              @click="openNext(item)"
-            >
-              <span class="ma-next__lead" aria-hidden="true" v-html="item.type === 'unlock' ? KEY_ICON : BULB_ICON"></span>
-              <div class="ma-next__main">
-                <span class="ma-next__title">{{ item.title }}</span>
-                <span v-if="item.meta" class="ma-next__meta">{{ item.meta }}</span>
-              </div>
-              <svg class="ma-next__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-            </button>
-          </div>
-        </div>
-
         <!-- Done — completed actions (WP-2: completed work was saved in
              recommendation_tracking but shown nowhere). Newest first. -->
         <div v-if="completed.length" class="m-card">
@@ -151,23 +127,15 @@ import { store } from '../store.js';
 import { apiGet } from '../api.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
-// Leading glyphs distinguishing the two action types — grey key for locked
-// "unlock" prompts, coloured bulb for actionable recommendations.
-const KEY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4-2a6 6 0 01-7.743 5.743L11 14H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>';
-const BULB_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
-
 export default {
   name: 'MobileAchievements',
   components: { MobileChrome },
   data() {
     return {
-      KEY_ICON,
-      BULB_ICON,
       tab: 'achievements',
       loading: true,
       error: '',
       achievements: [],
-      next: [],
       completed: [],
       milestones: [],
       activity: [],
@@ -179,27 +147,6 @@ export default {
   methods: {
     goBack() {
       this.$router.push({ name: 'dashboard' });
-    },
-    // Tapping a next-action opens Fyn to collect the information that action
-    // needs. Unlock / data-capture actions ask Fyn to gather the module details;
-    // a real recommendation asks Fyn how to action it.
-    openNext(item) {
-      const chrome = this.$refs.chrome;
-      if (!chrome || !item) return;
-      const capture = {
-        protection: 'Help me add my protection cover details',
-        savings: 'Help me add my savings details',
-        investment: 'Help me add my investment details',
-        retirement: 'Help me add my pension details',
-        estate: 'Help me add my estate planning details',
-        goals: 'Help me set a financial goal',
-      };
-      const kind = item.action && item.action.kind;
-      if (kind === 'fyn_capture' || item.type === 'unlock') {
-        chrome.openFynWith(capture[item.module] || 'Help me add my financial details');
-      } else {
-        chrome.openFynWith(`How do I "${item.title}"?`);
-      }
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -233,7 +180,6 @@ export default {
         }
         const d = res.data?.data || {};
         this.achievements = Array.isArray(d.achievements) ? d.achievements : [];
-        this.next = Array.isArray(d.next) ? d.next : [];
         this.completed = Array.isArray(d.completed) ? d.completed : [];
         this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
@@ -267,36 +213,6 @@ export default {
   color: var(--white);
 }
 .ma-tab:active { opacity: 0.8; }
-
-/* Next-action rows — tappable eggshell cards (open Fyn). Hover lifts to white
-   with a light-pink border, matching the dashboard recommendation rows. */
-.ma-next {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  background: var(--eggshell-500);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.ma-next:last-child { margin-bottom: 0; }
-.ma-next:hover { background: var(--white); border-color: var(--light-pink-200); }
-/* Unlock prompts read differently: light-grey dotted border + grey key glyph. */
-.ma-next.is-unlock { border: 1px dotted var(--horizon-300); }
-.ma-next.is-unlock:hover { background: var(--white); border-color: var(--horizon-400); }
-.ma-next__lead { flex-shrink: 0; display: flex; align-items: center; color: var(--raspberry-500); }
-.ma-next__lead svg { display: block; }
-.ma-next.is-unlock .ma-next__lead { color: var(--neutral-400); }
-.ma-next__main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.ma-next__title { font-size: 15px; font-weight: 700; color: var(--horizon-500); }
-.ma-next__meta { font-size: 13px; color: var(--neutral-500); }
-.ma-next__chevron { color: var(--raspberry-500); flex-shrink: 0; }
 
 /* Badge cards — earned prominent, unearned muted */
 .ma-badges { display: flex; flex-direction: column; gap: 10px; }
