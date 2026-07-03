@@ -42,6 +42,18 @@ function syntheticItemsWithRetirement(): array
     ];
 }
 
+it('leads with tax items for a legacy funnel row (no campaign key)', function () {
+    // Pre-A6 rows carry funnel_answers without a campaign key; the affinity
+    // fallback must still resolve to savetax → tax so those users are not
+    // suddenly downgraded to generic ordering after the stamp migration.
+    $user = User::factory()->create(['funnel_answers' => ['assets' => ['bank']]]);
+
+    $sorted = affinitySort($user, syntheticItems());
+
+    expect(array_column($sorted, 'id'))
+        ->toBe(['strategy_unlock:x', 'tax_y', 'estate_1', 'protection_1']);
+});
+
 it('leads with tax items for a savetax campaign arrival', function () {
     $user = User::factory()->create(['funnel_answers' => ['campaign' => 'savetax']]);
 

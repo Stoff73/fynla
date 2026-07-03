@@ -235,8 +235,14 @@ class NextActionsService
      */
     private function applyCampaignAffinity(User $user, array $items): array
     {
+        // Resolution order mirrors A6's controller fallback:
+        // 1. onboarding_fyn_selection (set at campaign start — most reliable)
+        // 2. funnel_answers['campaign'] (stamped by A6 for new arrivals)
+        // 3. any non-empty funnel_answers without a campaign key → legacy pre-A6
+        //    rows that arrived via the savetax funnel before the stamp migration
         $raw = $user->onboarding_fyn_selection
-            ?? ($user->funnel_answers['campaign'] ?? null);
+            ?? ($user->funnel_answers['campaign']
+                ?? (! empty($user->funnel_answers) ? 'savetax' : null));
 
         $campaign = is_string($raw) ? $raw : null;
         $affinityModule = self::CAMPAIGN_AFFINITY[$campaign] ?? null;
