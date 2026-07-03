@@ -251,9 +251,13 @@
 }
 .md-level__sub strong { color: var(--raspberry-600); font-weight: 700; }
 
-/* WP-5c-iii — one persistent milestone nudge under the level wheel. */
+/* WP-5c-iii — one persistent milestone nudge under the level wheel. The
+   wheel's absolutely-positioned pie SVG overflows its button (z-index: 2)
+   by ~40px of transparent area; lift the nudge above it so taps land here. */
 .md-next-milestone {
   display: block;
+  position: relative;
+  z-index: 3;
   width: 100%;
   margin-top: 8px;
   padding: 10px 14px;
