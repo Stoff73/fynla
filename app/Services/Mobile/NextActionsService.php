@@ -48,6 +48,31 @@ class NextActionsService
     }
 
     /**
+     * WP-2 (one actions model) — the FULL ranked open-actions list, uncapped.
+     * Same items, same ranking, same stable ids as build(); the 4-slot cap is
+     * a dashboard presentation concern, not a property of the list. Feeds the
+     * "all my actions" surfaces (desktop /actions, /m Done/all views).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function buildAll(int $userId): array
+    {
+        $user = User::findOrFail($userId);
+
+        $items = array_merge(
+            $this->recommendationItems($userId),
+            $this->unlockItems($user),
+            $this->strategyUnlockItems($user),
+        );
+
+        usort($items, static function (array $a, array $b): int {
+            return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
+        });
+
+        return $items;
+    }
+
+    /**
      * Per-area focus cards for the /m carousel: a "Top actions" card (the unified
      * <=4 across all areas) followed by one card per module — real recommendations
      * when the module's KYC gate is open, or a locked "unlock" card when it is

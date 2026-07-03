@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
 use App\Services\Coordination\RecommendationsAggregatorService;
+use App\Services\Mobile\NextActionsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -270,6 +271,38 @@ class RecommendationsController extends Controller
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Updating recommendation notes');
+        }
+    }
+
+    /**
+     * WP-2 (one actions model) — the full unified actions payload for the
+     * "all my actions" surfaces (desktop /actions, /m views). `open` is the
+     * SAME ranked list the dashboards consume (NextActionsService — stable
+     * aggregator ids, unlock cards included), uncapped; `completed` is the
+     * recommendation_tracking history, newest first. One model, every
+     * surface.
+     *
+     * GET /api/recommendations/actions
+     */
+    public function actions(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $completed = RecommendationTracking::where('user_id', $userId)
+                ->completed()
+                ->orderBy('completed_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'open' => app(NextActionsService::class)->buildAll($userId),
+                    'completed' => $completed,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Fetching unified actions');
         }
     }
 

@@ -65,6 +65,18 @@
           </div>
         </div>
 
+        <!-- Done — completed actions (WP-2: completed work was saved in
+             recommendation_tracking but shown nowhere). Newest first. -->
+        <div v-if="completed.length" class="m-card">
+          <p class="m-section-label" style="margin-top:0">Done</p>
+          <div class="ma-badges">
+            <div v-for="item in completed" :key="item.id" class="ma-badge is-earned">
+              <span class="ma-badge__title">{{ item.title }}</span>
+              <span class="ma-badge__status">{{ completedLabel(item) }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Earned — badges; earned ones prominent, unearned muted. -->
         <div class="m-card">
           <p class="m-section-label" style="margin-top:0">Earned</p>
@@ -132,6 +144,7 @@ export default {
       error: '',
       achievements: [],
       next: [],
+      completed: [],
       milestones: [],
     };
   },
@@ -177,6 +190,10 @@ export default {
       const date = this.formatDate(ms.achieved_at);
       return date ? `Reached ${date}` : 'Reached';
     },
+    completedLabel(item) {
+      const date = this.formatDate(item.completed_at);
+      return date ? `Done ${date}` : 'Done';
+    },
     async load() {
       this.loading = true;
       this.error = '';
@@ -189,6 +206,7 @@ export default {
         const d = res.data?.data || {};
         this.achievements = Array.isArray(d.achievements) ? d.achievements : [];
         this.next = Array.isArray(d.next) ? d.next : [];
+        this.completed = Array.isArray(d.completed) ? d.completed : [];
         this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
       } catch (e) {
         this.error = 'Network error. Please try again.';
