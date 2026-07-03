@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_asset",
-    "description": "Create an asset not covered by other tools — collectibles, artwork, or other valuable items.",
+    "description": "Create an asset not covered by other tools — collectibles, artwork, or other valuable items. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

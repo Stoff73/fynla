@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_liability",
-    "description": "Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities.",
+    "description": "Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

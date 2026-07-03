@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_life_event",
-    "description": "Create a future life event that may impact the user's financial plan. You MAY call this tool multiple times in the same turn when the user mentions multiple events.",
+    "description": "Create a future life event that may impact the user's financial plan. You MAY call this tool multiple times in the same turn when the user mentions multiple events. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

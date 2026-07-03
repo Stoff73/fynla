@@ -11,7 +11,7 @@ effective_from: 2026-06-11
 ```json
 {
     "name": "create_savings_account",
-    "description": "Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. \"I have a Halifax ISA and a Nationwide saver\" → two tool calls).",
+    "description": "Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. \"I have a Halifax ISA and a Nationwide saver\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

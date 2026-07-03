@@ -82,6 +82,18 @@ final class AssetCaptureEntityExtractor
      */
     public function extractForFocus(string $focus, string $message): array
     {
+        // WP-1 — intent-only guard. "Help me add my pension details" (the
+        // Edit-details / next-action opener strings, and any hand-typed
+        // equivalent) names an entity TYPE but no facts about it. The type
+        // detectors below fire on the bare type word, so the gap-fill used
+        // to materialise a placeholder record ("Personal Pension", £0) from
+        // pure intent — the 2026-07-03 phantom-pension incident. An add/
+        // update request that carries no figure is a request for a capture
+        // conversation, not a capture.
+        if ($this->isIntentOnlyRequest($message)) {
+            return [];
+        }
+
         return match ($focus) {
             'protection' => $this->extractProtectionPolicies($message),
             'savings', 'budgeting' => $this->extractSavingsAccounts($message),
@@ -93,6 +105,29 @@ final class AssetCaptureEntityExtractor
             'liability' => $this->extractLiabilities($message),
             default => [],
         };
+    }
+
+    /**
+     * True when the message is an add/update REQUEST carrying no substance:
+     * it opens with an intent verb phrase and contains no digits and no
+     * currency amount. "Help me add my pension details" → true;
+     * "add my Halifax ISA with £5,000" → false (has a figure);
+     * "I have a workplace pension with Aviva" → false (no intent opener).
+     */
+    private function isIntentOnlyRequest(string $message): bool
+    {
+        $trimmed = trim($message);
+
+        $opensWithIntent = preg_match(
+            '/^(please\s+)?(help me|can you|could you|i(\'|’)?d like to|i want to|let(\'|’)?s)\s+(add|update|record|enter|set up|put in)\b/iu',
+            $trimmed
+        ) === 1 || preg_match('/^(add|update)\s+my\b/iu', $trimmed) === 1;
+
+        if (! $opensWithIntent) {
+            return false;
+        }
+
+        return preg_match('/[£\d]/u', $trimmed) !== 1;
     }
 
     /**

@@ -266,7 +266,7 @@
         "type": "function",
         "function": {
             "name": "create_what_if_scenario",
-            "description": "Create a persistent what-if scenario showing how changes would affect the user's financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison.",
+            "description": "Create a persistent what-if scenario showing how changes would affect the user's financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -309,7 +309,7 @@
         "type": "function",
         "function": {
             "name": "create_goal",
-            "description": "Create a new financial goal. Use when the user wants to save for something specific. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple goals.",
+            "description": "Create a new financial goal. Use when the user wants to save for something specific. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple goals. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -377,7 +377,7 @@
         "type": "function",
         "function": {
             "name": "create_life_event",
-            "description": "Create a future life event that impacts the user's financial plan. Use for expected income (inheritance, bonus, property sale) or expenses (large purchase, wedding, home improvement). Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple life events.",
+            "description": "Create a future life event that impacts the user's financial plan. Use for expected income (inheritance, bonus, property sale) or expenses (large purchase, wedding, home improvement). Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple life events. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -457,7 +457,7 @@
         "type": "function",
         "function": {
             "name": "create_savings_account",
-            "description": "Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. \"I have a Halifax ISA and a Nationwide saver\" → two tool calls).",
+            "description": "Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. \"I have a Halifax ISA and a Nationwide saver\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -555,7 +555,7 @@
         "type": "function",
         "function": {
             "name": "create_investment_account",
-            "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead.",
+            "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1006,7 +1006,7 @@
         "type": "function",
         "function": {
             "name": "create_holding",
-            "description": "Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings (e.g. \"in my SIPP I hold Apple and Microsoft\" → two tool calls).",
+            "description": "Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings (e.g. \"in my SIPP I hold Apple and Microsoft\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1088,7 +1088,7 @@
         "type": "function",
         "function": {
             "name": "create_pension",
-            "description": "Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). Call this tool IMMEDIATELY when the user mentions a pension. Fill in every field you can. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions (e.g. \"I have a workplace DC and a SIPP\" → two tool calls). If the user mentions a pension without specifying DC or DB, ask: \"Is this a workplace pension where your employer contributes, or a final salary/career average scheme?\"",
+            "description": "Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). Call this tool IMMEDIATELY when the user states pension details. OMIT every field the user did not state — never fill unknown fields with 0 or placeholder values (a retirement age of 0 is invalid and the write will fail). If the user has only asked to add a pension without giving any details yet, do NOT call this tool — ask for the scheme, provider, and value first; never invent a scheme name. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions (e.g. \"I have a workplace DC and a SIPP\" → two tool calls). If the user mentions a pension without specifying DC or DB, ask: \"Is this a workplace pension where your employer contributes, or a final salary/career average scheme?\"",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1239,7 +1239,7 @@
         "type": "function",
         "function": {
             "name": "create_property",
-            "description": "Create a property record and optionally a linked mortgage. Call this tool IMMEDIATELY when the user mentions a property — do not ask questions first. Fill in every field you can from what the user said and set null for anything not mentioned. The form will be opened, filled, and saved automatically. After saving, confirm what was added and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. Infer sensible values: if they say \"my house\" assume main_residence, if they say \"our house\" assume joint ownership. You MAY call this tool multiple times in the same turn when the user mentions multiple properties (e.g. \"main residence and a buy-to-let\" → two tool calls) — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill.",
+            "description": "Create a property record and optionally a linked mortgage. Call this tool IMMEDIATELY when the user mentions a property — do not ask questions first. Fill in every field you can from what the user said and set null for anything not mentioned. The form will be opened, filled, and saved automatically. After saving, confirm what was added and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. Infer sensible values: if they say \"my house\" assume main_residence, if they say \"our house\" assume joint ownership. You MAY call this tool multiple times in the same turn when the user mentions multiple properties (e.g. \"main residence and a buy-to-let\" → two tool calls) — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1585,7 +1585,7 @@
         "type": "function",
         "function": {
             "name": "create_mortgage",
-            "description": "Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. The form will be filled in front of the user. After filling, ask if they want to add more details before saving. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.",
+            "description": "Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. The form will be filled in front of the user. After filling, ask if they want to add more details before saving. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1698,7 +1698,7 @@
         "type": "function",
         "function": {
             "name": "create_protection_policy",
-            "description": "Create a protection insurance policy. Handles life insurance, critical illness, and income protection. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. \"Aviva life insurance £300k and Vitality critical illness £100k\" → two tool calls).",
+            "description": "Create a protection insurance policy. Handles life insurance, critical illness, and income protection. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. \"Aviva life insurance £300k and Vitality critical illness £100k\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1801,7 +1801,7 @@
         "type": "function",
         "function": {
             "name": "create_asset",
-            "description": "Create an asset not covered by other tools — collectibles, artwork, or other valuable items.",
+            "description": "Create an asset not covered by other tools — collectibles, artwork, or other valuable items. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1855,7 +1855,7 @@
         "type": "function",
         "function": {
             "name": "create_liability",
-            "description": "Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities.",
+            "description": "Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1912,7 +1912,7 @@
         "type": "function",
         "function": {
             "name": "create_estate_gift",
-            "description": "Record a gift for Inheritance Tax planning (7-year rule). Use when the user mentions gifts they have made to family, friends, trusts, or charities. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts.",
+            "description": "Record a gift for Inheritance Tax planning (7-year rule). Use when the user mentions gifts they have made to family, friends, trusts, or charities. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1963,7 +1963,7 @@
         "type": "function",
         "function": {
             "name": "create_will",
-            "description": "Record the user's will details. Use for existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch.",
+            "description": "Record the user's will details. Use for existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -2067,7 +2067,7 @@
         "type": "function",
         "function": {
             "name": "create_power_of_attorney",
-            "description": "Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare. You MAY call this tool multiple times in the same turn — if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.\n\nSTATUS IS MANDATORY — extract it from the user's wording:\n  • \"registered\", \"in force\", \"active with OPG\", \"registered with the Office of the Public Guardian\" → status = \"registered\"\n  • \"draft\", \"signed but not registered\", \"not yet registered\", \"sent off for registration\", \"being registered\", \"pending\" → status = \"draft\"\n  • No signal at all → default to \"draft\"\n\nNEVER drop status=registered when the user said so. Example:\n  User: \"I have a registered property and financial LPA with my brother Tom\"\n  → create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered').",
+            "description": "Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare. You MAY call this tool multiple times in the same turn — if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.\n\nSTATUS IS MANDATORY — extract it from the user's wording:\n  • \"registered\", \"in force\", \"active with OPG\", \"registered with the Office of the Public Guardian\" → status = \"registered\"\n  • \"draft\", \"signed but not registered\", \"not yet registered\", \"sent off for registration\", \"being registered\", \"pending\" → status = \"draft\"\n  • No signal at all → default to \"draft\"\n\nNEVER drop status=registered when the user said so. Example:\n  User: \"I have a registered property and financial LPA with my brother Tom\"\n  → create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered'). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -2372,7 +2372,7 @@
         "type": "function",
         "function": {
             "name": "create_family_member",
-            "description": "Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. \"I have a daughter Emily age 8 and a son James age 5\" → two tool calls).",
+            "description": "Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. \"I have a daughter Emily age 8 and a son James age 5\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -2485,7 +2485,7 @@
         "type": "function",
         "function": {
             "name": "create_trust",
-            "description": "Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts.",
+            "description": "Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -2570,7 +2570,7 @@
         "type": "function",
         "function": {
             "name": "create_business_interest",
-            "description": "Record a business interest or ownership. Handles sole trader, partnership, limited company, LLP. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses.",
+            "description": "Record a business interest or ownership. Handles sole trader, partnership, limited company, LLP. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -2659,7 +2659,7 @@
         "type": "function",
         "function": {
             "name": "create_chattel",
-            "description": "Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type \"other\" instead. You MAY call this tool multiple times in the same turn when the user mentions multiple items.",
+            "description": "Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type \"other\" instead. You MAY call this tool multiple times in the same turn when the user mentions multiple items. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -3417,8 +3417,11 @@
                 "type": "object",
                 "properties": {
                     "pension_id": {
-                        "type": "integer",
-                        "description": "ID of the dc_pension row to update."
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "ID of the dc_pension row to update, or null when you do not have a real id from this conversation — the system then resolves the user's pension. NEVER send 0 or an invented id."
                     },
                     "salary_sacrifice": {
                         "type": "boolean",

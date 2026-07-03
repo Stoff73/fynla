@@ -2571,6 +2571,17 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('pension');
         }
 
+        // WP-1 — the model zero-fills fields it does not know; a retirement
+        // age of 0 is impossible and used to fail min:50 validation (handler
+        // AND PensionStore layers), silently losing an otherwise-valid
+        // pension (the 2026-07-03 "Beta Ltd Workplace Pension" incident).
+        // Treat impossible zeros as not-provided.
+        foreach (['normal_retirement_age', 'retirement_age', 'state_pension_age'] as $ageField) {
+            if (isset($input[$ageField]) && (int) $input[$ageField] === 0) {
+                unset($input[$ageField]);
+            }
+        }
+
         $validationError = $this->validateToolInput($input, [
             'pension_category' => ['required', Rule::in(['dc', 'db'])],
             'scheme_name' => 'required|string|max:255',
@@ -4134,14 +4145,30 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('pension');
         }
 
-        if (! isset($input['pension_id'], $input['salary_sacrifice'])) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'pension_id and salary_sacrifice are required.'];
+        if (! isset($input['salary_sacrifice'])) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'salary_sacrifice is required.'];
         }
 
-        $pension = app(PensionStore::class)->find((int) $input['pension_id'], 'dc', $user);
-
-        if (! $pension) {
-            return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
+        // WP-1 — the model often has no real pension id in this turn (the
+        // 2026-07-03 walk sent pension_id: 0 and the whole capture failed
+        // silently). A real id wins; otherwise fall back to the user's single
+        // DC pension. None or ambiguous → a retryable structured error naming
+        // what is needed.
+        $pensionId = (int) ($input['pension_id'] ?? 0);
+        if ($pensionId > 0) {
+            $pension = app(PensionStore::class)->find($pensionId, 'dc', $user);
+            if (! $pension) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
+            }
+        } else {
+            $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
+            if ($dcPensions->count() === 1) {
+                $pension = $dcPensions->first();
+            } elseif ($dcPensions->isEmpty()) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'No pension on file yet — create the pension first, then set salary sacrifice on it.'];
+            } else {
+                return ['error' => true, 'error_type' => 'ambiguous', 'message' => 'More than one pension on file — ask the user which pension the salary sacrifice applies to, then call again with that pension_id.'];
+            }
         }
 
         $payload = ['salary_sacrifice' => (bool) $input['salary_sacrifice']];

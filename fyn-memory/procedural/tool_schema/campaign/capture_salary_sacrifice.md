@@ -16,7 +16,7 @@ effective_from: 2026-06-02
         "properties": {
             "pension_id": {
                 "type": "integer",
-                "description": "ID of the dc_pension row to update."
+                "description": "ID of the dc_pension row to update. Omit when you do not have a real id from this conversation — the system then resolves the user's pension. NEVER send 0 or an invented id."
             },
             "salary_sacrifice": {
                 "type": "boolean",
@@ -28,7 +28,6 @@ effective_from: 2026-06-02
             }
         },
         "required": [
-            "pension_id",
             "salary_sacrifice"
         ],
         "additionalProperties": false

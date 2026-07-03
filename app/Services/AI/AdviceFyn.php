@@ -277,6 +277,18 @@ final class AdviceFyn
         // to the normal LLM advice flow.
         $intent = $this->writeIntentClassifier->classify($message);
 
+        // WP-1 — capture-continuation. When the previous assistant turn was a
+        // data_capture QUESTION that wrote nothing (the capture asked for the
+        // details), the user's next non-question message IS the answer. That
+        // answer rarely re-matches the verb+entity classifier ("It's a
+        // workplace pension with Aviva, worth £40,000"), so without this rule
+        // it lands in read-only advice and the capture dead-ends
+        // mid-conversation (2026-07-03 walk: the pension details were never
+        // persisted). Reuse the intent that opened the capture.
+        if ($intent === null) {
+            $intent = $this->captureContinuationIntent($conversation, $message);
+        }
+
         // Full-duplicate short-circuit: when the user reasserts records
         // that all already exist (RecordDuplicateChecker matches every
         // extracted entity to a recent DB row), we do NOT involve the
@@ -370,6 +382,56 @@ final class AdviceFyn
             $this->buildToolList($user),
             $persistUserMessage,
         );
+    }
+
+    /**
+     * WP-1 — capture-continuation intent. When the most recent assistant
+     * message is a data_capture turn that made NO tool calls (a capture
+     * question — "Happy to, what's the scheme, provider, and value?"), the
+     * current non-question user message is the awaited answer: walk the
+     * recent user messages newest-first and reuse the write intent that
+     * opened the capture. Returns null when the last turn was not a pending
+     * capture question, when the user is asking something (route to advice),
+     * or when no earlier message classifies.
+     *
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
+     */
+    private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
+    {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            return null;
+        }
+
+        $lastAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
+
+        // Pending capture question = data_capture persona AND no tool calls
+        // (a capture turn that WROTE has tool_calls on the row — that capture
+        // concluded, so a follow-up message is a fresh turn, not an answer).
+        if ($lastAssistant === null
+            || $lastAssistant->persona !== 'data_capture'
+            || ! empty($lastAssistant->tool_calls)) {
+            return null;
+        }
+
+        $recentUserMessages = $conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->limit(6)
+            ->pluck('content');
+
+        foreach ($recentUserMessages as $priorMessage) {
+            $intent = $this->writeIntentClassifier->classify((string) $priorMessage);
+            if ($intent !== null) {
+                $intent['reason'] .= ' (capture continuation — the previous capture turn asked for these details)';
+
+                return $intent;
+            }
+        }
+
+        return null;
     }
 
     /**

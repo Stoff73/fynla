@@ -11,7 +11,7 @@ effective_from: 2026-06-11
 ```json
 {
     "name": "create_investment_account",
-    "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead.",
+    "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_family_member",
-    "description": "Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. \"I have a daughter Emily age 8 and a son James age 5\" → two tool calls).",
+    "description": "Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. \"I have a daughter Emily age 8 and a son James age 5\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

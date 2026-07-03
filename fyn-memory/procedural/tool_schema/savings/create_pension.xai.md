@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_pension",
-    "description": "Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). Call this tool IMMEDIATELY when the user mentions a pension. Fill in every field you can. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions (e.g. \"I have a workplace DC and a SIPP\" → two tool calls). If the user mentions a pension without specifying DC or DB, ask: \"Is this a workplace pension where your employer contributes, or a final salary/career average scheme?\"",
+    "description": "Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). Call this tool IMMEDIATELY when the user states pension details. OMIT every field the user did not state — never fill unknown fields with 0 or placeholder values (a retirement age of 0 is invalid and the write will fail). If the user has only asked to add a pension without giving any details yet, do NOT call this tool — ask for the scheme, provider, and value first; never invent a scheme name. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions (e.g. \"I have a workplace DC and a SIPP\" → two tool calls). If the user mentions a pension without specifying DC or DB, ask: \"Is this a workplace pension where your employer contributes, or a final salary/career average scheme?\"",
     "parameters": {
         "type": "object",
         "properties": {

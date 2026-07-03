@@ -2526,6 +2526,9 @@ PROMPT;
             // add_more turn gives the user a clear next step and any LLM
             // prose in that case is almost always off-script.
             $toolCallsSeen = 0;
+            $toolWritesLanded = 0;
+            $writeFailureMessages = [];
+            $ackShown = false;
             $contentBuffer = '';
             $flushed = false;
 
@@ -2582,6 +2585,21 @@ PROMPT;
                     continue;
                 }
 
+                // WP-1 — landed-vs-failed signal from the delegated chat
+                // (HasAiChat emits it only on data_capture turns). Consumed
+                // here, never re-yielded: the frontend has no use for it, and
+                // the counts drive the honest advance gate below — a failed
+                // create must not count as a capture.
+                if ($type === 'capture_write_result') {
+                    if (($event['landed'] ?? false) === true) {
+                        $toolWritesLanded++;
+                    } elseif (is_string($event['message'] ?? null) && $event['message'] !== '') {
+                        $writeFailureMessages[] = (string) $event['message'];
+                    }
+
+                    continue;
+                }
+
                 if ($type === 'fill_form') {
                     $llmEmittedFills[] = (array) ($event['fields'] ?? []);
                     yield $event;
@@ -2600,6 +2618,7 @@ PROMPT;
                     // rendered. Mirrors the grouped_extract path's done-swallow.
                     $flushEvent = $flushBuffer();
                     if ($flushEvent !== null) {
+                        $ackShown = true;
                         yield $flushEvent;
                     }
 
@@ -2620,6 +2639,7 @@ PROMPT;
             if (! $flushed) {
                 $flushEvent = $flushBuffer();
                 if ($flushEvent !== null) {
+                    $ackShown = true;
                     yield $flushEvent;
                 }
                 yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
@@ -2658,7 +2678,26 @@ PROMPT;
         // What's salary sacrifice?") would otherwise stall the walk forever.
         // We advance once the user gave a substantive answer alongside the
         // question; a bare question with no answer still re-asks.
-        $capturedSomething = $toolCallsSeen > 0 || count($llmEmittedFills) > 0;
+        //
+        // WP-1 — "captured" means a write LANDED, not merely that the model
+        // attempted one. A failed create used to count (toolCallsSeen), so a
+        // question turn whose only write failed advanced as if captured.
+        $capturedSomething = $toolWritesLanded > 0 || count($llmEmittedFills) > 0;
+
+        // WP-1 — every attempted write failed and nothing user-visible was
+        // said about it: name what could not be saved rather than moving on
+        // in silence (the model's own prose, when present, already carries
+        // the CAPTURE_WRITE_FAILED explanation).
+        if ($toolCallsSeen > 0 && $toolWritesLanded === 0
+            && $writeFailureMessages !== [] && ! $ackShown) {
+            $failureText = "I couldn't save that — ".rtrim($writeFailureMessages[0], '.')
+                .'. Give me the missing detail and I will try again.';
+            yield ['type' => 'content', 'text' => $failureText];
+            $this->saveMessage($conversation, 'assistant', $failureText, [
+                'metadata' => ['onboarding_step' => $currentStateId, 'capture_write_failed' => true],
+            ]);
+        }
+
         $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
             && $this->messageHasSubstantiveAnswer($message);
         if ($userAskedQuestion && ! $capturedSomething && ! $advanceOnAnsweredQuestion) {

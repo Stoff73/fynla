@@ -742,6 +742,39 @@ trait HasAiChat
                         $toolResultForModel['capture_turn_complete'] = $captureDirective;
                     }
 
+                    // WP-1 — mirror of the complete-directive for FAILED writes.
+                    // Without it the model sees the raw error JSON and frequently
+                    // narrates a confident "Recorded…" anyway (the 2026-07-03
+                    // "Beta Ltd Workplace Pension" was lost exactly this way).
+                    if ($isToolError && $this->personaOverride === 'data_capture') {
+                        $toolResultForModel['capture_write_failed'] = 'CAPTURE_WRITE_FAILED: '
+                            .'this write did NOT save anything. Either retry the tool ONCE with '
+                            .'corrected fields (fix exactly what the error names), or tell the '
+                            .'user plainly what could not be saved and what detail is needed. '
+                            .'NEVER claim the record was saved.';
+                    }
+
+                    // WP-1 — let the onboarding director distinguish landed
+                    // writes from failed attempts (it previously counted raw
+                    // tool_use events, so a failed create still advanced the
+                    // flow as a "capture"). Emitted only on delegated
+                    // data_capture turns; the director consumes it and never
+                    // re-yields, so no frontend sees it.
+                    if ($this->personaOverride === 'data_capture') {
+                        $writeLanded = ! $isToolError && (
+                            (isset($toolResult['created']) && $toolResult['created'] === true)
+                            || (isset($toolResult['updated']) && $toolResult['updated'] === true)
+                            || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
+                            || (isset($toolResult['success']) && $toolResult['success'] === true)
+                        );
+                        yield [
+                            'type' => 'capture_write_result',
+                            'tool' => $functionName,
+                            'landed' => $writeLanded,
+                            'message' => $isToolError ? (string) ($toolResult['message'] ?? 'The write failed.') : null,
+                        ];
+                    }
+
                     $toolResultJson = json_encode($toolResultForModel);
 
                     $fullToolResults[] = [

@@ -186,6 +186,16 @@ final class WriteIntentClassifier
     }
 
     /**
+     * Public question check for callers that need the same advice-vs-write
+     * discrimination on a raw message (WP-1: the capture-continuation rule
+     * must not treat a mid-capture question as the awaited answer).
+     */
+    public function isQuestion(string $message): bool
+    {
+        return $this->looksLikeQuestion(strtolower(trim($message)));
+    }
+
+    /**
      * Does the message look like an advice question rather than a write
      * intent? Two signals: (1) ends with `?`, (2) starts with one of the
      * interrogative prefixes above. Either is sufficient.

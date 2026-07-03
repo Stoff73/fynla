@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_chattel",
-    "description": "Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type \"other\" instead. You MAY call this tool multiple times in the same turn when the user mentions multiple items.",
+    "description": "Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type \"other\" instead. You MAY call this tool multiple times in the same turn when the user mentions multiple items. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {
