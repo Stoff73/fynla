@@ -41,7 +41,9 @@ class MobileAchievementsController extends Controller
                     'achievements' => $this->achievements($user),
                     // WP-2 — completed actions were saved (recommendation_tracking)
                     // but shown nowhere; surface them so done work has a home.
+                    // WP-5c-ii — first page only; /completed serves the rest.
                     'completed' => $this->completedActions($user),
+                    'completed_total' => $this->completedTotal($user),
                     'milestones' => $this->milestones($user),
                     // WP-5b — the milestones the user can achieve next, with
                     // the concrete step for each.
@@ -64,29 +66,62 @@ class MobileAchievementsController extends Controller
     private function upcomingMilestones(User $user): array
     {
         $netWorth = null;
+        $pensionPot = null;
         try {
             $nw = app(NetWorthService::class)->getCachedNetWorth($user);
             $netWorth = (float) ($nw['net_worth'] ?? 0);
+            // WP-5c-ii — the same cached payload carries the pension total,
+            // so the pension-pot distance is free too.
+            $pensionPot = (float) ($nw['breakdown']['pensions'] ?? 0);
         } catch (\Throwable $e) {
-            // best-effort — upcoming still renders without the £-away figure
+            // best-effort — upcoming still renders without the £-away figures
         }
 
-        return app(MilestoneDetectionService::class)->upcoming($user, $netWorth);
+        return app(MilestoneDetectionService::class)->upcoming($user, $netWorth, $pensionPot);
+    }
+
+    /** WP-5c-ii — completed actions page size (load-more on /m). */
+    private const COMPLETED_PER_PAGE = 25;
+
+    /**
+     * WP-5c-ii — a load-more page of completed actions. The index payload
+     * carries the first page + the total; this endpoint serves the rest.
+     * GET /api/v1/mobile/achievements/completed?page=N
+     */
+    public function completed(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $page = max(1, (int) $request->query('page', '1'));
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'completed' => $this->completedActions($user, $page),
+                    'completed_total' => $this->completedTotal($user),
+                    'page' => $page,
+                    'per_page' => self::COMPLETED_PER_PAGE,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Fetching completed actions');
+        }
     }
 
     /**
      * WP-2 — the user's completed actions (recommendation_tracking rows),
      * newest first, in the same lean shape the Next list uses so the /m
-     * template renders both with one card style.
+     * template renders both with one card style. WP-5c-ii: paginated
+     * (25/page) instead of a hard 50-cap — done work is never truncated.
      *
      * @return array<int,array<string,mixed>>
      */
-    private function completedActions(User $user): array
+    private function completedActions(User $user, int $page = 1): array
     {
         return RecommendationTracking::where('user_id', $user->id)
             ->completed()
             ->orderByDesc('completed_at')
-            ->limit(50)
+            ->forPage($page, self::COMPLETED_PER_PAGE)
             ->get()
             ->map(static fn (RecommendationTracking $row): array => [
                 'id' => (string) $row->recommendation_id,
@@ -95,6 +130,11 @@ class MobileAchievementsController extends Controller
                 'completed_at' => $row->completed_at?->toIso8601String(),
             ])
             ->all();
+    }
+
+    private function completedTotal(User $user): int
+    {
+        return RecommendationTracking::where('user_id', $user->id)->completed()->count();
     }
 
     /**

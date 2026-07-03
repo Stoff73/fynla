@@ -33,7 +33,7 @@ it('translates the ledger into labelled events, newest first', function () {
     awardRow($user, 'milestone:net_worth:0:10000', 'milestone');
     awardRow($user, 'streak:3:2026-07-01', 'streak');
 
-    $feed = app(ActivityFeedService::class)->feed($user);
+    $feed = app(ActivityFeedService::class)->feed($user)['events'];
 
     expect(array_column($feed, 'label'))->toBe([
         '3-day check-in streak',
@@ -62,7 +62,7 @@ it('names completed actions with their real wording', function () {
         'completed_at' => now(),
     ]);
 
-    $feed = app(ActivityFeedService::class)->feed($user);
+    $feed = app(ActivityFeedService::class)->feed($user)['events'];
 
     // WP-5c: completing a named tax strategy also mints its strategy-first
     // milestone, so the completion is one of two events for this act.
@@ -80,7 +80,7 @@ it('hides plumbing events: daily logins and verify steps', function () {
     awardRow($user, 'onboarding:campaign_verify_navigate');
     awardRow($user, 'onboarding:base_work');
 
-    $feed = app(ActivityFeedService::class)->feed($user);
+    $feed = app(ActivityFeedService::class)->feed($user)['events'];
 
     expect($feed)->toHaveCount(1)
         ->and($feed[0]['label'])->toBe('Told us about your income');

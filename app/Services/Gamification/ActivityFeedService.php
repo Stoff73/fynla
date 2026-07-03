@@ -51,13 +51,19 @@ final class ActivityFeedService
     ];
 
     /**
-     * Newest-first activity events.
+     * Newest-first activity events, cursor-paginated (WP-5c-ii — the feed is
+     * no longer hard-capped; /m loads more as the user scrolls).
      *
-     * @return list<array{kind: string, label: string, occurred_at: string|null}>
+     * `next_cursor` is the id of the last ledger row SCANNED (not the last
+     * event returned — hidden plumbing rows still advance the cursor), or
+     * null when the ledger is exhausted.
+     *
+     * @return array{events: list<array{kind: string, label: string, occurred_at: string|null}>, next_cursor: int|null}
      */
-    public function feed(User $user, int $limit = 100): array
+    public function feed(User $user, int $limit = 50, ?int $beforeId = null): array
     {
         $awards = PointAward::where('user_id', $user->id)
+            ->when($beforeId !== null, fn ($q) => $q->where('id', '<', $beforeId))
             ->orderByDesc('id')
             ->limit($limit)
             ->get();
@@ -72,7 +78,7 @@ final class ActivityFeedService
             ->whereIn('recommendation_id', $recIds)
             ->pluck('recommendation_text', 'recommendation_id');
 
-        return $awards
+        $events = $awards
             ->map(function (PointAward $award) use ($recTexts): ?array {
                 $event = $this->describe($award, $recTexts);
                 if ($event === null) {
@@ -85,6 +91,11 @@ final class ActivityFeedService
             ->filter()
             ->values()
             ->all();
+
+        return [
+            'events' => $events,
+            'next_cursor' => $awards->count() === $limit ? (int) $awards->last()->id : null,
+        ];
     }
 
     /**

@@ -59,8 +59,14 @@ class GamificationController extends Controller
      */
     public function activity(Request $request, ActivityFeedService $feed): JsonResponse
     {
+        // WP-5c-ii — cursor pagination: ?before=<ledger id> loads the next
+        // page; next_cursor is null once the ledger is exhausted.
+        $before = $request->filled('before') ? (int) $request->query('before') : null;
+        $page = $feed->feed($request->user(), 50, $before);
+
         return response()->json([
-            'data' => $feed->feed($request->user()),
+            'data' => $page['events'],
+            'next_cursor' => $page['next_cursor'],
         ]);
     }
 }

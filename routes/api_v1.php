@@ -55,6 +55,11 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.achievements');
 
+    // WP-5c-ii — load-more pages of completed actions (25/page)
+    Route::get('/mobile/achievements/completed', [MobileAchievementsController::class, 'completed'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.completed');
+
     // Module summaries — individual module analysis
     Route::get('/mobile/modules/{module}', [ModuleSummaryController::class, 'show'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
