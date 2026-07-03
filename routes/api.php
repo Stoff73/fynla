@@ -1084,6 +1084,8 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
 // Gamification routes (points-and-levels engine)
 Route::middleware('auth:sanctum')->prefix('gamification')->group(function () {
     Route::get('/status', [GamificationController::class, 'status']);
+    // WP-3 — the activity history feed (events + dates, never points).
+    Route::get('/activity', [GamificationController::class, 'activity']);
     Route::post('/celebration/ack', [GamificationController::class, 'ackCelebration']);
 });
 

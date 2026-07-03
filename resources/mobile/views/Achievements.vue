@@ -28,6 +28,14 @@
           :aria-selected="tab === 'milestones' ? 'true' : 'false'"
           @click="tab = 'milestones'"
         >Milestones</button>
+        <button
+          type="button"
+          class="ma-tab"
+          :class="{ 'is-active': tab === 'history' }"
+          role="tab"
+          :aria-selected="tab === 'history' ? 'true' : 'false'"
+          @click="tab = 'history'"
+        >History</button>
       </div>
     </div>
 
@@ -99,7 +107,7 @@
       </template>
 
       <!-- Milestones tab -->
-      <template v-else>
+      <template v-else-if="tab === 'milestones'">
         <div class="m-card">
           <p class="m-section-label" style="margin-top:0">Financial milestones</p>
           <p v-if="!milestones.length" class="m-sub" style="margin-bottom:0">
@@ -114,6 +122,22 @@
             >
               <span class="ma-badge__title">{{ ms.title }}</span>
               <span class="ma-badge__status">{{ ms.achieved ? achievedLabel(ms) : 'Not yet reached' }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- History tab — everything you've done, newest first (WP-3). -->
+      <template v-else>
+        <div class="m-card">
+          <p class="m-section-label" style="margin-top:0">Your activity</p>
+          <p v-if="!activity.length" class="m-sub" style="margin-bottom:0">
+            Nothing here yet — your answers, records, and completed actions will show up as you go.
+          </p>
+          <div v-else class="ma-history">
+            <div v-for="(ev, i) in activity" :key="i" class="ma-history__row">
+              <span class="ma-history__label">{{ ev.label }}</span>
+              <span class="ma-history__date">{{ formatDate(ev.occurred_at) }}</span>
             </div>
           </div>
         </div>
@@ -146,6 +170,7 @@ export default {
       next: [],
       completed: [],
       milestones: [],
+      activity: [],
     };
   },
   async created() {
@@ -198,7 +223,10 @@ export default {
       this.loading = true;
       this.error = '';
       try {
-        const res = await apiGet('/api/v1/mobile/achievements', store.token);
+        const [res, act] = await Promise.all([
+          apiGet('/api/v1/mobile/achievements', store.token),
+          apiGet('/api/gamification/activity', store.token),
+        ]);
         if (!res.ok) {
           this.error = 'We could not load your progress. Please try again.';
           return;
@@ -208,6 +236,7 @@ export default {
         this.next = Array.isArray(d.next) ? d.next : [];
         this.completed = Array.isArray(d.completed) ? d.completed : [];
         this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
+        this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
       } catch (e) {
         this.error = 'Network error. Please try again.';
       } finally {
@@ -290,4 +319,18 @@ export default {
 .ma-badge__desc { font-size: 13px; color: var(--neutral-500); line-height: 1.4; }
 .ma-badge__status { font-size: 12px; font-weight: 700; color: var(--neutral-500); }
 .ma-badge.is-earned .ma-badge__status { color: var(--spring-600); }
+
+/* WP-3 — activity history rows. */
+.ma-history { display: flex; flex-direction: column; }
+.ma-history__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--horizon-100);
+}
+.ma-history__row:last-child { border-bottom: 0; padding-bottom: 0; }
+.ma-history__label { font-size: 14px; font-weight: 600; color: var(--horizon-500); line-height: 1.4; }
+.ma-history__date { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
 </style>
