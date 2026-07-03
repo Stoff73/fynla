@@ -27,6 +27,16 @@ class NextActionsService
     /** Max strategy-level unlock cards to surface — keeps the 4-slot list from being crowded. */
     private const MAX_STRATEGY_UNLOCKS = 2;
 
+    /**
+     * WP-6 — campaign-to-module affinity map. Campaign arrivals see their
+     * campaign's primary module surfaced ahead of generic cross-module items.
+     * Unknown or absent campaign tokens receive no affinity boost.
+     */
+    private const CAMPAIGN_AFFINITY = [
+        'savetax' => 'tax',
+        'pensioncheck' => 'retirement',
+    ];
+
     public function __construct(
         private readonly RecommendationsAggregatorService $recommendations,
         private readonly PrerequisiteGateService $gate,
@@ -213,28 +223,33 @@ class NextActionsService
     }
 
     /**
-     * WP-6 — campaign affinity. A SaveTax arrival who has just finished the
-     * tax-focused onboarding should land on TAX actions first, not generic
-     * cross-module warnings (the 2026-07-03 walk graduate saw Will/LPA/
-     * critical-illness as their entire top-4). Tax-module items — real
-     * strategies and strategy unlocks alike — sort ahead of everything else
-     * for campaign users; within each tier the normal value ranking holds.
-     * Non-campaign users are untouched.
+     * WP-6 — campaign affinity. Campaign arrivals see their campaign's primary
+     * module sorted ahead of generic cross-module items; within each tier the
+     * normal value ranking holds. The module is keyed off CAMPAIGN_AFFINITY via
+     * the user's onboarding_fyn_selection (set at campaign start) with a
+     * fallback to funnel_answers['campaign'] (raw funnel data). Unknown or
+     * absent tokens receive no affinity boost.
      *
      * @param  array<int,array<string,mixed>>  $items
      * @return array<int,array<string,mixed>>
      */
     private function applyCampaignAffinity(User $user, array $items): array
     {
-        if (empty($user->funnel_answers)) {
+        $raw = $user->onboarding_fyn_selection
+            ?? ($user->funnel_answers['campaign'] ?? null);
+
+        $campaign = is_string($raw) ? $raw : null;
+        $affinityModule = self::CAMPAIGN_AFFINITY[$campaign] ?? null;
+
+        if ($affinityModule === null) {
             return $items;
         }
 
-        usort($items, static function (array $a, array $b): int {
-            $aTax = ($a['module'] ?? '') === 'tax' ? 1 : 0;
-            $bTax = ($b['module'] ?? '') === 'tax' ? 1 : 0;
+        usort($items, static function (array $a, array $b) use ($affinityModule): int {
+            $aMatch = ($a['module'] ?? '') === $affinityModule ? 1 : 0;
+            $bMatch = ($b['module'] ?? '') === $affinityModule ? 1 : 0;
 
-            return [$bTax, $b['value'], $a['module']] <=> [$aTax, $a['value'], $b['module']];
+            return [$bMatch, $b['value'], $a['module']] <=> [$aMatch, $a['value'], $b['module']];
         });
 
         return $items;

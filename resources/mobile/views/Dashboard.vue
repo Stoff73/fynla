@@ -924,7 +924,7 @@ export default {
       // (returns early when store.user is already set), so no delay in the common path.
       await this.loadUser();
       if (this.onboardingActive) {
-        this.startOnboarding();
+        this.startOnboarding(this.$route.query.from || null);
       } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }

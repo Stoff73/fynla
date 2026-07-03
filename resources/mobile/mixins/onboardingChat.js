@@ -73,7 +73,10 @@ export default {
     // users (incl. funnel arrivals) start the onboarding conversation; a returning
     // mid-flow user gets the welcome-back resume (summary + Continue / Something
     // else), not the full transcript.
-    async startOnboarding() {
+    // `from` is the campaign token carried on the landing URL (?from=pensioncheck);
+    // when truthy it is forwarded to the start endpoint so the controller can
+    // apply re-entry logic for campaigns that support it.
+    async startOnboarding(from = null) {
       if (this.sending) return;
       this.sending = true;
       this.resumeId = null;
@@ -83,7 +86,7 @@ export default {
       try {
         await apiStream(
           '/api/ai-chat/onboarding/start',
-          {},
+          from ? { from } : {},
           store.token,
           (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
           (ev) => this.handleFynEvent(cursor, ev),
