@@ -113,8 +113,18 @@ it('persists the voiced synthesis to ai_messages so /tax-strategy shows exactly 
         ->and($row->metadata['onboarding_step'])->toBe($stateId);
 });
 
-it('returns null synthesis for a user with no strategies so the turn stays silent', function () {
-    $user = User::factory()->create(['annual_employment_income' => 0, 'monthly_expenditure' => 0]);
+it('degrades to a sensible closing line for a user with no strategies', function () {
+    // D1 Fix 6 — the final recap turn previously fell silent (null) when the plan
+    // had no items; it must instead voice an honest forward-looking line.
+    $user = User::factory()->create([
+        'annual_employment_income' => 0,
+        'monthly_expenditure' => 0,
+        'first_name' => 'Alex',
+    ]);
 
-    expect(synthesisInvokeSectionAdvice($user->fresh(), 'synthesis'))->toBeNull();
+    $text = synthesisInvokeSectionAdvice($user->fresh(), 'synthesis');
+
+    expect($text)->not->toBeNull()
+        ->and($text)->toContain('Alex')
+        ->and($text)->toContain('tax strategy'); // savetax default campaign
 });

@@ -1117,11 +1117,14 @@ final class OnboardingChatDirector
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            // The synthesis is the final recap turn — never leave it silent.
+            // Degrade to an honest closing line (no fabricated figures) rather
+            // than an empty advice turn that auto-advances with nothing voiced.
+            return $this->synthesisFallbackMessage($user, $campaign);
         }
 
         if ($plan['items'] === []) {
-            return null;
+            return $this->synthesisFallbackMessage($user, $campaign);
         }
 
         // Mirror the campaign dashboard exactly. For savetax that is /tax-strategy
@@ -1149,7 +1152,7 @@ final class OnboardingChatDirector
         }
 
         if ($bullets === []) {
-            return null;
+            return $this->synthesisFallbackMessage($user, $campaign);
         }
 
         // Blank line before the bullet block so markdown renders it as a list on
@@ -1169,6 +1172,23 @@ final class OnboardingChatDirector
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Honest closing line for the synthesis turn when the composed plan has no
+     * items (no applicable strategies, degenerate data, or a calculation
+     * failure). Voices completion and points forward to the campaign's own
+     * screen without fabricating any figures — the synthesis turn must never
+     * fall silent (a null advice turn auto-advances with nothing voiced).
+     */
+    private function synthesisFallbackMessage(User $user, string $campaign): string
+    {
+        $firstName = trim((string) ($user->first_name ?? ''));
+        $firstName = $firstName !== '' ? $firstName : 'there';
+
+        return $campaign === 'pensioncheck'
+            ? "That's your pension details saved, {$firstName}. You'll find your full retirement picture on the next screen."
+            : "That's your details saved, {$firstName}. You'll find your full tax strategy on the next screen.";
     }
 
     /**
