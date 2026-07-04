@@ -4519,11 +4519,15 @@ class CoordinatingAgent extends BaseAgent
             ]);
         } else {
             // Income only — cannot create a profile without target_retirement_age.
+            // Use the partial-retry protocol: details.missing signals the director
+            // to call emitPartialRetry and STAY on the current state so the user
+            // is re-asked for their retirement age without advancing. The income
+            // figure is not persisted here; the next call (with age) will write both.
             return [
                 'onboarding_capture' => true,
-                'partial' => true,
                 'field_group' => 'campaign_retirement_goals',
-                'summary' => 'Income target noted, but a retirement age is needed to record your goals fully. Please also provide a target retirement age.',
+                'summary' => 'Income target noted — still need the retirement age to save the goal.',
+                'details' => ['missing' => ['target_retirement_age']],
             ];
         }
 

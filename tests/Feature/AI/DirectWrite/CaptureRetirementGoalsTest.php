@@ -82,7 +82,10 @@ it('updates income only when an existing profile exists', function () {
     expect((float) $profile->target_retirement_income)->toBe(35000.0);
 });
 
-it('returns partial when income only and no existing profile', function () {
+it('signals missing retirement age via the partial-retry protocol when income only and no existing profile', function () {
+    // details.missing is read by the director's handleGroupedExtractTurn to call
+    // emitPartialRetry — the flow stays on the current state, the user is re-asked
+    // for their retirement age, and nothing is persisted until the age arrives.
     $user = User::factory()->create(['is_preview_user' => false, 'date_of_birth' => '1980-01-01']);
 
     $result = app(CoordinatingAgent::class)->executeTool('capture_retirement_goals', [
@@ -90,7 +93,8 @@ it('returns partial when income only and no existing profile', function () {
     ], $user);
 
     expect($result['onboarding_capture'] ?? false)->toBeTrue();
-    expect($result['partial'] ?? false)->toBeTrue();
+    expect($result['details']['missing'] ?? [])->toBe(['target_retirement_age']);
+    expect($result)->not->toHaveKey('partial'); // dead key absent
     expect(RetirementProfile::where('user_id', $user->id)->count())->toBe(0);
 });
 

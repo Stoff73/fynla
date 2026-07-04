@@ -2194,6 +2194,9 @@ final class OnboardingChatDirector
                 'date_of_birth' => 'their date of birth',
                 'email' => 'their email address',
             ],
+            'capture_retirement_goals' => [
+                'target_retirement_age' => 'the age you would like to retire at',
+            ],
             default => [],
         };
 
