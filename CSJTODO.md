@@ -1,6 +1,18 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-03 — session 2 (context-clear). **WP-5c complete: PRs #603 + #606(=#604) + #605 merged to dev + deployed csjones + live-verified** (18-family milestone catalogue, uncapped progress pages + grouped upcoming, nudge layer). dev @ `c836fb9` (Merge #605). Prod UNTOUCHED. Open: dev→prod release now covers #581–#606 (CSJ's call). Campaign playbook written (`July/July3Updates/campaign-playbook.md`). Handover: `July/July3Updates/handover-2026-07-03-session-2-clear.md`.*
+*Last updated: 2026-07-04 — end-of-day. **Pension campaign (/pensioncheck) COMPLETE: PRs #607–#610 merged to dev + deployed csjones + E2E GREEN both user classes** (5,490 tests). dev @ `6f965f1` (Merge #610). Prod UNTOUCHED — release window now #581–#610 (CSJ's call). Notes: `July/July4Updates/pensioncheck-patch-notes-technical.md` + `-feature-notes-user.md`. Handover: `July/July5Updates/handover-2026-07-05-session-1.md`.*
+
+## 2026-07-04 — pension campaign (/pensioncheck) built, verified, shipped to dev (#607–#610)
+
+All merged to dev (`6f965f1`) + deployed csjones + live-browser-verified (fresh-user walk, existing-user delta walk, savetax regression walk). Design: `July/July3Updates/pension-campaign-map.md` + `pension-campaign-plan.md` (CSJ-approved: re-entry option (a), projected-pot hook, pension-lean walk, land on /retirement; URL /pensioncheck).
+- [x] **#607** re-entry substrate: `users.active_campaign` + 3-seam dispatch helper + start re-entry + exits + canonical amendment (`00-canonical.md`) + funnel campaign stamp + /m from-forwarding + affinity map.
+- [x] **#608** public surfaces: PensionEstimateService (taper-note Critical fixed in review), /pensioncheck funnel + plan pages (anonymous, six questions, values carry to registration), routes, homepage CTA card.
+- [x] **#609** the walk: per-campaign sections, delta skips (income-signal Critical fixed in review), 9 campaign2 states + corpus lockstep, 2 new capture tools (WRITE_TOOLS-listed), retirement advice + campaign-aware synthesis, carry-forward restored pensioncheck-only w/ higher-rate gate, config ON, PensionStore boundary.
+- [x] **#610** live fix wave (5 rounds, all E2E-re-verified): pensioncheck tool-catalogue arm (root cause), cache bust + users.target_retirement_age sync, web /retirement redirect + State-Pension hallucination hardening + leak fix + synthesis degrade, dc update allowlist + F5 honest ack, contribution record-context.
+- [x] **Slice D gate** D1–D5 all GREEN; test users purged (0 orphans); julycsj3 kept (now with pension data).
+- [ ] **OPEN — dev→prod release** now covers **#581–#610** (one new migration `users.active_campaign`; corpus + build + m-build + changed PHP + drift reconcile — CSJ's call).
+- [ ] **OPEN — campaign polish before marketing /pensioncheck:** DRAFT copy (funnel/plan/homepage/Fyn voice), OG images missing (`og/pensioncheck*.jpg`), carry-forward re-inclusion blessing (vs #586), post-terminal affinity durability (re-entrants revert to tax-first), `proposed-fyn-refusal-carveout.patch` (unreviewed prompt hardening — optional, walks green without it).
+- [ ] **Deferred (recorded in patch notes):** pension access age 55 hardcode (57 in 2028 — TaxConfigService effective-from), web `**` literal in verify bubbles (pre-existing), %-only pensions show £0 monthly on retirement page, savings-only "bank accounts" verify label (pre-existing), fynla-fixes worktree ~85-file Pint import-churn (uncommitted, decide reset-or-commit).
 
 ## 2026-07-03 — session 2: WP-5c milestones programme + campaign playbook (#603–#606, dev, live-verified)
 

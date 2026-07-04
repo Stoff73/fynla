@@ -254,3 +254,10 @@
 - **Campaign playbook written** — July/July3Updates/campaign-playbook.md: the full SaveTax template (funnel → onboarding → verify → synthesis → landing → gamification) incl. Fyn formatting standard F1–F15, screens inventory, per-campaign checklist, fit notes. All six module strategy sources exist; property has none.
 - Full suite green per slice: 5,256 → 5,264 → 5,271. Each slice deployed to csjones + live-verified BEFORE merge (deploy-gate order). csjones back on dev @ c836fb9.
 - Next: nothing in flight. Open (CSJ): dev→prod release (#581–#606, no new WP-5c migrations); campaign #2 green-light (re-entry decision + 6 generalisation points, playbook §6).
+
+## 2026-07-05 — session 1 (eod, written 2026-07-04)
+- Handover: [[handover-2026-07-05-session-1]]
+- Branch: main (docs); code on dev @ 6f965f1
+- Shipped: pension campaign /pensioncheck (#607-#610) — dev + csjones, E2E GREEN both user classes, 5,490 tests
+- Status: main-dir tree clean after docs commit; fynla-fixes worktree carries pre-existing Pint churn (flagged)
+- Next: CSJ decisions — dev→prod release (#581-#610) + campaign copy/OG polish before marketing
