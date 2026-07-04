@@ -924,10 +924,16 @@ final class OnboardingChatDirector
             return $this->buildSynthesisAdvice($user);
         }
 
-        // Pensioncheck sections use the composed retirement plan.
+        // Pensioncheck sections use the composed retirement plan. Sections outside
+        // the retirement map (e.g. spouse, income, savings) must stay silent — they
+        // have no pensioncheck advice and must not fall through to savetax builders.
         $campaign = $user->onboarding_fyn_selection ?? 'savetax';
-        if ($campaign === 'pensioncheck' && array_key_exists($section, self::PENSIONCHECK_SECTION_STRATEGY_TYPES)) {
-            return $this->buildRetirementSectionAdvice($user, $section);
+        if ($campaign === 'pensioncheck') {
+            if (array_key_exists($section, self::PENSIONCHECK_SECTION_STRATEGY_TYPES)) {
+                return $this->buildRetirementSectionAdvice($user, $section);
+            }
+
+            return null;
         }
 
         $wanted = self::SECTION_STRATEGY_TYPES[$section] ?? null;
