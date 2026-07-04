@@ -133,3 +133,32 @@ it('emits a navigation event for a navigable verify section and none for giving'
         expect($types)->toContain('quick_replies');
     }
 });
+
+// D1 Fix 5 — the navigation event carried 'description' => $stateId, and the web
+// store renders a navigation message's content from event.description, so the raw
+// state id "campaign_verify_navigate" leaked into the chat as a plain text bubble.
+// The navigation event must not carry the internal state id in a user-facing field.
+it('navigation event does not leak the internal state id in its description', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $director = app(OnboardingChatDirector::class);
+
+    $emit = new ReflectionMethod($director, 'emitTurnForState');
+    $emit->setAccessible(true);
+
+    $user = User::factory()->create([
+        'onboarding_fyn_path' => 'campaign', 'onboarding_completed' => false,
+        'onboarding_fyn_step' => 'campaign_verify_navigate',
+        'onboarding_fyn_context' => ['verify_section' => 'savings'],
+    ]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    $state = OnboardingStateMachine::getState('campaign_verify_navigate');
+    $events = iterator_to_array($emit->invoke($director, $user, $conversation, 'campaign_verify_navigate', $state), false);
+
+    $nav = collect($events)->firstWhere('type', 'navigation');
+    expect($nav)->not->toBeNull();
+    expect($nav['description'] ?? '')->not->toContain('campaign_verify_navigate');
+    expect($nav['description'] ?? '')->not->toContain('campaign_verify');
+    // The route + section still ride the event for the surfaces that navigate.
+    expect($nav['route_path'])->toBe('/savings');
+});

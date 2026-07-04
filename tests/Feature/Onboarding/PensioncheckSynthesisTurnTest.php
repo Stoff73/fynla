@@ -171,13 +171,22 @@ it('persists the pensioncheck synthesis to ai_messages', function () {
         ->and($row->metadata['onboarding_step'])->toBe($stateId);
 });
 
-it('returns null synthesis for a pensioncheck user with no retirement data', function () {
+it('degrades to a sensible closing line for a pensioncheck user with no retirement data', function () {
+    // D1 Fix 6 — this previously returned null (silent synthesis turn). The final
+    // recap turn must never fall silent; with no strategies it degrades to an
+    // honest forward-looking line instead.
     $user = User::factory()->create([
         'onboarding_fyn_selection' => 'pensioncheck',
         'annual_employment_income' => 0,
+        'first_name' => 'Robin',
     ]);
 
-    expect(pensioncheckSynthesisAdvice($user->fresh()))->toBeNull();
+    $text = pensioncheckSynthesisAdvice($user->fresh());
+
+    expect($text)->not->toBeNull()
+        ->and($text)->toContain('Robin')
+        ->and($text)->toContain('retirement')
+        ->and($text)->not->toContain('- '); // no bullet block when the plan is empty
 });
 
 it('savetax synthesis is byte-identical: still mirrors the tax plan for savetax users', function () {
@@ -207,4 +216,43 @@ it('savetax synthesis is byte-identical: still mirrors the tax plan for savetax 
         ->and($text)->not->toContain('pension picture') // NOT the pensioncheck lead-in
         ->and($text)->toContain('- ')
         ->and($text)->toContain('qualified financial adviser');
+});
+
+// D1 Fix 6 — empty-plan graceful degrade. In the live walk no pensions were
+// written (the capture refusals), so the composed retirement plan was empty and
+// buildSynthesisAdvice returned null → the synthesis turn was silent. With no
+// applicable strategies the synthesis must still voice a sensible closing line,
+// never silence.
+it('pensioncheck synthesis degrades to a sensible line when the plan is empty', function () {
+    $user = User::factory()->create([
+        'date_of_birth' => '1990-03-01',
+        'marital_status' => 'single',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => 24000,
+        'onboarding_fyn_selection' => 'pensioncheck',
+        'first_name' => 'Pat',
+    ]);
+    // No pensions, no retirement profile → composed plan has no items.
+
+    $text = pensioncheckSynthesisAdvice($user->fresh());
+
+    expect($text)->not->toBeNull()
+        ->and(trim((string) $text))->not->toBe('')
+        ->and($text)->toContain('Pat');
+});
+
+it('synthesis fallback voices a campaign-specific closing line, never silence', function () {
+    $user = User::factory()->create(['first_name' => 'Sam']);
+    $director = app(OnboardingChatDirector::class);
+    $ref = new ReflectionMethod($director, 'synthesisFallbackMessage');
+    $ref->setAccessible(true);
+
+    $pensioncheck = $ref->invoke($director, $user, 'pensioncheck');
+    $savetax = $ref->invoke($director, $user, 'savetax');
+
+    expect($pensioncheck)->toContain('Sam')
+        ->and($pensioncheck)->toContain('retirement')
+        ->and($savetax)->toContain('Sam')
+        ->and($savetax)->toContain('tax strategy')
+        ->and($savetax)->not->toContain('retirement picture');
 });

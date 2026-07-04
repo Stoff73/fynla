@@ -3700,7 +3700,7 @@
         "type": "function",
         "function": {
             "name": "capture_state_pension",
-            "description": "Record the user's State Pension forecast. Call when the user gives a forecast amount and/or National Insurance qualifying years. The forecast is a yearly figure in pounds (convert a weekly figure by multiplying by 52 and say so in your reply). Omit anything the user did not state.",
+            "description": "Record the user's State Pension forecast. Call when the user gives a forecast amount and/or National Insurance qualifying years. The forecast is a yearly figure in pounds (convert a weekly figure by multiplying by 52 and say so in your reply). Omit anything the user did not state. If the user does not know their forecast or is unsure, do NOT call this tool at all — never pass 0 for a figure the user did not give. Never infer the State Pension age from another pension (a workplace or NHS scheme's normal retirement age is NOT the State Pension age). If the user only knows their State Pension age and not the forecast or qualifying years, do NOT call this tool.",
             "parameters": {
                 "type": "object",
                 "properties": {

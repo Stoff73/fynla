@@ -127,6 +127,18 @@ final class OnboardingPromptBuilder
                 'capture_spouse_household_data',
                 'capture_spouse_non_working_assets',
             ],
+            // PensionCheck campaign covers the pension-only delegated states —
+            // campaign_occupational_scheme (workplace DC + salary sacrifice),
+            // campaign2_pension_pots (pot-value update_record, appended below),
+            // campaign_pension_contribs (personal/SIPP), campaign2_pension_db
+            // (Defined Benefit), campaign2_flexible_access (flag update_record),
+            // campaign2_spouse_pensions (spouse-owned create_pension). Without a
+            // 'pensioncheck' arm the focus fell to the savings default, so these
+            // states had no pension tool and the model security-refused.
+            'pensioncheck' => [
+                'create_pension',
+                'capture_salary_sacrifice',
+            ],
             default => ['create_savings_account'],
         };
 
@@ -233,6 +245,7 @@ PROMPT;
             'goals' => 'Goals',
             'budgeting' => 'Budgeting',
             'savetax' => 'SaveTax',
+            'pensioncheck' => 'Pension Check',
             default => ucfirst($focus),
         };
     }

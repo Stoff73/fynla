@@ -865,6 +865,16 @@ const routes = [
     redirect: '/net-worth/investments',
   },
   {
+    // The pensioncheck onboarding terminal (and any Fyn navigation) targets the
+    // surface-agnostic '/retirement' route the /m app defines natively. The web
+    // SPA houses the retirement module under /net-worth/retirement, so without
+    // this redirect $router.push('/retirement') fell through to the NotFound
+    // catch-all and the terminal "Take me to my retirement plan" button went
+    // nowhere. Mirrors the '/investment' → '/net-worth/investments' redirect.
+    path: '/retirement',
+    redirect: '/net-worth/retirement',
+  },
+  {
     path: '/risk-profile',
     name: 'RiskProfile',
     component: RiskProfilePage,

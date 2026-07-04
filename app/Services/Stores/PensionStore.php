@@ -159,6 +159,19 @@ class PensionStore
     }
 
     /**
+     * The user's personal DC pensions (SIPP / personal / stakeholder) — the ones
+     * a personal-contribution answer could belong to. Excludes workplace
+     * (occupational) schemes, so the contribution reference context only fires
+     * when the user actually has a personal pension on file.
+     */
+    public function personalDcPensionsFor(User $user): Collection
+    {
+        return DCPension::where('user_id', $user->id)
+            ->whereIn('pension_type', ['personal', 'sipp', 'stakeholder'])
+            ->get();
+    }
+
+    /**
      * All DB pensions belonging to the user (narrow read for
      * display/recap contexts).
      */

@@ -731,7 +731,12 @@ final class OnboardingChatDirector
                 yield [
                     'type' => 'navigation',
                     'route_path' => $route,
-                    'description' => $stateId,
+                    // Never the internal state id — the web store renders a
+                    // navigation message's content from `description`, so leaking
+                    // the state id here surfaced "campaign_verify_navigate" as a
+                    // plain-text chat bubble. Onboarding navigation is an action,
+                    // not a message; the visible prompt is the quick_replies bubble.
+                    'description' => '',
                     // The section being verified (income/spouse/…); the /m surface
                     // uses it to label the screen (e.g. income vs spouse income).
                     'section' => ((string) ($ctx['verify_section'] ?? '')) ?: null,
@@ -1112,11 +1117,14 @@ final class OnboardingChatDirector
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            // The synthesis is the final recap turn — never leave it silent.
+            // Degrade to an honest closing line (no fabricated figures) rather
+            // than an empty advice turn that auto-advances with nothing voiced.
+            return $this->synthesisFallbackMessage($user, $campaign);
         }
 
         if ($plan['items'] === []) {
-            return null;
+            return $this->synthesisFallbackMessage($user, $campaign);
         }
 
         // Mirror the campaign dashboard exactly. For savetax that is /tax-strategy
@@ -1144,7 +1152,7 @@ final class OnboardingChatDirector
         }
 
         if ($bullets === []) {
-            return null;
+            return $this->synthesisFallbackMessage($user, $campaign);
         }
 
         // Blank line before the bullet block so markdown renders it as a list on
@@ -1164,6 +1172,23 @@ final class OnboardingChatDirector
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Honest closing line for the synthesis turn when the composed plan has no
+     * items (no applicable strategies, degenerate data, or a calculation
+     * failure). Voices completion and points forward to the campaign's own
+     * screen without fabricating any figures — the synthesis turn must never
+     * fall silent (a null advice turn auto-advances with nothing voiced).
+     */
+    private function synthesisFallbackMessage(User $user, string $campaign): string
+    {
+        $firstName = trim((string) ($user->first_name ?? ''));
+        $firstName = $firstName !== '' ? $firstName : 'there';
+
+        return $campaign === 'pensioncheck'
+            ? "That's your pension details saved, {$firstName}. You'll find your full retirement picture on the next screen."
+            : "That's your details saved, {$firstName}. You'll find your full tax strategy on the next screen.";
     }
 
     /**
@@ -2619,6 +2644,14 @@ PROMPT;
         [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
 
+        // Update-by-id delegated states (e.g. campaign2_pension_pots) target an
+        // existing record, but the onboarding capture context surfaces only record
+        // counts — update_record has no entity_id to hit. Append the section's
+        // records (with ids) as reference data so the model can update the right
+        // row. Mirrors the verify-edit appendix; empty for capture states that
+        // declare no record_context (the create-only path is unchanged).
+        $restrictedPrompt .= $this->captureRecordContextAppendix($user, $state);
+
         try {
             $generator = $this->fynLoop->stream(
                 $user,
@@ -2655,6 +2688,7 @@ PROMPT;
             // prose in that case is almost always off-script.
             $toolCallsSeen = 0;
             $toolWritesLanded = 0;
+            $sawFailedWrite = false;
             $writeFailureMessages = [];
             $ackShown = false;
             $contentBuffer = '';
@@ -2680,9 +2714,19 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection, $userAskedQuestion) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, $selection, $userAskedQuestion) {
                 $flushed = true;
-                if ($contentBuffer === '' || ($toolCallsSeen === 0 && ! $userAskedQuestion)) {
+                // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
+                // captured this turn: either no tool ran at all, or a write was
+                // attempted and FAILED / was blocked (a duplicate warning lands
+                // nothing). Its confident "Recorded — £200 monthly" must not reach
+                // the user, and suppressing it keeps $ackShown false so the honest
+                // failure line below can fire. A landed write, a fill_form (the B-1
+                // gap-fill creates it after done), or a question the answer belongs
+                // to still shows.
+                $nothingCaptured = $toolWritesLanded === 0 && $llmEmittedFills === []
+                    && ($toolCallsSeen === 0 || $sawFailedWrite);
+                if ($contentBuffer === '' || ($nothingCaptured && ! $userAskedQuestion)) {
                     $contentBuffer = '';
 
                     return null;
@@ -2721,8 +2765,14 @@ PROMPT;
                 if ($type === 'capture_write_result') {
                     if (($event['landed'] ?? false) === true) {
                         $toolWritesLanded++;
-                    } elseif (is_string($event['message'] ?? null) && $event['message'] !== '') {
-                        $writeFailureMessages[] = (string) $event['message'];
+                    } else {
+                        // A blocked duplicate carries no message; a validation
+                        // failure does. Either way a write was attempted and
+                        // nothing landed — enough to suppress a false "Recorded".
+                        $sawFailedWrite = true;
+                        if (is_string($event['message'] ?? null) && $event['message'] !== '') {
+                            $writeFailureMessages[] = (string) $event['message'];
+                        }
                     }
 
                     continue;
@@ -2812,18 +2862,22 @@ PROMPT;
         // question turn whose only write failed advanced as if captured.
         $capturedSomething = $toolWritesLanded > 0 || count($llmEmittedFills) > 0;
 
-        // WP-1 — every attempted write failed and nothing user-visible was
-        // said about it: name what could not be saved rather than moving on
-        // in silence (the model's own prose, when present, already carries
-        // the CAPTURE_WRITE_FAILED explanation).
-        if ($toolCallsSeen > 0 && $toolWritesLanded === 0
-            && $writeFailureMessages !== [] && ! $ackShown) {
-            $failureText = "I couldn't save that — ".rtrim($writeFailureMessages[0], '.')
-                .'. Give me the missing detail and I will try again.';
+        // WP-1 / F5 — every attempted write failed or was blocked and the
+        // model's success ack was suppressed above: say plainly what happened
+        // rather than moving on in silence. A validation failure names the
+        // reason; a blocked duplicate (no failure message) gets a truthful
+        // "nothing new" line so Fyn never claims a figure it did not record.
+        if ($sawFailedWrite && $toolWritesLanded === 0 && $llmEmittedFills === [] && ! $ackShown) {
+            $failureText = $writeFailureMessages !== []
+                ? "I couldn't save that — ".rtrim($writeFailureMessages[0], '.')
+                    .'. Give me the missing detail and I will try again.'
+                : "I couldn't record anything new there. If a figure has changed, "
+                    .'tell me the specific amount and I will update it.';
             yield ['type' => 'content', 'text' => $failureText];
             $this->saveMessage($conversation, 'assistant', $failureText, [
                 'metadata' => ['onboarding_step' => $currentStateId, 'capture_write_failed' => true],
             ]);
+            $ackShown = true;
         }
 
         $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
@@ -3075,6 +3129,54 @@ PROMPT;
      * types) for the verify-edit prompt, or a note that the section is stored
      * as profile fields (update_profile).
      */
+    /**
+     * Reference-data appendix for a delegated capture state that UPDATES an
+     * existing record by id (declared via the state's `record_context` section).
+     * The onboarding capture context surfaces only record counts, so update_record
+     * would have no entity_id to target; this lists the section's records with
+     * their ids. Non-directive framing (an instruction-style override block trips
+     * the model's prompt-injection refusal — see buildVerifyEditPrompt). Returns
+     * '' for states with no record_context, so the create-only capture path is
+     * byte-identical to before.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function captureRecordContextAppendix(User $user, array $state): string
+    {
+        $section = $state['record_context'] ?? null;
+        if (! is_string($section) || $section === '') {
+            return '';
+        }
+
+        // Contribution mode (campaign_pension_contribs): the user may be adding a
+        // contribution to a pension already on file, or describing a genuinely new
+        // one. Only steer toward update when an existing PERSONAL pension is present
+        // — a user whose only pension is the workplace scheme (occupational) still
+        // creates the new SIPP, so the standard savetax path is byte-identical.
+        if (($state['record_context_mode'] ?? '') === 'contribution') {
+            $personal = app(PensionStore::class)->personalDcPensionsFor($user);
+            if ($personal->isEmpty()) {
+                return '';
+            }
+            $rows = $personal
+                ->map(fn ($p): string => '- entity_type: dc_pension, entity_id: '.$p->id.' — "'
+                    .$p->scheme_name.'" ('.($p->provider ?: 'provider unknown').')')
+                ->implode("\n");
+
+            return "\n\nReference — the user's existing personal pensions:\n".$rows
+                ."\n\nIf the contribution the user just described is a payment into one of the "
+                .'pensions listed above (for example "£200 a month into my personal pension"), '
+                .'call update_record with that entity_id to set its monthly_contribution_amount '
+                .'— do NOT create a new pension for it. Only call create_pension when they are '
+                .'describing a genuinely different pension that is not listed above.';
+        }
+
+        return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section)
+            .' (record the value the user gives against the matching entity_id with '
+            ."update_record; do not add a new record):\n"
+            .$this->verifyEditRecordContext($user, $section);
+    }
+
     private function verifyEditRecordContext(User $user, string $section): string
     {
         switch ($section) {
@@ -3217,6 +3319,26 @@ PROMPT;
      *
      * @param  array<string, mixed>  $state
      */
+    /**
+     * The terminal turn's route-carrying quick-reply bubble, keyed on the
+     * state's navigate_to so each campaign lands on its own destination. The
+     * savetax tax-strategy bubble (id/label) is preserved byte-identical; the
+     * pensioncheck retirement route gets its own copy; any other route degrades
+     * to a neutral "view my plan" label.
+     *
+     * @return array{id: string, label: string, route: string}
+     */
+    private function terminalNavigationBubble(string $route): array
+    {
+        [$id, $label] = match ($route) {
+            '/tax-strategy' => ['view_strategy', 'Take me to my tax strategy'],
+            '/retirement' => ['view_retirement', 'Take me to my retirement plan'],
+            default => ['view_plan', 'Take me to my plan'],
+        };
+
+        return ['id' => $id, 'label' => $label, 'route' => $route];
+    }
+
     private function emitTerminalNavigationTurn(
         User $user,
         AiConversation $conversation,
@@ -3232,15 +3354,14 @@ PROMPT;
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
 
-        // The user taps a button to view their strategy rather than being
-        // auto-navigated, so the "we've created your tax strategy" message lands
-        // first. The route-carrying bubble navigates on tap (handled in the /m
-        // chooseBubble + web handleQuickReplySelect) — no auto navigation event.
-        $bubbles = [[
-            'id' => 'view_strategy',
-            'label' => 'Take me to my tax strategy',
-            'route' => $nextRoute,
-        ]];
+        // The user taps a button to view their plan rather than being
+        // auto-navigated, so the celebration message lands first. The
+        // route-carrying bubble navigates on tap (handled in the /m chooseBubble
+        // + web handleQuickReplySelect) — no auto navigation event. The bubble
+        // id + label follow the terminal state's navigate_to so each campaign
+        // shows its own destination (savetax → tax strategy; pensioncheck →
+        // retirement plan) rather than the hardcoded savetax text.
+        $bubbles = [$this->terminalNavigationBubble($nextRoute)];
 
         yield [
             'type' => 'quick_replies',

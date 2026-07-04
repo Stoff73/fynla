@@ -6,9 +6,13 @@ use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -250,6 +254,177 @@ it('buildPensionPotsPrompt names the scheme missing a fund value', function (): 
     expect($prompt)->toContain('Aviva Workplace Pension');
 });
 
+// ── 4b. Pension-pots entry skip (D1 Fix 2) ────────────────────────────────────
+// campaign2_pension_pots had no skip_if, so with zero DC pensions (e.g. the
+// occupational_scheme capture failed) it ran anyway, hit buildPensionPotsPrompt's
+// null fallback ("I've noted the current values…") and the model ad-libbed. The
+// state must skip when no DC pension is missing a value.
+
+it('skipIfNoPensionPotToFill returns true when the user has no DC pensions', function (): void {
+    $user = pensioncheckUser();
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeTrue();
+});
+
+it('skipIfNoPensionPotToFill returns false when a DC pension is missing its value', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeFalse();
+});
+
+it('skipIfNoPensionPotToFill returns true when every DC pension already has a value', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 45000]);
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeTrue();
+});
+
+it('campaign2_pension_pots is wired with the skip_if predicate', function (): void {
+    $state = SM::getState(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    expect($state['skip_if'] ?? null)->not->toBeNull();
+});
+
+it('applySkipRules skips campaign2_pension_pots to pension_contribs when nothing is missing', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 45000]);
+    expect(SM::applySkipRules(SM::STATE_CAMPAIGN2_PENSION_POTS, $user))
+        ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+});
+
+it('applySkipRules keeps campaign2_pension_pots when a pot value is missing', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+    expect(SM::applySkipRules(SM::STATE_CAMPAIGN2_PENSION_POTS, $user))
+        ->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS);
+});
+
+// ── 4c. Pension-pots update targeting (D1 Fix 2b) ─────────────────────────────
+// The pot-value turn updates an EXISTING DC pension by id, but the onboarding
+// CAPTURE context only surfaces record counts (dc_pensions_count), not ids —
+// so update_record had no entity_id to target. The state declares
+// record_context = 'pensions', and handleAssetCaptureTurn appends a reference
+// block listing the section's records with their ids (verify-edit pattern) to
+// the system-prompt override.
+
+it('campaign2_pension_pots declares the pensions record_context', function (): void {
+    $state = SM::getState(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    expect($state['record_context'] ?? null)->toBe('pensions');
+});
+
+it('capture record-context appendix lists the DC pension with its entity_id', function (): void {
+    $user = pensioncheckUser();
+    $pension = DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Aviva Workplace Pension',
+        'current_fund_value' => 0,
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toContain('entity_id: '.$pension->id)
+        ->and($appendix)->toContain('dc_pension')
+        ->and($appendix)->toContain('Aviva Workplace Pension')
+        ->and($appendix)->toContain('update_record');
+});
+
+it('capture record-context appendix is empty for a state without record_context', function (): void {
+    $user = pensioncheckUser();
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toBe('');
+});
+
+// ── 4c-ii. Contribution turn updates the existing pension (D1 round 5) ─────────
+// campaign_pension_contribs let the model create a DUPLICATE personal pension
+// when the user stated a contribution against an existing one. It now carries the
+// existing-personal-pension reference context so the model calls update_record,
+// gated on a personal pension (pension_type personal/sipp/stakeholder) being
+// present — a workplace-only (occupational) user still creates the new SIPP,
+// keeping the savetax path byte-identical.
+
+it('campaign_pension_contribs declares the contribution record_context mode', function (): void {
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    expect($state['record_context'] ?? null)->toBe('pensions')
+        ->and($state['record_context_mode'] ?? null)->toBe('contribution');
+});
+
+it('contribution appendix references the existing personal pension for update', function (): void {
+    $user = pensioncheckUser();
+    $pension = DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Personal Pension',
+        'pension_type' => 'personal',
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toContain('entity_id: '.$pension->id)
+        ->and($appendix)->toContain('Personal Pension')
+        ->and($appendix)->toContain('update_record')
+        ->and($appendix)->toContain('create_pension'); // still offers create for a genuinely new one
+});
+
+it('contribution appendix is empty when the user has only a workplace pension (savetax-safe)', function (): void {
+    $user = pensioncheckUser();
+    // Workplace pension only — pension_type occupational must NOT trigger the injection.
+    DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Acme Workplace Pension',
+        'pension_type' => 'occupational',
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toBe('');
+});
+
+it('contribution appendix is empty when the user has no pension yet', function (): void {
+    $user = pensioncheckUser();
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toBe('');
+});
+
+// ── 4d. Campaign-aware terminal CTA (D1 Fix 4) ────────────────────────────────
+// emitTerminalNavigationTurn hardcoded the bubble id 'view_strategy' + label
+// "Take me to my tax strategy" for every campaign, so the pensioncheck terminal
+// (navigate_to /retirement) showed the savetax text. The bubble id/label must
+// follow the terminal state's navigate_to route.
+
+it('terminal navigation bubble follows the pensioncheck retirement route', function (): void {
+    $director = app(OnboardingChatDirector::class);
+    $bubble = (new ReflectionMethod($director, 'terminalNavigationBubble'))
+        ->invoke($director, '/retirement');
+
+    expect($bubble['route'])->toBe('/retirement')
+        ->and($bubble['label'])->toContain('retirement')
+        ->and($bubble['label'])->not->toContain('tax strategy')
+        ->and($bubble['id'])->not->toBe('view_strategy');
+});
+
+it('terminal navigation bubble keeps the savetax tax-strategy label', function (): void {
+    $director = app(OnboardingChatDirector::class);
+    $bubble = (new ReflectionMethod($director, 'terminalNavigationBubble'))
+        ->invoke($director, '/tax-strategy');
+
+    expect($bubble['route'])->toBe('/tax-strategy')
+        ->and($bubble['label'])->toBe('Take me to my tax strategy')
+        ->and($bubble['id'])->toBe('view_strategy');
+});
+
 // ── 5. Campaign-section terminal routing ──────────────────────────────────────
 
 it('nextCampaignSection for pensioncheck routes to campaign_synthesis when all sections exhausted', function (): void {
@@ -378,6 +553,175 @@ it('campaign2_state_pension uses the capture_state_pension extraction tool', fun
 it('campaign2_state_pension has a retry_text with example figures', function (): void {
     $state = SM::getState(SM::STATE_CAMPAIGN2_STATE_PENSION);
     expect($state['retry_text'] ?? '')->toContain('qualifying years');
+});
+
+// ── 9b. capture_state_pension garbage-row guard (D1 Fix 3) ─────────────────────
+// When the user said "not sure", the live model called capture_state_pension
+// with forecast_annual=0, ni_years_completed=0, state_pension_age=0. Those
+// explicit zeros passed the old `!== null` filter and wrote a garbage
+// state_pensions row (forecast 0 / ni 0 / age 0), which kills the no-forecast
+// advice trigger and the row-existence skip. Reject all-zero calls.
+
+it('capture_state_pension rejects an all-zero call without writing a row', function (): void {
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 0,
+        'ni_years_completed' => 0,
+        'state_pension_age' => 0,
+    ], $user, false);
+
+    // No row written.
+    expect(StatePension::where('user_id', $user->id)->exists())->toBeFalse();
+    // Not framed as a successful capture.
+    expect($result['onboarding_capture'] ?? false)->toBeFalse();
+});
+
+it('capture_state_pension writes a row for a genuine forecast', function (): void {
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 11500,
+        'ni_years_completed' => 25,
+    ], $user, false);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue();
+    $row = StatePension::where('user_id', $user->id)->first();
+    expect($row)->not->toBeNull()
+        ->and((float) $row->state_pension_forecast_annual)->toBe(11500.0)
+        ->and((int) $row->ni_years_completed)->toBe(25);
+});
+
+it('capture_state_pension writes nothing for an age-only call (D1 round 3 hardening)', function (): void {
+    // user 185 got a garbage row forecast 0 / ni 0 / age 60 — the model INVENTED
+    // state_pension_age=60 from the NHS normal-retirement-age context. Age alone
+    // never justifies a State Pension row (it is the field the model most easily
+    // hallucinates); only a real forecast or qualifying-years figure does.
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 0,
+        'ni_years_completed' => 0,
+        'state_pension_age' => 60,
+    ], $user, false);
+
+    expect(StatePension::where('user_id', $user->id)->exists())->toBeFalse();
+    expect($result['onboarding_capture'] ?? false)->toBeFalse();
+});
+
+it('capture_state_pension writes when a forecast is given, keeping the age (D1 round 3)', function (): void {
+    // A real forecast justifies the row; state_pension_age rides along when present.
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 11500,
+        'state_pension_age' => 67,
+    ], $user, false);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue();
+    $row = StatePension::where('user_id', $user->id)->first();
+    expect((float) $row->state_pension_forecast_annual)->toBe(11500.0)
+        ->and((int) $row->state_pension_age)->toBe(67);
+});
+
+// ── 9d. dc_pension update allowlist — campaign fields (D1 round 4) ─────────────
+// update_record must be able to set the campaign-captured contribution fields on
+// an existing DC pension: salary_sacrifice (occupational scheme), annual_salary,
+// and has_flexibly_accessed (the flexible-access state — round-1 latent item).
+// Without them the allowlist rejects the fields and the update silently no-ops.
+
+it('update_record lands campaign contribution fields on a dc_pension', function (): void {
+    // Pension writes recalculate derived columns, which resolve TierConfiguration.
+    $this->seed(TierConfigurationSeeder::class);
+    $user = pensioncheckUser();
+    $pension = DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Acme Workplace Pension',
+        'monthly_contribution_amount' => 0,
+        'salary_sacrifice' => false,
+        'has_flexibly_accessed' => false,
+    ]);
+
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleUpdateRecord');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'entity_type' => 'dc_pension',
+        'entity_id' => $pension->id,
+        'fields' => [
+            'monthly_contribution_amount' => 200,
+            'annual_salary' => 62000,
+            'salary_sacrifice' => true,
+            'has_flexibly_accessed' => true,
+        ],
+    ], $user, false);
+
+    // The campaign fields must not be rejected by the allowlist.
+    expect($result['error'] ?? null)->not->toBe('fields_not_allowed');
+    expect(($result['disallowed_fields'] ?? []))->toBe([]);
+
+    $pension->refresh();
+    expect((float) $pension->monthly_contribution_amount)->toBe(200.0)
+        ->and((float) $pension->annual_salary)->toBe(62000.0)
+        ->and((bool) $pension->salary_sacrifice)->toBeTrue()
+        ->and((bool) $pension->has_flexibly_accessed)->toBeTrue();
+});
+
+// ── 9c. Retirement-goal write side effects (D1 round 2, RED 1 + RED 3) ─────────
+// capture_retirement_goals wrote only retirement_profiles.target_retirement_age.
+// RED 3: the /retirement page + ModuleAvailabilityProvider read
+// users.target_retirement_age (NULL → default 67 + "When you want to retire"
+// outstanding). RED 1: the handler never busts the retirement analysis cache, so
+// on csjones (file cache, no tag support) the mid-walk profile=null analysis
+// persisted → zero recommendations → empty synthesis.
+
+it('capture_retirement_goals syncs users.target_retirement_age (RED 3)', function (): void {
+    $user = pensioncheckUser(['date_of_birth' => '1984-01-01', 'target_retirement_age' => null]);
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureRetirementGoals');
+    $method->setAccessible(true);
+
+    $method->invoke($coordinator, ['target_retirement_age' => 65, 'target_retirement_income' => 30000], $user, false);
+
+    expect((int) $user->fresh()->target_retirement_age)->toBe(65)
+        ->and((int) RetirementProfile::where('user_id', $user->id)->first()?->target_retirement_age)->toBe(65);
+});
+
+it('capture_retirement_goals busts the retirement analysis cache (RED 1)', function (): void {
+    $user = pensioncheckUser(['date_of_birth' => '1984-01-01']);
+    Cache::put("retirement_analysis_{$user->id}", 'STALE', 600);
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureRetirementGoals');
+    $method->setAccessible(true);
+
+    $method->invoke($coordinator, ['target_retirement_age' => 65, 'target_retirement_income' => 30000], $user, false);
+
+    expect(Cache::get("retirement_analysis_{$user->id}"))->toBeNull();
+});
+
+it('capture_state_pension busts the retirement analysis cache on a real write (RED 1)', function (): void {
+    $user = pensioncheckUser();
+    Cache::put("retirement_analysis_{$user->id}", 'STALE', 600);
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $method->invoke($coordinator, ['forecast_annual' => 11500, 'ni_years_completed' => 25], $user, false);
+
+    expect(Cache::get("retirement_analysis_{$user->id}"))->toBeNull();
 });
 
 // ── 10. Income carry via onboarding_parked_facts ──────────────────────────────

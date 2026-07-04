@@ -4539,6 +4539,23 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // Mirror the age onto users.target_retirement_age. The retirement store is
+        // retirement_profiles, but the /retirement page (RetirementProjectionService),
+        // the "When you want to retire" data-requirement, and ModuleAvailabilityProvider
+        // all read users.target_retirement_age — leaving it null showed the default
+        // age (67) and kept the checklist item outstanding despite the goal being set.
+        if ($age !== null) {
+            $user->target_retirement_age = $age;
+            $user->save();
+        }
+
+        // Bust the user's caches so the synthesis, /retirement page and dashboards
+        // recompute against the new goal. The retirement analysis is remembered
+        // under retirement_analysis_{id}; its model-level tag flush silently no-ops
+        // on the file cache driver (no tag support), so the mid-walk profile=null
+        // analysis would otherwise persist and the synthesis would voice no plan.
+        $this->invalidateUserCache($user->id);
+
         $parts = [];
         if ($age !== null) {
             $parts[] = sprintf('retirement age %d', $age);
@@ -4635,6 +4652,27 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'National Insurance qualifying years must be between 0 and 60.'];
         }
 
+        // Guard against the "not sure" garbage call. When the user says they don't
+        // know their forecast, the model can still call this tool with all-zero
+        // values, OR invent a state_pension_age from an unrelated pension's normal
+        // retirement age (user 185: forecast 0 / ni 0 / age 60 lifted from an NHS
+        // scheme). A State Pension row is only justified by a real forecast amount
+        // or qualifying-years count — state_pension_age alone NEVER justifies one
+        // (it is the field the model most easily hallucinates). When neither the
+        // forecast nor the qualifying years is a positive figure, treat the call as
+        // no-capture: write nothing and let advance_on_answered_question move on.
+        // The tool schema also tells the model not to infer the age or call the
+        // tool when the user is unsure.
+        $hasPositiveSignal = ($forecastAnnual !== null && $forecastAnnual > 0)
+            || ($niYears !== null && $niYears > 0);
+
+        if (! $hasPositiveSignal) {
+            return [
+                'onboarding_capture' => false,
+                'summary' => 'No State Pension figures recorded — the user did not give a forecast, qualifying years, or age.',
+            ];
+        }
+
         $updates = array_filter([
             'state_pension_forecast_annual' => $forecastAnnual,
             'ni_years_completed' => $niYears,
@@ -4642,6 +4680,12 @@ class CoordinatingAgent extends BaseAgent
         ], fn ($v) => $v !== null);
 
         StatePension::updateOrCreate(['user_id' => $user->id], $updates);
+
+        // Bust the user's caches so the retirement analysis (and the "No State
+        // Pension Forecast" recommendation that depends on this row) recompute —
+        // the file cache driver on csjones has no tag support, so the model-level
+        // tag flush silently no-ops.
+        $this->invalidateUserCache($user->id);
 
         $parts = [];
         if ($forecastAnnual !== null) {

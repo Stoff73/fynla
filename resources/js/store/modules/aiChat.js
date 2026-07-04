@@ -483,16 +483,24 @@ const actions = {
                                 break;
 
                             case 'navigation':
-                                commit('ADD_MESSAGE', {
-                                    id: 'nav_' + Date.now(),
-                                    role: 'navigation',
-                                    content: event.description || '',
-                                    metadata: {
-                                        route_path: event.route_path,
-                                        description: event.description,
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
+                                // Only render a visible navigation bubble when the
+                                // event carries a human description (advice-mode
+                                // "taking you to X"). Onboarding navigation sends an
+                                // empty description — it's an action, not a message —
+                                // so it must not render a bubble; rendering it
+                                // previously leaked the internal state id as chat text.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: {
+                                            route_path: event.route_path,
+                                            description: event.description,
+                                        },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
 
@@ -839,13 +847,19 @@ const actions = {
                                 });
                                 break;
                             case 'navigation':
-                                commit('ADD_MESSAGE', {
-                                    id: 'nav_' + Date.now(),
-                                    role: 'navigation',
-                                    content: event.description || '',
-                                    metadata: { route_path: event.route_path, description: event.description },
-                                    created_at: new Date().toISOString(),
-                                });
+                                // See the streaming handler above — only advice-mode
+                                // navigation (non-empty description) renders a bubble;
+                                // onboarding navigation is action-only and must not
+                                // leak its state id as chat text.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: { route_path: event.route_path, description: event.description },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
                             case 'entity_created':
