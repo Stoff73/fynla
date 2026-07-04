@@ -4539,6 +4539,23 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // Mirror the age onto users.target_retirement_age. The retirement store is
+        // retirement_profiles, but the /retirement page (RetirementProjectionService),
+        // the "When you want to retire" data-requirement, and ModuleAvailabilityProvider
+        // all read users.target_retirement_age — leaving it null showed the default
+        // age (67) and kept the checklist item outstanding despite the goal being set.
+        if ($age !== null) {
+            $user->target_retirement_age = $age;
+            $user->save();
+        }
+
+        // Bust the user's caches so the synthesis, /retirement page and dashboards
+        // recompute against the new goal. The retirement analysis is remembered
+        // under retirement_analysis_{id}; its model-level tag flush silently no-ops
+        // on the file cache driver (no tag support), so the mid-walk profile=null
+        // analysis would otherwise persist and the synthesis would voice no plan.
+        $this->invalidateUserCache($user->id);
+
         $parts = [];
         if ($age !== null) {
             $parts[] = sprintf('retirement age %d', $age);
@@ -4662,6 +4679,12 @@ class CoordinatingAgent extends BaseAgent
         ], fn ($v) => $v !== null);
 
         StatePension::updateOrCreate(['user_id' => $user->id], $updates);
+
+        // Bust the user's caches so the retirement analysis (and the "No State
+        // Pension Forecast" recommendation that depends on this row) recompute —
+        // the file cache driver on csjones has no tag support, so the model-level
+        // tag flush silently no-ops.
+        $this->invalidateUserCache($user->id);
 
         $parts = [];
         if ($forecastAnnual !== null) {

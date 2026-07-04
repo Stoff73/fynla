@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -549,6 +550,50 @@ it('capture_state_pension writes a row when only the age is positive', function 
 
     expect($result['onboarding_capture'] ?? false)->toBeTrue();
     expect((int) StatePension::where('user_id', $user->id)->first()?->state_pension_age)->toBe(67);
+});
+
+// ── 9c. Retirement-goal write side effects (D1 round 2, RED 1 + RED 3) ─────────
+// capture_retirement_goals wrote only retirement_profiles.target_retirement_age.
+// RED 3: the /retirement page + ModuleAvailabilityProvider read
+// users.target_retirement_age (NULL → default 67 + "When you want to retire"
+// outstanding). RED 1: the handler never busts the retirement analysis cache, so
+// on csjones (file cache, no tag support) the mid-walk profile=null analysis
+// persisted → zero recommendations → empty synthesis.
+
+it('capture_retirement_goals syncs users.target_retirement_age (RED 3)', function (): void {
+    $user = pensioncheckUser(['date_of_birth' => '1984-01-01', 'target_retirement_age' => null]);
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureRetirementGoals');
+    $method->setAccessible(true);
+
+    $method->invoke($coordinator, ['target_retirement_age' => 65, 'target_retirement_income' => 30000], $user, false);
+
+    expect((int) $user->fresh()->target_retirement_age)->toBe(65)
+        ->and((int) RetirementProfile::where('user_id', $user->id)->first()?->target_retirement_age)->toBe(65);
+});
+
+it('capture_retirement_goals busts the retirement analysis cache (RED 1)', function (): void {
+    $user = pensioncheckUser(['date_of_birth' => '1984-01-01']);
+    Cache::put("retirement_analysis_{$user->id}", 'STALE', 600);
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureRetirementGoals');
+    $method->setAccessible(true);
+
+    $method->invoke($coordinator, ['target_retirement_age' => 65, 'target_retirement_income' => 30000], $user, false);
+
+    expect(Cache::get("retirement_analysis_{$user->id}"))->toBeNull();
+});
+
+it('capture_state_pension busts the retirement analysis cache on a real write (RED 1)', function (): void {
+    $user = pensioncheckUser();
+    Cache::put("retirement_analysis_{$user->id}", 'STALE', 600);
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $method->invoke($coordinator, ['forecast_annual' => 11500, 'ni_years_completed' => 25], $user, false);
+
+    expect(Cache::get("retirement_analysis_{$user->id}"))->toBeNull();
 });
 
 // ── 10. Income carry via onboarding_parked_facts ──────────────────────────────
