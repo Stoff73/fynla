@@ -674,16 +674,17 @@ final class OnboardingStateMachine
             ],
             // Flexible access flag. Only shown when age >= 55 (current Minimum
             // Pension Access Age) and has_flexibly_accessed is not already set.
-            // update_record sets has_flexibly_accessed on dc_pensions. When
-            // skipped, applySkipRules follows the closure → enterCampaignVerify.
+            // Converted from grouped_extract to delegated: the model drives
+            // update_record when the user says "Yes"; "No" advances via
+            // advance_on_answered_question without any tool call. This mirrors
+            // campaign2_pension_pots which works reliably as delegated.
             self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => [
-                'turn_type' => 'grouped_extract',
+                'turn_type' => 'delegated',
                 'prompt_text' => "**Have you taken any money out of a pension — a lump sum or a regular income?** It matters because it can cap what you're allowed to pay in from now on.",
                 'capture_field' => null,
-                'extraction_tool' => 'update_record',
-                'retry_text' => 'Have you accessed a pension pot — taken a lump sum or started a regular income from it? A yes or no will do.',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
                 'skip_if' => [self::class, 'skipIfFlexibleAccessNotApplicable'],
+                'advance_on_answered_question' => true,
             ],
             // State Pension forecast. advance_on_answered_question: true so
             // "not sure" advances — the engine's no-forecast advice fires later.
@@ -1855,6 +1856,15 @@ final class OnboardingStateMachine
      */
     public static function nextFromCampaignDob(string $answer, User $user): string
     {
+        // PensionCheck is entirely about pensions — always enter the occupational-
+        // scheme step regardless of funnel_answers['assets']. The pensioncheck
+        // funnel uses funnel_answers['pensions'] (not 'assets'), so
+        // funnelHasAnyAsset would always return false and wrongly skip the
+        // entire pensions capture walk for these users.
+        if ($user->onboarding_fyn_selection === 'pensioncheck') {
+            return self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME;
+        }
+
         return self::funnelHasAnyAsset($user, ['pension'])
             ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
             : self::nextCampaignSection('pensions', $user);
@@ -1969,6 +1979,14 @@ final class OnboardingStateMachine
      */
     public static function nextFromSpouseWork(string $answer, User $user): string
     {
+        // For pensioncheck the spouse section captures pension data only — both
+        // earner modes route to campaign2_spouse_pensions. The savetax household-
+        // tax states (campaign_spouse_household, campaign_spouse_non_working_assets,
+        // campaign_advice_spouse) must never run for a pensioncheck user.
+        if ($user->onboarding_fyn_selection === 'pensioncheck') {
+            return self::STATE_CAMPAIGN2_SPOUSE_PENSIONS;
+        }
+
         return match ($user->household_calculation_mode) {
             'dual_earner' => self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             'single_earner_couple' => self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
@@ -2165,9 +2183,23 @@ final class OnboardingStateMachine
     {
         $missing = app(PensionStore::class)->hasDcPensionsMissingPotValue($user);
 
-        return $missing
-            ? self::STATE_CAMPAIGN2_PENSION_POTS
-            : self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+        if (! $missing) {
+            return self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+        }
+
+        // advance_on_answered_question fires when the user says they don't know
+        // the value — the delegated handler bypasses the stall check but still
+        // calls getNextStateId, which arrives here with the original message.
+        // A "don't know"/"not sure"/"skip" reply signals the user cannot provide
+        // the value; advance rather than loop the capture walk forever.
+        $lower = mb_strtolower(trim($answer));
+        foreach (['not sure', "don't know", 'do not know', 'unsure', 'skip', 'no idea'] as $token) {
+            if (str_contains($lower, $token)) {
+                return self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+            }
+        }
+
+        return self::STATE_CAMPAIGN2_PENSION_POTS;
     }
 
     /**
@@ -2240,7 +2272,14 @@ final class OnboardingStateMachine
             }
         }
 
-        $lead = "Welcome back, {$firstName}. Let's take a proper look at your pension. Here's what I already have from you:";
+        // Re-entrant users (onboarding_completed = true) are returning for a
+        // check-up — greet them back. Fresh users are mid-onboarding and have
+        // just supplied their income / employment; recap with a neutral hand-off
+        // phrase so it reads naturally as a confirm-before-continuing, not a
+        // "welcome back" to someone who just arrived.
+        $lead = $user->onboarding_completed
+            ? "Welcome back, {$firstName}. Let's take a proper look at your pension. Here's what I already have from you:"
+            : "Right, {$firstName} — before we go on, here's what I have so far:";
 
         if ($points !== []) {
             $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
@@ -2455,20 +2494,25 @@ final class OnboardingStateMachine
             $points[] = 'You have a spouse'.$spouseIncomeSuffix;
         }
 
-        $assetMap = [
-            'bank' => 'bank accounts', 'savings' => 'savings', 'pension' => 'a pension',
-            'property' => 'property', 'isa' => 'an ISA', 'investments' => 'investments',
+        // pensioncheck never produces funnel_answers['assets']; it produces
+        // funnel_answers['pensions'] (an array of pension type strings from the
+        // funnel checkboxes). Use that key so the recap line and the F12 time
+        // estimate reflect real data rather than an always-empty array.
+        $pensionTypeMap = [
+            'workplace' => 'a workplace pension',
+            'personal_sipp' => 'a personal or self-invested personal pension',
+            'final_salary' => 'a final salary or career average pension',
         ];
         $assets = array_values(array_filter(array_map(
-            fn ($a) => $assetMap[$a] ?? null,
-            is_array($funnel['assets'] ?? null) ? $funnel['assets'] : []
+            fn ($p) => $pensionTypeMap[$p] ?? null,
+            is_array($funnel['pensions'] ?? null) ? $funnel['pensions'] : []
         )));
         if ($assets !== []) {
             $points[] = 'You have '.self::joinWithAnd($assets);
         }
 
-        // F12 time estimate: 3-5 min base + 1 min per asset beyond the first.
-        $assetChoices = is_array($funnel['assets'] ?? null) ? $funnel['assets'] : [];
+        // F12 time estimate: 3-5 min base + 1 min per pension type beyond the first.
+        $assetChoices = is_array($funnel['pensions'] ?? null) ? $funnel['pensions'] : [];
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
 
