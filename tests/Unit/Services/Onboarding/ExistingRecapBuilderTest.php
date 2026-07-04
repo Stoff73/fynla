@@ -29,6 +29,10 @@ function recapUser(array $attrs = []): User
         'annual_self_employment_income' => null,
         'onboarding_fyn_path' => 'campaign',
         'onboarding_fyn_selection' => 'pensioncheck',
+        // Default to re-entrant (onboarding_completed = true) so the existing
+        // "Welcome back" assertions match the re-entrant path. Tests for the
+        // fresh-user path set onboarding_completed = false explicitly.
+        'onboarding_completed' => true,
     ], $attrs));
 }
 
@@ -251,4 +255,34 @@ it('produces a valid minimal recap when a user has no income or pensions yet', f
     // No income or pension bullets.
     expect($text)->not->toContain('Annual income');
     expect($text)->not->toContain('Aviva');
+});
+
+// ── M6: fresh-user lead-in (onboarding_completed = false) ────────────────────
+
+it('M6: fresh user (onboarding_completed false) gets the confirm-before-continuing lead-in', function (): void {
+    $user = recapUser(['onboarding_completed' => false]);
+    $text = SM::buildExistingRecapPrompt('', $user);
+
+    expect($text)->toStartWith('Right, Emma — before we go on, here\'s what I have so far:');
+});
+
+it('M6: fresh user lead-in still closes with the bold confirmation question', function (): void {
+    $user = recapUser(['onboarding_completed' => false]);
+    $text = SM::buildExistingRecapPrompt('', $user);
+
+    expect($text)->toContain('**Is that all still right?**');
+});
+
+it('M6: fresh user lead-in does not contain "Welcome back"', function (): void {
+    $user = recapUser(['onboarding_completed' => false]);
+    $text = SM::buildExistingRecapPrompt('', $user);
+
+    expect($text)->not->toContain('Welcome back');
+});
+
+it('M6: re-entrant user (onboarding_completed true) still gets the "Welcome back" lead-in', function (): void {
+    $user = recapUser(['onboarding_completed' => true]);
+    $text = SM::buildExistingRecapPrompt('', $user);
+
+    expect($text)->toStartWith("Welcome back, Emma. Let's take a proper look at your pension. Here's what I already have from you:");
 });
