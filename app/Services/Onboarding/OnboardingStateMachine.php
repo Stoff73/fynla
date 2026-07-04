@@ -644,6 +644,19 @@ final class OnboardingStateMachine
                 'prompt_text' => self::class.'::buildPensionPotsPrompt',
                 'capture_field' => null,
                 'next' => self::class.'::nextFromPensionPots',
+                // Entry skip: only surface the pot-value loop when a DC pension is
+                // actually missing its value. Zero DC pensions (e.g. the
+                // occupational_scheme capture produced none) or all-funded pots →
+                // skip straight to campaign_pension_contribs instead of running
+                // with buildPensionPotsPrompt's null fallback and letting the model
+                // ad-lib. The loop itself still exits via nextFromPensionPots.
+                'skip_if' => [self::class, 'skipIfNoPensionPotToFill'],
+                // This turn UPDATES an existing DC pension's value by id, but the
+                // onboarding capture context surfaces only record counts. Surface
+                // the DC pensions (with ids) as reference data so update_record can
+                // target the right row (handleAssetCaptureTurn appendix, verify-edit
+                // pattern). PHP-only field — not represented in the corpus workflow.
+                'record_context' => 'pensions',
                 'advance_on_answered_question' => true,
             ],
             // Defined Benefit / final salary pension capture. create_pension writes
@@ -2085,6 +2098,20 @@ final class OnboardingStateMachine
             ->get('income_tax.higher_rate_threshold', 50270);
 
         return $grossIncome <= $threshold;
+    }
+
+    /**
+     * Skip campaign2_pension_pots when no DC pension is missing a fund value.
+     *
+     * The pot-value loop only makes sense when there is at least one DC pension
+     * whose current_fund_value is not yet set (<= 0). Zero DC pensions, or every
+     * pot already valued, → skip the state entirely (the state's next resolver,
+     * nextFromPensionPots, then routes to campaign_pension_contribs). Prevents the
+     * state running with buildPensionPotsPrompt's generic null fallback.
+     */
+    public static function skipIfNoPensionPotToFill(User $user): bool
+    {
+        return ! app(PensionStore::class)->hasDcPensionsMissingPotValue($user);
     }
 
     /**

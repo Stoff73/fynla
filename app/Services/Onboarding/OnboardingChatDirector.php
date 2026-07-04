@@ -2619,6 +2619,14 @@ PROMPT;
         [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
 
+        // Update-by-id delegated states (e.g. campaign2_pension_pots) target an
+        // existing record, but the onboarding capture context surfaces only record
+        // counts — update_record has no entity_id to hit. Append the section's
+        // records (with ids) as reference data so the model can update the right
+        // row. Mirrors the verify-edit appendix; empty for capture states that
+        // declare no record_context (the create-only path is unchanged).
+        $restrictedPrompt .= $this->captureRecordContextAppendix($user, $state);
+
         try {
             $generator = $this->fynLoop->stream(
                 $user,
@@ -3075,6 +3083,31 @@ PROMPT;
      * types) for the verify-edit prompt, or a note that the section is stored
      * as profile fields (update_profile).
      */
+    /**
+     * Reference-data appendix for a delegated capture state that UPDATES an
+     * existing record by id (declared via the state's `record_context` section).
+     * The onboarding capture context surfaces only record counts, so update_record
+     * would have no entity_id to target; this lists the section's records with
+     * their ids. Non-directive framing (an instruction-style override block trips
+     * the model's prompt-injection refusal — see buildVerifyEditPrompt). Returns
+     * '' for states with no record_context, so the create-only capture path is
+     * byte-identical to before.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function captureRecordContextAppendix(User $user, array $state): string
+    {
+        $section = $state['record_context'] ?? null;
+        if (! is_string($section) || $section === '') {
+            return '';
+        }
+
+        return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section)
+            .' (record the value the user gives against the matching entity_id with '
+            ."update_record; do not add a new record):\n"
+            .$this->verifyEditRecordContext($user, $section);
+    }
+
     private function verifyEditRecordContext(User $user, string $section): string
     {
         switch ($section) {

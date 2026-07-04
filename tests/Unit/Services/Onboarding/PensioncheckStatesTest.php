@@ -7,6 +7,7 @@ use App\Models\AiConversation;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\User;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -248,6 +249,90 @@ it('buildPensionPotsPrompt names the scheme missing a fund value', function (): 
     ]);
     $prompt = SM::buildPensionPotsPrompt('', $user);
     expect($prompt)->toContain('Aviva Workplace Pension');
+});
+
+// ── 4b. Pension-pots entry skip (D1 Fix 2) ────────────────────────────────────
+// campaign2_pension_pots had no skip_if, so with zero DC pensions (e.g. the
+// occupational_scheme capture failed) it ran anyway, hit buildPensionPotsPrompt's
+// null fallback ("I've noted the current values…") and the model ad-libbed. The
+// state must skip when no DC pension is missing a value.
+
+it('skipIfNoPensionPotToFill returns true when the user has no DC pensions', function (): void {
+    $user = pensioncheckUser();
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeTrue();
+});
+
+it('skipIfNoPensionPotToFill returns false when a DC pension is missing its value', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeFalse();
+});
+
+it('skipIfNoPensionPotToFill returns true when every DC pension already has a value', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 45000]);
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeTrue();
+});
+
+it('campaign2_pension_pots is wired with the skip_if predicate', function (): void {
+    $state = SM::getState(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    expect($state['skip_if'] ?? null)->not->toBeNull();
+});
+
+it('applySkipRules skips campaign2_pension_pots to pension_contribs when nothing is missing', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 45000]);
+    expect(SM::applySkipRules(SM::STATE_CAMPAIGN2_PENSION_POTS, $user))
+        ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+});
+
+it('applySkipRules keeps campaign2_pension_pots when a pot value is missing', function (): void {
+    $user = pensioncheckUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+    expect(SM::applySkipRules(SM::STATE_CAMPAIGN2_PENSION_POTS, $user))
+        ->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS);
+});
+
+// ── 4c. Pension-pots update targeting (D1 Fix 2b) ─────────────────────────────
+// The pot-value turn updates an EXISTING DC pension by id, but the onboarding
+// CAPTURE context only surfaces record counts (dc_pensions_count), not ids —
+// so update_record had no entity_id to target. The state declares
+// record_context = 'pensions', and handleAssetCaptureTurn appends a reference
+// block listing the section's records with their ids (verify-edit pattern) to
+// the system-prompt override.
+
+it('campaign2_pension_pots declares the pensions record_context', function (): void {
+    $state = SM::getState(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    expect($state['record_context'] ?? null)->toBe('pensions');
+});
+
+it('capture record-context appendix lists the DC pension with its entity_id', function (): void {
+    $user = pensioncheckUser();
+    $pension = DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Aviva Workplace Pension',
+        'current_fund_value' => 0,
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toContain('entity_id: '.$pension->id)
+        ->and($appendix)->toContain('dc_pension')
+        ->and($appendix)->toContain('Aviva Workplace Pension')
+        ->and($appendix)->toContain('update_record');
+});
+
+it('capture record-context appendix is empty for a state without record_context', function (): void {
+    $user = pensioncheckUser();
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toBe('');
 });
 
 // ── 5. Campaign-section terminal routing ──────────────────────────────────────
