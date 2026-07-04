@@ -338,6 +338,18 @@ campaign_synthesis:
   capture_field: null
   next: campaign_terminal
 
+campaign2_advice_state_pension:
+  turn_type: advice
+  advice_section: state_pension
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign2_advice_retirement_goals:
+  turn_type: advice
+  advice_section: retirement_goals
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
 campaign_verify_more:
   turn_type: bubbles
   prompt_text: { builder: verifyPromptMore }

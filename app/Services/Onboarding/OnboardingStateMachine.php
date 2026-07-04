@@ -148,6 +148,11 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN2_TERMINAL = 'campaign2_terminal';
 
+    // Per-section advice turns for pensioncheck-only sections.
+    public const STATE_CAMPAIGN2_ADVICE_STATE_PENSION = 'campaign2_advice_state_pension';
+
+    public const STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS = 'campaign2_advice_retirement_goals';
+
     /**
      * Marker a prompt string can carry to render as multiple chat bubbles —
      * e.g. a "what we've heard" recap followed by the actual question. The
@@ -824,6 +829,19 @@ final class OnboardingStateMachine
                 // auto-advance and a self-edge recurses unbounded (PR #504 incident).
                 'next' => self::class.'::nextFromCampaignSynthesis',
             ],
+            // ── Pensioncheck per-section advice turns ──────────────────────
+            self::STATE_CAMPAIGN2_ADVICE_STATE_PENSION => [
+                'turn_type' => 'advice',
+                'advice_section' => 'state_pension',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('state_pension', $user),
+            ],
+            self::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS => [
+                'turn_type' => 'advice',
+                'advice_section' => 'retirement_goals',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('retirement_goals', $user),
+            ],
             // ── SaveTax verify sub-flow (generic; section in context) ──────
             // Entered via enterCampaignVerify() which stamps verify_section.
             'campaign_verify_more' => [
@@ -1209,6 +1227,11 @@ final class OnboardingStateMachine
             'investments' => self::STATE_CAMPAIGN_ADVICE_INVESTMENTS,
             'pensions' => self::STATE_CAMPAIGN_ADVICE_PENSIONS,
             'spouse' => self::STATE_CAMPAIGN_ADVICE_SPOUSE,
+            // Pensioncheck-only sections: state_pension and retirement_goals each
+            // have their own advice states so the advice turn fires (even if it
+            // emits nothing, the flow auto-advances correctly).
+            'state_pension' => self::STATE_CAMPAIGN2_ADVICE_STATE_PENSION,
+            'retirement_goals' => self::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS,
         ][$section] ?? null;
     }
 
