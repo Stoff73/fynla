@@ -2688,6 +2688,7 @@ PROMPT;
             // prose in that case is almost always off-script.
             $toolCallsSeen = 0;
             $toolWritesLanded = 0;
+            $sawFailedWrite = false;
             $writeFailureMessages = [];
             $ackShown = false;
             $contentBuffer = '';
@@ -2713,9 +2714,19 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection, $userAskedQuestion) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, $selection, $userAskedQuestion) {
                 $flushed = true;
-                if ($contentBuffer === '' || ($toolCallsSeen === 0 && ! $userAskedQuestion)) {
+                // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
+                // captured this turn: either no tool ran at all, or a write was
+                // attempted and FAILED / was blocked (a duplicate warning lands
+                // nothing). Its confident "Recorded — £200 monthly" must not reach
+                // the user, and suppressing it keeps $ackShown false so the honest
+                // failure line below can fire. A landed write, a fill_form (the B-1
+                // gap-fill creates it after done), or a question the answer belongs
+                // to still shows.
+                $nothingCaptured = $toolWritesLanded === 0 && $llmEmittedFills === []
+                    && ($toolCallsSeen === 0 || $sawFailedWrite);
+                if ($contentBuffer === '' || ($nothingCaptured && ! $userAskedQuestion)) {
                     $contentBuffer = '';
 
                     return null;
@@ -2754,8 +2765,14 @@ PROMPT;
                 if ($type === 'capture_write_result') {
                     if (($event['landed'] ?? false) === true) {
                         $toolWritesLanded++;
-                    } elseif (is_string($event['message'] ?? null) && $event['message'] !== '') {
-                        $writeFailureMessages[] = (string) $event['message'];
+                    } else {
+                        // A blocked duplicate carries no message; a validation
+                        // failure does. Either way a write was attempted and
+                        // nothing landed — enough to suppress a false "Recorded".
+                        $sawFailedWrite = true;
+                        if (is_string($event['message'] ?? null) && $event['message'] !== '') {
+                            $writeFailureMessages[] = (string) $event['message'];
+                        }
                     }
 
                     continue;
@@ -2845,18 +2862,22 @@ PROMPT;
         // question turn whose only write failed advanced as if captured.
         $capturedSomething = $toolWritesLanded > 0 || count($llmEmittedFills) > 0;
 
-        // WP-1 — every attempted write failed and nothing user-visible was
-        // said about it: name what could not be saved rather than moving on
-        // in silence (the model's own prose, when present, already carries
-        // the CAPTURE_WRITE_FAILED explanation).
-        if ($toolCallsSeen > 0 && $toolWritesLanded === 0
-            && $writeFailureMessages !== [] && ! $ackShown) {
-            $failureText = "I couldn't save that — ".rtrim($writeFailureMessages[0], '.')
-                .'. Give me the missing detail and I will try again.';
+        // WP-1 / F5 — every attempted write failed or was blocked and the
+        // model's success ack was suppressed above: say plainly what happened
+        // rather than moving on in silence. A validation failure names the
+        // reason; a blocked duplicate (no failure message) gets a truthful
+        // "nothing new" line so Fyn never claims a figure it did not record.
+        if ($sawFailedWrite && $toolWritesLanded === 0 && $llmEmittedFills === [] && ! $ackShown) {
+            $failureText = $writeFailureMessages !== []
+                ? "I couldn't save that — ".rtrim($writeFailureMessages[0], '.')
+                    .'. Give me the missing detail and I will try again.'
+                : "I couldn't record anything new there. If a figure has changed, "
+                    .'tell me the specific amount and I will update it.';
             yield ['type' => 'content', 'text' => $failureText];
             $this->saveMessage($conversation, 'assistant', $failureText, [
                 'metadata' => ['onboarding_step' => $currentStateId, 'capture_write_failed' => true],
             ]);
+            $ackShown = true;
         }
 
         $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true

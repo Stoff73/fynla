@@ -118,6 +118,46 @@ it('holds a question turn whose only write failed instead of advancing', functio
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
+it('does not ack "Recorded" when the only write was a blocked duplicate (D1 round 4)', function () {
+    // user 168 SIPP turn: the model narrated "Recorded — £200 monthly" but its
+    // create_pension was a blocked duplicate (warning, existing_id) — nothing
+    // landed, no message. The confident ack must never reach the user.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
+        'onboarding_fyn_selection' => 'pensioncheck',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding',
+    ]);
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'Recorded — £200 monthly into Personal Pension.'],
+        ['type' => 'tool_use', 'tool' => 'create_pension', 'status' => 'running'],
+        // Deduped create: not an error, so HasAiChat emits landed=false, message=null.
+        ['type' => 'capture_write_result', 'tool' => 'create_pension', 'landed' => false, 'message' => null],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, 'About £200 a month into the personal pension'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $contentTexts = collect($received)
+        ->filter(fn (array $e) => ($e['type'] ?? null) === 'content')
+        ->pluck('text');
+
+    // The false success ack must be gone.
+    expect($contentTexts->contains(fn (string $t) => str_contains($t, 'Recorded')))->toBeFalse();
+    // No "Recorded …" success ack persisted either.
+    expect($conversation->messages()->where('content', 'like', '%Recorded — £200%')->exists())->toBeFalse();
+});
+
 it('still advances a question turn whose write landed', function () {
     [$user, $conversation] = captureFailureUser();
 
