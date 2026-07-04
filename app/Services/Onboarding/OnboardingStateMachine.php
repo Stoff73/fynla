@@ -615,6 +615,15 @@ final class OnboardingStateMachine
                 // For pensioncheck: advances to campaign2_pension_db (Defined Benefit
                 // capture) before closing the pensions section.
                 'next' => self::class.'::nextFromCampaignPensionContribs',
+                // Contribution reference context: when the user states a contribution
+                // against an EXISTING personal pension, steer the model to update it
+                // (monthly_contribution_amount) rather than creating a duplicate. The
+                // appendix injects only when a personal pension (pension_type
+                // personal/sipp/stakeholder) is on file, so a workplace-only user —
+                // the standard savetax path — still creates the new SIPP unchanged.
+                // PHP-only field, not represented in the corpus workflow.
+                'record_context' => 'pensions',
+                'record_context_mode' => 'contribution',
                 'advance_on_answered_question' => true,
             ],
             // ── PensionCheck-specific states (Task C3) ───────────────────────────

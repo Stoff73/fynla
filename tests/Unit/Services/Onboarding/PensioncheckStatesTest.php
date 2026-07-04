@@ -338,6 +338,66 @@ it('capture record-context appendix is empty for a state without record_context'
     expect($appendix)->toBe('');
 });
 
+// ── 4c-ii. Contribution turn updates the existing pension (D1 round 5) ─────────
+// campaign_pension_contribs let the model create a DUPLICATE personal pension
+// when the user stated a contribution against an existing one. It now carries the
+// existing-personal-pension reference context so the model calls update_record,
+// gated on a personal pension (pension_type personal/sipp/stakeholder) being
+// present — a workplace-only (occupational) user still creates the new SIPP,
+// keeping the savetax path byte-identical.
+
+it('campaign_pension_contribs declares the contribution record_context mode', function (): void {
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    expect($state['record_context'] ?? null)->toBe('pensions')
+        ->and($state['record_context_mode'] ?? null)->toBe('contribution');
+});
+
+it('contribution appendix references the existing personal pension for update', function (): void {
+    $user = pensioncheckUser();
+    $pension = DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Personal Pension',
+        'pension_type' => 'personal',
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toContain('entity_id: '.$pension->id)
+        ->and($appendix)->toContain('Personal Pension')
+        ->and($appendix)->toContain('update_record')
+        ->and($appendix)->toContain('create_pension'); // still offers create for a genuinely new one
+});
+
+it('contribution appendix is empty when the user has only a workplace pension (savetax-safe)', function (): void {
+    $user = pensioncheckUser();
+    // Workplace pension only — pension_type occupational must NOT trigger the injection.
+    DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Acme Workplace Pension',
+        'pension_type' => 'occupational',
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toBe('');
+});
+
+it('contribution appendix is empty when the user has no pension yet', function (): void {
+    $user = pensioncheckUser();
+    $director = app(OnboardingChatDirector::class);
+    $state = SM::getState(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $appendix = (new ReflectionMethod($director, 'captureRecordContextAppendix'))
+        ->invoke($director, $user, $state);
+
+    expect($appendix)->toBe('');
+});
+
 // ── 4d. Campaign-aware terminal CTA (D1 Fix 4) ────────────────────────────────
 // emitTerminalNavigationTurn hardcoded the bubble id 'view_strategy' + label
 // "Take me to my tax strategy" for every campaign, so the pensioncheck terminal

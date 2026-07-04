@@ -3148,6 +3148,29 @@ PROMPT;
             return '';
         }
 
+        // Contribution mode (campaign_pension_contribs): the user may be adding a
+        // contribution to a pension already on file, or describing a genuinely new
+        // one. Only steer toward update when an existing PERSONAL pension is present
+        // — a user whose only pension is the workplace scheme (occupational) still
+        // creates the new SIPP, so the standard savetax path is byte-identical.
+        if (($state['record_context_mode'] ?? '') === 'contribution') {
+            $personal = app(PensionStore::class)->personalDcPensionsFor($user);
+            if ($personal->isEmpty()) {
+                return '';
+            }
+            $rows = $personal
+                ->map(fn ($p): string => '- entity_type: dc_pension, entity_id: '.$p->id.' — "'
+                    .$p->scheme_name.'" ('.($p->provider ?: 'provider unknown').')')
+                ->implode("\n");
+
+            return "\n\nReference — the user's existing personal pensions:\n".$rows
+                ."\n\nIf the contribution the user just described is a payment into one of the "
+                .'pensions listed above (for example "£200 a month into my personal pension"), '
+                .'call update_record with that entity_id to set its monthly_contribution_amount '
+                .'— do NOT create a new pension for it. Only call create_pension when they are '
+                .'describing a genuinely different pension that is not listed above.';
+        }
+
         return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section)
             .' (record the value the user gives against the matching entity_id with '
             ."update_record; do not add a new record):\n"
