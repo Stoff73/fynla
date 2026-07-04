@@ -6,6 +6,7 @@ use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
@@ -463,6 +464,64 @@ it('campaign2_state_pension uses the capture_state_pension extraction tool', fun
 it('campaign2_state_pension has a retry_text with example figures', function (): void {
     $state = SM::getState(SM::STATE_CAMPAIGN2_STATE_PENSION);
     expect($state['retry_text'] ?? '')->toContain('qualifying years');
+});
+
+// ── 9b. capture_state_pension garbage-row guard (D1 Fix 3) ─────────────────────
+// When the user said "not sure", the live model called capture_state_pension
+// with forecast_annual=0, ni_years_completed=0, state_pension_age=0. Those
+// explicit zeros passed the old `!== null` filter and wrote a garbage
+// state_pensions row (forecast 0 / ni 0 / age 0), which kills the no-forecast
+// advice trigger and the row-existence skip. Reject all-zero calls.
+
+it('capture_state_pension rejects an all-zero call without writing a row', function (): void {
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 0,
+        'ni_years_completed' => 0,
+        'state_pension_age' => 0,
+    ], $user, false);
+
+    // No row written.
+    expect(StatePension::where('user_id', $user->id)->exists())->toBeFalse();
+    // Not framed as a successful capture.
+    expect($result['onboarding_capture'] ?? false)->toBeFalse();
+});
+
+it('capture_state_pension writes a row for a genuine forecast', function (): void {
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 11500,
+        'ni_years_completed' => 25,
+    ], $user, false);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue();
+    $row = StatePension::where('user_id', $user->id)->first();
+    expect($row)->not->toBeNull()
+        ->and((float) $row->state_pension_forecast_annual)->toBe(11500.0)
+        ->and((int) $row->ni_years_completed)->toBe(25);
+});
+
+it('capture_state_pension writes a row when only the age is positive', function (): void {
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 0,
+        'state_pension_age' => 67,
+    ], $user, false);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue();
+    expect((int) StatePension::where('user_id', $user->id)->first()?->state_pension_age)->toBe(67);
 });
 
 // ── 10. Income carry via onboarding_parked_facts ──────────────────────────────
