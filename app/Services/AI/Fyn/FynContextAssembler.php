@@ -353,6 +353,7 @@ RULES;
             'business' => 'Business',
             'goals' => 'Goals',
             'savetax' => 'SaveTax',
+            'pensioncheck' => 'Pension Check',
             default => (string) $focus,
         };
     }
