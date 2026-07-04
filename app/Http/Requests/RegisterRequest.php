@@ -62,6 +62,11 @@ class RegisterRequest extends FormRequest
             'funnel_answers.spouseIncome' => ['nullable', 'string', 'max:40'],
             'funnel_answers.assets' => ['nullable', 'array'],
             'funnel_answers.assets.*' => ['string', 'max:40'],
+            // pensioncheck funnel-specific keys (absent from savetax)
+            'funnel_answers.age' => ['nullable', 'string', 'max:20'],
+            'funnel_answers.pensions' => ['nullable', 'array'],
+            'funnel_answers.pensions.*' => ['string', 'max:30'],
+            'funnel_answers.pot' => ['nullable', 'string', 'max:20'],
         ];
     }
 
