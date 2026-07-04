@@ -157,5 +157,39 @@ it('has a valid state id for every configured campaign entry', function () {
         expect($value)->toBeArray("campaign_map entry '{$key}' must be array-shaped, not a bare string");
         expect($value)->toHaveKeys(['selection', 'entry', 'reentry']);
         expect($validStates)->toContain($value['entry']);
+
+        // When reentry_entry is present it must also resolve to a valid state.
+        if (isset($value['reentry_entry'])) {
+            expect($validStates)->toContain(
+                $value['reentry_entry'],
+                "campaign_map['{$key}']['reentry_entry'] must be a valid state id"
+            );
+        }
     }
+});
+
+/**
+ * Task C6 — real config shape.
+ *
+ * Reads config/onboarding.php directly (bypassing the beforeEach synthetic injection)
+ * to assert that the pensioncheck entry Task C6 adds has the correct shape and that
+ * its reentry_entry resolves to a real state.
+ */
+it('real config/onboarding.php has pensioncheck with reentry=true and reentry_entry=campaign2_existing_recap', function () {
+    // Load the real PHP file — bypasses config()->set() overrides in beforeEach.
+    $realConfig = require base_path('config/onboarding.php');
+    $validStates = array_keys(OnboardingStateMachine::states());
+
+    expect($realConfig['campaign_map'])->toHaveKey('pensioncheck');
+
+    $pc = $realConfig['campaign_map']['pensioncheck'];
+    expect($pc['selection'])->toBe('pensioncheck');
+    expect($pc['entry'])->toBe('base_work');
+    expect($pc['reentry'])->toBeTrue();
+    expect($pc)->toHaveKey('reentry_entry');
+    expect($pc['reentry_entry'])->toBe('campaign2_existing_recap');
+
+    // Both entry and reentry_entry must exist in the state machine.
+    expect($validStates)->toContain($pc['entry']);
+    expect($validStates)->toContain($pc['reentry_entry']);
 });

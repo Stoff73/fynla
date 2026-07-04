@@ -184,15 +184,85 @@ campaign_occupational_scheme:
   turn_type: delegated
   prompt_text: "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on."
   capture_field: null
-  next: campaign_pension_contribs
+  next: { branch: nextFromCampaignOccupationalScheme }
   advance_on_answered_question: true
 
 campaign_pension_contribs:
   turn_type: delegated
   prompt_text: 'Beyond the workplace pension we covered, **do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?**'
   capture_field: null
+  next: { branch: nextFromCampaignPensionContribs }
+  advance_on_answered_question: true
+
+campaign2_existing_recap:
+  turn_type: bubbles
+  prompt_text: { builder: buildExistingRecapPrompt }
+  bubbles:
+    - { id: 'yes', label: "Yes, that's right" }
+    - { id: 'changed', label: "Something's changed" }
+  capture_field: null
+  next: { branch: nextFromExistingRecap }
+
+campaign2_pension_pots:
+  turn_type: delegated
+  prompt_text: { builder: buildPensionPotsPrompt }
+  capture_field: null
+  next: { branch: nextFromPensionPots }
+  advance_on_answered_question: true
+
+campaign2_pension_db:
+  turn_type: delegated
+  prompt_text: "**Do you have any final salary or career average pensions — the kind that pay a guaranteed income rather than building a pot?** If so, tell me the scheme name and the yearly pension you've built up so far."
+  capture_field: null
+  next: campaign_pension_history
+  advance_on_answered_question: true
+
+campaign_pension_history:
+  turn_type: grouped_extract
+  prompt_text: "**Roughly how much has gone into your pensions in each of the last three tax years?** Rough figures are fine — it helps work out how much you could still put in with tax relief."
+  capture_field: null
+  extraction_tool: capture_pension_history
+  retry_text: 'Give me a year-by-year breakdown — for example: 2024/25: £5,000, 2023/24: £8,000, 2022/23: £6,000. Rough figures are fine.'
+  next: campaign2_flexible_access
+  clarify_single_figure: true
+
+campaign2_flexible_access:
+  turn_type: delegated
+  prompt_text: "**Have you taken any money out of a pension — a lump sum or a regular income?** It matters because it can cap what you're allowed to pay in from now on."
+  capture_field: null
   next: { branch: enterCampaignVerify }
   advance_on_answered_question: true
+
+campaign2_state_pension:
+  turn_type: grouped_extract
+  prompt_text: "**Do you know your State Pension forecast?** You can check it in a couple of minutes on the government's Check your State Pension service. If you have it, tell me the yearly amount and how many qualifying years you've built up."
+  capture_field: null
+  extraction_tool: capture_state_pension
+  retry_text: "If you know it, give me the yearly forecast and your qualifying years — for example £10,000 a year, 25 qualifying years. If you're not sure, just say so and we'll note the gap."
+  next: { branch: enterCampaignVerify }
+  advance_on_answered_question: true
+
+campaign2_retirement_goals:
+  turn_type: grouped_extract
+  prompt_text: '**When would you like to retire, and what yearly income would feel comfortable?** Rough numbers are fine — for example 65 and £30,000.'
+  capture_field: null
+  extraction_tool: capture_retirement_goals
+  retry_text: 'Give me an age and a yearly amount — for example 67 and £28,000.'
+  next: { branch: enterCampaignVerify }
+
+campaign2_spouse_pensions:
+  turn_type: delegated
+  prompt_text: '**Does your spouse have pensions of their own?** Tell me the type and a rough value for each — workplace, personal, or final salary.'
+  capture_field: null
+  next: { branch: enterCampaignVerify }
+  advance_on_answered_question: true
+
+campaign2_terminal:
+  turn_type: terminal
+  prompt_text: "We've built your pension picture, {first_name}."
+  capture_field: null
+  navigate_to: /retirement
+  next: done
 
 campaign_spouse_work:
   turn_type: bubbles
@@ -266,6 +336,18 @@ campaign_synthesis:
   advice_section: synthesis
   capture_field: null
   next: campaign_terminal
+
+campaign2_advice_state_pension:
+  turn_type: advice
+  advice_section: state_pension
+  capture_field: null
+  next: { branch: nextCampaignSection }
+
+campaign2_advice_retirement_goals:
+  turn_type: advice
+  advice_section: retirement_goals
+  capture_field: null
+  next: { branch: nextCampaignSection }
 
 campaign_verify_more:
   turn_type: bubbles

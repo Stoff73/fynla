@@ -115,6 +115,8 @@ class XaiToolDefinitions
             'campaign.tool.capture_spouse_non_working_assets',
             'campaign.tool.capture_pension_history',
             'campaign.tool.capture_charitable_giving',
+            'campaign.tool.capture_retirement_goals',
+            'campaign.tool.capture_state_pension',
         ],
         'handoff' => ['handoff.tool.delegate_to_capture', 'handoff.tool.capture_complete'],
     ];

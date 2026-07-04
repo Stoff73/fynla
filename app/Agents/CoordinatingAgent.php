@@ -35,7 +35,9 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
+use App\Models\StatePension;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\TaxStrategyHouseholdInput;
@@ -980,6 +982,9 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
                 'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser, $conversationId),
                 'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
+                // PensionCheck campaign — retirement goals + state pension
+                'capture_retirement_goals' => $this->handleCaptureRetirementGoals($input, $user, $isPreviewUser, $conversationId),
+                'capture_state_pension' => $this->handleCaptureStatePension($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
@@ -4465,6 +4470,195 @@ class CoordinatingAgent extends BaseAgent
                 ? sprintf('Annual Gift Aid donations recorded as £%s.', number_format($amount, 0))
                 : 'No Gift Aid donations recorded.',
             'details' => ['annual_charitable_donations' => $amount],
+        ];
+    }
+
+    /**
+     * capture_retirement_goals — writes target_retirement_age and/or
+     * target_retirement_income to retirement_profiles.
+     *
+     * target_retirement_age is NOT NULL in the schema so a new record cannot be
+     * created without it. When only income is supplied and no profile exists, the
+     * handler returns a partial-capture response and writes nothing — the caller
+     * must ask the user for their target retirement age first.
+     */
+    private function handleCaptureRetirementGoals(array $input, User $user, bool $isPreview, ?int $conversationId = null): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('retirement');
+        }
+
+        $age = isset($input['target_retirement_age']) ? (int) $input['target_retirement_age'] : null;
+        $income = isset($input['target_retirement_income']) ? (float) $input['target_retirement_income'] : null;
+
+        if ($age === null && $income === null) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide a target retirement age, an income, or both.'];
+        }
+
+        if ($age !== null && ($age < 55 || $age > 75)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Target retirement age must be between 55 and 75.'];
+        }
+
+        if ($income !== null && $income < 0) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Target retirement income must be 0 or more.'];
+        }
+
+        $existing = RetirementProfile::where('user_id', $user->id)->first();
+
+        if ($existing !== null) {
+            $updates = array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null);
+            $existing->update($updates);
+        } elseif ($age !== null) {
+            // On the first turn only income may have been provided (the partial-retry
+            // protocol kept us on this state). Merge any parked income so it is not
+            // silently dropped when the LLM re-calls the tool with age only.
+            if ($income === null) {
+                $income = $this->retrieveParkedRetirementGoalIncome($conversationId);
+            }
+            $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 30;
+            $creates = array_filter(['target_retirement_income' => $income], fn ($v) => $v !== null);
+            RetirementProfile::create([
+                'user_id' => $user->id,
+                'current_age' => $currentAge,
+                'target_retirement_age' => $age,
+                ...$creates,
+            ]);
+            // Clear the parked income — it has now been committed to the profile.
+            $this->clearParkedRetirementGoalIncome($conversationId);
+        } else {
+            // Income only — cannot create a profile without target_retirement_age.
+            // Park the income in the conversation so it survives the partial-retry
+            // and is carried forward even if the LLM re-calls with age only.
+            $this->parkRetirementGoalIncome($conversationId, $income);
+
+            return [
+                'onboarding_capture' => true,
+                'field_group' => 'campaign_retirement_goals',
+                'summary' => 'Income target noted — still need the retirement age to save the goal.',
+                'details' => ['missing' => ['target_retirement_age']],
+            ];
+        }
+
+        $parts = [];
+        if ($age !== null) {
+            $parts[] = sprintf('retirement age %d', $age);
+        }
+        if ($income !== null) {
+            $parts[] = sprintf('income £%s per year', number_format($income, 0));
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_retirement_goals',
+            'summary' => 'Retirement goals recorded: '.implode(', ', $parts).'.',
+            'details' => array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null),
+        ];
+    }
+
+    /**
+     * Stash the income figure in `ai_conversations.onboarding_parked_facts` so
+     * it survives a partial-retry turn and can be merged into the next call.
+     */
+    private function parkRetirementGoalIncome(?int $conversationId, ?float $income): void
+    {
+        if ($conversationId === null || $income === null) {
+            return;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        if ($conv === null) {
+            return;
+        }
+
+        $parked = is_array($conv->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+        $parked['retirement_goals'] = ['target_retirement_income' => $income];
+        $conv->update(['onboarding_parked_facts' => $parked]);
+    }
+
+    /** Retrieve the parked income figure (null when nothing was stashed). */
+    private function retrieveParkedRetirementGoalIncome(?int $conversationId): ?float
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        $parked = is_array($conv?->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+
+        $income = $parked['retirement_goals']['target_retirement_income'] ?? null;
+
+        return $income !== null ? (float) $income : null;
+    }
+
+    /** Remove the parked retirement-goals bucket after the income has been committed. */
+    private function clearParkedRetirementGoalIncome(?int $conversationId): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        if ($conv === null) {
+            return;
+        }
+
+        $parked = is_array($conv->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+        unset($parked['retirement_goals']);
+        $conv->update(['onboarding_parked_facts' => $parked === [] ? null : $parked]);
+    }
+
+    /**
+     * capture_state_pension — writes state_pension_forecast_annual,
+     * ni_years_completed, and/or state_pension_age to state_pensions.
+     * All columns are nullable (or have DB defaults) so updateOrCreate is safe
+     * with any subset of the three parameters.
+     */
+    private function handleCaptureStatePension(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('retirement');
+        }
+
+        $forecastAnnual = isset($input['forecast_annual']) ? (float) $input['forecast_annual'] : null;
+        $niYears = isset($input['ni_years_completed']) ? (int) $input['ni_years_completed'] : null;
+        $spAge = isset($input['state_pension_age']) ? (int) $input['state_pension_age'] : null;
+
+        if ($forecastAnnual === null && $niYears === null && $spAge === null) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide at least one State Pension field.'];
+        }
+
+        if ($forecastAnnual !== null && $forecastAnnual < 0) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension forecast must be 0 or more.'];
+        }
+
+        if ($niYears !== null && ($niYears < 0 || $niYears > 60)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'National Insurance qualifying years must be between 0 and 60.'];
+        }
+
+        $updates = array_filter([
+            'state_pension_forecast_annual' => $forecastAnnual,
+            'ni_years_completed' => $niYears,
+            'state_pension_age' => $spAge,
+        ], fn ($v) => $v !== null);
+
+        StatePension::updateOrCreate(['user_id' => $user->id], $updates);
+
+        $parts = [];
+        if ($forecastAnnual !== null) {
+            $parts[] = sprintf('forecast £%s per year', number_format($forecastAnnual, 0));
+        }
+        if ($niYears !== null) {
+            $parts[] = sprintf('%d National Insurance qualifying years', $niYears);
+        }
+        if ($spAge !== null) {
+            $parts[] = sprintf('State Pension age %d', $spAge);
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_state_pension',
+            'summary' => 'State Pension details recorded: '.implode(', ', $parts).'.',
+            'details' => $updates,
         ];
     }
 

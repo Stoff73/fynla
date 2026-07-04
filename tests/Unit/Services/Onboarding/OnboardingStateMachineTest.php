@@ -39,6 +39,16 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
+            // PensionCheck-specific states (Task C3)
+            OnboardingStateMachine::STATE_CAMPAIGN2_EXISTING_RECAP,
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB,
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
+            OnboardingStateMachine::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_STATE_PENSION,
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_SPOUSE_PENSIONS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_TERMINAL,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
@@ -49,6 +59,9 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
             OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS,
+            // Pensioncheck per-section advice turns (Task C5)
+            OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_STATE_PENSION,
+            OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS,
             // SaveTax verify sub-flow (generic; section carried in onboarding_fyn_context)
             'campaign_verify_announce',
             'campaign_verify_more',

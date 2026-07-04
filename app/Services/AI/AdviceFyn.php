@@ -173,6 +173,7 @@ final class AdviceFyn
         'capture_salary_sacrifice', 'capture_spouse_work_status',
         'capture_spouse_household_data', 'capture_spouse_non_working_assets',
         'capture_pension_history', 'capture_charitable_giving',
+        'capture_retirement_goals', 'capture_state_pension',
         // S0.5.r — every persistent record-creation tool now flows through
         // the delegate_to_capture handoff. No analytics carve-out:
         // create_what_if_scenario persists a WhatIfScenario row and must

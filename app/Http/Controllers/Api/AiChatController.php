@@ -706,13 +706,16 @@ class AiChatController extends Controller
         if ($matchedCampaign !== null) {
             $user->onboarding_fyn_path = 'campaign';
             $user->onboarding_fyn_selection = $matchedCampaign;
-            // SaveTax campaign is section-led: lead with income (most relevant to
-            // the tax goal). Employment is already known from the funnel, so we
-            // open at base_work (income details) with the recap greeting; DOB is
-            // deferred to the pensions section. Sequence is driven by
-            // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
-            $user->onboarding_fyn_step = $campaignEntry['entry'];
-            $startStateId = $campaignEntry['entry'];
+            // Campaign entry state: completed users re-entering a campaign land at
+            // reentry_entry (if the map carries one) rather than the plain entry —
+            // e.g. pensioncheck re-entrants open at campaign2_existing_recap so Fyn
+            // recaps their known data first. Fresh (incomplete) users always use entry
+            // even when the campaign is reentry-enabled.
+            $stepId = ($reentryCampaign !== null && $user->onboarding_completed === true)
+                ? ($reentryCampaign['reentry_entry'] ?? $campaignEntry['entry'])
+                : $campaignEntry['entry'];
+            $user->onboarding_fyn_step = $stepId;
+            $startStateId = $stepId;
             // Re-entry: stamp active_campaign so routesToOnboardingDirector routes
             // subsequent messages from this completed user to the director while
             // the campaign session is in progress.

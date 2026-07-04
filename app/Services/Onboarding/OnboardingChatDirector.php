@@ -21,7 +21,9 @@ use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
@@ -870,6 +872,14 @@ final class OnboardingChatDirector
      * returned) — gift_aid_higher_rate_relief requires a live charitable-giving
      * figure and is covered in the synthesis turn.
      */
+    /**
+     * Strategy types voiced per savetax section — keys are section names,
+     * values are the composed-tax-plan item types to surface (plan order wins
+     * within the cap of two items; gift_aid_higher_rate_relief requires a live
+     * charitable-giving figure and is covered in the synthesis turn).
+     *
+     * @var array<string, list<string>>
+     */
     private const SECTION_STRATEGY_TYPES = [
         'income' => ['pa_taper_rescue', 'additional_rate_avoidance', 'tapered_annual_allowance'],
         'savings' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'],
@@ -880,16 +890,50 @@ final class OnboardingChatDirector
     ];
 
     /**
-     * Build the conversational advice for a completed section from the composed
-     * tax plan catalogue. Numbers come from the engine (Rule #2); Fyn only
-     * phrases them. Plan order is respected — the composer's sequencing and
-     * conflict resolution are already applied. Returns null when there are no
-     * applicable strategies for the section.
+     * Strategy types voiced per pensioncheck section — keys are section names,
+     * values are the composed-retirement-plan item types to surface. These are
+     * the source='strategy' type IDs from RetirementActionDefinitionSeeder.
+     *
+     * Mapping rationale:
+     * - pensions: contribution/sacrifice types that fire for DC-pension users
+     * - state_pension: empty — ni_gaps/state_pension_no_forecast are agent-sourced
+     *   and not in the strategy catalogue; the advice turn fires but emits nothing
+     * - retirement_goals: plan_retirement_income fires when decumulation planning
+     *   is relevant (user within 10 years of retirement with DC pension value)
+     *
+     * @var array<string, list<string>>
+     */
+    private const PENSIONCHECK_SECTION_STRATEGY_TYPES = [
+        'pensions' => ['increase_pension_contribution', 'salary_sacrifice_pension', 'carry_forward_unused_allowance'],
+        'state_pension' => [],
+        'retirement_goals' => ['plan_retirement_income'],
+    ];
+
+    /**
+     * Build the conversational advice for a completed section. Routes to the
+     * correct plan source (tax or retirement) based on the user's campaign
+     * selection and the section name.
+     *
+     * Numbers come from the engine (Rule #2); Fyn only phrases them. Plan order
+     * is respected. Returns null when there are no applicable strategies for the
+     * section.
      */
     private function buildSectionAdvice(User $user, string $section): ?string
     {
         if ($section === 'synthesis') {
             return $this->buildSynthesisAdvice($user);
+        }
+
+        // Pensioncheck sections use the composed retirement plan. Sections outside
+        // the retirement map (e.g. spouse, income, savings) must stay silent — they
+        // have no pensioncheck advice and must not fall through to savetax builders.
+        $campaign = $user->onboarding_fyn_selection ?? 'savetax';
+        if ($campaign === 'pensioncheck') {
+            if (array_key_exists($section, self::PENSIONCHECK_SECTION_STRATEGY_TYPES)) {
+                return $this->buildRetirementSectionAdvice($user, $section);
+            }
+
+            return null;
         }
 
         $wanted = self::SECTION_STRATEGY_TYPES[$section] ?? null;
@@ -945,6 +989,58 @@ final class OnboardingChatDirector
     }
 
     /**
+     * Build per-section advice for pensioncheck sections from the composed
+     * retirement plan. Same voicing shape as the savetax section advice — at
+     * most two items, tiered claim prefix, F6 actions-list notice. Returns null
+     * when PENSIONCHECK_SECTION_STRATEGY_TYPES maps the section to an empty list
+     * (state_pension) or when no matching items appear in the plan.
+     */
+    private function buildRetirementSectionAdvice(User $user, string $section): ?string
+    {
+        $wanted = self::PENSIONCHECK_SECTION_STRATEGY_TYPES[$section] ?? null;
+        if ($wanted === null || $wanted === []) {
+            return null;
+        }
+
+        try {
+            $plan = app(ComposedModulePlanService::class)->forSource(
+                app(RetirementStrategySource::class),
+                $user
+            );
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Retirement section advice calculation failed', [
+                'user_id' => $user->id,
+                'section' => $section,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $lines = [];
+        foreach ($plan['items'] as $item) {
+            if (! in_array($item['type'] ?? '', $wanted, true)) {
+                continue;
+            }
+            $prefix = ($item['claim_tier'] ?? 'judgement') === 'mechanical' ? '' : 'You may want to consider: ';
+            $title = trim((string) ($item['title'] ?? ''));
+            $desc = trim((string) ($item['description'] ?? ''));
+            $lines[] = $prefix.$title.'.'.($desc !== '' ? ' '.$desc : '');
+            if (count($lines) >= 2) {
+                break;
+            }
+        }
+
+        if ($lines === []) {
+            return null;
+        }
+
+        $lines[] = "I've added this to your actions list to come back to later.";
+
+        return implode("\n\n", $lines);
+    }
+
+    /**
      * Spouse-section advice (CSJ 2.8/10): a single short line plus a figure.
      * Primary figure is the combined annual tax saving of the spouse strategies
      * in the plan; when the engine has no quantified saving yet, fall back to
@@ -986,28 +1082,30 @@ final class OnboardingChatDirector
     }
 
     /**
-     * A4 — the consolidated plan voiced at the end of the savetax flow:
-     * every eligible strategy in composer order (nothing dropped by section
-     * caps), numbered, with conflict notes, a combined realisable total, at
-     * most ONE locked-strategy tease, and the FCA signposting line. The
-     * /tax-strategy page renders the same composed plan, so chat and page
-     * cannot disagree.
+     * F4 synthesis — the consolidated plan voiced at the end of both campaigns.
+     * Campaign-aware: savetax mirrors the /tax-strategy composed plan (byte-
+     * identical to the pre-C5 behaviour, guarded by CampaignSynthesisTurnTest);
+     * pensioncheck mirrors the composed retirement plan with the same bullet
+     * shape and FCA signposting.
      *
-     * Conflict notes contain raw strategy-type tokens (e.g. "savings_to_spouse")
-     * from the composer. We humanise them by swapping the token for the title of
-     * the matching item when one exists, then fall back to space-replacing
-     * underscores. This keeps the text user-friendly without duplicating the
-     * composer's conflict-resolution logic.
+     * Retirement items carry no estimated_annual_tax_saved (always null), so the
+     * combined-saving line is omitted when combined_annual_saving is zero —
+     * mirrors the structure, does not invent maths.
      */
     private function buildSynthesisAdvice(User $user): ?string
     {
         // Recompute on the freshly written records (not the model loaded at the
         // start of the turn) so the plan voiced here is identical to the one
-        // /tax-strategy renders next — chat and dashboard must never disagree.
+        // /tax-strategy or /retirement renders next — chat and dashboard must
+        // never disagree.
         $user->refresh();
 
+        $campaign = $user->onboarding_fyn_selection ?? 'savetax';
+
         try {
-            $plan = app(ComposedTaxPlanService::class)->forUser($user);
+            $plan = $campaign === 'pensioncheck'
+                ? app(ComposedModulePlanService::class)->forSource(app(RetirementStrategySource::class), $user)
+                : app(ComposedTaxPlanService::class)->forUser($user);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Synthesis advice calculation failed', [
                 'user_id' => $user->id,
@@ -1021,12 +1119,14 @@ final class OnboardingChatDirector
             return null;
         }
 
-        // Mirror the /tax-strategy dashboard exactly. That page renders
-        // composed_plan.items as "title — saves £X a year" (TaxStrategy.vue), and
-        // shows NEITHER the locked strategies NOR conflict notes. We voice the same
-        // items, in the same order, as markdown "- " bullets (the format every other
-        // recap screen uses — see buildFunnelRecapPrompt), so the summary reflects
-        // exactly what the user entered and matches the page they tap through to.
+        // Mirror the campaign dashboard exactly. For savetax that is /tax-strategy
+        // (TaxStrategy.vue renders composed_plan.items as "title — saves £X a year");
+        // for pensioncheck that is /retirement. Both render items in composer order
+        // as markdown "- " bullets — the format every other recap screen uses.
+        $leadIn = $campaign === 'pensioncheck'
+            ? "Here's your pension picture, built from what you told me — in the order I'd tackle it:"
+            : "Here's your tax plan, built from what you told me — in the order I'd tackle it:";
+
         $bullets = [];
         foreach ($plan['items'] as $item) {
             $title = trim((string) ($item['title'] ?? ''));
@@ -1049,7 +1149,7 @@ final class OnboardingChatDirector
 
         // Blank line before the bullet block so markdown renders it as a list on
         // both surfaces (web AiMessageContent + /m renderFynText).
-        $lines = ["Here's your tax plan, built from what you told me — in the order I'd tackle it:", ''];
+        $lines = [$leadIn, ''];
         foreach ($bullets as $bullet) {
             $lines[] = $bullet;
         }
@@ -1643,6 +1743,10 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => ['dependants'],
             OnboardingStateMachine::STATE_BASE_WORK => ['employment'],
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => ['expenditure'],
+            // PensionCheck partial-carry bucket (income stashed during the
+            // two-turn retirement-goals capture). The handler clears it on
+            // success, but this flush is a safety-net for the advance path.
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS => ['retirement_goals'],
             default => [],
         };
 
@@ -1910,6 +2014,20 @@ final class OnboardingChatDirector
             if (($state['clarify_single_figure'] ?? false) === true
                 && $this->messageIsAmbiguousSingleFigure($message)) {
                 yield from $this->emitSingleFigureClarification($conversation, $currentStateId);
+
+                return;
+            }
+
+            // advance_on_answered_question: linear grouped_extract steps that
+            // write no entity record (e.g. campaign2_state_pension) advance when
+            // the user gave a substantive answer even though the model made no
+            // tool call. Mirrors the identical gate in the delegated handler
+            // (line ~2815) so both turn types honour the flag consistently.
+            if (($state['advance_on_answered_question'] ?? false) === true
+                && $this->messageHasSubstantiveAnswer($message)) {
+                $this->flushParkedFactsForState($conversation, $currentStateId);
+                $user->refresh();
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
 
                 return;
             }
@@ -2193,6 +2311,9 @@ final class OnboardingChatDirector
                 'first_name' => 'their first name',
                 'date_of_birth' => 'their date of birth',
                 'email' => 'their email address',
+            ],
+            'capture_retirement_goals' => [
+                'target_retirement_age' => 'the age you would like to retire at',
             ],
             default => [],
         };
@@ -3429,6 +3550,12 @@ PROMPT;
             "don't have", 'do not have', 'not got', "haven't got",
             "it's matched", 'is matched', 'and matched', 'employer matches',
             'i contribute', 'i pay', 'i put in',
+            // Explicit "I don't know" signals — a user who cannot provide a
+            // value IS giving a substantive answer to the scripted prompt.
+            // Required for advance_on_answered_question on campaign2_state_pension
+            // and campaign2_pension_pots so "not sure" advances rather than loops.
+            'not sure', "don't know", 'do not know', 'unsure', 'no idea',
+            'not certain', 'uncertain',
         ];
         foreach ($answerTokens as $token) {
             if (str_contains($lower, $token)) {

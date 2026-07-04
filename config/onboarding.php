@@ -78,5 +78,6 @@ return [
         // and whether completed users may re-enter this campaign (consumed by the
         // campaign re-entry gate in AiChatController).
         'savetax' => ['selection' => 'savetax', 'entry' => 'base_work', 'reentry' => false],
+        'pensioncheck' => ['selection' => 'pensioncheck', 'entry' => 'base_work', 'reentry' => true, 'reentry_entry' => 'campaign2_existing_recap'],
     ],
 ];
