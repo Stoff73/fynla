@@ -151,14 +151,46 @@ it('sectionOrderFor falls back to savetax for an unrecognised selection', functi
 // user" test calls campaignSections() to assert the wiring is live.
 
 // ─ skipSectionIfIncomeKnown ──────────────────────────────────────────────────
+//
+// Critical fix (C2 review): FunnelAnswersMapper sets employment_status at
+// registration for every funnel user, so keying on employment_status would
+// skip the income section for every NEW pensioncheck registrant — before their
+// income is captured.  The predicate must key on actual captured income.
 
-it('skipSectionIfIncomeKnown returns true when employment_status is set', function (): void {
-    $user = User::factory()->create(['employment_status' => 'employed']);
+it('skipSectionIfIncomeKnown returns true when annual_employment_income is captured', function (): void {
+    $user = User::factory()->create([
+        'employment_status' => 'employed',
+        'annual_employment_income' => 45000,
+    ]);
     expect(SM::skipSectionIfIncomeKnown($user))->toBeTrue();
 });
 
-it('skipSectionIfIncomeKnown returns false when employment_status is null', function (): void {
-    $user = User::factory()->create(['employment_status' => null]);
+it('skipSectionIfIncomeKnown returns true when annual_self_employment_income is captured', function (): void {
+    $user = User::factory()->create([
+        'employment_status' => 'self_employed',
+        'annual_self_employment_income' => 62000,
+    ]);
+    expect(SM::skipSectionIfIncomeKnown($user))->toBeTrue();
+});
+
+// Decisive fixture: FunnelAnswersMapper sets employment_status at registration,
+// so a fresh pensioncheck registrant has employment_status set but no income yet.
+// The income section must NOT be skipped for this user.
+it('skipSectionIfIncomeKnown returns false when employment_status is set but income is null (fresh funnel registrant)', function (): void {
+    $user = User::factory()->create([
+        'employment_status' => 'employed',
+        'annual_employment_income' => null,
+        'annual_self_employment_income' => null,
+    ]);
+    expect(SM::skipSectionIfIncomeKnown($user))->toBeFalse();
+});
+
+it('skipSectionIfIncomeKnown returns false when no income fields are populated', function (): void {
+    $user = User::factory()->create([
+        'employment_status' => null,
+        'annual_employment_income' => null,
+        'annual_self_employment_income' => null,
+    ]);
     expect(SM::skipSectionIfIncomeKnown($user))->toBeFalse();
 });
 
@@ -221,36 +253,29 @@ it('skipSectionIfExpenditureKnown returns false when monthly_expenditure is zero
 
 // ─ Composite — existing SaveTax user fixture ─────────────────────────────────
 //
-// A user who has already been through the SaveTax onboarding: employment_status
-// and monthly_expenditure are populated; no state_pensions or retirement_profiles
-// row exists (those are new to pensioncheck).  Walking campaignSections through
-// the predicate wiring should yield income and expenditure skipped.
+// A realistic returning SaveTax user: income and expenditure are already captured;
+// no state_pensions or retirement_profiles row exists (those are new to pensioncheck).
+// The walk is asserted by calling nextCampaignSection at each step so the test
+// exercises the resolver rather than duplicating its skip logic.
 
 it('existing user with income and expenditure known skips those sections in the pensioncheck walk', function (): void {
     $user = User::factory()->create([
         'onboarding_fyn_selection' => 'pensioncheck',
         'employment_status' => 'employed',
-        'monthly_expenditure' => 2500,
+        'annual_employment_income' => 45000, // income captured → income section skipped
+        'monthly_expenditure' => 2500,       // expenditure captured → expenditure section skipped
         'marital_status' => 'married',
     ]);
-    // No StatePension or RetirementProfile rows created.
+    // No StatePension or RetirementProfile rows — those sections must be visited.
 
-    $sections = SM::campaignSections('pensioncheck');
-    $order = SM::sectionOrderFor('pensioncheck');
-    $visited = [];
-    foreach ($order as $sectionId) {
-        $section = $sections[$sectionId] ?? null;
-        if ($section === null) {
-            continue;
-        }
-        $skip = $section['skip'];
-        if (is_callable($skip) && $skip($user)) {
-            continue;
-        }
-        $visited[] = $sectionId;
-    }
+    // income is skipped (confirmed by the dedicated unit test; verified here too):
+    expect(SM::skipSectionIfIncomeKnown($user))->toBeTrue();
 
-    // income (employment_status set) and expenditure (monthly_expenditure > 0) are
-    // skipped; pensions, state_pension, retirement_goals, and spouse are visited.
-    expect($visited)->toBe(['pensions', 'state_pension', 'retirement_goals', 'spouse']);
+    // Walk the chain via nextCampaignSection; expenditure is skipped so the walk
+    // ends at SYNTHESIS after spouse rather than entering the expenditure section.
+    expect(SM::nextCampaignSection('income', $user))->toBe(SM::STATE_CAMPAIGN_DOB)
+        ->and(SM::nextCampaignSection('pensions', $user))->toBe(SM::STATE_CAMPAIGN2_STATE_PENSION)
+        ->and(SM::nextCampaignSection('state_pension', $user))->toBe(SM::STATE_CAMPAIGN2_RETIREMENT_GOALS)
+        ->and(SM::nextCampaignSection('retirement_goals', $user))->toBe(SM::STATE_CAMPAIGN_SPOUSE_WORK)
+        ->and(SM::nextCampaignSection('spouse', $user))->toBe(SM::STATE_CAMPAIGN_SYNTHESIS);
 });

@@ -1553,15 +1553,18 @@ final class OnboardingStateMachine
     // is the reliable signal that the income section has been completed.
 
     /**
-     * Skip the income section when the user's employment status is already known.
+     * Skip the income section when actual captured income is already recorded.
      *
-     * Income data (annual_employment_income / annual_self_employment_income) is
-     * stored on the users table, not a separate relation.  employment_status is
-     * the entry field for the income section and serves as the presence indicator.
+     * Income data lives on the users table (annual_employment_income /
+     * annual_self_employment_income).  employment_status MUST NOT be used here:
+     * FunnelAnswersMapper sets it at registration for every funnel user, so
+     * keying on it would skip the income section for every new pensioncheck
+     * registrant before their income is ever captured.
      */
     public static function skipSectionIfIncomeKnown(User $user): bool
     {
-        return ! empty($user->employment_status);
+        return (float) ($user->annual_employment_income ?? 0) > 0
+            || (float) ($user->annual_self_employment_income ?? 0) > 0;
     }
 
     /**
