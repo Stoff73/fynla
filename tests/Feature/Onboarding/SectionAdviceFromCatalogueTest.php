@@ -68,10 +68,15 @@ it('returns null for a section with no applicable strategies', function () {
     expect(invokeSectionAdvice($user->fresh(), 'investments'))->toBeNull();
 });
 
-it('returns null for synthesis section (handled by the next task)', function () {
-    $user = User::factory()->create();
+it('degrades to a sensible closing line for synthesis with an empty plan', function () {
+    // D1 Fix 6 — synthesis previously returned null (silent) when the plan was
+    // empty; the final recap turn must instead voice an honest closing line.
+    $user = User::factory()->create(['first_name' => 'Jo']);
 
-    expect(invokeSectionAdvice($user->fresh(), 'synthesis'))->toBeNull();
+    $text = invokeSectionAdvice($user->fresh(), 'synthesis');
+
+    expect($text)->not->toBeNull()
+        ->and($text)->toContain('Jo');
 });
 
 it('returns null for unmapped sections (giving, expenditure)', function () {

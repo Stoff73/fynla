@@ -4623,14 +4623,27 @@ class CoordinatingAgent extends BaseAgent
         $niYears = isset($input['ni_years_completed']) ? (int) $input['ni_years_completed'] : null;
         $spAge = isset($input['state_pension_age']) ? (int) $input['state_pension_age'] : null;
 
+        if ($forecastAnnual === null && $niYears === null && $spAge === null) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide at least one State Pension field.'];
+        }
+
+        if ($forecastAnnual !== null && $forecastAnnual < 0) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension forecast must be 0 or more.'];
+        }
+
+        if ($niYears !== null && ($niYears < 0 || $niYears > 60)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'National Insurance qualifying years must be between 0 and 60.'];
+        }
+
         // Guard against the "not sure" garbage call. When the user says they don't
         // know their forecast, the model can still call this tool with all-zero
-        // (or all-null) values; those explicit zeros used to pass the `!== null`
-        // filter and write a state_pensions row of forecast 0 / ni 0 / age 0,
-        // which kills the no-forecast advice trigger and the row-existence skip.
-        // Treat "no positive signal in any field" as no-capture: write nothing and
-        // let advance_on_answered_question move the walk on. The tool schema also
-        // instructs the model not to call the tool when the user is unsure.
+        // values; those explicit zeros used to pass the `!== null` filter and write
+        // a state_pensions row of forecast 0 / ni 0 / age 0, which kills the
+        // no-forecast advice trigger and the row-existence skip. Once the range
+        // checks above have passed, treat "no positive signal in any field" as
+        // no-capture: write nothing and let advance_on_answered_question move the
+        // walk on. The tool schema also instructs the model not to call the tool
+        // when the user is unsure.
         $hasPositiveSignal = ($forecastAnnual !== null && $forecastAnnual > 0)
             || ($niYears !== null && $niYears > 0)
             || ($spAge !== null && $spAge > 0);
@@ -4640,14 +4653,6 @@ class CoordinatingAgent extends BaseAgent
                 'onboarding_capture' => false,
                 'summary' => 'No State Pension figures recorded — the user did not give a forecast, qualifying years, or age.',
             ];
-        }
-
-        if ($forecastAnnual !== null && $forecastAnnual < 0) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension forecast must be 0 or more.'];
-        }
-
-        if ($niYears !== null && ($niYears < 0 || $niYears > 60)) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'National Insurance qualifying years must be between 0 and 60.'];
         }
 
         $updates = array_filter([
