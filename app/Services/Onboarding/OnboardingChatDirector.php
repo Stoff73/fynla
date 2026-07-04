@@ -731,7 +731,12 @@ final class OnboardingChatDirector
                 yield [
                     'type' => 'navigation',
                     'route_path' => $route,
-                    'description' => $stateId,
+                    // Never the internal state id — the web store renders a
+                    // navigation message's content from `description`, so leaking
+                    // the state id here surfaced "campaign_verify_navigate" as a
+                    // plain-text chat bubble. Onboarding navigation is an action,
+                    // not a message; the visible prompt is the quick_replies bubble.
+                    'description' => '',
                     // The section being verified (income/spouse/…); the /m surface
                     // uses it to label the screen (e.g. income vs spouse income).
                     'section' => ((string) ($ctx['verify_section'] ?? '')) ?: null,
