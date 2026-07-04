@@ -4654,16 +4654,17 @@ class CoordinatingAgent extends BaseAgent
 
         // Guard against the "not sure" garbage call. When the user says they don't
         // know their forecast, the model can still call this tool with all-zero
-        // values; those explicit zeros used to pass the `!== null` filter and write
-        // a state_pensions row of forecast 0 / ni 0 / age 0, which kills the
-        // no-forecast advice trigger and the row-existence skip. Once the range
-        // checks above have passed, treat "no positive signal in any field" as
-        // no-capture: write nothing and let advance_on_answered_question move the
-        // walk on. The tool schema also instructs the model not to call the tool
-        // when the user is unsure.
+        // values, OR invent a state_pension_age from an unrelated pension's normal
+        // retirement age (user 185: forecast 0 / ni 0 / age 60 lifted from an NHS
+        // scheme). A State Pension row is only justified by a real forecast amount
+        // or qualifying-years count — state_pension_age alone NEVER justifies one
+        // (it is the field the model most easily hallucinates). When neither the
+        // forecast nor the qualifying years is a positive figure, treat the call as
+        // no-capture: write nothing and let advance_on_answered_question move on.
+        // The tool schema also tells the model not to infer the age or call the
+        // tool when the user is unsure.
         $hasPositiveSignal = ($forecastAnnual !== null && $forecastAnnual > 0)
-            || ($niYears !== null && $niYears > 0)
-            || ($spAge !== null && $spAge > 0);
+            || ($niYears !== null && $niYears > 0);
 
         if (! $hasPositiveSignal) {
             return [

@@ -537,7 +537,11 @@ it('capture_state_pension writes a row for a genuine forecast', function (): voi
         ->and((int) $row->ni_years_completed)->toBe(25);
 });
 
-it('capture_state_pension writes a row when only the age is positive', function (): void {
+it('capture_state_pension writes nothing for an age-only call (D1 round 3 hardening)', function (): void {
+    // user 185 got a garbage row forecast 0 / ni 0 / age 60 — the model INVENTED
+    // state_pension_age=60 from the NHS normal-retirement-age context. Age alone
+    // never justifies a State Pension row (it is the field the model most easily
+    // hallucinates); only a real forecast or qualifying-years figure does.
     $user = pensioncheckUser();
     $coordinator = app(CoordinatingAgent::class);
     $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
@@ -545,11 +549,30 @@ it('capture_state_pension writes a row when only the age is positive', function 
 
     $result = $method->invoke($coordinator, [
         'forecast_annual' => 0,
+        'ni_years_completed' => 0,
+        'state_pension_age' => 60,
+    ], $user, false);
+
+    expect(StatePension::where('user_id', $user->id)->exists())->toBeFalse();
+    expect($result['onboarding_capture'] ?? false)->toBeFalse();
+});
+
+it('capture_state_pension writes when a forecast is given, keeping the age (D1 round 3)', function (): void {
+    // A real forecast justifies the row; state_pension_age rides along when present.
+    $user = pensioncheckUser();
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleCaptureStatePension');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'forecast_annual' => 11500,
         'state_pension_age' => 67,
     ], $user, false);
 
     expect($result['onboarding_capture'] ?? false)->toBeTrue();
-    expect((int) StatePension::where('user_id', $user->id)->first()?->state_pension_age)->toBe(67);
+    $row = StatePension::where('user_id', $user->id)->first();
+    expect((float) $row->state_pension_forecast_annual)->toBe(11500.0)
+        ->and((int) $row->state_pension_age)->toBe(67);
 });
 
 // ── 9c. Retirement-goal write side effects (D1 round 2, RED 1 + RED 3) ─────────
