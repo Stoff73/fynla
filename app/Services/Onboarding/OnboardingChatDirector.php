@@ -1643,6 +1643,10 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => ['dependants'],
             OnboardingStateMachine::STATE_BASE_WORK => ['employment'],
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => ['expenditure'],
+            // PensionCheck partial-carry bucket (income stashed during the
+            // two-turn retirement-goals capture). The handler clears it on
+            // success, but this flush is a safety-net for the advance path.
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS => ['retirement_goals'],
             default => [],
         };
 

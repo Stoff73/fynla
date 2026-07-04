@@ -983,7 +983,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser, $conversationId),
                 'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
                 // PensionCheck campaign — retirement goals + state pension
-                'capture_retirement_goals' => $this->handleCaptureRetirementGoals($input, $user, $isPreviewUser),
+                'capture_retirement_goals' => $this->handleCaptureRetirementGoals($input, $user, $isPreviewUser, $conversationId),
                 'capture_state_pension' => $this->handleCaptureStatePension($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
@@ -4482,7 +4482,7 @@ class CoordinatingAgent extends BaseAgent
      * handler returns a partial-capture response and writes nothing — the caller
      * must ask the user for their target retirement age first.
      */
-    private function handleCaptureRetirementGoals(array $input, User $user, bool $isPreview): array
+    private function handleCaptureRetirementGoals(array $input, User $user, bool $isPreview, ?int $conversationId = null): array
     {
         if ($isPreview) {
             return $this->previewBlocked('retirement');
@@ -4509,6 +4509,12 @@ class CoordinatingAgent extends BaseAgent
             $updates = array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null);
             $existing->update($updates);
         } elseif ($age !== null) {
+            // On the first turn only income may have been provided (the partial-retry
+            // protocol kept us on this state). Merge any parked income so it is not
+            // silently dropped when the LLM re-calls the tool with age only.
+            if ($income === null) {
+                $income = $this->retrieveParkedRetirementGoalIncome($conversationId);
+            }
             $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 30;
             $creates = array_filter(['target_retirement_income' => $income], fn ($v) => $v !== null);
             RetirementProfile::create([
@@ -4517,12 +4523,14 @@ class CoordinatingAgent extends BaseAgent
                 'target_retirement_age' => $age,
                 ...$creates,
             ]);
+            // Clear the parked income — it has now been committed to the profile.
+            $this->clearParkedRetirementGoalIncome($conversationId);
         } else {
             // Income only — cannot create a profile without target_retirement_age.
-            // Use the partial-retry protocol: details.missing signals the director
-            // to call emitPartialRetry and STAY on the current state so the user
-            // is re-asked for their retirement age without advancing. The income
-            // figure is not persisted here; the next call (with age) will write both.
+            // Park the income in the conversation so it survives the partial-retry
+            // and is carried forward even if the LLM re-calls with age only.
+            $this->parkRetirementGoalIncome($conversationId, $income);
+
             return [
                 'onboarding_capture' => true,
                 'field_group' => 'campaign_retirement_goals',
@@ -4545,6 +4553,58 @@ class CoordinatingAgent extends BaseAgent
             'summary' => 'Retirement goals recorded: '.implode(', ', $parts).'.',
             'details' => array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null),
         ];
+    }
+
+    /**
+     * Stash the income figure in `ai_conversations.onboarding_parked_facts` so
+     * it survives a partial-retry turn and can be merged into the next call.
+     */
+    private function parkRetirementGoalIncome(?int $conversationId, ?float $income): void
+    {
+        if ($conversationId === null || $income === null) {
+            return;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        if ($conv === null) {
+            return;
+        }
+
+        $parked = is_array($conv->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+        $parked['retirement_goals'] = ['target_retirement_income' => $income];
+        $conv->update(['onboarding_parked_facts' => $parked]);
+    }
+
+    /** Retrieve the parked income figure (null when nothing was stashed). */
+    private function retrieveParkedRetirementGoalIncome(?int $conversationId): ?float
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        $parked = is_array($conv?->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+
+        $income = $parked['retirement_goals']['target_retirement_income'] ?? null;
+
+        return $income !== null ? (float) $income : null;
+    }
+
+    /** Remove the parked retirement-goals bucket after the income has been committed. */
+    private function clearParkedRetirementGoalIncome(?int $conversationId): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        if ($conv === null) {
+            return;
+        }
+
+        $parked = is_array($conv->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+        unset($parked['retirement_goals']);
+        $conv->update(['onboarding_parked_facts' => $parked === [] ? null : $parked]);
     }
 
     /**

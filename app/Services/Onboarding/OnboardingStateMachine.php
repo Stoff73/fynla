@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\AiConversation;
+use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
@@ -126,12 +127,25 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_SYNTHESIS = 'campaign_synthesis';
 
-    // PensionCheck campaign entry states — turn types and prompt data added in
-    // Task C3. The constants are defined here so the pensioncheck section arrays
-    // can reference them now; inCodeStates() entries follow in C3.
+    // PensionCheck campaign states — all defined in Task C3.
+    // The STATE_CAMPAIGN2_STATE_PENSION and STATE_CAMPAIGN2_RETIREMENT_GOALS constants
+    // were defined in Task C1 so the pensioncheck section arrays could reference them.
+    // The remaining campaign2_* constants and all inCodeStates() entries land here.
     public const STATE_CAMPAIGN2_STATE_PENSION = 'campaign2_state_pension';
 
     public const STATE_CAMPAIGN2_RETIREMENT_GOALS = 'campaign2_retirement_goals';
+
+    public const STATE_CAMPAIGN2_EXISTING_RECAP = 'campaign2_existing_recap';
+
+    public const STATE_CAMPAIGN2_PENSION_POTS = 'campaign2_pension_pots';
+
+    public const STATE_CAMPAIGN2_PENSION_DB = 'campaign2_pension_db';
+
+    public const STATE_CAMPAIGN2_FLEXIBLE_ACCESS = 'campaign2_flexible_access';
+
+    public const STATE_CAMPAIGN2_SPOUSE_PENSIONS = 'campaign2_spouse_pensions';
+
+    public const STATE_CAMPAIGN2_TERMINAL = 'campaign2_terminal';
 
     /**
      * Marker a prompt string can carry to render as multiple chat bubbles —
@@ -286,10 +300,22 @@ final class OnboardingStateMachine
 
             // Honour per-state skip_if on the entry too (e.g. occupational
             // scheme skips when not employed), transitively.
-            return self::applySkipRules($section['entry'], $user) ?? self::STATE_CAMPAIGN_SYNTHESIS;
+            return self::applySkipRules($section['entry'], $user) ?? self::campaignTerminalFor($selection);
         }
 
-        return self::STATE_CAMPAIGN_SYNTHESIS;
+        return self::campaignTerminalFor($selection);
+    }
+
+    /**
+     * Return the terminal state for a campaign after all sections are exhausted.
+     * PensionCheck bypasses the tax-strategy synthesis and navigates directly to
+     * the pension picture terminal; savetax continues through synthesis first.
+     */
+    private static function campaignTerminalFor(string $selection): string
+    {
+        return $selection === 'pensioncheck'
+            ? self::STATE_CAMPAIGN2_TERMINAL
+            : self::STATE_CAMPAIGN_SYNTHESIS;
     }
 
     /** Memoised effective transition table (corpus-merged or in-code fallback). */
@@ -558,8 +584,13 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on.",
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_PENSION_CONTRIBS,
-                'skip_if' => [self::class, 'skipIfNotEmployed'],
+                // For pensioncheck, also skip when a workplace DC pension row already
+                // exists with a current_fund_value (the employer scheme is already
+                // known; campaign2_pension_pots will surface it for value confirmation).
+                // For savetax the skip behaviour is identical to the prior
+                // skipIfNotEmployed — byte-identical savetax path guaranteed.
+                'next' => self::class.'::nextFromCampaignOccupationalScheme',
+                'skip_if' => [self::class, 'skipIfOccupationalScheme'],
                 // Linear scripted step that writes no entity record (workplace
                 // pension details inform retirement advice, not a create_* row).
                 // When the user both answers the scripted question and asks a
@@ -574,13 +605,107 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => 'Beyond the workplace pension we covered, **do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?**',
                 'capture_field' => null,
-                // Carry-forward question removed (CSJ — Fyn does not need to ask
-                // about prior-years' pension contributions): the pensions section
-                // ends at personal contributions and goes straight to the verify
-                // gate. The now-unreachable STATE_CAMPAIGN_PENSION_HISTORY state
-                // was deleted.
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
+                // For savetax: ends the pensions section → verify gate (unchanged).
+                // For pensioncheck: advances to campaign2_pension_db (Defined Benefit
+                // capture) before closing the pensions section.
+                'next' => self::class.'::nextFromCampaignPensionContribs',
                 'advance_on_answered_question' => true,
+            ],
+            // ── PensionCheck-specific states (Task C3) ───────────────────────────
+            // Reachable only when onboarding_fyn_selection === 'pensioncheck'.
+            // Entry gate for returning pensioncheck users — recaps known data and
+            // asks for confirmation before the capture walk begins. Dynamic prompt
+            // built by Task C6's builder; placeholder below for now.
+            // "Yes, that's right" → first non-skipped section; "Something's changed"
+            // → campaign_verify_edit (existing generic edit machinery).
+            self::STATE_CAMPAIGN2_EXISTING_RECAP => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::buildExistingRecapPrompt',
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => "Yes, that's right"],
+                    ['id' => 'changed', 'label' => "Something's changed"],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromExistingRecap',
+            ],
+            // Loops until every DC pension has a current_fund_value. One pension
+            // per turn; the prompt names the specific scheme missing its value.
+            // Mechanism: nextFromPensionPots checks for any remaining unfilled pot
+            // and returns self (loops) or campaign_pension_contribs (done).
+            // update_record targets the dc_pensions row by id.
+            self::STATE_CAMPAIGN2_PENSION_POTS => [
+                'turn_type' => 'delegated',
+                'prompt_text' => self::class.'::buildPensionPotsPrompt',
+                'capture_field' => null,
+                'next' => self::class.'::nextFromPensionPots',
+                'advance_on_answered_question' => true,
+            ],
+            // Defined Benefit / final salary pension capture. create_pension writes
+            // the DB / career-average row. advance_on_answered_question: true so
+            // "no I don't have one" advances without a tool call.
+            self::STATE_CAMPAIGN2_PENSION_DB => [
+                'turn_type' => 'delegated',
+                'prompt_text' => "**Do you have any final salary or career average pensions — the kind that pay a guaranteed income rather than building a pot?** If so, tell me the scheme name and the yearly pension you've built up so far.",
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
+                'advance_on_answered_question' => true,
+            ],
+            // Flexible access flag. Only shown when age >= 55 (current Minimum
+            // Pension Access Age) and has_flexibly_accessed is not already set.
+            // update_record sets has_flexibly_accessed on dc_pensions. When
+            // skipped, applySkipRules follows the closure → enterCampaignVerify.
+            self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => "**Have you taken any money out of a pension — a lump sum or a regular income?** It matters because it can cap what you're allowed to pay in from now on.",
+                'capture_field' => null,
+                'extraction_tool' => 'update_record',
+                'retry_text' => 'Have you accessed a pension pot — taken a lump sum or started a regular income from it? A yes or no will do.',
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
+                'skip_if' => [self::class, 'skipIfFlexibleAccessNotApplicable'],
+            ],
+            // State Pension forecast. advance_on_answered_question: true so
+            // "not sure" advances — the engine's no-forecast advice fires later.
+            self::STATE_CAMPAIGN2_STATE_PENSION => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => "**Do you know your State Pension forecast?** You can check it in a couple of minutes on the government's Check your State Pension service. If you have it, tell me the yearly amount and how many qualifying years you've built up.",
+                'capture_field' => null,
+                'extraction_tool' => 'capture_state_pension',
+                'retry_text' => "If you know it, give me the yearly forecast and your qualifying years — for example £10,000 a year, 25 qualifying years. If you're not sure, just say so and we'll note the gap.",
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'state_pension'),
+                'advance_on_answered_question' => true,
+            ],
+            // Retirement goals: age + income. Income-only tool response returns
+            // details.missing=['target_retirement_age'] → director's emitPartialRetry
+            // keeps the state; context re-supplies the income on the next turn so
+            // the final tool call carries both fields.
+            self::STATE_CAMPAIGN2_RETIREMENT_GOALS => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => '**When would you like to retire, and what yearly income would feel comfortable?** Rough numbers are fine — for example 65 and £30,000.',
+                'capture_field' => null,
+                'extraction_tool' => 'capture_retirement_goals',
+                'retry_text' => 'Give me an age and a yearly amount — for example 67 and £28,000.',
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'retirement_goals'),
+            ],
+            // Spouse pensions. create_pension writes with owner_user_id = spouse_id,
+            // mirroring campaign_spouse_household's spouse-record ownership pattern.
+            // Skipped for unmarried users; advance_on_answered_question: true so
+            // "no pensions" advances without a tool call.
+            self::STATE_CAMPAIGN2_SPOUSE_PENSIONS => [
+                'turn_type' => 'delegated',
+                'prompt_text' => '**Does your spouse have pensions of their own?** Tell me the type and a rough value for each — workplace, personal, or final salary.',
+                'capture_field' => null,
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
+                'skip_if' => [self::class, 'skipIfNotMarried'],
+                'advance_on_answered_question' => true,
+            ],
+            // PensionCheck terminal: pension picture assembled, navigate to /retirement.
+            // Mirrors campaign_terminal shape (turn_type=terminal, navigate_to, next=done).
+            self::STATE_CAMPAIGN2_TERMINAL => [
+                'turn_type' => 'terminal',
+                'prompt_text' => "We've built your pension picture, {first_name}.",
+                'capture_field' => null,
+                'navigate_to' => '/retirement',
+                'next' => self::STATE_DONE,
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
                 'turn_type' => 'bubbles',
@@ -1718,9 +1843,16 @@ final class OnboardingStateMachine
      */
     public static function nextFromExpenditureReview(string $answer, User $user): string
     {
-        return $user->onboarding_fyn_path === 'campaign'
-            ? self::STATE_CAMPAIGN_INTRO
-            : self::STATE_ASSET_CAPTURE;
+        if ($user->onboarding_fyn_path !== 'campaign') {
+            return self::STATE_ASSET_CAPTURE;
+        }
+
+        // PensionCheck enters the recap gate (existing data confirmation) instead
+        // of the savetax consent intro. Both are campaign paths, so the check is
+        // on selection, not path.
+        return $user->onboarding_fyn_selection === 'pensioncheck'
+            ? self::STATE_CAMPAIGN2_EXISTING_RECAP
+            : self::STATE_CAMPAIGN_INTRO;
     }
 
     /**
@@ -1847,6 +1979,180 @@ final class OnboardingStateMachine
     public static function skipIfNotSingleEarnerCouple(User $user): bool
     {
         return (string) $user->household_calculation_mode !== 'single_earner_couple';
+    }
+
+    // ─── PensionCheck skip_if helpers (Task C3) ──────────────────────────────
+
+    /**
+     * Skip campaign_occupational_scheme when not employed (base condition,
+     * same as the prior skipIfNotEmployed — savetax path byte-identical) OR,
+     * for pensioncheck only, when a workplace DC pension row already exists
+     * with a current_fund_value (scheme is known; pot value will be confirmed
+     * at campaign2_pension_pots instead).
+     */
+    public static function skipIfOccupationalScheme(User $user): bool
+    {
+        if (self::skipIfNotEmployed($user)) {
+            return true;
+        }
+
+        if ($user->onboarding_fyn_selection !== 'pensioncheck') {
+            return false;
+        }
+
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('scheme_type', 'workplace')
+            ->whereNotNull('current_fund_value')
+            ->where('current_fund_value', '>', 0)
+            ->exists();
+    }
+
+    /**
+     * Skip campaign2_flexible_access when the question is not relevant.
+     *
+     * The question is irrelevant when:
+     *   (a) The user is under age 55 (current Minimum Pension Access Age — they
+     *       cannot have flexibly accessed a pension yet), OR
+     *   (b) has_flexibly_accessed is already flagged on any of their DC pensions
+     *       (we already know the answer; no need to ask again).
+     *
+     * date_of_birth may be null for users who skipped the DOB capture; in that
+     * case we cannot determine age — default to asking the question (return false).
+     */
+    public static function skipIfFlexibleAccessNotApplicable(User $user): bool
+    {
+        if ($user->date_of_birth !== null) {
+            $age = Carbon::parse($user->date_of_birth)->age;
+            if ($age < 55) {
+                return true;
+            }
+        }
+
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('has_flexibly_accessed', true)
+            ->exists();
+    }
+
+    // ─── PensionCheck transition methods (Task C3) ────────────────────────────
+
+    /**
+     * Route from campaign_occupational_scheme based on campaign selection.
+     * PensionCheck: advances to campaign2_pension_pots (pot-value loop).
+     * SaveTax: advances to campaign_pension_contribs (unchanged savetax path).
+     */
+    public static function nextFromCampaignOccupationalScheme(string $answer, User $user): string
+    {
+        return $user->onboarding_fyn_selection === 'pensioncheck'
+            ? self::STATE_CAMPAIGN2_PENSION_POTS
+            : self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+    }
+
+    /**
+     * Route from campaign_pension_contribs based on campaign selection.
+     * PensionCheck: advances to campaign2_pension_db (Defined Benefit capture).
+     * SaveTax: ends the pensions section → verify gate (unchanged savetax path).
+     */
+    public static function nextFromCampaignPensionContribs(string $answer, User $user): string
+    {
+        return $user->onboarding_fyn_selection === 'pensioncheck'
+            ? self::STATE_CAMPAIGN2_PENSION_DB
+            : self::enterCampaignVerify($user, 'pensions');
+    }
+
+    /**
+     * Build the pension-pots prompt naming the specific DC pension that is
+     * missing a current_fund_value. The user sees one pension at a time;
+     * nextFromPensionPots loops back until all pots have values.
+     *
+     * Falls back to a generic prompt if all pensions already have values
+     * (defensive — state should not be entered in that case).
+     */
+    public static function buildPensionPotsPrompt(string $answer, User $user): string
+    {
+        $pension = DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0)
+            ->orderBy('id')
+            ->first();
+
+        if ($pension === null) {
+            return "I've noted the current values for your pensions.";
+        }
+
+        $schemeName = trim((string) ($pension->scheme_name ?? ''));
+        $namedScheme = $schemeName !== '' ? $schemeName : 'your pension';
+
+        return "**What's the current value of your {$namedScheme} pension?** A rough figure from your latest annual statement or provider app is fine — for example £45,000 or 45k.";
+    }
+
+    /**
+     * Loop back to campaign2_pension_pots until every DC pension has a
+     * current_fund_value, then advance to campaign_pension_contribs.
+     */
+    public static function nextFromPensionPots(string $answer, User $user): string
+    {
+        $missing = DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0)
+            ->exists();
+
+        return $missing
+            ? self::STATE_CAMPAIGN2_PENSION_POTS
+            : self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+    }
+
+    /**
+     * Placeholder prompt for campaign2_existing_recap — the substantive recap
+     * text (income summary, pension list, spouse status) is built by Task C6's
+     * builder. This method returns a sensible default until that builder lands.
+     */
+    public static function buildExistingRecapPrompt(string $answer, User $user): string
+    {
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $firstName = 'there';
+        }
+
+        return "Welcome back, {$firstName}. Let's take a proper look at your pension. **Is your information still up to date, or has anything changed?**";
+    }
+
+    /**
+     * Route from campaign2_existing_recap bubble choice.
+     *
+     * "Yes, that's right" → enter the first non-skipped pensioncheck section
+     * so the capture walk can begin.
+     * "Something's changed" → campaign_verify_edit (generic edit machinery) so
+     * the user can correct the data before the walk.
+     */
+    public static function nextFromExistingRecap(string $answer, User $user): string
+    {
+        $matched = self::matchBubble(self::STATE_CAMPAIGN2_EXISTING_RECAP, $answer);
+
+        if ($matched === 'changed') {
+            return 'campaign_verify_edit';
+        }
+
+        // "Yes" — enter the first non-skipped section for this campaign.
+        $selection = $user->onboarding_fyn_selection ?? 'pensioncheck';
+        $order = self::sectionOrderFor($selection);
+        $sections = self::campaignSections($selection);
+
+        foreach ($order as $sectionId) {
+            $section = $sections[$sectionId] ?? null;
+            if ($section === null) {
+                continue;
+            }
+            $skip = $section['skip'];
+            if (is_callable($skip) && $skip($user)) {
+                continue;
+            }
+
+            return self::applySkipRules($section['entry'], $user) ?? self::campaignTerminalFor($selection);
+        }
+
+        return self::campaignTerminalFor($selection);
     }
 
     /**
