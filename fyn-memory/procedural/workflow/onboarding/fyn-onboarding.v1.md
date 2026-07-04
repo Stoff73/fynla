@@ -227,12 +227,11 @@ campaign_pension_history:
   clarify_single_figure: true
 
 campaign2_flexible_access:
-  turn_type: grouped_extract
+  turn_type: delegated
   prompt_text: "**Have you taken any money out of a pension — a lump sum or a regular income?** It matters because it can cap what you're allowed to pay in from now on."
   capture_field: null
-  extraction_tool: update_record
-  retry_text: 'Have you accessed a pension pot — taken a lump sum or started a regular income from it? A yes or no will do.'
   next: { branch: enterCampaignVerify }
+  advance_on_answered_question: true
 
 campaign2_state_pension:
   turn_type: grouped_extract

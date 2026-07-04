@@ -2018,6 +2018,20 @@ final class OnboardingChatDirector
                 return;
             }
 
+            // advance_on_answered_question: linear grouped_extract steps that
+            // write no entity record (e.g. campaign2_state_pension) advance when
+            // the user gave a substantive answer even though the model made no
+            // tool call. Mirrors the identical gate in the delegated handler
+            // (line ~2815) so both turn types honour the flag consistently.
+            if (($state['advance_on_answered_question'] ?? false) === true
+                && $this->messageHasSubstantiveAnswer($message)) {
+                $this->flushParkedFactsForState($conversation, $currentStateId);
+                $user->refresh();
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
             yield from $this->emitRetry($conversation, $state, $currentStateId);
 
             return;
@@ -3536,6 +3550,12 @@ PROMPT;
             "don't have", 'do not have', 'not got', "haven't got",
             "it's matched", 'is matched', 'and matched', 'employer matches',
             'i contribute', 'i pay', 'i put in',
+            // Explicit "I don't know" signals — a user who cannot provide a
+            // value IS giving a substantive answer to the scripted prompt.
+            // Required for advance_on_answered_question on campaign2_state_pension
+            // and campaign2_pension_pots so "not sure" advances rather than loops.
+            'not sure', "don't know", 'do not know', 'unsure', 'no idea',
+            'not certain', 'uncertain',
         ];
         foreach ($answerTokens as $token) {
             if (str_contains($lower, $token)) {

@@ -59,7 +59,7 @@ it('campaign2 states have correct turn types', function (): void {
         SM::STATE_CAMPAIGN2_EXISTING_RECAP => 'bubbles',
         SM::STATE_CAMPAIGN2_PENSION_POTS => 'delegated',
         SM::STATE_CAMPAIGN2_PENSION_DB => 'delegated',
-        SM::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => 'grouped_extract',
+        SM::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => 'delegated',
         SM::STATE_CAMPAIGN2_STATE_PENSION => 'grouped_extract',
         SM::STATE_CAMPAIGN2_RETIREMENT_GOALS => 'grouped_extract',
         SM::STATE_CAMPAIGN2_SPOUSE_PENSIONS => 'delegated',
