@@ -485,3 +485,58 @@ it('campaign_pension_history state is skipped when savetax walk exhausts the pen
             "savetax walk must never land on campaign_pension_history (after section '{$section}')");
     }
 });
+
+// ── Task C6: fresh-user pensioncheck intro (G5) ───────────────────────────────
+
+it('buildWorkPrompt for a fresh pensioncheck user returns pension-flavoured intro, not savetax tax plan copy', function (): void {
+    $user = pensioncheckUser([
+        'first_name' => 'Lara',
+        'annual_employment_income' => null,
+        'annual_self_employment_income' => null,
+        'funnel_answers' => [
+            'campaign' => 'pensioncheck',
+            'employment' => 'full-time',
+            'income' => 'upto_50270',
+        ],
+    ]);
+    $conversation = pensioncheckConversation($user);
+
+    $text = SM::buildWorkPrompt('', $user, $conversation);
+
+    // Pension-flavoured phrase must appear.
+    expect($text)->toContain('pension position');
+
+    // Savetax-only phrase must NOT appear.
+    expect($text)->not->toContain('tax plan');
+
+    // Must include a time estimate (F12).
+    expect($text)->toMatch('/\d+ minutes?/');
+
+    // Must contain a bold income question to open the income section.
+    expect($text)->toContain('**Let\'s start with your income.**');
+});
+
+it('buildWorkPrompt for a fresh savetax user is byte-identical to its existing output (savetax regression guard)', function (): void {
+    $user = User::factory()->create([
+        'first_name' => 'Dave',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_selection' => 'savetax',
+        'annual_employment_income' => null,
+        'annual_self_employment_income' => null,
+        'marital_status' => 'single',
+        'funnel_answers' => [
+            'campaign' => 'savetax',
+            'employment' => 'full-time',
+            'income' => 'upto_50270',
+        ],
+    ]);
+    $conversation = pensioncheckConversation($user);
+
+    $text = SM::buildWorkPrompt('', $user, $conversation);
+
+    // Savetax-specific phrase must appear.
+    expect($text)->toContain('tax plan');
+
+    // Pension-flavoured phrase must NOT appear in the savetax path.
+    expect($text)->not->toContain('pension position');
+});

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\AiConversation;
+use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
@@ -1604,6 +1605,12 @@ final class OnboardingStateMachine
                 ? trim((string) $user->first_name)
                 : 'there';
 
+            // Pensioncheck users get a pension-flavoured opening; savetax and all
+            // other campaigns use the original tax-plan recap (byte-identical).
+            if (($user->onboarding_fyn_selection ?? '') === 'pensioncheck') {
+                return self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel);
+            }
+
             return self::buildFunnelRecapPrompt($firstName, $funnel);
         }
 
@@ -2179,9 +2186,17 @@ final class OnboardingStateMachine
     }
 
     /**
-     * Placeholder prompt for campaign2_existing_recap — the substantive recap
-     * text (income summary, pension list, spouse status) is built by Task C6's
-     * builder. This method returns a sensible default until that builder lands.
+     * Prompt for campaign2_existing_recap — a point-form recap of what Fyn
+     * already holds for the re-entering pensioncheck user, built entirely from
+     * live DB reads (F5 spirit: deterministic values, never model paraphrase).
+     *
+     * Layout:
+     *   Welcome back, {first_name}. …here's what I already have from you:
+     *   - Annual income £X
+     *   - {scheme_name} (£X pot / Y% contribution)   [one line per DC pension]
+     *   - {scheme_name} (£X a year accrued)           [one line per DB pension]
+     *   - Married                                      [if married/civil partnership]
+     *   **Is that all still right?**
      */
     public static function buildExistingRecapPrompt(string $answer, User $user): string
     {
@@ -2190,7 +2205,65 @@ final class OnboardingStateMachine
             $firstName = 'there';
         }
 
-        return "Welcome back, {$firstName}. Let's take a proper look at your pension. **Is your information still up to date, or has anything changed?**";
+        $points = [];
+
+        // Income line — employment income takes precedence over self-employment.
+        if (! empty($user->annual_employment_income) && (float) $user->annual_employment_income > 0) {
+            $points[] = 'Annual income £'.number_format((int) round((float) $user->annual_employment_income));
+        } elseif (! empty($user->annual_self_employment_income) && (float) $user->annual_self_employment_income > 0) {
+            $points[] = 'Annual self-employment income £'.number_format((int) round((float) $user->annual_self_employment_income));
+        }
+
+        // One line per Defined Contribution pension.
+        $dcPensions = DCPension::where('user_id', $user->id)->get();
+        foreach ($dcPensions as $pension) {
+            $name = trim((string) ($pension->scheme_name ?? ''));
+            if ($name === '') {
+                $name = 'Unnamed pension';
+            }
+            $parts = [];
+            if ((float) ($pension->current_fund_value ?? 0) > 0) {
+                $parts[] = '£'.number_format((int) round((float) $pension->current_fund_value)).' pot';
+            }
+            if ((float) ($pension->employee_contribution_percent ?? 0) > 0) {
+                $parts[] = ((float) $pension->employee_contribution_percent).'% employee contribution';
+            }
+            $points[] = $name.($parts !== [] ? ' ('.implode(', ', $parts).')' : '');
+        }
+
+        // One line per Defined Benefit pension.
+        $dbPensions = DBPension::where('user_id', $user->id)->get();
+        foreach ($dbPensions as $pension) {
+            $name = trim((string) ($pension->scheme_name ?? ''));
+            if ($name === '') {
+                $name = 'Defined Benefit pension';
+            }
+            $parts = [];
+            if ((float) ($pension->accrued_annual_pension ?? 0) > 0) {
+                $parts[] = '£'.number_format((int) round((float) $pension->accrued_annual_pension)).' a year accrued';
+            }
+            $points[] = $name.($parts !== [] ? ' ('.implode(', ', $parts).')' : '');
+        }
+
+        // Spouse status line.
+        if (in_array((string) ($user->marital_status ?? ''), ['married', 'civil_partnership'], true)) {
+            if ($user->spouse_id !== null && $user->spouse !== null) {
+                $spouseFirst = trim((string) ($user->spouse->first_name ?? ''));
+                $points[] = $spouseFirst !== '' ? "Married to {$spouseFirst}" : 'Married';
+            } else {
+                $points[] = 'Married';
+            }
+        }
+
+        $lead = "Welcome back, {$firstName}. Let's take a proper look at your pension. Here's what I already have from you:";
+
+        if ($points !== []) {
+            $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
+
+            return "{$lead}\n\n{$bullets}\n\n**Is that all still right?**";
+        }
+
+        return "{$lead}\n\n**Is that all still right?**";
     }
 
     /**
@@ -2352,10 +2425,91 @@ final class OnboardingStateMachine
      * Falls back to a generic Fynla welcome for unknown campaign ids
      * — better than crashing or silently dropping the welcome.
      */
+    /**
+     * First-turn greeting for /pensioncheck funnel arrivals: same structure as
+     * buildFunnelRecapPrompt (savetax) but with pension-focused framing.
+     *
+     * Recaps the funnel answers, acknowledges the pre-filled profile, gives an
+     * F12 time estimate (3-5 min base + 1 min per extra asset), then asks for
+     * income as the first capture field (pensioncheck section order: income first).
+     * Savetax path is completely unchanged — the only divergence is the goal line
+     * ("pension position" vs "tax plan") and the campaign welcome text.
+     */
+    private static function buildPensioncheckFunnelRecapPrompt(string $firstName, array $funnel): string
+    {
+        $points = [];
+
+        $employmentLabel = [
+            'full-time' => 'working full-time',
+            'part-time' => 'working part-time',
+            'self-employed' => 'self-employed',
+            'retired' => 'retired',
+            'not-employed' => 'not currently employed',
+        ][$funnel['employment'] ?? ''] ?? null;
+        if ($employmentLabel) {
+            $points[] = ucfirst($employmentLabel);
+        }
+
+        $incomeLabel = [
+            'upto_50270' => 'earning up to £50,270',
+            '50271_100000' => 'earning £50,271 to £100,000',
+            '100001_125140' => 'earning £100,001 to £125,140',
+            'over_125140' => 'earning above £125,140',
+        ][$funnel['income'] ?? ''] ?? null;
+        if ($incomeLabel) {
+            $points[] = ucfirst($incomeLabel);
+        }
+
+        if (($funnel['spouse'] ?? '') === 'yes') {
+            $spouseIncomeSuffix = [
+                'upto_50270' => ' earning up to £50,270',
+                '50271_100000' => ' earning £50,271 to £100,000',
+                '100001_125140' => ' earning £100,001 to £125,140',
+                'over_125140' => ' earning above £125,140',
+            ][$funnel['spouseIncome'] ?? ''] ?? '';
+            $points[] = 'You have a spouse'.$spouseIncomeSuffix;
+        }
+
+        $assetMap = [
+            'bank' => 'bank accounts', 'savings' => 'savings', 'pension' => 'a pension',
+            'property' => 'property', 'isa' => 'an ISA', 'investments' => 'investments',
+        ];
+        $assets = array_values(array_filter(array_map(
+            fn ($a) => $assetMap[$a] ?? null,
+            is_array($funnel['assets'] ?? null) ? $funnel['assets'] : []
+        )));
+        if ($assets !== []) {
+            $points[] = 'You have '.self::joinWithAnd($assets);
+        }
+
+        // F12 time estimate: 3-5 min base + 1 min per asset beyond the first.
+        $assetChoices = is_array($funnel['assets'] ?? null) ? $funnel['assets'] : [];
+        $extraMinutes = max(0, count($assetChoices) - 1);
+        $estimateLow = 3 + $extraMinutes;
+
+        $intro = "Hi {$firstName}, I'm Fyn — thanks for those answers.";
+        if ($points !== []) {
+            $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
+            $intro .= " Here's what you've told me:\n\n{$bullets}";
+        }
+
+        return $intro
+            ."\n\nI've started your profile from what you told us, and to get a clear picture of your pension position I just need a few more details — this usually takes about {$estimateLow} minutes."
+            .self::BUBBLE_BREAK
+            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+    }
+
+    /**
+     * Campaign-specific welcome fragment prepended to the base_personal question.
+     * Keyed on users.onboarding_fyn_selection.
+     * Falls back to a generic Fynla welcome for unknown campaign ids
+     * — better than crashing or silently dropping the welcome.
+     */
     private static function campaignWelcomeFor(string $campaignId): string
     {
         return match ($campaignId) {
             'savetax' => "welcome to Fynla — I'll help you build your tax-saving strategy.",
+            'pensioncheck' => "welcome to Fynla — let's get a clear picture of your pension.",
             default => "welcome to Fynla — let's get started.",
         };
     }
