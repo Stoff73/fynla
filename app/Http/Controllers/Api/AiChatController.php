@@ -230,12 +230,17 @@ class AiChatController extends Controller
         //   2. Otherwise (post-onboarding OR paused via the welcome-back
         //      "Something else" handoff which nulls onboarding_fyn_step) →
         //      AdviceFyn — read-only tools only. Write intents surface from
-        //      onboarding, not from chat. Matches the /action endpoint check
-        //      at AiChatController::postAction so a paused user does not
-        //      silently no-op when they ask a free-text question.
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        //      onboarding, not from chat.
+        //   Campaign re-entry (map §4, canonical contract amendment): a completed
+        //   user with an active_campaign set is also routed to OnboardingChatDirector
+        //   — the one write state — so they walk the campaign funnel. The
+        //   onboarding_completed flag is never modified by re-entry; re-entry is
+        //   signalled purely by active_campaign being non-null. A null
+        //   onboarding_fyn_step (paused mid-campaign) falls back to advice so a
+        //   paused user can still get answers without their step being lost.
+        //   The predicate is centralised in routesToOnboardingDirector() and
+        //   shared by streamQueuedMessage and action to keep all three in sync.
+        $inOnboarding = $this->routesToOnboardingDirector($user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
             try {
@@ -408,9 +413,7 @@ class AiChatController extends Controller
 
         $message = $queued->content;
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        $inOnboarding = $this->routesToOnboardingDirector($user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
             try {
@@ -584,7 +587,20 @@ class AiChatController extends Controller
             ], 403);
         }
 
-        if ($user->onboarding_completed === true) {
+        // Resolve the re-entry campaign before the completed check so a completed
+        // user arriving via a reentry-enabled campaign can bypass the 409 gate
+        // and start a fresh campaign session (or resume a mid-campaign one).
+        $from = $request->input('from');
+        $campaignMap = (array) config('onboarding.campaign_map', []);
+        $reentryCampaign = is_string($from)
+            && isset($campaignMap[$from])
+            && ($campaignMap[$from]['reentry'] ?? false)
+            ? $campaignMap[$from] : null;
+
+        // 409 only when the user is completed AND no reentry-enabled campaign matched.
+        // Completed users with a valid reentry campaign fall through to the resume
+        // branch (mid-campaign, step non-null) or the fresh re-entry path below.
+        if ($user->onboarding_completed === true && $reentryCampaign === null) {
             return response()->json([
                 'success' => false,
                 'reason' => 'already_completed',
@@ -635,15 +651,19 @@ class AiChatController extends Controller
             ]);
         }
 
-        // Fresh start — create the conversation and stream turn 1.
+        // Fresh start (or fresh campaign re-entry) — create the conversation and stream turn 1.
+        // Re-entry sessions carry an additional metadata.campaign key so the onboarding
+        // scope query and any post-session tooling can distinguish them from first-time flows.
+        $conversationMetadata = ['source' => 'fyn_onboarding'];
+        if ($reentryCampaign !== null) {
+            $conversationMetadata['campaign'] = $reentryCampaign['selection'];
+        }
         $conversation = AiConversation::create([
             'user_id' => $user->id,
             'status' => 'active',
             'model_used' => 'director',
             'title' => 'Onboarding',
-            'metadata' => [
-                'source' => 'fyn_onboarding',
-            ],
+            'metadata' => $conversationMetadata,
         ]);
 
         // INV-2.2.5 — entry-source dispatch. When the request carries a
@@ -662,21 +682,25 @@ class AiChatController extends Controller
         // misclassified as a life-stage journey. Unknown / missing `from`
         // falls through to STATE_PATH_CHOICE. Adding a new entry source
         // requires only a config change — no controller change.
-        $from = $request->input('from');
-        $campaignMap = (array) config('onboarding.campaign_map', []);
+        //
+        // $from and $campaignMap are already resolved above the completed-user
+        // gate (re-entry gate reads them to derive $reentryCampaign).
         $journeyMap = (array) config('onboarding.journey_map', []);
-        $matchedCampaign = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
-        // Funnel fallback: a user who arrived via the /savetax funnel carries
-        // durable funnel_answers. The transient `from=savetax` query is lost
+        // Funnel fallback: a user who arrived via an acquisition funnel carries
+        // durable funnel_answers. The transient `from=<campaign>` query is lost
         // across the mobile handoff (the iframe is replaced with /m/app), so
-        // key the savetax campaign off funnel_answers too — both mobile and
-        // desktop funnel users then get the campaign onboarding (greet + recap).
-        if ($matchedCampaign === null && $matchedJourney === null
-            && ! empty($user->funnel_answers)
-            && isset($campaignMap['savetax'])) {
-            $matchedCampaign = $campaignMap['savetax'];
+        // key the campaign off funnel_answers['campaign'] instead — both mobile
+        // and desktop funnel users then get the right campaign onboarding.
+        // Legacy rows that predate the stamp default to 'savetax'.
+        if ($matchedCampaign === null && $matchedJourney === null && ! empty($user->funnel_answers)) {
+            $rawCampaign = $user->funnel_answers['campaign'] ?? null;
+            $funnelCampaign = is_string($rawCampaign) ? $rawCampaign : 'savetax';
+            $campaignEntry = $campaignMap[$funnelCampaign] ?? null;
+            $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         }
 
         if ($matchedCampaign !== null) {
@@ -687,8 +711,14 @@ class AiChatController extends Controller
             // open at base_work (income details) with the recap greeting; DOB is
             // deferred to the pensions section. Sequence is driven by
             // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
-            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_WORK;
-            $startStateId = OnboardingStateMachine::STATE_BASE_WORK;
+            $user->onboarding_fyn_step = $campaignEntry['entry'];
+            $startStateId = $campaignEntry['entry'];
+            // Re-entry: stamp active_campaign so routesToOnboardingDirector routes
+            // subsequent messages from this completed user to the director while
+            // the campaign session is in progress.
+            if ($reentryCampaign !== null) {
+                $user->active_campaign = $matchedCampaign;
+            }
         } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;
@@ -787,9 +817,7 @@ class AiChatController extends Controller
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        $inOnboarding = $this->routesToOnboardingDirector($user);
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
             try {
@@ -851,5 +879,23 @@ class AiChatController extends Controller
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * The Fyn dispatch predicate: does this user's message belong to the
+     * onboarding director (the one write state)? True mid-onboarding, and
+     * during campaign re-entry (active_campaign set by onboarding/start;
+     * cleared at campaign terminal and on the "Something else" pause).
+     * Canonical contract: April/April24Updates/spec/00-canonical.md.
+     *
+     * Used by sendMessage, streamQueuedMessage, and action — all three seams
+     * must honour the same predicate, so a single helper replaces the old
+     * sync-by-comment pattern.
+     */
+    private function routesToOnboardingDirector(User $user): bool
+    {
+        return ($user->onboarding_completed === false || $user->active_campaign !== null)
+            && $user->onboarding_fyn_step !== null
+            && (bool) config('onboarding.fyn_flow_enabled', true);
     }
 }

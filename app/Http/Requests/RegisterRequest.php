@@ -55,6 +55,7 @@ class RegisterRequest extends FormRequest
             // /savetax acquisition-funnel answers (coarse hints carried from the
             // public funnel via localStorage). Validated loosely at the boundary.
             'funnel_answers' => ['nullable', 'array'],
+            'funnel_answers.campaign' => ['nullable', 'string', 'max:40'],
             'funnel_answers.employment' => ['nullable', 'string', 'max:40'],
             'funnel_answers.income' => ['nullable', 'string', 'max:40'],
             'funnel_answers.spouse' => ['nullable', 'string', 'max:10'],

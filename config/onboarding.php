@@ -73,6 +73,10 @@ return [
     |
     */
     'campaign_map' => [
-        'savetax' => 'savetax',
+        // value shape: selection id, entry state id (literal string — must match an
+        // OnboardingStateMachine::STATE_* constant; asserted by OnboardingStartCampaignMapTest),
+        // and whether completed users may re-enter this campaign (consumed by the
+        // campaign re-entry gate in AiChatController).
+        'savetax' => ['selection' => 'savetax', 'entry' => 'base_work', 'reentry' => false],
     ],
 ];

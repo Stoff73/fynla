@@ -32,13 +32,44 @@ function syntheticItems(): array
     ];
 }
 
-it('leads with tax items for a campaign arrival', function () {
+function syntheticItemsWithRetirement(): array
+{
+    return [
+        ['id' => 'estate_1', 'module' => 'estate', 'value' => 90.0, 'type' => 'recommendation'],
+        ['id' => 'protection_1', 'module' => 'protection', 'value' => 80.0, 'type' => 'recommendation'],
+        ['id' => 'retirement_a', 'module' => 'retirement', 'value' => 70.0, 'type' => 'recommendation'],
+        ['id' => 'retirement_b', 'module' => 'retirement', 'value' => 60.0, 'type' => 'recommendation'],
+    ];
+}
+
+it('leads with tax items for a legacy funnel row (no campaign key)', function () {
+    // Pre-A6 rows carry funnel_answers without a campaign key; the affinity
+    // fallback must still resolve to savetax → tax so those users are not
+    // suddenly downgraded to generic ordering after the stamp migration.
     $user = User::factory()->create(['funnel_answers' => ['assets' => ['bank']]]);
 
     $sorted = affinitySort($user, syntheticItems());
 
     expect(array_column($sorted, 'id'))
         ->toBe(['strategy_unlock:x', 'tax_y', 'estate_1', 'protection_1']);
+});
+
+it('leads with tax items for a savetax campaign arrival', function () {
+    $user = User::factory()->create(['funnel_answers' => ['campaign' => 'savetax']]);
+
+    $sorted = affinitySort($user, syntheticItems());
+
+    expect(array_column($sorted, 'id'))
+        ->toBe(['strategy_unlock:x', 'tax_y', 'estate_1', 'protection_1']);
+});
+
+it('leads with retirement items for a pensioncheck campaign arrival', function () {
+    $user = User::factory()->create(['funnel_answers' => ['campaign' => 'pensioncheck']]);
+
+    $sorted = affinitySort($user, syntheticItemsWithRetirement());
+
+    expect(array_column($sorted, 'id'))
+        ->toBe(['retirement_a', 'retirement_b', 'estate_1', 'protection_1']);
 });
 
 it('keeps the pure value ranking for non-campaign users', function () {

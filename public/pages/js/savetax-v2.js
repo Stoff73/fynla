@@ -1,8 +1,16 @@
 (function () {
   'use strict';
 
-  var answers = { employment: null, income: null, spouse: null, spouseIncome: null, assets: [] };
+  var answers = { campaign: 'savetax', employment: null, income: null, spouse: null, spouseIncome: null, assets: [] };
   var current = 'employment';
+
+  // Persist the funnel answers (including the campaign stamp) to localStorage
+  // before redirecting so any plan page that reads localStorage — including
+  // savetax-plan-v4.js — carries the campaign key into the registration payload.
+  function persistAndGoToPlan() {
+    try { localStorage.setItem('savetax_answers', JSON.stringify(answers)); } catch (e) { /* private mode */ }
+    window.location.href = (window.FYNLA_BASE || '') + '/savetax/plan?from=savetax';
+  }
 
   function sequence() {
     var s = ['employment', 'income', 'spouse'];
@@ -84,7 +92,7 @@
     if (idx < seq.length - 1) {
       goTo(seq[idx + 1], 'forward');
     } else {
-      window.location.href = (window.FYNLA_BASE||'')+'/savetax/plan?from=savetax';
+      persistAndGoToPlan();
     }
   }
 
@@ -144,7 +152,7 @@
   // Continue button
   continueBtn.addEventListener('click', function () {
     if (current === 'assets') {
-      window.location.href = (window.FYNLA_BASE||'')+'/savetax/plan?from=savetax';
+      persistAndGoToPlan();
     } else {
       advance();
     }

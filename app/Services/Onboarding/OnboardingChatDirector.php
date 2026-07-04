@@ -521,8 +521,13 @@ final class OnboardingChatDirector
             $context['paused_at_step'] = $currentStateId;
             $user->onboarding_fyn_context = $context;
             $user->onboarding_fyn_step = null;
-            $user->save();
         }
+
+        // Clear active_campaign unconditionally so the next message routes to
+        // advice rather than back to the director. Both fresh and re-entry
+        // campaign arrivals carry active_campaign; pause must exit cleanly.
+        $user->active_campaign = null;
+        $user->save();
 
         $prompt = 'Of course — what can I help you with?';
         $message = $this->saveMessage($conversation, 'assistant', $prompt, [
@@ -3097,6 +3102,11 @@ PROMPT;
         string $stateId,
         array $state
     ): \Generator {
+        // Capture before any mutations so the once-only completion side effects
+        // can be gated: a re-entry user is already completed and must not have
+        // their completed_at reset or accumulate a duplicate recordProgress row.
+        $wasAlreadyCompleted = $user->onboarding_completed;
+
         $selection = $user->onboarding_fyn_selection ?? '';
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
@@ -3132,15 +3142,26 @@ PROMPT;
 
         yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
-        $user->onboarding_completed = true;
-        $user->onboarding_completed_at = now();
+        // Clear campaign and onboarding scratch columns unconditionally so both
+        // fresh and re-entry users exit cleanly. Completion columns and the
+        // recordProgress call are guarded: re-entry users are already marked
+        // complete and their original completed_at must not be overwritten.
+        $user->active_campaign = null;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
         $user->onboarding_fyn_context = null;
+
+        if (! $wasAlreadyCompleted) {
+            $user->onboarding_completed = true;
+            $user->onboarding_completed_at = now();
+        }
+
         $user->save();
 
-        $this->recordProgress($user, $stateId, ['next_route' => $nextRoute]);
+        if (! $wasAlreadyCompleted) {
+            $this->recordProgress($user, $stateId, ['next_route' => $nextRoute]);
+        }
     }
 
     /**
@@ -3566,6 +3587,7 @@ PROMPT;
         // user row is runtime state only.
         $user->onboarding_completed = true;
         $user->onboarding_completed_at = now();
+        $user->active_campaign = null;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
