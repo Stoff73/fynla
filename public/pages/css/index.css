@@ -204,6 +204,50 @@
 }
 .feature-savetax__cta:active { transform: translateY(0); }
 
+/* Pension-check highlight — representative projected pot + CTA into the funnel.
+   Mirrors the feature-savetax card pattern exactly (same gradient tokens, same
+   structure). Visual differentiation between the two cards is a CSJ design call. */
+.feature-pensioncheck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--horizon-500) 0%, var(--light-blue-500) 100%);
+  border-radius: var(--radius-card, 0.75rem);
+  padding: 2rem 1.5rem;
+  width: 80%;
+  margin: 0 auto 2.5rem;
+  box-shadow: var(--shadow-lg);
+}
+.feature-pensioncheck__headline {
+  font-size: clamp(1.5rem, 4.5vw, 2.25rem); font-weight: 800;
+  color: var(--white); line-height: 1.2;
+}
+.feature-pensioncheck__figure {
+  font-size: clamp(2.75rem, 9vw, 4rem); font-weight: 900;
+  color: var(--white); line-height: 1; white-space: nowrap;
+  margin: 0.25rem 0 0.5rem;
+  display: block;
+}
+.feature-pensioncheck__sub {
+  font-size: 0.9375rem; color: var(--white-80); line-height: 1.5;
+  max-width: 36rem; margin-bottom: 1.25rem;
+}
+.feature-pensioncheck__cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.875rem 2rem; background: var(--raspberry-500); color: var(--white);
+  font-size: 1rem; font-weight: 700; border-radius: var(--radius-button);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  min-height: 3rem; text-align: center;
+}
+.feature-pensioncheck__cta:hover {
+  background: var(--raspberry-600);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+.feature-pensioncheck__cta:active { transform: translateY(0); }
+
 /* "Other ways Fyn can help you" subheading above the cards */
 .feature-grid__subheading {
   text-align: center; color: var(--white); font-weight: 700;

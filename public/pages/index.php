@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Marketing\PensionEstimateService;
 use App\Services\Marketing\SaveTaxEstimateService;
 
 // Headline "save tax" figure for the How-Fyn-can-help teaser. Uses the same
@@ -19,6 +20,28 @@ try {
     }
 } catch (Throwable $e) {
     $homeSaveTaxFigure = null;
+}
+
+// Headline projected-pot figure for the pension-check teaser. Uses a
+// representative default persona — full-time employment, basic-rate income
+// (up to £50,270), age 40s, one workplace pension, pot £25k–£100k, no spouse —
+// the median-ish profile for the UK working population. All tax thresholds
+// come from TaxConfigService via PensionEstimateService — never hard-coded.
+$pensioncheckFigure = null;
+try {
+    $homePensionEstimate = app(PensionEstimateService::class)->estimate([
+        'employment' => 'full-time',
+        'income' => 'upto_50270',
+        'age' => '40s',
+        'pensions' => ['workplace'],
+        'pot' => '25k_100k',
+        'spouse' => 'no',
+    ]);
+    if (! empty($homePensionEstimate['projected_pot'])) {
+        $pensioncheckFigure = '£'.number_format((int) $homePensionEstimate['projected_pot']);
+    }
+} catch (Throwable $e) {
+    $pensioncheckFigure = null;
 }
 ?>
 <!DOCTYPE html>
@@ -241,6 +264,16 @@ try {
             <?php if ($homeSaveTaxFigure) { ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php } ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
           </p>
           <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
+        </div>
+
+        <!-- Pension-check highlight — representative projected pot + CTA into the funnel. -->
+        <div class="feature-pensioncheck">
+          <p class="feature-pensioncheck__headline">Where is your pension heading?</p>
+          <?php if ($pensioncheckFigure) { ?>
+            <span class="feature-pensioncheck__figure" id="pensioncheck-figure"><?= htmlspecialchars($pensioncheckFigure, ENT_QUOTES) ?></span>
+          <?php } ?>
+          <p class="feature-pensioncheck__sub">Answer six quick questions — no account needed — and see the pot you're on course for.</p>
+          <a href="/pensioncheck" class="feature-pensioncheck__cta">Check my pension</a>
         </div>
 
         <h3 class="feature-grid__subheading">Other ways Fyn can help you</h3>
