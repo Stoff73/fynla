@@ -1736,6 +1736,30 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "annual_salary": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "salary_sacrifice": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "has_flexibly_accessed": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false

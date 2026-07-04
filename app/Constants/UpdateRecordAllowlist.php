@@ -55,6 +55,11 @@ final class UpdateRecordAllowlist
             'scheme_name', 'provider', 'current_fund_value',
             'monthly_contribution_amount', 'employee_contribution_percent',
             'employer_contribution_percent', 'retirement_age',
+            // Campaign-captured contribution fields: salary basis + salary
+            // sacrifice (occupational scheme) and the flexible-access flag
+            // (campaign2_flexible_access — closes the round-1 latent item where
+            // the "yes" branch could not persist has_flexibly_accessed).
+            'annual_salary', 'salary_sacrifice', 'has_flexibly_accessed',
         ],
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',

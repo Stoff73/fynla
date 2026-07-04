@@ -10,6 +10,7 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
@@ -573,6 +574,50 @@ it('capture_state_pension writes when a forecast is given, keeping the age (D1 r
     $row = StatePension::where('user_id', $user->id)->first();
     expect((float) $row->state_pension_forecast_annual)->toBe(11500.0)
         ->and((int) $row->state_pension_age)->toBe(67);
+});
+
+// ── 9d. dc_pension update allowlist — campaign fields (D1 round 4) ─────────────
+// update_record must be able to set the campaign-captured contribution fields on
+// an existing DC pension: salary_sacrifice (occupational scheme), annual_salary,
+// and has_flexibly_accessed (the flexible-access state — round-1 latent item).
+// Without them the allowlist rejects the fields and the update silently no-ops.
+
+it('update_record lands campaign contribution fields on a dc_pension', function (): void {
+    // Pension writes recalculate derived columns, which resolve TierConfiguration.
+    $this->seed(TierConfigurationSeeder::class);
+    $user = pensioncheckUser();
+    $pension = DCPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_name' => 'Acme Workplace Pension',
+        'monthly_contribution_amount' => 0,
+        'salary_sacrifice' => false,
+        'has_flexibly_accessed' => false,
+    ]);
+
+    $coordinator = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod($coordinator, 'handleUpdateRecord');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($coordinator, [
+        'entity_type' => 'dc_pension',
+        'entity_id' => $pension->id,
+        'fields' => [
+            'monthly_contribution_amount' => 200,
+            'annual_salary' => 62000,
+            'salary_sacrifice' => true,
+            'has_flexibly_accessed' => true,
+        ],
+    ], $user, false);
+
+    // The campaign fields must not be rejected by the allowlist.
+    expect($result['error'] ?? null)->not->toBe('fields_not_allowed');
+    expect(($result['disallowed_fields'] ?? []))->toBe([]);
+
+    $pension->refresh();
+    expect((float) $pension->monthly_contribution_amount)->toBe(200.0)
+        ->and((float) $pension->annual_salary)->toBe(62000.0)
+        ->and((bool) $pension->salary_sacrifice)->toBeTrue()
+        ->and((bool) $pension->has_flexibly_accessed)->toBeTrue();
 });
 
 // ── 9c. Retirement-goal write side effects (D1 round 2, RED 1 + RED 3) ─────────
