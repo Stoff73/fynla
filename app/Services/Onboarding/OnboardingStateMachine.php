@@ -9,6 +9,7 @@ use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -308,14 +309,14 @@ final class OnboardingStateMachine
 
     /**
      * Return the terminal state for a campaign after all sections are exhausted.
-     * PensionCheck bypasses the tax-strategy synthesis and navigates directly to
-     * the pension picture terminal; savetax continues through synthesis first.
+     * Both savetax and pensioncheck route through campaign_synthesis (F4 recap)
+     * first; synthesis's own next transition is campaign-aware and routes to the
+     * correct campaign terminal (/tax-strategy for savetax, /retirement for
+     * pensioncheck).
      */
     private static function campaignTerminalFor(string $selection): string
     {
-        return $selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_TERMINAL
-            : self::STATE_CAMPAIGN_SYNTHESIS;
+        return self::STATE_CAMPAIGN_SYNTHESIS;
     }
 
     /** Memoised effective transition table (corpus-merged or in-code fallback). */
@@ -647,8 +648,24 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "**Do you have any final salary or career average pensions — the kind that pay a guaranteed income rather than building a pot?** If so, tell me the scheme name and the yearly pension you've built up so far.",
                 'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
+                'next' => self::STATE_CAMPAIGN_PENSION_HISTORY,
                 'advance_on_answered_question' => true,
+            ],
+            // Pension contribution history — pensioncheck only. Shown only when the
+            // user's gross income exceeds the higher-rate threshold (skipIfPensionHistory
+            // NotApplicable gates it). Captures the last three tax years' gross pension
+            // inputs so the engine can compute unused Annual Allowance carry-forward.
+            // clarify_single_figure enabled: mirrors the savetax path ambiguity guard
+            // (total vs per-year) that already exists for savetax users.
+            self::STATE_CAMPAIGN_PENSION_HISTORY => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => '**Roughly how much has gone into your pensions in each of the last three tax years?** Rough figures are fine — it helps work out how much you could still put in with tax relief.',
+                'capture_field' => null,
+                'extraction_tool' => 'capture_pension_history',
+                'retry_text' => 'Give me a year-by-year breakdown — for example: 2024/25: £5,000, 2023/24: £8,000, 2022/23: £6,000. Rough figures are fine.',
+                'next' => self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
+                'skip_if' => [self::class, 'skipIfPensionHistoryNotApplicable'],
+                'clarify_single_figure' => true,
             ],
             // Flexible access flag. Only shown when age >= 55 (current Minimum
             // Pension Access Age) and has_flexibly_accessed is not already set.
@@ -802,10 +819,10 @@ final class OnboardingStateMachine
                 'turn_type' => 'advice',
                 'advice_section' => 'synthesis',
                 'capture_field' => null,
-                // Plain constant next — NEVER a closure resolving to itself; advice turns
-                // auto-advance and a self-edge recurses unbounded (the 2026-06-07
-                // campaign_advice_spouse incident, PR #504).
-                'next' => self::STATE_CAMPAIGN_TERMINAL,
+                // Callable string ref — routes to the correct campaign terminal based
+                // on the user's campaign selection. NEVER a closure: advice turns
+                // auto-advance and a self-edge recurses unbounded (PR #504 incident).
+                'next' => self::class.'::nextFromCampaignSynthesis',
             ],
             // ── SaveTax verify sub-flow (generic; section in context) ──────
             // Entered via enterCampaignVerify() which stamps verify_section.
@@ -2000,12 +2017,31 @@ final class OnboardingStateMachine
             return false;
         }
 
+        // current_fund_value is NOT NULL DEFAULT 0; whereNotNull is redundant.
         return DCPension::query()
             ->where('user_id', $user->id)
             ->where('scheme_type', 'workplace')
-            ->whereNotNull('current_fund_value')
             ->where('current_fund_value', '>', 0)
             ->exists();
+    }
+
+    /**
+     * Skip campaign_pension_history for pensioncheck users whose gross annual
+     * income does not exceed the higher-rate threshold.
+     *
+     * The carry-forward history question is only meaningful for higher-rate
+     * taxpayers — basic-rate users have no annual-allowance optimisation to
+     * surface via it. Gross income = employment + self-employment income.
+     */
+    public static function skipIfPensionHistoryNotApplicable(User $user): bool
+    {
+        $grossIncome = ((float) ($user->annual_employment_income ?? 0))
+            + ((float) ($user->annual_self_employment_income ?? 0));
+
+        $threshold = (float) app(TaxConfigService::class)
+            ->get('income_tax.higher_rate_threshold', 50270);
+
+        return $grossIncome <= $threshold;
     }
 
     /**
@@ -2059,6 +2095,22 @@ final class OnboardingStateMachine
         return $user->onboarding_fyn_selection === 'pensioncheck'
             ? self::STATE_CAMPAIGN2_PENSION_DB
             : self::enterCampaignVerify($user, 'pensions');
+    }
+
+    /**
+     * Route from campaign_synthesis based on campaign selection.
+     * Both campaigns pass through synthesis for the F4 recap; afterwards
+     * each routes to its own terminal: savetax → campaign_terminal (/tax-strategy);
+     * pensioncheck → campaign2_terminal (/retirement).
+     *
+     * MUST NOT be a closure — advice turns auto-advance and a self-edge would
+     * recurse unbounded (see PR #504, campaign_advice_spouse incident).
+     */
+    public static function nextFromCampaignSynthesis(string $answer, User $user): string
+    {
+        return $user->onboarding_fyn_selection === 'pensioncheck'
+            ? self::STATE_CAMPAIGN2_TERMINAL
+            : self::STATE_CAMPAIGN_TERMINAL;
     }
 
     /**

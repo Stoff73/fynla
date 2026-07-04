@@ -43,6 +43,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN2_EXISTING_RECAP,
             OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS,
             OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB,
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
             OnboardingStateMachine::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
             OnboardingStateMachine::STATE_CAMPAIGN2_STATE_PENSION,
             OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS,

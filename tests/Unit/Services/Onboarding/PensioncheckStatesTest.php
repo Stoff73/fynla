@@ -252,15 +252,16 @@ it('buildPensionPotsPrompt names the scheme missing a fund value', function (): 
 
 // ── 5. Campaign-section terminal routing ──────────────────────────────────────
 
-it('nextCampaignSection for pensioncheck routes to campaign2_terminal when all sections exhausted', function (): void {
+it('nextCampaignSection for pensioncheck routes to campaign_synthesis when all sections exhausted', function (): void {
     $user = User::factory()->create([
         'onboarding_fyn_selection' => 'pensioncheck',
         'marital_status' => 'single',
         'monthly_expenditure' => 2500, // expenditure section skipped
     ]);
-    // After expenditure (last section) → campaign2_terminal for pensioncheck.
+    // After expenditure (last section) → campaign_synthesis for pensioncheck (C3 fix:
+    // pensioncheck now routes through the shared synthesis recap before its terminal).
     expect(SM::nextCampaignSection('expenditure', $user))
-        ->toBe(SM::STATE_CAMPAIGN2_TERMINAL);
+        ->toBe(SM::STATE_CAMPAIGN_SYNTHESIS);
 });
 
 it('nextCampaignSection for savetax still routes to campaign_synthesis when all sections exhausted', function (): void {
@@ -434,4 +435,53 @@ it('age-only second turn merges parked income and writes both to retirement_prof
     $conversation->refresh();
     $parked = $conversation->onboarding_parked_facts ?? [];
     expect(array_key_exists('retirement_goals', $parked))->toBeFalse();
+});
+
+// ── 11. campaign_pension_history — higher-rate income gate ────────────────────
+//
+// The pension-contribution-history question is only surfaced for higher-rate
+// taxpayers; basic-rate users have no carry-forward optimisation to surface.
+// Gross income = annual_employment_income + annual_self_employment_income.
+// Gate uses TaxConfigService 'income_tax.higher_rate_threshold' (never a literal).
+
+it('campaign_pension_history is present in the transition table', function (): void {
+    expect(array_key_exists(SM::STATE_CAMPAIGN_PENSION_HISTORY, SM::states()))->toBeTrue();
+});
+
+it('skipIfPensionHistoryNotApplicable returns true for a basic-rate user', function (): void {
+    // Income below the higher-rate threshold (default £50,270).
+    $user = pensioncheckUser(['annual_employment_income' => 35000]);
+    expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeTrue();
+});
+
+it('skipIfPensionHistoryNotApplicable returns false for a higher-rate user', function (): void {
+    // Income above the higher-rate threshold.
+    $user = pensioncheckUser(['annual_employment_income' => 65000]);
+    expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeFalse();
+});
+
+it('skipIfPensionHistoryNotApplicable sums employment and self-employment income', function (): void {
+    // Combined income crosses the higher-rate threshold even though each field alone does not.
+    $user = pensioncheckUser([
+        'annual_employment_income' => 30000,
+        'annual_self_employment_income' => 25000, // combined = £55,000
+    ]);
+    expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeFalse();
+});
+
+it('campaign_pension_history state is skipped when savetax walk exhausts the pensions section', function (): void {
+    // Savetax does not include campaign_pension_history in its section map;
+    // the state machine must not visit it for a savetax user.
+    $user = User::factory()->create([
+        'onboarding_fyn_selection' => 'savetax',
+        'marital_status' => 'single',
+        'monthly_expenditure' => 2500,
+    ]);
+    // Walk all sections — none should return campaign_pension_history.
+    $sections = SM::sectionOrderFor('savetax');
+    foreach ($sections as $section) {
+        $next = SM::nextCampaignSection($section, $user);
+        expect($next)->not->toBe(SM::STATE_CAMPAIGN_PENSION_HISTORY,
+            "savetax walk must never land on campaign_pension_history (after section '{$section}')");
+    }
 });

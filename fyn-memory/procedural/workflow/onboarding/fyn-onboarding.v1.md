@@ -184,7 +184,7 @@ campaign_occupational_scheme:
   turn_type: delegated
   prompt_text: "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on."
   capture_field: null
-  next: campaign_pension_contribs
+  next: { branch: nextFromCampaignOccupationalScheme }
   advance_on_answered_question: true
 
 campaign_pension_contribs:
@@ -214,8 +214,17 @@ campaign2_pension_db:
   turn_type: delegated
   prompt_text: "**Do you have any final salary or career average pensions — the kind that pay a guaranteed income rather than building a pot?** If so, tell me the scheme name and the yearly pension you've built up so far."
   capture_field: null
-  next: campaign2_flexible_access
+  next: campaign_pension_history
   advance_on_answered_question: true
+
+campaign_pension_history:
+  turn_type: grouped_extract
+  prompt_text: "**Roughly how much has gone into your pensions in each of the last three tax years?** Rough figures are fine — it helps work out how much you could still put in with tax relief."
+  capture_field: null
+  extraction_tool: capture_pension_history
+  retry_text: 'Give me a year-by-year breakdown — for example: 2024/25: £5,000, 2023/24: £8,000, 2022/23: £6,000. Rough figures are fine.'
+  next: campaign2_flexible_access
+  clarify_single_figure: true
 
 campaign2_flexible_access:
   turn_type: grouped_extract

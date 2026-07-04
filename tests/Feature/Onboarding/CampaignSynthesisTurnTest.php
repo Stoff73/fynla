@@ -36,7 +36,18 @@ it('routes the campaign to a synthesis advice state before the terminal state', 
     expect($states)->toHaveKey(OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS)
         ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['turn_type'])->toBe('advice')
         ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['advice_section'])->toBe('synthesis')
-        ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['next'])->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL);
+        // C3 fix: synthesis next is now campaign-aware; a callable ref routes savetax →
+        // campaign_terminal and pensioncheck → campaign2_terminal via nextFromCampaignSynthesis.
+        ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['next'])
+        ->toContain('nextFromCampaignSynthesis');
+
+    // Verify the routing for both campaigns.
+    $savetaxUser = User::factory()->create(['onboarding_fyn_selection' => 'savetax']);
+    $pensioncheckUser = User::factory()->create(['onboarding_fyn_selection' => 'pensioncheck']);
+    expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $savetaxUser))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL)
+        ->and(OnboardingStateMachine::nextFromCampaignSynthesis('', $pensioncheckUser))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_TERMINAL);
 });
 
 it('voices a bulleted plan that mirrors the /tax-strategy dashboard (no numbering, no locked tease)', function () {

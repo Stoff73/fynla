@@ -272,13 +272,12 @@ it('existing user with income and expenditure known skips those sections in the 
     expect(SM::skipSectionIfIncomeKnown($user))->toBeTrue();
 
     // Walk the chain via nextCampaignSection; expenditure is skipped so the walk
-    // ends at the PensionCheck terminal (campaign2_terminal) after spouse — NOT
-    // the savetax synthesis. PensionCheck bypasses synthesis and navigates
-    // directly to /retirement (brief: "campaignTerminalFor() returns
-    // campaign2_terminal for pensioncheck, campaign_synthesis for savetax").
+    // ends at campaign_synthesis after spouse — both campaigns now route through
+    // the shared synthesis recap (C3 fix); synthesis then routes to campaign2_terminal
+    // (/retirement) for pensioncheck via nextFromCampaignSynthesis.
     expect(SM::nextCampaignSection('income', $user))->toBe(SM::STATE_CAMPAIGN_DOB)
         ->and(SM::nextCampaignSection('pensions', $user))->toBe(SM::STATE_CAMPAIGN2_STATE_PENSION)
         ->and(SM::nextCampaignSection('state_pension', $user))->toBe(SM::STATE_CAMPAIGN2_RETIREMENT_GOALS)
         ->and(SM::nextCampaignSection('retirement_goals', $user))->toBe(SM::STATE_CAMPAIGN_SPOUSE_WORK)
-        ->and(SM::nextCampaignSection('spouse', $user))->toBe(SM::STATE_CAMPAIGN2_TERMINAL);
+        ->and(SM::nextCampaignSection('spouse', $user))->toBe(SM::STATE_CAMPAIGN_SYNTHESIS);
 });
