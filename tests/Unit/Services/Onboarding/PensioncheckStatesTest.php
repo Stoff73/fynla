@@ -336,6 +336,33 @@ it('capture record-context appendix is empty for a state without record_context'
     expect($appendix)->toBe('');
 });
 
+// ── 4d. Campaign-aware terminal CTA (D1 Fix 4) ────────────────────────────────
+// emitTerminalNavigationTurn hardcoded the bubble id 'view_strategy' + label
+// "Take me to my tax strategy" for every campaign, so the pensioncheck terminal
+// (navigate_to /retirement) showed the savetax text. The bubble id/label must
+// follow the terminal state's navigate_to route.
+
+it('terminal navigation bubble follows the pensioncheck retirement route', function (): void {
+    $director = app(OnboardingChatDirector::class);
+    $bubble = (new ReflectionMethod($director, 'terminalNavigationBubble'))
+        ->invoke($director, '/retirement');
+
+    expect($bubble['route'])->toBe('/retirement')
+        ->and($bubble['label'])->toContain('retirement')
+        ->and($bubble['label'])->not->toContain('tax strategy')
+        ->and($bubble['id'])->not->toBe('view_strategy');
+});
+
+it('terminal navigation bubble keeps the savetax tax-strategy label', function (): void {
+    $director = app(OnboardingChatDirector::class);
+    $bubble = (new ReflectionMethod($director, 'terminalNavigationBubble'))
+        ->invoke($director, '/tax-strategy');
+
+    expect($bubble['route'])->toBe('/tax-strategy')
+        ->and($bubble['label'])->toBe('Take me to my tax strategy')
+        ->and($bubble['id'])->toBe('view_strategy');
+});
+
 // ── 5. Campaign-section terminal routing ──────────────────────────────────────
 
 it('nextCampaignSection for pensioncheck routes to campaign_synthesis when all sections exhausted', function (): void {

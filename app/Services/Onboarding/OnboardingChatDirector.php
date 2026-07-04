@@ -3250,6 +3250,26 @@ PROMPT;
      *
      * @param  array<string, mixed>  $state
      */
+    /**
+     * The terminal turn's route-carrying quick-reply bubble, keyed on the
+     * state's navigate_to so each campaign lands on its own destination. The
+     * savetax tax-strategy bubble (id/label) is preserved byte-identical; the
+     * pensioncheck retirement route gets its own copy; any other route degrades
+     * to a neutral "view my plan" label.
+     *
+     * @return array{id: string, label: string, route: string}
+     */
+    private function terminalNavigationBubble(string $route): array
+    {
+        [$id, $label] = match ($route) {
+            '/tax-strategy' => ['view_strategy', 'Take me to my tax strategy'],
+            '/retirement' => ['view_retirement', 'Take me to my retirement plan'],
+            default => ['view_plan', 'Take me to my plan'],
+        };
+
+        return ['id' => $id, 'label' => $label, 'route' => $route];
+    }
+
     private function emitTerminalNavigationTurn(
         User $user,
         AiConversation $conversation,
@@ -3265,15 +3285,14 @@ PROMPT;
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
 
-        // The user taps a button to view their strategy rather than being
-        // auto-navigated, so the "we've created your tax strategy" message lands
-        // first. The route-carrying bubble navigates on tap (handled in the /m
-        // chooseBubble + web handleQuickReplySelect) — no auto navigation event.
-        $bubbles = [[
-            'id' => 'view_strategy',
-            'label' => 'Take me to my tax strategy',
-            'route' => $nextRoute,
-        ]];
+        // The user taps a button to view their plan rather than being
+        // auto-navigated, so the celebration message lands first. The
+        // route-carrying bubble navigates on tap (handled in the /m chooseBubble
+        // + web handleQuickReplySelect) — no auto navigation event. The bubble
+        // id + label follow the terminal state's navigate_to so each campaign
+        // shows its own destination (savetax → tax strategy; pensioncheck →
+        // retirement plan) rather than the hardcoded savetax text.
+        $bubbles = [$this->terminalNavigationBubble($nextRoute)];
 
         yield [
             'type' => 'quick_replies',
