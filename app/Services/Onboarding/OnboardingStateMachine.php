@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\AiConversation;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -2048,11 +2047,7 @@ final class OnboardingStateMachine
         }
 
         // current_fund_value is NOT NULL DEFAULT 0; whereNotNull is redundant.
-        return DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('scheme_type', 'workplace')
-            ->where('current_fund_value', '>', 0)
-            ->exists();
+        return app(PensionStore::class)->hasWorkplaceDcPensionWithValue($user);
     }
 
     /**
@@ -2095,10 +2090,7 @@ final class OnboardingStateMachine
             }
         }
 
-        return DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('has_flexibly_accessed', true)
-            ->exists();
+        return app(PensionStore::class)->hasFlexiblyAccessedDcPension($user);
     }
 
     // ─── PensionCheck transition methods (Task C3) ────────────────────────────
@@ -2153,11 +2145,7 @@ final class OnboardingStateMachine
      */
     public static function buildPensionPotsPrompt(string $answer, User $user): string
     {
-        $pension = DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('current_fund_value', '<=', 0)
-            ->orderBy('id')
-            ->first();
+        $pension = app(PensionStore::class)->firstDcPensionMissingPotValue($user);
 
         if ($pension === null) {
             return "I've noted the current values for your pensions.";
@@ -2175,10 +2163,7 @@ final class OnboardingStateMachine
      */
     public static function nextFromPensionPots(string $answer, User $user): string
     {
-        $missing = DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('current_fund_value', '<=', 0)
-            ->exists();
+        $missing = app(PensionStore::class)->hasDcPensionsMissingPotValue($user);
 
         return $missing
             ? self::STATE_CAMPAIGN2_PENSION_POTS
@@ -2215,7 +2200,7 @@ final class OnboardingStateMachine
         }
 
         // One line per Defined Contribution pension.
-        $dcPensions = DCPension::where('user_id', $user->id)->get();
+        $dcPensions = app(PensionStore::class)->dcPensionsFor($user);
         foreach ($dcPensions as $pension) {
             $name = trim((string) ($pension->scheme_name ?? ''));
             if ($name === '') {
@@ -2232,7 +2217,7 @@ final class OnboardingStateMachine
         }
 
         // One line per Defined Benefit pension.
-        $dbPensions = DBPension::where('user_id', $user->id)->get();
+        $dbPensions = app(PensionStore::class)->dbPensionsFor($user);
         foreach ($dbPensions as $pension) {
             $name = trim((string) ($pension->scheme_name ?? ''));
             if ($name === '') {

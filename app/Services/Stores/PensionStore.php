@@ -92,6 +92,81 @@ class PensionStore
         return $query->orderBy('tax_year')->get();
     }
 
+    /**
+     * True when the user has at least one DC workplace pension whose
+     * current_fund_value is greater than zero.
+     *
+     * current_fund_value is NOT NULL DEFAULT 0; the <= 0 sentinel is
+     * deliberate — zero means "not yet captured", not "no value".
+     */
+    public function hasWorkplaceDcPensionWithValue(User $user): bool
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('scheme_type', 'workplace')
+            ->where('current_fund_value', '>', 0)
+            ->exists();
+    }
+
+    /**
+     * True when the user has already flagged has_flexibly_accessed on any
+     * of their DC pensions.
+     */
+    public function hasFlexiblyAccessedDcPension(User $user): bool
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('has_flexibly_accessed', true)
+            ->exists();
+    }
+
+    /**
+     * Return the first DC pension (by id) whose current_fund_value is
+     * missing (<=0), or null when all pots have values.
+     *
+     * current_fund_value is NOT NULL DEFAULT 0; the <= 0 sentinel means
+     * "not yet captured". The caller iterates one pot at a time.
+     */
+    public function firstDcPensionMissingPotValue(User $user): ?DCPension
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * True when at least one DC pension is still missing a pot value
+     * (current_fund_value <= 0). Used to decide whether the pot-capture
+     * loop should continue.
+     */
+    public function hasDcPensionsMissingPotValue(User $user): bool
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0)
+            ->exists();
+    }
+
+    /**
+     * All DC pensions belonging to the user, without eager-loading
+     * holdings (narrow read for display/recap contexts).
+     */
+    public function dcPensionsFor(User $user): Collection
+    {
+        return DCPension::where('user_id', $user->id)->get();
+    }
+
+    /**
+     * All DB pensions belonging to the user (narrow read for
+     * display/recap contexts).
+     */
+    public function dbPensionsFor(User $user): Collection
+    {
+        return DBPension::where('user_id', $user->id)->get();
+    }
+
     // ---------- Writes (DC pension) ----------
 
     public function createDc(array $data, User $user, IngestSource $source): DCPension
