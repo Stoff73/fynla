@@ -31,6 +31,10 @@ class UserResource extends JsonResource
             'onboarding_fyn_step' => $this->onboarding_fyn_step,
             'onboarding_fyn_path' => $this->onboarding_fyn_path,
             'onboarding_fyn_selection' => $this->onboarding_fyn_selection,
+            // Campaign re-entry marker — the /m onboardingActive gate needs it
+            // so the verify pills + dock-resume work for a completed user mid
+            // campaign re-entry (audit fix P3).
+            'active_campaign' => $this->active_campaign,
             'journey_state' => $this->journey_state,
             'has_spouse' => $this->has_spouse,
             'spouse_id' => $this->spouse_id,
