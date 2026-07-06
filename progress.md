@@ -261,3 +261,10 @@
 - Shipped: pension campaign /pensioncheck (#607-#610) — dev + csjones, E2E GREEN both user classes, 5,490 tests
 - Status: main-dir tree clean after docs commit; fynla-fixes worktree carries pre-existing Pint churn (flagged)
 - Next: CSJ decisions — dev→prod release (#581-#610) + campaign copy/OG polish before marketing
+
+## 2026-07-06 — session 1 (context-clear)
+- Handover: [[handover-2026-07-06-session-1-clear]]
+- Branch: main (docs) / dev @ 9c9e7d2 (code)
+- Commits this session: 5 main + PRs #611/#612 merged to dev
+- Status: 0 uncommitted (pre-handover)
+- Next: CSJ decisions — dev→prod release (#581–#612) or green-light investment/estate campaign build (plans in July/July6Updates)

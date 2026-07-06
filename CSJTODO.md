@@ -1,6 +1,19 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-04 — end-of-day. **Pension campaign (/pensioncheck) COMPLETE: PRs #607–#610 merged to dev + deployed csjones + E2E GREEN both user classes** (5,490 tests). dev @ `6f965f1` (Merge #610). Prod UNTOUCHED — release window now #581–#610 (CSJ's call). Notes: `July/July4Updates/pensioncheck-patch-notes-technical.md` + `-feature-notes-user.md`. Handover: `July/July5Updates/handover-2026-07-05-session-1.md`.*
+*Last updated: 2026-07-06 — context-clear wrap, session 1. **Campaign audit maps + ALL 15 findings fixed (PR #612, browser-verified csjones) + tooling overhaul (PR #611) + investment/estate campaign specs & plans written.** dev = csjones = `9c9e7d2` (5,506 tests). Prod UNTOUCHED — release window now #581–#612 (CSJ's call). Handover: `July/July6Updates/handover-2026-07-06-session-1-clear.md`.*
+
+## 2026-07-06 — audit maps, audit fixes (#611/#612), new campaign specs
+
+All on dev (`9c9e7d2`) + csjones-deployed + live-browser-verified. Docs on main (`4ba6ba1`) + vault-mirrored.
+- [x] **#611 tooling overhaul** — 4 safety hooks (design-lint/prod-guard/env-guard/m-parity), guard extensions (db:wipe/route:cache/optimize), release + verify-m skills, hygiene (contributor memory, settings prune, dupes). 16/16 payload tests.
+- [x] **Campaign maps & audits** — `July/July6Updates/saveTax.md` + `pensionCampaign.md`: full funnel→registration→decision-tree→eventualities maps, file inventories, per-flag audit statuses.
+- [x] **#612 audit fixes** — all 15 actionable flags (P1–P8, P10, S1–S3, S5–S7) + 3 live-found follow-ups (UserResource active_campaign, mid-walk bare-start 409, /m store mirror). 15+3 new tests; suite 5,506; live Playwright pass on csjones (P1/P2/P3/P4/P6/S3/S5/S6 + integrity). Skipped by design: S4/S8/P9.
+- [x] **Investment + estate campaign specs & plans** — `investment-campaign-{spec,plan}.md` (campaign3/`investmentcheck`) + `estate-campaign-{spec,plan}.md` (campaign4/`inheritancecheck`): research-grounded, 4 slices, 30-item trap tables, Gates 0–7 testing ladder. Names/URLs DRAFT — CSJ confirms at funnel-build time.
+- [ ] **OPEN — dev→prod release** now covers **#581–#612** (one migration `users.active_campaign`; full rsync reconcile + corpus + build + m-build — CSJ's call).
+- [ ] **OPEN — green-light campaign #3/#4 build** — start from the plan docs; land one fully before the other.
+- [ ] **Optional:** retrospective `/code-review` on #612 (shipped on tests + live E2E only); frontend Prettier stack (deferred dependency decision); julycsj3 pension £26,000 drift (P2 live edit — revert only if wanted).
+
+## 2026-07-04 — pension campaign (/pensioncheck) built, verified, shipped to dev (#607–#610)
 
 ## 2026-07-04 — pension campaign (/pensioncheck) built, verified, shipped to dev (#607–#610)
 
