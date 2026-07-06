@@ -621,6 +621,17 @@ class AiChatController extends Controller
             $reentryCampaign = $pausedCampaign;
         }
 
+        // A completed user already MID-campaign (active_campaign + step set —
+        // e.g. the /m dashboard re-probing /start on a reload) must reach the
+        // resume branch below, not the 409: without this the surface falls to
+        // a generic greeting while the walk silently waits.
+        if ($reentryCampaign === null
+            && $user->active_campaign !== null
+            && $user->onboarding_fyn_step !== null
+            && isset($campaignMap[$user->active_campaign])) {
+            $reentryCampaign = $campaignMap[$user->active_campaign];
+        }
+
         // 409 only when the user is completed AND no reentry-enabled campaign matched.
         // Completed users with a valid reentry campaign fall through to the resume
         // branch (mid-campaign, step non-null) or the fresh re-entry path below.

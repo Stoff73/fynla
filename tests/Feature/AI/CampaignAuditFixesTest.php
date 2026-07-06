@@ -196,6 +196,27 @@ it('still 409s a completed user with no from and no paused campaign', function (
         ->assertStatus(409);
 });
 
+it('reaches the resume branch (not 409) for a mid-campaign re-entrant on a bare start', function (): void {
+    // Found live: the /m dashboard re-probes /start with no from on reload;
+    // a completed re-entrant mid-walk was 409ing into the generic greeting.
+    $user = makeAuditFixUser([
+        'active_campaign' => 'pensioncheck',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_selection' => 'pensioncheck',
+        'onboarding_fyn_step' => 'campaign_occupational_scheme',
+    ]);
+    $conversation = makeAuditFixConversation($user);
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/ai-chat/onboarding/start', []);
+
+    $response->assertOk();
+    $streamed = $response->streamedContent();
+
+    expect($streamed)->toContain('"type":"resume"')
+        ->and($streamed)->toContain('"conversation_id":'.$conversation->id)
+        ->and($streamed)->toContain('"current_step":"campaign_occupational_scheme"');
+});
+
 // ── P5: restart clears active_campaign ──────────────────────────────────────
 
 it('clears active_campaign and fully resets a completed re-entrant on the restart action', function (): void {
