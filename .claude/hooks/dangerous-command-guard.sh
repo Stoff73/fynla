@@ -10,8 +10,12 @@
 #   2. artisan --env=testing             — no .env.testing; resolves to dev DB and wipes it
 #   3. pkill -f vite / killall vite      — kills sibling fynlaInternational on :5174
 #   4. raw vite build / npm run build    — deploy must go through deploy/*/build.sh
+#   5. artisan optimize / route:cache    — compiled route matcher lets the SPA catch-all
+#                                          shadow '/' (and the /m iframe loads '/')
+#   6. artisan db:wipe                   — drops all tables, same blast radius as migrate:fresh
 #
-# Anything else is allowed (silent exit 0 = no decision = normal permission flow).
+# Substring matching means ssh-wrapped variants (`ssh server "php artisan ..."`)
+# are caught too. Anything else is allowed (silent exit 0 = normal permission flow).
 
 set -euo pipefail
 
@@ -40,6 +44,18 @@ deny() {
 # 1. Destructive migrations -------------------------------------------------
 if printf '%s' "$cmd" | grep -Eq 'migrate:(fresh|refresh)'; then
   deny "BLOCKED: \`migrate:fresh\`/\`migrate:refresh\` DROPS ALL TABLES and destroys local data (CLAUDE.md). To reseed without data loss run: php artisan db:seed"
+fi
+
+# 1b. db:wipe — same blast radius as migrate:fresh ---------------------------
+if printf '%s' "$cmd" | grep -Eq 'db:wipe'; then
+  deny "BLOCKED: \`db:wipe\` drops all tables (CLAUDE.md NEVER rules — same blast radius as migrate:fresh). To reseed without data loss run: php artisan db:seed"
+fi
+
+# 1c. route:cache / artisan optimize — SPA catch-all shadows '/' -------------
+#     optimize:clear is fine (the ':' after 'optimize' excludes it).
+if printf '%s' "$cmd" | grep -Eq 'route:cache' \
+   || printf '%s' "$cmd" | grep -Eq 'artisan[[:space:]]+optimize([^:[:alnum:]]|$)'; then
+  deny "BLOCKED: \`route:cache\`/\`artisan optimize\` breaks this app — the compiled route matcher lets the SPA catch-all shadow '/' and the /m iframe loads '/' (MEMORY: reference_route_cache_shadows_homepage). Use route:clear; re-cache config only with config:cache."
 fi
 
 # 2. artisan --env=testing (no .env.testing -> resolves to the dev DB) ------

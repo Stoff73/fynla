@@ -1,11 +1,15 @@
 ---
 name: email-template
-description: Assemble a Fynla transactional email from the master layout (resources/views/emails/layouts/master.blade.php) and the reusable module partials in resources/views/emails/modules/*.blade.php. Enforces the email design rules (header colours fixed, no adjacent same-background sections, logo always links to homepage, summary tables are eggshell on solid-colour backgrounds, section titles are sentence-case horizon-blue H3s at 20px, hero subtitles stay on one line). Includes reusable modules: logo-bar, hero-header, gradient-header, body, code-box, notice, summary-table, stats-panel, numbered-steps, discount-panels, badge, bullet-list, counter, feature-grid, cta, divider, description-box, console-box, signoff (text only, no logo), footer. Use whenever creating a new email Blade, converting an email mockup into a template, editing an existing email template, or auditing an email for compliance. Triggers on "build an email template", "create a new email", "turn this email mockup into a blade", "update the welcome email", "audit this email template", or any task touching resources/views/emails/.
+description: Assemble Fynla transactional emails from the master layout and reusable module partials, enforcing the email design rules. Use whenever creating, editing, converting, or auditing an email Blade — triggers on "build an email template", "create a new email", "update the welcome email", "audit this email template", or any task touching resources/views/emails/.
 ---
 
 # Email Template — Fynla Master Layout & Modules
 
-Assemble every Fynla transactional email from the master layout plus the reusable module partials. All new emails **must** extend `emails.layouts.master` and compose their body from `emails.modules.*`. The mockup reference is `public/mockups/email-master-template.html`.
+Assemble every Fynla transactional email from the master layout (`resources/views/emails/layouts/master.blade.php`) plus the reusable module partials (`resources/views/emails/modules/*.blade.php`). All new emails **must** extend `emails.layouts.master` and compose their body from `emails.modules.*`. The mockup reference is `public/mockups/email-master-template.html`.
+
+Available modules: logo-bar, hero-header, gradient-header, body, code-box, notice, summary-table, stats-panel, numbered-steps, discount-panels, badge, bullet-list, counter, feature-grid, cta, divider, description-box, console-box, signoff (text only, no logo), footer.
+
+Design rules enforced throughout: header colours fixed, no adjacent same-background sections, logo always links to homepage, summary tables are eggshell on solid-colour backgrounds, section titles are sentence-case horizon-blue H3s at 20px, hero subtitles stay on one line.
 
 ## Inviolable Rules
 
