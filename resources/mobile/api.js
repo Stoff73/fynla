@@ -75,6 +75,16 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     return { ok: false, status: res.status, text: '' };
   }
 
+  // 202 = the conversation already has a turn in flight; the message was
+  // QUEUED server-side (JSON body, not SSE). Without this branch the JSON
+  // parses as zero SSE lines and the caller shows a failure bubble while the
+  // message silently waits in the queue. Surface it so the caller can stream
+  // the queued reply once the in-flight turn finishes.
+  if (res.status === 202) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: true, status: 202, queued: true, data, text: '' };
+  }
+
   const consumeLine = (line, state) => {
     if (!line.startsWith('data: ')) return false;
     let data;

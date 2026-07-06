@@ -495,11 +495,28 @@ final class OnboardingChatDirector
     {
         $conversation->messages()->delete();
 
-        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_PATH_CHOICE;
+        // path_choice is meaningless for a completed user (a campaign
+        // re-entrant who restarts): reset every onboarding column, including
+        // active_campaign, so their next message routes to Advice Fyn instead
+        // of leaving them flagged mid-campaign in the generic flow.
+        $user->onboarding_fyn_step = $user->onboarding_completed === true
+            ? null
+            : OnboardingStateMachine::STATE_PATH_CHOICE;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
         $user->onboarding_fyn_context = null;
+        $user->active_campaign = null;
         $user->save();
+
+        if ($user->onboarding_fyn_step === null) {
+            $message = $this->saveMessage($conversation, 'assistant', 'No problem — what can I help you with?', [
+                'metadata' => ['is_pause_handoff' => true],
+            ]);
+            yield ['type' => 'content', 'text' => 'No problem — what can I help you with?'];
+            yield ['type' => 'done', 'message_id' => $message->id];
+
+            return;
+        }
 
         yield ['type' => 'content', 'text' => "No problem — let's start fresh."];
 
@@ -513,8 +530,9 @@ final class OnboardingChatDirector
      * Pause onboarding without losing it. Stores the current step into
      * onboarding_fyn_context.paused_at_step and nulls onboarding_fyn_step
      * so AiChatController::sendMessage routes the user's next message to
-     * AdviceFyn. Path + selection are preserved so the dashboard can offer a
-     * Continue Onboarding CTA when the user is ready to come back.
+     * AdviceFyn. Path + selection are preserved so the next
+     * POST /onboarding/start resumes the paused campaign at the parked step
+     * (AiChatController::startOnboarding pause-resume branch).
      */
     private function handleSomethingElseAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
     {
@@ -607,11 +625,32 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',
-            OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY => 'reviewing your family details',
             OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE => 'reviewing your full profile',
             OnboardingStateMachine::STATE_ASSET_CAPTURE => 'mapping your '.($user?->onboarding_fyn_selection ?? 'financial').' records',
             OnboardingStateMachine::STATE_ADD_MORE => 'choosing whether to add another module',
+            // Campaign walk states — without these every campaign resume
+            // greeting read "Last time we were mid-onboarding".
+            OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => 'capturing your ISAs',
+            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => 'capturing your bank and savings accounts',
+            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => 'capturing your investment accounts',
+            OnboardingStateMachine::STATE_CAMPAIGN_DOB => 'capturing your date of birth',
+            OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => 'capturing your workplace pension',
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS => 'capturing your pension contributions',
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY => 'capturing your pension contribution history',
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => "capturing your spouse's details",
+            'campaign_verify_announce',
+            'campaign_verify_navigate',
+            'campaign_verify_edit' => 'checking your details',
+            OnboardingStateMachine::STATE_CAMPAIGN2_EXISTING_RECAP => 'reviewing what we already have',
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS => 'capturing your pension values',
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB => 'capturing your final salary pensions',
+            OnboardingStateMachine::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => 'checking whether you have taken money from a pension',
+            OnboardingStateMachine::STATE_CAMPAIGN2_STATE_PENSION => 'capturing your State Pension forecast',
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS => 'capturing your retirement goals',
+            OnboardingStateMachine::STATE_CAMPAIGN2_SPOUSE_PENSIONS => "capturing your spouse's pensions",
             default => 'mid-onboarding',
         };
     }
@@ -3220,6 +3259,13 @@ PROMPT;
             case 'spouse':
                 return "Their spouse's details are stored on the linked spouse profile (use update_profile).";
 
+            case 'recap':
+                // Existing-recap edit: the recap shows income + pensions +
+                // spouse, so give the model all three targets with ids.
+                return $this->verifyEditRecordContext($user, 'income')."\n\n"
+                    .$this->verifyEditRecordContext($user, 'pensions')."\n\n"
+                    .$this->verifyEditRecordContext($user, 'spouse');
+
             default:
                 return 'Update the relevant existing record or profile field for this section.';
         }
@@ -3246,7 +3292,7 @@ PROMPT;
                     'label' => (string) $a->account_name,
                     'amount' => (float) $a->current_value,
                 ]])->all(),
-            'pensions' => app(PensionStore::class)->forUserByType($user, 'dc')
+            'pensions', 'recap' => app(PensionStore::class)->forUserByType($user, 'dc')
                 ->mapWithKeys(fn ($p): array => [$p->id => [
                     'label' => (string) $p->scheme_name,
                     'amount' => (float) $p->current_fund_value,
@@ -3296,6 +3342,11 @@ PROMPT;
             'savings' => 'savings',
             'investments' => 'investment',
             'pensions' => 'retirement',
+            // Existing-recap edits (pensioncheck re-entry): the recap spans
+            // income + pensions + spouse, so arm the pensioncheck catalogue
+            // (create_pension/capture_salary_sacrifice + update_profile/
+            // update_record) rather than the savetax default.
+            'recap' => 'pensioncheck',
             default => 'savetax',
         };
     }
@@ -4147,6 +4198,12 @@ PROMPT;
             'capture_spouse_work_status',
             'capture_spouse_household_data',
             'capture_spouse_non_working_assets',
+            // Pensioncheck campaign captures — whitelisted so a post-campaign
+            // "I want to retire at 62 on £30k" / "my State Pension forecast is
+            // £11,500" in advice mode can delegate to the same handlers the
+            // walk uses instead of dead-ending in update_record.
+            'capture_retirement_goals',
+            'capture_state_pension',
         ];
     }
 

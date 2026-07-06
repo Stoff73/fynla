@@ -494,7 +494,7 @@ final class OnboardingStateMachine
                 'prompt_text' => 'When did you retire? A year is fine — something like "2020".',
                 'capture_field' => 'retirement_date',
                 'value_parser' => 'parseRetirementDate',
-                'next' => self::STATE_BASE_EXPENDITURE,
+                'next' => self::class.'::nextFromRetirementDate',
             ],
             self::STATE_BASE_EXPENDITURE => [
                 'turn_type' => 'free_text',
@@ -707,6 +707,10 @@ final class OnboardingStateMachine
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
                 'skip_if' => [self::class, 'skipIfFlexibleAccessNotApplicable'],
                 'advance_on_answered_question' => true,
+                // PHP-only: list the user's DC pensions (with entity_ids) in the
+                // turn appendix so the "yes" branch's update_record targets the
+                // right row deterministically instead of relying on the model.
+                'record_context' => 'pensions',
             ],
             // State Pension forecast. advance_on_answered_question: true so
             // "not sure" advances — the engine's no-forecast advice fires later.
@@ -1284,11 +1288,18 @@ final class OnboardingStateMachine
             return 'campaign_verify_edit';
         }
 
+        $section = self::verifySection($user);
+
+        // 'recap' is the existing-recap edit sentinel (nextFromExistingRecap):
+        // the confirmed edit re-enters the gap walk at the first non-skipped
+        // section rather than advancing past a real section.
+        if ($section === 'recap') {
+            return self::firstCampaignSection($user->refresh());
+        }
+
         // Confirmed — show this section's tax advice now (after the confirm),
         // then advance. Sections with no advice (expenditure) go straight to
         // the next section.
-        $section = self::verifySection($user);
-
         return self::campaignSectionAdvice($section)
             ?? self::nextCampaignSection($section, $user->refresh());
     }
@@ -1392,6 +1403,10 @@ final class OnboardingStateMachine
      *    (grouped employer + occupation + income)
      *  - retired → base_retirement_date
      *  - unemployed / other → straight to base_expenditure (no income to ask)
+     *    — EXCEPT on the campaign path, where jumping to base_expenditure
+     *    would resolve its verify as the *expenditure* section, exhaust the
+     *    section order, and skip savings/investments/pensions/spouse entirely
+     *    (audit flag S1). Campaign users continue the section walk instead.
      */
     public static function nextFromEmployment(string $answer, User $user): string
     {
@@ -1402,6 +1417,40 @@ final class OnboardingStateMachine
 
         if ($status === 'retired') {
             return self::STATE_BASE_RETIREMENT_DATE;
+        }
+
+        if (($user->onboarding_fyn_path ?? '') === 'campaign') {
+            return self::campaignAfterIncome($user);
+        }
+
+        return self::STATE_BASE_EXPENDITURE;
+    }
+
+    /**
+     * Close the campaign income section for users with no (more) earned
+     * income to capture: verify what was captured when there is any, or move
+     * straight to the next section when there is nothing to show on the
+     * income screen.
+     */
+    private static function campaignAfterIncome(User $user): string
+    {
+        $hasIncome = ((float) ($user->annual_employment_income ?? 0)) > 0
+            || ((float) ($user->annual_self_employment_income ?? 0)) > 0;
+
+        return $hasIncome
+            ? self::enterCampaignVerify($user, 'income')
+            : self::nextCampaignSection('income', $user);
+    }
+
+    /**
+     * After base_retirement_date: the standard flow proceeds to expenditure;
+     * the campaign path re-joins the section walk (audit flag S1 — a retired
+     * campaign user must still be asked about savings/investments/pensions).
+     */
+    public static function nextFromRetirementDate(string $answer, User $user): string
+    {
+        if (($user->onboarding_fyn_path ?? '') === 'campaign') {
+            return self::campaignAfterIncome($user);
         }
 
         return self::STATE_BASE_EXPENDITURE;
@@ -2100,6 +2149,13 @@ final class OnboardingStateMachine
      */
     public static function skipIfPensionHistoryNotApplicable(User $user): bool
     {
+        // Data-presence skip first: contribution history already on file
+        // (e.g. captured by a pre-June-2026 savetax walk, before #586 removed
+        // the question there) — never re-ask what we already hold.
+        if (app(PensionStore::class)->pensionInputHistory($user)->isNotEmpty()) {
+            return true;
+        }
+
         $grossIncome = ((float) ($user->annual_employment_income ?? 0))
             + ((float) ($user->annual_self_employment_income ?? 0));
 
@@ -2339,10 +2395,32 @@ final class OnboardingStateMachine
         $matched = self::matchBubble(self::STATE_CAMPAIGN2_EXISTING_RECAP, $answer);
 
         if ($matched === 'changed') {
+            // Stamp the sentinel 'recap' section so the verify-edit machinery
+            // knows this edit came from the recap gate: the post-edit confirm
+            // ("does it look right?" → yes) must then enter the first
+            // non-skipped section — the gap walk — NOT fall through
+            // nextCampaignSection('') into synthesis→terminal, which would
+            // skip every unanswered question (audit flag P2).
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['verify_section'] = 'recap';
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
             return 'campaign_verify_edit';
         }
 
         // "Yes" — enter the first non-skipped section for this campaign.
+        return self::firstCampaignSection($user);
+    }
+
+    /**
+     * Entry state of the FIRST non-skipped section for the user's campaign
+     * (per-state skip_if applied transitively). Used by the existing-recap
+     * "yes" branch and by the recap-edit confirm, so both resolve the gap
+     * walk identically. Falls through to synthesis when every section skips.
+     */
+    public static function firstCampaignSection(User $user): string
+    {
         $selection = $user->onboarding_fyn_selection ?? 'pensioncheck';
         $order = self::sectionOrderFor($selection);
         $sections = self::campaignSections($selection);

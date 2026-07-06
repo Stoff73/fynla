@@ -41,8 +41,11 @@ export default {
   computed: {
     // Onboarding is "active" only when explicitly not completed (null/undefined
     // — e.g. the user is not loaded yet — must NOT trigger the onboarding chat).
+    // A completed user mid campaign re-entry (users.active_campaign set by the
+    // pensioncheck re-entry stamp) counts as active too, so the verify pills
+    // and dock-resume work during the re-entry walk (Rule 19 parity).
     onboardingActive() {
-      return store.user?.onboarding_completed === false;
+      return store.user?.onboarding_completed === false || !!store.user?.active_campaign;
     },
   },
   methods: {
@@ -253,8 +256,13 @@ export default {
         // server-side. Mirror it locally so the on-page verify pills
         // (Continue / Edit) and the onboarding-resume branches stop
         // rendering — without this a stale store.user keeps a "Continue"
-        // pill on the tax-strategy screen after the terminal.
-        if (store.user) store.user.onboarding_completed = true;
+        // pill on the tax-strategy screen after the terminal. The terminal
+        // also clears active_campaign server-side — mirror that too, or a
+        // re-entrant's pills would keep rendering until the next user fetch.
+        if (store.user) {
+          store.user.onboarding_completed = true;
+          store.user.active_campaign = null;
+        }
         return;
       }
       if (ev.type === 'level_up') {
@@ -324,7 +332,7 @@ export default {
           cursor.reply.text = 'Sorry, I could not start a conversation just now.';
           return;
         }
-        await apiStream(
+        const result = await apiStream(
           `/api/ai-chat/conversations/${cid}/messages`,
           { message: text, current_route: (this.$route && this.$route.path) || '/dashboard' },
           store.token,
@@ -335,6 +343,12 @@ export default {
           },
           (ev) => this.handleFynEvent(cursor, ev),
         );
+        // 202 = queued behind an in-flight turn (cross-surface double-send or
+        // a lock still held). Stream the queued reply once the lock frees
+        // instead of showing a false failure while the message sits queued.
+        if (result && result.queued) {
+          await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor);
+        }
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
         } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -353,6 +367,34 @@ export default {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
       }
+    },
+
+    // Stream a queued message's reply (202 path). The stream endpoint 409s
+    // while the prior turn still holds the conversation lock, so retry on a
+    // short backoff; give up honestly rather than pretending it failed.
+    async streamQueuedReply(cid, messageId, cursor) {
+      if (!messageId) {
+        cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
+        cursor.got = true;
+        return;
+      }
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const res = await apiStream(
+          `/api/ai-chat/conversations/${cid}/messages/${messageId}/stream`,
+          {},
+          store.token,
+          (piece) => {
+            if (piece) cursor.got = true;
+            cursor.reply.text += piece;
+            this.$nextTick(this.scrollFyn);
+          },
+          (ev) => this.handleFynEvent(cursor, ev),
+        );
+        if (!res || res.status !== 409) return; // streamed (or a real error — send() falls back)
+        await new Promise((resolve) => { setTimeout(resolve, 1500); });
+      }
+      cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
+      cursor.got = true;
     },
 
     // Onboarding-driven navigation on the /m surface: the campaign verify flow

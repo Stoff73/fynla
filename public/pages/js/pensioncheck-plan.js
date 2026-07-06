@@ -336,6 +336,27 @@
     el.style.display = msg ? 'block' : 'none';
   }
 
+  // Marketing attribution (mirrors sourceCapture.js + the funnel page): pick
+  // up ?utm_source= on direct plan-page landings, and read back whatever the
+  // funnel page stashed, so the register card can submit signup_source.
+  var SIGNUP_SOURCES = ['linkedin', 'facebook', 'instagram', 'tiktok', 'x', 'youtube'];
+  function captureSignupSource() {
+    try {
+      var raw = new URLSearchParams(window.location.search).get('utm_source');
+      var norm = (raw || '').trim().toLowerCase();
+      if (SIGNUP_SOURCES.indexOf(norm) === -1) return;
+      if (!sessionStorage.getItem('fynla.signup_source')) {
+        sessionStorage.setItem('fynla.signup_source', norm);
+      }
+    } catch (e) { /* private mode */ }
+  }
+  function storedSignupSource() {
+    try {
+      var v = sessionStorage.getItem('fynla.signup_source');
+      return v && SIGNUP_SOURCES.indexOf(v) !== -1 ? v : null;
+    } catch (e) { return null; }
+  }
+
   function wireRegister() {
     var form = document.getElementById('register-form');
     if (!form) return;
@@ -377,6 +398,9 @@
             password:      password,
             password_confirmation: password,
             funnel_answers: realFunnelAnswers(),
+            // Allowlist-filtered; undefined is dropped by JSON.stringify so a
+            // no-attribution registration sends no signup_source key at all.
+            signup_source: storedSignupSource() || undefined,
           }),
         });
         var data = await res.json().catch(function () { return {}; });
@@ -436,6 +460,7 @@
   }
 
   // --- Init ----------------------------------------------------------------
+  captureSignupSource();
   renderHero();
   renderStats();
   renderProof();

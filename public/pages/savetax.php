@@ -357,7 +357,7 @@
 
   </div><!-- /.qr-card -->
 
-  <script src="/pages/js/savetax.js?v=7" defer></script>
+  <script src="/pages/js/savetax.js?v=8" defer></script>
   <!-- Cookie consent — direct funnel entry must still surface the prompt here. -->
   <script src="/pages/js/cookie-consent.js?v=1" defer></script>
 </body>
