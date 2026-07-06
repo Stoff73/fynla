@@ -151,6 +151,46 @@ Bugs found live route through fix rounds on the same branch (the #610 pattern), 
 | 29 | Queue-dependent side effects | None for estate (risk observers irrelevant); milestones mint on dashboard read + capture path — D1 asserts |
 | 30 | Corpus validators | Exit 0 before every deploy |
 
+## Testing process & gates (the quality ladder — every slice climbs it in order)
+
+**Gate 0 — pre-code (per slice).** Re-read the spec section the slice implements + playbook §2 (F1–F15) + this plan's trap table. Sweep every trap row against the slice's file list. Confirm the branch stacks correctly (`git log --oneline -3` shows the previous slice's tip).
+
+**Gate 1 — tests with the code (per slice).** Write the slice's listed tests alongside the implementation, never after the PR. Run targeted:
+```bash
+./vendor/bin/pest tests/Unit/Services/Marketing/EstateEstimateServiceTest.php     # B
+./vendor/bin/pest tests/Feature/PublicPages/InheritancecheckRoutesTest.php        # B
+./vendor/bin/pest tests/Unit/Services/Onboarding/ --filter=Inheritancecheck       # C
+./vendor/bin/pest tests/Feature/AI/CampaignReentryStartTest.php tests/Feature/AI/CampaignReentryDispatchTest.php tests/Feature/AI/CampaignReentryExitTest.php  # C
+./vendor/bin/pest tests/Unit/Services/Onboarding/OnboardingWorkflowTableGoldenMasterTest.php  # C — corpus lockstep
+```
+Pint every touched PHP file. Slice C additionally: corpus validators exit 0; both tool-schema golden masters re-recorded ONCE for `capture_will_status` (`CAPTURE_TOOL_SCHEMA_GOLDEN=1 ./vendor/bin/pest tests/Feature/AI/ToolSchemaGoldenMasterTest.php` + the Xai variant) — the fixture diff must contain ONLY the new tool; any other diff is a bug.
+
+**Gate 2 — review passes (per slice PR, before merge).** The canonical review path (CLAUDE.md Working Style):
+- `/code-review` on every slice PR — report ALL findings with confidence + severity; fix or explicitly catalogue every one in the PR body before merge (the pensioncheck discipline: 11 task-scoped reviews, every Critical fixed in-slice).
+- `pr-review-toolkit:pr-test-analyzer` on every slice (coverage honesty — every new branch has a pinning test).
+- `pr-review-toolkit:silent-failure-hunter` on Slice C specifically (capture handlers, the gift-date guard, `capture_will_status` partial-retry, SSE paths — this campaign's riskiest surface for swallowed errors).
+- `security-reviewer` MANDATORY on Slice B (public pages: XSS injection shape, query-echo, register payload validation, open-redirect surface) and on Slice A's middleware/allowlist changes.
+- `tax-compliance-reviewer` MANDATORY on Slice B1 (`EstateEstimateService` — every NRB/RNRB/rate via `getInheritanceTax()`, no hardcoded £325k/£175k/40%, marriage-doubling assumption stated) and on any prompt interpolating tax figures (`campaign4_family`'s RNRB line).
+
+**Gate 3 — full suite (per slice merge).** `./vendor/bin/pest` — 0 failures, expected skips only. Record the passing count in the PR body (baseline at plan time: 5,506 + ~30 skips). The Architecture suite must stay green (StoreBoundary — no new direct model queries outside the sanctioned state-machine precedents).
+
+**Gate 4 — deploy verification (before any D walk).** On csjones: `git fetch && git checkout <branch>`; build locally via `./deploy/csjones-fynla/build.sh` ONLY (never raw vite/npm — the guard blocks it anyway); upload `public/build` + `public/m-build` with the preserve-old-chunks pattern; cache clears `cache:clear && route:clear && config:clear && view:clear && config:cache` (NEVER `optimize`/`route:cache`); **bundle-contains-change grep** (`grep -l <new symbol> public/m-build/assets/main-*.js` — the stale-bundle lesson cost a full session once); `php artisan db:seed` if any seeder/migration changed (none planned).
+
+**Gate 5 — the browser gate (Slice D — Rule 14 loop, NON-NEGOTIABLE).**
+- The law: "browser tested" = clicked, filled, submitted, and verified the result in Playwright. Every `[x]` in the D table maps to an interaction. No completion report before ALL walks run. Anything untestable is reported as "I COULD NOT TEST THIS" — never "verified".
+- **Runbook** (per `verify-m` + `reference_m_verification_path` — the desktop→/m bridge does NOT fire on cold automated navs):
+  - Fresh-user walks: drive the REAL funnel (`/m?to=%2Finheritancecheck` for the framed phone shape), register a disposable user (`<campaign>.e2e.<date>@example.com`), fetch the verification code via SSH tinker: `PendingRegistration::where('email',…)->first()?->verification_code`.
+  - Existing-user walks: log in at `/m/app/login`, MFA code via tinker (`EmailVerificationCode::where('user_id',$u->id)->latest()->first()->code`). Dismiss level-up dialogs before asserting.
+  - Backend assertions per step via tinker one-liners — for THIS campaign: `Will::where('user_id',$id)->first()?->has_will`, `Gift::where('user_id',$id)->count()`, `LastingPowerOfAttorney::where('user_id',$id)->count()`, `Property::where('user_id',$id)->count()`, `$u->onboarding_completed_at` (byte-identity across re-entries), `$u->active_campaign`, `PointAward::where('user_id',$id)->where('dedup_key','like','%terminal%')->count()` (stays 1).
+  - Transcript ambiguity: read `ai_messages` rows for the conversation rather than trusting a partial SSE render.
+  - The 202-queued path is deterministically testable: hold `Cache::lock('fyn:inflight:'.$convId, 300)->get()` from tinker, send, expect the honest queued line, `forceRelease()` after.
+- **The loop**: RED → `systematic-debugging` diagnosis with file:line evidence (never speculate) → fix on-branch → redeploy (Gate 4 repeats, including the bundle grep) → **re-walk from D1** (fixes break other things — the #610 wave re-verified every round). Exit ONLY when every walk row is GREEN as defined, or a genuine CSJ decision is surfaced with everything else green.
+- **Test-user hygiene**: soft-delete disposable users after the gate (`User::find($id)->delete()` via tinker); NEVER delete or mutate the standing test user beyond what the walk itself writes; record any standing-user data drift in the patch notes.
+
+**Gate 6 — regression matrix (inside Slice D).** D4 is mandatory, not optional: one full savetax fresh walk + one full pensioncheck fresh walk on the deployed branch. The unit-level mirror: the characterisation pins (savetax/pensioncheck section orders + verify configs byte-identical) must be in Slice C's suite so cross-campaign drift fails BEFORE the browser.
+
+**Gate 7 — post-merge duties.** Admin-merge each slice (`gh pr merge N --merge --admin`); retarget stacked PRs to dev BEFORE deleting base branches; after the final merge put csjones back on dev (`git checkout dev && git pull`) and confirm HEAD + bundle; write `inheritancecheck-patch-notes-technical.md` + `-feature-notes-user.md` to the day's Updates folder (repo + vault); update CSJTODO; extend the campaign audit docs' file inventories if surfaces moved.
+
 ## Done
 
-Slices A–C merged to dev (admin-merge pattern), csjones deployed + D-gate GREEN, patch notes + user-facing feature notes written to the day's Updates folder, CSJTODO updated, prod untouched (release window extends — CSJ's call).
+Slices A–C merged to dev (admin-merge pattern), csjones deployed + D-gate GREEN through every gate above, patch notes + user-facing feature notes written to the day's Updates folder, CSJTODO updated, prod untouched (release window extends — CSJ's call).

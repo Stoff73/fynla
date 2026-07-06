@@ -131,6 +131,45 @@ Fix rounds on-branch, each re-verified. Exit per Rule 14 only.
 | 29 | Queue-dependent effects | Trap 10 IS this — plus milestones mint on dashboard read; D1 asserts |
 | 30 | Corpus validators | Exit 0 before deploy |
 
+## Testing process & gates (the quality ladder — every slice climbs it in order)
+
+**Gate 0 — pre-code (per slice).** Re-read the spec section the slice implements + playbook §2 (F1–F15) + this plan's trap table. Sweep every trap row against the slice's file list. Confirm the branch stacks correctly.
+
+**Gate 1 — tests with the code (per slice).** Write the slice's listed tests alongside the implementation, never after the PR. Run targeted:
+```bash
+./vendor/bin/pest tests/Unit/Services/Marketing/InvestmentEstimateServiceTest.php  # B
+./vendor/bin/pest tests/Feature/PublicPages/InvestmentcheckRoutesTest.php          # B
+./vendor/bin/pest tests/Unit/Services/Onboarding/ --filter=Investmentcheck         # C
+./vendor/bin/pest tests/Feature/AI/CampaignReentryStartTest.php tests/Feature/AI/CampaignReentryDispatchTest.php tests/Feature/AI/CampaignReentryExitTest.php  # C
+./vendor/bin/pest tests/Unit/Services/Onboarding/OnboardingWorkflowTableGoldenMasterTest.php  # C — corpus lockstep
+```
+Pint every touched PHP file. Slice C: corpus validators exit 0; **zero golden-master fixture diffs** (no new tools — any tool-schema fixture diff is a bug, full stop).
+
+**Gate 2 — review passes (per slice PR, before merge).** The canonical review path:
+- `/code-review` on every slice PR — ALL findings reported with confidence + severity; fix or catalogue every one before merge.
+- `pr-review-toolkit:pr-test-analyzer` on every slice.
+- `pr-review-toolkit:silent-failure-hunter` on Slice C (the risk-profile synchronous ensure's try/catch is a designed silent-degrade — it must LOG and be pinned by the sync-queue test, not swallowed invisibly; also the holdings loop exits and the ISATracker try/catch in the recap builder).
+- `security-reviewer` MANDATORY on Slice B (public pages XSS, register payloads) and Slice A's middleware change.
+- `tax-compliance-reviewer` MANDATORY on Slice B1 (`InvestmentEstimateService` — ISA allowance/dividend allowance/thresholds via TaxConfigService keys only, no hardcoded £20,000/£500) and on `campaign3_isa`'s callable prompt (the interpolated allowance).
+
+**Gate 3 — full suite (per slice merge).** `./vendor/bin/pest` — 0 failures, expected skips only; record the count in the PR body (baseline at plan time: 5,506 + ~30 skips). Architecture suite green (StoreBoundary — the C2 readers are the sanctioned access path; no direct `InvestmentAccount::` queries from the state machine).
+
+**Gate 4 — deploy verification (before any D walk).** csjones: branch checkout; `./deploy/csjones-fynla/build.sh` ONLY; upload both bundles preserve-old-chunks; cache clears (never `optimize`/`route:cache`); **bundle-contains-change grep** on `public/m-build/assets/main-*.js`; `db:seed` only if seeders changed (none planned). **Queue check specific to this campaign:** confirm how csjones runs queues (`ps aux | grep queue:work` or the scheduler) — the risk-profile observer job is queued; the synchronous ensure makes the walk independent of it, but D1's "risk_profiles row exists" assertion should note WHICH path created it.
+
+**Gate 5 — the browser gate (Slice D — Rule 14 loop, NON-NEGOTIABLE).**
+- The law: "browser tested" = clicked, filled, submitted, verified in Playwright. Every D-table `[x]` maps to an interaction. No completion report before ALL walks run. Untestable items = "I COULD NOT TEST THIS", never "verified".
+- **Runbook** (per `verify-m` — the desktop→/m bridge does NOT fire on cold automated navs):
+  - Fresh-user walks: drive the real funnel (`/m?to=%2Finvestmentcheck`), register a disposable user, verification code via SSH tinker (`PendingRegistration::where('email',…)->first()?->verification_code`).
+  - Existing-user walks: `/m/app/login` + MFA via tinker (`EmailVerificationCode::where('user_id',$u->id)->latest()->first()->code`). Dismiss level-up dialogs before asserting.
+  - Backend assertions per step — for THIS campaign: `InvestmentAccount::where('user_id',$id)->get(['account_type','current_value','isa_subscription_current_year'])` (canonical types: `isa`/`gia`), `Holding::count()` per account (the backfill), `RiskProfile::where('user_id',$id)->exists()` (+ `is_self_assessed=false` = the auto/ensure path), `$u->annual_dividend_income` accumulation, `$u->onboarding_completed_at` byte-identity, `$u->active_campaign`, terminal award count stays 1.
+  - Transcript ambiguity → read `ai_messages`. 202-queued → tinker cache-lock trick.
+- **The loop**: RED → `systematic-debugging` with file:line evidence → fix on-branch → redeploy (Gate 4 repeats incl. bundle grep) → **re-walk from D1**. Exit only on all-GREEN or a surfaced CSJ decision.
+- **Test-user hygiene**: soft-delete disposables after the gate; never mutate the standing test user beyond the walk's own writes; record data drift in the patch notes.
+
+**Gate 6 — regression matrix (inside Slice D).** D4 mandatory: one savetax + one pensioncheck fresh walk on the deployed branch. Unit mirror: the byte-identity characterisation pins live in Slice C so cross-campaign drift fails before the browser. Extra pin for this campaign: `verifyEditFocus('investments')` stays `'investment'` (savetax verify-edit unchanged — trap C4.7).
+
+**Gate 7 — post-merge duties.** Admin-merge each slice; retarget stacked PRs before deleting bases; csjones back on dev after the final merge (HEAD + bundle confirmed); `investmentcheck-patch-notes-technical.md` + `-feature-notes-user.md` to the day's Updates folder (repo + vault); CSJTODO updated; audit-doc file inventories extended if surfaces moved.
+
 ## Done
 
-Slices A–C merged to dev, csjones D-gate GREEN, patch + feature notes written, CSJTODO updated, prod untouched (release window extends — CSJ's call). If the estate campaign builds next, start from ITS plan — do not interleave.
+Slices A–C merged to dev, csjones D-gate GREEN through every gate above, patch + feature notes written, CSJTODO updated, prod untouched (release window extends — CSJ's call). If the estate campaign builds next, start from ITS plan — do not interleave.
