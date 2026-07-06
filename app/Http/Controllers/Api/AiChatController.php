@@ -597,6 +597,41 @@ class AiChatController extends Controller
             && ($campaignMap[$from]['reentry'] ?? false)
             ? $campaignMap[$from] : null;
 
+        // Pause-resume (audit flags S2/P4): "Something else" parks the walk in
+        // onboarding_fyn_context.paused_at_step and nulls the step, preserving
+        // path + selection. A later /start resumes that campaign at the parked
+        // step — with or without a from= param — instead of restarting at the
+        // entry state, or 409ing a completed re-entrant whose pause cleared
+        // active_campaign.
+        $pausedContext = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $pausedStep = $pausedContext['paused_at_step'] ?? null;
+        $pausedSelection = $user->onboarding_fyn_selection;
+        $pausedCampaign = null;
+        if (is_string($pausedStep)
+            && $user->onboarding_fyn_path === 'campaign'
+            && is_string($pausedSelection)
+            && isset($campaignMap[$pausedSelection])
+            && OnboardingStateMachine::getState($pausedStep) !== null) {
+            $pausedCampaign = $campaignMap[$pausedSelection];
+        }
+
+        // A completed user resuming their own paused re-entry campaign bypasses
+        // the 409 exactly like an explicit from=<campaign> re-entry.
+        if ($reentryCampaign === null && $pausedCampaign !== null && ($pausedCampaign['reentry'] ?? false)) {
+            $reentryCampaign = $pausedCampaign;
+        }
+
+        // A completed user already MID-campaign (active_campaign + step set —
+        // e.g. the /m dashboard re-probing /start on a reload) must reach the
+        // resume branch below, not the 409: without this the surface falls to
+        // a generic greeting while the walk silently waits.
+        if ($reentryCampaign === null
+            && $user->active_campaign !== null
+            && $user->onboarding_fyn_step !== null
+            && isset($campaignMap[$user->active_campaign])) {
+            $reentryCampaign = $campaignMap[$user->active_campaign];
+        }
+
         // 409 only when the user is completed AND no reentry-enabled campaign matched.
         // Completed users with a valid reentry campaign fall through to the resume
         // branch (mid-campaign, step non-null) or the fresh re-entry path below.
@@ -651,21 +686,6 @@ class AiChatController extends Controller
             ]);
         }
 
-        // Fresh start (or fresh campaign re-entry) — create the conversation and stream turn 1.
-        // Re-entry sessions carry an additional metadata.campaign key so the onboarding
-        // scope query and any post-session tooling can distinguish them from first-time flows.
-        $conversationMetadata = ['source' => 'fyn_onboarding'];
-        if ($reentryCampaign !== null) {
-            $conversationMetadata['campaign'] = $reentryCampaign['selection'];
-        }
-        $conversation = AiConversation::create([
-            'user_id' => $user->id,
-            'status' => 'active',
-            'model_used' => 'director',
-            'title' => 'Onboarding',
-            'metadata' => $conversationMetadata,
-        ]);
-
         // INV-2.2.5 — entry-source dispatch. When the request carries a
         // `from` value (landing-page CTA, lifecycle email, deep link) it is
         // looked up in two config maps in priority order:
@@ -689,6 +709,14 @@ class AiChatController extends Controller
         $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
         $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
+
+        // Paused-campaign fallback: resolves BEFORE the funnel fallback so a
+        // paused pensioncheck re-entrant is not misrouted to their original
+        // (savetax) funnel campaign on a bare /start.
+        if ($matchedCampaign === null && $matchedJourney === null && $pausedCampaign !== null) {
+            $campaignEntry = $pausedCampaign;
+            $matchedCampaign = $pausedCampaign['selection'] ?? null;
+        }
 
         // Funnel fallback: a user who arrived via an acquisition funnel carries
         // durable funnel_answers. The transient `from=<campaign>` query is lost
@@ -714,6 +742,15 @@ class AiChatController extends Controller
             $stepId = ($reentryCampaign !== null && $user->onboarding_completed === true)
                 ? ($reentryCampaign['reentry_entry'] ?? $campaignEntry['entry'])
                 : $campaignEntry['entry'];
+            // Pause-resume: same campaign as the parked one → resume at the
+            // parked step (and consume the pointer) instead of the entry state.
+            if ($pausedCampaign !== null
+                && $matchedCampaign === ($pausedCampaign['selection'] ?? null)
+                && is_string($pausedStep)) {
+                $stepId = $pausedStep;
+                unset($pausedContext['paused_at_step']);
+                $user->onboarding_fyn_context = $pausedContext === [] ? null : $pausedContext;
+            }
             $user->onboarding_fyn_step = $stepId;
             $startStateId = $stepId;
             // Re-entry: stamp active_campaign so routesToOnboardingDirector routes
@@ -734,6 +771,29 @@ class AiChatController extends Controller
 
         $user->onboarding_started_at = $user->onboarding_started_at ?? now();
         $user->save();
+
+        // Conversation: a paused-campaign resume continues in the existing
+        // onboarding conversation so the transcript carries on (never a fresh
+        // box); everything else creates a new one. Re-entry sessions carry an
+        // additional metadata.campaign key so the onboarding scope query and
+        // post-session tooling can distinguish them from first-time flows.
+        $conversation = null;
+        if ($pausedCampaign !== null && $matchedCampaign === ($pausedCampaign['selection'] ?? null)) {
+            $conversation = AiConversation::forUser($user->id)->onboarding()->latest('id')->first();
+        }
+        if ($conversation === null) {
+            $conversationMetadata = ['source' => 'fyn_onboarding'];
+            if ($reentryCampaign !== null) {
+                $conversationMetadata['campaign'] = $reentryCampaign['selection'];
+            }
+            $conversation = AiConversation::create([
+                'user_id' => $user->id,
+                'status' => 'active',
+                'model_used' => 'director',
+                'title' => 'Onboarding',
+                'metadata' => $conversationMetadata,
+            ]);
+        }
 
         return new StreamedResponse(function () use ($user, $conversation, $startStateId) {
             // Emit the conversation id first so the frontend can route

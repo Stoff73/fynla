@@ -4,6 +4,20 @@
   var answers = { campaign: 'pensioncheck', employment: null, income: null, age: null, pensions: [], pot: null, spouse: null };
   var current = 'employment';
 
+  // Marketing attribution: stash ?utm_source=<platform> (allowlisted) so the
+  // plan page's register card can submit signup_source — the funnel→plan
+  // navigation strips utm params, so capture happens here at ad-landing time.
+  // Same sessionStorage key + allowlist as the SPA's sourceCapture.js and the
+  // server's RegisterRequest::ALLOWED_SIGNUP_SOURCES — keep all three in sync.
+  try {
+    var utmRaw = new URLSearchParams(window.location.search).get('utm_source');
+    var utm = (utmRaw || '').trim().toLowerCase();
+    if (['linkedin', 'facebook', 'instagram', 'tiktok', 'x', 'youtube'].indexOf(utm) !== -1
+        && !sessionStorage.getItem('fynla.signup_source')) {
+      sessionStorage.setItem('fynla.signup_source', utm);
+    }
+  } catch (e) { /* private mode */ }
+
   // Persist the funnel answers so the plan page personalises from the real
   // answers (pensioncheck-plan reads localStorage('pensioncheck_answers')) and
   // so they can be carried into registration. Then go to the personalised plan.

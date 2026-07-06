@@ -225,7 +225,7 @@ try {
 
   <script>window.PENSIONCHECK_ESTIMATE = <?= json_encode($pensioncheckEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/pensioncheck-plan.js?v=1" defer></script>
+  <script src="/pages/js/pensioncheck-plan.js?v=2" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
   <script src="/pages/js/cookie-consent.js?v=1" defer></script>
 

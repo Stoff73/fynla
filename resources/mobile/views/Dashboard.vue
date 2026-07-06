@@ -923,8 +923,14 @@ export default {
       // to the advice greeting instead of starting onboarding. loadUser is idempotent
       // (returns early when store.user is already set), so no delay in the common path.
       await this.loadUser();
-      if (this.onboardingActive) {
-        this.startOnboarding(this.$route.query.from || null);
+      // A completed user arriving with a campaign token (?from=pensioncheck —
+      // a re-entry deep-link) must still hit the start endpoint: the server
+      // decides re-entry vs 409, and startOnboarding's fallback greeting
+      // covers the 409. Without this /m had no re-entry entry point at all
+      // (re-entry was desktop-only — Rule 19).
+      const from = this.$route.query.from || null;
+      if (this.onboardingActive || from) {
+        this.startOnboarding(from);
       } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }
@@ -960,7 +966,9 @@ export default {
     // cold / token-only arrival store.user is still null at mount). Module screens
     // keep the nudge; the dashboard is the onboarding home, so Fyn leads here.
     await this.loadUser();
-    if (this.onboardingActive) {
+    // Campaign re-entry arrivals (?from=<campaign>) open Fyn too — initFyn
+    // forwards the token and the server decides whether it re-enters a walk.
+    if (this.onboardingActive || this.$route.query.from) {
       this.openFyn();
     }
   },

@@ -33,6 +33,27 @@ class RegisterRequest extends FormRequest
     }
 
     /**
+     * Sanitise funnel_answers.campaign against the campaign_map keys. An
+     * unknown campaign is STRIPPED, not rejected — a 422 here would block a
+     * real registration over a stale funnel client, whereas a missing stamp
+     * just falls back to the legacy savetax default downstream
+     * (AiChatController::startOnboarding funnel fallback).
+     */
+    protected function prepareForValidation(): void
+    {
+        $funnel = $this->input('funnel_answers');
+        if (! is_array($funnel) || ! array_key_exists('campaign', $funnel)) {
+            return;
+        }
+
+        $known = array_keys((array) config('onboarding.campaign_map', []));
+        if (! is_string($funnel['campaign']) || ! in_array($funnel['campaign'], $known, true)) {
+            unset($funnel['campaign']);
+            $this->merge(['funnel_answers' => $funnel]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
