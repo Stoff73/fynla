@@ -120,7 +120,7 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Long sessions.** Context compacts automatically — don't wrap up early over token worries. For multi-window work, save progress to a file (git log, progress note, `CSJTODO.md`).
 
-**Code review output.** Report every issue tagged with confidence + severity — coverage, not judgment. Don't pre-filter for "only important issues".
+**Code review output.** Report every issue tagged with confidence + severity — coverage, not judgment. Don't pre-filter for "only important issues". Canonical review path: `/code-review` for full reviews; `pr-review-toolkit` agents for targeted passes (tests, silent failures, types, comments); `security-reviewer` + `tax-compliance-reviewer` for auth/financial-data/tax changes.
 
 **Response length & effort.** Calibrate to the task. Default effort `xhigh`; drop to `high` for routine edits; `max` only for genuinely hard problems.
 
