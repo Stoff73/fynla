@@ -99,6 +99,15 @@ export default {
         } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
+        // Campaign re-entry just started for a completed user: the server has
+        // stamped users.active_campaign, but store.user was fetched at login
+        // and is stale — mirror the stamp so onboardingActive flips and the
+        // verify pills / dock-resume render mid re-entry. The 409-fallback
+        // case is excluded (it produced no content and no bubbles above).
+        if (from && store.user && store.user.onboarding_completed === true
+            && (cursor.got || (cursor.reply.bubbles && cursor.reply.bubbles.length))) {
+          store.user.active_campaign = from;
+        }
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } catch (e) {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
