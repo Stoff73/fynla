@@ -42,9 +42,9 @@ class DividendTaxCalculator
         $additionalRateThreshold = (float) ($incomeTaxConfig['bands'][1]['upper_limit'] ?? 125140);
 
         $dividendAllowance = (float) ($dividendConfig['allowance'] ?? 500);
-        $basicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
-        $higherRate = (float) ($dividendConfig['higher_rate'] ?? 0.3375);
-        $additionalRate = (float) ($dividendConfig['additional_rate'] ?? 0.3935);
+        $basicRate = (float) ($dividendConfig['basic_rate'] ?? TaxDefaults::DIVIDEND_BASIC_RATE);
+        $higherRate = (float) ($dividendConfig['higher_rate'] ?? TaxDefaults::DIVIDEND_HIGHER_RATE);
+        $additionalRate = (float) ($dividendConfig['additional_rate'] ?? TaxDefaults::DIVIDEND_ADDITIONAL_RATE);
 
         // Personal allowance taper applies to Adjusted Net Income, NOT gross income.
         // ANI = total income − pension contributions − grossed-up Gift Aid (HMRC ITA

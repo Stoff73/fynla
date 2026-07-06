@@ -51,6 +51,8 @@ class PreviewWriteInterceptor
         'api/contact',            // Contact form works regardless of preview mode
         'api/news/subscribe',     // Public newsletter subscribe — no auth, IP-rate-limited
         'api/auth/login',         // Allow real login even with stale preview token
+        'api/auth/mfa/verify',    // Login-flow MFA continuation (real login with stale preview token)
+        'api/auth/mfa/recovery',  // Login-flow MFA recovery-code continuation
         'api/auth/logout',
         'api/auth/logout-beacon', // Beacon logout for browser/tab close
         'api/auth/register',      // Allow preview users to create real accounts

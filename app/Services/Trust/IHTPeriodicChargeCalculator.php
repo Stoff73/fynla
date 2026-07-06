@@ -50,6 +50,28 @@ class IHTPeriodicChargeCalculator
     }
 
     /**
+     * Shared arithmetic kernel for the 10-year periodic charge:
+     * (trust value above the nil-rate band) × the periodic charge rate
+     * (config-driven, 6% fallback).
+     *
+     * Exposed so callers that need an illustrative or projected estimate —
+     * where no anniversary charge date applies (trust efficiency display,
+     * NRB-avoidance forward projections) — share the exact same formula and
+     * rate source as the date-gated calculatePeriodicCharge() below.
+     *
+     * @param  float  $trustValue  The trust value to charge
+     * @param  float|null  $nrb  Nil-rate band; defaults to the configured NRB
+     * @return float Estimated periodic charge
+     */
+    public function estimateChargeOnValue(float $trustValue, ?float $nrb = null): float
+    {
+        $nrb ??= $this->getNRB();
+        $chargeableValue = max(0.0, $trustValue - $nrb);
+
+        return $chargeableValue * $this->getTrustChargeRates()['periodic_rate'];
+    }
+
+    /**
      * Calculate the 10-year periodic charge for relevant property trusts
      */
     public function calculatePeriodicCharge(Trust $trust, ?Carbon $chargeDate = null): array
@@ -90,7 +112,7 @@ class IHTPeriodicChargeCalculator
         // Effective rate is 30% of IHT rate (40% * 30% = 12%), applied over 10 years = 6%
         // But it's simplified to 6% of chargeable value every 10 years
         $rates = $this->getTrustChargeRates();
-        $periodicCharge = $chargeableValue * $rates['periodic_rate'];
+        $periodicCharge = $this->estimateChargeOnValue((float) $trustValue, $this->getNRB());
 
         return [
             'charge_applicable' => true,

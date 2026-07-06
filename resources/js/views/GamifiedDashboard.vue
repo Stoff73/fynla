@@ -324,12 +324,12 @@ export default {
       const efTarget = 6;
       const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
 
-      // Retirement — projected income vs target.
+      // Retirement — headline is the current pension pot; bar tracks projected income vs target.
       const ret = find('retirement');
       const projected = num(ret.projected_income);
       const target = num(ret.target_income);
       const retPct = target > 0 ? clampPct((projected / target) * 100) : 0;
-      const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
+      const retValue = num(ret.pot_value != null ? ret.pot_value : (ret.income_gap != null ? ret.income_gap : ret.value));
 
       // Investment — value + how much of total assets it represents.
       const inv = find('investment');
@@ -342,7 +342,7 @@ export default {
         { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(net), route: '/net-worth/wealth-summary', viz: 'donut', progress: equityPct, vizNum: equityPct + '%', vizCap: 'Equity', caption: this.fmt(totalAssets) + ' assets' },
         { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: covered ? this.fmt(protVal) : '£0', route: '/protection', viz: 'donut', progress: covered ? 100 : 0, vizNum: covered ? 'Active' : 'None', vizCap: 'Cover', caption: covered ? 'Cover in place' : 'Add your cover' },
         { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(savValue), route: '/net-worth/cash', viz: 'bar', barFill: efTarget > 0 ? clampPct((efMonths / efTarget) * 100) : 0, barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0', barUnit: '/ ' + efTarget + ' months', caption: efMonths >= efTarget ? 'Emergency fund on track' : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund') },
-        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retValue), route: '/net-worth/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: target > 0 ? 'Towards your target' : 'Plan your retirement' },
+        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retValue), route: '/net-worth/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: target > 0 ? 'Towards your target' : (retValue > 0 ? 'Your pension pot' : 'Plan your retirement') },
         { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(invValue), route: '/net-worth/investments', viz: 'donut', progress: invPct, vizNum: invValue > 0 ? String(invAccounts) : '0', vizCap: invAccounts === 1 ? 'Account' : 'Accounts', caption: invValue > 0 ? `${invHoldings} ${invHoldings === 1 ? 'holding' : 'holdings'}` : 'Add your investments' },
       ];
     },

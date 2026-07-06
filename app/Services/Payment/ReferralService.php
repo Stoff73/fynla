@@ -70,14 +70,13 @@ class ReferralService
         } catch (\Exception $e) {
             Log::error('Failed to send referral invitation email', [
                 'referrer_id' => $referrer->id,
-                'referee_email' => $email,
+                'referral_code' => $code,
                 'error' => $e->getMessage(),
             ]);
         }
 
         Log::info('Referral invitation sent', [
             'referrer_id' => $referrer->id,
-            'referee_email' => $email,
             'referral_code' => $code,
         ]);
 

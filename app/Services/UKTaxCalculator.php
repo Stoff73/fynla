@@ -672,6 +672,15 @@ class UKTaxCalculator
         $higherRateLimit = (float) ($incomeTax['additional_rate_threshold']
             ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max'])));
 
+        // Gift Aid band extension (ITA 2007 s414): grossed-up Gift Aid donations
+        // extend both the basic- and higher-rate limits by the gross donation. This
+        // is the mechanism that delivers higher/additional-rate relief — more income
+        // is taxed at the lower rate. Basic-rate relief is already given to the charity
+        // at source, so Gift Aid does NOT reduce taxable income (mirrors how pension
+        // contributions extend the ceilings in SaveTaxEstimateService::incomeTax).
+        $basicRateLimit += $giftAidGross;
+        $higherRateLimit += $giftAidGross;
+
         // Tax rates are stored as decimals (0.20 for 20%)
         $basicRate = $bands[0]['rate'];
         $higherRate = $bands[1]['rate'];

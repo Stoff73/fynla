@@ -77,21 +77,21 @@ export default {
 </script>
 
 <style scoped>
-.celebrate { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; color: #fff; overflow: hidden; background: linear-gradient(165deg, #141a2e 0%, #1F2A44 35%, #2c2466 72%, #5854E6 100%); }
-.kicker { letter-spacing: 3px; font-size: 13px; font-weight: 700; color: #A7F3D0; }
+.celebrate { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; color: white; overflow: hidden; background: linear-gradient(165deg, theme('colors.horizon.600') 0%, theme('colors.horizon.500') 35%, theme('colors.violet.900') 72%, theme('colors.violet.500') 100%); }
+.kicker { letter-spacing: 3px; font-size: 13px; font-weight: 700; color: theme('colors.spring.200'); }
 .ring-wrap { position: relative; width: 140px; height: 140px; margin: 14px auto 6px; display: flex; align-items: center; justify-content: center; animation: pop .7s cubic-bezier(.2,.9,.3,1.4) both; }
 .lvl-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ring-track { fill: none; stroke: rgba(255,255,255,.15); stroke-width: 9; }
-.ring-fill { fill: none; stroke: #20B486; stroke-width: 9; stroke-linecap: round; stroke-dasharray: 389; stroke-dashoffset: 389; animation: ring 1.3s ease-out .4s both; }
+.ring-fill { fill: none; stroke: theme('colors.spring.500'); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 389; stroke-dashoffset: 389; animation: ring 1.3s ease-out .4s both; }
 .lvl-num { font-size: 50px; font-weight: 900; }
 .title { font-size: 28px; font-weight: 900; margin-top: 12px; }
-.subtitle { font-size: 20px; font-weight: 700; color: #6EE7B7; margin-top: 2px; }
-.next { font-size: 14px; color: #CBD5E1; margin-top: 16px; line-height: 1.55; max-width: 260px; }
-.cta { margin-top: 20px; padding: 15px 28px; border: none; border-radius: 14px; background: #E83E6D; color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; }
-.hint { font-size: 13px; color: #CBD5E1; margin-top: 12px; }
+.subtitle { font-size: 20px; font-weight: 700; color: theme('colors.spring.300'); margin-top: 2px; }
+.next { font-size: 14px; color: theme('colors.horizon.300'); margin-top: 16px; line-height: 1.55; max-width: 260px; }
+.cta { margin-top: 20px; padding: 15px 28px; border: none; border-radius: 14px; background: theme('colors.raspberry.500'); color: white; font-weight: 700; font-size: 16px; cursor: pointer; }
+.hint { font-size: 13px; color: theme('colors.horizon.300'); margin-top: 12px; }
 .confetti { position: absolute; top: -20px; width: 9px; height: 9px; border-radius: 2px; animation: fall 3s linear infinite; }
 .fw { position: absolute; width: 6px; height: 6px; }
-.fw .core { position: absolute; left: -6px; top: -6px; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(#fff, transparent 70%); animation: flash 1.6s ease-out infinite; }
+.fw .core { position: absolute; left: -6px; top: -6px; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(white, transparent 70%); animation: flash 1.6s ease-out infinite; }
 .fw i { position: absolute; left: 0; top: 0; width: 6px; height: 6px; border-radius: 50%; animation: burst 1.6s ease-out infinite; }
 @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes ring { to { stroke-dashoffset: 96; } }

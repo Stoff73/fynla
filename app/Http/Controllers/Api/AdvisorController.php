@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientActivityRequest;
+use App\Http\Requests\UpdateClientActivityRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\User;
 use App\Services\Admin\UserModuleTrackingService;
@@ -168,10 +169,10 @@ class AdvisorController extends Controller
         }
     }
 
-    public function updateActivity(Request $request, int $id): JsonResponse
+    public function updateActivity(UpdateClientActivityRequest $request, int $id): JsonResponse
     {
         try {
-            $activity = $this->activityService->update($request->user(), $id, $request->all());
+            $activity = $this->activityService->update($request->user(), $id, $request->validated());
 
             return response()->json(['success' => true, 'data' => $activity, 'message' => 'Activity updated.']);
         } catch (\Exception $e) {

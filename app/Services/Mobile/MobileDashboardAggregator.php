@@ -138,8 +138,11 @@ class MobileDashboardAggregator
      */
     private function extractProtectionSummary(array $data, array $raw): array
     {
-        // Handle case where protection profile doesn't exist
-        if (isset($raw['success']) && $raw['success'] === false) {
+        // Handle case where protection profile doesn't exist, or the readiness
+        // gate blocked analysis (agent returns success=true, can_proceed=false,
+        // coverage=null) — treat both as not-configured rather than active-with-0.
+        if ((isset($raw['success']) && $raw['success'] === false)
+            || ($data['can_proceed'] ?? true) === false) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Protection profile not yet set up.',
@@ -167,7 +170,10 @@ class MobileDashboardAggregator
 
         return [
             'status' => 'active',
-            'total_coverage' => round((float) ($coverage['total_life_cover'] ?? 0), 2),
+            // CoverageGapAnalyzer emits 'total_coverage' (life + critical illness);
+            // 'life_coverage' is life-only. The prior 'total_life_cover' key was never
+            // produced, so this card read £0 for every user with cover.
+            'total_coverage' => round((float) ($coverage['total_coverage'] ?? 0), 2),
             'policy_count' => $policyCount,
             'critical_gaps' => $criticalGaps,
             'has_income_protection' => (float) ($coverage['income_protection_coverage'] ?? 0) > 0,
@@ -219,8 +225,10 @@ class MobileDashboardAggregator
      */
     private function extractRetirementSummary(array $data, array $raw): array
     {
-        // Handle case where retirement profile doesn't exist
-        if (isset($raw['success']) && $raw['success'] === false) {
+        // Handle case where retirement profile doesn't exist, or the readiness
+        // gate blocked analysis (success=true, can_proceed=false, summary=null).
+        if ((isset($raw['success']) && $raw['success'] === false)
+            || ($data['can_proceed'] ?? true) === false) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Retirement profile not yet set up.',
@@ -232,6 +240,10 @@ class MobileDashboardAggregator
         return [
             'status' => 'active',
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
+            // Current DC pot value — the card headline. Without this the card fell
+            // back to income_gap, which is 0 whenever target_retirement_income is
+            // unset (never captured at onboarding), so it showed £0 despite a pot.
+            'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
             'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),

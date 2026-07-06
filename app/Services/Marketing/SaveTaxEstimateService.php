@@ -355,7 +355,7 @@ class SaveTaxEstimateService
      */
     private function incomeTax(int $gross, int $pension = 0): float
     {
-        $basicLimit = 37700.0; // taxable-income width of the basic-rate band
+        $basicLimit = (float) $this->taxConfig->get('income_tax.bands.0.max', 37700); // taxable-income width of the basic-rate band
         $additionalThreshold = (float) $this->taxConfig->get('income_tax.additional_rate_threshold', 125140);
         $rates = $this->bandRates();
 

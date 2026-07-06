@@ -11,6 +11,7 @@ use App\Services\Investment\Recommendation\DataReadinessService as InvestmentDat
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Retirement\RetirementDataReadinessService;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Traits\ResolvesIncome;
 
 /**
  * Centralised prerequisite enforcement for all module analysis, tool execution,
@@ -31,6 +32,8 @@ use App\Services\Savings\SavingsDataReadinessService;
  */
 class PrerequisiteGateService
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly ProtectionDataReadinessService $protectionReadiness,
         private readonly SavingsDataReadinessService $savingsReadiness,
@@ -129,7 +132,7 @@ class PrerequisiteGateService
         $missing = [];
         $actions = [];
 
-        if ($this->calculateTotalIncome($user) <= 0) {
+        if ($this->resolveGrossAnnualIncome($user) <= 0) {
             $missing[] = 'annual income';
             $actions[] = ['label' => 'Add your income details', 'route' => '/valuable-info?section=income'];
         }
@@ -417,22 +420,6 @@ class PrerequisiteGateService
             'guidance' => '',
             'required_actions' => [],
         ];
-    }
-
-    /**
-     * Calculate total annual income from all sources on users table.
-     * Fields: annual_employment_income, annual_self_employment_income, annual_rental_income,
-     *         annual_dividend_income, annual_interest_income, annual_other_income, annual_trust_income
-     */
-    private function calculateTotalIncome(User $user): float
-    {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
     }
 
     private function deduplicateActions(array $actions): array

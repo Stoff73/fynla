@@ -93,8 +93,8 @@ class GoalResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'contributions' => GoalContributionResource::collection($this->whenLoaded('contributions')),
             'linked_savings_account' => $this->whenLoaded('linkedSavingsAccount', fn () => new SavingsAccountResource($this->linkedSavingsAccount)),
 

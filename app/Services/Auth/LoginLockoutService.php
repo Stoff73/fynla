@@ -106,7 +106,7 @@ class LoginLockoutService
                 // Log significant lockouts
                 if ($lockoutMinutes >= 30) {
                     \Log::warning('Account locked due to repeated failed login attempts', [
-                        'email' => $email,
+                        'user_id' => $user->id,
                         'failed_count' => $user->failed_login_count,
                         'locked_until' => $user->locked_until,
                         'ip' => request()->ip(),

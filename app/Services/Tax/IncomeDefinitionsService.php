@@ -24,20 +24,26 @@ class IncomeDefinitionsService
         $components = $this->getIncomeComponents($user);
         $totalIncome = array_sum($components);
 
-        // 2. Net Income
+        // 2. Net Income — taxable income after net-pay pension relief and the
+        // Gift Aid gross-up. Feeds Adjusted Net Income (with the Blind Person's
+        // Allowance) for the Personal Allowance taper only.
         $pensionRelief = $pensionContributions['employee'];
         $giftAidGross = $this->calculateGiftAidGrossUp($user);
         $netIncome = $totalIncome - $pensionRelief - $giftAidGross;
 
-        // 3. Adjusted Net Income
+        // 3. Adjusted Net Income (ITA 2007 s58) — drives the Personal Allowance taper.
         $bpa = $user->is_registered_blind ? $this->taxConfig->getBlindPersonsAllowance() : 0.0;
         $adjustedNetIncome = $netIncome - $bpa;
 
-        // 4. Threshold Income
-        $thresholdIncome = $adjustedNetIncome - $pensionContributions['employee'];
+        // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay
+        // employee contributions only, deducted once. Gift Aid and the Blind
+        // Person's Allowance do NOT reduce it (those belong to Adjusted Net Income).
+        $thresholdIncome = $totalIncome - $pensionContributions['employee'];
 
-        // 5. Adjusted Income
-        $adjustedIncome = $thresholdIncome + $pensionContributions['employer'];
+        // 5. Adjusted Income (FA 2004 s228ZA) — total income plus employer
+        // contributions (equivalently threshold income plus both the employee
+        // and employer pension inputs).
+        $adjustedIncome = $totalIncome + $pensionContributions['employer'];
 
         // Ensure no negative values
         $totalIncome = max(0.0, $totalIncome);

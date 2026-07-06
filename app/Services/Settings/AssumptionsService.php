@@ -159,7 +159,7 @@ class AssumptionsService
             Log::info('User assumptions updated', [
                 'user_id' => $userId,
                 'type' => $type,
-                'data' => $updateData,
+                'fields' => array_keys($updateData),
             ]);
         }
 
@@ -217,7 +217,7 @@ class AssumptionsService
 
             Log::info('Estate planning assumptions updated', [
                 'user_id' => $userId,
-                'data' => $updateData,
+                'fields' => array_keys($updateData),
             ]);
         }
 

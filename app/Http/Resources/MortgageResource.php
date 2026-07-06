@@ -76,7 +76,7 @@ class MortgageResource extends JsonResource
 
             // Relationships
             'property' => $this->whenLoaded('property', fn () => new PropertyResource($this->property)),
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
 
             // Links
             'links' => [

@@ -268,7 +268,7 @@
                       Business Asset Disposal Relief
                     </p>
                     <p class="text-sm" :class="exitCalculation.badr_eligible ? 'text-spring-600' : 'text-neutral-500'">
-                      {{ exitCalculation.badr_eligible ? 'Eligible - 10% Capital Gains Tax rate applies' : 'Not currently eligible - standard Capital Gains Tax rates apply' }}
+                      {{ exitCalculation.badr_eligible ? 'Eligible - 18% Capital Gains Tax rate applies' : 'Not currently eligible - standard Capital Gains Tax rates apply' }}
                     </p>
                   </div>
                 </div>

@@ -70,7 +70,7 @@ class RevolutService
         if ($response->failed()) {
             Log::error('Revolut createOrder failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'amount' => $amount,
                 'currency' => $currency,
             ]);
@@ -109,7 +109,7 @@ class RevolutService
             Log::error('Revolut getOrder failed', [
                 'order_id' => $orderId,
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
             ]);
             $response->throw();
         }
@@ -175,7 +175,7 @@ class RevolutService
         if ($response->failed()) {
             Log::error('Revolut createOrderWithCustomer failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'amount' => $amount,
                 'customer_id' => $customerId,
             ]);
