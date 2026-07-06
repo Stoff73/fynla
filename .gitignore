@@ -44,6 +44,9 @@ yarn-error.log
 # Claude runtime state
 .claude/scheduled_tasks.lock
 
+# Claude per-machine memory (never commit — a contributor's memory was once committed here)
+.claude/projects/
+
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf

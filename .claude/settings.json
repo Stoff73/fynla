@@ -14,6 +14,28 @@
             "statusMessage": "Checking command against Fynla NEVER rules..."
           }
         ]
+      },
+      {
+        "matcher": "mcp__ssh-fynla__ssh_exec",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/prod-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking prod command against Fynla NEVER rules..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/env-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking for .env edits..."
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -37,6 +59,18 @@
             "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/tax-hardcode-check.sh",
             "timeout": 15,
             "statusMessage": "Checking for hardcoded tax values..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/design-lint.sh",
+            "timeout": 20,
+            "statusMessage": "Design-system lint (Rules 8/11/15)..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/m-parity-check.sh",
+            "timeout": 10,
+            "statusMessage": "Checking /m parity (Rule 19)..."
           }
         ]
       }

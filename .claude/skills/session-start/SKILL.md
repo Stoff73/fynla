@@ -97,7 +97,7 @@ Then **Read the file in full** (not `head`, not `cat | head -50` — full file).
 - **Worktrees / live artefacts** (any `/tmp/*` paths still alive, branch tips, pushed/unpushed state) — surface as a sublist
 - **Blockers / known issues** — surface verbatim if non-empty
 
-If the handover names a specific user-visible decision the next session is supposed to make (e.g. "CSJ to choose Path A / B / C"), surface that decision verbatim and **wait for the user's instruction before acting** — do NOT pick a path on their behalf.
+If the handover names a specific user-visible decision the next session is supposed to make (e.g. "CSJ to choose Path A / B / C"), surface that decision verbatim in the report — but **do NOT stop and wait**. After Phase 4, you will auto-continue with the "Pick up from here" actions (Phase 5). CSJ has the chat history and the handover open and will redirect if the auto-resume picks a wrong path. **Do not ask "want me to continue?" — just continue.**
 
 ### 2b. CSJTODO (supplementary — NOT a substitute for the handover)
 
@@ -164,8 +164,8 @@ Present this concise summary to CSJ. No filler.
 **Pick up from here (from handover)**
 - <verbatim block>
 
-**Decision waiting on user** (if the handover flagged one)
-- <e.g. "Path A / B / C — CSJ to choose">
+**Decision flagged in handover** (if any — note that auto-resume will proceed; CSJ to redirect if needed)
+- <e.g. "Path A / B / C — CSJ to choose. Auto-resume will continue with the most-recent direction-of-travel: Path B per the WIP commit message.">
 
 **Outstanding (CSJTODO)**
 - <items, or "none">
@@ -177,14 +177,37 @@ Present this concise summary to CSJ. No filler.
 
 **Reminders this session**
 - CLAUDE.md and MEMORY.md are loaded — consult before asking
-- Handover above is the authoritative pickup doc — do not act past a "decision waiting on user" line without their answer
+- Handover above is the authoritative pickup doc — auto-continue from "Pick up from here"
 - Read individual memory / vault / design files on-demand using the lookup map
 - Browser testing = click, fill, submit, verify result in Playwright
 - Design system: fynlaDesignGuide.md v1.3.0 (read before any UI change)
 - Scope discipline · Honesty · No raw `vite build` · No `migrate:fresh`
 
-**Ready. What would you like to work on?**
+**Auto-continuing from handover — Phase 5 starting now.**
 ```
+
+## Phase 5: Auto-continue (NON-NEGOTIABLE)
+
+After printing the Phase 4 report, **immediately** begin executing the handover's "Pick up from here" / "Next session should" items. **Do not ask permission. Do not check. Just work.** This is CSJ's explicit instruction — the whole point of the context-handover → /clear → session-start chain is that the new instance picks up exactly where the old one left off.
+
+### Behaviour matrix
+
+| Handover state | Action |
+|---|---|
+| Concrete next action ("Run X, fix Y") | Start doing it immediately |
+| Multi-step plan ("Phases 4–7 of plan.md") | Open the plan, find the next unchecked task, start |
+| WIP commit present (`wip: context-handover snapshot`) | Review what's in it via `git show HEAD --stat`, then continue the work it represents |
+| Decision flagged ("Path A or B?") | Surface the decision in the report, then proceed with the most-recent direction-of-travel (look at the WIP commit, the last few commits, the handover's "The thread" section). CSJ will redirect if wrong. |
+| No clear next action | Read more code or run the relevant test to gather context, then propose a next step in one sentence and START it. Don't sit idle asking "what would you like?" |
+
+### Hard rules
+
+- **No "want me to continue?"** — auto-continue is the contract.
+- **No "let me know when you're ready"** — CSJ is ready by virtue of having said `start session`.
+- **No re-asking decisions the previous session already answered.** If "The thread" section shows a decision was made, treat it as final.
+- **If you hit a blocker that genuinely requires CSJ's input** (e.g. credentials, a destructive action, a path the handover explicitly defers), surface it concisely and proceed with whatever investigative work is unblocked while waiting.
+- **Do NOT re-run tests or seed the DB again** — Phase 1c already seeded; running tests is part of the actual work, not bootstrapping.
+- **Loop until correct (CLAUDE.md Rule #15)** — if the next action is "make BS-NN green", you loop until green per the plan, no early exit.
 
 ## What NOT to do
 
@@ -195,6 +218,8 @@ Present this concise summary to CSJ. No filler.
 - Do NOT bulk-Read every file in the latest vault session folder — only the handover is mandatory; specs / plans / audits / screenshots are read on-demand via the Phase 3 lookup map
 - Do NOT make code changes during session start — this is diagnostic only
 - Do NOT auto-delete branches or worktrees with uncommitted work (the handover often flags worktrees that must stay alive)
-- Do NOT pick a path / make a decision on the user's behalf if the handover surfaces one for them — surface it verbatim and wait
+- Do NOT stop after Phase 4 to wait for a "what should I work on?" answer — the handover already says, auto-continue per Phase 5
+- Do NOT re-ask decisions the previous session already answered. If the handover's "The thread" shows a decision was made, treat it as final
+- If a genuinely-undecided choice IS surfaced in the handover, proceed with the most-recent direction-of-travel default rather than blocking — CSJ has the chat and will redirect if wrong
 - Do NOT run `migrate:fresh` or `migrate:refresh`
 - Do NOT skip `db:seed`

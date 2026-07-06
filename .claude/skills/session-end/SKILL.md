@@ -1,6 +1,6 @@
 ---
 name: session-end
-description: Wrap up a Fynla development session so the next one starts cleanly. Asks whether this is a context-clear or end-of-day wrap, commits and pushes all work, runs the tech-debt session audit, invokes the vault-sync skill, writes a dated handover file (`handover-YYYY-MM-DD-session-N.md`) into the correct date folder for session-start to pick up on resume, and mirrors session state into `planning-with-files` docs (`task_plan.md` / `findings.md` / `progress.md`) if they exist or if the vault sync failed — so the next session-start still has continuity via the plugin fallback channel. Use when the user says "end session", "wrap up", "finish up", "session end", "that's it for today", "I'm clearing context", "/clear in a moment", or when a significant block of work is complete. Pair of session-start — they share the handover file format, folder convention, and planning-with-files fallback contract.
+description: Wrap up a Fynla development session so the next one starts cleanly — commits work, runs the tech-debt audit, syncs the vault, and writes the dated handover file that session-start picks up on resume. Use when the user says "end session", "wrap up", "finish up", "that's it for today", "I'm clearing context", or when a significant block of work is complete.
 disable-model-invocation: false
 ---
 

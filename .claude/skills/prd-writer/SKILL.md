@@ -1,11 +1,13 @@
 ---
 name: prd-writer
-description: Generate a production-ready PRD for a Fynla feature by first validating an existing spec and plan against the live codebase (finding conflicts, gaps, cross-purpose planning, and missing integrations), then running a rolling interview with the user to resolve every ambiguity, amending the spec and plan as needed, and only then writing the PRD in the canonical 9-section format. Use whenever the user says "write a PRD", "generate the PRD", "create PRD from spec", "turn this plan into a PRD", or hands over spec/plan paths and asks for product requirements documentation. Also trigger when the user mentions "requirements document", "product spec doc", "formalise a feature", or wants engineering-ready requirements before implementation starts. This skill ONLY works when a spec AND plan already exist — if either is missing, point the user at `superpowers:brainstorming` (spec) or `superpowers:writing-plans` (plan) first.
+description: Generate a production-ready PRD for a Fynla feature by validating an existing spec and plan against the live codebase, interviewing the user to resolve ambiguities, then writing the canonical 9-section PRD. Requires a spec AND plan to already exist. Use when the user says "write a PRD", "create PRD from spec", "requirements document", "formalise a feature", or wants engineering-ready requirements before implementation.
 ---
 
 # PRD Writer
 
-Produce a rigorous, codebase-validated PRD from an existing spec and plan. The skill refuses to accept the spec and plan at face value — it drives a subagent-led audit of the real codebase, surfaces every inconsistency, interviews the user to resolve them, and only writes the PRD once the spec, plan, and codebase are in mutual agreement.
+Produce a rigorous, codebase-validated PRD from an existing spec and plan. The skill refuses to accept the spec and plan at face value — it drives a subagent-led audit of the real codebase (finding conflicts, gaps, cross-purpose planning, and missing integrations), surfaces every inconsistency, runs a rolling interview with the user to resolve them, amends the spec and plan as needed, and only writes the PRD once the spec, plan, and codebase are in mutual agreement.
+
+**Prerequisite:** this skill ONLY works when a spec AND plan already exist. If either is missing, point the user at `superpowers:brainstorming` (spec) or `superpowers:writing-plans` (plan) first.
 
 ## Why this skill exists
 
