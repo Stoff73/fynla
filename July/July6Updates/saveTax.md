@@ -334,7 +334,9 @@ VERIFY(section) = announce "tap Okay" → navigate (SSE nav + pills)
 - WP-1 capture integrity + F5 honest acks; income cross-check; DOB confirm-back; advice-chain recursion guard (#504).
 - Gamification loop closed: per-state points (deduped), data-entry awards, level-up SSE, milestones on captures, campaign affinity (tax-first) on the /m dashboard.
 
-### AUDIT FLAGS — resolution status (fixes shipped in PR #612, `campaign-audit-fixes` → dev, 2026-07-06; suite 5,506 green)
+### AUDIT FLAGS — resolution status (fixes shipped in PR #612, MERGED to dev `9c9e7d2` 2026-07-06; suite 5,506 green)
+
+**Live-browser-verified on csjones 2026-07-06:** flag 2 (pause → resume at the parked step), flag 3 (resume greeting named the real step: "capturing your workplace pension"), flag 5 (locked conversation → honest queued-message line), flag 6 (utm captured on the funnel → `signup_source` on the users row). Flag 1 is test-pinned (no retired persona walked live). See `pensionCampaign.md` §14 for the full pass + three live-found follow-ups fixed inside #612.
 
 1. **[FIXED — PR #612] Retired / not-working early exit** — campaign-path users now continue the section walk: `nextFromEmployment` (not-working) and the new `nextFromRetirementDate` (retired) route to the income verify when income was captured, else straight to the next section, instead of exiting via `base_expenditure` and exhausting the section order. Corpus updated in lockstep.
 2. **[FIXED — PR #612] Pause is restart-shaped** — `startOnboarding` now resumes a paused campaign at the parked `paused_at_step` (consuming the pointer) and reuses the existing onboarding conversation, for incomplete users and completed re-entrants alike.
