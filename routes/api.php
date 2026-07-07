@@ -64,6 +64,7 @@ use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\JointAccountLogController;
 use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
+use App\Http\Controllers\Api\LifeEventAllocationController;
 use App\Http\Controllers\Api\LifeEventController;
 use App\Http\Controllers\Api\LifeStageController;
 use App\Http\Controllers\Api\MFAController;
@@ -562,6 +563,11 @@ Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
     Route::put('/{id}', [LifeEventController::class, 'update']);
     Route::delete('/{id}', [LifeEventController::class, 'destroy']);
     Route::post('/{id}/complete', [LifeEventController::class, 'markCompleted']);
+
+    // Tax-optimised funding allocations for a life event.
+    Route::get('/{id}/allocations', [LifeEventAllocationController::class, 'index']);
+    Route::put('/{id}/allocations/{allocationId}', [LifeEventAllocationController::class, 'update']);
+    Route::post('/{id}/allocations/regenerate', [LifeEventAllocationController::class, 'regenerate']);
 });
 
 // Investment module routes
