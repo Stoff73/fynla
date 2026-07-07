@@ -1,6 +1,17 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-06 — context-clear wrap, session 1. **Campaign audit maps + ALL 15 findings fixed (PR #612, browser-verified csjones) + tooling overhaul (PR #611) + investment/estate campaign specs & plans written.** dev = csjones = `9c9e7d2` (5,506 tests). Prod UNTOUCHED — release window now #581–#612 (CSJ's call). Handover: `July/July6Updates/handover-2026-07-06-session-1-clear.md`.*
+*Last updated: 2026-07-07 — context-clear wrap, session 1. **Full-app audit done (report `full-app-audit-2026-07-06.md`, ~28 findings) + ALL actionable findings fixed → PR #613 (audit-fixes-jul6, 5,550 tests) + life-event allocations wired → PR #614.** Both PRs OPEN to dev, unmerged, NOT deployed (CSJ: stay in development). Prod UNTOUCHED. Handover: `July/July6Updates/handover-2026-07-07-session-1-clear.md`.*
+
+## 2026-07-07 — full-app audit + fixes (PR #613) + life-event allocations (PR #614)
+
+Both PRs off `origin/dev` 9c9e7d2, OPEN + awaiting CSJ merge. Not deployed. Audit report + handover on main (docs).
+- [x] **Full-app audit** — code review + syntax/API + security + tax + E2E web AND /m (report `full-app-audit-2026-07-06.md`, repo + vault). ~28 findings.
+- [x] **#613 audit fixes** (audit-fixes-jul6, 79 files, 5,550 tests) — dashboard £0 Protection/Retirement cards; tax calc logic (MPAA, IHT RNRB-descendant/residence-cap/charity-exemption+2027 projection, Gift Aid bands, income double-deduction, additional-rate boundary, stale dividend rates); security (joint-owner PII → MinimalUserResource ×8, advisor mass-assign, PreviewWriteInterceptor login-MFA routes, User $guarded, 8 PII-log sites); duplicate/dead-code; frontend stale tax + hex + acronyms + 3 dead views.
+- [x] **#614 life-event allocations** — backend existed; wired 3 routes + preview no-persist guard + 8 tests.
+- [ ] **OPEN — CSJ decision (blocks #9):** does finishing the 9-step form wizard mark `onboarding_completed=true`? Determines the web-vs-/m Fyn divergence fix. Do NOT touch dispatch/onboarding logic until answered.
+- [ ] **OPEN — merge PR #613 + #614** (CSJ's call). Then `git worktree remove` fynla-audit-fix + fynla-le.
+- [ ] **OPEN — dev→prod release** now covers **#581–#614** (CSJ's call; audit + life-events add no migrations).
+- [ ] **Deferred:** Estate decimal casts (#11, reverted — needs consumer-wide migration); CurrencyDisplayService dead-code; dashboard fix live-verify (needs a deploy CSJ declined).
 
 ## 2026-07-06 — audit maps, audit fixes (#611/#612), new campaign specs
 
