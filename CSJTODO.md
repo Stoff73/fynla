@@ -1,17 +1,18 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-07 — context-clear wrap, session 1. **Full-app audit done (report `full-app-audit-2026-07-06.md`, ~28 findings) + ALL actionable findings fixed → PR #613 (audit-fixes-jul6, 5,550 tests) + life-event allocations wired → PR #614.** Both PRs OPEN to dev, unmerged, NOT deployed (CSJ: stay in development). Prod UNTOUCHED. Handover: `July/July6Updates/handover-2026-07-07-session-1-clear.md`.*
+*Last updated: 2026-07-07 — session 2. **#613 + #614 + #615 ALL MERGED to dev (`e16ea5f`) + DEPLOYED to csjones + live-browser-verified** (dashboard £26k Retirement card, allocation tab + regenerate, /m advice Fyn parity). #10 decision made (yes — wizard completion flags onboarding complete; gates own the data gaps → PR #615, memory `project_onboarding_completion_scoped_per_flow.md`). Prod UNTOUCHED. One NEW bug found live (Fyn advice repetition — see open items).*
 
-## 2026-07-07 — full-app audit + fixes (PR #613) + life-event allocations (PR #614)
+## 2026-07-07 — session 2: #10 decision → PR #615, merges, csjones deploy + verify
 
-Both PRs off `origin/dev` 9c9e7d2, OPEN + awaiting CSJ merge. Not deployed. Audit report + handover on main (docs).
-- [x] **Full-app audit** — code review + syntax/API + security + tax + E2E web AND /m (report `full-app-audit-2026-07-06.md`, repo + vault). ~28 findings.
-- [x] **#613 audit fixes** (audit-fixes-jul6, 79 files, 5,550 tests) — dashboard £0 Protection/Retirement cards; tax calc logic (MPAA, IHT RNRB-descendant/residence-cap/charity-exemption+2027 projection, Gift Aid bands, income double-deduction, additional-rate boundary, stale dividend rates); security (joint-owner PII → MinimalUserResource ×8, advisor mass-assign, PreviewWriteInterceptor login-MFA routes, User $guarded, 8 PII-log sites); duplicate/dead-code; frontend stale tax + hex + acronyms + 3 dead views.
-- [x] **#614 life-event allocations** — backend existed; wired 3 routes + preview no-persist guard + 8 tests.
-- [ ] **OPEN — CSJ decision (blocks #9):** does finishing the 9-step form wizard mark `onboarding_completed=true`? Determines the web-vs-/m Fyn divergence fix. Do NOT touch dispatch/onboarding logic until answered.
-- [ ] **OPEN — merge PR #613 + #614** (CSJ's call). Then `git worktree remove` fynla-audit-fix + fynla-le.
-- [ ] **OPEN — dev→prod release** now covers **#581–#614** (CSJ's call; audit + life-events add no migrations).
-- [ ] **Deferred:** Estate decimal casts (#11, reverted — needs consumer-wide migration); CurrencyDisplayService dead-code; dashboard fix live-verify (needs a deploy CSJ declined).
+- [x] **CSJ decision #10:** completing ANY onboarding flow (wizard/quick/campaign) → `onboarding_completed=true` + `onboarding_fyn_step=null`; per-module data gaps belong to `PrerequisiteGateService` gates (which already exist + are wired). Saved to memory.
+- [x] **#615 onboarding-complete fix** — life-stage wizard finish never called `POST /onboarding/complete` (root cause of audit #9/#10); wired it + 3 completion endpoints now null `onboarding_fyn_step`. 3 new tests; suite 5,510/30. Live-verified locally: full wizard walk → flags flip → advice Fyn on web + wire-level /m parity.
+- [x] **Merged #613, #614, #615** to dev (`e16ea5f`, admin-merge) + **deployed csjones** (git pull + build.sh SPA/m-build + preserve-old-chunks + cache clears; no migrations).
+- [x] **Live-verified on csjones (julycsj3):** dashboard Retirement card £26,000 (was £0 — audit #1/#2 now live-proven); life-event allocation tab generates £15k ISA/£35k pension for a £50k inheritance + Regenerate works (#614); /m new m-build boots, Fyn = advice state, no onboarding bubbles (#615/#9).
+- [ ] **NEW BUG — Fyn advice repetition loop (csjones, live):** /m advice reply to "Am I on track for retirement?" (goal-less user) stored ONE message with the same gate-refusal paragraph **×80** (`ai_messages` id 19079, len 21,122; metadata shows 3 identical `get_tax_information(pension_allowances)` calls = factual cap). Model degeneration on repeated identical tool results (temp 0); 0/300 pre-deploy messages show it; none of #613–#615 touched the advice loop. Proposed fix: dedupe identical tool call+args within a turn (skip re-execution, tell the model) + repetition-collapse guard in `StructuredResponseValidator::sanitise`. NOT fixed — awaiting CSJ green-light.
+- [ ] **OPEN — dev→prod release** now covers **#581–#615** (one migration `users.active_campaign`; CSJ's call).
+- [ ] **Deferred:** Estate decimal casts (#11, reverted); CurrencyDisplayService dead-code; `build:mobile` safety hook false-positive for local-default-base verification builds (consider whitelisting); pre-existing `AssetsStep.vue` scrollTo TypeError during wizard.
+- [x] Worktrees `fynla-audit-fix`/`fynla-le`/`fynla-onb`/`fynla-deploy` removed (branches merged). `fynla-fixes` (dirty Pint churn, now behind dev) + `fynla-coala` untouched.
+- Test artefacts: csjones julycsj3 now has a "Parents' Estate" £50k life event + generated allocations (left in place, useful data); local user `wizard.fix.jul7@example.com` (id 1079).
 
 ## 2026-07-06 — audit maps, audit fixes (#611/#612), new campaign specs
 
