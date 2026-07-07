@@ -128,6 +128,8 @@ The csjones incident (`ai_messages` id 19079: one gate-refusal paragraph ×80, 3
 
 ## 9. DECISIONS ONLY CSJ CAN MAKE (consolidated, deduped)
 
+> **Rulings recorded 2026-07-07** (full detail in `fyn-ai-remediation-spec.md`): **D1 = goals never gate advice; only the data needed for the specific question gates advice** (this principle also resolves D7). **D3 = approved** (one PR). **D4 = grok-4.3 canonical**, plus NEW requirement: wire in OpenAI `gpt-5-nano` as a selectable provider. **D9 = required.** D2 default-activate (confirm at implementation). Remaining open: D8, D12, D14–D16 — see the spec's ⚠ CONFIRM markers. **Spec + plan written for Opus implementation; nothing implemented.**
+
 **Repetition-fix bundle (unblocks P0):**
 - **D1.** Should KYC block on the PRIMARY module only (not every secondary keyword match)? And should goals gate ANY advice at all, or only `goals_progress`-primary turns?
 - **D2.** Activate the a1-answer-first + a2-ack-hygiene overlays now (accepting golden-master regen)?

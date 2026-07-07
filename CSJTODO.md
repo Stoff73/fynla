@@ -2,6 +2,15 @@
 
 *Last updated: 2026-07-07 — session 2. **#613 + #614 + #615 ALL MERGED to dev (`e16ea5f`) + DEPLOYED to csjones + live-browser-verified** (dashboard £26k Retirement card, allocation tab + regenerate, /m advice Fyn parity). #10 decision made (yes — wizard completion flags onboarding complete; gates own the data gaps → PR #615, memory `project_onboarding_completion_scoped_per_flow.md`). Prod UNTOUCHED. One NEW bug found live (Fyn advice repetition — see open items).*
 
+## 2026-07-07 — session 2b: Fyn/AI blindspot pass → spec + plan for Opus (NOT implemented)
+
+Six-agent read-only audit of the whole AI surface (prompts/corpus/evals, advice loop, gating/KYC, write-states/campaigns, recs/actions, compliance/memory). All docs in `July/July7Updates/` (repo + vault): `fyn-ai-blindspot-map.md` (~60 findings, file:line), `fyn-ai-prompting-playbook.md`, `fyn-ai-remediation-spec.md`, `fyn-ai-remediation-plan.md` (11 PRs, for Opus).
+- [x] **×80 repetition bug fully root-caused** — 5 layers: goals-pattern cross-contamination → KYC all-modules block → navigate_to_page contradiction (tool stripped from catalogue) → xAI accumulated-history amplifier (`HasAiChat.php:556-558`) → log-only validator (authored a1/a2 overlay fix exists, `active: false`).
+- [x] **CSJ rulings:** goals NEVER gate advice — only data needed for the question gates (D1, also resolves D7); loop guards one PR (D3); **grok-4.3 canonical** (D4, memory updated); **NEW: wire OpenAI gpt-5-nano as selectable provider** (spec WS-F2.2, plan PR-5); D9 #615-follow-up required.
+- [ ] **OPEN — ⚠ CONFIRM list for Opus** (one line each, before the marked task): T1.4 signpost default, T3.1 overlay flip, T5.2 nano routing, T6.5 tier gate on Fyn holistic, T9.4 dashboard TTL, T9.5 retirement engine canon (D12), T10.3 score strip (D16), all of PR-11 compliance/erasure (D14/D15).
+- [ ] **OPEN — hand plan to Opus**: PR-1..3 = P0 repetition family (GREEN = 19079 repro clean on web AND /m, live csjones).
+- Note: sibling whole-app docs (`blindspot-audit/spec/plan-2026-07-07.md`, other session) committed alongside; GDPR/queue/monitoring workstreams coordinate between the two plans (AI-store erasure = PR-11 here, user-row purge = sibling plan).
+
 ## 2026-07-07 — session 2: #10 decision → PR #615, merges, csjones deploy + verify
 
 - [x] **CSJ decision #10:** completing ANY onboarding flow (wizard/quick/campaign) → `onboarding_completed=true` + `onboarding_fyn_step=null`; per-module data gaps belong to `PrerequisiteGateService` gates (which already exist + are wired). Saved to memory.
