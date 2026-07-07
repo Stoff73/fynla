@@ -803,8 +803,15 @@ export default {
           });
         }
 
-        // Onboarding complete — refresh net worth cache then go to dashboard
-        await store.dispatch('auth/fetchUser', null, { root: true });
+        // Onboarding complete — flag it on the backend (flips onboarding_completed
+        // and clears onboarding_fyn_step so Fyn dispatches to advice on every
+        // surface). The store action refreshes auth/fetchUser itself.
+        try {
+          await store.dispatch('onboarding/completeOnboarding');
+        } catch (err) {
+          logger.error('[Onboarding] Failed to mark onboarding complete:', err?.message || err);
+          await store.dispatch('auth/fetchUser', null, { root: true });
+        }
         try {
           await netWorthService.refresh();
         } catch {
