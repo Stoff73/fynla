@@ -783,7 +783,7 @@
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Info Guide Fix:</strong> Fixed 500 error on requirements endpoint and corrected DC pension requirement logic for DB-only users.</span>
+                <span class="text-body-base text-neutral-500"><strong>Info Guide Fix:</strong> Fixed 500 error on requirements endpoint and corrected Defined Contribution pension requirement logic for Defined Benefit-only users.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1466,7 +1466,7 @@
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Database Migrations:</strong> 10 new migrations adding DC pension types, joint mortgage ownership fields, state pension enhancements, and more.</span>
+                <span class="text-body-base text-neutral-500"><strong>Database Migrations:</strong> 10 new migrations adding Defined Contribution pension types, joint mortgage ownership fields, state pension enhancements, and more.</span>
               </li>
             </ul>
           </div>
@@ -1494,10 +1494,10 @@
                   <li>• Holdings management & rebalancing</li>
 
                   <li class="mt-2"><strong>Retirement Module:</strong></li>
-                  <li>• DC/DB pension tracking & projections</li>
+                  <li>• Defined Contribution / Defined Benefit pension tracking & projections</li>
                   <li>• State pension integration</li>
                   <li>• Annual allowance monitoring (£60k + carry forward)</li>
-                  <li>• DC pension portfolio optimisation</li>
+                  <li>• Defined Contribution pension portfolio optimisation</li>
                   <li>• Holdings management for pension pots</li>
                   <li>• Retirement readiness scoring</li>
                   <li>• Decumulation planning</li>

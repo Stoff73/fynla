@@ -254,10 +254,10 @@ describe('Immediate Self-Service Deletion', function () {
 
     it('initiates deletion for user with 2FA enabled', function () {
         // Enable 2FA for user
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET12345678901234567890'),
-        ]);
+        ])->save();
 
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/gdpr/erasure/initiate', [
@@ -452,10 +452,10 @@ describe('Immediate Self-Service Deletion', function () {
 
     it('rejects resend for user with 2FA', function () {
         // Enable 2FA
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET12345678901234567890'),
-        ]);
+        ])->save();
 
         // Initiate deletion
         $initiateResponse = $this->actingAs($this->user)

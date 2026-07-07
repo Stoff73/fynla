@@ -452,9 +452,10 @@ class SpouseOptimisationService
             return null;
         }
 
-        // Non-earning spouse can contribute up to £3,600 gross (£2,880 net)
-        $grossContribution = 3600;
-        $netCost = 2880;
+        // Non-earning spouse can contribute up to £3,600 gross (£2,880 net).
+        // Figures from TaxDefaults (Rule #2) until the non_earner_pension schema key lands.
+        $netCost = TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
+        $grossContribution = TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION + TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
         $freeRelief = $grossContribution - $netCost;
 
         $trace[] = [

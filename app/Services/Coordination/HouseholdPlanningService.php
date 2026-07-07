@@ -22,6 +22,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
+use App\Traits\ResolvesIncome;
 
 /**
  * Service for household-level financial planning.
@@ -38,6 +39,7 @@ use App\Traits\CalculatesOwnershipShare;
 class HouseholdPlanningService
 {
     use CalculatesOwnershipShare;
+    use ResolvesIncome;
 
     public function __construct(
         private readonly TaxConfigService $taxConfig,
@@ -170,8 +172,8 @@ class HouseholdPlanningService
         $recommendations = [];
 
         // Compare income tax positions
-        $userIncome = $this->calculateTotalIncome($user);
-        $spouseIncome = $this->calculateTotalIncome($spouse);
+        $userIncome = $this->resolveGrossAnnualIncome($user);
+        $spouseIncome = $this->resolveGrossAnnualIncome($spouse);
 
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
         $personalAllowance = (float) ($incomeTaxConfig['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
@@ -295,8 +297,8 @@ class HouseholdPlanningService
         $lifeInsurancePayouts = $this->calculateLifeInsurancePayouts($deceased);
 
         // Estimate income impact
-        $deceasedIncome = $this->calculateTotalIncome($deceased);
-        $survivorIncome = $this->calculateTotalIncome($survivor);
+        $deceasedIncome = $this->resolveGrossAnnualIncome($deceased);
+        $survivorIncome = $this->resolveGrossAnnualIncome($survivor);
 
         // DB pension spouse benefit (typically 50% of scheme pension)
         $dbSpouseBenefit = $this->calculateDBPensionSpouseBenefit($deceased);
@@ -472,20 +474,6 @@ class HouseholdPlanningService
                 'other' => $otherTotal,
             ],
         ];
-    }
-
-    /**
-     * Calculate total annual income for a user.
-     */
-    private function calculateTotalIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
     }
 
     /**

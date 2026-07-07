@@ -140,6 +140,7 @@ import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/cons
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
+import { LIFETIME_ISA_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
@@ -831,8 +832,8 @@ export default {
     lisaAllowanceData() {
       if (!this.lisaEligible) return null;
 
-      const lisaLimit = 4000;
-      const maxBonus = 1000; // 25% of £4,000
+      const lisaLimit = LIFETIME_ISA_ALLOWANCE;
+      const maxBonus = lisaLimit * 0.25; // 25% government LISA bonus
 
       // Find LISA contributions from investment accounts
       const lisaAccounts = (this.investmentAccounts || []).filter(a => {
@@ -855,7 +856,7 @@ export default {
     isaAllowanceData() {
       if (!this.isaAllowance) return null;
       const fullAllowance = this.isaAllowance.total_allowance || 20000;
-      const totalAllowance = this.lisaAllowanceData ? fullAllowance - 4000 : fullAllowance;
+      const totalAllowance = this.lisaAllowanceData ? fullAllowance - LIFETIME_ISA_ALLOWANCE : fullAllowance;
       const cashUsed = parseFloat(this.isaAllowance.cash_isa_used || 0);
       const ssUsed = parseFloat(this.isaAllowance.stocks_shares_isa_used || 0);
       const totalUsed = parseFloat(this.isaAllowance.total_used || 0) || (cashUsed + ssUsed);

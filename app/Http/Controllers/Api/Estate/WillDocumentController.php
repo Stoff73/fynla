@@ -62,7 +62,7 @@ class WillDocumentController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'will_type' => 'required|in:simple,mirror',
                 'testator_full_name' => 'required|string|max:255',
                 'testator_address' => 'nullable|string|max:1000',
@@ -71,7 +71,7 @@ class WillDocumentController extends Controller
                 'domicile_confirmed' => 'nullable|in:england_wales,scotland,northern_ireland,other',
             ]);
 
-            $doc = $this->service->createDraft($request->user(), $request->all());
+            $doc = $this->service->createDraft($request->user(), $validated);
 
             return response()->json([
                 'success' => true,

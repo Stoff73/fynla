@@ -198,7 +198,11 @@ class WebhookController extends Controller
 
     private function handleSubscriptionInitiated(array $payload): void
     {
-        Log::info('Revolut subscription initiated', ['payload' => $payload]);
+        Log::info('Revolut subscription initiated', [
+            'event' => $payload['event'] ?? null,
+            'order_id' => $payload['order_id'] ?? null,
+            'subscription_id' => $payload['subscription_id'] ?? null,
+        ]);
 
         // The subscription is now active — Revolut will handle recurring billing.
         // The initial payment is handled via ORDER_COMPLETED for the setup order.

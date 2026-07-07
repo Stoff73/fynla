@@ -54,6 +54,10 @@ class User extends Authenticatable
         'id',
         'is_admin',
         'is_preview_user',
+        'is_advisor',        // Privilege flag — set only via markAsAdvisor()
+        'email_verified_at', // Verification state — never from request input
+        'mfa_enabled',       // Auth state — set individually by MFAService
+        'mfa_secret',         // Auth secret — set individually by MFAService
         'remember_token',
         'created_at',
         'updated_at',

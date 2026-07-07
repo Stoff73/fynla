@@ -48,7 +48,7 @@ class RevolutSubscriptionService
         if ($response->failed()) {
             Log::error('Revolut createCustomer failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'user_id' => $user->id,
             ]);
             $response->throw();
@@ -135,7 +135,7 @@ class RevolutSubscriptionService
         if ($response->failed()) {
             Log::error('Revolut createSubscriptionPlan failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'plan_slug' => $plan->slug,
             ]);
             $response->throw();
@@ -233,7 +233,7 @@ class RevolutSubscriptionService
         if ($response->failed()) {
             Log::error('Revolut createSubscription failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'user_id' => $user->id,
                 'plan_variation_id' => $planVariationId,
             ]);
@@ -342,7 +342,7 @@ class RevolutSubscriptionService
             Log::error('Revolut cancelSubscription failed', [
                 'subscription_id' => $subscriptionId,
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
             ]);
             $response->throw();
         }
@@ -475,7 +475,7 @@ class RevolutSubscriptionService
         if ($response->failed()) {
             Log::error('Revolut upsertTierPlan failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'display_name' => $displayName,
                 'monthly_price_pence' => $monthlyPricePence,
             ]);

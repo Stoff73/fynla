@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\Investment\InvestmentAccount;
-use App\Services\Stores\SavingsStore;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
 use App\Traits\FormatsCurrency;
+use Carbon\Carbon;
 
 /**
  * Retirement Strategy Service
@@ -1192,7 +1193,7 @@ class RetirementStrategyService
         $effectiveDateString = $sacrificeConfig['nic_exemption_cap_effective_date'] ?? null;
 
         $capActive = $effectiveDateString
-            && now()->gte(\Carbon\Carbon::parse($effectiveDateString));
+            && now()->gte(Carbon::parse($effectiveDateString));
         $salarySacrificeLimit = $capActive ? $cap : INF;
 
         // Salary-sacrificed portion (within the cap when active) is zero-cost.
@@ -1227,8 +1228,15 @@ class RetirementStrategyService
 
         $incomeTax = $this->taxConfig->getIncomeTax();
         $personalAllowance = $incomeTax['personal_allowance'];
-        $basicLimit = $personalAllowance + $incomeTax['bands'][0]['max']; // £50,270
-        $higherLimit = $personalAllowance + $incomeTax['bands'][1]['max']; // £125,140
+        $bands = $incomeTax['bands'];
+
+        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
+        // The legacy `PA + bands[1].max` was wrong because bands[1].max stores the absolute
+        // £125,140 additional-rate threshold rather than a band width. Audit finding #5.
+        $basicLimit = (float) ($incomeTax['higher_rate_threshold']
+            ?? ($personalAllowance + $bands[0]['max'])); // £50,270
+        $higherLimit = (float) ($incomeTax['additional_rate_threshold']
+            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max']))); // £125,140
 
         if ($grossIncome <= $personalAllowance) {
             return 0.0;

@@ -72,8 +72,8 @@ class SavingsAccountResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'beneficiary' => $this->whenLoaded('beneficiary'),
 
             // Links

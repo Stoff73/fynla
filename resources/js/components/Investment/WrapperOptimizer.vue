@@ -85,7 +85,7 @@
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-neutral-500">Tax on Growth:</span>
-                <span class="font-semibold text-violet-600">Capital Gains Tax (10-20%)</span>
+                <span class="font-semibold text-violet-600">Capital Gains Tax (18-24%)</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-neutral-500">Tax on Income:</span>

@@ -214,6 +214,26 @@ class FutureValueCalculator
     }
 
     /**
+     * Calculate the future value of an ordinary annuity — a series of equal
+     * end-of-period payments compounded at a constant periodic rate.
+     *
+     * Formula: FV = PMT × [((1 + r)^n − 1) / r], degrading to PMT × n when r = 0.
+     *
+     * @param  float  $payment  Amount invested each period
+     * @param  float  $rate  Periodic return rate (decimal, e.g. 0.047 for 4.7%)
+     * @param  int  $periods  Number of periods
+     * @return float Future value of the annuity
+     */
+    public function calculateFutureValueOfAnnuity(float $payment, float $rate, int $periods): float
+    {
+        if ($rate == 0) {
+            return $payment * $periods;
+        }
+
+        return $payment * ((pow(1 + $rate, $periods) - 1) / $rate);
+    }
+
+    /**
      * Calculate future value of multiple assets
      *
      * @param  Collection  $assets  Collection of assets with current_value

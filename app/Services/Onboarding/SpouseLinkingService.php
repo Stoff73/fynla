@@ -87,7 +87,6 @@ final class SpouseLinkingService
         Log::info('[SpouseLinkingService] linkOrCreateSpouse called', [
             'current_user_id' => $currentUser->id,
             'current_marital_status' => $currentUser->marital_status,
-            'spouse_email' => $spouseEmail,
         ]);
 
         // Preserve the current user's marital status — if they picked

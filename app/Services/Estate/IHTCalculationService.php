@@ -15,6 +15,7 @@ use App\Services\Settings\AssumptionsService;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -30,6 +31,8 @@ use Illuminate\Support\Collection;
  */
 class IHTCalculationService
 {
+    use CalculatesOwnershipShare;
+
     private const DEFAULT_RETIREMENT_AGE = 68;
 
     private const DEFAULT_STATE_PENSION_AGE = 67;
@@ -154,13 +157,20 @@ class IHTCalculationService
         // 7. Calculate RNRB with message (ALWAYS calculate, even if £0)
         $rnrbData = $this->calculateRNRB($totalNetEstate, $user, $spouse, $ihtConfig, $isMarried, $isWidowed, $ihtProfile);
 
-        // 8. Calculate taxable estate and IHT (CURRENT values)
-        $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
-        $taxableEstate = max(0, $totalNetEstate - $totalAllowances);
-
-        // Determine IHT rate - check for charitable reduced rate (36% if 10%+ to charity)
+        // 8. Determine IHT rate - check for charitable reduced rate (36% if 10%+ to charity)
         $ihtRateData = $this->determineIHTRate($user, $totalNetEstate, $nrbAvailable, $ihtConfig);
         $ihtRate = $ihtRateData['rate'];
+
+        // Charitable legacies are fully exempt (IHTA 1984 s23): the gift leaves the
+        // taxable estate entirely, deducted alongside the NRB and RNRB before the
+        // rate is applied. The 36% reduced rate (above) is a separate effect that
+        // stacks on top of the exemption.
+        $charitableAmount = (float) ($ihtRateData['charitable_amount'] ?? 0);
+        $charitableFraction = $totalNetEstate > 0 ? ($charitableAmount / $totalNetEstate) : 0.0;
+
+        // 8b. Calculate taxable estate and IHT (CURRENT values)
+        $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
+        $taxableEstate = max(0, $totalNetEstate - $totalAllowances - $charitableAmount);
         $ihtLiability = $taxableEstate * $ihtRate;
         $effectiveRate = $totalNetEstate > 0 ? ($ihtLiability / $totalNetEstate * 100) : 0;
 
@@ -172,6 +182,7 @@ class IHTCalculationService
             $rnrbData,
             $isMarried,
             $ihtRate,
+            $charitableFraction,
             $dataSharingEnabled
         );
 
@@ -202,6 +213,7 @@ class IHTCalculationService
             'rnrb_message' => $rnrbData['rnrb_message'],
 
             'total_allowances' => round($totalAllowances, 2),
+            'charitable_deduction' => round($charitableAmount, 2),
             'taxable_estate' => round($taxableEstate, 2),
             'iht_rate' => $ihtRate,
             'iht_rate_percent' => round($ihtRate * 100, 0),
@@ -265,6 +277,7 @@ class IHTCalculationService
         array $rnrbData,
         bool $isMarried,
         float $ihtRate,
+        float $charitableFraction = 0.0,
         bool $dataSharingEnabled = false
     ): array {
         // Get current age and key milestone ages
@@ -361,9 +374,12 @@ class IHTCalculationService
         $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness;
         $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities;
 
-        // Calculate projected IHT using same allowances
+        // Calculate projected IHT using same allowances. Charitable legacies remain
+        // fully exempt (IHTA 1984 s23); scale the exempt amount to the projected estate
+        // so the same charitable proportion is deducted at death as today.
         $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
-        $projectedTaxableEstate = max(0, $projectedNetEstate - $totalAllowances);
+        $projectedCharitableAmount = $projectedNetEstate * $charitableFraction;
+        $projectedTaxableEstate = max(0, $projectedNetEstate - $totalAllowances - $projectedCharitableAmount);
         $projectedIHTLiability = $projectedTaxableEstate * $ihtRate;
 
         return [
@@ -1179,8 +1195,13 @@ class IHTCalculationService
         // Get transferred RNRB for widows
         $rnrbTransferred = (float) ($ihtProfile?->rnrb_transferred_from_spouse ?? 0);
 
-        // Check eligibility: must own main residence
+        // Check eligibility: the estate must own a main residence AND leave it to
+        // direct descendants. IHTA 1984 s8E/s8K: the RNRB only applies where the
+        // residence is "closely inherited" by direct descendants (children,
+        // grandchildren, step-children). Both conditions are hard requirements —
+        // owning a home is not enough without qualifying descendants.
         $hasMainResidence = $this->hasMainResidence($user, $spouse);
+        $hasDirectDescendants = $this->hasDirectDescendants($user, $spouse);
 
         // Calculate potential max RNRB for messaging
         $potentialMax = $isMarried ? ($rnrbSingle * 2) : ($isWidowed && $rnrbTransferred > 0 ? $rnrbSingle + $rnrbTransferred : $rnrbSingle);
@@ -1195,6 +1216,16 @@ class IHTCalculationService
             ];
         }
 
+        if (! $hasDirectDescendants) {
+            return [
+                'rnrb_available' => 0,
+                'rnrb_individual' => 0,
+                'rnrb_transferred' => 0,
+                'rnrb_status' => 'none',
+                'rnrb_message' => 'Residence Nil Rate Band not available — you have no direct descendants recorded. The Residence Nil Rate Band of up to £'.number_format($potentialMax).' only applies when your main residence passes to direct descendants (children, grandchildren, step-children). Nieces, nephews, cousins, siblings, and other relatives do not qualify.',
+            ];
+        }
+
         // Calculate full RNRB (married gets double, widow with transfer gets own + transferred)
         if ($isMarried) {
             $fullRNRB = $rnrbSingle * 2;
@@ -1204,10 +1235,21 @@ class IHTCalculationService
             $fullRNRB = $rnrbSingle;
         }
 
+        // IHTA 1984 s8E(2): the RNRB is the LOWER of the maximum allowance and the
+        // net value of the residence closely inherited by descendants. Cap the full
+        // allowance at the net-of-mortgage, ownership-share-adjusted residence value
+        // BEFORE the £2m taper is applied. A £200k home therefore limits the RNRB to
+        // £200k even for a married couple whose combined maximum would be £350k.
+        $residenceNetValue = $this->getMainResidenceNetValue($user, $spouse);
+        $cappedByResidence = $residenceNetValue < $fullRNRB;
+        $fullRNRB = min($fullRNRB, $residenceNetValue);
+
         // Check for taper
         if ($totalNetEstate <= $taperThreshold) {
             // Build message based on status
-            if ($isMarried) {
+            if ($cappedByResidence) {
+                $rnrbMsg = 'Residence Nil Rate Band of £'.number_format($fullRNRB).' available — capped at the net value of your main residence (£'.number_format($residenceNetValue).'), which is lower than the maximum allowance of £'.number_format($potentialMax).'. Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
+            } elseif ($isMarried) {
                 $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (£'.number_format($rnrbSingle).' each). Your combined estate is below the £'.number_format($taperThreshold).' taper threshold.';
             } elseif ($isWidowed && $rnrbTransferred > 0) {
                 $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (own £'.number_format($rnrbSingle).' + £'.number_format($rnrbTransferred).' transferred from late spouse\'s estate). Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
@@ -1219,7 +1261,7 @@ class IHTCalculationService
                 'rnrb_available' => $fullRNRB,
                 'rnrb_individual' => $rnrbSingle,
                 'rnrb_transferred' => $rnrbTransferred,
-                'rnrb_status' => 'full',
+                'rnrb_status' => $cappedByResidence ? 'residence_capped' : 'full',
                 'rnrb_message' => $rnrbMsg,
             ];
         }
@@ -1286,6 +1328,7 @@ class IHTCalculationService
                 'type' => 'reduced',
                 'message' => 'Reduced IHT rate of 36% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($charitableAmount).') meets the 10% threshold of £'.number_format($threshold).' (10% of baseline £'.number_format($baseline).').',
                 'charitable_percent' => $charitablePercent,
+                'charitable_amount' => round($charitableAmount, 2),
                 'baseline' => round($baseline, 2),
                 'threshold' => round($threshold, 2),
             ];
@@ -1300,6 +1343,7 @@ class IHTCalculationService
                 'type' => 'standard',
                 'message' => 'Standard IHT rate of 40% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($charitableAmount).') is below the 10% threshold of £'.number_format($threshold).'. Increase by £'.number_format($shortfall).' to qualify for 36% rate.',
                 'charitable_percent' => $charitablePercent,
+                'charitable_amount' => round($charitableAmount, 2),
                 'baseline' => round($baseline, 2),
                 'threshold' => round($threshold, 2),
             ];
@@ -1310,6 +1354,7 @@ class IHTCalculationService
             'type' => 'standard',
             'message' => 'Standard IHT rate of 40% applies. Leave 10%+ of your baseline estate (£'.number_format($baseline).') to charity to qualify for the reduced 36% rate.',
             'charitable_percent' => 0,
+            'charitable_amount' => round($charitableAmount, 2),
             'baseline' => round($baseline, 2),
             'threshold' => round($threshold, 2),
         ];
@@ -1358,6 +1403,67 @@ class IHTCalculationService
         }
 
         return false;
+    }
+
+    /**
+     * Determine whether the user (or spouse) has direct descendants who could
+     * "closely inherit" the residence for RNRB purposes (IHTA 1984 s8K).
+     *
+     * Mirrors the direct-descendant lookup used in HouseholdPlanningService:
+     * children, grandchildren, and step-children qualify. Other relatives
+     * (nieces, nephews, cousins, siblings) do not.
+     */
+    private function hasDirectDescendants(User $user, ?User $spouse): bool
+    {
+        $directRelationships = ['child', 'grandchild', 'step_child'];
+
+        if ($user->familyMembers()->whereIn('relationship', $directRelationships)->exists()) {
+            return true;
+        }
+
+        if ($spouse) {
+            return $spouse->familyMembers()->whereIn('relationship', $directRelationships)->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Net value of the main residence(s) closely inherited by descendants,
+     * valued exactly as the estate values them so the RNRB cap aligns with
+     * total_net_estate: ownership-share adjusted and net of the mortgage share.
+     *
+     * IHTA 1984 s8E(2): the RNRB is limited to this net residence value.
+     */
+    private function getMainResidenceNetValue(User $user, ?User $spouse): float
+    {
+        $value = $this->sumMainResidenceNetShare($user);
+
+        if ($spouse) {
+            $value += $this->sumMainResidenceNetShare($spouse);
+        }
+
+        return max(0.0, $value);
+    }
+
+    /**
+     * Sum a single user's net share of their main residence(s): their ownership
+     * share of the value less their share of any mortgage secured on it. Uses the
+     * shared CalculatesOwnershipShare logic so the figure matches the property and
+     * mortgage values that feed total_net_estate.
+     */
+    private function sumMainResidenceNetShare(User $user): float
+    {
+        return (float) $this->propertyStore
+            ->forUserByType($user, 'main_residence')
+            ->sum(function ($property) use ($user) {
+                $valueShare = $this->calculateUserShare($property, $user->id);
+                $mortgageShare = (float) $property->mortgages->sum(
+                    fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id)
+                );
+
+                return max(0.0, $valueShare - $mortgageShare);
+            });
     }
 
     /**
@@ -1629,8 +1735,11 @@ class IHTCalculationService
         $postAmendmentNetEstate = $currentNetEstate + $totalPensionValue;
         $totalAllowances = $baseCalc['total_allowances'] ?? 0;
         $ihtRate = $baseCalc['iht_rate'] ?? (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
+        // Charitable legacies are exempt (IHTA 1984 s23) — deduct them here too so the
+        // 2027 projection matches the current/death calculation for charitable donors.
+        $charitableDeduction = (float) ($baseCalc['charitable_deduction'] ?? 0);
 
-        $postAmendmentTaxableEstate = max(0, $postAmendmentNetEstate - $totalAllowances);
+        $postAmendmentTaxableEstate = max(0, $postAmendmentNetEstate - $totalAllowances - $charitableDeduction);
         $postAmendmentIHTLiability = $postAmendmentTaxableEstate * $ihtRate;
 
         $currentIHTLiability = $baseCalc['iht_liability'] ?? 0;

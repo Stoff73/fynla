@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\AssetLocation;
 
+use App\Constants\TaxDefaults;
 use App\Models\Investment\Holding;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
@@ -173,11 +174,13 @@ class TaxDragCalculator
         // Calculate tax
         $cgtTax = $taxableCapitalGain * $cgtRate;
 
-        // Dividend tax rates
+        // Dividend tax rates — sourced from the same TaxConfigService block used
+        // for the dividend allowance above (Rule #2 — never hard-code); TaxDefaults
+        // supplies the current-year fallback only if the config key is missing.
         $dividendTaxRate = match (true) {
-            $incomeTaxRate <= 0.20 => 0.0875, // Basic rate: 8.75%
-            $incomeTaxRate <= 0.40 => 0.3375, // Higher rate: 33.75%
-            default => 0.3935, // Additional rate: 39.35%
+            $incomeTaxRate <= 0.20 => (float) ($dividendConfig['basic_rate'] ?? TaxDefaults::DIVIDEND_BASIC_RATE),
+            $incomeTaxRate <= 0.40 => (float) ($dividendConfig['higher_rate'] ?? TaxDefaults::DIVIDEND_HIGHER_RATE),
+            default => (float) ($dividendConfig['additional_rate'] ?? TaxDefaults::DIVIDEND_ADDITIONAL_RATE),
         };
         $dividendTax = $taxableDividend * $dividendTaxRate;
 
