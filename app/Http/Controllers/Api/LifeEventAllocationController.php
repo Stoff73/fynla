@@ -11,6 +11,7 @@ use App\Models\LifeEventAllocation;
 use App\Services\Goals\LifeEventAllocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LifeEventAllocationController extends Controller
 {
@@ -33,7 +34,20 @@ class LifeEventAllocationController extends Controller
         }
 
         try {
-            $allocations = $this->allocationService->getAllocations($event, $user);
+            // getAllocations() generates + persists rows on first view. Preview
+            // personas must never write (Rule 1) — PreviewWriteInterceptor only
+            // guards write verbs, so run the generate-on-read inside a rolled-back
+            // transaction: they see the suggestions, nothing is persisted.
+            if ($user->is_preview_user) {
+                DB::beginTransaction();
+                try {
+                    $allocations = $this->allocationService->getAllocations($event, $user)->values();
+                } finally {
+                    DB::rollBack();
+                }
+            } else {
+                $allocations = $this->allocationService->getAllocations($event, $user);
+            }
 
             $enabledTotal = $allocations->where('enabled', true)->sum('amount');
 
