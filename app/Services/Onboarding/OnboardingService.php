@@ -1055,13 +1055,18 @@ class OnboardingService
             'onboarding_skipped_steps' => $skippedSteps,
             'onboarding_completed' => true,
             'onboarding_completed_at' => Carbon::now(),
+            'onboarding_fyn_step' => null,
         ]);
 
         return $user->fresh();
     }
 
     /**
-     * Complete the onboarding process
+     * Complete the onboarding process.
+     *
+     * Also nulls onboarding_fyn_step so the AiChatController dispatch predicate
+     * routes this user to advice Fyn on every surface — mirroring how the
+     * OnboardingChatDirector completion chain finishes the chat-led flow.
      */
     public function completeOnboarding(int $userId): User
     {
@@ -1070,6 +1075,7 @@ class OnboardingService
         $user->update([
             'onboarding_completed' => true,
             'onboarding_completed_at' => Carbon::now(),
+            'onboarding_fyn_step' => null,
         ]);
 
         return $user->fresh();
@@ -1086,6 +1092,7 @@ class OnboardingService
             'onboarding_completed' => true,
             'onboarding_completed_at' => Carbon::now(),
             'onboarding_mode' => 'quick',
+            'onboarding_fyn_step' => null,
         ]);
 
         return $user->fresh();
