@@ -76,9 +76,10 @@ The following are mandatory before production promotion:
 8. Tax-year rollover safety and exact tests for high-risk financial calculations.
 9. High-risk concurrency, cache-coherence, and request-path scale fixes.
 10. Required Fyn web/`/m` parity and onboarding state hygiene.
-11. Supported Laravel, Sanctum, and PHP runtime posture through a dedicated upgrade project.
-12. A full automated and agent-led release-candidate gauntlet.
-13. Staging soak, deployment rehearsal, rollback proof, and written go/no-go.
+11. The approved evidence-first Fyn guidance architecture: explicit operating perimeter, one Advice Case, one evidence snapshot, complexity-gated planning, canonical typed memory, user correction/erasure, and mechanical response policy.
+12. Supported Laravel, Sanctum, and PHP runtime posture through a dedicated upgrade project.
+13. A full automated and agent-led release-candidate gauntlet.
+14. Staging soak, deployment rehearsal, rollback proof, and written go/no-go.
 
 ### 3.2 Findings that do not automatically block
 
@@ -136,8 +137,9 @@ The work is a gated release train. A later gate cannot begin until the required 
 - Require the Gate 1 checks on every PR.
 - Require independent agent browser verification for each user-visible change.
 - Keep decision-gated product changes isolated from mechanical safety fixes.
+- Complete `docs/superpowers/plans/2026-07-10-fyn-evidence-first-advice.md` before the framework upgrade: launch in fail-closed guidance mode; persist one structured Advice Case; assemble evidence once; bypass the planner on ordinary turns; consolidate memory; provide desktop/`/m` correction controls; enforce response policy mechanically.
 
-**Exit:** every critical/high finding is green or closed as inapplicable with evidence; no known launch blocker remains.
+**Exit:** every critical/high finding is green or closed as inapplicable with evidence; all four evidence-first Fyn checkpoints are green; the Fyn architecture go/no-go records guidance mode, planner mode, learning state and rollback; no known launch blocker remains.
 
 ### Gate 3: Whole-product gauntlet
 
@@ -416,14 +418,26 @@ The implementation plan will preserve the detailed July remediation documents an
 - Off-request aggregates and long-running calculations.
 - Bounded transcript, audit purge, and indexed admin queries.
 
-### Wave 7: Framework support project
+### Wave 7: Evidence-first Fyn guidance architecture
+
+- Explicit fail-closed `guidance` operating policy; targeted support and regulated advice disabled.
+- One immutable classification/KYC/policy preparation per turn.
+- One structured Advice Case linked to the signed episode.
+- One evidence snapshot shared by planner, reasoner, policy and audit.
+- Deterministic direct route for ordinary turns; planner shadow only for approved complex signals.
+- Asynchronous summarisation/learning proposals; learning disabled at launch unless separately approved.
+- SQL/signed-blob canonical episodic memory and typed SQL relationship memory replacing runtime per-user Markdown.
+- Desktop and `/m` memory visibility, correction, deletion and chat handoff.
+- Advice Case-grounded mechanical response policy and live-provider evaluation.
+
+### Wave 8: Framework support project
 
 - Laravel 10 -> supported Laravel release.
 - Sanctum and PHP runtime compatibility.
 - Dependency upgrades required by the framework.
 - Full regression and browser passes as a dedicated release candidate, without unrelated feature work.
 
-### Wave 8: Whole-product closure
+### Wave 9: Whole-product closure
 
 - Complete automated matrix.
 - Complete agent acceptance matrix.
@@ -521,15 +535,20 @@ These are concrete execution decisions, not undefined scope. The affected PR can
 7. Retention hard delete: recommended choice is hard-delete the user after the retention period, preserving only the minimal re-registration tombstone.
 8. 2027/28 tax figures and salary-sacrifice effective date: values must be verified against current authoritative sources and explicitly accepted by CSJ before seeding or copy changes.
 9. Fyn compliance backstops: recommended choices are deterministic adviser-signpost insertion when required, report-only product-name detection until its eval false-positive rate is accepted, a readable violations queue, and sanitisation of banned acronym/icon output before persistence.
-10. OpenAI provider rollout: wire `gpt-5-nano` as the July plan specifies, but leave it dormant until current official API parameters, pricing, credentials, provider-parity evals, and the launch component-routing decision are all verified.
-11. Pensioncheck polish: approve final public/Fyn copy, campaign-affinity persistence, carry-forward wording, and original social images before that continuation releases.
-12. Campaign URLs and copy: confirm `investmentcheck` then `inheritancecheck` names and final copy before each campaign's public-surface slice.
+10. Fyn launch operating perimeter: approved choice is `guidance`; targeted support and regulated advice stay disabled until permission/governance approval.
+11. Fyn planner launch mode: recommended choice is `shadow`; ordinary factual/single-module turns always bypass it, and active complex routing requires measured approval.
+12. Fyn learning launch state: recommended choice is disabled until memory migration, correction, erasure and relevance gates are green and CSJ records a separate activation decision.
+13. OpenAI provider rollout: wire `gpt-5-nano` as the July plan specifies, but leave it dormant until current official API parameters, pricing, credentials, provider-parity evals, and the launch component-routing decision are all verified.
+14. Pensioncheck polish: approve final public/Fyn copy, campaign-affinity persistence, carry-forward wording, and original social images before that continuation releases.
+15. Campaign URLs and copy: confirm `investmentcheck` then `inheritancecheck` names and final copy before each campaign's public-surface slice.
 
 ## 14. Required programme artifacts
 
 The implementation produces and maintains:
 
 - Master implementation plan.
+- Approved Fyn evidence-first design and detailed Tasks 22A-22J implementation plan.
+- Fyn advice-architecture go/no-go covering operating mode, planner, learning, memory migration, policy evaluation and rollback.
 - July Updates branch/file inventory and machine-readable plan-disposition register.
 - Audit finding ledger.
 - Test coverage and persona/module/surface matrix.
@@ -556,15 +575,19 @@ The programme is complete only when:
 6. Agent acceptance passes on the exact csjones release commit.
 7. Every required BS-NN contract has named automated or live-agent evidence; skipped stubs are not counted.
 8. The Fyn repetition reproduction yields one clean response on web and `/m` with sane persistence.
-9. Financial fixtures pin exact approved outputs for the named high-risk calculations.
-10. Queue, scheduler, monitoring, mail, payment sandbox, and webhook failure paths are observable and truthful.
-11. The framework/runtime versions are within supported security windows.
-12. The seven-day staging soak completes with no unresolved severity-one or severity-two launch defect.
-13. Deployment and rollback rehearsals pass.
-14. CSJ records the production go decision.
-15. Production smoke passes on desktop and `/m`, followed by green 15-minute, 24-hour, and seven-day checks.
-16. Every July artifact is present on the `dev` line and registered as delivered, launch remediation, continuation, evidence-only, or superseded; every executable plan/work package points to a master-programme task.
-17. The continuation lane closes the pension/gamification parity list, provider expansion, investment campaign, and estate campaign through separate green release trains.
+9. Fyn launches in fail-closed guidance mode; each substantive answer has one preparation, one evidence snapshot, one Advice Case and one linked signed episode.
+10. Ordinary factual/single-module turns make no planner call; planner shadow work does not delay the response; learning remains disabled unless separately approved.
+11. Runtime per-user Markdown memory is migrated/reconciled into canonical SQL/signed-blob stores; users can inspect, correct and delete relationship memory on desktop and `/m`.
+12. The mechanical response policy controls unsupported figures, fabricated writes and disabled advice modes with auditable evidence.
+13. Financial fixtures pin exact approved outputs for the named high-risk calculations.
+14. Queue, scheduler, monitoring, mail, payment sandbox, and webhook failure paths are observable and truthful.
+15. The framework/runtime versions are within supported security windows.
+16. The seven-day staging soak completes with no unresolved severity-one or severity-two launch defect.
+17. Deployment and rollback rehearsals pass.
+18. CSJ records the production go decision.
+19. Production smoke passes on desktop and `/m`, followed by green 15-minute, 24-hour, and seven-day checks.
+20. Every July artifact is present on the `dev` line and registered as delivered, launch remediation, continuation, evidence-only, or superseded; every executable plan/work package points to a master-programme task.
+21. The continuation lane closes the pension/gamification parity list, provider expansion, investment campaign, and estate campaign through separate green release trains.
 
 ## 16. Source documents
 
@@ -572,6 +595,8 @@ The programme is complete only when:
 - `deploy/DEPLOY.md`
 - `.agents/skills/release/SKILL.md`
 - `docs/superpowers/specs/2026-07-10-july-updates-inventory.md`
+- `docs/superpowers/specs/2026-07-10-fyn-evidence-first-advice-design.md`
+- `docs/superpowers/plans/2026-07-10-fyn-evidence-first-advice.md`
 - `origin/main:July/July1Updates/` (Gate 0 reconciles the complete corpus into `dev`)
 - `origin/main:July/July3Updates/`
 - `origin/main:July/July4Updates/`

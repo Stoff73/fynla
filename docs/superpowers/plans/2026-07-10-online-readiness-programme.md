@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Take the current `dev` release train through critical/high remediation, reproducible lint and test gates, automated and agent-led browser acceptance, staging proof, and a controlled fynla.org production release, then deliver every still-executable July plan through separate continuation release trains.
+**Goal:** Take the current `dev` release train through critical/high remediation, reproducible lint and test gates, automated and agent-led browser acceptance, an evidence-first Fyn guidance architecture, staging proof, and a controlled fynla.org production release, then deliver every still-executable July plan through separate continuation release trains.
 
-**Architecture:** Work proceeds as a gated release train. Quality infrastructure lands first; every blocker then ships as a bounded feature branch through local tests, feature-branch deployment to csjones, independent browser verification on desktop and `/m`, and merge to `dev`. The final initial-release `dev` tip receives the whole-product gauntlet, a seven-day staging soak, deployment/rollback rehearsal, CSJ go/no-go, and only then `dev -> main` production promotion. After its seven-day production check, the delivered-plan parity/polish work, provider expansion, investment campaign, and estate campaign each repeat the same release discipline as isolated continuations.
+**Architecture:** Work proceeds as a gated release train. Quality infrastructure lands first; every blocker then ships as a bounded feature branch through local tests, feature-branch deployment to csjones, independent browser verification on desktop and `/m`, and merge to `dev`. Before the framework upgrade and whole-product gauntlet, Fyn is consolidated into a hybrid evidence-first guidance system: deterministic engines establish truth, one Advice Case records evidence and policy, typed memory provides continuity, ordinary turns bypass the planner, and mechanical gates enforce the operating perimeter. The final initial-release `dev` tip receives the whole-product gauntlet, a seven-day staging soak, deployment/rollback rehearsal, CSJ go/no-go, and only then `dev -> main` production promotion. After its seven-day production check, the delivered-plan parity/polish work, provider expansion, investment campaign, and estate campaign each repeat the same release discipline as isolated continuations.
 
 **Tech Stack:** PHP 8.3, Laravel 10 initially then Laravel 13, Sanctum, MySQL 8, Vue 3, Vuex, Vite 5, Tailwind 3, Pest 2, Vitest 3, Playwright, GitHub Actions, SiteGround cron/database queues, Sentry.
 
@@ -16,6 +16,10 @@
 - A user-visible feature branch is deployed to csjones and browser-verified before merge, per `.agents/skills/release/SKILL.md`.
 - "Done" means desktop web and `/m` mobile web unless CSJ explicitly excludes a surface; Capacitor iOS packaging is outside this programme.
 - Advice Fyn remains read-only. Persistent writes continue through the server-side `delegate_to_capture` handoff; no frontend persona split is introduced.
+- Fyn launches in mechanically fail-closed `guidance` mode. Targeted support and regulated advice remain disabled until separately permissioned, governed, tested and approved.
+- Every substantive advice response has one structured Advice Case in `ai_advice_logs`, linked to the existing signed episodic record; no parallel advice-log store is introduced.
+- Ordinary factual and single-module Fyn turns bypass the planner. Complex-turn planning remains shadowed until Task 22J evidence supports a narrower active route.
+- Canonical financial state is always fetched live. Per-user Markdown semantic/episodic memory is migrated to typed SQL plus the existing signed episode subsystem before launch.
 - No hardcoded UK tax values. Source values through `TaxConfigService`; 2027/28 values require current authoritative verification and CSJ acceptance.
 - Never run `migrate:fresh`, `migrate:refresh`, `db:wipe`, `route:cache`, or `artisan optimize`.
 - Run `php artisan db:seed` after any operation that modifies or removes local database data.
@@ -24,7 +28,7 @@
 - Every code task follows test-driven development: failing regression test, observed failure, minimal implementation, focused green, affected-lane green, then commit.
 - Every completion claim uses fresh command output. Skipped Pest Browser stubs do not count as browser passes.
 - Existing untracked `.agents/`, `.codex/`, `AGENTS.md`, `docs/security/security-review-2026-06-09.md`, and Python cache files are not part of this plan and must not be staged.
-- The initial production release is Tasks 1-28. Tasks 29-32 are included continuation releases and start only after Task 28's seven-day check is green.
+- The initial production release is Tasks 1-28 plus the inserted Tasks 22A-22J. Tasks 29-32 are included continuation releases and start only after Task 28's seven-day check is green.
 
 ---
 
@@ -67,6 +71,16 @@
 - `docs/online-readiness/rollback-runbook.md` - rehearsed production rollback.
 - `docs/online-readiness/go-no-go.md` - final CSJ decision record.
 - `docs/online-readiness/post-release.md` - 15-minute, 24-hour, and seven-day checks.
+
+### Evidence-first Fyn architecture
+
+- `docs/superpowers/specs/2026-07-10-fyn-evidence-first-advice-design.md` - approved hybrid CoALA/evidence-first design and regulatory operating perimeter.
+- `docs/superpowers/plans/2026-07-10-fyn-evidence-first-advice.md` - executable Tasks 22A-22J with four browser checkpoints.
+- `docs/online-readiness/fyn-advice-architecture-go-no-go.md` - operating-mode, planner, learning, migration, policy and rollback decision record.
+- `app/Services/AI/Policy/` - operating-policy and mechanical response gate.
+- `app/Services/AI/Advice/` - Advice Case value, holder and recorder over `AiAdviceLog`.
+- `app/Services/AI/Fyn/FynEvidence*` - one immutable evidence snapshot shared by planner and reasoner.
+- `app/Models/UserMemoryFact.php` plus `UserMemoryRepository` - typed, user-controllable relationship memory.
 
 ### Existing source contracts reconciled from `origin/main`
 
@@ -2562,6 +2576,41 @@ git commit -m "test: fill Fyn eval and snapshot integrity gaps"
 
 ---
 
+### Tasks 22A-22J: Implement the evidence-first Fyn guidance architecture
+
+**Canonical design:** `docs/superpowers/specs/2026-07-10-fyn-evidence-first-advice-design.md`
+
+**Executable implementation plan:** `docs/superpowers/plans/2026-07-10-fyn-evidence-first-advice.md`
+
+**Launch position:** This is part of Gate 2 and the initial production release. It is not a continuation enhancement. Task 23 must not begin until all four linked checkpoints and the final Fyn architecture acceptance are green.
+
+**Work packages:**
+
+- **22A — Operating perimeter:** fail-closed `guidance` policy; targeted support and regulated advice disabled.
+- **22B — One turn preparation:** compute classification, required-data/KYC and policy once.
+- **22C — Advice Case:** extend `AiAdviceLog` into the canonical structured decision record linked to the signed episode.
+- **22D — One evidence snapshot:** share the same live facts, memories, procedures and provenance with planner and reasoner.
+- **22E — Planner efficiency:** direct route for ordinary turns, planner shadow for approved complex signals, queued learning/summarisation.
+- **22F — Episodic consolidation:** SQL/signed-blob episodes become canonical; retire runtime Markdown episode scans/writes.
+- **22G — Trusted relationship memory:** typed SQL facts with provenance, trust, effective dating and supersession; idempotent legacy migration.
+- **22H — User control:** desktop and `/m` memory view/confirm/correct/delete plus chat write handoff.
+- **22I — Mechanical policy:** Advice Case-grounded allow/sanitise/regenerate/block gate.
+- **22J — Evaluation and activation:** route/cost/memory/policy telemetry, live-provider gauntlet and explicit planner/learning go/no-go.
+
+**Required sequence:** Execute every checkbox, command, commit boundary and browser checkpoint in the linked plan. The summary above does not replace its exact file interfaces or acceptance criteria.
+
+**Required launch defaults unless CSJ's signed go/no-go records a narrower approved change:**
+
+```dotenv
+FYN_ADVICE_MODE=guidance
+FYN_PLANNER_MODE=shadow
+FYN_LEARNING_ENABLED=false
+```
+
+**Master acceptance:** One substantive response produces one preparation, one evidence snapshot, one Advice Case and one linked signed episode; simple/module turns use no planner; user memory is correctable/erasable on desktop and `/m`; unsupported figures, fabricated writes and disabled advice modes fail closed; GroundGate and hidden capture remain intact.
+
+---
+
 ### Task 23: Upgrade the runtime to Laravel 13 and a supported dependency set
 
 **Files:**
@@ -3277,15 +3326,19 @@ Run the full automated/agent gauntlet, staging soak, rollback rehearsal, CSJ go/
 | 15 | 20 | `codex/write-coherence` | csjones web-write -> `/m` refresh |
 | 16 | 21 | `codex/request-scale` | csjones query/timing proof |
 | 17 | 22 | `codex/fyn-contract-closure` | Fyn route/corpus/compliance/eval acceptance |
-| 18 | 23 | `codex/laravel-13` | full csjones gauntlet |
-| 19 | 24 | `codex/e2e-matrix` | automated full matrix green |
-| 20 | 25-26 | release-candidate `dev` | whole agent gauntlet and seven-day soak |
-| 21 | 27 | release-candidate `dev` | rehearsal and CSJ go/no-go |
-| 22 | 28 | `dev -> main` | initial production and post-release checks |
-| 23 | 29 | `codex/july-delivered-plan-closure` | pension/gamification web + `/m` release train |
-| 24 | 30 | `codex/openai-provider` | three-provider canary and release train |
-| 25 | 31 | `codex/investment-campaign` | investment campaign full release train |
-| 26 | 32 | `codex/estate-campaign` | estate campaign full release train |
+| 18 | 22A-22C | `codex/fyn-advice-case` | guidance policy, single preparation and Advice Case checkpoint |
+| 19 | 22D-22E | `codex/fyn-evidence-routing` | shared evidence and planner-efficiency checkpoint |
+| 20 | 22F-22H | `codex/fyn-trusted-memory` | migration plus memory control on web and `/m` |
+| 21 | 22I-22J | `codex/fyn-policy-evals` | mechanical policy and immutable-staging Fyn go/no-go |
+| 22 | 23 | `codex/laravel-13` | full csjones gauntlet |
+| 23 | 24 | `codex/e2e-matrix` | automated full matrix green |
+| 24 | 25-26 | release-candidate `dev` | whole agent gauntlet and seven-day soak |
+| 25 | 27 | release-candidate `dev` | rehearsal and CSJ go/no-go |
+| 26 | 28 | `dev -> main` | initial production and post-release checks |
+| 27 | 29 | `codex/july-delivered-plan-closure` | pension/gamification web + `/m` release train |
+| 28 | 30 | `codex/openai-provider` | three-provider canary and release train |
+| 29 | 31 | `codex/investment-campaign` | investment campaign full release train |
+| 30 | 32 | `codex/estate-campaign` | estate campaign full release train |
 
 Every feature branch is deployed to csjones before its PR merges when it has runtime/user-visible impact. Solo-author merge administration is permitted only after CSJ approval and the live gate.
 
@@ -3293,7 +3346,7 @@ Every feature branch is deployed to csjones before its PR merges when it has run
 
 - Gate 0 complete after Task 1.
 - Gate 1 quality spine complete after Tasks 2-7 and a green protected PR run.
-- Gate 2 blocker remediation complete after Tasks 8-23 and all critical/high ledger records are green/inapplicable.
+- Gate 2 blocker remediation complete after Tasks 8-23 plus Tasks 22A-22J, all four evidence-first Fyn checkpoints, and all critical/high ledger records are green/inapplicable.
 - Gate 3 whole-product gauntlet complete after Tasks 24-25.
 - Gate 4 staging release candidate complete after Task 26.
 - Gate 5 production authorization/rehearsal complete after Task 27.
@@ -3304,6 +3357,9 @@ Every feature branch is deployed to csjones before its PR merges when it has run
 
 - Every design acceptance criterion maps to at least one task.
 - Every critical/high July workstream maps to Tasks 8-23.
+- The approved evidence-first Fyn design maps to Tasks 22A-22J and is a pre-launch Gate 2 requirement.
+- Fyn launch defaults remain `guidance`, planner `shadow`, learning disabled unless the signed architecture go/no-go explicitly approves a narrower change.
+- One Advice Case, one evidence snapshot, complexity-gated planning, canonical typed memory, desktop/`/m` memory control and mechanical policy are verified before Task 23.
 - Automated lint, PHP, frontend, build, desktop browser, and `/m` browser gates map to Tasks 2-7 and 24.
 - Agent interaction/evidence maps to Tasks 7, 25, 26, 28, and every continuation.
 - Staging soak, rollback, go/no-go, production, and post-release checks map to Tasks 26-28 and repeat for Tasks 29-32.
