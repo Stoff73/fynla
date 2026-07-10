@@ -2,15 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Take the current `dev` release train through critical/high remediation, reproducible lint and test gates, automated and agent-led browser acceptance, staging proof, and a controlled fynla.org production release.
+**Goal:** Take the current `dev` release train through critical/high remediation, reproducible lint and test gates, automated and agent-led browser acceptance, staging proof, and a controlled fynla.org production release, then deliver every still-executable July plan through separate continuation release trains.
 
-**Architecture:** Work proceeds as a gated release train. Quality infrastructure lands first; every blocker then ships as a bounded feature branch through local tests, feature-branch deployment to csjones, independent browser verification on desktop and `/m`, and merge to `dev`. The final `dev` tip receives the whole-product gauntlet, a seven-day staging soak, deployment/rollback rehearsal, CSJ go/no-go, and only then `dev -> main` production promotion.
+**Architecture:** Work proceeds as a gated release train. Quality infrastructure lands first; every blocker then ships as a bounded feature branch through local tests, feature-branch deployment to csjones, independent browser verification on desktop and `/m`, and merge to `dev`. The final initial-release `dev` tip receives the whole-product gauntlet, a seven-day staging soak, deployment/rollback rehearsal, CSJ go/no-go, and only then `dev -> main` production promotion. After its seven-day production check, the delivered-plan parity/polish work, provider expansion, investment campaign, and estate campaign each repeat the same release discipline as isolated continuations.
 
 **Tech Stack:** PHP 8.3, Laravel 10 initially then Laravel 13, Sanctum, MySQL 8, Vue 3, Vuex, Vite 5, Tailwind 3, Pest 2, Vitest 3, Playwright, GitHub Actions, SiteGround cron/database queues, Sentry.
 
 ## Global Constraints
 
 - Every critical and high finding in the July 2026 full-app, blind-spot, and Fyn audits is a production blocker until closed with evidence or proved inapplicable.
+- All 34 artifacts in the verified July Updates inventory are restored to `dev`; every executable plan/work package has a delivered proof or a numbered task. A deleted branch never counts as a reason to omit its plan.
 - All work branches from `dev`; all feature pull requests target `dev`; only the final release pull request targets `main`.
 - A user-visible feature branch is deployed to csjones and browser-verified before merge, per `.agents/skills/release/SKILL.md`.
 - "Done" means desktop web and `/m` mobile web unless CSJ explicitly excludes a surface; Capacitor iOS packaging is outside this programme.
@@ -23,6 +24,7 @@
 - Every code task follows test-driven development: failing regression test, observed failure, minimal implementation, focused green, affected-lane green, then commit.
 - Every completion claim uses fresh command output. Skipped Pest Browser stubs do not count as browser passes.
 - Existing untracked `.agents/`, `.codex/`, `AGENTS.md`, `docs/security/security-review-2026-06-09.md`, and Python cache files are not part of this plan and must not be staged.
+- The initial production release is Tasks 1-28. Tasks 29-32 are included continuation releases and start only after Task 28's seven-day check is green.
 
 ---
 
@@ -57,6 +59,7 @@
 
 ### Programme control
 
+- `docs/online-readiness/july-plan-register.yaml` - one disposition and task/proof mapping for every July artifact and executable work package.
 - `docs/online-readiness/audit-ledger.yaml` - finding-to-task/test/evidence ledger.
 - `docs/online-readiness/release-manifest.md` - exact release diff and deployment scope.
 - `docs/online-readiness/coverage-matrix.md` - persona/module/surface matrix.
@@ -67,51 +70,66 @@
 
 ### Existing source contracts reconciled from `origin/main`
 
-- `July/July6Updates/full-app-audit-2026-07-06.md`
-- `July/July7Updates/blindspot-audit-2026-07-07.md`
-- `July/July7Updates/blindspot-remediation-spec.md`
-- `July/July7Updates/blindspot-remediation-plan.md`
-- `July/July7Updates/fyn-ai-remediation-spec.md`
-- `July/July7Updates/fyn-ai-remediation-plan.md`
+- All 34 artifacts under `July/July1Updates/`, `July/July3Updates/`, `July/July4Updates/`, `July/July5Updates/`, `July/July6Updates/`, and `July/July7Updates/` listed in `docs/superpowers/specs/2026-07-10-july-updates-inventory.md`.
+- Executable plans include the SaveTax/gamification work packages, pension campaign plan, WP-5c milestone spec, investment campaign plan/spec, estate campaign plan/spec, blind-spot remediation plan/spec, and Fyn remediation plan/spec.
 
 ---
 
 ### Task 1: Reconcile source contracts and create the audit ledger
 
 **Files:**
-- Create on `dev`: the six July source-contract files listed above, copied byte-for-byte from `origin/main`.
+- Create on `dev`: all 34 artifacts in `docs/superpowers/specs/2026-07-10-july-updates-inventory.md`, copied from `origin/main`.
+- Create: `docs/online-readiness/july-plan-register.yaml`
 - Create: `docs/online-readiness/audit-ledger.yaml`
 - Create: `docs/online-readiness/release-manifest.md`
 - Create: `tests/Architecture/OnlineReadinessDocumentsTest.php`
 - Modify after import: `July/July7Updates/fyn-ai-remediation-plan.md` only to correct `app/Services/AI/QuerySchemas.php` to `app/Constants/QuerySchemas.php`; record that correction in the document history.
 
 **Interfaces:**
-- Consumes: `origin/main` July audits, current `origin/dev`, design at `docs/superpowers/specs/2026-07-10-online-readiness-design.md`.
-- Produces: machine-readable finding records with `id`, `source`, `severity`, `title`, `workstream`, `task`, `status`, `tests`, and `evidence` fields; all later tasks update these records.
+- Consumes: the verified 34-artifact inventory, `origin/main`, current `origin/dev`, and the online-readiness design.
+- Produces: one source register with artifact dispositions/work-package mappings and one finding ledger with `id`, `source`, `severity`, `title`, `workstream`, `task`, `status`, `tests`, and `evidence` fields.
 
-- [ ] **Step 1: Write the document-presence and ledger-schema test**
+- [ ] **Step 1: Write the document-presence, source-register, and ledger-schema test**
 
 ```php
 <?php
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\File;
 use Symfony\Component\Yaml\Yaml;
 
-it('keeps every online-readiness source contract on the dev line', function (): void {
-    $paths = [
-        'July/July6Updates/full-app-audit-2026-07-06.md',
-        'July/July7Updates/blindspot-audit-2026-07-07.md',
-        'July/July7Updates/blindspot-remediation-spec.md',
-        'July/July7Updates/blindspot-remediation-plan.md',
-        'July/July7Updates/fyn-ai-remediation-spec.md',
-        'July/July7Updates/fyn-ai-remediation-plan.md',
-        'docs/online-readiness/audit-ledger.yaml',
-        'docs/online-readiness/release-manifest.md',
-    ];
+it('keeps and registers the complete July Updates corpus on the dev line', function (): void {
+    $register = Yaml::parseFile(base_path('docs/online-readiness/july-plan-register.yaml'));
+    $registered = collect($register['artifacts'])->pluck('path')->sort()->values();
 
-    foreach ($paths as $path) {
-        expect(file_exists(base_path($path)))->toBeTrue($path);
+    $actual = collect([
+        'July/July1Updates', 'July/July3Updates', 'July/July4Updates',
+        'July/July5Updates', 'July/July6Updates', 'July/July7Updates',
+    ])->flatMap(fn (string $directory) => collect(File::allFiles(base_path($directory))))
+        ->filter(fn ($file) => in_array(strtolower($file->getExtension()), ['md', 'patch', 'jpeg', 'png'], true))
+        ->map(fn ($file) => str_replace(base_path().DIRECTORY_SEPARATOR, '', $file->getPathname()))
+        ->sort()
+        ->values();
+
+    expect($register['source']['ref'])->toBe('origin/main')
+        ->and($register['source']['commit'])->toBe('2e8357bef1c453da40e2c1991a462d8914b262e5')
+        ->and($registered)->toHaveCount(34)
+        ->and($registered->all())->toBe($actual->all());
+
+    foreach ($register['artifacts'] as $artifact) {
+        expect(array_keys($artifact))->toContain('path', 'kind', 'disposition', 'source_blob', 'programme_tasks', 'proof');
+        expect($artifact['disposition'])->toBeIn([
+            'delivered', 'launch_remediation', 'continuation', 'evidence_only', 'superseded',
+        ]);
+
+        if (in_array($artifact['disposition'], ['launch_remediation', 'continuation'], true)) {
+            expect($artifact['programme_tasks'])->not->toBeEmpty($artifact['path']);
+        }
+
+        if ($artifact['disposition'] === 'delivered') {
+            expect($artifact['proof'])->not->toBeEmpty($artifact['path']);
+        }
     }
 });
 
@@ -138,23 +156,52 @@ it('requires actionable fields on every launch finding', function (): void {
 
 Run: `./vendor/bin/pest tests/Architecture/OnlineReadinessDocumentsTest.php`
 
-Expected: FAIL because the July documents and ledger are absent from the `dev` line.
+Expected: FAIL because the complete July corpus, source register, and ledger are absent from the `dev` line.
 
-- [ ] **Step 3: Restore the canonical documents from `origin/main`**
+- [ ] **Step 3: Restore the complete canonical July corpus from `origin/main`**
 
 ```bash
 git checkout origin/main -- \
-  July/July6Updates/full-app-audit-2026-07-06.md \
-  July/July7Updates/blindspot-audit-2026-07-07.md \
-  July/July7Updates/blindspot-remediation-spec.md \
-  July/July7Updates/blindspot-remediation-plan.md \
-  July/July7Updates/fyn-ai-remediation-spec.md \
-  July/July7Updates/fyn-ai-remediation-plan.md
+  July/July1Updates July/July3Updates July/July4Updates \
+  July/July5Updates July/July6Updates July/July7Updates
 ```
 
-Expected: the six paths appear as additions relative to `dev` and match `origin/main` before the one documented path correction.
+Expected: 34 tracked artifacts appear as additions relative to `dev` and match `origin/main` before the one documented QuerySchemas path correction.
 
-- [ ] **Step 4: Create the ledger with one record per audit finding**
+- [ ] **Step 4: Create the July source and plan register**
+
+Record all 34 artifacts. `source_blob` is the blob identifier from `git rev-parse origin/main:<path>`. Use one or more `work_packages` for every executable heading in the SaveTax/gamification packages, pension campaign plan, WP-5c spec, investment/estate campaign plans, blind-spot remediation plan, and Fyn remediation plan:
+
+```yaml
+version: 1
+source:
+  ref: origin/main
+  commit: 2e8357bef1c453da40e2c1991a462d8914b262e5
+artifacts:
+  - path: July/July3Updates/pension-campaign-plan.md
+    kind: implementation_plan
+    disposition: delivered
+    source_blob: 0c7886f9abcf356d9f89b61e7427e4d67802fb8b
+    programme_tasks: [24, 25, 29]
+    proof: [9872133, b980709, a6e3705, 6f965f1]
+  - path: July/July6Updates/investment-campaign-plan.md
+    kind: implementation_plan
+    disposition: continuation
+    source_blob: 4bd75d153c8cc62cf7c0e1cc02a0a53f4ae70d3c
+    programme_tasks: [31]
+    proof: []
+work_packages:
+  - id: JULY-GAM-WP1
+    source_path: July/July3Updates/gamification-recs-tasks-map.md
+    source_heading: WP-1 Capture integrity
+    disposition: delivered
+    programme_tasks: [24, 25, 29]
+    proof: [3d8d2b0, cb9f6a8]
+```
+
+Register historical handovers/screenshots as `evidence_only`; register the proposed Fyn patch as `superseded`; register delivered plans with merge proof; register launch work against Tasks 8-23; register continuation work against Tasks 29-32. No executable work package may have an empty `programme_tasks` list.
+
+- [ ] **Step 5: Create the ledger with one record per audit finding**
 
 Use this exact shape for every record:
 
@@ -175,9 +222,9 @@ findings:
     evidence: []
 ```
 
-Transcribe every critical/high finding from both July audits, plus each Fyn P0/P1 item. Include medium/low findings as `deferred` unless another task explicitly promotes them. Do not collapse two independently testable findings into one record.
+Transcribe every critical/high finding from both July audits, plus each Fyn P0/P1 item. Include medium/low findings as `deferred` unless another task explicitly promotes them. Add delivered-plan regression records for SaveTax, WP-1–6/WP-5c, pensioncheck, PR #612, PR #613, and PR #614. Do not collapse two independently testable findings into one record.
 
-- [ ] **Step 5: Write the initial release manifest**
+- [ ] **Step 6: Write the initial release manifest**
 
 Include these sections with captured command output:
 
@@ -193,6 +240,7 @@ Include these sections with captured command output:
 - Commit counts: output of `git rev-list --left-right --count origin/main...origin/dev`
 - Changed-file count and shortstat
 - Main-only documentation commits that must survive merge
+- July source-register commit/blob manifest
 
 ## Migrations
 - Every path from `git diff --name-only origin/main...origin/dev -- database/migrations`
@@ -210,22 +258,23 @@ Include these sections with captured command output:
 - fynla.org SHA and last verified date
 ```
 
-- [ ] **Step 6: Correct the stale Fyn source path and add a document-history line**
+- [ ] **Step 7: Correct the stale Fyn source path and add a document-history line**
 
 Change every `app/Services/AI/QuerySchemas.php` reference in the imported Fyn plan to `app/Constants/QuerySchemas.php`. Add: `2026-07-10 - corrected QuerySchemas source path after dev-line verification.`
 
-- [ ] **Step 7: Run the architecture test**
+- [ ] **Step 8: Run the architecture test**
 
 Run: `./vendor/bin/pest tests/Architecture/OnlineReadinessDocumentsTest.php`
 
-Expected: PASS, with every critical/high record non-deferred.
+Expected: PASS, with exactly 34 registered/present artifacts, every executable work package mapped, and every critical/high record non-deferred.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add July/July6Updates July/July7Updates docs/online-readiness \
+git add July/July1Updates July/July3Updates July/July4Updates \
+  July/July5Updates July/July6Updates July/July7Updates docs/online-readiness \
   tests/Architecture/OnlineReadinessDocumentsTest.php
-git commit -m "docs: reconcile online readiness source contracts"
+git commit -m "docs: reconcile complete July planning corpus"
 ```
 
 ---
@@ -925,7 +974,7 @@ git commit -m "test: isolate and repair Playwright environment"
 - Create: `tests/E2E/smoke/desktop.spec.js`
 - Create: `tests/E2E/smoke/mobile.spec.js`
 - Create: `tests/E2E/auth/registration.spec.js`
-- Modify: legacy `tests/E2E/01-*.spec.js` through `07-*.spec.js` to skip with a linked migration issue only until Task 22 replaces them; they must not run as false-green tests.
+- Modify: legacy `tests/E2E/01-*.spec.js` through `07-*.spec.js` to skip with a linked migration issue only until Task 24 replaces them; they must not run as false-green tests.
 
 **Interfaces:**
 - Consumes: isolated E2E app, real landing/register/login UI, `__e2e/verification-code` only in E2E.
@@ -1026,11 +1075,11 @@ Use a unique `e2e.<run>.<timestamp>@example.com`, complete verification through 
 
 - [ ] **Step 6: Remove weak helper behaviour**
 
-Delete `waitForTimeout`, catch-and-ignore loading waits, optional `isVisible()` passes, random-number fixture values, and `toBeDefined()` assertions from the shared helpers. Replace each consumer with response/locator/database-state waits as it is migrated in Task 22.
+Delete `waitForTimeout`, catch-and-ignore loading waits, optional `isVisible()` passes, random-number fixture values, and `toBeDefined()` assertions from the shared helpers. Replace each consumer with response/locator/database-state waits as it is migrated in Task 24.
 
 - [ ] **Step 7: Mark unmigrated legacy specs honestly**
 
-Use `test.describe.skip('legacy E2E migration tracked by online-readiness Task 22', ...)` at the outer describe of each old file. The smoke/auth tests remain active. This prevents the existing 55 weak tests from being counted as green while preserving them as migration inventory.
+Use `test.describe.skip('legacy E2E migration tracked by online-readiness Task 24', ...)` at the outer describe of each old file. The smoke/auth tests remain active. This prevents the existing 55 weak tests from being counted as green while preserving them as migration inventory.
 
 - [ ] **Step 8: Run smoke and auth tests**
 
@@ -1168,6 +1217,8 @@ git commit -m "test: define agent browser acceptance contract"
 - Modify: `app/Services/AI/KycGateChecker.php`
 - Modify: `app/Services/AI/AdvicePromptBuilder.php`
 - Modify: `app/Agents/CoordinatingAgent.php`
+- Create: `app/Constants/GateRoutes.php`
+- Create: `tests/Architecture/GateRoutesTest.php`
 - Consume: `app/Services/Tiers/TeaserGate.php`, the same capability service used by `app/Http/Middleware/EnsureFullHolisticAccess.php`.
 - Modify: `app/Services/PrerequisiteGateService.php`
 - Create: `tests/Unit/Services/AI/QueryRequiredDataTest.php`
@@ -1175,7 +1226,7 @@ git commit -m "test: define agent browser acceptance contract"
 
 **Interfaces:**
 - Consumes: classification `{primary, related, modules}` and `QuerySchemas::REQUIRED_DATA`.
-- Produces: a primary-question-only KYC result; goals never block non-goals advice; blocked advice uses plain-text route signposting and never names a stripped tool.
+- Produces: a primary-question-only KYC result; goals never block non-goals advice; blocked advice uses `GateRoutes` labels and never names a stripped tool or exposes an internal route.
 
 - [ ] **Step 1: Record the decision-gate outcomes**
 
@@ -1226,7 +1277,8 @@ it('never instructs an unavailable advice tool', function (): void {
 
     expect($result['prompt_text'])
         ->not->toContain('navigate_to_page')
-        ->toContain('/profile');
+        ->toContain('Personal Details')
+        ->not->toContain('/profile');
 });
 ```
 
@@ -1272,10 +1324,10 @@ Amend the `GOALS_PROGRESS` keyword patterns so phrases containing retirement, pe
 
 - [ ] **Step 6: Replace unavailable-tool instructions**
 
-In KYC, `AdvicePromptBuilder`, `CoordinatingAgent` blocked-tool results, and `PrerequisiteGateService` completeness context, use:
+Create the `GateRoutes` map from the real routers. In KYC, `AdvicePromptBuilder`, `CoordinatingAgent` blocked-tool results, and `PrerequisiteGateService` completeness context, use its human label and never expose the internal path:
 
 ```text
-Tell the user which information is missing and signpost the exact page label and route in plain text. Do not call a navigation or write tool on the advice surface.
+Tell the user which information is missing and signpost the exact page label in plain text. Do not output an internal route and do not call a navigation or write tool on the advice surface.
 ```
 
 Keep capture/onboarding navigation behaviour unchanged.
@@ -1290,6 +1342,7 @@ Run:
 
 ```bash
 ./vendor/bin/pest tests/Unit/Services/AI/QueryRequiredDataTest.php
+./vendor/bin/pest tests/Architecture/GateRoutesTest.php
 ./vendor/bin/pest tests/Feature/Fyn tests/Feature/AI
 ```
 
@@ -1299,9 +1352,10 @@ Expected: PASS; goal-less retirement readiness is unblocked when its own inputs 
 
 ```bash
 git add app/Constants/QuerySchemas.php app/Services/AI/QueryClassifier.php \
+  app/Constants/GateRoutes.php \
   app/Services/AI/KycGateChecker.php app/Services/AI/AdvicePromptBuilder.php \
   app/Agents/CoordinatingAgent.php app/Services/PrerequisiteGateService.php \
-  tests/Unit/Services/AI tests/Feature/Fyn tests/Feature/AI \
+  tests/Architecture/GateRoutesTest.php tests/Unit/Services/AI tests/Feature/Fyn tests/Feature/AI \
   docs/online-readiness/audit-ledger.yaml
 git commit -m "fix: gate Fyn advice only on required data"
 ```
@@ -2069,15 +2123,19 @@ git commit -m "fix: enforce and revoke joint ownership access"
 - Modify: `app/Services/Retirement/RetirementStrategyService.php`
 - Modify: `app/Services/Retirement/SalarySacrificeAnalyzer.php`
 - Modify: `app/Services/Retirement/RetirementActionDefinitionService.php`
+- Modify: `app/Services/Onboarding/OnboardingStateMachine.php`
+- Modify: `resources/js/components/Retirement/DCPensionForm.vue`
+- Modify: `resources/js/components/Onboarding/steps/IncomeStep.vue`
 - Modify: `app/Constants/FinancialPlanningKnowledge.php`
 - Create: `tests/Feature/Tax/DateDrivenActivationTest.php`
 - Create: `tests/Feature/Tax/SuccessorConfigurationWarningTest.php`
 - Create: `tests/Unit/Tax/TaxYearBoundaryPredicateTest.php`
 - Create: `tests/Unit/Services/Savings/ISATrackerResetTest.php`
+- Create: `tests/Feature/Retirement/MinimumPensionAccessAgeTest.php`
 
 **Interfaces:**
 - Consumes: Europe/London current date and tax configuration effective dates.
-- Produces: exactly one date-correct active configuration, successor warnings, correct 6 April boundaries, and a fresh ISA allowance after rollover.
+- Produces: exactly one date-correct active configuration, successor warnings, correct 6 April boundaries, a fresh ISA allowance after rollover, and one effective-dated minimum pension access age consumed by backend, web, `/m`, onboarding, and Fyn.
 
 - [ ] **Step 1: Verify and record 2027/28 sources before seeding**
 
@@ -2085,7 +2143,7 @@ Use current HMRC/GOV.UK primary sources at implementation time. Record every val
 
 - [ ] **Step 2: Write failing frozen-clock tests**
 
-Cover 2027-04-05 23:59:59 and 2027-04-06 00:00:00 Europe/London, reseeding after rollover, no matching config, two overlapping configs, missing successor warning, and ISA contributions staying in the prior-year bucket while the new-year allowance resets.
+Cover 2027-04-05 23:59:59 and 2027-04-06 00:00:00 Europe/London, reseeding after rollover, no matching config, two overlapping configs, missing successor warning, and ISA contributions staying in the prior-year bucket while the new-year allowance resets. Add 2028-04-05/06 fixtures proving the configured minimum pension access age changes on its verified effective date and every consumer reports/validates the same value.
 
 - [ ] **Step 3: Write the boundary predicate regression**
 
@@ -2103,7 +2161,8 @@ Run:
 ./vendor/bin/pest tests/Feature/Tax/DateDrivenActivationTest.php \
   tests/Feature/Tax/SuccessorConfigurationWarningTest.php \
   tests/Unit/Tax/TaxYearBoundaryPredicateTest.php \
-  tests/Unit/Services/Savings/ISATrackerResetTest.php
+  tests/Unit/Services/Savings/ISATrackerResetTest.php \
+  tests/Feature/Retirement/MinimumPensionAccessAgeTest.php
 ```
 
 Expected: FAIL because the seeder pins 2026/27 and May-December days 1-5 are misclassified.
@@ -2120,9 +2179,9 @@ Seed/update each year's values without setting a hardcoded active constant. Call
 
 From 1 January through 5 April, run monthly and report when no successor exists within six weeks of `effective_to`; add daily activation at 00:30 with Task 11 failure hooks.
 
-- [ ] **Step 8: Correct date-aware retirement copy and AI knowledge**
+- [ ] **Step 8: Correct date-aware retirement rules, copy, and AI knowledge**
 
-Read the configured salary-sacrifice cap effective date rather than literals. Remove worked tax figures from `FinancialPlanningKnowledge` when a tax-information tool/config is authoritative. No user-facing copy names a year inconsistent with config.
+Read the configured salary-sacrifice cap effective date rather than literals. Add `pension.minimum_access_age` to effective-dated configuration and replace the hardcoded 55 checks/copy in `OnboardingStateMachine`, `DCPensionForm`, `IncomeStep`, retirement recommendations, and `FinancialPlanningKnowledge`. Remove worked tax figures from `FinancialPlanningKnowledge` when a tax-information tool/config is authoritative. No user-facing copy names a year or age inconsistent with config.
 
 - [ ] **Step 9: Run migration/seed and tax tests**
 
@@ -2130,7 +2189,8 @@ Run:
 
 ```bash
 php artisan db:seed
-./vendor/bin/pest tests/Feature/Tax tests/Unit/Tax tests/Unit/Services/Savings/ISATrackerResetTest.php
+./vendor/bin/pest tests/Feature/Tax tests/Feature/Retirement/MinimumPensionAccessAgeTest.php \
+  tests/Unit/Tax tests/Unit/Services/Savings/ISATrackerResetTest.php
 php artisan schedule:list
 ```
 
@@ -2142,7 +2202,9 @@ Expected: PASS; one active date-correct config; successor warning scheduled.
 git add app/Services/Stores/TaxConfigStore.php database/seeders/TaxConfigurationSeeder.php \
   app/Console/Commands/ActivateCurrentTaxYear.php app/Console/Commands/CheckSuccessorTaxConfig.php \
   app/Console/Kernel.php app/Http/Requests/StorePersonalAccountLineItemRequest.php \
-  app/Services/Retirement app/Constants/FinancialPlanningKnowledge.php \
+  app/Services/Retirement app/Services/Onboarding/OnboardingStateMachine.php \
+  resources/js/components/Retirement/DCPensionForm.vue resources/js/components/Onboarding/steps/IncomeStep.vue \
+  app/Constants/FinancialPlanningKnowledge.php \
   tests/Feature/Tax tests/Unit/Tax tests/Unit/Services/Savings/ISATrackerResetTest.php \
   docs/online-readiness/audit-ledger.yaml
 git commit -m "fix: automate tax year rollover safely"
@@ -2385,7 +2447,122 @@ git commit -m "perf: remove unbounded work from request paths"
 
 ---
 
-### Task 22: Upgrade the runtime to Laravel 13 and a supported dependency set
+### Task 22: Close the remaining July Fyn gate, corpus, compliance, and evaluation contracts
+
+**Files:**
+- Modify: `app/Constants/GateRoutes.php`
+- Modify: `app/Services/PrerequisiteGateService.php`
+- Modify: `app/Services/AI/KycGateChecker.php`
+- Modify: readiness services under `app/Services/{Protection,Savings,Investment,Retirement,Estate}/`
+- Modify: `app/Services/AI/Memory/Procedural/ProceduralCorpus.php`
+- Modify: `app/Services/AI/AiToolDefinitions.php`
+- Modify: `app/Services/AI/ToolResultContract.php`
+- Modify: `app/Agents/CoordinatingAgent.php`
+- Modify: `app/Http/Controllers/Api/V1/Mobile/ModuleSummaryController.php`
+- Create: `app/Services/AI/ComplianceBackstop.php`
+- Create: `app/Http/Controllers/Api/Admin/AdviceViolationController.php`
+- Create: `resources/js/views/Admin/AdviceViolations.vue`
+- Modify: `resources/js/router/index.js`, `routes/api.php`
+- Create: `app/Console/Commands/RegenerateFynSnapshots.php`
+- Modify: `tests/Architecture/ToolCatalogueParityTest.php`
+- Create: `tests/Architecture/GateRoutesTest.php`
+- Create: `tests/Unit/Services/PrerequisiteGateServiceTest.php`
+- Create: `tests/Feature/AI/ComplianceBackstopTest.php`
+- Create: `tests/Feature/AI/ProviderCorpusSelectionTest.php`
+- Create: `tests/Feature/AI/ModelVisibleScoreStripTest.php`
+- Create scenarios under `tests/Feature/Fyn/Eval/scenarios/{02-preview-personas,05-cancel-timeout,06-prompt-injection,07-regulatory,08-provider-parity,09-canonical-behaviour}/`.
+
+**Interfaces:**
+- `GateRoutes::resolve(string $destination): array{label: string, web: string, mobile: ?string}` is the only gate-destination map; model-facing copy consumes `label` only.
+- `ComplianceBackstop::apply(string $response, ?array $classification = null): array{response: string, violations: array<array{rule: string, detail: string, severity: string}>}` returns the final persistable text plus structured violations.
+- `ProceduralCorpus::active(string $id, string $provider): ?Procedure` resolves `xai` normally and aliases `openai` to the `.xai.md` variant until a distinct OpenAI corpus is intentionally introduced.
+- Produces: route-valid gate labels, all-seven-module completeness truth, provider-correct tool schemas, no model-visible financial-quality scores, deterministic compliance backstops, and populated eval categories.
+
+- [ ] **Step 1: Record the compliance defaults already recommended in the design**
+
+Record these decisions in `docs/online-readiness/audit-ledger.yaml`: required adviser signposts are appended deterministically; provider/product-name detection is report-only until its eval false-positive rate is accepted; violations are queryable in admin; banned acronym/icon output is corrected before persistence. This task does not add product recommendations or silently block otherwise valid advice.
+
+- [ ] **Step 2: Write failing gate-route and completeness tests**
+
+For every gate destination, assert the web route resolves, the mobile route resolves or is explicitly null, and the model-facing text contains the human label but no raw route or unavailable tool name. Assert `assessAll()` returns explicit protection, savings, investment, retirement, estate, goals, and tax entries with no `?? 100` fabricated default. Assert `create_what_if_scenario` is the checked tool name.
+
+Run:
+
+```bash
+./vendor/bin/pest tests/Architecture/GateRoutesTest.php tests/Unit/Services/PrerequisiteGateServiceTest.php
+```
+
+Expected: FAIL on dead paths, omitted goals/tax, the fabricated completion default, and the stale `run_what_if_scenario` name.
+
+- [ ] **Step 3: Implement `GateRoutes` and complete the gate assessment**
+
+Build the map from the real desktop and `/m` routers. Readiness/KYC services request a destination key, and model-facing signposts say only `Open <label> to add the missing information.` Route strings remain server/UI metadata and never appear in Fyn prose. Add goals/tax assessments, remove the 100% fallback, correct the scenario tool name, and document that all persistent write-tool safety is owned by `AdviceFyn::WRITE_TOOLS` plus the dispatch gate.
+
+- [ ] **Step 4: Write failing content-level corpus parity tests**
+
+Extend `ToolCatalogueParityTest` to compare tool names, parameter names, types, required arrays, enums, defaults, and descriptions across Anthropic and xAI variants. Add a provider-selection test proving xAI onboarding/campaign extraction loads `.xai.md`, Anthropic loads `.md`, and OpenAI resolves through the declared xAI alias.
+
+Run:
+
+```bash
+./vendor/bin/pest tests/Architecture/ToolCatalogueParityTest.php \
+  tests/Feature/AI/ProviderCorpusSelectionTest.php
+```
+
+Expected: FAIL on the current `current_account` divergence and Anthropic-default extraction path.
+
+- [ ] **Step 5: Make corpus selection provider-correct and repair each proven divergence**
+
+Pass the active provider into `AiToolDefinitions::onboardingExtractionTools()` and `ProceduralCorpus::active()`. Fix each mismatch only after choosing the intended contract from its handler validation and existing golden fixture. Re-record affected fixtures in the same commit; never mass-copy one provider corpus over another.
+
+- [ ] **Step 6: Write failing score-strip and compliance tests**
+
+Assert module tool results sent to the model contain no financial-quality keys matching adequacy, efficiency, completeness, tax efficiency, urgency, drift, optimisation, impact, ease, alignment, total, or nested `module_scores`; preserve concrete currency/percentage facts and the approved gamification `level`/`percentile` fields. Assert regulated advice missing the canonical adviser line gains it once, product/provider names produce report-only violations, and banned acronyms/icons are corrected before persistence.
+
+- [ ] **Step 7: Implement model-visible score stripping and `ComplianceBackstop`**
+
+Remove financial-quality score keys recursively after `ToolResultContract::validate()` and before tool content reaches the model. Update the contract so it validates real analytical inputs without requiring a score to be exposed. Make `ModuleSummaryController::removeScores()` consume the same key policy without touching gamification. Apply `ComplianceBackstop` after Task 9 sanitisation and before persistence; merge its structured violations into `metadata.validation_violations`.
+
+- [ ] **Step 8: Add the admin violations queue**
+
+Read `fynlaDesignGuide.md` before the view change. Expose a paginated, authorization-protected admin endpoint over assistant messages whose metadata has violations. Return message/conversation/user IDs, rules, severities, timestamps, and a short already-sanitised excerpt; never return system prompts, assembled context, tool arguments/results, email, National Insurance number, or full financial payloads. The desktop-only admin view wraps in `AppLayout`, contains no newly invented icons, and filters by rule/severity/date.
+
+- [ ] **Step 9: Populate the empty evaluation categories**
+
+Add at least three deterministic scenarios each for regulatory compliance and prompt injection; add cancellation/timeout, preview-persona, provider-parity, and repetition scenarios sufficient to exercise their named category. Provider-parity assertions compare contract/grounded facts, not byte-identical prose. Ensure every scenario validates against `_schema.json` and is counted by `EvalScenarioCountTest`.
+
+- [ ] **Step 10: Add one guarded snapshot-regeneration command**
+
+`php artisan fyn:snapshots:regen --force` regenerates the Fyn system-prompt snapshot, PromptOverlay golden masters, and tool-schema fixtures by invoking the existing fixture builders. Without `--force` it prints the paths it would change and exits without writing. Add command tests for dry-run and forced modes.
+
+- [ ] **Step 11: Run the full Fyn/corpus/compliance lane**
+
+Run:
+
+```bash
+./vendor/bin/pest tests/Architecture/ToolCatalogueParityTest.php tests/Architecture/GateRoutesTest.php
+./vendor/bin/pest tests/Feature/AI tests/Feature/Fyn tests/Unit/Services/AI
+./vendor/bin/pest tests/Feature/Fyn/Eval
+```
+
+Expected: PASS; all eval categories populated; no model-facing dead route/tool instruction; no financial-quality score leakage; compliance changes visible in structured metadata/admin without personal-data leakage.
+
+- [ ] **Step 12: Deploy and verify the semantic cases on both surfaces**
+
+On csjones, exercise one missing-data signpost, one investment/pension answer needing risk/adviser caveats, one prompt-injection attempt through a user-controlled record name, and one score-bearing raw module analysis on web and `/m`. Compare persisted sanitised text/violations and prove the advice surface remains read-only.
+
+- [ ] **Step 13: Commit in reviewer-sized slices**
+
+```bash
+git commit -m "fix: make Fyn gate routes and completeness truthful"
+git commit -m "fix: enforce provider-correct Fyn corpus contracts"
+git commit -m "fix: add model-output compliance backstops"
+git commit -m "test: fill Fyn eval and snapshot integrity gaps"
+```
+
+---
+
+### Task 23: Upgrade the runtime to Laravel 13 and a supported dependency set
 
 **Files:**
 - Modify: `composer.json`, `composer.lock`
@@ -2395,7 +2572,7 @@ git commit -m "perf: remove unbounded work from request paths"
 - Modify: deployment PHP requirements/templates if server selection changes.
 
 **Interfaces:**
-- Consumes: green Tasks 1-21 and official Laravel 11, 12, and 13 upgrade guides.
+- Consumes: green Tasks 1-22 and official Laravel 11, 12, and 13 upgrade guides.
 - Produces: Laravel `^13.0`, PHP `^8.3`, compatible Sanctum/first-party packages, green full suites/build/browser matrix, and verified SiteGround runtime.
 
 Laravel 13 is the target because its official support table lists PHP 8.3-8.5 and security fixes through 17 March 2028: [Laravel 13 release notes](https://laravel.com/docs/13.x/releases).
@@ -2460,7 +2637,7 @@ Expected: all blocking commands exit 0; no unresolved critical/high dependency a
 
 - [ ] **Step 6: Deploy the framework branch to csjones before merge**
 
-Verify PHP version, migrations, queue worker, scheduler, auth, desktop, `/m`, Fyn streaming, document generation, and Revolut sandbox. Run the full agent acceptance set from Task 24. Loop until green.
+Verify PHP version, migrations, queue worker, scheduler, auth, desktop, `/m`, Fyn streaming, document generation, and Revolut sandbox. Run the full agent acceptance set from Task 25. Loop until green.
 
 - [ ] **Step 7: Commit the final runtime support proof**
 
@@ -2472,7 +2649,7 @@ git commit -m "chore: complete Laravel 13 compatibility"
 
 ---
 
-### Task 23: Replace legacy E2E tests with the full automated product matrix
+### Task 24: Replace legacy E2E tests with the full automated product matrix
 
 **Files:**
 - Create: `tests/E2E/matrix/personas.js`
@@ -2552,6 +2729,9 @@ Pin these flows end to end:
 - Life event -> generated allocation -> regenerate.
 - Estate gift -> seven-year taper -> exact Inheritance Tax result.
 - SaveTax and pensioncheck anonymous funnel -> registration -> Fyn onboarding -> target page.
+- SaveTax July3 user issues: visible registration error, no registration flash, balance acknowledgement, edit-return/read-back, short date-of-birth confirmation, action logging, bold questions, and no stray Tax Strategy Continue button.
+- WP-1–6/WP-5b/WP-5c: intent-only capture writes nothing; failed capture is visible; one action ID completes across surfaces; Done/history persist; achievements labels are earned facts; milestone catalogue mints once/yearly; upcoming/history paginate; campaign affinity and nudges work.
+- Pensioncheck fresh and existing-user delta walks: no re-asked known data, exact capture persistence, one completion award, campaign state cleared, synthesis/terminal correct, and no SaveTax bleed.
 - Desktop write -> immediate `/m` cache-coherent result.
 
 - [ ] **Step 7: Implement Fyn and authorization journeys**
@@ -2592,7 +2772,7 @@ Run the full browser lane after each commit.
 
 ---
 
-### Task 24: Run the independent whole-product agent browser gauntlet
+### Task 25: Run the independent whole-product agent browser gauntlet
 
 **Files:**
 - Create/complete: manifests under `tests/Browser/acceptance/` for every critical/high user-visible finding and release surface.
@@ -2645,7 +2825,7 @@ Commit redacted summary/JSON/ledger/matrix. Keep screenshots/traces/videos as CI
 
 ---
 
-### Task 25: Create and soak the immutable staging release candidate
+### Task 26: Create and soak the immutable staging release candidate
 
 **Files:**
 - Finalize: `docs/online-readiness/release-manifest.md`
@@ -2654,7 +2834,7 @@ Commit redacted summary/JSON/ledger/matrix. Keep screenshots/traces/videos as CI
 - Modify: `docs/online-readiness/audit-ledger.yaml`
 
 **Interfaces:**
-- Consumes: green Tasks 1-24 and one immutable `origin/dev` SHA.
+- Consumes: green Tasks 1-25 and one immutable `origin/dev` SHA.
 - Produces: release candidate with matching source/build/database evidence and a seven-day clean staging window.
 
 - [ ] **Step 1: Freeze feature intake**
@@ -2685,7 +2865,7 @@ Hash `public/build/manifest.json`, `public/m-build/manifest.json`, and uploaded 
 
 - [ ] **Step 4: Run the full agent gauntlet once more**
 
-Task 24 results must reference the immutable candidate SHA and deployed URL. No earlier feature-branch evidence substitutes for release-candidate evidence.
+Task 25 results must reference the immutable candidate SHA and deployed URL. No earlier feature-branch evidence substitutes for release-candidate evidence.
 
 - [ ] **Step 5: Start the seven-day soak**
 
@@ -2709,7 +2889,7 @@ git commit -m "docs: record green staging release candidate"
 
 ---
 
-### Task 26: Rehearse production deployment and rollback, then record go/no-go
+### Task 27: Rehearse production deployment and rollback, then record go/no-go
 
 **Files:**
 - Create: `docs/online-readiness/rollback-runbook.md`
@@ -2759,7 +2939,7 @@ git commit -m "docs: approve production readiness and rollback"
 
 ---
 
-### Task 27: Promote `dev` to production and complete post-release proof
+### Task 28: Promote `dev` to production and complete post-release proof
 
 **Files:**
 - Modify after checks: `docs/online-readiness/post-release.md`
@@ -2845,6 +3025,237 @@ Normal feature intake resumes only after the seven-day check is green.
 
 ---
 
+### Task 29: Close the delivered July pensioncheck and gamification parity/polish list
+
+**Files:**
+- Consume completely: `July/July3Updates/{campaign-playbook.md,pension-campaign-plan.md,savetax-recs-gamification-map.md,wp5c-milestones-spec.md}`
+- Consume completely: `July/July4Updates/pensioncheck-patch-notes-technical.md`
+- Create: `database/migrations/2026_07_10_000010_add_last_completed_campaign_to_users_table.php`
+- Modify: `app/Models/User.php`
+- Modify: `app/Services/Onboarding/OnboardingChatDirector.php`
+- Modify: `app/Services/Mobile/NextActionsService.php`
+- Create: `resources/js/views/Achievements.vue`
+- Modify: `resources/js/router/index.js`, `resources/js/layouts/AppNavbar.vue`
+- Modify: `resources/js/components/Fyn/FynQuickReplies.vue`
+- Modify: `resources/js/views/Retirement/PensionDetail.vue`
+- Modify: `resources/mobile/views/modules/Retirement.vue`, `resources/mobile/views/modules/RetirementPensionDetail.vue`
+- Modify: `public/pages/index.php`, `public/pages/pensioncheck.php`, `public/pages/pensioncheck-plan.php`, `public/pages/js/pensioncheck.js`, and `public/pages/js/pensioncheck-plan.js`.
+- Create after CSJ copy/art approval: `public/images/og/pensioncheck.jpg`, `public/images/og/pensioncheck-plan.jpg`
+- Create: `tests/Feature/Campaigns/DeliveredJulyCampaignRegressionTest.php`
+- Create: `tests/Feature/Gamification/DesktopParityTest.php`
+- Create: `tests/E2E/journeys/july-delivered-plans.spec.js`
+- Create: `tests/Browser/acceptance/july-delivered-plans-closure.yaml`
+
+**Interfaces:**
+- `users.last_completed_campaign` is the durable nullable campaign affinity after `active_campaign` clears; allowed values come only from `config('onboarding.campaign_map')`.
+- Desktop achievements consumes the same paginated badges, completed actions, milestones/upcoming items, and activity-history endpoints as `/m`; it does not create a second gamification model.
+- Produces: current regression evidence for every delivered July work package, durable pension affinity, truthful contribution presentation, desktop parity, approved pensioncheck copy, and valid social assets.
+
+- [ ] **Step 1: Record the continuation decisions**
+
+CSJ approves final pensioncheck funnel/plan/homepage/Fyn copy, whether the higher-rate carry-forward question stays, and the two original social-image compositions. Record the recommended durable-affinity choice (`last_completed_campaign`) and confirm the historical email loop remains deferred; email is not silently added by this task.
+
+- [ ] **Step 2: Write failing delivered-plan characterisation tests**
+
+Pin the behaviours delivered by PR #594, WP-1–6, WP-5b/WP-5c, PRs #607-#610, and PR #612: no phantom captures, visible failed captures, one actions model/completion IDs, history, earned-achievement labels, milestone mint-once/yearly repeats, campaign affinity, SaveTax flow, pension fresh flow, and pension existing-user delta flow. Each test cites the source file/work-package ID from `july-plan-register.yaml`.
+
+- [ ] **Step 3: Add durable completed-campaign affinity**
+
+Write the migration, migrate, and seed. On a successful campaign terminal set `last_completed_campaign` before clearing `active_campaign`; pause/cancel does not set it. Backfill from a validated `funnel_answers.campaign` only when the user has completed onboarding. `NextActionsService` prefers `active_campaign`, then `last_completed_campaign`, then the validated legacy SaveTax marker. Add tests for SaveTax, pensioncheck re-entry, pause, invalid values, and repeat completion.
+
+- [ ] **Step 4: Build desktop achievements/milestones/history parity**
+
+Read `fynlaDesignGuide.md` first. Create an `AppLayout`-wrapped desktop view over the existing shared endpoints: earned achievements, completed actions, grouped upcoming/earned milestones, and cursor-paginated history. Use no decorative icons on cards/detail content; the AppNavbar entry may use the existing functional navigation icon pattern because collapsed navigation needs it. Do not expose a financial-quality score.
+
+- [ ] **Step 5: Close the pensioncheck presentation defects**
+
+Use the `html-template` skill for the public-page edits. Apply approved copy across the public pages, homepage source, and Fyn corpus/in-code states in lockstep. Generate the two approved 1200x630 social images through the image-generation skill and visually verify them before committing. Move minimum-pension-access-age behaviour to Task 18's effective-dated configuration. Make desktop and `/m` show the stored percentage when salary is unavailable instead of presenting a fabricated £0 monthly contribution. Render the existing bold verify-question markdown correctly in `FynQuickReplies` without allowing raw HTML.
+
+- [ ] **Step 6: Run focused and full regression lanes**
+
+Run:
+
+```bash
+php artisan migrate
+php artisan db:seed
+./vendor/bin/pest tests/Feature/Campaigns tests/Feature/Gamification tests/Feature/Onboarding
+./vendor/bin/pest
+npm run test:frontend
+npm run test:e2e:full -- tests/E2E/journeys/july-delivered-plans.spec.js
+```
+
+Expected: PASS; all source work-package IDs have current test evidence; no email loop was added; desktop and `/m` parity is green.
+
+- [ ] **Step 7: Run independent live acceptance and release**
+
+Deploy the feature branch to csjones. The browser agent executes SaveTax fresh, pensioncheck fresh, pensioncheck existing-user re-entry, action complete/replace, milestone mint, desktop achievements/history, and `/m` parity. Verify database awards/tracking/campaign fields and no duplicate completions. Loop every red result to green, then run the standard staging/go-no-go/production/post-release gates before marking Task 29 complete.
+
+- [ ] **Step 8: Commit by bounded concern**
+
+```bash
+git commit -m "fix: persist completed campaign affinity"
+git commit -m "feat: add desktop gamification history parity"
+git commit -m "fix: close pensioncheck presentation gaps"
+git commit -m "test: reverify delivered July campaign plans"
+```
+
+---
+
+### Task 30: Reconcile xAI model truth and add the July-specified OpenAI provider
+
+**Files:**
+- Consume completely: `July/July7Updates/fyn-ai-remediation-spec.md` WS-F2 and `fyn-ai-remediation-plan.md` PR-4/PR-5.
+- Modify: `config/services.php`, `.env.example`, deployment environment templates.
+- Create: `app/Services/AI/OpenAiClient.php`
+- Create: `app/Services/AI/Provider.php`
+- Modify: `app/Traits/HasAiChat.php`
+- Modify: `app/Services/AI/Loop/Planner.php`
+- Modify: `app/Services/AI/ConversationSummariser.php`
+- Modify: `app/Services/AI/Learning/ProposedFactSynthesiser.php`
+- Modify: provider guardrails, usage/cost accounting, and tool-definition selection under `app/Services/AI/`.
+- Modify: `app/Services/AI/Memory/Procedural/ProceduralCorpus.php`, `ProceduralCorpusLoader.php`
+- Create: `tests/Feature/AI/OpenAiProviderTest.php`
+- Create: `tests/Feature/AI/OpenAiToolSchemaGoldenMasterTest.php`
+- Modify: `tests/Feature/Fyn/Eval/CassetteModelProvenanceTest.php`, provider-parity fixtures/scenarios.
+- Create: `docs/online-readiness/openai-provider-contract.md`
+
+**Interfaces:**
+- `Provider` is a string-backed PHP enum with `Anthropic = 'anthropic'`, `Xai = 'xai'`, and `OpenAi = 'openai'`; no boolean `$isXai` branches remain in shared orchestration.
+- `AI_PROVIDER=openai` switches the full advice loop by environment alone; per-component overrides are explicit nullable config, defaulting to the global provider.
+- OpenAI consumes the `.xai.md` tool corpus through Task 22's documented alias and produces the same internal normalized stream/tool/usage events as xAI.
+
+- [ ] **Step 1: Verify the current external contract before code**
+
+Use the `openai-docs` skill and official OpenAI developer documentation to capture the current model identifier, Responses/Chat API choice, streaming/tool-call schema, accepted token/reasoning parameters, and current pricing in `openai-provider-contract.md`. Use the `openai-platform-api-key` skill for credential setup; never print or commit a key. Separately verify the real csjones/production xAI model values without exposing credentials and record whether they already match the July ruling (`grok-4.3`).
+
+- [ ] **Step 2: Write failing provider-normalisation tests**
+
+Given equivalent scripted Anthropic, xAI, and OpenAI streams, assert normalized text deltas, tool calls, usage, finish reason, errors, and cancellation are identical. Assert the OpenAI request matches the captured official contract and never sends a parameter the selected model rejects.
+
+- [ ] **Step 3: Introduce `Provider` and remove boolean provider branching**
+
+Centralize provider resolution and per-component overrides. Convert `HasAiChat`, Planner, summariser, learning synthesiser, guardrails, catalogue selection, and cost accounting one component at a time, keeping Anthropic/xAI characterisation tests green after each commit.
+
+- [ ] **Step 4: Implement the OpenAI client and corpus alias**
+
+Use the already-installed `openai-php/client` dependency unless the captured official contract proves it cannot support the required API. Normalize streaming/tool/usage events at the client boundary. `ProceduralCorpusLoader` accepts `openai`; `ProceduralCorpus::active(..., 'openai')` resolves the xAI-form schema intentionally and is covered by parity tests.
+
+- [ ] **Step 5: Reconcile xAI provenance and record OpenAI cassettes**
+
+Make the configured xAI model, cassette directory, and provenance test agree. Record the minimum OpenAI query-type/tool/cancellation/provider-parity cassettes against a dedicated non-production project. Store no prompt secrets, personal data, or API credentials in fixtures.
+
+- [ ] **Step 6: Run provider and full Fyn gates**
+
+Run:
+
+```bash
+./vendor/bin/pest tests/Feature/AI/OpenAiProviderTest.php \
+  tests/Feature/AI/OpenAiToolSchemaGoldenMasterTest.php \
+  tests/Feature/Fyn/Eval/CassetteModelProvenanceTest.php
+./vendor/bin/pest tests/Feature/AI tests/Feature/Fyn tests/Unit/Services/AI
+```
+
+Expected: PASS with all three provider contracts; switching back to xAI is environment-only.
+
+- [ ] **Step 7: Stage dormant, then canary explicitly**
+
+Deploy with xAI still active. Run OpenAI via a dedicated component override/test identity, inspect cost/error/tool/eval evidence, and obtain CSJ's routing decision. Only then enable OpenAI for the approved component or keep it wired but dormant. Run web and `/m` semantic parity plus rollback-by-env proof before the continuation production release.
+
+- [ ] **Step 8: Commit and release**
+
+```bash
+git commit -m "refactor: normalize Fyn provider selection"
+git commit -m "feat: add OpenAI provider support"
+git commit -m "test: add three-provider Fyn parity"
+```
+
+Pass the standard csjones, agent-browser, go/no-go, production, and post-release gates before Task 31 begins.
+
+---
+
+### Task 31: Execute and release the investment campaign plan
+
+**Files:**
+- Consume completely and track every checkbox in: `July/July6Updates/investment-campaign-spec.md` and `July/July6Updates/investment-campaign-plan.md`.
+- Consume completely: `July/July3Updates/campaign-playbook.md` and `July/July6Updates/pensionCampaign.md` as the delivered template.
+- Modify/create exactly the substrate, public-surface, state/corpus, store-reader, route, service, test, and browser files enumerated by the imported investment plan.
+- Create: `tests/Browser/acceptance/investment-campaign-new-user.yaml`
+- Create: `tests/Browser/acceptance/investment-campaign-existing-user.yaml`
+- Modify: `docs/online-readiness/july-plan-register.yaml`, coverage matrix, and release evidence.
+
+**Interfaces:**
+- Campaign key/URL is `investmentcheck` only after the Task 29 decision record confirms it.
+- Uses shared campaign re-entry, `last_completed_campaign`, provider-normalized Fyn, and existing `InvestmentStrategySource`; no parallel campaign framework is introduced.
+- Produces a public funnel/plan, fresh-user and completed-user delta walks, desktop and `/m` investment landing, campaign affinity, milestones/actions, and complete release evidence.
+
+- [ ] **Step 1: Revalidate and freeze the imported spec**
+
+Read the entire spec and plan against the post-Task-30 tree. Record path/signature drift as a document-history amendment before code; do not silently reinterpret it. CSJ confirms URL, final copy, funnel questions, and social assets. Keep income and expenditure sections because the canonical plan marks them blocking.
+
+- [ ] **Step 2: Execute Slice A exactly and review**
+
+Implement substrate/config seams with failing tests first. Keep the campaign disabled until all Slice A tests and SaveTax/pensioncheck regressions are green. Commit and independently review the slice.
+
+- [ ] **Step 3: Execute Slice B exactly and review**
+
+Use the `html-template` skill. Build the public funnel, estimate/plan page, registration pull-through, routes, homepage entry, metadata, and approved assets. Test XSS/query handling, base-path rewriting, phone routing, no-JavaScript degradation, and both target builds. Commit and independently browser-review public desktop/mobile widths.
+
+- [ ] **Step 4: Execute Slice C exactly and review**
+
+Build the investment walk, provider-correct corpus/in-code states, store reader, synchronous risk-profile ensure, advice/synthesis, terminal, actions, affinity, and milestones. Preserve the read-only advice/write-handoff boundary. Run every trap-table check and regression listed by the imported plan before enabling the campaign.
+
+- [ ] **Step 5: Execute Slice D live loop**
+
+On csjones, the browser agent completes anonymous funnel -> registration -> verification -> full fresh walk and a completed-user delta walk on desktop and `/m`. Verify database rows, server-sent events, action IDs, point awards, milestones, final investment figures, cache coherence, and zero SaveTax/pensioncheck bleed. Loop until both manifests and the imported Slice D contract are green.
+
+- [ ] **Step 6: Complete an isolated production release train**
+
+Run full automated/agent gauntlets, staging soak proportionate to the campaign's risk, deployment/rollback rehearsal, CSJ go/no-go, `dev -> main`, and 15-minute/24-hour/seven-day checks. Update every investment work-package row to `delivered` only after production evidence exists.
+
+---
+
+### Task 32: Execute and release the estate and Inheritance Tax campaign plan
+
+**Files:**
+- Consume completely and track every checkbox in: `July/July6Updates/estate-campaign-spec.md` and `July/July6Updates/estate-campaign-plan.md`.
+- Consume completely: `July/July3Updates/campaign-playbook.md` and the delivered investment/pension campaign evidence.
+- Modify/create exactly the substrate, public-surface, state/corpus, `capture_will_status`, navigation allowlist, service, test, and browser files enumerated by the imported estate plan.
+- Create: `tests/Browser/acceptance/estate-campaign-new-user.yaml`
+- Create: `tests/Browser/acceptance/estate-campaign-existing-user.yaml`
+- Modify: `docs/online-readiness/july-plan-register.yaml`, coverage matrix, and release evidence.
+
+**Interfaces:**
+- Starts only after Task 31's seven-day production check is green.
+- Campaign key/URL is `inheritancecheck` only after the decision record confirms it.
+- Uses `EstateStrategySource`, exact tax-config-driven Inheritance Tax calculations, one new `capture_will_status` write tool, shared campaign re-entry, and Tier 2 teaser enforcement.
+- Produces a public funnel/plan, fresh/delta walks, desktop and `/m` estate landing, truthful teaser/gating, actions/milestones, and complete release evidence.
+
+- [ ] **Step 1: Revalidate and freeze the imported spec**
+
+Read the entire spec and plan against the post-investment tree. Record path/signature drift before code. CSJ confirms URL, copy, questions, teaser treatment, and assets. Re-verify every tax rule/value through `TaxConfigService`; never copy a figure from the 2026 document into code.
+
+- [ ] **Step 2: Execute Slice A exactly and review**
+
+Add the campaign substrate/config and required navigation allowlist entries with failing tests first. Keep the campaign disabled; run all existing campaign regressions and the imported trap table.
+
+- [ ] **Step 3: Execute Slice B exactly and review**
+
+Use the `html-template` skill. Build the public funnel, `EstateEstimateService`, plan/registration surfaces, routes, homepage entry, metadata, and approved assets. Pin exact calculation fixtures, XSS/base-path/no-JavaScript behaviour, phone routing, and both builds.
+
+- [ ] **Step 4: Execute Slice C exactly and review**
+
+Implement `capture_will_status` schemas/handler, state/corpus lockstep, skips, advice, synthesis, terminal, actions, milestones, and Tier 2 teaser. Validate every write input, keep advice read-only, and prove the campaign never creates a will or legal instrument from ambiguous intent.
+
+- [ ] **Step 5: Execute Slice D live loop**
+
+On csjones, the browser agent runs fresh and existing-user journeys on desktop and `/m`. Verify exact estate/Inheritance Tax figures, will-status write truth, joint/spouse treatment, database rows, server-sent events, actions, milestones, teaser access, and zero regression in the three earlier campaigns. Loop until every imported acceptance and both manifests are green.
+
+- [ ] **Step 6: Complete the final isolated production release train**
+
+Run the full automated/agent gauntlet, staging soak, rollback rehearsal, CSJ go/no-go, production promotion, and post-release checks. Mark the estate work packages delivered, verify all 34 July artifacts still exist on `main` and `dev`, and close the master July plan register only when no executable work package lacks production evidence or an explicit CSJ-approved disposition.
+
+---
+
 ## Execution order and pull-request grouping
 
 | Order | Tasks | Suggested branch | Required live gate |
@@ -2865,11 +3276,16 @@ Normal feature intake resumes only after the seven-day check is green.
 | 14 | 19 | `codex/financial-fixtures` | exact financial tests; affected UI checks |
 | 15 | 20 | `codex/write-coherence` | csjones web-write -> `/m` refresh |
 | 16 | 21 | `codex/request-scale` | csjones query/timing proof |
-| 17 | 22 | `codex/laravel-13` | full csjones gauntlet |
-| 18 | 23 | `codex/e2e-matrix` | automated full matrix green |
-| 19 | 24-25 | release-candidate `dev` | whole agent gauntlet and seven-day soak |
-| 20 | 26 | release-candidate `dev` | rehearsal and CSJ go/no-go |
-| 21 | 27 | `dev -> main` | production and post-release checks |
+| 17 | 22 | `codex/fyn-contract-closure` | Fyn route/corpus/compliance/eval acceptance |
+| 18 | 23 | `codex/laravel-13` | full csjones gauntlet |
+| 19 | 24 | `codex/e2e-matrix` | automated full matrix green |
+| 20 | 25-26 | release-candidate `dev` | whole agent gauntlet and seven-day soak |
+| 21 | 27 | release-candidate `dev` | rehearsal and CSJ go/no-go |
+| 22 | 28 | `dev -> main` | initial production and post-release checks |
+| 23 | 29 | `codex/july-delivered-plan-closure` | pension/gamification web + `/m` release train |
+| 24 | 30 | `codex/openai-provider` | three-provider canary and release train |
+| 25 | 31 | `codex/investment-campaign` | investment campaign full release train |
+| 26 | 32 | `codex/estate-campaign` | estate campaign full release train |
 
 Every feature branch is deployed to csjones before its PR merges when it has runtime/user-visible impact. Solo-author merge administration is permitted only after CSJ approval and the live gate.
 
@@ -2877,18 +3293,21 @@ Every feature branch is deployed to csjones before its PR merges when it has run
 
 - Gate 0 complete after Task 1.
 - Gate 1 quality spine complete after Tasks 2-7 and a green protected PR run.
-- Gate 2 blocker remediation complete after Tasks 8-22 and all critical/high ledger records are green/inapplicable.
-- Gate 3 whole-product gauntlet complete after Tasks 23-24.
-- Gate 4 staging release candidate complete after Task 25.
-- Gate 5 production authorization/rehearsal complete after Task 26.
-- Gate 6 production/post-release proof complete after Task 27.
+- Gate 2 blocker remediation complete after Tasks 8-23 and all critical/high ledger records are green/inapplicable.
+- Gate 3 whole-product gauntlet complete after Tasks 24-25.
+- Gate 4 staging release candidate complete after Task 26.
+- Gate 5 production authorization/rehearsal complete after Task 27.
+- Gate 6 initial production/post-release proof complete after Task 28.
+- Gate 7 continuation release trains complete after Tasks 29-32.
 
 ## Plan-level verification checklist
 
 - Every design acceptance criterion maps to at least one task.
-- Every critical/high July workstream maps to Tasks 8-22.
-- Automated lint, PHP, frontend, build, desktop browser, and `/m` browser gates map to Tasks 2-7 and 23.
-- Agent interaction/evidence maps to Tasks 7, 24, 25, and 27.
-- Staging soak, rollback, go/no-go, production, and post-release checks map to Tasks 25-27.
-- OpenAI provider expansion and new campaigns remain excluded.
+- Every critical/high July workstream maps to Tasks 8-23.
+- Automated lint, PHP, frontend, build, desktop browser, and `/m` browser gates map to Tasks 2-7 and 24.
+- Agent interaction/evidence maps to Tasks 7, 25, 26, 28, and every continuation.
+- Staging soak, rollback, go/no-go, production, and post-release checks map to Tasks 26-28 and repeat for Tasks 29-32.
+- All 34 July artifacts and every executable work package map through Task 1's source register.
+- Delivered SaveTax, gamification, milestone, and pension plans are regression/polish contracts rather than rebuild instructions.
+- OpenAI provider expansion, investment campaign, and estate campaign are included as isolated continuation release trains.
 - Production mutations remain operator/CSJ-authorized only.

@@ -58,6 +58,7 @@ The design is based on repository and vault inspection on 10 July 2026.
 - Existing agent hooks are session-specific and use absolute local paths; they are not reusable CI commands.
 - The July blind-spot audit identified unresolved critical/high risks in observability, queues, GDPR erasure, joint ownership, tax-year rollover, silent failures, concurrency, scale, framework support, and financial test coverage.
 - The July Fyn audit identified a live repetition incident plus gating, state, surface-parity, cache, and prompt/tool-coherence defects.
+- The complete July Updates corpus is 34 artifacts on `origin/main` only; `origin/dev` contains none of those source documents even though the SaveTax, WP-1–6/WP-5c, pensioncheck, audit-fix, and life-event implementation branches are already merged into `dev`. The verified disposition is recorded in `docs/superpowers/specs/2026-07-10-july-updates-inventory.md`.
 
 ## 3. Scope
 
@@ -88,10 +89,17 @@ Medium and low findings remain in the issue ledger unless one of these condition
 - The finding creates a security, financial-correctness, data-loss, or production-operability risk during remediation.
 - The finding is cheaper and safer to fix inside the same bounded change than to preserve deliberately.
 
-### 3.3 Explicitly outside this launch programme
+### 3.3 Included continuation release trains, not initial launch blockers
 
-- New investment or estate campaign builds.
-- OpenAI `gpt-5-nano` provider expansion unless required to resolve a launch blocker.
+- Remaining pensioncheck polish and desktop achievements/milestones/history parity from the delivered July plans.
+- OpenAI provider expansion from the July Fyn plan, after canonical xAI/provider truth is reconciled.
+- The investment campaign specified in `July/July6Updates/investment-campaign-spec.md` and its implementation plan.
+- The estate campaign specified in `July/July6Updates/estate-campaign-spec.md` and its implementation plan.
+
+These remain in the master programme so they cannot be lost, but each starts only after the initial production release and its seven-day check are green. Each is a separate `feature -> dev -> main` release train with the same automated and agent-led browser gates. The investment campaign lands fully before the estate campaign because both modify the shared campaign machinery.
+
+### 3.4 Explicitly outside the complete programme
+
 - New product features or redesigns unrelated to remediation.
 - Capacitor iOS packaging and TestFlight release. The `/m` mobile-web pathway remains fully in scope.
 - Automated production deployment. SiteGround deployment remains an operator-controlled release step.
@@ -105,10 +113,10 @@ The work is a gated release train. A later gate cannot begin until the required 
 
 - Pause non-essential feature development.
 - Reconcile the `main`-only and `dev`-only histories without losing main-side documentation.
-- Bring the canonical July audit, remediation-spec, remediation-plan, and current project-state documents into the `dev` line before remediation begins, preserving their `main` history and byte content.
+- Bring all 34 July Updates artifacts into the `dev` line before remediation begins, preserving their `main` provenance and byte content except for separately recorded corrections to stale file paths.
 - Produce one release manifest containing commits, changed files, migrations, configuration changes, corpus changes, build changes, scheduled commands, queue changes, and deployment paths.
 - Establish baseline results for PHP syntax, Pint, Pest, Vitest, dependency audit, target builds, Playwright, and the current csjones smoke set.
-- Create a single issue ledger mapping every July audit finding to owner, severity, workstream, test, environment evidence, and launch disposition.
+- Create a single issue ledger mapping every July audit finding to owner, severity, workstream, test, environment evidence, and launch disposition, plus a source register mapping every July artifact and executable work package to delivered proof or a master-programme task.
 
 **Exit:** the release scope and baseline are reproducible from committed commands; every critical/high finding has an accountable work item.
 
@@ -168,6 +176,16 @@ The work is a gated release train. A later gate cannot begin until the required 
 - Review monitoring for silent-error and performance regressions.
 - Convert non-blocking findings into the ranked post-launch backlog.
 - Resume feature development only after the seven-day review.
+
+### Gate 7: July continuation releases
+
+- Close the delivered-plan pensioncheck and gamification parity/polish list.
+- Reconcile xAI model truth and wire the July-specified OpenAI provider behind configuration.
+- Execute the investment campaign spec/plan through its own complete release train.
+- Only after investment is live and stable, execute the estate campaign spec/plan through a separate release train.
+- Return every continuation through automated tests, independent browser acceptance, staging proof, deployment rehearsal, CSJ go/no-go, and post-release checks.
+
+**Exit:** every executable July plan is either delivered with current evidence or carries a CSJ-approved explicit disposition; the continuation features are online without weakening the stable core release.
 
 ## 5. Quality and lint design
 
@@ -502,14 +520,17 @@ These are concrete execution decisions, not undefined scope. The affected PR can
 6. Self-service "Delete my Data": recommended choice is clear the named profile fields and state that truthfully; full account erasure remains the separate retention-controlled pathway.
 7. Retention hard delete: recommended choice is hard-delete the user after the retention period, preserving only the minimal re-registration tombstone.
 8. 2027/28 tax figures and salary-sacrifice effective date: values must be verified against current authoritative sources and explicitly accepted by CSJ before seeding or copy changes.
-
-OpenAI provider routing is not a decision gate because it is deferred from this launch programme.
+9. Fyn compliance backstops: recommended choices are deterministic adviser-signpost insertion when required, report-only product-name detection until its eval false-positive rate is accepted, a readable violations queue, and sanitisation of banned acronym/icon output before persistence.
+10. OpenAI provider rollout: wire `gpt-5-nano` as the July plan specifies, but leave it dormant until current official API parameters, pricing, credentials, provider-parity evals, and the launch component-routing decision are all verified.
+11. Pensioncheck polish: approve final public/Fyn copy, campaign-affinity persistence, carry-forward wording, and original social images before that continuation releases.
+12. Campaign URLs and copy: confirm `investmentcheck` then `inheritancecheck` names and final copy before each campaign's public-surface slice.
 
 ## 14. Required programme artifacts
 
 The implementation produces and maintains:
 
 - Master implementation plan.
+- July Updates branch/file inventory and machine-readable plan-disposition register.
 - Audit finding ledger.
 - Test coverage and persona/module/surface matrix.
 - Acceptance manifests.
@@ -542,18 +563,21 @@ The programme is complete only when:
 13. Deployment and rollback rehearsals pass.
 14. CSJ records the production go decision.
 15. Production smoke passes on desktop and `/m`, followed by green 15-minute, 24-hour, and seven-day checks.
+16. Every July artifact is present on the `dev` line and registered as delivered, launch remediation, continuation, evidence-only, or superseded; every executable plan/work package points to a master-programme task.
+17. The continuation lane closes the pension/gamification parity list, provider expansion, investment campaign, and estate campaign through separate green release trains.
 
 ## 16. Source documents
 
 - `AGENTS.md`
 - `deploy/DEPLOY.md`
 - `.agents/skills/release/SKILL.md`
-- `origin/main:July/July6Updates/full-app-audit-2026-07-06.md` (Gate 0 reconciles this into `dev`)
-- `origin/main:July/July7Updates/blindspot-audit-2026-07-07.md` (Gate 0 reconciles this into `dev`)
-- `origin/main:July/July7Updates/blindspot-remediation-spec.md` (Gate 0 reconciles this into `dev`)
-- `origin/main:July/July7Updates/blindspot-remediation-plan.md` (Gate 0 reconciles this into `dev`)
-- `origin/main:July/July7Updates/fyn-ai-remediation-spec.md` (Gate 0 reconciles this into `dev`)
-- `origin/main:July/July7Updates/fyn-ai-remediation-plan.md` (Gate 0 reconciles this into `dev`)
+- `docs/superpowers/specs/2026-07-10-july-updates-inventory.md`
+- `origin/main:July/July1Updates/` (Gate 0 reconciles the complete corpus into `dev`)
+- `origin/main:July/July3Updates/`
+- `origin/main:July/July4Updates/`
+- `origin/main:July/July5Updates/`
+- `origin/main:July/July6Updates/`
+- `origin/main:July/July7Updates/`
 - `tests/Browser/README.md`
 - `playwright.config.js`
 - `/Users/CSJ/Desktop/fynlaBrain/Current State/DeploymentBuild.md`
