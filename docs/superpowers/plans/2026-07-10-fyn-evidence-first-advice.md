@@ -15,6 +15,7 @@
 - Launch operating mode is `guidance`; targeted support and regulated advice remain mechanically disabled.
 - Advice Fyn remains read-only. Every memory/data mutation from chat uses `delegate_to_capture` and remains GroundGate-protected.
 - Canonical financial data is fetched live from models, `TaxConfigService` and deterministic engines; never freeze balances, allowances, recommendations or plan figures into semantic memory.
+- Approximate user language never becomes a falsely precise canonical fact: an age cannot become a manufactured date of birth, and an unspecified account subtype or ownership cannot be persisted as an assumption. Task 10A owns the capture fix; the evidence/memory layers must preserve the same provenance rule.
 - One `ai_advice_logs` row is the structured Advice Case. The signed episode blob remains the forensic transcript. Do not create a third advice-log table.
 - The SQL/signed-blob episode system becomes canonical. Retire the agent-written Markdown episode summaries and per-user Markdown semantic store only after an idempotent migration/reconciliation proves parity.
 - `FYN_LEARNING_ENABLED=false` remains the launch default. No task enables learning without Task 22J's explicit gate.
@@ -890,7 +891,7 @@ git commit -m "feat: enforce Fyn guidance policy mechanically"
 
 - [ ] **Step 1: Write metric and eval-count contract tests**
 
-Assert every completed Advice Case has timing/route/cost/policy fields and every required scenario category is non-empty. Add fixtures for relevant/stale/conflicting/corrected/deleted memory, simple/direct and complex/planned turns, unsupported figures, write safety and surface parity.
+Assert every completed Advice Case has timing/route/cost/policy fields and every required scenario category is non-empty. Add fixtures for relevant/stale/conflicting/corrected/deleted memory, simple/direct and complex/planned turns, unsupported figures, write safety and surface parity. Add a provenance scenario where the user supplies only a child’s age and a bare “ISA”; the system must ask for exact date/subtype/ownership, create no canonical rows and inject no invented facts into later advice.
 
 - [ ] **Step 2: Implement shadow comparison without user-path impact**
 

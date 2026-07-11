@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - Every critical and high finding in the July 2026 full-app, blind-spot, and Fyn audits is a production blocker until closed with evidence or proved inapplicable.
+- The 25 observations in the Google Drive report `Testing 1/5/26 onwards` are reconciled through `docs/superpowers/specs/2026-07-11-user-testing-report-reconciliation.md`; UT-01 through UT-25 require a tested disposition and Tasks 10A-10B are pre-launch Gate 2 work.
 - All 34 artifacts in the verified July Updates inventory are restored to `dev`; every executable plan/work package has a delivered proof or a numbered task. A deleted branch never counts as a reason to omit its plan.
 - All work branches from `dev`; all feature pull requests target `dev`; only the final release pull request targets `main`.
 - A user-visible feature branch is deployed to csjones and browser-verified before merge, per `.agents/skills/release/SKILL.md`.
@@ -28,7 +29,7 @@
 - Every code task follows test-driven development: failing regression test, observed failure, minimal implementation, focused green, affected-lane green, then commit.
 - Every completion claim uses fresh command output. Skipped Pest Browser stubs do not count as browser passes.
 - Existing untracked `.agents/`, `.codex/`, `AGENTS.md`, `docs/security/security-review-2026-06-09.md`, and Python cache files are not part of this plan and must not be staged.
-- The initial production release is Tasks 1-28 plus the inserted Tasks 22A-22J. Tasks 29-32 are included continuation releases and start only after Task 28's seven-day check is green.
+- The initial production release is Tasks 1-28 plus the inserted Tasks 10A-10B and 22A-22J. Tasks 29-32 are included continuation releases and start only after Task 28's seven-day check is green.
 
 ---
 
@@ -71,6 +72,8 @@
 - `docs/online-readiness/rollback-runbook.md` - rehearsed production rollback.
 - `docs/online-readiness/go-no-go.md` - final CSJ decision record.
 - `docs/online-readiness/post-release.md` - 15-minute, 24-hour, and seven-day checks.
+- `docs/online-readiness/user-testing-register.yaml` - UT-01 through UT-25, with current-code disposition, test coverage and live-browser evidence.
+- `docs/superpowers/specs/2026-07-11-user-testing-report-reconciliation.md` - immutable Google Drive revision review and launch/continuation mapping.
 
 ### Evidence-first Fyn architecture
 
@@ -1568,6 +1571,261 @@ git commit -m "fix: align Fyn completion and stream parity"
 ```
 
 Update the Fyn incident records in the audit ledger to `green` only after live csjones evidence is recorded.
+
+---
+
+### Task 10A: Close user-reported registration, capture-integrity, and Fyn-visibility defects
+
+**Source contract:** `docs/superpowers/specs/2026-07-11-user-testing-report-reconciliation.md` (UT-01, UT-05-UT-14, UT-22 and UT-23).
+
+**Files:**
+- Create: `docs/online-readiness/user-testing-register.yaml`
+- Create: `tests/Architecture/UserTestingRegisterTest.php`
+- Create: `app/Services/Auth/RegistrationHandoffService.php`
+- Modify: `app/Http/Controllers/Api/AuthController.php`
+- Modify: `routes/api.php`
+- Modify: `public/pages/js/savetax-plan-v4.js`, `public/pages/js/pensioncheck-plan.js`
+- Modify: `resources/js/views/Register.vue`
+- Modify: `app/Http/Middleware/RedirectAuthenticatedToDashboard.php`
+- Modify: `app/Services/Onboarding/OnboardingStateMachine.php`
+- Modify: `app/Services/Onboarding/OnboardingChatDirector.php`
+- Modify: `app/Agents/CoordinatingAgent.php`
+- Modify: `app/Services/Onboarding/AssetCaptureEntityExtractor.php`
+- Modify: `app/Services/Onboarding/OnboardingPromptBuilder.php`
+- Modify: `fyn-memory/procedural/tool_schema/onboarding/capture_dependants.md`
+- Modify: `fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md`
+- Create: `app/Services/Onboarding/CaptureAccuracyGate.php`
+- Modify: `tests/Feature/Auth/RegistrationTest.php`
+- Create: `tests/Feature/Auth/CampaignRegistrationHandoffTest.php`
+- Modify: `tests/Feature/Onboarding/ChildrenDOBFallbackTest.php`, `tests/Feature/Onboarding/SpouseSkipTest.php`, `tests/Feature/Onboarding/StateMachineWalkthroughTest.php`
+- Create: `tests/Feature/Onboarding/CaptureAccuracyGateTest.php`
+- Create: `tests/E2E/journeys/user-reported-campaign-regressions.spec.js`
+- Create: `tests/Browser/acceptance/user-reported-campaign-regressions.yaml`
+
+**Interfaces:**
+- `RegistrationHandoffService::issue(PendingRegistration|User $subject, string $kind, string $source): string` produces an encrypted, expiring, purpose-bound handoff token containing no plaintext email in the URL.
+- `RegistrationHandoffService::resolve(string $token): array{kind: 'verification'|'restoration', source: string, pending_id?: int, masked_email?: string, first_name?: string, deleted_at?: string}` rejects expired, malformed and subject-mismatched tokens.
+- `CaptureAccuracyGate::inspect(string $tool, array $arguments, string $latestUserText): array{allowed: bool, reason?: string, missing?: list<string>}` blocks asset writes lacking explicit subtype/ownership evidence; it never converts absence into `individual`.
+- Produces: one uninterrupted campaign registration/restoration journey, exact family dates, explicit asset type/ownership, visible write confirmation and matching desktop/`/m` behaviour.
+
+- [ ] **Step 1: Register every report finding before changing behaviour**
+
+Create `user-testing-register.yaml` with one UT-01 through UT-25 row and these required fields:
+
+```yaml
+findings:
+  - id: UT-01
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+```
+
+Allow only `prelaunch_fix`, `prelaunch_regression`, `prelaunch_clarity`, and `continuation_decision` dispositions. The architecture test asserts exactly 25 unique IDs, the reviewed revision, at least one programme task, and non-empty tests/evidence before a row becomes `green`.
+
+- [ ] **Step 2: Write failing registration-continuity tests**
+
+Cover these contracts in feature and Playwright tests:
+
+```php
+it('exchanges a campaign handoff without browser storage or repeated fields');
+it('rejects an expired or wrong-purpose handoff token');
+it('opens restoration with the original campaign source');
+it('never sends a restored savetax user to openPricing');
+it('redirects a bearer-authenticated campaign visitor before the funnel paints');
+```
+
+The browser test starts from the public SaveTax form, submits once, asserts that `/register?from=savetax&handoff=...` opens the verification modal without showing the full registration form, retrieves the E2E verification code, verifies, and lands on the campaign-aware dashboard. Repeat in the mobile-host iframe. For an existing active email, assert a real sign-in link. For a soft-deleted account, assert the existing restore modal opens without asking for name/email again and restoration lands at `/dashboard?openFyn=journey&from=savetax`, never `openPricing=1`.
+
+- [ ] **Step 3: Replace the `sessionStorage` handoff with a server-issued token**
+
+Implement `RegistrationHandoffService` with Laravel encryption and an embedded absolute expiry no longer than 15 minutes. Bind the token to `verification` or `restoration`, the subject ID, and the allowlisted campaign source. Add `POST /api/auth/registration-handoff/resolve` behind the existing auth-rate-limit family. Return only the minimum modal state; never return a verification code, password, unmasked email or user financial data.
+
+On successful compact registration, return `data.handoff_token`. On the restorable-account response, return a restoration handoff token. Change both campaign scripts to redirect with only `from` and `handoff`. In `Register.vue`, resolve the token on mount and open either `VerificationCodeModal` or `RestoreAccountModal`; remove `fynla_pending_verify` reads/writes. An invalid/expired token shows a specific error and a sign-in/register choice, not a silent fallback that looks like a second form.
+
+- [ ] **Step 4: Preserve campaign intent through restoration and authenticated re-entry**
+
+Make `Register.vue::onRestored` derive its destination from the validated handoff source:
+
+```js
+router.push(source === 'savetax'
+  ? { name: 'Dashboard', query: { openFyn: 'journey', from: 'savetax' } }
+  : (result.redirect_to || { name: 'Dashboard' }));
+```
+
+Do not use `/dashboard?openPricing=1` as the campaign restoration fallback. Add a middleware feature test that proves the injected guard targets the environment-aware dashboard, and browser tests that prove a signed-in desktop and `/m` user never sees the guest registration card.
+
+- [ ] **Step 5: Replace approximate child dates with exact capture**
+
+Change the dependant prompt and tool schema from `age` to required `date_of_birth` in UK day-first user input and canonical `YYYY-MM-DD` tool output. `handleCaptureDependants()` and `createDependantFamilyMembers()` may persist only an explicit parsed date. An age-only answer returns `clarification_required` and creates no `family_members` row; the next prompt asks for the exact date and explains why accuracy matters.
+
+Replace the old test that expects `YYYY-01-01` with:
+
+```php
+it('does not manufacture a date of birth from an age', function (): void {
+    invokeDependantCapture('Sam aged 8');
+    expect(FamilyMember::query()->count())->toBe(0);
+});
+
+it('stores an explicitly supplied dependant date exactly', function (): void {
+    invokeDependantCapture('Sam, born 14 September 2017');
+    expect(FamilyMember::first()?->date_of_birth?->toDateString())->toBe('2017-09-14');
+});
+```
+
+Keep the existing spouse skip, household propagation, computed-age and serialization tests, now driven by exact dates.
+
+- [ ] **Step 6: Mechanically block ambiguous asset subtype and ownership writes**
+
+Add `CaptureAccuracyGate` at the capture dispatch boundary, after surface/write authorization and before a create handler. For ISA-like captures, require an explicit subtype (`cash`, `stocks_and_shares`, `lifetime`, or `innovative_finance`). For savings, investments, properties and liabilities captured in a household flow, require explicit `ownership_type`; joint or tenants-in-common records additionally require the joint owner and share. A bare “ISA with £20,000” or “our savings are £20,000” returns a typed `clarification_required` result and performs zero writes.
+
+Update `OnboardingPromptBuilder` so the model asks only for the missing fact and resubmits the complete tool call after confirmation. Remove the bare-ISA-to-Cash fallback in `AssetCaptureEntityExtractor`; it may stage the amount/provider for the follow-up but cannot create an account until subtype and ownership are explicit. Assert the single-record joint-asset pattern in the resulting tests.
+
+- [ ] **Step 7: Prove expenditure and capture visibility from write through UI**
+
+Extend the Task 10 SSE fixtures and the new browser journey to enter £10,000 monthly expenditure and assert, in one scenario:
+
+1. `users.monthly_expenditure = 10000`;
+2. `expenditure_profiles.total_monthly_expenditure = 10000`;
+3. one successful `capture_complete`/write-result event and no fabricated success text;
+4. the family/expenditure review panel displays £10,000 and the page state advances to the expenditure review;
+5. the same facts render on desktop and `/m` after reload.
+
+Retain the existing spouse skip test and add browser proof that the skip control is visible, keyboard operable and does not create/link a spouse account.
+
+- [ ] **Step 8: Add responsive Fyn usability acceptance**
+
+At desktop and phone widths, open Fyn during the campaign, enter a partial turn, collapse/dock it, scroll the underlying page, reopen it and assert the same conversation/stream state remains. Verify no focus trap, background scroll lock after collapse, hidden submit target, or mobile iframe dead-end. This step changes layout only if the reproducible scenario is red; it does not add icons or a client-visible persona state.
+
+- [ ] **Step 9: Run focused tests and the agent manifest**
+
+Run:
+
+```bash
+./vendor/bin/pest tests/Architecture/UserTestingRegisterTest.php \
+  tests/Feature/Auth/CampaignRegistrationHandoffTest.php \
+  tests/Feature/Onboarding/ChildrenDOBFallbackTest.php \
+  tests/Feature/Onboarding/CaptureAccuracyGateTest.php \
+  tests/Feature/Onboarding/SpouseSkipTest.php \
+  tests/Feature/Onboarding/StateMachineWalkthroughTest.php
+npm run test:frontend
+npm run test:e2e:full -- tests/E2E/journeys/user-reported-campaign-regressions.spec.js
+node scripts/quality/validate-acceptance.mjs tests/Browser/acceptance/user-reported-campaign-regressions.yaml
+```
+
+Expected: all commands exit 0; no age-derived DOB, inferred ISA subtype/ownership, repeated registration fields, stale pricing redirect, silent expenditure write or surface mismatch remains.
+
+- [ ] **Step 10: Deploy to csjones and loop the report scenarios to green**
+
+Deploy the feature branch before merge. Run the acceptance manifest with fresh and restorable emails on desktop and `/m`; attach redacted request, database, stream and screenshot evidence to UT-01, UT-05-UT-14, UT-22 and UT-23. Every red scenario loops through diagnosis, fix and re-run before the affected row becomes green.
+
+- [ ] **Step 11: Commit by bounded concern**
+
+```bash
+git commit -m "fix: preserve campaign registration handoff"
+git commit -m "fix: require exact dependant and asset facts"
+git commit -m "test: automate reported campaign regressions"
+```
+
+---
+
+### Task 10B: Make SaveTax claims, allowances, pricing and calls to action unambiguous
+
+**Source contract:** `docs/superpowers/specs/2026-07-11-user-testing-report-reconciliation.md` (UT-02, UT-04, UT-15-UT-21, UT-24 and UT-25; UT-03 is the explicit Task 29 continuation decision).
+
+**Files:**
+- Modify: `app/Services/Marketing/SaveTaxEstimateService.php`
+- Modify: `public/pages/index.php`
+- Modify: `public/pages/savetax-plan.php`
+- Modify: `public/pages/js/savetax-plan-v4.js`
+- Modify: `public/pages/css/savetax-plan-v4.css`
+- Modify: `public/pages/pricing.php`, `public/pages/js/pricing.js`, `public/pages/css/pricing.css`
+- Modify: `tests/Unit/Services/Marketing/SaveTaxEstimateServiceTest.php`
+- Create: `tests/Feature/Marketing/SaveTaxClaimClarityTest.php`
+- Create: `tests/E2E/public/savetax-clarity.spec.js`
+- Modify: `docs/online-readiness/user-testing-register.yaml`
+
+**Interfaces:**
+- Each allowance row exposes `state: 'available'|'used_automatically'|'not_applicable'`, `label`, `amount`, and a state-specific explanation. The page no longer infers meaning from a boolean plus grey colour.
+- `annualSavingPercent(monthlyPence, annualPence): ?int` is computed from the live pricing payload and returns null when annual billing is not cheaper.
+- Produces: a financially truthful estimate claim, comprehensible allowance states, accessible existing-account recovery, and one clear conversion action hierarchy.
+
+- [ ] **Step 1: Use the public HTML workflow and pin the current failures**
+
+At implementation time, invoke the `html-template` skill and read `fynlaDesignGuide.md` before editing the public pages. Write failing service/render tests asserting:
+
+```text
+An average estimated saving of up to £X each year
+This is an average based on your answers — not your personal potential savings per year. Register for free and get your personalised tax strategy.
+```
+
+Assert the homepage says “UK tax allowances you could be missing out on,” an existing-email result contains a real `/login?from=savetax` link, no inline hardcoded error colour remains, and every allowance has one of the three semantic states.
+
+- [ ] **Step 2: Replace binary allowance styling with three truthful states**
+
+In `SaveTaxEstimateService`, return:
+
+- `available` when the user can take a relevant action or has an unused opportunity;
+- `used_automatically` when an allowance applies but is already consumed automatically, including ordinary employed Personal Allowance;
+- `not_applicable` only when the rule genuinely does not apply to the supplied circumstances.
+
+Keep Pension Annual Allowance visible as `available` even when no pension was selected, but add plain text explaining that a person can open/contribute to a pension and that relief is limited by earnings, allowance rules and personal circumstances. Render the state label and explanation in text; colour is supportive, never the only signal. Preserve existing icons without adding new ones.
+
+- [ ] **Step 3: Correct the estimate claim and homepage wording**
+
+Render the figure as one sentence so “up to” cannot be detached from “average estimated saving.” Use the report’s explicit not-personal disclaimer. Keep the tax year and methodology visible. Change the homepage sentence to “the UK tax allowances you could be missing out on.” Add a snapshot/DOM assertion so later copy changes cannot accidentally turn the average into a personal promise.
+
+- [ ] **Step 4: Fix existing-account recovery and error contrast**
+
+Move compact-registration error presentation into the page stylesheet using Fynla palette variables/classes. Prove WCAG 2.1 AA contrast for normal text. When `email_exists=true`, render a keyboard-accessible “Sign in to your account” link preserving `from=savetax`; do not leave the action only in prose. Coordinate with Task 10A so the sign-in path and handoff use the same validated campaign source.
+
+- [ ] **Step 5: Reduce wordiness and duplicate conversion actions**
+
+Keep one primary compact registration form in the hero and one subordinate in-page return link after the allowance explanation. Remove the duplicated top/bottom “Find out how / Register for free” pair and collapse repeated explanation without removing the average/not-personal qualifier, tax-year context, allowance-state explanation or pension limitation. At 320px, 768px and 1440px widths, no viewport contains competing primary Register actions.
+
+- [ ] **Step 6: Derive annual pricing savings from live configuration**
+
+Calculate:
+
+```js
+Math.round((1 - annualPence / (monthlyPence * 12)) * 100)
+```
+
+Show `Save 17%` only when the current `/api/pricing-config` values calculate to 17 after rounding. Hide the label when data is missing, monthly is zero, or annual is not cheaper. Add unit/DOM cases for 17%, another percentage and no saving so the commercial claim cannot drift from the charged price.
+
+- [ ] **Step 7: Verify typography, contrast and public-page behaviour**
+
+Use Playwright screenshots and DOM assertions at desktop and mobile widths. Check the tax-year label, currency numerals and body copy use the approved type stack/weights; allowance states remain legible without colour; the existing-account error meets contrast; CTA order follows document order; and the page has no horizontal overflow or cumulative layout shift when JS data arrives.
+
+- [ ] **Step 8: Run focused, public E2E and policy tests**
+
+Run:
+
+```bash
+./vendor/bin/pest tests/Unit/Services/Marketing/SaveTaxEstimateServiceTest.php \
+  tests/Feature/Marketing/SaveTaxClaimClarityTest.php \
+  tests/Architecture/UserTestingRegisterTest.php
+npm run lint
+npm run test:e2e:full -- tests/E2E/public/savetax-clarity.spec.js
+./scripts/quality/policy-lint.sh
+```
+
+Expected: all commands exit 0; claims, prices, allowance semantics, contrast and action hierarchy match the contract.
+
+- [ ] **Step 9: Run live public-page acceptance and update the evidence rows**
+
+Deploy to csjones and test as guest, existing user, authenticated user and phone visitor. Update UT-02-UT-04, UT-15-UT-21, UT-24 and UT-25 with redacted screenshots and DOM/network evidence. UT-03 records the Task 29 product decision and does not block Gate 2; every other Task 10B row must be green before initial production.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add app/Services/Marketing/SaveTaxEstimateService.php public/pages \
+  tests/Unit/Services/Marketing tests/Feature/Marketing tests/E2E/public \
+  docs/online-readiness/user-testing-register.yaml
+git commit -m "fix: clarify savetax claims and conversion journey"
+```
 
 ---
 
@@ -3102,7 +3360,7 @@ Normal feature intake resumes only after the seven-day check is green.
 
 - [ ] **Step 1: Record the continuation decisions**
 
-CSJ approves final pensioncheck funnel/plan/homepage/Fyn copy, whether the higher-rate carry-forward question stays, and the two original social-image compositions. Record the recommended durable-affinity choice (`last_completed_campaign`) and confirm the historical email loop remains deferred; email is not silently added by this task.
+CSJ approves final pensioncheck funnel/plan/homepage/Fyn copy, whether the higher-rate carry-forward question stays, and the two original social-image compositions. Record the recommended durable-affinity choice (`last_completed_campaign`) and confirm the historical email loop remains deferred; email is not silently added by this task. Resolve UT-03 from the user-testing register here: approve, amend or reject a campaign-aware dashboard action such as “Ask Fyn how you can save tax”, using the shared affinity/next-actions model on desktop and `/m` rather than a SaveTax-only frontend shortcut.
 
 - [ ] **Step 2: Write failing delivered-plan characterisation tests**
 
@@ -3346,7 +3604,7 @@ Every feature branch is deployed to csjones before its PR merges when it has run
 
 - Gate 0 complete after Task 1.
 - Gate 1 quality spine complete after Tasks 2-7 and a green protected PR run.
-- Gate 2 blocker remediation complete after Tasks 8-23 plus Tasks 22A-22J, all four evidence-first Fyn checkpoints, and all critical/high ledger records are green/inapplicable.
+- Gate 2 blocker remediation complete after Tasks 8-23 plus Tasks 10A-10B and 22A-22J, all four evidence-first Fyn checkpoints, all UT rows except the recorded UT-03 continuation decision, and all critical/high ledger records are green/inapplicable.
 - Gate 3 whole-product gauntlet complete after Tasks 24-25.
 - Gate 4 staging release candidate complete after Task 26.
 - Gate 5 production authorization/rehearsal complete after Task 27.
@@ -3357,6 +3615,7 @@ Every feature branch is deployed to csjones before its PR merges when it has run
 
 - Every design acceptance criterion maps to at least one task.
 - Every critical/high July workstream maps to Tasks 8-23.
+- The reviewed Google Drive report maps UT-01 through UT-25 to Tasks 10A-10B or the explicit UT-03 Task 29 continuation decision; no observation is left as untracked prose.
 - The approved evidence-first Fyn design maps to Tasks 22A-22J and is a pre-launch Gate 2 requirement.
 - Fyn launch defaults remain `guidance`, planner `shadow`, learning disabled unless the signed architecture go/no-go explicitly approves a narrower change.
 - One Advice Case, one evidence snapshot, complexity-gated planning, canonical typed memory, desktop/`/m` memory control and mechanical policy are verified before Task 23.

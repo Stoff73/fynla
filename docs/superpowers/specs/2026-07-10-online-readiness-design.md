@@ -60,6 +60,17 @@ The design is based on repository and vault inspection on 10 July 2026.
 - The July Fyn audit identified a live repetition incident plus gating, state, surface-parity, cache, and prompt/tool-coherence defects.
 - The complete July Updates corpus is 34 artifacts on `origin/main` only; `origin/dev` contains none of those source documents even though the SaveTax, WP-1–6/WP-5c, pensioncheck, audit-fix, and life-event implementation branches are already merged into `dev`. The verified disposition is recorded in `docs/superpowers/specs/2026-07-10-july-updates-inventory.md`.
 
+### 2.4 Direct user-testing evidence
+
+The Google Drive report `Testing 1/5/26 onwards` was reviewed at its 10 July 2026 revision and reconciled in `docs/superpowers/specs/2026-07-11-user-testing-report-reconciliation.md`. It contains 25 observations spanning May, June and July. Current-code inspection shows that some earlier observations now have fixes or tests, but four root-cause families still need explicit launch proof:
+
+- campaign registration, verification and restoration can lose handoff state and ask for the same fields twice;
+- Fyn manufactures precise child dates from ages and can persist asset type/ownership assumptions without explicit confirmation;
+- successful expenditure/capture writes are not sufficiently proven across database, stream, review UI and both surfaces;
+- SaveTax visually conflates available, automatically used and inapplicable allowances, while its claim, existing-account action and pricing-saving copy need clearer evidence.
+
+These are not appended as an informal punch list. UT-01 through UT-25 receive machine-readable dispositions and evidence through Tasks 10A-10B. The contextual dashboard-action suggestion is a named Task 29 continuation decision; the remaining correctness and clarity items are pre-launch.
+
 ## 3. Scope
 
 ### 3.1 Launch blockers
@@ -76,10 +87,12 @@ The following are mandatory before production promotion:
 8. Tax-year rollover safety and exact tests for high-risk financial calculations.
 9. High-risk concurrency, cache-coherence, and request-path scale fixes.
 10. Required Fyn web/`/m` parity and onboarding state hygiene.
-11. The approved evidence-first Fyn guidance architecture: explicit operating perimeter, one Advice Case, one evidence snapshot, complexity-gated planning, canonical typed memory, user correction/erasure, and mechanical response policy.
-12. Supported Laravel, Sanctum, and PHP runtime posture through a dedicated upgrade project.
-13. A full automated and agent-led release-candidate gauntlet.
-14. Staging soak, deployment rehearsal, rollback proof, and written go/no-go.
+11. User-tested campaign continuity and capture accuracy: one registration, correct restoration destination, no invented dates/account types/ownership, visible writes and usable chat on desktop and `/m`.
+12. Truthful SaveTax claim/allowance/pricing semantics and accessible existing-account recovery.
+13. The approved evidence-first Fyn guidance architecture: explicit operating perimeter, one Advice Case, one evidence snapshot, complexity-gated planning, canonical typed memory, user correction/erasure, and mechanical response policy.
+14. Supported Laravel, Sanctum, and PHP runtime posture through a dedicated upgrade project.
+15. A full automated and agent-led release-candidate gauntlet.
+16. Staging soak, deployment rehearsal, rollback proof, and written go/no-go.
 
 ### 3.2 Findings that do not automatically block
 

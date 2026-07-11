@@ -132,6 +132,8 @@ Fyn distinguishes information by ownership and trust:
 
 Every relationship-memory fact has a stable fact key, category, value, display text, trust state, source type/message, effective dates, confirmation time, status and supersession link.
 
+Precision is part of provenance. Approximate language remains approximate: “my child is eight” cannot be stored as a fabricated 1 January date of birth, and “I have an ISA” cannot become Cash or Stocks & Shares or individual/joint ownership without confirmation. If a canonical schema needs a more precise value, Fyn asks for it before the write. Neither typed memory nor an historical summary may launder an inference into a confirmed canonical fact. The user-testing evidence and capture acceptance are mapped in `docs/superpowers/specs/2026-07-11-user-testing-report-reconciliation.md` and Task 10A of the master programme.
+
 The current per-user Markdown semantic store is migrated into the typed SQL store and retired. The agent-written Markdown episode summaries under `fyn-memory/episodic/episodes` are also retired. The existing SQL/signed-blob episodic subsystem becomes canonical.
 
 The global procedural and source-less semantic corpora remain version-controlled files. Live values continue to be reached through pointers.
