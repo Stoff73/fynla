@@ -57,6 +57,17 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
+        ],
+        "lint:php": [
+            "bash scripts/quality/php-syntax.sh",
+            "bash scripts/quality/pint-changed.sh"
+        ],
+        "quality": [
+            "@lint:php",
+            "@php vendor/bin/pest --testsuite=Architecture",
+            "@php vendor/bin/pest --testsuite=Unit",
+            "@php vendor/bin/pest --testsuite=Feature",
+            "@php vendor/bin/pest --testsuite=Integration"
         ]
     },
     "extra": {
