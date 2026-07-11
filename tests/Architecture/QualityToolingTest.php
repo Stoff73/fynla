@@ -41,3 +41,22 @@ it('exposes canonical quality scripts', function (): void {
         expect(file_exists($root.'/'.$path))->toBeTrue($path);
     }
 });
+
+it('defines every quality lane and pull request evidence field', function (): void {
+    $root = dirname(__DIR__, 2);
+    $runner = file_get_contents($root.'/scripts/quality/run.sh');
+    $template = file_get_contents($root.'/.github/pull_request_template.md');
+
+    expect($runner)->not->toBeFalse()
+        ->and($template)->not->toBeFalse();
+
+    foreach (['lint', 'php', 'frontend', 'build', 'browser:smoke', 'browser:full', 'all'] as $lane) {
+        expect($runner)->toContain($lane.')');
+    }
+
+    expect($template)->toContain(
+        'Mobile impact:',
+        'Desktop browser evidence:',
+        '/m browser evidence:',
+    );
+});
