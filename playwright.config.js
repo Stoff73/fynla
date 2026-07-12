@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8000';
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === '1' && !process.env.CI;
 
 export default defineConfig({
   testDir: './tests/E2E',
@@ -42,13 +43,13 @@ export default defineConfig({
     {
       command: 'bash scripts/e2e/serve.sh laravel',
       url: baseURL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       timeout: 120_000,
     },
     {
       command: 'bash scripts/e2e/serve.sh vite',
       url: 'http://127.0.0.1:5173',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       timeout: 120_000,
     },
   ],
