@@ -13,7 +13,7 @@ describe('PropertyCard.vue', () => {
     postcode: 'SW1A 1AA',
     property_type: 'main_residence',
     current_value: 500000,
-    mortgage_outstanding: 200000,
+    mortgages: [{ id: 101, outstanding_balance: 200000 }],
     ownership_type: 'individual',
     ownership_percentage: 100,
   };
@@ -26,7 +26,7 @@ describe('PropertyCard.vue', () => {
     postcode: 'M1 1AE',
     property_type: 'buy_to_let',
     current_value: 300000,
-    mortgage_outstanding: 150000,
+    mortgages: [{ id: 102, outstanding_balance: 150000 }],
     ownership_type: 'joint',
     ownership_percentage: 50,
   };
@@ -39,7 +39,7 @@ describe('PropertyCard.vue', () => {
     postcode: 'B1 1AA',
     property_type: 'secondary_residence',
     current_value: 250000,
-    mortgage_outstanding: 0,
+    mortgages: [],
     ownership_type: 'individual',
     ownership_percentage: 100,
   };
@@ -84,7 +84,7 @@ describe('PropertyCard.vue', () => {
 
     // Secondary residence
     await wrapper.setProps({ property: mortgageFreePropertyMock });
-    expect(wrapper.find('.property-type-badge').text()).toBe('Secondary');
+    expect(wrapper.find('.property-type-badge').text()).toBe('Secondary Residence');
 
     // Buy to let
     await wrapper.setProps({ property: jointPropertyMock });
@@ -151,17 +151,16 @@ describe('PropertyCard.vue', () => {
     expect(html).not.toContain('.00');
   });
 
-  it('has click handler on card', () => {
+  it('exposes the card as the click target', () => {
     const card = wrapper.find('.property-card');
-    expect(card.attributes('style')).toContain('cursor: pointer');
+    expect(card.exists()).toBe(true);
   });
 
-  it('emits click event when card is clicked', async () => {
+  it('emits the selected property when the card is clicked', async () => {
     const card = wrapper.find('.property-card');
     await card.trigger('click');
 
-    // viewDetails method is called (currently commented out navigation)
-    expect(card.exists()).toBe(true);
+    expect(wrapper.emitted('select-property')).toEqual([[solePropertyMock]]);
   });
 
   it('applies hover styles with CSS classes', () => {
@@ -177,11 +176,11 @@ describe('PropertyCard.vue', () => {
     // Main residence - blue
     expect(wrapper.find('.type-main_residence').exists()).toBe(true);
 
-    // Secondary residence - amber
+    // Secondary residence - violet
     await wrapper.setProps({ property: mortgageFreePropertyMock });
     expect(wrapper.find('.type-secondary_residence').exists()).toBe(true);
 
-    // Buy to let - green
+    // Buy to let - spring
     await wrapper.setProps({ property: jointPropertyMock });
     expect(wrapper.find('.type-buy_to_let').exists()).toBe(true);
   });

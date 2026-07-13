@@ -34,7 +34,7 @@ describe('InvestmentOverviewCard', () => {
     expect(text).toMatch(/£250,000|£250K|250k/i);
   });
 
-  it('displays positive YTD return with green color', () => {
+  it('displays positive YTD return with the spring success colour', () => {
     const wrapper = mount(InvestmentOverviewCard, {
       props: {
         portfolioValue: 100000,
@@ -46,11 +46,10 @@ describe('InvestmentOverviewCard', () => {
 
     const html = wrapper.html();
     expect(wrapper.text()).toContain('12.5');
-    // Should have green color for positive returns
-    expect(html).toMatch(/text-green|bg-green/);
+    expect(html).toContain('text-spring-600');
   });
 
-  it('displays negative YTD return with red color', () => {
+  it('displays negative YTD return with the raspberry danger colour', () => {
     const wrapper = mount(InvestmentOverviewCard, {
       props: {
         portfolioValue: 100000,
@@ -62,8 +61,7 @@ describe('InvestmentOverviewCard', () => {
 
     const html = wrapper.html();
     expect(wrapper.text()).toContain('-5.2');
-    // Should have red color for negative returns
-    expect(html).toMatch(/text-red|bg-red/);
+    expect(html).toContain('text-raspberry-600');
   });
 
   it('displays zero YTD return with neutral color', () => {
@@ -78,8 +76,7 @@ describe('InvestmentOverviewCard', () => {
 
     const html = wrapper.html();
     expect(wrapper.text()).toContain('0');
-    // Should have gray/neutral color for zero return
-    expect(html).toMatch(/text-gray|bg-gray/);
+    expect(html).toContain('text-spring-500');
   });
 
   it('displays holdings count', () => {
@@ -110,7 +107,7 @@ describe('InvestmentOverviewCard', () => {
     const text = wrapper.text();
     // Should show rebalancing alert
     expect(text).toMatch(/rebalanc/i);
-    expect(html).toMatch(/text-orange|text-yellow/);
+    expect(html).toContain('text-violet-800');
   });
 
   it('displays balanced status when not needing rebalancing', () => {
@@ -124,8 +121,7 @@ describe('InvestmentOverviewCard', () => {
     });
 
     const html = wrapper.html();
-    // Should show balanced/on-track indicator
-    expect(html).toMatch(/text-green|bg-green/);
+    expect(html).toContain('text-spring-800');
   });
 
   it('navigates to Investment Dashboard on click', async () => {
@@ -233,7 +229,7 @@ describe('InvestmentOverviewCard', () => {
 
     const html = wrapper.html();
     expect(wrapper.text()).toContain('150.5');
-    expect(html).toMatch(/text-green|bg-green/);
+    expect(html).toContain('text-spring-600');
   });
 
   it('handles very high negative returns', () => {
@@ -248,6 +244,6 @@ describe('InvestmentOverviewCard', () => {
 
     const html = wrapper.html();
     expect(wrapper.text()).toContain('-45.8');
-    expect(html).toMatch(/text-red|bg-red/);
+    expect(html).toContain('text-raspberry-600');
   });
 });

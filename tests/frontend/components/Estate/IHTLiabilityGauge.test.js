@@ -45,8 +45,8 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#10b981/i); // Green
+    expect(wrapper.vm.gaugeColour).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(wrapper.vm.liabilityColourClass).toContain('spring');
   });
 
   it('uses orange color for moderate IHT (10-20%)', () => {
@@ -57,8 +57,8 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#f97316/i); // Orange
+    expect(wrapper.vm.gaugeColour).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(wrapper.vm.liabilityColourClass).toContain('violet');
   });
 
   it('uses red color for high IHT (>20%)', () => {
@@ -69,8 +69,8 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#ef4444/i); // Red
+    expect(wrapper.vm.gaugeColour).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(wrapper.vm.liabilityColourClass).toContain('raspberry');
   });
 
   it('handles zero estate value without error', () => {
@@ -93,8 +93,7 @@ describe('IHTLiabilityGauge', () => {
     });
 
     expect(wrapper.vm.ihtPercentage).toBe(10);
-    const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#f97316/i); // Should be orange at 10%
+    expect(wrapper.vm.liabilityColourClass).toContain('violet');
   });
 
   it('handles edge case at exactly 20% threshold', () => {
@@ -106,8 +105,7 @@ describe('IHTLiabilityGauge', () => {
     });
 
     expect(wrapper.vm.ihtPercentage).toBe(20);
-    const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#ef4444/i); // Should be red at 20%
+    expect(wrapper.vm.liabilityColourClass).toContain('raspberry');
   });
 
   it('displays status text for good IHT level', () => {
@@ -118,7 +116,7 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    const statusText = wrapper.vm.statusText;
+    const statusText = wrapper.vm.statusMessage;
     expect(statusText).toMatch(/good|low|excellent/i);
   });
 
@@ -130,7 +128,7 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    const statusText = wrapper.vm.statusText;
+    const statusText = wrapper.vm.statusMessage;
     expect(statusText).toMatch(/warning|moderate|review/i);
   });
 
@@ -142,7 +140,7 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    const statusText = wrapper.vm.statusText;
+    const statusText = wrapper.vm.statusMessage;
     expect(statusText).toMatch(/critical|high|action/i);
   });
 
@@ -166,7 +164,7 @@ describe('IHTLiabilityGauge', () => {
       },
     });
 
-    expect(wrapper.vm.effectiveRate).toBe(10);
+    expect(wrapper.vm.ihtPercentage).toBe(10);
   });
 
   it('handles very large estate values', () => {

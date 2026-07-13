@@ -1,170 +1,210 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import UserProfile from '../../../views/UserProfile.vue';
 
 describe('UserProfile.vue', () => {
   let wrapper;
   let store;
-  let mockActions;
+  let router;
+  let fetchProfile;
 
-  beforeEach(() => {
-    mockActions = {
-      fetchProfile: vi.fn(() => Promise.resolve()),
-    };
+  const createTestStore = ({ subscriptionData = null, isPreviewMode = false } = {}) => {
+    fetchProfile = vi.fn(() => Promise.resolve());
 
-    store = createStore({
+    return createStore({
+      state: {
+        aiFormFill: { pendingFill: null },
+      },
       modules: {
         userProfile: {
           namespaced: true,
-          state: {
-            personalInfo: { name: 'John Doe' },
-            familyMembers: [],
-            incomeOccupation: {},
-            personalAccounts: {},
+          state: () => ({
             loading: false,
             error: null,
-          },
+          }),
           getters: {
-            personalInfo: (state) => state.personalInfo,
-            familyMembers: (state) => state.familyMembers,
-            incomeOccupation: (state) => state.incomeOccupation,
-            personalAccounts: (state) => state.personalAccounts,
             loading: (state) => state.loading,
+            error: (state) => state.error,
           },
-          actions: mockActions,
+          actions: {
+            fetchProfile,
+          },
+        },
+        auth: {
+          namespaced: true,
+          state: () => ({ subscriptionData }),
+        },
+        preview: {
+          namespaced: true,
+          getters: {
+            isPreviewMode: () => isPreviewMode,
+          },
         },
       },
     });
+  };
 
-    wrapper = mount(UserProfile, {
-      global: {
-        plugins: [store],
-        stubs: {
-          PersonalInformation: { template: '<div class="personal-info-stub"></div>' },
-          FamilyMembers: { template: '<div class="family-members-stub"></div>' },
-          IncomeOccupation: { template: '<div class="income-occupation-stub"></div>' },
-          AssetsOverview: { template: '<div class="assets-overview-stub"></div>' },
-          LiabilitiesOverview: { template: '<div class="liabilities-overview-stub"></div>' },
-          PersonalAccounts: { template: '<div class="personal-accounts-stub"></div>' },
+  const mountComponent = (testStore = store) => mount(UserProfile, {
+    global: {
+      plugins: [testStore, router],
+      stubs: {
+        AppLayout: {
+          name: 'AppLayout',
+          template: '<main data-test="app-layout"><slot /></main>',
+        },
+        ModuleStatusBar: {
+          name: 'ModuleStatusBar',
+          template: '<div class="module-status-stub" />',
+        },
+        PersonalInformation: {
+          name: 'PersonalInformation',
+          template: '<div class="personal-info-stub" />',
+        },
+        HealthInformation: {
+          name: 'HealthInformation',
+          template: '<div class="health-info-stub" />',
+        },
+        FamilyMembers: {
+          name: 'FamilyMembers',
+          template: '<div class="family-members-stub" />',
+        },
+        SubscriptionManagement: {
+          name: 'SubscriptionManagement',
+          template: '<div class="subscription-stub" />',
         },
       },
+    },
+  });
+
+  beforeEach(async () => {
+    window.history.replaceState({}, '', '/profile');
+    store = createTestStore();
+    router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/profile', component: { template: '<div />' } },
+      ],
     });
+    await router.push('/profile');
+    await router.isReady();
+
+    wrapper = mountComponent();
+    await flushPromises();
   });
 
-  it('renders user profile page', () => {
-    expect(wrapper.find('h1').text()).toContain('User Profile');
+  it('renders the routed profile page inside AppLayout', () => {
+    expect(wrapper.findComponent({ name: 'AppLayout' }).exists()).toBe(true);
+    expect(wrapper.get('h1').text()).toBe('User Profile');
   });
 
-  it('renders all 6 tabs', () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-    expect(tabs.length).toBe(6);
+  it('renders the current profile tabs for a full-plan user', () => {
+    const tabs = wrapper.findAll('nav[aria-label="Tabs"] button');
+    expect(tabs.map((tab) => tab.text())).toEqual([
+      'Personal Info',
+      'Health',
+      'Family',
+      'Subscription',
+    ]);
   });
 
-  it('has correct tab labels', () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-    const tabLabels = tabs.map(tab => tab.text());
-
-    expect(tabLabels).toContain('Personal Information');
-    expect(tabLabels).toContain('Family Members');
-    expect(tabLabels).toContain('Income & Occupation');
-    expect(tabLabels).toContain('Assets');
-    expect(tabLabels).toContain('Liabilities');
-    expect(tabLabels).toContain('Personal Accounts');
+  it('shows personal information by default', () => {
+    expect(wrapper.vm.activeTab).toBe('personal');
+    expect(wrapper.findComponent({ name: 'PersonalInformation' }).isVisible()).toBe(true);
+    expect(wrapper.findComponent({ name: 'HealthInformation' }).isVisible()).toBe(false);
   });
 
-  it('shows Personal Information tab by default', () => {
-    const activeTab = wrapper.find('button[role="tab"][aria-selected="true"]');
-    expect(activeTab.text()).toContain('Personal Information');
-  });
+  it('switches between the current profile sections', async () => {
+    const tabs = wrapper.findAll('nav[aria-label="Tabs"] button');
 
-  it('switches tabs when clicked', async () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-
-    // Click on Family Members tab
     await tabs[1].trigger('click');
+    expect(wrapper.vm.activeTab).toBe('health');
+    expect(wrapper.findComponent({ name: 'HealthInformation' }).isVisible()).toBe(true);
+
+    await tabs[2].trigger('click');
     expect(wrapper.vm.activeTab).toBe('family');
+    expect(wrapper.findComponent({ name: 'FamilyMembers' }).isVisible()).toBe(true);
 
-    // Click on Income & Occupation tab
-    await tabs[2].trigger('click');
-    expect(wrapper.vm.activeTab).toBe('income');
-  });
-
-  it('displays correct component for each tab', async () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-
-    // Personal Information
-    await tabs[0].trigger('click');
-    expect(wrapper.findComponent({ name: 'PersonalInformation' }).exists()).toBe(true);
-
-    // Family Members
-    await tabs[1].trigger('click');
-    expect(wrapper.findComponent({ name: 'FamilyMembers' }).exists()).toBe(true);
-
-    // Income & Occupation
-    await tabs[2].trigger('click');
-    expect(wrapper.findComponent({ name: 'IncomeOccupation' }).exists()).toBe(true);
-
-    // Assets
     await tabs[3].trigger('click');
-    expect(wrapper.findComponent({ name: 'AssetsOverview' }).exists()).toBe(true);
-
-    // Liabilities
-    await tabs[4].trigger('click');
-    expect(wrapper.findComponent({ name: 'LiabilitiesOverview' }).exists()).toBe(true);
-
-    // Personal Accounts
-    await tabs[5].trigger('click');
-    expect(wrapper.findComponent({ name: 'PersonalAccounts' }).exists()).toBe(true);
+    expect(wrapper.vm.activeTab).toBe('subscription');
+    expect(wrapper.findComponent({ name: 'SubscriptionManagement' }).isVisible()).toBe(true);
   });
 
-  it('calls fetchProfile action on mount', () => {
-    expect(mockActions.fetchProfile).toHaveBeenCalled();
+  it('loads the profile on mount', () => {
+    expect(fetchProfile).toHaveBeenCalledTimes(1);
   });
 
-  it('displays loading state when fetching data', async () => {
+  it('shows the loading state while the profile is fetched', async () => {
     store.state.userProfile.loading = true;
     await wrapper.vm.$nextTick();
 
-    // Component should show loading indicator
-    expect(wrapper.html()).toContain('loading');
+    expect(wrapper.text()).toContain('Loading profile...');
+    expect(wrapper.findComponent({ name: 'PersonalInformation' }).exists()).toBe(false);
   });
 
-  it('displays error message when fetch fails', async () => {
+  it('shows the store error and retries the profile request', async () => {
     store.state.userProfile.error = 'Failed to load profile';
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.html()).toContain('error');
+    expect(wrapper.text()).toContain('Error loading profile');
+    expect(wrapper.text()).toContain('Failed to load profile');
+    const retryButton = wrapper.findAll('button').find((button) => button.text() === 'Try Again');
+    await retryButton.trigger('click');
+    await flushPromises();
+    expect(fetchProfile).toHaveBeenCalledTimes(2);
   });
 
-  it('has breadcrumb or back navigation', () => {
-    // Check if there's a breadcrumb or back button
-    const breadcrumb = wrapper.find('[aria-label="Breadcrumb"]') ||
-                      wrapper.findAll('a').find(a => a.text().includes('Dashboard'));
-    expect(breadcrumb).toBeDefined();
+  it('hides the family tab below the family plan', async () => {
+    store = createTestStore({
+      subscriptionData: { status: 'active', plan: 'standard' },
+    });
+    wrapper = mountComponent();
+    await flushPromises();
+
+    const labels = wrapper.findAll('nav[aria-label="Tabs"] button').map((tab) => tab.text());
+    expect(labels).toEqual(['Personal Info', 'Health', 'Subscription']);
   });
 
-  it('maintains tab state across component updates', async () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
+  it('keeps the family tab available in preview mode', async () => {
+    store = createTestStore({
+      subscriptionData: { status: 'active', plan: 'student' },
+      isPreviewMode: true,
+    });
+    wrapper = mountComponent();
+    await flushPromises();
 
-    // Switch to Family Members
-    await tabs[1].trigger('click');
+    const labels = wrapper.findAll('nav[aria-label="Tabs"] button').map((tab) => tab.text());
+    expect(labels).toContain('Family');
+  });
+
+  it('opens a valid section supplied in the page query', async () => {
+    window.history.replaceState({}, '', '/profile?section=health');
+    wrapper.unmount();
+    wrapper = mountComponent();
+    await flushPromises();
+
+    expect(wrapper.vm.activeTab).toBe('health');
+    expect(wrapper.findComponent({ name: 'HealthInformation' }).isVisible()).toBe(true);
+  });
+
+  it('opens the family section for a family-member form-fill request', async () => {
+    store.state.aiFormFill.pendingFill = {
+      entityType: 'family_member',
+      mode: 'add',
+    };
+    await wrapper.vm.$nextTick();
+
     expect(wrapper.vm.activeTab).toBe('family');
+  });
 
-    // Force update
+  it('maintains the selected section across ordinary component updates', async () => {
+    const familyTab = wrapper.findAll('nav[aria-label="Tabs"] button')
+      .find((tab) => tab.text() === 'Family');
+    await familyTab.trigger('click');
     await wrapper.vm.$forceUpdate();
     await wrapper.vm.$nextTick();
 
-    // Tab should still be Family Members
     expect(wrapper.vm.activeTab).toBe('family');
-  });
-
-  it('has accessible tab controls', () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-
-    tabs.forEach(tab => {
-      expect(tab.attributes('role')).toBe('tab');
-      expect(tab.attributes('aria-selected')).toBeDefined();
-    });
   });
 });

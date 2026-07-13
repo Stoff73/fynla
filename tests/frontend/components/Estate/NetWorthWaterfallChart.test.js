@@ -1,284 +1,116 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import NetWorthWaterfallChart from '@/components/Estate/NetWorthWaterfallChart.vue';
 
+const assets = [
+  { id: 1, asset_type: 'property', current_value: 500000 },
+  { id: 2, asset_type: 'pension', current_value: 300000 },
+  { id: 3, asset_type: 'investment', current_value: 150000 },
+];
+const liabilities = [
+  { id: 1, liability_type: 'mortgage', current_balance: 200000 },
+  { id: 2, liability_type: 'personal_loan', current_balance: 30000 },
+  { id: 3, liability_type: 'credit_card', current_balance: 5000 },
+];
+
+const mountChart = (props = {}) => mount(NetWorthWaterfallChart, {
+  props: { assets, liabilities, ...props },
+});
+
 describe('NetWorthWaterfallChart', () => {
-  beforeEach(() => {
-    if (!global.ApexCharts) {
-      global.ApexCharts = class {
-        constructor() {}
-        render() {}
-        updateOptions() {}
-        updateSeries() {}
-        destroy() {}
-      };
-    }
+  it('renders with asset and liability records', () => {
+    expect(mountChart().exists()).toBe(true);
   });
 
-  const mockAssets = [
-    { asset_type: 'property', current_value: 500000 },
-    { asset_type: 'pension', current_value: 300000 },
-    { asset_type: 'investment', current_value: 150000 },
-    { asset_type: 'savings', current_value: 50000 },
-  ];
-
-  const mockLiabilities = [
-    { liability_type: 'mortgage', current_balance: 200000 },
-    { liability_type: 'personal_loan', current_balance: 30000 },
-    { liability_type: 'credit_card', current_balance: 5000 },
-  ];
-
-  it('renders with assets and liabilities props', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
+  it('totals assets from current values', () => {
+    expect(mountChart().vm.totalAssets).toBe(950000);
   });
 
-  it('calculates total assets correctly', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    expect(wrapper.vm.totalAssets).toBe(1000000);
+  it('totals liabilities from current balances', () => {
+    expect(mountChart().vm.totalLiabilities).toBe(235000);
   });
 
-  it('calculates total liabilities correctly', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    expect(wrapper.vm.totalLiabilities).toBe(235000);
+  it('calculates net worth', () => {
+    expect(mountChart().vm.netWorth).toBe(715000);
   });
 
-  it('calculates net worth correctly', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    expect(wrapper.vm.netWorth).toBe(765000);
-  });
-
-  it('groups assets by type', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const grouped = wrapper.vm.assetsByType;
-    expect(grouped.property).toBe(500000);
-    expect(grouped.pension).toBe(300000);
-    expect(grouped.investment).toBe(150000);
-    expect(grouped.savings).toBe(50000);
-  });
-
-  it('groups liabilities by type', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const grouped = wrapper.vm.liabilitiesByType;
-    expect(grouped.mortgage).toBe(200000);
-    expect(grouped.personal_loan).toBe(30000);
-    expect(grouped.credit_card).toBe(5000);
-  });
-
-  it('generates waterfall series data', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const series = wrapper.vm.series;
+  it('builds one aggregate chart series', () => {
+    const series = mountChart().vm.chartSeries;
     expect(series).toHaveLength(1);
-    expect(series[0].name).toBe('Net Worth Flow');
-    expect(series[0].data).toBeInstanceOf(Array);
+    expect(series[0].name).toBe('Amount');
   });
 
-  it('starts waterfall with total assets', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const categories = wrapper.vm.chartOptions.xaxis.categories;
-    expect(categories[0]).toMatch(/total.*asset/i);
+  it('uses the current three-point waterfall summary', () => {
+    expect(mountChart().vm.chartSeries[0].data.map(point => point.x)).toEqual([
+      'Total Assets',
+      'Total Liabilities',
+      'Net Worth',
+    ]);
   });
 
-  it('ends waterfall with net worth', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const categories = wrapper.vm.chartOptions.xaxis.categories;
-    const lastCategory = categories[categories.length - 1];
-    expect(lastCategory).toMatch(/net.*worth/i);
+  it('starts with total assets', () => {
+    expect(mountChart().vm.chartSeries[0].data[0].y).toBe(950000);
   });
 
-  it('displays liability categories as negative values', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const seriesData = wrapper.vm.series[0].data;
-    // Check that liabilities are represented (indirectly through reduction)
-    const totalAssets = seriesData[0];
-    const netWorth = seriesData[seriesData.length - 1];
-    expect(netWorth).toBeLessThan(totalAssets);
+  it('represents liabilities as a negative value', () => {
+    expect(mountChart().vm.chartSeries[0].data[1].y).toBe(-235000);
   });
 
-  it('formats currency values correctly', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const formatted = wrapper.vm.formatCurrency(500000);
-    expect(formatted).toMatch(/£500,000|500000/);
+  it('ends with calculated net worth', () => {
+    expect(mountChart().vm.chartSeries[0].data[2].y).toBe(715000);
   });
 
-  it('handles empty assets array', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: [],
-        liabilities: mockLiabilities,
-      },
-    });
-
-    expect(wrapper.vm.totalAssets).toBe(0);
+  it('assigns semantic colours to each summary point', () => {
+    const colours = mountChart().vm.chartSeries[0].data.map(point => point.fillColor);
+    expect(colours.every(colour => /^#[0-9a-f]{6}$/i.test(colour))).toBe(true);
+    expect(colours[0]).not.toBe(colours[1]);
+    expect(colours[2]).toBeDefined();
   });
 
-  it('handles empty liabilities array', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: [],
-      },
-    });
+  it('formats currency values', () => {
+    expect(mountChart().vm.formatCurrency(950000)).toBe('£950,000');
+  });
 
-    expect(wrapper.vm.totalLiabilities).toBe(0);
-    expect(wrapper.vm.netWorth).toBe(1000000); // All assets, no liabilities
+  it('returns no series when both inputs are empty', () => {
+    expect(mountChart({ assets: [], liabilities: [] }).vm.chartSeries).toEqual([]);
+  });
+
+  it('returns no chart options when both inputs are empty', () => {
+    expect(mountChart({ assets: [], liabilities: [] }).vm.chartOptions).toBeNull();
+  });
+
+  it('handles an asset-only estate', () => {
+    const wrapper = mountChart({ liabilities: [] });
+    expect(wrapper.vm.netWorth).toBe(950000);
+    expect(wrapper.vm.chartSeries[0].data[1].y).toBe(-0);
+  });
+
+  it('handles a liability-only estate', () => {
+    const wrapper = mountChart({ assets: [] });
+    expect(wrapper.vm.netWorth).toBe(-235000);
   });
 
   it('handles negative net worth', () => {
-    const highLiabilities = [
-      { liability_type: 'mortgage', current_balance: 1200000 },
-    ];
-
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: highLiabilities,
-      },
-    });
-
-    expect(wrapper.vm.netWorth).toBe(-200000);
+    const wrapper = mountChart({ assets: [{ current_value: 100000 }], liabilities: [{ current_balance: 150000 }] });
+    expect(wrapper.vm.netWorth).toBe(-50000);
   });
 
-  it('creates waterfall chart configuration', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.chart.type).toBe('bar');
+  it('configures a bar chart', () => {
+    expect(mountChart().vm.chartOptions.chart.type).toBe('bar');
   });
 
-  it('uses correct colors for positive and negative values', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.plotOptions.bar.colors).toBeDefined();
+  it('uses category labels supplied by series points', () => {
+    expect(mountChart().vm.chartOptions.xaxis.type).toBe('category');
   });
 
-  it('displays asset category labels', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const categories = wrapper.vm.chartOptions.xaxis.categories;
-    expect(categories.some(cat => cat.toLowerCase().includes('property'))).toBe(true);
-    expect(categories.some(cat => cat.toLowerCase().includes('pension'))).toBe(true);
+  it('formats tooltip liabilities as positive currency amounts', () => {
+    expect(mountChart().vm.chartOptions.tooltip.y.formatter(-235000)).toBe('£235,000');
   });
 
-  it('displays liability category labels', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const categories = wrapper.vm.chartOptions.xaxis.categories;
-    expect(categories.some(cat => cat.toLowerCase().includes('mortgage'))).toBe(true);
-  });
-
-  it('handles multiple assets of same type', () => {
-    const duplicateAssets = [
-      { asset_type: 'property', current_value: 300000 },
-      { asset_type: 'property', current_value: 200000 },
-    ];
-
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: duplicateAssets,
-        liabilities: [],
-      },
-    });
-
-    expect(wrapper.vm.assetsByType.property).toBe(500000);
-  });
-
-  it('displays chart title', () => {
-    const wrapper = mount(NetWorthWaterfallChart, {
-      props: {
-        assets: mockAssets,
-        liabilities: mockLiabilities,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/net.*worth.*waterfall|waterfall.*chart/i);
+  it('changes its chart key when totals change', async () => {
+    const wrapper = mountChart();
+    const originalKey = wrapper.vm.chartKey;
+    await wrapper.setProps({ assets: [{ current_value: 100 }] });
+    expect(wrapper.vm.chartKey).not.toBe(originalKey);
   });
 });

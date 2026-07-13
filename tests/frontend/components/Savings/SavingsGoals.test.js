@@ -197,7 +197,7 @@ describe('SavingsGoals', () => {
     expect(html).toMatch(/off.*track|behind|red/i);
   });
 
-  it('displays target date and months remaining', () => {
+  it('displays the target date and derives the required monthly saving', () => {
     const futureDate = new Date();
     futureDate.setMonth(futureDate.getMonth() + 6);
 
@@ -220,8 +220,8 @@ describe('SavingsGoals', () => {
       },
     });
 
-    const text = wrapper.text();
-    expect(text).toMatch(/6.*month|month.*remain/i);
+    expect(wrapper.text()).toContain(wrapper.vm.formatDate(mockGoals[0].target_date));
+    expect(wrapper.vm.getRequiredMonthlySavings(mockGoals[0])).toBeGreaterThan(0);
   });
 
   it('calculates required monthly savings', () => {

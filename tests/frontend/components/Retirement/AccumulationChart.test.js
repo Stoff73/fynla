@@ -186,7 +186,7 @@ describe('AccumulationChart', () => {
     expect(finalWithGrowth).toBeGreaterThan(finalContributionsOnly);
   });
 
-  it('uses blue color for growth line', () => {
+  it('uses the raspberry accent for the growth line', () => {
     const store = createMockStore();
     const wrapper = mount(AccumulationChart, {
       global: {
@@ -195,10 +195,10 @@ describe('AccumulationChart', () => {
     });
 
     const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.colors[0]).toBe('#3b82f6'); // Blue
+    expect(chartOptions.colors[0]).toBe('#E83E6D');
   });
 
-  it('uses gray color for contributions-only line', () => {
+  it('uses the horizon colour for the contributions-only line', () => {
     const store = createMockStore();
     const wrapper = mount(AccumulationChart, {
       global: {
@@ -207,7 +207,7 @@ describe('AccumulationChart', () => {
     });
 
     const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.colors[1]).toBe('#9ca3af'); // Gray
+    expect(chartOptions.colors[1]).toBe('#1F2A44');
   });
 
   it('formats y-axis as currency', () => {

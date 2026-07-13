@@ -1,275 +1,122 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import ISAAllowanceTracker from '@/components/Savings/ISAAllowanceTracker.vue';
 
-// Helper function to create mock Vuex store
-const createMockStore = () => {
-  return createStore({
-    modules: {
-      savings: {
-        namespaced: true,
-        state: {
-          isaAllowance: {
-            cash_isa_used: 0,
-            stocks_shares_isa_used: 0,
-            total_allowance: 20000,
-          },
+const createMockStore = ({ cash = 0, stocks = 0, allowance = 20000, user = null, accounts = [], property = 0 } = {}) => createStore({
+  modules: {
+    savings: {
+      namespaced: true,
+      state: () => ({
+        isaAllowance: {
+          cash_isa_used: cash,
+          stocks_shares_isa_used: stocks,
+          total_allowance: allowance,
         },
+      }),
+      getters: { isaAllowanceRemaining: () => Math.max(0, allowance - cash - stocks) },
+    },
+    auth: {
+      namespaced: true,
+      getters: { currentUser: () => user },
+    },
+    netWorth: {
+      namespaced: true,
+      state: () => ({ overview: { breakdown: { property } } }),
+    },
+    investment: {
+      namespaced: true,
+      state: () => ({ accounts }),
+    },
+    taxConfig: {
+      namespaced: true,
+      getters: {
+        isaAnnualAllowance: () => allowance,
+        lifetimeIsaAllowance: () => 4000,
       },
     },
-  });
-};
+  },
+});
+
+const mountTracker = (values) => mount(ISAAllowanceTracker, {
+  global: { plugins: [createMockStore(values)] },
+});
 
 describe('ISAAllowanceTracker', () => {
-  it('renders with default props', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 0,
-        stocksISAUsed: 0,
-        taxYear: '2024/25',
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
+  it('renders from the savings store', () => {
+    expect(mountTracker().exists()).toBe(true);
   });
 
-  it('displays total ISA allowance (£20,000)', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 5000,
-        stocksISAUsed: 3000,
-        taxYear: '2024/25',
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toMatch(/20,000|20000/);
+  it('displays the configured overall allowance', () => {
+    expect(mountTracker().text()).toContain('£20,000 total');
   });
 
-  it('displays cash ISA usage correctly', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 8000,
-        stocksISAUsed: 4000,
-        taxYear: '2024/25',
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toContain('8,000');
-    expect(text).toMatch(/cash.*ISA/i);
+  it('displays cash ISA usage from the store', () => {
+    const wrapper = mountTracker({ cash: 8000, stocks: 4000 });
+    expect(wrapper.vm.cashISAUsed).toBe(8000);
+    expect(wrapper.text()).toContain('£8,000');
   });
 
-  it('displays stocks & shares ISA usage correctly', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 5000,
-        stocksISAUsed: 7500,
-        taxYear: '2024/25',
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toContain('7,500');
-    expect(text).toMatch(/stock|shares/i);
+  it('displays Stocks & Shares ISA usage from the store', () => {
+    const wrapper = mountTracker({ cash: 5000, stocks: 7500 });
+    expect(wrapper.vm.stocksISAUsed).toBe(7500);
+    expect(wrapper.text()).toContain('£7,500');
   });
 
-  it('calculates remaining allowance correctly', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 8000,
-        stocksISAUsed: 5000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // 20,000 - 8,000 - 5,000 = 7,000 remaining
-    const text = wrapper.text();
-    expect(text).toContain('7,000');
-    expect(text).toMatch(/remaining|left/i);
+  it('calculates the remaining allowance', () => {
+    expect(mountTracker({ cash: 8000, stocks: 5000 }).vm.remaining).toBe(7000);
   });
 
-  it('calculates usage percentage correctly', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 10000,
-        stocksISAUsed: 5000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // 15,000 / 20,000 = 75% used
-    const usagePercent = wrapper.vm.usagePercent;
-    expect(usagePercent).toBe(75);
+  it('calculates combined usage from the two progress segments', () => {
+    const wrapper = mountTracker({ cash: 10000, stocks: 5000 });
+    expect(wrapper.vm.cashISAPercent + wrapper.vm.stocksISAPercent).toBe(75);
   });
 
-  it('displays 0% usage when no ISAs', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 0,
-        stocksISAUsed: 0,
-        taxYear: '2024/25',
-      },
-    });
-
-    const usagePercent = wrapper.vm.usagePercent;
-    expect(usagePercent).toBe(0);
+  it('handles zero subscriptions', () => {
+    const wrapper = mountTracker();
+    expect(wrapper.vm.cashISAPercent + wrapper.vm.stocksISAPercent).toBe(0);
+    expect(wrapper.vm.remaining).toBe(20000);
   });
 
-  it('displays 100% usage when fully used', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 12000,
-        stocksISAUsed: 8000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // 20,000 / 20,000 = 100%
-    const usagePercent = wrapper.vm.usagePercent;
-    expect(usagePercent).toBe(100);
+  it('handles a fully used allowance', () => {
+    const wrapper = mountTracker({ cash: 12000, stocks: 8000 });
+    expect(wrapper.vm.cashISAPercent + wrapper.vm.stocksISAPercent).toBe(100);
+    expect(wrapper.vm.remaining).toBe(0);
   });
 
-  it('displays tax year correctly', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 5000,
-        stocksISAUsed: 3000,
-        taxYear: '2024/25',
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toContain('2024/25');
+  it('derives the active tax year', () => {
+    expect(mountTracker().text()).toContain('2026/27');
   });
 
-  it('shows progress bar', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 8000,
-        stocksISAUsed: 4000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // Should have a progress bar or visual indicator
-    const html = wrapper.html();
-    expect(html).toMatch(/progress|bar|width.*%/i);
+  it('renders separate progress segments for both ISA types', () => {
+    const wrapper = mountTracker({ cash: 8000, stocks: 4000 });
+    const widths = wrapper.findAll('[style]').map(node => node.attributes('style'));
+    expect(widths).toContain('width: 40%;');
+    expect(widths).toContain('width: 20%;');
   });
 
-  it('warns when allowance is nearly exhausted (>90%)', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 15000,
-        stocksISAUsed: 4000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // 19,000 / 20,000 = 95% - should show warning
-    const html = wrapper.html();
-    // Might show red/warning color
-    expect(html).toMatch(/text-red|text-orange|bg-red|bg-orange|warn/i);
+  it('shows the remaining amount when the allowance is nearly exhausted', () => {
+    const wrapper = mountTracker({ cash: 15000, stocks: 4000 });
+    expect(wrapper.vm.remaining).toBe(1000);
+    expect(wrapper.text()).toContain('£1,000');
   });
 
-  it('shows green when plenty of allowance left (<50%)', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 3000,
-        stocksISAUsed: 2000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // 5,000 / 20,000 = 25% - should show green/positive
-    const html = wrapper.html();
-    expect(html).toMatch(/text-green|bg-green/i);
+  it('uses current palette classes for subscription segments', () => {
+    const wrapper = mountTracker({ cash: 3000, stocks: 2000 });
+    expect(wrapper.findAll('.bg-violet-500')).toHaveLength(2);
   });
 
-  it('handles edge case of exceeding allowance', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 15000,
-        stocksISAUsed: 10000,
-        taxYear: '2024/25',
-      },
-    });
-
-    // 25,000 exceeds 20,000 allowance
-    const usagePercent = wrapper.vm.usagePercent;
-    // Might cap at 100% or show > 100%
-    expect(usagePercent).toBeGreaterThanOrEqual(100);
+  it('caps remaining allowance when subscriptions exceed the limit', () => {
+    const wrapper = mountTracker({ cash: 15000, stocks: 10000 });
+    expect(wrapper.vm.remaining).toBe(0);
+    expect(wrapper.vm.cashISAPercent + wrapper.vm.stocksISAPercent).toBe(125);
   });
 
-  it('displays breakdown of Cash vs Stocks ISA', () => {
-    const store = createMockStore();
-    const wrapper = mount(ISAAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-      props: {
-        cashISAUsed: 12000,
-        stocksISAUsed: 6000,
-        taxYear: '2024/25',
-      },
-    });
-
-    const html = wrapper.html();
-    // Should show both types in the breakdown
-    expect(html).toMatch(/cash/i);
-    expect(html).toMatch(/stock|shares/i);
+  it('displays the Cash and Stocks & Shares ISA breakdown', () => {
+    const text = mountTracker({ cash: 12000, stocks: 6000 }).text();
+    expect(text).toContain('Cash ISA');
+    expect(text).toContain('Stocks & Shares ISA');
+    expect(text).toContain('£12,000');
+    expect(text).toContain('£6,000');
   });
 });

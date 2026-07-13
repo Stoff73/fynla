@@ -1,457 +1,183 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import GoalCard from '@/components/Investment/GoalCard.vue';
+import GoalCard from '@/components/Goals/GoalCard.vue';
 
 describe('GoalCard', () => {
-  const mockGoal = {
+  const goal = {
     id: 1,
-    name: 'Retirement Fund',
-    description: 'Build retirement savings',
+    goal_name: 'Retirement Fund',
     target_amount: 1000000,
-    target_date: '2045-06-01',
+    current_amount: 250000,
     monthly_contribution: 2000,
+    days_remaining: 760,
+    status: 'active',
+    priority: 'high',
+    assigned_module: 'investment',
+    goal_type: 'retirement',
+    is_on_track: true,
+    contribution_streak: 0,
   };
 
-  const mockMonteCarloResult = {
-    success_probability: 85,
-    median_outcome: 1050000,
-    percentile_90: 1500000,
-    percentile_10: 800000,
-    required_return: 6.5,
-  };
+  const mountCard = (props = {}) => mount(GoalCard, {
+    props: { goal, ...props },
+  });
 
-  it('renders with goal props', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: null,
-        runningMonteCarlo: false,
-      },
-    });
+  it('renders current goal data', () => {
+    const wrapper = mountCard();
 
-    expect(wrapper.exists()).toBe(true);
     expect(wrapper.text()).toContain('Retirement Fund');
-    expect(wrapper.text()).toContain('Build retirement savings');
+    expect(wrapper.text()).toContain('Investment');
+    expect(wrapper.text()).toContain('high');
   });
 
-  it('displays target amount formatted as currency', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
-    });
+  it('displays current and target amounts as currency', () => {
+    const wrapper = mountCard();
 
-    const text = wrapper.text();
-    expect(text).toMatch(/£1,000,000|£1000000/);
+    expect(wrapper.text()).toContain('£250,000');
+    expect(wrapper.text()).toContain('£1,000,000');
   });
 
-  it('displays target date formatted correctly', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
-    });
-
-    const text = wrapper.text();
-    // Should display formatted date
-    expect(text).toMatch(/2045|Jun|June/);
-  });
-
-  it('displays current value', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toMatch(/£250,000|£250000/);
-  });
-
-  it('calculates progress percentage correctly', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000, // 25% of 1,000,000
-      },
-    });
+  it('calculates progress from the goal amounts', () => {
+    const wrapper = mountCard();
 
     expect(wrapper.vm.progressPercent).toBe(25);
+    expect(wrapper.text()).toContain('25%');
   });
 
-  it('displays progress bar with correct width', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
-    });
+  it('caps the rendered progress-bar width at one hundred percent', () => {
+    const wrapper = mountCard({ goal: { ...goal, current_amount: 1250000 } });
+    const bar = wrapper.findAll('div').find(item => (
+      item.classes().includes('h-2.5') && item.classes().includes('transition-all')
+    ));
 
-    // Find the progress bar inner div (has h-3 class and transition-all class)
-    const progressBars = wrapper.findAll('div').filter(div => {
-      const classes = div.classes();
-      return classes.includes('h-3') && classes.includes('rounded-full') && classes.includes('transition-all');
-    });
-
-    if (progressBars.length > 0) {
-      const style = progressBars[0].attributes('style');
-      expect(style).toContain('25');
-    }
+    expect(wrapper.vm.progressPercent).toBe(125);
+    expect(bar.attributes('style')).toContain('width: 100%');
   });
 
-  it('shows green progress bar when progress >= 75%', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 800000, // 80% progress
-      },
-    });
+  it('uses descriptive on-track status rather than a financial score', () => {
+    const wrapper = mountCard();
 
-    expect(wrapper.vm.progressBarClass).toContain('bg-blue');
+    expect(wrapper.vm.statusText).toBe('On Track');
+    expect(wrapper.text()).toContain('On Track');
+    expect(wrapper.text()).not.toMatch(/\/100/);
   });
 
-  it('shows orange progress bar when progress < 50%', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 300000, // 30% progress
-      },
-    });
+  it('shows behind-schedule status when the goal is not on track', () => {
+    const wrapper = mountCard({ goal: { ...goal, is_on_track: false } });
 
-    expect(wrapper.vm.progressBarClass).toContain('orange');
+    expect(wrapper.vm.statusText).toBe('Behind Schedule');
   });
 
-  it('calculates time remaining correctly', () => {
-    const futureDate = new Date();
-    futureDate.setFullYear(futureDate.getFullYear() + 2);
+  it('shows not-started status when no amount has been saved', () => {
+    const wrapper = mountCard({ goal: { ...goal, current_amount: 0, is_on_track: false } });
 
-    const goalWithNearFuture = {
-      ...mockGoal,
-      target_date: futureDate.toISOString().split('T')[0],
-    };
-
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: goalWithNearFuture,
-        currentValue: 250000,
-      },
-    });
-
-    const timeRemaining = wrapper.vm.timeRemaining;
-    expect(timeRemaining).toMatch(/year|month|day/i);
+    expect(wrapper.vm.statusText).toBe('Not Started');
+    expect(wrapper.vm.progressBarClass).toBe('bg-horizon-300');
   });
 
-  it('displays monthly contribution', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
+  it('shows completion using the spring success palette', () => {
+    const wrapper = mountCard({
+      goal: { ...goal, current_amount: 1000000, status: 'completed' },
     });
 
-    const text = wrapper.text();
-    expect(text).toContain('Monthly Contribution');
-    expect(text).toMatch(/£2,000|£2000/);
+    expect(wrapper.vm.statusText).toBe('Completed');
+    expect(wrapper.vm.progressBarClass).toBe('bg-spring-500');
+    expect(wrapper.vm.statusBadgeClass).toContain('bg-spring-100');
   });
 
-  it('displays Monte Carlo analysis when result is provided', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
+  it.each([
+    [-1, 'Overdue'],
+    [0, 'Today'],
+    [1, '1 day'],
+    [20, '20 days'],
+    [60, '2 months'],
+    [760, '2y 1m'],
+  ])('formats %s days remaining as %s', (days, expected) => {
+    const wrapper = mountCard({ goal: { ...goal, days_remaining: days } });
 
-    const text = wrapper.text();
-    expect(text).toContain('Monte Carlo Analysis');
-    expect(text).toContain('Success Probability');
+    expect(wrapper.vm.timeRemaining).toBe(expected);
   });
 
-  it('displays success probability correctly', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
+  it('displays the monthly contribution', () => {
+    const wrapper = mountCard();
 
-    expect(wrapper.text()).toContain('85%');
+    expect(wrapper.text()).toContain('Monthly contribution');
+    expect(wrapper.text()).toContain('£2,000');
   });
 
-  it('applies green color to high success probability (>= 80%)', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
+  it('emits view when the card is clicked', async () => {
+    const wrapper = mountCard();
 
-    expect(wrapper.vm.probabilityClass).toContain('green');
-    expect(wrapper.vm.probabilityBarClass).toContain('green');
+    await wrapper.trigger('click');
+
+    expect(wrapper.emitted('view')).toEqual([[goal]]);
   });
 
-  it('applies red color to low success probability (< 40%)', () => {
-    const lowProbabilityResult = {
-      ...mockMonteCarloResult,
-      success_probability: 30,
-    };
+  it('emits edit without also emitting view', async () => {
+    const wrapper = mountCard();
 
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 100000,
-        monteCarloResult: lowProbabilityResult,
-      },
-    });
+    await wrapper.find('button[title="Edit goal"]').trigger('click');
 
-    expect(wrapper.vm.probabilityClass).toContain('red');
-    expect(wrapper.vm.probabilityBarClass).toContain('red');
+    expect(wrapper.emitted('edit')).toEqual([[goal]]);
+    expect(wrapper.emitted('view')).toBeUndefined();
   });
 
-  it('displays median outcome from Monte Carlo', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
+  it('emits delete without also emitting view', async () => {
+    const wrapper = mountCard();
 
-    const text = wrapper.text();
-    expect(text).toContain('Median Outcome');
-    expect(text).toMatch(/£1,050,000|£1050000/);
+    await wrapper.find('button[title="Delete goal"]').trigger('click');
+
+    expect(wrapper.emitted('delete')).toEqual([[goal]]);
+    expect(wrapper.emitted('view')).toBeUndefined();
   });
 
-  it('displays best and worst case scenarios', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
+  it('emits add-contribution for active goals', async () => {
+    const wrapper = mountCard();
+    const button = wrapper.findAll('button').find(item => item.text().includes('Add Contribution'));
 
-    const text = wrapper.text();
-    expect(text).toContain('Best Case');
-    expect(text).toContain('Worst Case');
-    expect(text).toMatch(/£1,500,000|£1500000/); // 90th percentile
-    expect(text).toMatch(/£800,000|£800000/); // 10th percentile
-  });
-
-  it('displays required return percentage', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toContain('Required Return');
-    expect(text).toContain('6.5');
-  });
-
-  it('shows "Run Monte Carlo" button when no results', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: null,
-      },
-    });
-
-    expect(wrapper.text()).toContain('Run Monte Carlo Simulation');
-  });
-
-  it('emits run-monte-carlo event when button clicked', async () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: null,
-      },
-    });
-
-    const button = wrapper.find('button.bg-blue-600');
     await button.trigger('click');
 
-    expect(wrapper.emitted('run-monte-carlo')).toBeTruthy();
-    expect(wrapper.emitted('run-monte-carlo')[0][0]).toEqual(mockGoal);
+    expect(wrapper.emitted('add-contribution')).toEqual([[goal]]);
   });
 
-  it('disables Monte Carlo button when running', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: null,
-        runningMonteCarlo: true,
-      },
-    });
-
-    const button = wrapper.find('button.bg-blue-600');
-    expect(button.attributes('disabled')).toBeDefined();
-    expect(wrapper.text()).toContain('Running...');
-  });
-
-  it('displays status badge with correct text', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 750000, // 75% progress
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toMatch(/on track|good progress/i);
-  });
-
-  it('shows "Goal Achieved" status when progress >= 100%', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 1000000, // 100% progress
-      },
-    });
-
-    expect(wrapper.vm.statusText).toBe('Goal Achieved');
-  });
-
-  it('shows "Off Track" status for low probability', () => {
-    const lowProbabilityResult = {
-      ...mockMonteCarloResult,
-      success_probability: 30,
-    };
-
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 100000,
-        monteCarloResult: lowProbabilityResult,
-      },
-    });
-
-    expect(wrapper.vm.statusText).toBe('Off Track');
-  });
-
-  it('emits edit event when edit button clicked', async () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
-    });
-
-    const editButton = wrapper.findAll('button')[0];
+  it('updates a monthly contribution with the current goal identifier', async () => {
+    const wrapper = mountCard();
+    const editButton = wrapper.findAll('button').find(item => item.text() === 'Edit');
     await editButton.trigger('click');
+    await wrapper.find('input[type="number"]').setValue(2500);
+    const saveButton = wrapper.findAll('button').find(item => item.text() === 'Save');
 
-    expect(wrapper.emitted('edit')).toBeTruthy();
-    expect(wrapper.emitted('edit')[0][0]).toEqual(mockGoal);
+    await saveButton.trigger('click');
+
+    expect(wrapper.emitted('update-contribution')).toEqual([[
+      { goalId: 1, monthly_contribution: 2500 },
+    ]]);
   });
 
-  it('emits delete event when delete button clicked', async () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-      },
-    });
+  it('cancels a contribution edit and restores the saved value', async () => {
+    const wrapper = mountCard();
+    await wrapper.findAll('button').find(item => item.text() === 'Edit').trigger('click');
+    await wrapper.find('input[type="number"]').setValue(2500);
 
-    const deleteButton = wrapper.findAll('button')[1];
-    await deleteButton.trigger('click');
+    await wrapper.findAll('button').find(item => item.text() === 'Cancel').trigger('click');
 
-    expect(wrapper.emitted('delete')).toBeTruthy();
-    expect(wrapper.emitted('delete')[0][0]).toEqual(mockGoal);
+    expect(wrapper.vm.editingContribution).toBe(false);
+    expect(wrapper.vm.contributionAmount).toBe(2000);
   });
 
-  it('emits view-chart event when View Detailed Chart button clicked', async () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
+  it('hides actions while retaining the contribution metric in read-only mode', () => {
+    const wrapper = mountCard({ showActions: false });
 
-    const viewChartButton = wrapper.find('button.bg-blue-50');
-    await viewChartButton.trigger('click');
-
-    expect(wrapper.emitted('view-chart')).toBeTruthy();
-    expect(wrapper.emitted('view-chart')[0][0]).toEqual(mockGoal);
+    expect(wrapper.find('button[title="Edit goal"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Monthly Contribution');
+    expect(wrapper.text()).toContain('£2,000');
   });
 
-  it('handles overdue goals', () => {
-    const pastDate = new Date();
-    pastDate.setFullYear(pastDate.getFullYear() - 1);
+  it('shows dependency state supplied by the parent', () => {
+    const blocked = mountCard({ isBlocked: true, dependencyCount: 2 });
+    const dependent = mountCard({ dependencyCount: 2 });
 
-    const overdueGoal = {
-      ...mockGoal,
-      target_date: pastDate.toISOString().split('T')[0],
-    };
-
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: overdueGoal,
-        currentValue: 250000,
-      },
-    });
-
-    expect(wrapper.vm.timeRemaining).toBe('Overdue');
-  });
-
-  it('handles zero current value', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 0,
-      },
-    });
-
-    expect(wrapper.vm.progressPercent).toBe(0);
-    expect(wrapper.text()).toContain('£0');
-  });
-
-  it('caps progress at 100% for display', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 1500000, // 150% of target
-      },
-    });
-
-    // Find the progress bar inner div (has h-3 class and transition-all class)
-    const progressBars = wrapper.findAll('div').filter(div => {
-      const classes = div.classes();
-      return classes.includes('h-3') && classes.includes('rounded-full') && classes.includes('transition-all');
-    });
-
-    if (progressBars.length > 0) {
-      const style = progressBars[0].attributes('style');
-      // Width should be capped at 100%
-      expect(style).toContain('100%');
-    }
-  });
-
-  it('displays status dot with matching color', () => {
-    const wrapper = mount(GoalCard, {
-      props: {
-        goal: mockGoal,
-        currentValue: 250000,
-        monteCarloResult: mockMonteCarloResult,
-      },
-    });
-
-    const html = wrapper.html();
-    // Status dot should have color matching status
-    expect(html).toMatch(/w-2 h-2 rounded-full/);
+    expect(blocked.text()).toContain('Blocked');
+    expect(dependent.text()).toContain('2');
   });
 });

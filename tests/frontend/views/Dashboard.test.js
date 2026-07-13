@@ -1,453 +1,162 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import Dashboard from '@/views/Dashboard.vue';
 
 describe('Dashboard', () => {
   let store;
-  let wrapper;
-  let mockDispatch;
+  let router;
+  let refreshCompleteness;
+  let fetchGamificationStatus;
+
+  const mountDashboard = () => mount(Dashboard, {
+    global: {
+      plugins: [store],
+      mocks: {
+        $route: { query: {} },
+        $router: router,
+      },
+      stubs: {
+        AppLayout: { template: '<main class="app-layout"><slot /></main>' },
+        GamifiedDashboard: { template: '<section class="gamified-dashboard">Dashboard</section>' },
+        GamificationCelebration: true,
+        RouterLink: true,
+      },
+    },
+  });
 
   beforeEach(() => {
-    mockDispatch = vi.fn(() => Promise.resolve());
+    sessionStorage.clear();
+    localStorage.clear();
+    router = { push: vi.fn(), replace: vi.fn() };
+    refreshCompleteness = vi.fn(() => Promise.resolve());
+    fetchGamificationStatus = vi.fn(() => Promise.resolve());
 
-    // Create comprehensive mock store
     store = createStore({
       modules: {
-        protection: {
+        auth: {
           namespaced: true,
-          actions: {
-            fetchProtectionData: vi.fn(() => Promise.resolve()),
-          },
+          state: () => ({ user: null }),
           getters: {
-            adequacyScore: () => 75,
-            totalCoverage: () => 500000,
-            totalPremium: () => 2400,
-            coverageGaps: () => [
-              { severity: 'high', type: 'life' },
-            ],
+            currentUser: state => state.user,
+            isAdmin: () => false,
           },
         },
-        savings: {
+        gamification: {
           namespaced: true,
-          state: {
-            goals: [
-              { id: 1, on_track: true },
-              { id: 2, on_track: true },
-            ],
-          },
-          getters: {
-            totalSavings: () => 25000,
-            emergencyFundRunway: () => 4,
-            isaUsagePercent: () => 40,
-            goalsOnTrack: () => [
-              { id: 1, on_track: true },
-              { id: 2, on_track: true },
-            ],
-          },
+          state: () => ({ pendingCelebration: null }),
+          actions: { fetchStatus: fetchGamificationStatus },
         },
-        investment: {
+        lifeStage: {
           namespaced: true,
-          getters: {
-            totalPortfolioValue: () => 150000,
-            ytdReturn: () => 8.5,
-            holdingsCount: () => 12,
-            needsRebalancing: () => false,
-          },
+          getters: { currentStage: () => null, dashboardCards: () => [] },
+          actions: { refreshCompleteness },
         },
-        retirement: {
+        preview: {
           namespaced: true,
-          getters: {
-            retirementReadinessScore: () => 68,
-            projectedIncome: () => 35000,
-            targetIncome: () => 40000,
-            yearsToRetirement: () => 15,
-            totalPensionWealth: () => 200000,
-          },
+          getters: { effectivePersonaData: () => ({}) },
         },
-        estate: {
+        plans: {
           namespaced: true,
-          getters: {
-            netWorth: () => 675000,
-            ihtLiability: () => 0,
-            probateReadiness: () => 85,
-          },
+          getters: { getPlan: () => () => null },
         },
-      },
-      dispatch: mockDispatch,
-    });
-  });
-
-  it('renders correctly', () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
-  });
-
-  it('displays all 5 module cards', () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: {
-            template: '<div class="protection-card">Protection</div>',
-          },
-          SavingsOverviewCard: {
-            template: '<div class="savings-card">Savings</div>',
-          },
-          InvestmentOverviewCard: {
-            template: '<div class="investment-card">Investment</div>',
-          },
-          RetirementOverviewCard: {
-            template: '<div class="retirement-card">Retirement</div>',
-          },
-          EstateOverviewCard: {
-            template: '<div class="estate-card">Estate</div>',
-          },
-        },
-      },
-    });
-
-    expect(wrapper.find('.protection-card').exists()).toBe(true);
-    expect(wrapper.find('.savings-card').exists()).toBe(true);
-    expect(wrapper.find('.investment-card').exists()).toBe(true);
-    expect(wrapper.find('.retirement-card').exists()).toBe(true);
-    expect(wrapper.find('.estate-card').exists()).toBe(true);
-  });
-
-  it('loads all module data on mount', async () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    await flushPromises();
-
-    // Check that loadAllData was called (sets loading states)
-    expect(wrapper.vm.loading.protection).toBe(false);
-    expect(wrapper.vm.loading.savings).toBe(false);
-    expect(wrapper.vm.loading.investment).toBe(false);
-    expect(wrapper.vm.loading.retirement).toBe(false);
-    expect(wrapper.vm.loading.estate).toBe(false);
-  });
-
-  it('displays loading states for all cards initially', () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-        },
-      },
-    });
-
-    // Set loading states manually
-    wrapper.vm.loading.protection = true;
-    wrapper.vm.loading.savings = true;
-
-    // Wait for next tick
-    wrapper.vm.$nextTick(() => {
-      expect(wrapper.findAll('.animate-pulse').length).toBeGreaterThan(0);
-    });
-  });
-
-  it('displays error state when module fails to load', async () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-        },
-      },
-    });
-
-    // Set error state
-    wrapper.vm.errors.protection = 'Failed to load protection data';
-    wrapper.vm.loading.protection = false;
-
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.text()).toContain('Failed to load protection data');
-  });
-
-  it('shows retry button when module fails to load', async () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-        },
-      },
-    });
-
-    // Set error state
-    wrapper.vm.errors.savings = 'Failed to load savings data';
-    wrapper.vm.loading.savings = false;
-
-    await wrapper.vm.$nextTick();
-
-    const retryButtons = wrapper.findAll('button').filter(btn =>
-      btn.text().includes('Retry')
-    );
-
-    expect(retryButtons.length).toBeGreaterThan(0);
-  });
-
-  it('retries loading module when retry button clicked', async () => {
-    const retryDispatch = vi.fn(() => Promise.resolve());
-    const retryStore = createStore({
-      modules: {
-        protection: {
+        taxConfig: {
           namespaced: true,
-          getters: {
-            adequacyScore: () => 75,
-            totalCoverage: () => 500000,
-            totalPremium: () => 2400,
-            coverageGaps: () => [],
-          },
+          getters: { isaAnnualAllowance: () => 20000, pensionAnnualAllowance: () => 60000 },
         },
-        savings: {
-          namespaced: true,
-          state: { goals: [] },
-          getters: {
-            totalSavings: () => 0,
-            emergencyFundRunway: () => 0,
-            isaUsagePercent: () => 0,
-            goalsOnTrack: () => [],
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            totalPortfolioValue: () => 0,
-            ytdReturn: () => 0,
-            holdingsCount: () => 0,
-            needsRebalancing: () => false,
-          },
-        },
-        retirement: {
-          namespaced: true,
-          getters: {
-            retirementReadinessScore: () => 0,
-            projectedIncome: () => 0,
-            targetIncome: () => 0,
-            yearsToRetirement: () => 0,
-            totalPensionWealth: () => 0,
-          },
-        },
-        estate: {
+        netWorth: {
           namespaced: true,
           getters: {
             netWorth: () => 0,
-            ihtLiability: () => 0,
-            probateReadiness: () => 0,
-          },
-        },
-      },
-      dispatch: retryDispatch,
-    });
-
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [retryStore],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
+            totalAssets: () => 0,
+            totalLiabilities: () => 0,
+            overview: () => ({}),
           },
         },
       },
     });
-
-    await wrapper.vm.retryLoadModule('protection');
-
-    expect(retryDispatch).toHaveBeenCalledWith('protection/fetchProtectionData', undefined);
   });
 
-  it('displays refresh button', () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    const refreshButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Refresh')
-    );
-
-    expect(refreshButton).toBeDefined();
+  it('renders inside the authenticated application layout', () => {
+    const wrapper = mountDashboard();
+    expect(wrapper.get('.app-layout').exists()).toBe(true);
   });
 
-  it('refreshes all data when refresh button clicked', async () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    await wrapper.vm.refreshDashboard();
-
-    expect(wrapper.vm.refreshing).toBe(false);
+  it('renders the current gamified dashboard surface', () => {
+    const wrapper = mountDashboard();
+    expect(wrapper.get('.gamified-dashboard').text()).toBe('Dashboard');
   });
 
-  it('disables refresh button while refreshing', async () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    wrapper.vm.refreshing = true;
-    await wrapper.vm.$nextTick();
-
-    const refreshButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Refresh')
-    );
-
-    if (refreshButton) {
-      expect(refreshButton.attributes('disabled')).toBeDefined();
-    }
+  it('refreshes journey completeness on mount', () => {
+    mountDashboard();
+    expect(refreshCompleteness).toHaveBeenCalledOnce();
   });
 
-  it('passes correct props to ProtectionOverviewCard', () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: {
-            template: '<div>Protection</div>',
-            props: ['adequacyScore', 'totalCoverage', 'premiumTotal', 'criticalGaps'],
-          },
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    expect(wrapper.vm.protectionData.adequacyScore).toBe(75);
-    expect(wrapper.vm.protectionData.totalCoverage).toBe(500000);
-    expect(wrapper.vm.protectionData.premiumTotal).toBe(2400);
-    expect(wrapper.vm.protectionData.criticalGaps).toBe(1);
+  it('refreshes gamification status on mount', () => {
+    mountDashboard();
+    expect(fetchGamificationStatus).toHaveBeenCalledOnce();
   });
 
-  it('passes correct props to SavingsOverviewCard', () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: {
-            template: '<div>Savings</div>',
-            props: ['emergencyFundRunway', 'totalSavings', 'isaUsagePercent', 'goalsStatus'],
-          },
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
-
-    expect(wrapper.vm.savingsData.emergencyFundRunway).toBe(4);
-    expect(wrapper.vm.savingsData.totalSavings).toBe(25000);
-    expect(wrapper.vm.savingsData.isaUsagePercent).toBe(40);
-    expect(wrapper.vm.savingsData.goalsStatus.onTrack).toBe(2);
+  it('does not show the security reminder without a signed-in user', () => {
+    const wrapper = mountDashboard();
+    expect(wrapper.vm.showMFABanner).toBe(false);
   });
 
-  it('handles parallel data loading with Promise.allSettled', async () => {
-    wrapper = mount(Dashboard, {
-      global: {
-        plugins: [store],
-        stubs: {
-          AppLayout: {
-            template: '<div><slot /></div>',
-          },
-          ProtectionOverviewCard: true,
-          SavingsOverviewCard: true,
-          InvestmentOverviewCard: true,
-          RetirementOverviewCard: true,
-          EstateOverviewCard: true,
-        },
-      },
-    });
+  it('shows the security reminder for an eligible user', () => {
+    expect(Dashboard.computed.showMFABanner.call({
+      currentUser: { is_preview_user: false, mfa_enabled: false },
+      mfaBannerDismissed: false,
+    })).toBe(true);
+  });
 
-    await wrapper.vm.loadAllData();
+  it('does not show the security reminder to preview users', () => {
+    expect(Dashboard.computed.showMFABanner.call({
+      currentUser: { is_preview_user: true, mfa_enabled: false },
+      mfaBannerDismissed: false,
+    })).toBe(false);
+  });
 
-    // All modules should be loaded (or failed)
-    expect(wrapper.vm.loading.protection).toBe(false);
-    expect(wrapper.vm.loading.savings).toBe(false);
-    expect(wrapper.vm.loading.investment).toBe(false);
-    expect(wrapper.vm.loading.retirement).toBe(false);
-    expect(wrapper.vm.loading.estate).toBe(false);
+  it('persists dismissal of the security reminder for the session', () => {
+    const wrapper = mountDashboard();
+    wrapper.vm.dismissMFABanner();
+    expect(wrapper.vm.mfaBannerDismissed).toBe(true);
+    expect(sessionStorage.getItem('mfaBannerDismissed')).toBe('true');
+  });
+
+  it('navigates through the shared dashboard navigation helper', () => {
+    const wrapper = mountDashboard();
+    wrapper.vm.navigateTo('/estate');
+    expect(router.push).toHaveBeenCalledWith('/estate');
+  });
+
+  it('uses current palette bands for allowance progress', () => {
+    const wrapper = mountDashboard();
+    expect(wrapper.vm.allowanceBarClass(50, false)).toContain('horizon');
+    expect(wrapper.vm.allowanceBarClass(80, false)).toContain('violet');
+    expect(wrapper.vm.allowanceBarClass(96, false)).toContain('raspberry');
+  });
+
+  it('derives the net-worth summary from current store getters', () => {
+    expect(Dashboard.computed.netWorthData.call({
+      netWorthValue: 475000,
+      netWorthAssets: 600000,
+      netWorthLiabilities: 125000,
+    })).toEqual({ netWorth: 475000, totalAssets: 600000, totalLiabilities: 125000 });
+  });
+
+  it('identifies the student preview persona from the current user contract', () => {
+    expect(Dashboard.computed.isStudentPersona.call({
+      currentUser: { preview_persona_id: 'student', is_preview_user: true },
+    })).toBe(true);
+    expect(Dashboard.computed.isStudentPersona.call({
+      currentUser: { preview_persona_id: 'student', is_preview_user: false },
+    })).toBe(false);
+  });
+
+  it('removes its resize listener when unmounted', () => {
+    const removeEventListener = vi.spyOn(window, 'removeEventListener');
+    const wrapper = mountDashboard();
+    wrapper.unmount();
+    expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
   });
 });

@@ -4,7 +4,9 @@ import { mount, flushPromises } from '@vue/test-utils';
 // The component reaches out to the mobile store, api, diagnostics and the
 // shared console-capture service on submit. Stub them so the test exercises
 // only the success-state copy (the regression target for issue #510).
-vi.mock('../../store.js', () => ({ store: { token: 'test-token' } }));
+vi.mock('../../store.js', () => ({
+  store: { token: 'test-token', bugReport: { conversationId: null } },
+}));
 vi.mock('../../api.js', () => ({
   apiPost: vi.fn(() => Promise.resolve({ ok: true, status: 200, data: {} })),
 }));
