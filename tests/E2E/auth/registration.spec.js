@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { test, expect } from '../fixtures/app.js';
 import { generateEmail } from '../helpers/common.js';
 import { login, logout } from '../helpers/auth.js';
@@ -9,7 +10,7 @@ test('registration verification creates a real user who can sign out and sign ba
 }) => {
   const runId = process.env.GITHUB_RUN_ID || 'local';
   const email = generateEmail(runId, Date.now());
-  const password = 'E2eSecure1!';
+  const password = `${randomBytes(12).toString('hex')}aA1!`;
 
   await registerVerifiedUser({
     firstName: 'E2E',
