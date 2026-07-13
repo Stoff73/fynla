@@ -153,6 +153,22 @@ describe('Dashboard', () => {
     })).toBe(false);
   });
 
+  it('does not request the Pro-only trust list from the general dashboard', async () => {
+    const dispatch = vi.fn(() => Promise.resolve());
+
+    await Dashboard.methods.loadAllData.call({
+      currentUser: { marital_status: 'single' },
+      isStudentPersona: false,
+      loading: {},
+      errors: {},
+      loadFinancialCommitments: vi.fn(),
+      fetchProjection: vi.fn(() => Promise.resolve()),
+      $store: { dispatch },
+    });
+
+    expect(dispatch).not.toHaveBeenCalledWith('trusts/fetchTrusts', undefined);
+  });
+
   it('removes its resize listener when unmounted', () => {
     const removeEventListener = vi.spyOn(window, 'removeEventListener');
     const wrapper = mountDashboard();

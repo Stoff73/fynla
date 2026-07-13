@@ -128,24 +128,13 @@
 <script>
 import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
-import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
-import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
-import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
-import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
-// CrossModuleInsights removed from dashboard
-import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
-import DashboardSparkline from '@/components/Dashboard/DashboardSparkline.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { ASSET_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
 import { LIFETIME_ISA_ALLOWANCE } from '@/constants/taxConfig';
 
-// Life stage journey components
-import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
-import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
-import LevelCard from '@/components/Gamification/LevelCard.vue';
 import GamificationCelebration from '@/components/Gamification/GamificationCelebration.vue';
 import GamifiedDashboard from '@/views/GamifiedDashboard.vue';
 
@@ -155,15 +144,6 @@ export default {
 
   components: {
     AppLayout,
-    DashboardCard,
-    GoalsProjectionChartDashboard,
-    AreasToCompleteCard,
-    ProfileCompletionCards,
-    EmptyDashboard,
-    JourneyProgressHero,
-    LifeTimelineCard,
-    DashboardSparkline,
-    LevelCard,
     GamificationCelebration,
     GamifiedDashboard,
   },
@@ -772,7 +752,6 @@ export default {
     // Estate data
     ...mapGetters('estate', ['ihtLiability', 'taxableEstate', 'grossEstate']),
     ...mapState('estate', { willInfo: 'willInfo' }),
-    ...mapState('trusts', { trusts: 'trusts' }),
 
     // Gamification celebration overlay
     ...mapState('gamification', { celebration: 'pendingCelebration' }),
@@ -782,10 +761,6 @@ export default {
         taxableEstate: this.taxableEstate || 0,
         ihtLiability: this.ihtLiability || 0,
       };
-    },
-
-    trustsList() {
-      return this.trusts || [];
     },
 
     hasEstateData() {
@@ -1291,7 +1266,6 @@ export default {
         { name: 'protection', action: 'protection/fetchProtectionData' },
         { name: 'estate', action: 'estate/fetchEstateData' },
         { name: 'estate', action: estateCalculationAction, payload: {} },
-        { name: 'retirement', action: 'trusts/fetchTrusts' },
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'retirement', action: 'retirement/fetchRetirementData' },
         { name: 'retirement', action: 'retirement/fetchRequiredCapital' },
@@ -1346,11 +1320,11 @@ export default {
           const { module, success, error } = result.value;
           moduleCompletedCounts[module] = (moduleCompletedCounts[module] || 0) + 1;
 
-          if (!success && this.loading.hasOwnProperty(module)) {
+          if (!success && Object.hasOwn(this.loading, module)) {
             this.errors[module] = error;
           }
 
-          if (this.loading.hasOwnProperty(module) &&
+          if (Object.hasOwn(this.loading, module) &&
               moduleCompletedCounts[module] >= moduleActionCounts[module]) {
             this.loading[module] = false;
           }
@@ -1362,7 +1336,7 @@ export default {
       // Also try to fetch projection data for goals chart
       try {
         await this.fetchProjection();
-      } catch (e) {
+      } catch {
         // Projection is optional, don't block
       }
     },
