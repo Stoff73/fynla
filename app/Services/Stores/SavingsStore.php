@@ -45,6 +45,11 @@ class SavingsStore
         return SavingsAccount::forUserOrJoint($user->id)->get();
     }
 
+    public function existsForUser(User $user): bool
+    {
+        return SavingsAccount::forUserOrJoint($user->id)->exists();
+    }
+
     /**
      * Joint-aware read with the `jointOwner` relation eager-loaded.
      *

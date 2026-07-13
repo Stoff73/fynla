@@ -70,6 +70,13 @@ class PensionStore
         ];
     }
 
+    public function existsForUser(User $user): bool
+    {
+        return DCPension::where('user_id', $user->id)->exists()
+            || DBPension::where('user_id', $user->id)->exists()
+            || StatePension::where('user_id', $user->id)->exists();
+    }
+
     public function forUserByType(User $user, string $type): Collection
     {
         $model = $this->modelClassForType($type);

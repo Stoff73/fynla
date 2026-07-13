@@ -10,22 +10,21 @@ use App\Events\Eval\GateChecked;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
-use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Investment\Recommendation\DataReadinessService as InvestmentDataReadinessService;
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Retirement\RetirementDataReadinessService;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Traits\ResolvesIncome;
 use Illuminate\Database\Eloquent\Model;
 
@@ -56,6 +55,9 @@ class PrerequisiteGateService
         private readonly RetirementDataReadinessService $retirementReadiness,
         private readonly InvestmentDataReadinessService $investmentReadiness,
         private readonly EstateDataReadinessService $estateReadiness,
+        private readonly SavingsStore $savingsStore,
+        private readonly PropertyStore $propertyStore,
+        private readonly PensionStore $pensionStore,
     ) {}
 
     /**
@@ -91,21 +93,18 @@ class PrerequisiteGateService
                 || LifeInsurancePolicy::where('user_id', $user->id)->exists()
                 || CriticalIllnessPolicy::where('user_id', $user->id)->exists()
                 || IncomeProtectionPolicy::where('user_id', $user->id)->exists(),
-            QuerySchemas::REQUIREMENT_SAVINGS => $this->ownedOrJointExists(SavingsAccount::class, $user->id),
+            QuerySchemas::REQUIREMENT_SAVINGS => $this->savingsStore->existsForUser($user),
             QuerySchemas::REQUIREMENT_LIABILITIES => $this->ownedOrJointExists(Liability::class, $user->id)
                 || $this->ownedOrJointExists(Mortgage::class, $user->id),
-            QuerySchemas::REQUIREMENT_RETIREMENT => DCPension::where('user_id', $user->id)->exists()
-                || DBPension::where('user_id', $user->id)->exists()
-                || $user->statePension()->exists(),
+            QuerySchemas::REQUIREMENT_RETIREMENT => $this->pensionStore->existsForUser($user),
             QuerySchemas::REQUIREMENT_INVESTMENT => $this->ownedOrJointExists(InvestmentAccount::class, $user->id),
             QuerySchemas::REQUIREMENT_ESTATE => $user->assets()->exists()
                 || $user->trusts()->exists()
                 || $user->gifts()->exists()
-                || $this->ownedOrJointExists(Property::class, $user->id)
-                || $this->ownedOrJointExists(SavingsAccount::class, $user->id)
+                || $this->propertyStore->existsForUser($user)
+                || $this->savingsStore->existsForUser($user)
                 || $this->ownedOrJointExists(InvestmentAccount::class, $user->id)
-                || DCPension::where('user_id', $user->id)->exists()
-                || DBPension::where('user_id', $user->id)->exists()
+                || $this->pensionStore->existsForUser($user)
                 || BusinessInterest::where(fn ($query) => $query
                     ->where('user_id', $user->id)
                     ->orWhere('joint_owner_id', $user->id))->exists()
@@ -113,7 +112,7 @@ class PrerequisiteGateService
                     ->where('user_id', $user->id)
                     ->orWhere('joint_owner_id', $user->id))->exists(),
             QuerySchemas::REQUIREMENT_GOALS => $this->ownedOrJointExists(Goal::class, $user->id),
-            QuerySchemas::REQUIREMENT_PROPERTY => $this->ownedOrJointExists(Property::class, $user->id),
+            QuerySchemas::REQUIREMENT_PROPERTY => $this->propertyStore->existsForUser($user),
             default => false,
         };
     }
