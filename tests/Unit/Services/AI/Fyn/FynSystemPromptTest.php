@@ -57,5 +57,14 @@ it('C1: carries the relocated data-completeness rules verbatim', function (): vo
         ->toContain('NAVIGATION RULES:')
         ->toContain('RULES FOR BLOCKED MODULES:')
         ->toContain('MODULE DEPENDENCY GUIDANCE:')
-        ->toContain('If a tool call returns a "blocked" result, follow the instruction field in that result — explain the missing data to the user and navigate them to the right page.');
+        ->toContain('If a tool call returns a "blocked" result, follow the instruction field in that result — explain the missing data, then use an available navigation tool or signpost the exact page label in plain text.');
+});
+
+it('never instructs Advice Fyn to call the stripped navigation tool', function (): void {
+    expect(FynSystemPrompt::text())
+        ->not->toContain('navigate_to_page')
+        ->not->toContain('ALWAYS use the navigate_to_page tool')
+        ->not->toContain('using navigate_to_page')
+        ->not->toContain('Use navigate_to_page with')
+        ->toContain("use a navigation tool only when one is present in the current turn's catalogue");
 });

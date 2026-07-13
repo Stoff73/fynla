@@ -64,7 +64,7 @@ describe('KycGateChecker', function () {
         });
     });
 
-    describe('universal requirements', function () {
+    describe('question-specific requirements', function () {
         it('blocks when date of birth is missing', function () {
             $user = User::factory()->create([
                 'date_of_birth' => null,
@@ -75,9 +75,9 @@ describe('KycGateChecker', function () {
             ]);
 
             $result = $this->checker->check($user, [
-                'primary' => QuerySchemas::SAVINGS_EMERGENCY,
-                'related' => [QuerySchemas::AFFORDABILITY],
-                'modules' => ['savings'],
+                'primary' => QuerySchemas::PROTECTION_COVER,
+                'related' => [],
+                'modules' => ['protection'],
             ]);
 
             expect($result['passed'])->toBeFalse();
@@ -100,13 +100,13 @@ describe('KycGateChecker', function () {
             ]);
 
             $result = $this->checker->check($user, [
-                'primary' => QuerySchemas::RETIREMENT_CONTRIBUTION,
+                'primary' => QuerySchemas::SAVINGS_EMERGENCY,
                 'related' => [],
-                'modules' => ['retirement'],
+                'modules' => ['savings'],
             ]);
 
             expect($result['passed'])->toBeFalse();
-            expect($result['missing'])->toContain('Annual income (at least one income source)');
+            expect($result['missing'])->toContain('Annual income');
         });
 
         it('blocks when expenditure is missing', function () {
@@ -120,9 +120,9 @@ describe('KycGateChecker', function () {
             ]);
 
             $result = $this->checker->check($user, [
-                'primary' => QuerySchemas::RETIREMENT_CONTRIBUTION,
+                'primary' => QuerySchemas::SAVINGS_EMERGENCY,
                 'related' => [],
-                'modules' => ['retirement'],
+                'modules' => ['savings'],
             ]);
 
             expect($result['passed'])->toBeFalse();
@@ -184,7 +184,7 @@ describe('KycGateChecker', function () {
             ]);
 
             expect($result['prompt_text'])->toContain('KYC CHECK: PASSED');
-            expect($result['prompt_text'])->toContain('savings');
+            expect(strtolower($result['prompt_text']))->not->toContain('goals');
         });
     });
 });

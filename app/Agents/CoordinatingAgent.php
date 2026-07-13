@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
@@ -80,6 +81,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\WhatIf\WhatIfScenarioService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
@@ -136,6 +138,7 @@ class CoordinatingAgent extends BaseAgent
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
         private readonly ComposedTaxPlanService $composedTaxPlans,
+        private readonly TeaserGate $teaserGate,
     ) {}
 
     /**
@@ -181,8 +184,11 @@ class CoordinatingAgent extends BaseAgent
      *   builder still renders net worth, goals, life events from the
      *   user record directly.
      */
-    public function analyzeRelevantModules(int $userId, ?array $classification): array
-    {
+    public function analyzeRelevantModules(
+        int $userId,
+        ?array $classification,
+        ?array $kycResult = null,
+    ): array {
         $primary = is_array($classification) ? ($classification['primary'] ?? null) : null;
         $level = AdviceFyn::engineCallLevelFor(is_string($primary) ? $primary : null);
 
@@ -201,6 +207,7 @@ class CoordinatingAgent extends BaseAgent
         // property and income from the user record directly.
         $modules = QuerySchemas::getModulesForClassification(is_array($classification) ? $classification : []);
         $moduleAnalysis = [];
+        $analysisUser = null;
         foreach ($modules as $module) {
             $analysis = match ($module) {
                 'protection' => $this->protectionAgent->analyze($userId),
@@ -212,6 +219,14 @@ class CoordinatingAgent extends BaseAgent
                 default => null,
             };
             if ($analysis !== null) {
+                if ($this->isQuestionScopedModule($module, $classification, $kycResult)
+                    && $this->requiresQuestionScopedFallback($analysis)) {
+                    $analysis = $this->questionScopedModuleAnalysis(
+                        $module,
+                        $analysisUser ??= User::findOrFail($userId),
+                        (string) $primary,
+                    );
+                }
                 $moduleAnalysis[$module] = $analysis;
             }
         }
@@ -841,8 +856,14 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Execute a tool call with prerequisite gate enforcement.
      */
-    public function executeTool(string $toolName, array $input, User $user, ?int $conversationId = null): array
-    {
+    public function executeTool(
+        string $toolName,
+        array $input,
+        User $user,
+        ?int $conversationId = null,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
@@ -888,19 +909,46 @@ class CoordinatingAgent extends BaseAgent
             atMicrotime: microtime(true),
         ));
 
-        // Prerequisite gate check
-        $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
+        // The primary-question matrix is the effective advice gate. Do not
+        // reapply broader module readiness after question-specific KYC passes.
+        $questionScopedAnalysis = $this->isQuestionScopedModuleTool(
+            $toolName,
+            $input,
+            $classification,
+            $kycResult,
+        );
+        $questionScopedHolistic = $this->isQuestionScopedHolisticTool(
+            $toolName,
+            $classification,
+            $kycResult,
+        );
+        $nonEntitledHolisticPlan = $toolName === 'generate_financial_plan'
+            && ! $this->teaserGate->isFull($user, 'holistic_plan');
+
+        // Entitlement precedes readiness for the holistic tool, matching the
+        // REST middleware. The handler still uses the audited completion path.
+        $gate = ($questionScopedAnalysis || $questionScopedHolistic || $nonEntitledHolisticPlan)
+            ? ['can_proceed' => true]
+            : $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
         if (! $gate['can_proceed']) {
             $firstAction = $gate['required_actions'][0] ?? null;
+            $pageLabel = null;
+            if ($firstAction !== null) {
+                $destination = GateRoutes::destinationForRoute(
+                    $firstAction['route'] ?? '',
+                    GateRoutes::DASHBOARD,
+                );
+                $pageLabel = GateRoutes::resolve($destination)['label'];
+            }
 
             return [
                 'blocked' => true,
                 'reason' => $gate['guidance'],
                 'missing_data' => $gate['missing'],
-                'suggested_action' => $firstAction,
+                'suggested_action' => $pageLabel === null ? null : ['label' => $pageLabel],
                 'instruction' => 'Explain to the user exactly what data is missing and why it is needed. '
                     .'List each missing item clearly. '
-                    .($firstAction ? "Then use the navigate_to_page tool to take them to \"{$firstAction['route']}\" where they can add the missing information." : ''),
+                    .($pageLabel ? "Then signpost the {$pageLabel} page by its label in plain text. Do not output an internal route or call a navigation or write tool on the advice surface." : ''),
             ];
         }
 
@@ -942,7 +990,7 @@ class CoordinatingAgent extends BaseAgent
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
-                'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
+                'get_module_analysis' => $this->handleModuleAnalysis($input, $user, $classification, $kycResult),
                 'search_conversation_index' => $this->handleSearchConversationIndex($input, $user, $conversationId),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
@@ -1767,8 +1815,12 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleModuleAnalysis(array $input, User $user): array
-    {
+    private function handleModuleAnalysis(
+        array $input,
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): array {
         $module = $input['module'];
 
         $analyzeStart = microtime(true);
@@ -1783,6 +1835,15 @@ class CoordinatingAgent extends BaseAgent
             default => ['error' => "Unknown module: {$module}"],
         };
         $analyzeDuration = (int) round((microtime(true) - $analyzeStart) * 1000);
+
+        if ($this->isQuestionScopedModule($module, $classification, $kycResult)
+            && $this->requiresQuestionScopedFallback($analysis)) {
+            $analysis = $this->questionScopedModuleAnalysis(
+                $module,
+                $user,
+                (string) $classification['primary'],
+            );
+        }
 
         // Eval trace — every module analyze invocation through this tool
         // gets one EngineCalled. result_path inferred from response shape:
@@ -1800,7 +1861,144 @@ class CoordinatingAgent extends BaseAgent
             atMicrotime: microtime(true),
         ));
 
+        if (($analysis['analysis_scope'] ?? null) === 'question_required_data') {
+            return $analysis;
+        }
+
         return $this->summariseToolAnalysis($module, $analysis);
+    }
+
+    private function isQuestionScopedModuleTool(
+        string $toolName,
+        array $input,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        return $toolName === 'get_module_analysis'
+            && isset($input['module'])
+            && $this->isQuestionScopedModule((string) $input['module'], $classification, $kycResult);
+    }
+
+    private function isQuestionScopedModule(
+        string $module,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        $primary = $classification['primary'] ?? null;
+        if (! $this->hasPassedPrimaryKyc($classification, $kycResult)) {
+            return false;
+        }
+
+        $primaryModules = QuerySchemas::getModulesForClassification([
+            'primary' => $primary,
+            'related' => [],
+        ]);
+
+        return $module !== 'holistic' && in_array($module, $primaryModules, true);
+    }
+
+    private function isQuestionScopedHolisticTool(
+        string $toolName,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        return ($classification['primary'] ?? null) === QuerySchemas::HOLISTIC_HEALTH
+            && $this->hasPassedPrimaryKyc($classification, $kycResult)
+            && in_array($toolName, ['get_recommendations', 'generate_financial_plan'], true);
+    }
+
+    private function hasPassedPrimaryKyc(?array $classification, ?array $kycResult): bool
+    {
+        $primary = $classification['primary'] ?? null;
+
+        return is_string($primary)
+            && QuerySchemas::isAdviceType($primary)
+            && ($kycResult['passed'] ?? false) === true;
+    }
+
+    private function requiresQuestionScopedFallback(array $analysis): bool
+    {
+        if (($analysis['can_proceed'] ?? null) === false
+            || ($analysis['data']['can_proceed'] ?? null) === false) {
+            return true;
+        }
+
+        if (($analysis['success'] ?? null) !== false) {
+            return false;
+        }
+
+        $message = strtolower((string) ($analysis['message'] ?? ''));
+
+        return str_contains($message, 'profile not found')
+            || str_contains($message, 'no retirement profile')
+            || str_contains($message, 'no investment accounts')
+            || str_contains($message, 'no savings accounts');
+    }
+
+    /**
+     * Return current, factual data for the primary question when a module's
+     * broader readiness contract needs fields outside REQUIRED_DATA.
+     * No financial-quality score or recommendation is manufactured here.
+     *
+     * @return array<string, mixed>
+     */
+    private function questionScopedModuleAnalysis(string $module, User $user, string $primary): array
+    {
+        $recordTypes = match ($module) {
+            'retirement' => ['dc_pension', 'db_pension'],
+            'savings' => ['savings_account'],
+            'investment' => ['investment_account'],
+            'protection' => ['life_insurance', 'critical_illness', 'income_protection'],
+            'estate' => ['property', 'trust', 'estate_gift', 'estate_liability', 'business_interest', 'chattel'],
+            default => [],
+        };
+
+        $records = [];
+        foreach ($recordTypes as $recordType) {
+            $listed = $this->handleListRecords(['entity_type' => $recordType], $user);
+            $records[$recordType] = $listed['records'] ?? [];
+        }
+
+        if ($module === 'goals') {
+            $records['goals'] = $this->handleListGoals($user)['goals'] ?? [];
+        }
+
+        $analysis = [
+            'module' => $module,
+            'query_type' => $primary,
+            'analysis_scope' => 'question_required_data',
+            'can_proceed' => true,
+            'records' => $records,
+        ];
+
+        if ($module === 'retirement') {
+            $statePension = $user->statePension()->first();
+            $analysis['state_pension'] = $statePension ? [
+                'forecast_annual' => (float) ($statePension->state_pension_forecast_annual ?? 0),
+                'qualifying_years' => $statePension->ni_years_completed,
+                'state_pension_age' => $statePension->state_pension_age,
+            ] : null;
+            $analysis['total_pension_value'] = (float) collect($records['dc_pension'])->sum('current_value');
+            $analysis['projected_annual_income'] = (float) collect($records['db_pension'])->sum('annual_pension')
+                + (float) ($analysis['state_pension']['forecast_annual'] ?? 0);
+        }
+
+        if ($module === 'savings') {
+            $analysis['total_savings'] = (float) collect($records['savings_account'])->sum('balance');
+        }
+
+        if ($module === 'investment') {
+            $analysis['total_portfolio_value'] = (float) collect($records['investment_account'])->sum('current_value');
+        }
+
+        if ($module === 'protection') {
+            $analysis['full_analysis'] = [
+                'total_cover' => (float) collect($records['life_insurance'])->sum('sum_assured')
+                    + (float) collect($records['critical_illness'])->sum('sum_assured'),
+            ];
+        }
+
+        return $analysis;
     }
 
     /**
@@ -2065,6 +2263,14 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleFinancialPlan(User $user): array
     {
+        if (! $this->teaserGate->isFull($user, 'holistic_plan')) {
+            return [
+                'error' => 'upgrade_required',
+                'message' => 'The Holistic Plan is part of Tier 2 and above.',
+                'required_tier' => 'tier2',
+            ];
+        }
+
         $plan = $this->generateHolisticPlan($user->id);
 
         $summary = [];

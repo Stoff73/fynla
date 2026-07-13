@@ -86,6 +86,33 @@ describe('QueryClassifier', function () {
     });
 
     describe('advice classification', function () {
+        it('keeps retirement readiness out of goals-related classification', function () {
+            $result = $this->classifier->classify('Am I on track for retirement?');
+
+            expect($result['primary'])->toBe(QuerySchemas::RETIREMENT_READINESS)
+                ->and($result['related'])->not->toContain(QuerySchemas::GOALS_PROGRESS);
+        });
+
+        it('classifies explicit goal and life event progress as goals', function (string $message) {
+            expect($this->classifier->classify($message)['primary'])
+                ->toBe(QuerySchemas::GOALS_PROGRESS);
+        })->with([
+            'Am I on track with my goal?',
+            'How is my life event progress?',
+        ]);
+
+        it('does not make financial target wording goals-primary without explicit goal language', function (string $message) {
+            expect($this->classifier->classify($message)['primary'])
+                ->not->toBe(QuerySchemas::GOALS_PROGRESS);
+        })->with([
+            'Am I on track for my pension target?',
+            'Am I on track for my mortgage target?',
+            'Am I on track for my house target?',
+            'Am I on track for my ISA target?',
+            'Am I on track for my savings target?',
+            'Am I on track for my investment target?',
+        ]);
+
         it('classifies "How do I maximise my pension?" as retirement_contribution with related types', function () {
             $result = $this->classifier->classify('How do I maximise my pension?');
             expect($result['primary'])->toBe(QuerySchemas::RETIREMENT_CONTRIBUTION);

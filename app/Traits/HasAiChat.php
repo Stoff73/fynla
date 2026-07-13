@@ -609,7 +609,14 @@ trait HasAiChat
                     if (! $dispatcher->isSurfaceAllowed($action->surface(), $this->personaOverride)) {
                         $toolResult = $this->rejectGroundSurface($action->surface(), $user, $conversation->id);
                     } else {
-                        $toolResult = $this->executeTool($action->surface(), $action->args(), $user, $conversation->id);
+                        $toolResult = $this->executeTool(
+                            $action->surface(),
+                            $action->args(),
+                            $user,
+                            $conversation->id,
+                            $classification,
+                            $kycResult,
+                        );
                     }
 
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
@@ -1076,7 +1083,11 @@ trait HasAiChat
             // {Module}Agent::analyze() calls; for factual queries (INCOME /
             // GENERAL / NAVIGATION / BILLING / OUT_OF_REMIT) it skips module
             // analysis entirely. See CoordinatingAgent::analyzeRelevantModules.
-            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules(
+                $userId,
+                $classification,
+                $kycResult,
+            ),
             conversation: $conversation,
         );
     }
@@ -1115,7 +1126,11 @@ trait HasAiChat
         // financial context instead of the "unavailable" sentinel.
         $block = app(FynContextAssembler::class)->build(
             $ctx,
-            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules(
+                $userId,
+                $classification,
+                $kycResult,
+            ),
         );
 
         // Capture the exact user-turn content sent to the provider this turn
