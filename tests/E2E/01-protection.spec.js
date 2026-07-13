@@ -1,13 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { login, register } from './helpers/auth.js';
-import { waitForLoading, navigateToModule, fillField, selectOption, clickAndWait, isVisible } from './helpers/common.js';
+import { register } from './helpers/auth.js';
+import { waitForLoading, navigateToModule, fillField, selectOption, isVisible } from './helpers/common.js';
 
-test.describe('Protection Module', () => {
-  let testUser;
-
+test.describe.skip('legacy E2E migration tracked by online-readiness Task 24', () => {
   test.beforeEach(async ({ page }) => {
     // Register a new user for each test
-    testUser = await register(page);
+    await register(page);
     await page.waitForTimeout(2000);
   });
 

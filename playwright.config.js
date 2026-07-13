@@ -48,7 +48,7 @@ export default defineConfig({
     },
     {
       command: 'bash scripts/e2e/serve.sh vite',
-      url: 'http://127.0.0.1:5173',
+      url: 'http://127.0.0.1:5173/@vite/client',
       reuseExistingServer,
       timeout: 120_000,
     },

@@ -39,6 +39,7 @@ case "$target" in
 
     exec env \
       APP_ENV=e2e \
+      APP_URL=http://127.0.0.1:8000 \
       DB_DATABASE="$name" \
       APP_CONFIG_CACHE="$config_cache" \
       php artisan serve --host=127.0.0.1 --port=8000
