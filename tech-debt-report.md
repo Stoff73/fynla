@@ -1,8 +1,8 @@
-# Tech Debt Report — Session 2026-07-13 (Online Readiness Tasks 10A and 10B)
+# Tech Debt Report — Session 2026-07-13 (Tasks 10A/10B and live `/m` verification)
 
-**Files analysed:** 92 implementation, test, configuration and documentation files (generated browser evidence and unrelated user files excluded)
-**Issues found:** 2
-**Severity breakdown:** 0 critical, 1 warning, 1 suggestion
+**Files analysed:** 94 implementation, test, configuration and documentation files (generated browser evidence and unrelated user files excluded)
+**Issues found:** 4
+**Severity breakdown:** 0 critical, 3 warnings, 1 suggestion
 
 ## Critical Issues
 
@@ -17,9 +17,23 @@ None.
 - **What's wrong:** The new handoff service repeats the controller's email-masking algorithm. A later privacy-format change could update one response path but leave the other with different disclosure behaviour.
 - **Suggested fix:** Extract the established algorithm into a small shared authentication/privacy formatter and use it from both classes.
 
+### 2. Mobile Tax Strategy defines local currency formatting
+
+- **File:** `resources/mobile/views/TaxStrategy.vue:143`
+- **Category:** Convention violation / duplicate code
+- **What's wrong:** The mobile page defines its own `Intl.NumberFormat` helper instead of using the shared currency formatting contract. Formatting changes could therefore diverge between this page and the rest of the application.
+- **Suggested fix:** Move the mobile surface onto the shared currency formatter when the mobile bundle's shared-utility boundary is next revised.
+
+### 3. Mark-as-done failures are silent
+
+- **File:** `resources/mobile/views/TaxStrategy.vue:243`
+- **Category:** Dead and redundant code / silent failure
+- **What's wrong:** The recommendation completion request catches every failure and leaves the user with no feedback or diagnostic signal. A failed write is indistinguishable from an unresponsive control.
+- **Suggested fix:** Surface an accessible inline failure state and log a sanitized diagnostic without changing the recommendation's open state.
+
 ## Suggestions
 
-### 2. Campaign-answer reconstruction has parallel implementations
+### 4. Campaign-answer reconstruction has parallel implementations
 
 - **Files:** `public/pages/js/savetax-plan-v4.js:130`, `public/pages/js/pensioncheck-plan.js:314`
 - **Category:** Cross-file duplication

@@ -40,7 +40,7 @@
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">Recommended actions</p>
         <p v-if="!individualRecommendations.length" class="m-sub" style="margin-bottom:0">
-          Your allowances are well-utilised — nothing to act on right now.
+          {{ emptyRecommendationsMessage }}
         </p>
         <div v-else>
           <article v-for="rec in individualRecommendations" :key="rec.type" class="mts-rec" :class="{ 'mts-rec--warning': rec.category === 'warning' }">
@@ -203,6 +203,11 @@ export default {
     headroom() { return this.userAllowances.filter((a) => a.available !== false && Number(a.utilisation_pct) < 90); },
     headroomCount() { return this.headroom.length; },
     totalHeadroom() { return this.headroom.reduce((sum, a) => sum + (Number(a.remaining) || 0), 0); },
+    emptyRecommendationsMessage() {
+      return this.totalHeadroom > 0
+        ? 'No additional recommended actions are available from the information on file right now. Your unused allowances are shown below.'
+        : 'Your allowances are well-utilised — nothing to act on right now.';
+    },
   },
   async created() { await this.load(); },
   methods: {
@@ -235,7 +240,7 @@ export default {
           recommendation_text: rec.title || rec.type,
         }, store.token);
         await Promise.all([store.fetchStatus(), this.load()]);
-      } catch (e) {
+      } catch {
         /* leave the item open on failure */
       } finally {
         this.marking = null;
@@ -249,7 +254,7 @@ export default {
         const { ok, data } = await apiGet('/api/tax-strategy', store.token);
         if (ok) this.dashboard = data?.data || data || {};
         else this.error = data?.message || 'We could not load your tax position.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
