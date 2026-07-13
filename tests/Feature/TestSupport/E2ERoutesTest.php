@@ -87,6 +87,36 @@ it('probes a Vite URL that exists in Laravel middleware mode', function (): void
     expect($contents)->toContain("url: 'http://127.0.0.1:5173/@vite/client'");
 });
 
+it('scopes the Laravel CI bypass to the E2E Vite server', function (): void {
+    $root = dirname(__DIR__, 3);
+    $bin = sys_get_temp_dir().'/fynla-e2e-bin-'.bin2hex(random_bytes(8));
+    mkdir($bin);
+    file_put_contents(
+        $bin.'/npm',
+        "#!/usr/bin/env bash\necho \"\${LARAVEL_BYPASS_ENV_CHECK:-unset}|\${APP_ENV:-unset}\"\n"
+    );
+    chmod($bin.'/npm', 0755);
+
+    try {
+        $process = new Process(
+            ['bash', $root.'/scripts/e2e/serve.sh', 'vite'],
+            $root,
+            [
+                'APP_ENV' => 'e2e',
+                'CI' => 'true',
+                'PATH' => $bin.':'.getenv('PATH'),
+            ],
+        );
+        $process->run();
+
+        expect($process->isSuccessful())->toBeTrue($process->getErrorOutput())
+            ->and(trim($process->getOutput()))->toBe('1|e2e');
+    } finally {
+        unlink($bin.'/npm');
+        rmdir($bin);
+    }
+});
+
 it('rejects unknown E2E server targets', function (): void {
     $root = dirname(__DIR__, 3);
     $process = new Process(['bash', $root.'/scripts/e2e/serve.sh', 'unknown'], $root);

@@ -53,7 +53,7 @@ case "$target" in
       php artisan serve --host=127.0.0.1 --port=8000
     ;;
   vite)
-    exec npm run dev -- --host 127.0.0.1 --port 5173
+    exec env LARAVEL_BYPASS_ENV_CHECK=1 npm run dev -- --host 127.0.0.1 --port 5173
     ;;
   *)
     echo "Unknown E2E server target: $target" >&2
