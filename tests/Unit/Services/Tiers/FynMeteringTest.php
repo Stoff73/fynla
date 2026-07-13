@@ -75,7 +75,10 @@ it('soft-degrades to a valid xAI model under the xai provider (never an Anthropi
 });
 
 it('never meters or soft-degrades preview personas, regardless of usage', function () use ($harness) {
-    config(['services.anthropic.chat_model' => null]); // let the trait choose
+    config([
+        'services.ai_provider' => 'anthropic',
+        'services.anthropic.chat_model' => 'claude-sonnet-4-6-20260320',
+    ]);
     $u = User::factory()->create(['is_preview_user' => true, 'tier' => null]);
     // Far exceeds any weekly budget and any daily backstop.
     foreach (range(0, 6) as $d) {
@@ -89,6 +92,7 @@ it('never meters or soft-degrades preview personas, regardless of usage', functi
     // returned model NOT being the soft-degrade model.
     expect($h->weeklyExceeded($u))->toBeFalse()
         ->and($h->dailyBackstopHit($u))->toBeFalse()
+        ->and($h->model($u, 'complex'))->toBe('claude-sonnet-4-6-20260320')
         ->and($h->model($u, 'complex'))->not->toBe($h->softDegradeModel());
 });
 

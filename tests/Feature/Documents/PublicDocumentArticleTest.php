@@ -7,6 +7,7 @@ use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
+    $this->withoutVite();
     $this->admin = User::factory()->create(['is_admin' => true]);
 });
 

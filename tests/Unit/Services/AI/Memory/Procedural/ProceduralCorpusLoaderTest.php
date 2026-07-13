@@ -221,10 +221,10 @@ it('a cold instance adopts the cross-request cache', function (): void {
     expect(app(ProceduralCorpusLoader::class)->load()->all())->toHaveCount(1);
 });
 
-it('ships A1/A2 overlays inactive — validated but never injected', function (): void {
+it('ships A1/A2 overlays active', function (): void {
     // Point at the REAL shipped corpus (not the temp dir from beforeEach) —
     // loadStrict() is the fyn:procedural:validate deploy gate, so this pins
-    // "the real corpus validates AND the A1/A2 overlays are inactive in it".
+    // that the real corpus validates and the A1/A2 overlays resolve as active.
     config(['fyn.memory.procedural_path' => base_path('fyn-memory/procedural')]);
 
     $corpus = app(ProceduralCorpusLoader::class)->loadStrict();
@@ -234,9 +234,8 @@ it('ships A1/A2 overlays inactive — validated but never injected', function ()
     expect($ids)->toContain('general.overlay.a1_answer_first')
         ->and($ids)->toContain('general.overlay.a2_ack_hygiene');
 
-    // …but inactive: no active version resolves, so they are never injected.
-    expect($corpus->active('general.overlay.a1_answer_first'))->toBeNull()
-        ->and($corpus->active('general.overlay.a2_ack_hygiene'))->toBeNull();
+    expect($corpus->active('general.overlay.a1_answer_first'))->not->toBeNull()
+        ->and($corpus->active('general.overlay.a2_ack_hygiene'))->not->toBeNull();
 });
 
 it('load() never throws when statting the corpus raises mid-scan', function (): void {

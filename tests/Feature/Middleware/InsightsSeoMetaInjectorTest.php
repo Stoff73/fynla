@@ -7,6 +7,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    $this->withoutVite();
+});
+
 it('injects meta tags for a published article', function () {
     InsightArticle::factory()->published()->create([
         'slug' => 'seo-test',
