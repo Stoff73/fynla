@@ -28,8 +28,22 @@
              modal without verifying. -->
         <div v-if="funnelHandoff" class="py-10 flex flex-col items-center gap-5">
           <img :src="logoImage" alt="Fynla" class="h-[75px] w-auto">
-          <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
-          <p class="text-body-sm text-neutral-500 text-center">Setting up your account…</p>
+          <template v-if="handoffError">
+            <p class="text-body-sm text-raspberry-700 text-center">{{ handoffError }}</p>
+            <button v-if="pendingId" type="button" class="btn-primary" @click="resumeVerification">
+              Continue verification
+            </button>
+            <router-link :to="loginDestination" class="font-medium text-raspberry-500 hover:text-raspberry-700 underline">
+              Sign in to your account
+            </router-link>
+            <button type="button" class="btn-secondary" @click="resetHandoff">
+              Create a new account
+            </button>
+          </template>
+          <template v-else>
+            <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
+            <p class="text-body-sm text-neutral-500 text-center">Setting up your account…</p>
+          </template>
         </div>
 
         <template v-else>
@@ -230,6 +244,13 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
+    const route = router.currentRoute.value;
+    const initialHandoff = typeof route.query.handoff === 'string' ? route.query.handoff : '';
+    if (initialHandoff) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('handoff');
+      window.history.replaceState(window.history.state, '', cleanUrl.toString());
+    }
     const cookiesAccepted = ref(hasConsent());
 
     const handleAcceptCookiesForRegistration = () => {
@@ -262,13 +283,16 @@ export default {
     // Funnel hand-off in progress: hide this page's registration form (the
     // user already registered on the campaign page) and hold on a quiet
     // setup panel until the post-verification redirect fires.
-    const funnelHandoff = ref(false);
+    const funnelHandoff = ref(initialHandoff !== '');
+    const handoffError = ref('');
+    const handoffSource = ref('');
 
     const restoreModal = ref({
       visible: false,
       firstName: '',
       deletedAt: '',
       restorationToken: '',
+      registrationHandoff: '',
       requiresPasswordVerification: false,
       email: '',
     });
@@ -276,33 +300,65 @@ export default {
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
     // Capture plan/billing/referral from query params
-    const route = router.currentRoute.value;
     const selectedPlan = route.query.plan || null;
     const selectedBilling = route.query.billing || null;
     const referralCode = route.query.ref || null;
 
-    // Funnel hand-off: /savetax/plan's compact "Register for free" creates the
-    // pending account itself, then sends the user here with the pending id +
-    // email stashed in sessionStorage (same-origin). Open the verification
-    // modal directly so they only enter the emailed code — no re-entering the
-    // form. On success, completeRegistration() routes onward (and inside the
-    // /m mobile iframe the auth handoff shows the mobile dashboard).
-    onMounted(() => {
-      let stashed = null;
+    onMounted(async () => {
+      const handoff = initialHandoff;
+      if (handoff.length === 0) return;
+
       try {
-        const raw = sessionStorage.getItem('fynla_pending_verify');
-        if (raw) {
-          stashed = JSON.parse(raw);
-          sessionStorage.removeItem('fynla_pending_verify');
+        const response = await api.post('/auth/registration-handoff/resolve', { handoff });
+        handoffSource.value = response.data.source;
+
+        if (response.data.kind === 'verification') {
+          pendingId.value = response.data.pending_id;
+          pendingEmail.value = response.data.masked_email || '';
+          showVerificationModal.value = true;
+          return;
         }
-      } catch (e) { /* ignore */ }
-      if (stashed && stashed.pending_id) {
-        pendingId.value = stashed.pending_id;
-        pendingEmail.value = stashed.email || '';
-        funnelHandoff.value = true;
-        showVerificationModal.value = true;
+
+        if (response.data.kind === 'restoration') {
+          restoreModal.value = {
+            visible: true,
+            firstName: response.data.first_name || '',
+            deletedAt: response.data.deleted_at || '',
+            restorationToken: '',
+            registrationHandoff: handoff,
+            requiresPasswordVerification: true,
+            email: '',
+          };
+          return;
+        }
+
+        throw new Error('Unsupported registration handoff.');
+      } catch (error) {
+        handoffError.value = error.response?.data?.message
+          || 'This registration link is invalid. Please start again.';
       }
     });
+
+    const loginDestination = computed(() => ({
+      path: '/login',
+      query: route.query.from ? { from: route.query.from } : {},
+    }));
+
+    const resetHandoff = async () => {
+      handoffError.value = '';
+      funnelHandoff.value = false;
+      pendingId.value = null;
+      pendingEmail.value = '';
+      await router.replace({
+        path: '/register',
+        query: route.query.from ? { from: route.query.from } : {},
+      });
+    };
+
+    const resumeVerification = () => {
+      handoffError.value = '';
+      showVerificationModal.value = true;
+    };
 
     const handleRegister = async () => {
       // Guard against double submission
@@ -362,6 +418,7 @@ export default {
             firstName: response.data.first_name || '',
             deletedAt: response.data.deleted_at || '',
             restorationToken: '',
+            registrationHandoff: '',
             requiresPasswordVerification: true,
             email: form.value.email,
           };
@@ -432,7 +489,7 @@ export default {
       // Fyn chat auto-opened, propagating the entry source so the
       // onboarding director can route to the matching campaign or
       // life-stage journey via the campaign_map / journey_map config.
-      const fromParam = route.query.from;
+      const fromParam = handoffSource.value || route.query.from;
       const stageParam = route.query.stage;
 
       if (fromParam) {
@@ -449,11 +506,13 @@ export default {
 
     const handleVerificationClose = () => {
       showVerificationModal.value = false;
+      if (funnelHandoff.value) {
+        handoffError.value = 'Verification was paused. You can continue without entering your details again.';
+        return;
+      }
+
       pendingId.value = null;
       pendingEmail.value = '';
-      // Funnel user closed the modal without verifying — surface the normal
-      // registration form so they aren't stranded on the setup panel.
-      funnelHandoff.value = false;
     };
 
     const onRestoreCancel = () => {
@@ -462,9 +521,13 @@ export default {
         firstName: '',
         deletedAt: '',
         restorationToken: '',
+        registrationHandoff: '',
         requiresPasswordVerification: false,
         email: '',
       };
+      if (funnelHandoff.value) {
+        handoffError.value = 'Account restoration was cancelled. You can sign in or create a new account.';
+      }
     };
 
     const onRestored = async (result) => {
@@ -483,7 +546,13 @@ export default {
       }
 
       restoreModal.value.visible = false;
-      router.push(result.redirect_to || '/dashboard?openPricing=1');
+      if (handoffSource.value === 'savetax') {
+        router.push({ name: 'Dashboard', query: { openFyn: 'journey', from: 'savetax' } });
+      } else if (handoffSource.value) {
+        router.push({ name: 'Dashboard', query: { openFyn: 'journey', from: handoffSource.value } });
+      } else {
+        router.push(result.redirect_to || { name: 'Dashboard' });
+      }
     };
 
     return {
@@ -498,6 +567,10 @@ export default {
       pendingId,
       pendingEmail,
       funnelHandoff,
+      handoffError,
+      loginDestination,
+      resetHandoff,
+      resumeVerification,
       restoreModal,
       handleRegister,
       handleVerified,

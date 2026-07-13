@@ -352,7 +352,7 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            $canonical = $this->normaliser->fromForm($request->validated());
+            $canonical = $this->normaliser->fromForm($request->validated(), partial: true);
             $account = $this->savingsStore->update($id, $canonical, $user, IngestSource::FORM);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);

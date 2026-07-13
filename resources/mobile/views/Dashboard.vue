@@ -246,7 +246,7 @@
     </div>
 
     <!-- Docked Fyn bar -->
-    <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
+    <button ref="fynDock" type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
@@ -346,7 +346,7 @@
 
       <form class="md-fyn__compose" @submit.prevent="send()">
         <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
-        <input id="md-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
+        <input id="md-fyn-input" ref="fynInput" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7" /></svg>
         </button>
@@ -896,14 +896,16 @@ export default {
     },
     openFyn() {
       this.fynMounted = true;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
         this.fynOpen = true;
         this.scrollFyn();
-        this.initFyn();
+        await this.initFyn();
+        this.$nextTick(() => { this.$refs.fynInput?.focus(); });
       });
     },
     closeFyn() {
       this.fynOpen = false;
+      this.$nextTick(() => { this.$refs.fynDock?.focus(); });
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
     // Open the bug-report sheet from the Fyn chat, carrying the active

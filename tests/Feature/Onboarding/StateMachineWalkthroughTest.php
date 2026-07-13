@@ -54,9 +54,10 @@ function sendOnboardingMessage(
     User $user,
     int $conversationId,
     string $message
-): void {
+): string {
     Sanctum::actingAs($user->fresh());
-    $testCase->postJson(
+
+    return $testCase->postJson(
         "/api/ai-chat/conversations/{$conversationId}/messages",
         ['message' => $message]
     )->streamedContent();
@@ -152,13 +153,15 @@ describe('state-machine walkthrough — path_choice → done', function () {
         expect($this->user->onboarding_fyn_step)
             ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
 
-        // Step 8 — base_expenditure free_text: "4000" → profile_review_expenditure (Phase 10)
-        sendOnboardingMessage($this, $this->user, $conversation->id, '4000');
+        // Step 8 — base_expenditure free_text: "10000" → profile_review_expenditure (Phase 10)
+        $expenditureStream = sendOnboardingMessage($this, $this->user, $conversation->id, '10000');
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
             ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE)
-            ->and((float) $this->user->monthly_expenditure)->toBe(4000.0);
+            ->and((float) $this->user->monthly_expenditure)->toBe(10000.0)
+            ->and($this->user->expenditure_entry_mode)->toBe('simple')
+            ->and($expenditureStream)->toContain('"type":"capture_complete"');
 
         // Step 8a — profile_review_expenditure bubble: "Looks correct" → asset_capture
         sendOnboardingMessage($this, $this->user, $conversation->id, 'Looks correct');
@@ -170,7 +173,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
         // Step 8b — ExpenditureProfile sync (covers bug §4 from 88018a5)
         $profile = ExpenditureProfile::where('user_id', $this->user->id)->first();
         expect($profile)->not->toBeNull()
-            ->and((float) $profile->total_monthly_expenditure)->toBe(4000.0);
+            ->and((float) $profile->total_monthly_expenditure)->toBe(10000.0);
 
         // Step 9 — simulate asset_capture delegation advancing to add_more
         jumpTo($this->user->id, OnboardingStateMachine::STATE_ADD_MORE, [

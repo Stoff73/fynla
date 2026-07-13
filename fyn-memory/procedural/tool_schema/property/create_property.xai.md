@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_property",
-    "description": "Create a property record and optionally a linked mortgage. Call this tool IMMEDIATELY when the user mentions a property — do not ask questions first. Fill in every field you can from what the user said and set null for anything not mentioned. The form will be opened, filled, and saved automatically. After saving, confirm what was added and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. Infer sensible values: if they say \"my house\" assume main_residence, if they say \"our house\" assume joint ownership. You MAY call this tool multiple times in the same turn when the user mentions multiple properties (e.g. \"main residence and a buy-to-let\" → two tool calls) — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create a property only after the user explicitly confirms whether it is owned individually, jointly, as tenants in common, or in trust. Joint and tenants-in-common records also require the joint owner and primary owner's percentage share. Never infer ownership from my or our. Set optional fields to null when not stated.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -99,7 +99,7 @@ effective_from: 2026-06-02
                         "type": "null"
                     }
                 ],
-                "description": "How the property is owned. \"individual\" = sole owner. \"joint\" = joint tenancy (equal shares, passes to survivor). \"tenants_in_common\" = can have unequal shares, passes via will. \"trust\" = held in a trust. Default to \"individual\" if not specified."
+                "description": "How the property is owned, only after the user explicitly confirms it. \"individual\" = sole owner. \"joint\" = joint tenancy. \"tenants_in_common\" = separate shares. \"trust\" = held in a trust. Never default missing ownership."
             },
             "ownership_percentage": {
                 "type": [
@@ -114,6 +114,20 @@ effective_from: 2026-06-02
                     "null"
                 ],
                 "description": "Name of joint owner. Only if joint or tenants_in_common. Use spouse name if mentioned."
+            },
+            "joint_owner_id": {
+                "type": [
+                    "integer",
+                    "null"
+                ],
+                "description": "User ID of the confirmed joint owner. Required when ownership is joint or tenants_in_common; otherwise null."
+            },
+            "trust_id": {
+                "type": [
+                    "integer",
+                    "null"
+                ],
+                "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership; otherwise null."
             },
             "tenure_type": {
                 "anyOf": [
@@ -323,6 +337,8 @@ effective_from: 2026-06-02
             "ownership_type",
             "ownership_percentage",
             "joint_owner_name",
+            "joint_owner_id",
+            "trust_id",
             "tenure_type",
             "lease_remaining_years",
             "lease_expiry_date",

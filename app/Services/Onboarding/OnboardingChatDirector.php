@@ -319,6 +319,24 @@ final class OnboardingChatDirector
             yield ['type' => 'content', 'text' => $ack];
         }
 
+        // Expenditure is a two-table write whose visible confirmation must be
+        // tied to the completed persistence step. Emit the same typed closing
+        // receipt used by delegated captures only after both users.* and the
+        // expenditure profile have been saved; the desktop and /m clients can
+        // then render a truthful read-back instead of trusting prose alone.
+        if (($state['capture_field'] ?? null) === 'monthly_expenditure') {
+            $monthly = (float) ($interpretation['captured_value'] ?? 0);
+            yield [
+                'type' => 'capture_complete',
+                'summary' => 'Recorded monthly spending of £'.number_format($monthly).'.',
+                'records_created' => [],
+                'fields_updated' => [
+                    'users.monthly_expenditure',
+                    'expenditure_profiles.total_monthly_expenditure',
+                ],
+            ];
+        }
+
         // Decide the next state id (applies skip_if transitively).
         $nextStateId = OnboardingStateMachine::getNextStateId(
             $currentStateId,
@@ -1493,20 +1511,23 @@ final class OnboardingChatDirector
             $user->onboarding_fyn_context = $context;
         }
 
-        $user->save();
+        // A single total is simple-entry data. Persist its mode, user total and
+        // profile mirror atomically so the desktop category view does not hide
+        // a value that `/m` can display.
+        if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue >= 0) {
+            $user->expenditure_entry_mode = 'simple';
+            DB::transaction(function () use ($user, $capturedValue): void {
+                $user->save();
+                ExpenditureProfile::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['total_monthly_expenditure' => (float) $capturedValue],
+                );
+            });
 
-        // Mirror monthly_expenditure into the ExpenditureProfile row so the
-        // dashboard and IHTCalculationService (which both read
-        // total_monthly_expenditure off the profile) pick it up without the
-        // user needing a post-onboarding "my expenses aren't showing" turn.
-        // The user can still break it into categories later via the
-        // expenditure form; this write only populates the total.
-        if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue > 0) {
-            ExpenditureProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                ['total_monthly_expenditure' => (float) $capturedValue],
-            );
+            return;
         }
+
+        $user->save();
     }
 
     /**
@@ -1545,56 +1566,92 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Parse a "how many kids and what ages" free-text reply and create
-     * FamilyMember rows. Deliberately forgiving — Claude could be used
-     * for a richer parse in a follow-up iteration but for MVP the
-     * director handles it deterministically.
+     * Persist only explicit dependant dates. An age is useful conversational
+     * context but is not evidence for a precise date of birth.
      */
     private function createDependantFamilyMembers(User $user, string $rawText): void
     {
-        // B-2 — ensure household exists before any dependant insert.
+        $month = '(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)';
+        $date = '(?:\d{1,2}(?:st|nd|rd|th)?\s+'.$month.'\s+\d{4}|\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4})';
+        $pattern = '/\b(?<name>[A-Z][a-zA-Z\'’-]{1,30})\s*,?\s*(?:born|date of birth|dob(?:\s+is)?)\s*(?:on\s+)?(?<dob>'.$date.')/u';
+
+        if (preg_match_all($pattern, $rawText, $matches, PREG_SET_ORDER) === false || $matches === []) {
+            return;
+        }
+
+        $dependants = [];
+        foreach ($matches as $match) {
+            $parsed = $this->parseExplicitDependantDate((string) $match['dob']);
+            if ($parsed === null) {
+                return;
+            }
+            $dependants[] = [
+                'first_name' => (string) $match['name'],
+                'date' => $parsed,
+            ];
+        }
+
+        if ($dependants === []) {
+            return;
+        }
+
         $householdId = $this->householdProvisioner->ensureFor($user);
-
-        // Ages are the most reliable signal. Pull every integer between 0
-        // and 25 from the message; treat each as one dependant's age.
-        if (preg_match_all('/\b(\d{1,2})\b/', $rawText, $matches) === false) {
-            return;
-        }
-
-        $ages = array_values(array_filter(
-            array_map('intval', $matches[1] ?? []),
-            fn (int $n): bool => $n >= 0 && $n <= 25
-        ));
-
-        if (count($ages) === 0) {
-            // Record the raw text as notes on a single placeholder row so
-            // the intent is not lost.
-            FamilyMember::create([
-                'user_id' => $user->id,
-                'household_id' => $householdId,
-                'relationship' => 'child',
-                'first_name' => 'Dependant',
-                'is_dependent' => true,
-                'education_status' => 'not_applicable',
-                'notes' => 'Added via Fyn onboarding — ages not parsed. Raw: '.mb_substr($rawText, 0, 200),
-            ]);
-
-            return;
-        }
-
-        foreach ($ages as $age) {
+        foreach ($dependants as $dependant) {
+            $age = $dependant['date']->age;
             FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $householdId,
                 'relationship' => $age < 18 ? 'child' : 'other_dependent',
-                'first_name' => 'Dependant',
-                'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
+                'first_name' => $dependant['first_name'],
+                'date_of_birth' => $dependant['date']->toDateString(),
                 'is_dependent' => true,
                 'education_status' => $this->educationStatusForAge($age),
-                'notes' => 'Added via Fyn onboarding. Age '.$age.' inferred from "'
-                    .mb_substr($rawText, 0, 200).'"',
+                'notes' => 'Added via Fyn onboarding from an explicit date of birth.',
             ]);
         }
+    }
+
+    private function parseExplicitDependantDate(string $value): ?Carbon
+    {
+        $day = null;
+        $month = null;
+        $year = null;
+
+        if (preg_match('#^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$#', $value, $match) === 1) {
+            [$day, $month, $year] = [(int) $match[1], (int) $match[2], (int) $match[3]];
+        } elseif (preg_match('#^(\d{4})-(\d{1,2})-(\d{1,2})$#', $value, $match) === 1) {
+            [$day, $month, $year] = [(int) $match[3], (int) $match[2], (int) $match[1]];
+        } elseif (preg_match('/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})$/i', $value, $match) === 1) {
+            $months = [
+                'january' => 1, 'jan' => 1,
+                'february' => 2, 'feb' => 2,
+                'march' => 3, 'mar' => 3,
+                'april' => 4, 'apr' => 4,
+                'may' => 5,
+                'june' => 6, 'jun' => 6,
+                'july' => 7, 'jul' => 7,
+                'august' => 8, 'aug' => 8,
+                'september' => 9, 'sep' => 9, 'sept' => 9,
+                'october' => 10, 'oct' => 10,
+                'november' => 11, 'nov' => 11,
+                'december' => 12, 'dec' => 12,
+            ];
+            $day = (int) $match[1];
+            $month = $months[mb_strtolower($match[2])] ?? null;
+            $year = (int) $match[3];
+        }
+
+        if ($day === null || $month === null || $year === null || ! checkdate($month, $day, $year)) {
+            return null;
+        }
+
+        $date = Carbon::create($year, $month, $day, 0, 0, 0);
+
+        if ($date->isFuture() || $date->age > 120) {
+            return null;
+        }
+
+        return $date->startOfDay();
     }
 
     private function educationStatusForAge(int $age): string
@@ -2387,6 +2444,15 @@ final class OnboardingChatDirector
             $missing
         )));
 
+        if ($toolName === 'capture_dependants') {
+            $needsDate = collect($missing)->contains(
+                fn (string $field): bool => str_ends_with($field, '.date_of_birth')
+            );
+            $friendly = [$needsDate
+                ? 'the exact date of birth for each dependant'
+                : 'how each dependant is related to you'];
+        }
+
         if (count($friendly) === 0) {
             return 'I still need a couple of things to move on — could you share them again?';
         }
@@ -2414,13 +2480,18 @@ final class OnboardingChatDirector
         if ($funnel === []) {
             return null;
         }
+        if (($funnel['campaign'] ?? 'savetax') !== 'savetax') {
+            return null;
+        }
 
         if ($stateId === OnboardingStateMachine::STATE_BASE_WORK) {
             $field = 'self';
             $band = (string) ($funnel['income'] ?? '');
+            $issuedContext = $funnel['income_context'] ?? null;
         } elseif ($stateId === OnboardingStateMachine::STATE_BASE_SPOUSE) {
             $field = 'spouse';
             $band = (string) ($funnel['spouseIncome'] ?? '');
+            $issuedContext = $funnel['spouse_income_context'] ?? null;
         } else {
             return null;
         }
@@ -2440,22 +2511,54 @@ final class OnboardingChatDirector
         }
         $entered = (float) $enteredRaw;
 
-        if (FunnelIncomeBand::inBand($band, $entered)) {
-            return null;
+        $bandLabel = null;
+        try {
+            if (is_array($issuedContext)) {
+                $insideBand = FunnelIncomeBand::inContext($band, $issuedContext, $entered);
+                $bandLabel = FunnelIncomeBand::contextLabel($band, $issuedContext);
+            } else {
+                $insideBand = FunnelIncomeBand::inBand($band, $entered);
+            }
+            if ($insideBand) {
+                return null;
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+            try {
+                if (FunnelIncomeBand::inBand($band, $entered)) {
+                    return null;
+                }
+            } catch (\Throwable $fallbackException) {
+                report($fallbackException);
+
+                return null;
+            }
         }
 
-        return ['field' => $field, 'band' => $band, 'entered' => $entered];
+        return [
+            'field' => $field,
+            'band' => $band,
+            'band_label' => $bandLabel,
+            'entered' => $entered,
+        ];
     }
 
     /**
      * Plain-text challenge naming what the user told the funnel and what they
      * just entered. No icons (Rule #15); British spelling.
      *
-     * @param  array{field: string, band: string, entered: float}  $mismatch
+     * @param  array{field: string, band: string, band_label?: ?string, entered: float}  $mismatch
      */
     private function buildIncomeChallenge(array $mismatch, User $user): string
     {
-        $bandLabel = FunnelIncomeBand::label($mismatch['band']);
+        try {
+            $bandLabel = is_string($mismatch['band_label'] ?? null)
+                ? $mismatch['band_label']
+                : FunnelIncomeBand::label($mismatch['band']);
+        } catch (\Throwable $exception) {
+            report($exception);
+            $bandLabel = 'in the range you selected';
+        }
         $entered = '£'.number_format($mismatch['entered']);
 
         if ($mismatch['field'] === 'spouse') {
@@ -2584,7 +2687,7 @@ final class OnboardingChatDirector
         $instructions = match ($toolName) {
             'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Dates may arrive in short formats — read numeric dates as UK day-first ("19/02/1982" is 19 February) and expand a two-digit year to the century that gives a plausible adult age ("19/02/82" or "19 Feb 82" → 1982-02-19, never 2082). Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
             'capture_spouse_details' => 'Extract the user\'s spouse or partner details. You need their first name, date of birth, and email address. If they mention an annual income, extract it too. Do NOT invent missing fields — if the user did not provide all three required fields, return an error.',
-            'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an age and a relationship (child, parent, or other_dependent). First names are optional. Map phrases: "son", "daughter", "step-daughter", "step-son", "kid", "child" → child. "mother", "father", "mum", "dad", "mum-in-law", etc. → parent. Sibling, nephew, elderly relative, friend → other_dependent. If the user says "two kids aged 4 and 7" return two entries with relationship=child.',
+            'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an exact date_of_birth in YYYY-MM-DD format and a relationship (child, parent, or other_dependent). First names are optional. Never convert an age into a date. If the user gives only an age, leave date_of_birth empty so the director asks for the exact date.',
             'capture_work_details' => 'Extract the user\'s employer or trade name, their role/position, and their gross annual income in GBP. Strip currency symbols and commas before returning the number. "75k" means 75000. Do not invent fields.',
             'capture_pension_history' => 'Extract the user\'s gross pension contributions for the recent tax years they mention. Strip currency symbols and commas ("90k" means 90000). The three most recent UK tax years are 2024/25, 2023/24, 2022/23. If the user gives a per-year breakdown, map each figure to its year. If they give a SINGLE figure with no per-year breakdown (e.g. "around £90,000"), do NOT guess a split across years and do NOT divide it — call the tool ONCE with that single figure under the most recent tax year (2024/25); the system will clarify total-vs-per-year with the user. "Zero" or "none" means a single entry of 0 for the most recent year. Always call the tool — never reply conversationally.',
             default => 'Extract the user\'s reply using the provided tool.',
@@ -2732,6 +2835,7 @@ PROMPT;
             $ackShown = false;
             $contentBuffer = '';
             $flushed = false;
+            $recordsCreated = [];
 
             // A1 — answer-the-user-first. When the user's message asks a
             // question, the capture turn is allowed to answer it before
@@ -2824,6 +2928,24 @@ PROMPT;
                     continue;
                 }
 
+                if ($type === 'entity_created') {
+                    $record = [
+                        'type' => (string) ($event['entity_type'] ?? ''),
+                        'id' => $event['entity_id'] ?? null,
+                        'name' => (string) ($event['name'] ?? ''),
+                    ];
+                    $recordKey = $record['type'].':'.(string) $record['id'];
+                    $alreadyTracked = collect($recordsCreated)->contains(
+                        static fn (array $tracked): bool => $recordKey === $tracked['type'].':'.(string) $tracked['id']
+                    );
+                    if (! $alreadyTracked) {
+                        $recordsCreated[] = $record;
+                    }
+                    yield $event;
+
+                    continue;
+                }
+
                 if ($type === 'done') {
                     // Flush the buffered ack content now, but DON'T forward the
                     // delegated chat's own `done` — the director emits the next
@@ -2842,7 +2964,7 @@ PROMPT;
                     // B-1 — synthesize tool calls for entities the LLM
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
-                    yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
+                    yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $message, $llmEmittedFills);
 
                     continue;
                 }
@@ -2859,7 +2981,7 @@ PROMPT;
                     $ackShown = true;
                     yield $flushEvent;
                 }
-                yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
+                yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $message, $llmEmittedFills);
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -2919,6 +3041,21 @@ PROMPT;
             $ackShown = true;
         }
 
+        // A failed write is never completion of the current capture step.
+        // Re-ask this state's scripted prompt after the honest failure line;
+        // otherwise the next state can announce "I've saved..." and navigate
+        // even though no record exists.
+        if ($sawFailedWrite && ! $capturedSomething) {
+            $this->recordProgress(
+                $user,
+                $currentStateId,
+                ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
+            );
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+            return;
+        }
+
         $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
             && $this->messageHasSubstantiveAnswer($message);
         if ($userAskedQuestion && ! $capturedSomething && ! $advanceOnAnsweredQuestion) {
@@ -2930,6 +3067,14 @@ PROMPT;
             yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
 
             return;
+        }
+
+        if ($recordsCreated !== []) {
+            yield [
+                'type' => 'capture_complete',
+                'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
+                'records_created' => $recordsCreated,
+            ];
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -3567,6 +3712,7 @@ PROMPT;
      */
     private function emitGapFillToolCalls(
         User $user,
+        AiConversation $conversation,
         string $selection,
         string $message,
         array $llmEmittedFills
@@ -3609,7 +3755,7 @@ PROMPT;
             ];
 
             try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Gap-fill tool execution failed', [
                     'user_id' => $user->id,
@@ -4361,7 +4507,7 @@ PROMPT;
         $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
 
         foreach ($focuses as $focus) {
-            yield from $this->runExtractorForFocus($user, $focus, $message, $llmEmittedFills);
+            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills);
         }
     }
 
@@ -4374,6 +4520,7 @@ PROMPT;
      */
     private function runExtractorForFocus(
         User $user,
+        AiConversation $conversation,
         string $focus,
         string $message,
         array $llmEmittedFills,
@@ -4416,7 +4563,7 @@ PROMPT;
             ];
 
             try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
                     'user_id' => $user->id,

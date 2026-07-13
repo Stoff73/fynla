@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Agents\CoordinatingAgent;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
@@ -65,7 +64,7 @@ it('property + mortgage rollback on mid-transaction DB error leaves zero rows', 
 it('failed validation in handleCreateProperty leaves no Property row', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         // Missing required property_type and current_value.
         'address_line_1' => '2 Test',
     ], $user);

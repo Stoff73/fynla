@@ -91,7 +91,8 @@ it('names what could not be saved when every write failed and the model said not
         ->and($failureText)->toContain('Validation failed for pension');
 
     // The failure explanation persists so the transcript matches on reload.
-    expect($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeTrue();
+    expect($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeTrue()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
 it('holds a question turn whose only write failed instead of advancing', function () {
@@ -163,6 +164,7 @@ it('still advances a question turn whose write landed', function () {
 
     mockDelegatedStream([
         ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 42, 'name' => 'Halifax ISA'],
         ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null],
         ['type' => 'tool_success', 'tool' => 'create_savings_account', 'summary' => 'Halifax ISA added'],
         ['type' => 'content', 'text' => 'Recorded — Halifax ISA.'],
@@ -182,5 +184,9 @@ it('still advances a question turn whose write landed', function () {
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ADD_MORE);
 
     // The landed/failed signal itself never reaches the frontend.
-    expect(collect($received)->firstWhere('type', 'capture_write_result'))->toBeNull();
+    expect(collect($received)->firstWhere('type', 'capture_write_result'))->toBeNull()
+        ->and(collect($received)->where('type', 'capture_complete'))->toHaveCount(1)
+        ->and(collect($received)->firstWhere('type', 'capture_complete')['records_created'])->toBe([
+            ['type' => 'savings_account', 'id' => 42, 'name' => 'Halifax ISA'],
+        ]);
 });

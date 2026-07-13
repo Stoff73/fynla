@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_liability",
-    "description": "Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create a liability only after the user explicitly confirms whether it is owned individually or jointly. Joint records also require the joint owner and primary owner's percentage share. Never infer ownership.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -37,6 +37,23 @@ effective_from: 2026-06-02
                 "type": "number",
                 "description": "Outstanding balance (£)"
             },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint", "tenants_in_common", "trust"],
+                "description": "Ownership explicitly confirmed by the user."
+            },
+            "joint_owner_id": {
+                "type": ["integer", "null"],
+                "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership; otherwise null."
+            },
+            "trust_id": {
+                "type": ["integer", "null"],
+                "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership; otherwise null."
+            },
+            "ownership_percentage": {
+                "type": ["number", "null"],
+                "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership; otherwise 100 for individual."
+            },
             "monthly_payment": {
                 "type": [
                     "number",
@@ -56,6 +73,10 @@ effective_from: 2026-06-02
             "liability_name",
             "liability_type",
             "current_balance",
+            "ownership_type",
+            "joint_owner_id",
+            "trust_id",
+            "ownership_percentage",
             "monthly_payment",
             "interest_rate"
         ],

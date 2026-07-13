@@ -33,6 +33,10 @@ return [
     */
     'fyn_flow_enabled' => env('ONBOARDING_FYN_FLOW_ENABLED', true),
 
+    // The public funnel collects bands rather than an exact figure. This is a
+    // campaign modelling assumption, deliberately separate from tax constants.
+    'savetax_over_band_assumed_income' => 150000,
+
     /*
     |--------------------------------------------------------------------------
     | Entry-source journey map (INV-2.2.5)

@@ -49,6 +49,7 @@
   transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   min-height: 2.75rem; /* 44px touch target */
 }
+#btn-yearly { min-width: 9rem; }
 .billing-toggle__btn:hover { color: var(--horizon-500); }
 .billing-toggle__btn--active {
   background: var(--horizon-500); color: var(--white);

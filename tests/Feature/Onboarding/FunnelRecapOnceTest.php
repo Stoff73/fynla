@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\TaxConfiguration;
 use App\Models\User;
+use App\Services\Onboarding\FunnelIncomeBand;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\TaxConfigService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -64,4 +67,40 @@ it('still greets with the recap when no conversation is supplied', function () {
 
     expect(OnboardingStateMachine::buildWorkPrompt('', $user))
         ->toContain('thanks for those answers');
+});
+
+it('recaps the income band using the active tax configuration', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $data['income_tax']['personal_allowance_taper_threshold'] = 110000;
+    $data['income_tax']['additional_rate_threshold'] = 140000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    $user = campaignWorkUser();
+    $user->update(['funnel_answers' => [...$user->funnel_answers, 'income' => 'upto_50270']]);
+
+    expect(OnboardingStateMachine::buildWorkPrompt('', $user))
+        ->toContain('Earning up to £60,000')
+        ->not->toContain('Earning up to £50,270');
+});
+
+it('keeps the recap wording from the tax year in which the funnel was completed', function () {
+    $context = FunnelIncomeBand::context('upto_50270');
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+
+    $user = campaignWorkUser();
+    $user->update(['funnel_answers' => [
+        ...$user->funnel_answers,
+        'income' => 'upto_50270',
+        'income_context' => $context,
+    ]]);
+
+    expect(OnboardingStateMachine::buildWorkPrompt('', $user))
+        ->toContain('Earning up to £50,270')
+        ->not->toContain('Earning up to £60,000');
 });

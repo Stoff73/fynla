@@ -43,6 +43,11 @@ export default {
                 : 'w-[712px] max-w-full';
         },
     },
+    methods: {
+        focusInput() {
+            this.$refs.chatPanel?.focusInput?.();
+        },
+    },
 };
 </script>
 
@@ -52,7 +57,7 @@ export default {
         :class="[chatContainerClasses, docked ? 'overflow-hidden' : 'items-center mx-auto']"
     >
         <div :class="docked ? 'flex-1 min-h-0' : 'w-full'">
-            <AiChatPanel v-bind="$attrs" :docked="docked" />
+            <AiChatPanel ref="chatPanel" v-bind="$attrs" :docked="docked" />
         </div>
     </div>
 </template>

@@ -252,6 +252,13 @@ export default {
         // Mid-campaign verify navigate or the terminal turn. Captured here; the
         // caller decides how the surface presents it after the stream.
         cursor.navigation = ev.route_path;
+        // The server has advanced to Gate 2, but the mobile user snapshot was
+        // fetched before the campaign started. Keep its step in sync so the
+        // destination screen's MobileChrome resumes this conversation instead
+        // of opening a new advice chat from the stale null step.
+        if (store.user && ev.section && ev.route_path !== '/tax-strategy') {
+          store.user.onboarding_fyn_step = 'campaign_verify_navigate';
+        }
         // Section being verified (income/spouse/…) — the destination screen uses
         // it to label itself (e.g. the income page shows "Your income" vs "Your
         // spouse's income"). Carried as a route query on push.

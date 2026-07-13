@@ -835,6 +835,10 @@ export default {
     },
 
     methods: {
+        focusInput() {
+            this.$nextTick(() => this.$refs.inputField?.focus());
+        },
+
         ...mapActions('aiChat', [
             'close',
             'toggle',

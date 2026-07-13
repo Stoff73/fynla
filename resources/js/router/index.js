@@ -1559,7 +1559,13 @@ router.beforeEach(async (to, from, next) => {
     if (token) {
       try { localStorage.setItem('m_scaffold_token', token); } catch (e) { /* private mode */ }
     }
-    window.location.replace(routerBase + 'm/app');
+    const mobileQuery = new URLSearchParams();
+    if (typeof to.query.from === 'string' && to.query.from) {
+      mobileQuery.set('from', to.query.from);
+    }
+    const mobileUrl = routerBase + 'm/app' + (mobileQuery.size ? `?${mobileQuery.toString()}` : '');
+    window.__fynlaMobileHandoffPending = true;
+    window.location.replace(mobileUrl);
     return next(false); // cancel the in-frame SPA nav; the frame is reloading into /m/app
   }
 

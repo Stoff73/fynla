@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_property",
-    "description": "Create a property for the user. If they also mention a mortgage, include the outstanding mortgage amount and it will be created automatically. You MAY call this tool multiple times in the same turn when the user mentions multiple properties — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create a property only after the user explicitly confirms whether it is owned individually, jointly, as tenants in common, or in trust. Joint and tenants-in-common records also require the joint owner and primary owner's percentage share. Never infer ownership from my or our.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -26,6 +26,23 @@ effective_from: 2026-06-02
             "current_value": {
                 "type": "number",
                 "description": "Current estimated value in pounds"
+            },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint", "tenants_in_common", "trust"],
+                "description": "Ownership explicitly confirmed by the user."
+            },
+            "joint_owner_id": {
+                "type": "integer",
+                "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+            },
+            "trust_id": {
+                "type": "integer",
+                "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+            },
+            "ownership_percentage": {
+                "type": "number",
+                "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
             },
             "purchase_price": {
                 "type": "number",
@@ -63,7 +80,8 @@ effective_from: 2026-06-02
         },
         "required": [
             "property_type",
-            "current_value"
+            "current_value",
+            "ownership_type"
         ],
         "additionalProperties": false
     }

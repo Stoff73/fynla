@@ -9,6 +9,7 @@ use App\Events\Savings\SavingsAccountDeleted;
 use App\Events\Savings\SavingsAccountRestored;
 use App\Events\Savings\SavingsAccountUpdated;
 use App\Models\AuditLog;
+use App\Models\Estate\Trust;
 use App\Models\SavingsAccount;
 use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
@@ -119,6 +120,7 @@ class SavingsStore
     public function create(array $data, User $user, IngestSource $source): SavingsAccount
     {
         $this->validateCanonical($data);
+        $this->validateOwnershipLinks($data, $user);
 
         $count = $this->countForUser($user);
         if (! $this->tierGate->canCreate($user, self::ENTITY_KEY, $count)) {
@@ -151,6 +153,10 @@ class SavingsStore
     {
         $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $this->validateCanonical($data);
+        $this->validateOwnershipLinks(array_merge(
+            $account->only(['account_type', 'is_isa', 'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id']),
+            $data
+        ), $user);
 
         return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($account, $data, $user, $source) {
             // fill before getDirty so the dirty diff is captured correctly
@@ -280,8 +286,9 @@ class SavingsStore
             'interest_rate' => 'sometimes|nullable|numeric|min:0|max:20',
             'is_isa' => 'sometimes|boolean',
             'is_emergency_fund' => 'sometimes|boolean',
-            'ownership_type' => 'sometimes|in:individual,joint,trust',
+            'ownership_type' => 'sometimes|in:individual,joint,tenants_in_common,trust',
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'trust_id' => 'sometimes|nullable|integer|exists:trusts,id',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
             'country' => 'sometimes|nullable|string|max:255',
             'include_in_retirement' => 'sometimes|boolean',
@@ -290,6 +297,71 @@ class SavingsStore
         $validator = Validator::make($data, $rules);
         if ($validator->fails()) {
             throw new StoreValidationException($validator->errors()->toArray());
+        }
+    }
+
+    private function validateOwnershipLinks(array $data, User $user): void
+    {
+        $ownershipType = $data['ownership_type'] ?? 'individual';
+        $jointOwnerId = isset($data['joint_owner_id']) && is_numeric($data['joint_owner_id'])
+            ? (int) $data['joint_owner_id']
+            : null;
+        $trustId = isset($data['trust_id']) && is_numeric($data['trust_id'])
+            ? (int) $data['trust_id']
+            : null;
+        $isIsa = ! empty($data['is_isa'])
+            || in_array($data['account_type'] ?? null, ['cash_isa', 'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa', 'junior_isa'], true);
+
+        if ($isIsa && ($ownershipType !== 'individual' || $jointOwnerId !== null || $trustId !== null)) {
+            throw new StoreValidationException([
+                'ownership_type' => ['ISAs must be held in one individual name.'],
+            ]);
+        }
+
+        if (in_array($ownershipType, ['joint', 'tenants_in_common'], true)) {
+            $ownershipPercentage = $data['ownership_percentage'] ?? null;
+            if (! is_numeric($ownershipPercentage)
+                || (float) $ownershipPercentage <= 0
+                || (float) $ownershipPercentage >= 100) {
+                throw new StoreValidationException([
+                    'ownership_percentage' => ['An explicit ownership share between 0% and 100% is required for a shared account.'],
+                ]);
+            }
+
+            $isReciprocalSpouse = $jointOwnerId !== null
+                && (int) $user->spouse_id === $jointOwnerId
+                && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
+            if (! $isReciprocalSpouse) {
+                throw new StoreValidationException([
+                    'joint_owner_id' => ['The joint owner must be securely linked to your household.'],
+                ]);
+            }
+        } elseif ($jointOwnerId !== null) {
+            throw new StoreValidationException([
+                'joint_owner_id' => ['A joint owner can only be set for a shared account.'],
+            ]);
+        }
+
+        if ($ownershipType === 'trust') {
+            $isHouseholdTrust = $trustId !== null
+                && Trust::query()
+                    ->whereKey($trustId)
+                    ->where(function ($query) use ($user): void {
+                        $query->where('user_id', $user->id);
+                        if ($user->household_id !== null) {
+                            $query->orWhere('household_id', $user->household_id);
+                        }
+                    })
+                    ->exists();
+            if (! $isHouseholdTrust) {
+                throw new StoreValidationException([
+                    'trust_id' => ['The trust must be securely linked to your household.'],
+                ]);
+            }
+        } elseif ($trustId !== null) {
+            throw new StoreValidationException([
+                'trust_id' => ['A trust can only be set for a trust-owned account.'],
+            ]);
         }
     }
 }

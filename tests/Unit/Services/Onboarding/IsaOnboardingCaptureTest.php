@@ -34,13 +34,21 @@ it('runs the investments section when the funnel ticked investments', function (
     expect(OnboardingStateMachine::skipSectionIfNoInvestments($user))->toBeFalse();
 });
 
-it('names a Stocks & Shares ISA correctly in the savings gap-fill (never "Cash")', function () {
-    $out = app(AssetCaptureEntityExtractor::class)
-        ->extractSavingsAccounts('a Vanguard Stocks & Shares ISA with £40,000');
+it('routes an explicit Stocks & Shares ISA to investments rather than cash savings', function () {
+    $extractor = app(AssetCaptureEntityExtractor::class);
 
-    expect($out)->toHaveCount(1)
-        ->and($out[0]['account_name'])->toContain('Stocks & Shares Individual Savings Account')
-        ->and($out[0]['account_name'])->not->toContain('Cash');
+    expect($extractor->extractSavingsAccounts('a Vanguard Stocks & Shares ISA with £40,000'))->toBe([])
+        ->and($extractor->extractInvestmentAccounts('a Vanguard Stocks & Shares ISA with £40,000'))
+        ->toHaveCount(1)
+        ->and($extractor->extractInvestmentAccounts('a Vanguard Stocks & Shares ISA with £40,000')[0]['account_type'])
+        ->toBe('stocks_shares_isa');
+});
+
+it('does not turn a bare ISA into a Cash ISA', function () {
+    $extractor = app(AssetCaptureEntityExtractor::class);
+
+    expect($extractor->extractSavingsAccounts('I have an ISA with £20,000'))->toBe([])
+        ->and($extractor->extractInvestmentAccounts('I have an ISA with £20,000'))->toBe([]);
 });
 
 it('tells Fyn to route a Cash ISA to savings and a Stocks & Shares ISA to investments, using the tax-year subscription', function () {

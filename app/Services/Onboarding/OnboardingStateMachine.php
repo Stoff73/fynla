@@ -435,9 +435,9 @@ final class OnboardingStateMachine
             ],
             self::STATE_BASE_DEPENDANTS_DETAIL => [
                 'turn_type' => 'grouped_extract',
-                'prompt_text' => 'Lovely. Tell me their first names, ages, and how they are related to you (child, parent, or other dependant). You can list several in one go.',
+                'prompt_text' => 'Lovely. Tell me their first names, exact dates of birth, and how they are related to you (child, parent, or other dependant). Please use day, month, and year — accurate dates help keep the plan correct. You can list several in one go.',
                 'extraction_tool' => 'capture_dependants',
-                'retry_text' => 'Could you list them again with ages and how they are related? Something like "Alice 7 child, Bob 4 child".',
+                'retry_text' => 'Could you list them again with exact dates of birth and how they are related? Something like "Alice, born 14 September 2017, child".',
                 'next' => self::STATE_PROFILE_REVIEW_FAMILY,
             ],
             // Phase 10 — profile-review pause after family details. Frontend
@@ -554,7 +554,7 @@ final class OnboardingStateMachine
             // ── Savings section (entry: ISA) ──────────────────────────────
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => "Let's look at your ISAs. **Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?**",
+                'prompt_text' => "Let's look at your ISAs. **For each one, is it a Cash, Stocks & Shares, Lifetime, or Innovative Finance ISA; what's its current balance; how much have you put in this tax year; and is it owned by you individually?**",
                 'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
                 // Only ask about ISAs if the user ticked "ISA" on the funnel.
@@ -571,7 +571,7 @@ final class OnboardingStateMachine
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => 'Any investment accounts — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
+                'prompt_text' => 'Any investment accounts — General Investment Accounts or share trading platforms? For each one, tell me the current value, purchase cost, annual dividend income, and whether you own it individually or jointly. If jointly, include the other owner and your percentage share.',
                 'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
@@ -1545,12 +1545,10 @@ final class OnboardingStateMachine
             $points[] = ucfirst($employmentLabel);
         }
 
-        $incomeLabel = [
-            'upto_50270' => 'earning up to £50,270',
-            '50271_100000' => 'earning £50,271 to £100,000',
-            '100001_125140' => 'earning £100,001 to £125,140',
-            'over_125140' => 'earning above £125,140',
-        ][$funnel['income'] ?? ''] ?? null;
+        $incomeLabel = self::saveTaxIncomeRecapLabel(
+            $funnel['income'] ?? null,
+            $funnel['income_context'] ?? null,
+        );
         if ($incomeLabel) {
             $points[] = ucfirst($incomeLabel);
         }
@@ -1560,12 +1558,11 @@ final class OnboardingStateMachine
             // income (the "No income"/zero option and the no-spouse path leave it
             // unset), so the band→phrase map omits zero — an unset/zero band falls
             // through to '' and we recap just the spouse, no income line.
-            $spouseIncomeSuffix = [
-                'upto_50270' => ' earning up to £50,270',
-                '50271_100000' => ' earning £50,271 to £100,000',
-                '100001_125140' => ' earning £100,001 to £125,140',
-                'over_125140' => ' earning above £125,140',
-            ][$funnel['spouseIncome'] ?? ''] ?? '';
+            $spouseIncomeLabel = self::saveTaxIncomeRecapLabel(
+                $funnel['spouseIncome'] ?? null,
+                $funnel['spouse_income_context'] ?? null,
+            );
+            $spouseIncomeSuffix = $spouseIncomeLabel ? ' '.$spouseIncomeLabel : '';
             $points[] = 'You have a spouse'.$spouseIncomeSuffix;
         }
 
@@ -1605,6 +1602,31 @@ final class OnboardingStateMachine
             ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
             .self::BUBBLE_BREAK
             ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+    }
+
+    private static function saveTaxIncomeRecapLabel(mixed $band, mixed $context = null): string
+    {
+        if (! is_string($band) || ! FunnelIncomeBand::isKnown($band)) {
+            return '';
+        }
+
+        try {
+            if (is_array($context)) {
+                return FunnelIncomeBand::contextLabel($band, $context, recap: true);
+            }
+
+            return FunnelIncomeBand::recapLabel($band);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            try {
+                return FunnelIncomeBand::recapLabel($band);
+            } catch (\Throwable $fallbackException) {
+                report($fallbackException);
+
+                return '';
+            }
+        }
     }
 
     /** Join a list into "a, b and c". */
@@ -1891,14 +1913,14 @@ final class OnboardingStateMachine
         $hasSavings = self::funnelHasAnyAsset($user, ['savings']);
 
         if ($hasBank && $hasSavings) {
-            return "Now your savings — bank accounts and savings accounts. **For each, what's the balance and the interest rate?**";
+            return "Now your savings — bank accounts and savings accounts. **For each, what's the balance and interest rate, and is it owned individually or jointly? If jointly, who owns it with you and what's your percentage share?**";
         }
 
         if ($hasBank) {
-            return "Now your bank accounts. **For each, what's the balance and the interest rate?**";
+            return "Now your bank accounts. **For each, what's the balance and interest rate, and is it owned individually or jointly? If jointly, who owns it with you and what's your percentage share?**";
         }
 
-        return "Now your savings accounts. **For each, what's the balance and the interest rate?**";
+        return "Now your savings accounts. **For each, what's the balance and interest rate, and is it owned individually or jointly? If jointly, who owns it with you and what's your percentage share?**";
     }
 
     /**

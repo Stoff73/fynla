@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_liability",
-    "description": "Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create a liability only after the user explicitly confirms whether it is owned individually or jointly. Joint records also require the joint owner and primary owner's percentage share. Never infer ownership.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -34,6 +34,23 @@ effective_from: 2026-06-02
                 "type": "number",
                 "description": "Outstanding balance in pounds"
             },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint", "tenants_in_common", "trust"],
+                "description": "Ownership explicitly confirmed by the user."
+            },
+            "joint_owner_id": {
+                "type": "integer",
+                "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+            },
+            "trust_id": {
+                "type": "integer",
+                "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+            },
+            "ownership_percentage": {
+                "type": "number",
+                "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
+            },
             "monthly_payment": {
                 "type": "number",
                 "description": "Monthly payment amount in pounds"
@@ -46,7 +63,8 @@ effective_from: 2026-06-02
         "required": [
             "liability_name",
             "liability_type",
-            "current_balance"
+            "current_balance",
+            "ownership_type"
         ],
         "additionalProperties": false
     }

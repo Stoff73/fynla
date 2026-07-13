@@ -24,7 +24,17 @@ async function boot() {
         new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
       ]);
       if (refreshed && refreshed.ok && refreshed.data?.data?.token) {
-        store.setToken(refreshed.data.data.token);
+        const rotatedToken = refreshed.data.data.token;
+        store.setToken(rotatedToken);
+        // Keep the framed desktop SPA's bridge token in step with the rotated
+        // mobile token. Otherwise a later visit to /savetax can copy the now-
+        // revoked pre-rotation token back into m_scaffold_token and strand the
+        // dashboard on 401 responses.
+        try {
+          (window.top || window).sessionStorage.setItem('auth_token', rotatedToken);
+        } catch (e) {
+          /* partitioned storage — the mobile token remains authoritative */
+        }
       }
     } catch (e) {
       /* keep the existing token — it is still valid */

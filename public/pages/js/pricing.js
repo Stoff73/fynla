@@ -12,6 +12,18 @@
 (function () {
   'use strict';
 
+  function annualSavingPercent(monthlyPence, annualPence) {
+    if (!Number.isFinite(monthlyPence) || !Number.isFinite(annualPence) || monthlyPence <= 0 || annualPence <= 0) {
+      return null;
+    }
+    var monthlyAnnualised = monthlyPence * 12;
+    if (annualPence >= monthlyAnnualised) return null;
+
+    return Math.round((1 - annualPence / (monthlyPence * 12)) * 100);
+  }
+
+  window.FynlaPricing = { annualSavingPercent: annualSavingPercent };
+
   var btnMonthly = document.getElementById('btn-monthly');
   var btnYearly  = document.getElementById('btn-yearly');
   var saveLabel  = document.getElementById('save-label');
@@ -20,6 +32,7 @@
   if (!btnMonthly || !btnYearly) return; /* guard — element not present */
 
   var isYearly = true; /* yearly is the default */
+  var yearlySavingPercent = null;
 
   /* Paid-tier prices in pence. Fallback values mirror tier_configurations;
      overwritten by the live /api/pricing-config response when it arrives. */
@@ -170,7 +183,10 @@
     if (isYearly) {
       btnYearly.classList.add('billing-toggle__btn--active');
       btnMonthly.classList.remove('billing-toggle__btn--active');
-      if (saveLabel) saveLabel.hidden = false;
+      if (saveLabel) {
+        saveLabel.textContent = yearlySavingPercent === null ? '' : 'Save ' + yearlySavingPercent + '%';
+        saveLabel.hidden = yearlySavingPercent === null;
+      }
       if (cancelLabel) cancelLabel.hidden = true;
     } else {
       btnMonthly.classList.add('billing-toggle__btn--active');
@@ -214,6 +230,14 @@
           TIERS[t.tier] = { monthly: t.price_monthly_pence, yearly: t.price_annual_pence };
         }
       });
+      var livePremium = rows.find(function (t) { return t.tier === 'tier1'; });
+      var yearlyAvailable = !!(livePremium && livePremium.price_monthly_pence > 0 && livePremium.price_annual_pence > 0);
+      if (!yearlyAvailable) isYearly = false;
+      btnYearly.disabled = !yearlyAvailable;
+      btnYearly.setAttribute('aria-disabled', yearlyAvailable ? 'false' : 'true');
+      yearlySavingPercent = livePremium
+        ? annualSavingPercent(livePremium.price_monthly_pence, livePremium.price_annual_pence)
+        : null;
       applyPrices();
 
       // Render capability-matrix feature lists. "Everything in <prev>, plus:"

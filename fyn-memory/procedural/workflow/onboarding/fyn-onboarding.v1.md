@@ -80,9 +80,9 @@ base_dependants:
 
 base_dependants_detail:
   turn_type: grouped_extract
-  prompt_text: 'Lovely. Tell me their first names, ages, and how they are related to you (child, parent, or other dependant). You can list several in one go.'
+  prompt_text: 'Lovely. Tell me their first names, exact dates of birth, and how they are related to you (child, parent, or other dependant). Please use day, month, and year — accurate dates help keep the plan correct. You can list several in one go.'
   extraction_tool: capture_dependants
-  retry_text: 'Could you list them again with ages and how they are related? Something like "Alice 7 child, Bob 4 child".'
+  retry_text: 'Could you list them again with exact dates of birth and how they are related? Something like "Alice, born 14 September 2017, child".'
   next: profile_review_family
 
 profile_review_family:
@@ -157,19 +157,19 @@ campaign_intro:
 
 campaign_isa_holdings:
   turn_type: delegated
-  prompt_text: "Let's look at your ISAs. **Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?**"
+  prompt_text: "Let's look at your ISAs. **For each one, is it a Cash, Stocks & Shares, Lifetime, or Innovative Finance ISA; what's its current balance; how much have you put in this tax year; and is it owned by you individually?**"
   capture_field: null
   next: campaign_bank_accounts
 
 campaign_bank_accounts:
   turn_type: delegated
-  prompt_text: "Now your savings — bank accounts and savings accounts. **For each, what's the balance and the interest rate?**"
+  prompt_text: "Now your savings — bank accounts and savings accounts. **For each, what's the balance and interest rate, and is it owned individually or jointly? If jointly, who owns it with you and what's your percentage share?**"
   capture_field: null
   next: { branch: enterCampaignVerify }
 
 campaign_investment_accounts:
   turn_type: delegated
-  prompt_text: 'Any investment accounts — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.'
+  prompt_text: 'Any investment accounts — General Investment Accounts or share trading platforms? For each one, tell me the current value, purchase cost, annual dividend income, and whether you own it individually or jointly. If jointly, include the other owner and your percentage share.'
   capture_field: null
   next: { branch: enterCampaignVerify }
 

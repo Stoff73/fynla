@@ -59,7 +59,7 @@ it('create_asset blocks preview users', function (): void {
 it('create_liability persists an estate Liability', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_liability', [
+    $result = $this->executeCaptureToolWithEvidence('create_liability', [
         'liability_name' => 'Barclaycard',
         'liability_type' => 'credit_card',
         'current_balance' => 2500,
@@ -79,7 +79,7 @@ it('create_liability persists an estate Liability', function (): void {
 
 it('create_liability maps generic loan to personal_loan', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
-    $result = app(CoordinatingAgent::class)->executeTool('create_liability', [
+    $result = $this->executeCaptureToolWithEvidence('create_liability', [
         'liability_name' => 'Loan',
         'liability_type' => 'loan',
         'current_balance' => 1000,
@@ -89,7 +89,7 @@ it('create_liability maps generic loan to personal_loan', function (): void {
 
 it('create_liability blocks preview users', function (): void {
     $user = User::factory()->create(['is_preview_user' => true]);
-    $result = app(CoordinatingAgent::class)->executeTool('create_liability', [
+    $result = $this->executeCaptureToolWithEvidence('create_liability', [
         'liability_name' => 'X', 'liability_type' => 'loan', 'current_balance' => 1,
     ], $user);
     expect($result['blocked'])->toBeTrue();
@@ -131,7 +131,7 @@ it('estate handlers return shapes have no fill_form action', function (): void {
     $a = app(CoordinatingAgent::class)->executeTool('create_asset', [
         'asset_name' => 'A', 'asset_type' => 'other', 'current_value' => 1,
     ], $user);
-    $l = app(CoordinatingAgent::class)->executeTool('create_liability', [
+    $l = $this->executeCaptureToolWithEvidence('create_liability', [
         'liability_name' => 'L', 'liability_type' => 'loan', 'current_balance' => 1,
     ], $user);
     $g = app(CoordinatingAgent::class)->executeTool('create_estate_gift', [

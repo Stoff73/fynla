@@ -1,0 +1,69 @@
+id: user-reported-campaign-regressions
+finding_ids:
+  - UT-01
+  - UT-05
+  - UT-06
+  - UT-08
+  - UT-09
+  - UT-10
+  - UT-11
+  - UT-12
+  - UT-13
+  - UT-14
+  - UT-22
+  - UT-23
+environment: csjones
+user:
+  kind: disposable_campaign_accounts
+  email_ref: CSJONES_CAMPAIGN_QA_EMAIL
+surfaces:
+  - name: desktop
+    start_url: https://csjones.co/fynla/savetax
+    steps:
+      - action: complete-funnel
+        target: Save Tax questions and compact registration form
+        assert: One submission opens verification without repeating name, email, or password
+        evidence: evidence/desktop-registration-handoff.png
+      - action: verify-account
+        target: Verification code modal
+        assert: Verified user reaches the campaign-aware dashboard with Fyn open
+        evidence: evidence/desktop-campaign-dashboard.png
+      - action: complete-fyn-capture
+        target: Dependants, ownership, expenditure, and spouse-skip questions
+        assert: Exact dates and ownership are required, £10,000 expenditure is visible, and skip creates no spouse
+        evidence: evidence/desktop-capture-readback.png
+      - action: collapse-scroll-reopen
+        target: Fyn panel and underlying campaign dashboard
+        assert: Conversation state remains and page scrolling and focus are restored while collapsed
+        evidence: evidence/desktop-fyn-responsive.png
+  - name: mobile
+    start_url: https://csjones.co/fynla/m?to=%2Fsavetax
+    steps:
+      - action: inspect-frame
+        target: Save Tax funnel inside the mobile host iframe
+        assert: The real funnel is visible and operable at phone width
+        evidence: evidence/mobile-funnel.png
+      - action: complete-funnel
+        target: Compact registration and verification inside the iframe
+        assert: One submission opens verification and the verified token enters /m/app
+        evidence: evidence/mobile-registration-handoff.png
+      - action: complete-fyn-capture
+        target: Mobile Fyn Save Tax journey
+        assert: Exact dates and ownership are required, £10,000 expenditure is visible, and the tax strategy is created
+        evidence: evidence/mobile-tax-strategy.png
+      - action: collapse-scroll-reopen
+        target: Mobile Fyn sheet and underlying page
+        assert: Conversation state remains with no focus trap, scroll lock, hidden submit, or iframe dead-end
+        evidence: evidence/mobile-fyn-responsive.png
+negative_assertions:
+  - no plaintext email or verification code in handoff URLs
+  - no second registration form after compact registration
+  - no inferred ISA subtype or asset ownership
+  - no manufactured dependant date of birth
+  - no fabricated capture success before the database write
+  - no stale openPricing redirect after campaign restoration
+  - no desktop and mobile state divergence
+  - no unexpected 4xx or 5xx API responses
+cleanup:
+  - remove disposable fresh and restored campaign accounts after evidence capture
+  - retain only redacted screenshots and request identifiers

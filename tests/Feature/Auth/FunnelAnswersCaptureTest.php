@@ -37,9 +37,9 @@ function funnelPayload(array $overrides = []): array
 
 $answers = [
     'employment' => 'full-time',
-    'income' => 'higher',
+    'income' => '50271_100000',
     'spouse' => 'yes',
-    'spouseIncome' => 'personal-allowance',
+    'spouseIncome' => 'upto_50270',
     'assets' => ['isa', 'pension', 'savings'],
 ];
 

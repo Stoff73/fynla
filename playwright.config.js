@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8000';
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === '1' && !process.env.CI;
+const chromeChannel = process.env.PLAYWRIGHT_CHROME_CHANNEL || undefined;
 
 export default defineConfig({
   testDir: './tests/E2E',
@@ -26,7 +27,7 @@ export default defineConfig({
     {
       name: 'desktop-chromium',
       testIgnore: /mobile\.spec\.js$/,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], channel: chromeChannel },
     },
     {
       name: 'mobile-chromium',

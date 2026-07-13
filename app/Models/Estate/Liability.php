@@ -19,6 +19,7 @@ class Liability extends Model
     protected $fillable = [
         'user_id',
         'ownership_type',
+        'ownership_percentage',
         'joint_owner_id',
         'trust_id',
         'liability_type',
@@ -37,6 +38,7 @@ class Liability extends Model
 
     protected $casts = [
         'current_balance' => 'float',
+        'ownership_percentage' => 'float',
         'monthly_payment' => 'float',
         'interest_rate' => 'float',
         'maturity_date' => 'date',

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Estate\Liability;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Estate\IHTFormattingService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -222,6 +224,28 @@ it('IHTFormattingService::formatUserLiabilities returns mortgages where user is 
     // Post-PR-5a: forUser must return the same 2 records
     $postRefactorCount = app(MortgageStore::class)->forUser($user)->count();
     expect($postRefactorCount)->toBe(2);
+});
+
+it('IHT formatting applies tenants-in-common liability shares to each owner', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $other = User::factory()->create(['is_preview_user' => false]);
+    $liability = Liability::factory()->create([
+        'user_id' => $user->id,
+        'joint_owner_id' => $other->id,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 60,
+        'current_balance' => 100000,
+    ]);
+    $service = app(IHTFormattingService::class);
+    $method = new ReflectionMethod($service, 'formatUserLiabilities');
+
+    $primary = $method->invoke($service, collect(), collect([$liability]), $user, 70);
+    $secondary = $method->invoke($service, collect(), collect([$liability]), $other, 70);
+
+    expect($primary['liabilities_total'])->toBe(60000.0)
+        ->and($secondary['liabilities_total'])->toBe(40000.0)
+        ->and($primary['liabilities']['other_liabilities'][0]['is_joint'])->toBeTrue()
+        ->and($secondary['liabilities']['other_liabilities'][0]['ownership_percentage'])->toBe(40.0);
 });
 
 it('LetterEstateValidationService mortgage count is primary-only (matches $user->mortgages() HasMany semantics)', function () {

@@ -439,15 +439,26 @@ class IHTFormattingService
 
         foreach ($liabilities as $liability) {
             if ($liability->current_balance > 0) {
+                $userShare = $this->calculateUserShare($liability, $user->id);
+                if ($userShare <= 0) {
+                    continue;
+                }
+                $isShared = in_array($liability->ownership_type, ['joint', 'tenants_in_common'], true);
                 $liabilitiesFormatted[] = [
                     'type' => ucwords(str_replace('_', ' ', $liability->liability_type)),
                     'institution' => $liability->liability_name ?? ucwords(str_replace('_', ' ', $liability->liability_type)),
-                    'current_balance' => $liability->current_balance,
-                    'projected_balance' => $liability->current_balance,
-                    'is_joint' => ($liability->ownership_type ?? 'individual') === 'joint',
+                    'current_balance' => $userShare,
+                    'full_balance' => (float) $liability->current_balance,
+                    'projected_balance' => $userShare,
+                    'is_joint' => $isShared,
+                    'ownership_percentage' => $isShared
+                        ? ($liability->user_id === $user->id
+                            ? (float) $liability->ownership_percentage
+                            : 100 - (float) $liability->ownership_percentage)
+                        : 100,
                 ];
-                $liabilitiesTotal += $liability->current_balance;
-                $liabilitiesProjectedTotal += $liability->current_balance;
+                $liabilitiesTotal += $userShare;
+                $liabilitiesProjectedTotal += $userShare;
             }
         }
 

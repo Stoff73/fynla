@@ -138,6 +138,23 @@ describe('/m Fyn stream event parity', () => {
     expect(harness.cursor.got).toBe(true);
   });
 
+  it('keeps the mobile user step active across campaign verification navigation', () => {
+    store.user = {
+      onboarding_completed: false,
+      onboarding_fyn_step: null,
+    };
+    const harness = makeHarness();
+
+    harness.handle({
+      type: 'navigation',
+      route_path: '/income',
+      section: 'income',
+    });
+
+    expect(store.user.onboarding_fyn_step).toBe('campaign_verify_navigate');
+    expect(harness.cursor.navigation).toBe('/income');
+  });
+
   it('collapses entity_created followed by capture_complete into one confirmation', () => {
     const harness = makeHarness();
 

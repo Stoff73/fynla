@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\TaxConfiguration;
 use App\Models\User;
+use App\Services\Onboarding\FunnelIncomeBand;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\TaxConfigService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -44,6 +47,50 @@ it('never flags when the user has no funnel answers', function () {
         'annual_income' => 50000.0,
     ]);
     expect($result)->toBeNull();
+});
+
+it('does not challenge an income inside the active configured band', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $data['income_tax']['personal_allowance_taper_threshold'] = 110000;
+    $data['income_tax']['additional_rate_threshold'] = 140000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax', 'income' => 'upto_50270'],
+    ]);
+
+    expect(invokeDetect($user, OnboardingStateMachine::STATE_BASE_WORK, [
+        'annual_income' => 55000.0,
+    ]))->toBeNull();
+});
+
+it('checks an income against the band boundaries issued with the funnel answer', function () {
+    $context = FunnelIncomeBand::context('upto_50270');
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    $user = User::factory()->create([
+        'funnel_answers' => [
+            'campaign' => 'savetax',
+            'income' => 'upto_50270',
+            'income_context' => $context,
+        ],
+    ]);
+
+    $mismatch = invokeDetect($user, OnboardingStateMachine::STATE_BASE_WORK, [
+        'annual_income' => 55000.0,
+    ]);
+
+    expect($mismatch)->toMatchArray([
+        'field' => 'self',
+        'band' => 'upto_50270',
+        'band_label' => 'up to £50,270',
+        'entered' => 55000.0,
+    ]);
 });
 
 it('flags a spouse income that contradicts the funnel spouse band', function () {

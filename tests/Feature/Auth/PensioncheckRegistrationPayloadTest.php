@@ -34,7 +34,7 @@ function pensioncheckRegistrationPayload(array $overrides = []): array
             'income' => 'upto_50270',
             'age' => '40s',
             'pensions' => ['workplace', 'personal_sipp'],
-            'pot' => '50k_100k',
+            'pot' => '25k_100k',
             'spouse' => 'no',
         ],
     ], $overrides);
@@ -57,7 +57,7 @@ it('persists all six pensioncheck funnel keys on pending_registrations after reg
     // C3: these three keys were stripped before the fix
     expect($fa['age'] ?? null)->toBe('40s');
     expect($fa['pensions'] ?? null)->toBe(['workplace', 'personal_sipp']);
-    expect($fa['pot'] ?? null)->toBe('50k_100k');
+    expect($fa['pot'] ?? null)->toBe('25k_100k');
 });
 
 it('copies all six pensioncheck funnel keys onto the user row when MFA verifies', function (): void {
@@ -81,7 +81,7 @@ it('copies all six pensioncheck funnel keys onto the user row when MFA verifies'
     $fa = $user->funnel_answers;
     expect($fa['age'] ?? null)->toBe('40s');
     expect($fa['pensions'] ?? null)->toBe(['workplace', 'personal_sipp']);
-    expect($fa['pot'] ?? null)->toBe('50k_100k');
+    expect($fa['pot'] ?? null)->toBe('25k_100k');
 });
 
 it('accepts registration without the new pensioncheck keys (savetax regression: omitting them is valid)', function (): void {

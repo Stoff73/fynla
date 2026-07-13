@@ -341,7 +341,7 @@
     },
     {
         "name": "create_savings_account",
-        "description": "Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+        "description": "Create a savings account only after the user explicitly states its type and whether it is owned individually or jointly. Never infer Cash ISA from a bare ISA. Joint records also require the joint owner and the primary owner's percentage share. You MAY call this tool multiple times in the same turn when every record has those facts.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -355,9 +355,14 @@
                         "easy_access",
                         "notice",
                         "fixed_term",
-                        "regular_saver"
+                        "regular_saver",
+                        "current_account",
+                        "cash_isa",
+                        "junior_isa",
+                        "premium_bonds",
+                        "nsi"
                     ],
-                    "description": "Type of savings account. Default to \"easy_access\" if not specified."
+                    "description": "Type explicitly stated by the user. Cash ISA and Junior ISA are distinct; never default a bare ISA to either subtype."
                 },
                 "institution": {
                     "type": "string",
@@ -373,7 +378,7 @@
                 },
                 "is_isa": {
                     "type": "boolean",
-                    "description": "Whether this is a Cash Individual Savings Account. Default false."
+                    "description": "Whether this is an explicitly confirmed ISA wrapper, including a distinct Cash ISA or Junior ISA. Never infer this from a bare or negated ISA reference."
                 },
                 "is_emergency_fund": {
                     "type": "boolean",
@@ -386,18 +391,41 @@
                 "isa_subscription_amount": {
                     "type": "number",
                     "description": "For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. \"about £100 this year\" → 100). Leave null if not mentioned."
+                },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint",
+                        "tenants_in_common",
+                        "trust"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual. ISAs must be individual."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+                },
+                "trust_id": {
+                    "type": "integer",
+                    "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
                 }
             },
             "required": [
                 "account_name",
-                "current_balance"
+                "current_balance",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
     },
     {
         "name": "create_investment_account",
-        "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+        "description": "Create an investment account only after the user explicitly states its type and whether it is owned individually or jointly. A bare ISA must be clarified as Stocks & Shares, Lifetime, Innovative Finance, or Cash before choosing this tool. Joint records also require the joint owner and primary owner's percentage share.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -410,6 +438,7 @@
                     "enum": [
                         "stocks_shares_isa",
                         "lifetime_isa",
+                        "innovative_finance_isa",
                         "personal_investment_account",
                         "onshore_bond",
                         "offshore_bond",
@@ -424,7 +453,7 @@
                         "rsu",
                         "other"
                     ],
-                    "description": "Type of investment account. Use \"stocks_shares_isa\" for Stocks & Shares ISA, \"lifetime_isa\" for Lifetime ISA, \"personal_investment_account\" for GIA, \"vct\" for Venture Capital Trust, \"eis\" for Enterprise Investment Scheme, \"private_company\" for private company shares, \"crowdfunding\" for crowdfunding investments, \"saye\" for Save As You Earn/Sharesave, \"csop\" for Company Share Option Plan, \"emi\" for Enterprise Management Incentives, \"unapproved_options\" for unapproved share options, \"rsu\" for Restricted Stock Units, \"other\" for anything else. Default to \"personal_investment_account\" if not specified."
+                    "description": "Investment type explicitly stated by the user. Use innovative_finance_isa for an Innovative Finance ISA. Never default a missing type."
                 },
                 "provider": {
                     "type": "string",
@@ -433,6 +462,22 @@
                 "current_value": {
                     "type": "number",
                     "description": "Current value in pounds"
+                },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint ownership."
                 },
                 "monthly_contribution_amount": {
                     "type": "number",
@@ -617,7 +662,8 @@
             },
             "required": [
                 "account_name",
-                "current_value"
+                "current_value",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
@@ -736,7 +782,7 @@
     },
     {
         "name": "create_property",
-        "description": "Create a property for the user. If they also mention a mortgage, include the outstanding mortgage amount and it will be created automatically. You MAY call this tool multiple times in the same turn when the user mentions multiple properties — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+        "description": "Create a property only after the user explicitly confirms whether it is owned individually, jointly, as tenants in common, or in trust. Joint and tenants-in-common records also require the joint owner and primary owner's percentage share. Never infer ownership from my or our.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -752,6 +798,28 @@
                 "current_value": {
                     "type": "number",
                     "description": "Current estimated value in pounds"
+                },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint",
+                        "tenants_in_common",
+                        "trust"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+                },
+                "trust_id": {
+                    "type": "integer",
+                    "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
                 },
                 "purchase_price": {
                     "type": "number",
@@ -789,7 +857,8 @@
             },
             "required": [
                 "property_type",
-                "current_value"
+                "current_value",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
@@ -956,7 +1025,7 @@
     },
     {
         "name": "create_liability",
-        "description": "Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+        "description": "Create a liability only after the user explicitly confirms whether it is owned individually or jointly. Joint records also require the joint owner and primary owner's percentage share. Never infer ownership.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -980,6 +1049,28 @@
                     "type": "number",
                     "description": "Outstanding balance in pounds"
                 },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint",
+                        "tenants_in_common",
+                        "trust"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+                },
+                "trust_id": {
+                    "type": "integer",
+                    "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
+                },
                 "monthly_payment": {
                     "type": "number",
                     "description": "Monthly payment amount in pounds"
@@ -992,7 +1083,8 @@
             "required": [
                 "liability_name",
                 "liability_type",
-                "current_balance"
+                "current_balance",
+                "ownership_type"
             ],
             "additionalProperties": false
         }

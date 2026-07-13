@@ -1,37 +1,30 @@
-# Tech Debt Report — Session 2026-06-17 (SaveTax verify Option B — landing + fixes)
+# Tech Debt Report — Session 2026-07-13 (Online Readiness Tasks 10A and 10B)
 
-**Files analysed:** 4 (`app/Services/Onboarding/OnboardingChatDirector.php`; `resources/mobile/mixins/onboardingChat.js`; `resources/mobile/views/Dashboard.vue`; `resources/mobile/components/MobileChrome.vue`)
-**Issues found:** 4 (3 fixed this session; 1 deferred suggestion)
-**Severity breakdown:** 0 critical, 0 warnings, 4 suggestions
+**Files analysed:** 92 implementation, test, configuration and documentation files (generated browser evidence and unrelated user files excluded)
+**Issues found:** 2
+**Severity breakdown:** 0 critical, 1 warning, 1 suggestion
 
 ## Critical Issues
-None remaining. (Two were found and fixed this session — see below.)
+
+None.
 
 ## Warnings
-None.
+
+### 1. Duplicate email-masking implementations
+
+- **Files:** `app/Http/Controllers/Api/AuthController.php:837`, `app/Services/Auth/RegistrationHandoffService.php:154`
+- **Category:** Duplicate code / inconsistency with existing patterns
+- **What's wrong:** The new handoff service repeats the controller's email-masking algorithm. A later privacy-format change could update one response path but leave the other with different disclosure behaviour.
+- **Suggested fix:** Extract the established algorithm into a small shared authentication/privacy formatter and use it from both classes.
 
 ## Suggestions
 
-### 1. [FIXED THIS SESSION] Wrong `InvestmentAccount` namespace — Category 2/3 (runtime fatal)
-`OnboardingChatDirector` imported `App\Models\InvestmentAccount`, which does not exist (the model is `App\Models\Investment\InvestmentAccount`). The `campaign_verify_edit` investments branch would have fatalled at runtime with "Class not found"; `php -l` and the 318-test onboarding suite missed it because no test exercises that branch. **Fixed** — import corrected to the real namespace.
+### 2. Campaign-answer reconstruction has parallel implementations
 
-### 2. [FIXED THIS SESSION] Store-boundary violation in `verifyEditRecordContext` — Category 6 (architecture)
-The verify-edit prompt builder queried `SavingsAccount` / `DCPension` / `InvestmentAccount` directly, failing `SavingsStoreBoundaryTest` + `PensionStoreBoundaryTest` (those models must only be touched inside their canonical store set). **Fixed** — reads now route through `SavingsStore::forUser` / `InvestmentAccountStore::forUser` / `PensionStore::forUserByType`, matching `CoordinatingAgent`. Architecture suite back to 0 failed.
-
-### 3. [FIXED THIS SESSION] Verify-edit honesty gate surfaced false success claims — Category 5/6 (Fyn honesty)
-The handler yielded the model's acknowledgement *before* the no-tool-call gate, so when grok narrated "Got it — updated your balance to £X" without calling a write tool, Fyn showed a false success claim. **Fixed** — the ack is yielded only after a write tool ran; a no-tool-call turn shows an honest "I wasn't able to apply that change" and holds the edit state. (Data integrity was already safe — the gate never falsely advanced.)
-
-### 4. `handleCampaignVerifyEdit` (~122 lines) + `sectionLabelForEdit` duplicate — Category 1/4
-`handleCampaignVerifyEdit` exceeds the 50-line soft guideline, but it mirrors the existing long delegated-turn handler `handleAssetCaptureTurn` (the generator try/catch + event-routing shape is intrinsic). `sectionLabelForEdit` (director) duplicates `OnboardingStateMachine::sectionLabel` (both private — section→label maps). **Suggested fix:** extract a shared section-label helper if a future pass touches both; defer otherwise (no behavioural impact).
-
-## Non-issues checked & cleared
-- No `console.log`/`dd`/`dump`/debug leftovers in the director or the mixin.
-- The verify-edit catch sets a user-facing fallback message and re-emits the state (intentional graceful degradation, not a swallowed exception).
-- No hardcoded hex / banned colours / scores / acronyms / decorative icons in the new code; dock bubbles reuse existing `.md-fyn__bubble` classes; the Cash Management drawer-nav group is the already-approved drawer surface.
-- `update_record` honesty gate verified live: a grok turn that narrated a change without a tool call did NOT advance, create a duplicate, or corrupt data (balance held).
-
-## Standing note (still open from prior audits)
-**Duplicated local `formatCurrency()` across mobile views** — 9+ mobile views (incl. `Income.vue`/`Expenditure.vue`) each define an identical `formatCurrency()`; accepted isolated-mobile-bundle convention. Low priority. Also `loadUser()` + `firstName` are duplicated between `Dashboard.vue` and `MobileChrome.vue` (deliberately kept out of the `onboardingChat` mixin as user-state, not chat, concerns) — candidate for a small shared `userState` mixin if both files are touched again.
+- **Files:** `public/pages/js/savetax-plan-v4.js:130`, `public/pages/js/pensioncheck-plan.js:314`
+- **Category:** Cross-file duplication
+- **What's wrong:** Both public campaign scripts independently merge URL parameters with local storage for the compact registration handoff. The field sets differ, but the storage/query precedence and campaign stamping logic must remain aligned.
+- **Suggested fix:** If another campaign adopts compact registration, extract a small shared public-page answer-handoff helper before adding a third implementation.
 
 ---
 *Generated by tech-debt-session skill*

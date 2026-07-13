@@ -133,6 +133,7 @@ Route::prefix('auth')->group(function () {
     // (auth-N, keyed by path|ip) so steps never throttle each other. See the
     // limiter definitions + rationale in RouteServiceProvider::boot().
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-5');
+    Route::post('/registration-handoff/resolve', [AuthController::class, 'resolveRegistrationHandoff'])->middleware('throttle:auth-5');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-5');
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:auth-10');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:auth-5');
@@ -1409,23 +1410,25 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenari
 });
 
 // AI Chat routes
-Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('ai-chat')->group(function () {
     Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])
-        ->middleware('idempotent');
+        ->middleware(['throttle:ai-chat', 'idempotent']);
     // FR-M7 — stream a turn that was queued behind an in-flight one
     // (frontend-driven transport; called on the previous stream's `done`).
-    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage']);
+    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage'])
+        ->middleware('throttle:ai-chat');
     // FR-M7 scenario 4 — cancel a still-queued turn before it streams.
     Route::delete('/conversations/{id}/messages/{messageId}', [AiChatController::class, 'cancelQueuedMessage']);
     // FR-M9 — resumption surface: read the pending resumption, or clear it.
     Route::get('/resumption', [AiChatController::class, 'getResumption']);
     Route::delete('/conversations/{id}/resumption', [AiChatController::class, 'clearResumption']);
-    Route::post('/conversations/{id}/action', [AiChatController::class, 'action']);
+    Route::post('/conversations/{id}/action', [AiChatController::class, 'action'])
+        ->middleware('throttle:ai-chat');
     // Fyn-driven onboarding flow (backend-authoritative state machine)
     Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
     Route::post('/onboarding/start', [AiChatController::class, 'startOnboarding']);

@@ -183,7 +183,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['isAdmin', 'currentUser']),
+    ...mapGetters('auth', ['isAdmin', 'currentUser', 'tierFlags']),
     ...mapGetters('preview', ['effectivePersonaData']),
     ...mapGetters('plans', { getPlan: 'getPlan' }),
     ...mapGetters('lifeStage', {
@@ -1250,6 +1250,7 @@ export default {
       const estateCalculationAction = isMarried
         ? 'estate/calculateIHTPlanning'
         : 'estate/calculateIHT';
+      const hasFullEstateAccess = ['tier2', 'tier3'].includes(this.tierFlags?.resolved_tier);
 
       // Student persona: only load modules they actually use
       const moduleLoaders = this.isStudentPersona ? [
@@ -1265,7 +1266,9 @@ export default {
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
         { name: 'protection', action: 'protection/fetchProtectionData' },
         { name: 'estate', action: 'estate/fetchEstateData' },
-        { name: 'estate', action: estateCalculationAction, payload: {} },
+        ...(hasFullEstateAccess
+          ? [{ name: 'estate', action: estateCalculationAction, payload: {} }]
+          : []),
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'retirement', action: 'retirement/fetchRetirementData' },
         { name: 'retirement', action: 'retirement/fetchRequiredCapital' },
