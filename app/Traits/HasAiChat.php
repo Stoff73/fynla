@@ -273,6 +273,11 @@ trait HasAiChat
         $fullToolResults = [];
         $messages = $messageHistory;
 
+        $modelIteration = 0;
+
+        /** @var array<string, array{tool: string, model_iteration: int}> $pendingCaptureWriteFailures */
+        $pendingCaptureWriteFailures = [];
+
         // S0.11.2 — track the last tool dispatched + how many wrote so an
         // ai_abort_events row can capture them on a mid-stream disconnect.
         $lastToolCall = null;
@@ -283,6 +288,8 @@ trait HasAiChat
         $xaiTools = $isXai ? $tools : [];
 
         while (true) {
+            $modelIteration++;
+
             // S0.11.2 — bail out cleanly if the SSE client has dropped.
             // Per INV-2.9.2 we DO NOT roll back the partial writes that
             // already landed — every direct-write tool runs in its own
@@ -571,6 +578,33 @@ trait HasAiChat
                 }
 
                 $anthropicToolResultBlocks = [];
+                $captureRetryAssignments = [];
+
+                if ($this->personaOverride === 'data_capture') {
+                    $currentCallsByTool = [];
+                    foreach ($toolUseBlocks as $currentToolUseBlock) {
+                        $currentToolCallId = (string) ($currentToolUseBlock['id'] ?? '');
+                        if ($currentToolCallId !== '') {
+                            $currentCallsByTool[$currentToolUseBlock['name']][] = $currentToolCallId;
+                        }
+                    }
+
+                    foreach ($currentCallsByTool as $toolName => $currentToolCallIds) {
+                        $retryCandidates = array_filter(
+                            $pendingCaptureWriteFailures,
+                            static fn (array $failure): bool => $failure['tool'] === $toolName
+                                && $failure['model_iteration'] < $modelIteration,
+                        );
+                        if (count($retryCandidates) === count($currentToolCallIds)) {
+                            foreach (array_combine(
+                                $currentToolCallIds,
+                                array_keys($retryCandidates),
+                            ) as $currentToolCallId => $failedToolCallId) {
+                                $captureRetryAssignments[$currentToolCallId] = $failedToolCallId;
+                            }
+                        }
+                    }
+                }
 
                 foreach ($toolUseBlocks as $toolUseBlock) {
                     $toolCallCount++;
@@ -791,9 +825,25 @@ trait HasAiChat
                             || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
                             || (isset($toolResult['success']) && $toolResult['success'] === true)
                         );
+                        $toolCallId = (string) ($toolUseBlock['id'] ?? '');
+                        $retryOfToolCallId = $captureRetryAssignments[$toolCallId] ?? null;
+                        if ($retryOfToolCallId !== null) {
+                            unset($pendingCaptureWriteFailures[$retryOfToolCallId]);
+                        }
+
+                        if ($isToolError && $toolCallId !== '') {
+                            $pendingCaptureWriteFailures[$toolCallId] = [
+                                'tool' => $functionName,
+                                'model_iteration' => $modelIteration,
+                            ];
+                        }
+
                         yield [
                             'type' => 'capture_write_result',
                             'tool' => $functionName,
+                            'tool_call_id' => $toolCallId,
+                            'model_iteration' => $modelIteration,
+                            'retry_of_tool_call_id' => $retryOfToolCallId,
                             'landed' => $writeLanded,
                             'message' => $isToolError ? (string) ($toolResult['message'] ?? 'The write failed.') : null,
                         ];

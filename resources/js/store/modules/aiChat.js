@@ -603,6 +603,15 @@ const actions = {
                                 // Phase 13 — orchestrator fires this after data-capture
                                 // Fyn emits capture_complete. Records are added to the
                                 // message stream as a record-card bubble for the UI.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'capture_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 commit('ADD_MESSAGE', {
                                     id: 'capture_' + Date.now(),
                                     role: 'capture_complete',
@@ -698,7 +707,15 @@ const actions = {
                                 // privacy policy. If consent has been withdrawn
                                 // (e.g. by support action or a GDPR request),
                                 // the user has to contact support to restore it.
-                                commit('SET_ERROR', 'AI chat consent has been withdrawn. Contact Fynla support to restore your AI features.');
+                                commit('SET_ERROR', 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.');
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
                                 break;
 
                             case 'error':
@@ -871,6 +888,26 @@ const actions = {
                                     created_at: new Date().toISOString(),
                                 });
                                 break;
+                            case 'capture_complete':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'capture_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                commit('ADD_MESSAGE', {
+                                    id: 'capture_' + Date.now(),
+                                    role: 'capture_complete',
+                                    content: event.summary || '',
+                                    metadata: {
+                                        records_created: event.records_created || [],
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
                             case 'handoff_error':
                                 commit('ADD_MESSAGE', {
                                     id: 'handoff_error_' + Date.now(),
@@ -889,6 +926,13 @@ const actions = {
                             case 'consent_required':
                                 commit('SET_CONSENT_REQUIRED', true);
                                 commit('SET_STREAMING', false);
+                                break;
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
                                 break;
                             case 'error':
                                 commit('SET_ERROR', event.message);
@@ -1107,6 +1151,14 @@ const actions = {
                                 commit('SET_SKIP_LINK', event.skip_link || null);
                                 break;
 
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
                             case 'done':
                                 if (state.streamingText) {
                                     commit('ADD_MESSAGE', {
@@ -1190,7 +1242,7 @@ const actions = {
      * conversation. If onboarding is already complete or the feature flag
      * is off, falls back to a normal startNewConversation.
      */
-    async startOnboardingConversation({ commit, dispatch, state, rootState }, payload = {}) {
+    async startOnboardingConversation({ commit, dispatch, state }, payload = {}) {
         // Forward the optional `from` entry-source identifier so the
         // onboarding director can pre-select the campaign / journey via
         // config('onboarding.campaign_map') / journey_map.
@@ -1336,6 +1388,14 @@ const actions = {
                                     commit('SET_STREAMING_TEXT', '');
                                 }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
                                 break;
 
                             case 'done':

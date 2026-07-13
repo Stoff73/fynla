@@ -4036,6 +4036,21 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
+        /** @var array<string, array{message: string, content_offset: int}> $pendingWriteFailures */
+        $pendingWriteFailures = [];
+
+        $writeResultSequence = 0;
+
+        /** @var array<string, mixed>|null $terminalEvent */
+        $terminalEvent = null;
+
+        /** @var list<array<string, mixed>> $contentEvents */
+        $contentEvents = [];
+
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
+
         // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
         // chat() turn that emitted delegate_to_capture already saved the
         // user message. Re-saving from inside the inline-capture turn would
@@ -4060,6 +4075,68 @@ PROMPT;
                 continue;
             }
 
+            // The inline-capture generator has additional deterministic work
+            // after the model stream (failure text, gap fill, confirmation and
+            // milestone acknowledgement). Hold its terminal marker until that
+            // work is complete so every client sees one final `done` frame.
+            if ($type === 'done') {
+                $terminalEvent = $event;
+
+                continue;
+            }
+
+            // Buffer model narration until the write outcome is known. A
+            // failed write must never leak a model-authored "Saved" claim or
+            // duplicate the deterministic boundary failure text.
+            if ($type === 'content') {
+                $contentEvents[] = $event;
+
+                continue;
+            }
+
+            // Internal landed/failed telemetry is consumed at the director
+            // boundary. It is not part of the public SSE contract. A failed
+            // direct write must become deterministic user-facing text rather
+            // than leaking a machine event or relying on model narration.
+            if ($type === 'capture_write_result') {
+                $result = (array) ($event['result'] ?? []);
+                $messageText = trim((string) ($event['message'] ?? $result['message'] ?? ''));
+                $explicitFailure = ($event['error'] ?? false) === true
+                    || (($result['error'] ?? false) === true);
+                $tool = trim((string) ($event['tool'] ?? $result['tool'] ?? '')) ?: '__unknown__';
+                $landed = $event['landed'] ?? $result['landed'] ?? null;
+                $retryOfToolCallId = trim((string) (
+                    $event['retry_of_tool_call_id'] ?? $result['retry_of_tool_call_id'] ?? ''
+                ));
+                $retryContentOffset = null;
+                if ($retryOfToolCallId !== '') {
+                    $retryContentOffset = $pendingWriteFailures[$retryOfToolCallId]['content_offset'] ?? null;
+                    unset($pendingWriteFailures[$retryOfToolCallId]);
+                }
+
+                $toolCallId = trim((string) ($event['tool_call_id'] ?? $result['tool_call_id'] ?? ''));
+                if ($toolCallId === '') {
+                    $toolCallId = $tool.':'.(++$writeResultSequence);
+                }
+
+                if (! $explicitFailure && $landed === true) {
+                    continue;
+                }
+
+                $failed = $explicitFailure
+                    || ($landed === false && $messageText !== '');
+                if ($failed) {
+                    $pendingWriteFailures[$toolCallId] = [
+                        'message' => $messageText !== ''
+                            ? $messageText
+                            : 'The information could not be saved.',
+                        'content_offset' => $retryContentOffset ?? count($contentEvents),
+                    ];
+                }
+
+                continue;
+            }
+
             if ($type === 'fill_form') {
                 $llmEmittedFills[] = (array) ($event['fields'] ?? []);
             }
@@ -4075,6 +4152,56 @@ PROMPT;
             }
 
             yield $event;
+        }
+
+        if ($pendingWriteFailures !== []) {
+            $messageText = array_values(array_unique(array_column($pendingWriteFailures, 'message')))[0];
+            $failureText = "I couldn't save that — ".rtrim($messageText, '.').'. '
+                .'Give me the missing detail and I will try again.';
+            $safeContentEvents = array_slice(
+                $contentEvents,
+                0,
+                min(array_column($pendingWriteFailures, 'content_offset')),
+            );
+            $safeModelText = implode('', array_map(
+                static fn (array $event): string => (string) ($event['text'] ?? ''),
+                $safeContentEvents,
+            ));
+            $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
+            $persistedFailureText = $safeModelText.$failureSeparator.$failureText;
+
+            foreach ($safeContentEvents as $safeContentEvent) {
+                yield $safeContentEvent;
+            }
+            yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
+
+            $modelText = implode('', array_map(
+                static fn (array $event): string => (string) ($event['text'] ?? ''),
+                $contentEvents,
+            ));
+            $newAssistantMessages = $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('id', '>', $assistantBaselineId);
+            $persistedMessage = $modelText !== ''
+                ? (clone $newAssistantMessages)->where('content', $modelText)->latest('id')->first()
+                : null;
+            $persistedMessage ??= $newAssistantMessages->latest('id')->first();
+
+            if ($persistedMessage !== null) {
+                $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
+                $persistedMessage->update([
+                    'content' => $persistedFailureText,
+                    'metadata' => array_merge($metadata, ['capture_write_failed' => true]),
+                ]);
+            } else {
+                $this->saveMessage($conversation, 'assistant', $persistedFailureText, [
+                    'metadata' => ['capture_write_failed' => true],
+                ]);
+            }
+        } else {
+            foreach ($contentEvents as $contentEvent) {
+                yield $contentEvent;
+            }
         }
 
         // Gamification: the inline-capture path (advice-mode write handoff, incl.
@@ -4147,6 +4274,8 @@ PROMPT;
                 // best-effort
             }
         }
+
+        yield $terminalEvent ?? ['type' => 'done'];
     }
 
     /**

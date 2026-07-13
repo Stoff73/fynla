@@ -3,7 +3,7 @@ procedure_id: 'general.overlay.a2_ack_hygiene'
 kind: system_prompt_overlay
 module: general
 version: 1
-active: false
+active: true
 effective_from: 2026-06-12
 ---
 

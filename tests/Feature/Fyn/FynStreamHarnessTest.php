@@ -112,3 +112,210 @@ it('strips a write surface emitted in advice mode inside the loop and never exec
         'status' => 'stripped',
     ]);
 });
+
+it('correlates a corrected capture retry to the failed call from the prior model iteration', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'test',
+        'title' => 'Capture retry harness',
+        'message_count' => 0,
+    ]);
+
+    FynStreamHarness::fake()
+        ->toolTurn('create_goal', [
+            'name' => 'House deposit',
+            'target_amount' => 50000,
+            'priority' => 'high',
+            'goal_type' => 'home_deposit',
+        ], 'toolu_failed')
+        ->toolTurn('create_goal', [
+            'name' => 'House deposit',
+            'target_amount' => 50000,
+            'target_date' => '2030-01-01',
+            'priority' => 'high',
+            'goal_type' => 'home_deposit',
+        ], 'toolu_retry')
+        ->textTurn('Saved your house-deposit goal.')
+        ->bind();
+
+    $events = iterator_to_array(
+        app(CoordinatingAgent::class)->chatWithPromptOverride(
+            $user,
+            $conversation,
+            'Add my £50,000 house-deposit goal for 2030',
+            null,
+            null,
+            ['create_goal'],
+            true,
+            null,
+            'data_capture',
+        ),
+        preserve_keys: false,
+    );
+
+    $results = collect($events)->where('type', 'capture_write_result')->values();
+
+    expect($results)->toHaveCount(2)
+        ->and($results[0]['landed'])->toBeFalse()
+        ->and($results[0]['tool_call_id'])->toBe('toolu_failed')
+        ->and($results[0]['model_iteration'])->toBe(1)
+        ->and($results[0]['retry_of_tool_call_id'])->toBeNull()
+        ->and($results[1]['landed'])->toBeTrue()
+        ->and($results[1]['tool_call_id'])->toBe('toolu_retry')
+        ->and($results[1]['model_iteration'])->toBe(2)
+        ->and($results[1]['retry_of_tool_call_id'])->toBe('toolu_failed');
+});
+
+it('leaves a selective retry uncorrelated when two prior same-tool failures are ambiguous', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'test',
+        'title' => 'Ambiguous capture retry harness',
+        'message_count' => 0,
+    ]);
+
+    FynStreamHarness::fake()
+        ->toolBatchTurn([
+            [
+                'tool' => 'create_goal',
+                'input' => [
+                    'name' => 'House deposit',
+                    'target_amount' => 50000,
+                    'priority' => 'high',
+                    'goal_type' => 'home_deposit',
+                ],
+                'id' => 'toolu_house_failed',
+            ],
+            [
+                'tool' => 'create_goal',
+                'input' => [
+                    'name' => 'Emergency fund',
+                    'target_amount' => 12000,
+                    'priority' => 'high',
+                    'goal_type' => 'emergency_fund',
+                ],
+                'id' => 'toolu_emergency_failed',
+            ],
+        ])
+        ->toolTurn('create_goal', [
+            'name' => 'Emergency fund',
+            'target_amount' => 12000,
+            'target_date' => '2030-01-01',
+            'priority' => 'high',
+            'goal_type' => 'emergency_fund',
+        ], 'toolu_selective_retry')
+        ->textTurn('Saved your emergency-fund goal.')
+        ->bind();
+
+    $events = iterator_to_array(
+        app(CoordinatingAgent::class)->chatWithPromptOverride(
+            $user,
+            $conversation,
+            'Add my house-deposit and emergency-fund goals',
+            null,
+            null,
+            ['create_goal'],
+            true,
+            null,
+            'data_capture',
+        ),
+        preserve_keys: false,
+    );
+
+    $results = collect($events)->where('type', 'capture_write_result')->values();
+
+    expect($results)->toHaveCount(3)
+        ->and($results[0]['landed'])->toBeFalse()
+        ->and($results[1]['landed'])->toBeFalse()
+        ->and($results[2]['landed'])->toBeTrue()
+        ->and($results[2]['model_iteration'])->toBe(2)
+        ->and($results[2]['retry_of_tool_call_id'])->toBeNull();
+});
+
+it('correlates a complete same-tool retry batch to all prior failures', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'test',
+        'title' => 'Complete capture retry batch harness',
+        'message_count' => 0,
+    ]);
+
+    $invalidGoals = [
+        [
+            'tool' => 'create_goal',
+            'input' => [
+                'name' => 'House deposit',
+                'target_amount' => 50000,
+                'priority' => 'high',
+                'goal_type' => 'home_deposit',
+            ],
+            'id' => 'toolu_house_failed',
+        ],
+        [
+            'tool' => 'create_goal',
+            'input' => [
+                'name' => 'Emergency fund',
+                'target_amount' => 12000,
+                'priority' => 'high',
+                'goal_type' => 'emergency_fund',
+            ],
+            'id' => 'toolu_emergency_failed',
+        ],
+    ];
+    $correctedGoals = [
+        [
+            'tool' => 'create_goal',
+            'input' => array_merge($invalidGoals[0]['input'], ['target_date' => '2030-01-01']),
+            'id' => 'toolu_house_retry',
+        ],
+        [
+            'tool' => 'create_goal',
+            'input' => array_merge($invalidGoals[1]['input'], ['target_date' => '2030-01-01']),
+            'id' => 'toolu_emergency_retry',
+        ],
+    ];
+
+    FynStreamHarness::fake()
+        ->toolBatchTurn($invalidGoals)
+        ->toolBatchTurn($correctedGoals)
+        ->textTurn('Saved both goals.')
+        ->bind();
+
+    $events = iterator_to_array(
+        app(CoordinatingAgent::class)->chatWithPromptOverride(
+            $user,
+            $conversation,
+            'Add my house-deposit and emergency-fund goals',
+            null,
+            null,
+            ['create_goal'],
+            true,
+            null,
+            'data_capture',
+        ),
+        preserve_keys: false,
+    );
+
+    $results = collect($events)->where('type', 'capture_write_result')->values();
+
+    expect($results)->toHaveCount(4)
+        ->and($results[2]['landed'])->toBeTrue()
+        ->and($results[2]['retry_of_tool_call_id'])->toBe('toolu_house_failed')
+        ->and($results[3]['landed'])->toBeTrue()
+        ->and($results[3]['retry_of_tool_call_id'])->toBe('toolu_emergency_failed');
+});

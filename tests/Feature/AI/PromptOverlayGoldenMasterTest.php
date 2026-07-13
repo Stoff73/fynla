@@ -10,7 +10,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-beforeEach(fn () => $this->seed(TaxConfigurationSeeder::class));
+beforeEach(function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+
+    // Episodic memory is filesystem-backed and therefore is not rolled back by
+    // RefreshDatabase. Point this golden master at an empty per-test directory
+    // so episodes written by earlier tests cannot leak into the prompt fixture.
+    config([
+        'fyn.memory.episodic_path' => sys_get_temp_dir().'/fyn-prompt-overlay-'.uniqid('', true),
+    ]);
+});
 
 /**
  * Phase 4c hard gate. The fixtures in tests/fixtures/PromptOverlay are the

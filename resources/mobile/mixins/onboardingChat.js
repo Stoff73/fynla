@@ -45,7 +45,8 @@ export default {
     // pensioncheck re-entry stamp) counts as active too, so the verify pills
     // and dock-resume work during the re-entry walk (Rule 19 parity).
     onboardingActive() {
-      return store.user?.onboarding_completed === false || !!store.user?.active_campaign;
+      return (store.user?.onboarding_completed === false || Boolean(store.user?.active_campaign))
+        && store.user?.onboarding_fyn_step !== null;
     },
   },
   methods: {
@@ -91,12 +92,14 @@ export default {
           '/api/ai-chat/onboarding/start',
           from ? { from } : {},
           store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (piece) => this.appendFynText(cursor, piece),
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.resumeId) {
           await this.streamFynAction(this.resumeId, 'resume', cursor);
-        } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+        }
+        this.finalizeCaptureReply(cursor);
+        if (!this.resumeId && !cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
         // Campaign re-entry just started for a completed user: the server has
@@ -109,7 +112,7 @@ export default {
           store.user.active_campaign = from;
         }
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
-      } catch (e) {
+      } catch {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
         this.sending = false;
@@ -144,7 +147,7 @@ export default {
         } else if (!this.messages.length) {
           this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
         }
-      } catch (e) {
+      } catch {
         if (!this.messages.length) {
           this.messages.push({ role: 'fyn', text: 'Sorry, I had trouble loading that just now. Please try again.' });
         }
@@ -162,11 +165,20 @@ export default {
       const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
       const msgs = (res && res.ok && (res.data?.data?.messages || res.data?.messages)) || [];
       if (!msgs.length) return;
-      const mapped = msgs.map((m) => ({
-        role: m.role === 'user' ? 'user' : 'fyn',
-        text: m.content || '',
-        bubbles: (m.metadata && Array.isArray(m.metadata.bubbles)) ? m.metadata.bubbles.slice() : [],
-      }));
+      const mapped = msgs.map((m) => {
+        const metadata = m.metadata || {};
+        const bubbles = Array.isArray(metadata.bubbles) ? metadata.bubbles.slice() : [];
+        if (metadata.skip_link?.label && !bubbles.some((bubble) => bubble.id === 'skip')) {
+          bubbles.push({ id: 'skip', label: metadata.skip_link.label });
+        }
+
+        return {
+          role: m.role === 'user' ? 'user' : 'fyn',
+          text: m.content || '',
+          bubbles,
+          actionBubbles: Boolean(metadata.action_bubbles),
+        };
+      });
       mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; });
       this.messages = mapped;
       this.$nextTick(this.scrollFyn);
@@ -185,10 +197,10 @@ export default {
           `/api/ai-chat/conversations/${conversationId}/action`,
           { action },
           store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (piece) => this.appendFynText(cursor, piece),
           (ev) => this.handleFynEvent(cursor, ev),
         );
-      } catch (e) {
+      } catch {
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
         }
@@ -205,7 +217,9 @@ export default {
       this.$nextTick(this.scrollFyn);
       try {
         await this.streamFynAction(this.conversationId, action, cursor);
+        this.finalizeCaptureReply(cursor);
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
+        if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
@@ -285,6 +299,71 @@ export default {
         };
         return;
       }
+      if (ev.type === 'token_limit') {
+        cursor.got = true;
+        cursor.reply.text = ev.message || "You've reached your daily Fyn usage limit.";
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'consent_required') {
+        cursor.got = true;
+        cursor.reply.text = 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.';
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'handoff_error') {
+        cursor.got = true;
+        cursor.reply.text = ev.message || "I couldn't pick up that request — could you try again?";
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'error') {
+        cursor.got = true;
+        cursor.reply.text = ev.message || 'Fyn could not complete that request. Please try again.';
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'entity_created') {
+        cursor.got = true;
+        cursor.createdEntityNames = cursor.createdEntityNames || [];
+        if (ev.name) cursor.createdEntityNames.push(ev.name);
+        const confirmation = cursor.captureReply || cursor.reply;
+        confirmation.capturePending = true;
+        confirmation.text = cursor.createdEntityNames.length > 1
+          ? `Saved ${cursor.createdEntityNames.length} records.`
+          : (ev.name ? `Saved ${ev.name}.` : 'Your information was saved.');
+        cursor.captureReply = confirmation;
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'capture_complete') {
+        cursor.got = true;
+        let confirmation = cursor.captureReply;
+        if (!confirmation) {
+          if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+            confirmation = { role: 'fyn', text: '', bubbles: [] };
+            this.messages.push(confirmation);
+          } else {
+            confirmation = cursor.reply;
+          }
+        } else if (!this.messages.includes(confirmation)) {
+          this.messages.push(confirmation);
+        }
+        confirmation.text = ev.summary || 'Your information was saved.';
+        confirmation.capturePending = false;
+        confirmation.captureFinalized = true;
+        cursor.captureReply = confirmation;
+        cursor.reply = confirmation;
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'skip_link' && ev.skip_link?.label) {
+        cursor.got = true;
+        cursor.reply.bubbles = [{ id: 'skip', label: ev.skip_link.label }];
+        cursor.reply.actionBubbles = true;
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
       if (ev.type === 'quick_replies') {
         // A bubbles turn. If the current bubble already carries streamed text
         // (an acknowledgement from the prior capture), open a fresh bubble for
@@ -295,7 +374,10 @@ export default {
         }
         cursor.got = true;
         if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
-        cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
+        cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles.slice() : [];
+        if (ev.skip_link?.label && !cursor.reply.bubbles.some((bubble) => bubble.id === 'skip')) {
+          cursor.reply.bubbles.push({ id: 'skip', label: ev.skip_link.label });
+        }
         // Resume re-engagement bubbles (Continue / Something else) are director
         // actions, not onboarding answers — flag them so chooseBubble routes
         // them to the action endpoint instead of sending the label as a message.
@@ -316,7 +398,7 @@ export default {
       // Resume re-engagement bubbles (Continue / Something else) are director
       // actions — route to the action endpoint and consume the bubbles so they
       // can't be re-tapped. Regular onboarding bubbles send their label.
-      if (message && message.actionBubbles) {
+      if (message && (message.actionBubbles || bubble.id === 'skip')) {
         message.bubbles = [];
         this.runFynAction(bubble.id);
         return;
@@ -346,9 +428,7 @@ export default {
           { message: text, current_route: (this.$route && this.$route.path) || '/dashboard' },
           store.token,
           (piece) => {
-            if (piece) cursor.got = true;
-            cursor.reply.text += piece;
-            this.$nextTick(this.scrollFyn);
+            this.appendFynText(cursor, piece);
           },
           (ev) => this.handleFynEvent(cursor, ev),
         );
@@ -358,6 +438,7 @@ export default {
         if (result && result.queued) {
           await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor);
         }
+        this.finalizeCaptureReply(cursor);
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
         } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -370,7 +451,7 @@ export default {
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
-      } catch (e) {
+      } catch {
         cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
         this.sending = false;
@@ -393,9 +474,7 @@ export default {
           {},
           store.token,
           (piece) => {
-            if (piece) cursor.got = true;
-            cursor.reply.text += piece;
-            this.$nextTick(this.scrollFyn);
+            this.appendFynText(cursor, piece);
           },
           (ev) => this.handleFynEvent(cursor, ev),
         );
@@ -404,6 +483,33 @@ export default {
       }
       cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
       cursor.got = true;
+    },
+
+    appendFynText(cursor, piece) {
+      if (!piece) return;
+
+      if (cursor.reply.capturePending || cursor.reply.captureFinalized) {
+        if (cursor.reply.capturePending) {
+          const index = this.messages.indexOf(cursor.reply);
+          if (index !== -1) this.messages.splice(index, 1);
+        }
+        cursor.reply = { role: 'fyn', text: '', bubbles: [] };
+        this.messages.push(cursor.reply);
+      }
+
+      cursor.got = true;
+      cursor.reply.text += piece;
+      this.$nextTick(this.scrollFyn);
+    },
+
+    finalizeCaptureReply(cursor) {
+      const confirmation = cursor.captureReply;
+      if (!confirmation?.capturePending) return;
+
+      confirmation.capturePending = false;
+      confirmation.captureFinalized = true;
+      if (!this.messages.includes(confirmation)) this.messages.push(confirmation);
+      cursor.reply = confirmation;
     },
 
     // Onboarding-driven navigation on the /m surface: the campaign verify flow
