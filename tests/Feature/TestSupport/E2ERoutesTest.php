@@ -66,6 +66,21 @@ it('serves the e2e application on the host trusted by Laravel', function (): voi
     expect($contents)->toContain('APP_URL=http://127.0.0.1:8000');
 });
 
+it('isolates the route cache used by the e2e application', function (): void {
+    $contents = file_get_contents(dirname(__DIR__, 3).'/scripts/e2e/serve.sh');
+
+    expect($contents)->toContain('APP_ROUTES_CACHE');
+});
+
+it('builds an isolated local-base mobile bundle before the e2e server starts', function (): void {
+    $contents = file_get_contents(dirname(__DIR__, 3).'/scripts/e2e/serve.sh');
+
+    expect($contents)->toContain('VITE_ROUTER_BASE=/')
+        ->and($contents)->toContain('VITE_MOBILE_BASE_PATH=/m-e2e-build/')
+        ->and($contents)->toContain('VITE_MOBILE_OUT_DIR=public/m-e2e-build')
+        ->and($contents)->toContain('npm run build:mobile');
+});
+
 it('probes a Vite URL that exists in Laravel middleware mode', function (): void {
     $contents = file_get_contents(dirname(__DIR__, 3).'/playwright.config.js');
 

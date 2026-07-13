@@ -66,6 +66,7 @@ yarn-error.log
 # build files
 /public/build/
 /public/m-build/
+/public/m-e2e-build/
 
 # Capacitor
 ios/App/Pods/

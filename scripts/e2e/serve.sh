@@ -20,10 +20,17 @@ case "$target" in
         ;;
     esac
 
+    env \
+      VITE_ROUTER_BASE=/ \
+      VITE_MOBILE_BASE_PATH=/m-e2e-build/ \
+      VITE_MOBILE_OUT_DIR=public/m-e2e-build \
+      npm run build:mobile
+
     config_dir="$(mktemp -d "${TMPDIR:-/tmp}/fynla-e2e-config.XXXXXX")"
     config_cache="$config_dir/config.php"
+    routes_cache="$config_dir/routes.php"
     resolved_database="$(
-      APP_ENV=e2e DB_DATABASE="$name" APP_CONFIG_CACHE="$config_cache" php -r '
+      APP_ENV=e2e DB_DATABASE="$name" APP_CONFIG_CACHE="$config_cache" APP_ROUTES_CACHE="$routes_cache" php -r '
         require "vendor/autoload.php";
         $app = require "bootstrap/app.php";
         $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
@@ -42,6 +49,7 @@ case "$target" in
       APP_URL=http://127.0.0.1:8000 \
       DB_DATABASE="$name" \
       APP_CONFIG_CACHE="$config_cache" \
+      APP_ROUTES_CACHE="$routes_cache" \
       php artisan serve --host=127.0.0.1 --port=8000
     ;;
   vite)
