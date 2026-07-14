@@ -237,6 +237,16 @@ final class FynContextAssembler
                 $lines[] = "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
             }
 
+            // Required tools + decision triggers (legacy Layer 8b parity).
+            // QuerySchemas already defines the minimum live reads for each
+            // advice classification; omitting this layer under unified let the
+            // model answer saved-data questions from the thin record summary
+            // and falsely claim detailed fields were missing.
+            $toolsAndTriggers = $this->advice->buildToolsAndTriggersBlock($ctx->classification);
+            if ($toolsAndTriggers !== '') {
+                $lines[] = $toolsAndTriggers;
+            }
+
             // "How do I start saving?" is a generic getting-started question, so
             // QueryClassifier rightly leaves it GENERAL (the savings keyword
             // table is deliberately narrow so "save tax" / "save for retirement"

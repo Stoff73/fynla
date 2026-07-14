@@ -93,6 +93,23 @@ it('feeds the orchestrateAnalysis callable through to financial_context', functi
         ->and($out)->not->toContain('analysis service not provided');
 });
 
+it('emits the declared required tools for a saved pension contribution question', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Using my saved salary and pension percentages, what are my employee, employer and total pension contributions per month and per year?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution', 'related' => []],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<required_tools>')
+        ->toContain('list_records(dc_pension)')
+        ->toContain('get_tax_information(pension_allowances)');
+});
+
 it('emits CAPTURE block and NOT position on an onboarding turn', function (): void {
     $ctx = FynTurnContext::make(
         user: $this->user, message: 'Halifax ISA £10k', currentRoute: null,
