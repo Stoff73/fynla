@@ -152,11 +152,13 @@ trait HasAiChat
 
             $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
             $allowedFields = $this->verifyEditScope['record_fields'][$entityType] ?? [];
-            if ($fields === [] || array_diff($fields, $allowedFields) !== []) {
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
                 return [
                     'error' => true,
                     'error_type' => 'verify_edit_scope_violation',
-                    'message' => 'That record field was not part of the correction the user requested.',
+                    'message' => 'The update must include every record field the user asked to correct, and no others.',
                 ];
             }
         }
@@ -173,11 +175,13 @@ trait HasAiChat
 
             $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
             $allowedFields = $this->verifyEditScope['profile_fields'][$profileSection] ?? [];
-            if ($fields === [] || array_diff($fields, $allowedFields) !== []) {
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
                 return [
                     'error' => true,
                     'error_type' => 'verify_edit_scope_violation',
-                    'message' => 'That profile field was not part of the correction the user requested.',
+                    'message' => 'The update must include every profile field the user asked to correct, and no others.',
                 ];
             }
         }
@@ -185,11 +189,13 @@ trait HasAiChat
         if (in_array($toolName, ['capture_state_pension', 'capture_retirement_goals', 'capture_charitable_giving'], true)) {
             $fields = array_keys($input);
             $allowedFields = $this->verifyEditScope['tool_fields'][$toolName] ?? [];
-            if ($fields === [] || array_diff($fields, $allowedFields) !== []) {
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
                 return [
                     'error' => true,
                     'error_type' => 'verify_edit_scope_violation',
-                    'message' => 'That field was not part of the correction the user requested.',
+                    'message' => 'The update must include every field the user asked to correct, and no others.',
                 ];
             }
         }

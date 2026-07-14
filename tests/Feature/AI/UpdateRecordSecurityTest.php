@@ -90,6 +90,62 @@ it('binds a verify edit to the exact field named by the user', function (): void
 
 // ─── Allowlist enforcement: forbidden fields rejected ──────────────────
 
+it('rejects a verify edit that omits one of the fields the user requested', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $reviewed = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => 19000,
+        'interest_rate' => 4.0,
+        'is_isa' => true,
+        'isa_subscription_amount' => 4000,
+    ]);
+    $agent = app(CoordinatingAgent::class);
+    $agent->setVerifyEditScope([
+        'tools' => ['update_record'],
+        'records' => ['savings_account' => [$reviewed->id]],
+        'profile_sections' => [],
+        'record_fields' => [
+            'savings_account' => [
+                'current_balance',
+                'interest_rate',
+                'isa_subscription_amount',
+            ],
+        ],
+        'profile_fields' => [],
+        'tool_fields' => [],
+    ]);
+
+    $result = $agent->executeTool('update_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $reviewed->id,
+        'fields' => [
+            'current_balance' => 20000,
+            'interest_rate' => 4.2,
+        ],
+    ], $user);
+    $afterRejected = $reviewed->fresh();
+
+    $complete = $agent->executeTool('update_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $reviewed->id,
+        'fields' => [
+            'current_balance' => 20000,
+            'interest_rate' => 4.2,
+            'isa_subscription_amount' => 5000,
+        ],
+    ], $user);
+
+    expect($result['error'])->toBeTrue()
+        ->and($result['error_type'])->toBe('verify_edit_scope_violation')
+        ->and((float) $afterRejected->current_balance)->toBe(19000.0)
+        ->and((float) $afterRejected->interest_rate)->toBe(4.0)
+        ->and((float) $afterRejected->isa_subscription_amount)->toBe(4000.0)
+        ->and($complete['success'] ?? null)->toBeTrue()
+        ->and((float) $reviewed->fresh()->current_balance)->toBe(20000.0)
+        ->and((float) $reviewed->fresh()->interest_rate)->toBe(4.2)
+        ->and((float) $reviewed->fresh()->isa_subscription_amount)->toBe(5000.0);
+});
+
 it('rejects Trust.settlor with fields_not_allowed', function (): void {
     $user = User::factory()->create();
     $trust = Trust::factory()->create(['user_id' => $user->id]);
