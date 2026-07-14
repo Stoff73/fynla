@@ -164,6 +164,15 @@ final class FynContextAssembler
             $lines[] = $taxPlanGrounding;
         }
 
+        // Save Tax stores spouse financial inputs in a dedicated household
+        // row rather than on users/family_members. Surface that row only when
+        // the user explicitly asks about spouse finances, so the model cannot
+        // mistake an absent linked-spouse profile for absent campaign data.
+        $householdGrounding = $this->savedHouseholdFinancesDirective($ctx);
+        if ($householdGrounding !== null) {
+            $lines[] = $householdGrounding;
+        }
+
         // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
         // per-turn layers AFTER the static prefix and after <live_data>,
         // mirroring <knowledge>/<live_data>: load the active procedures of the
@@ -347,6 +356,65 @@ final class FynContextAssembler
             ."The user is asking how to start saving. Lead with the affordability ordering below — name the emergency-fund buffer (around three to six months of essential outgoings, more if self-employed) as the FIRST priority, before any Individual Savings Account or pension contribution. Then cover high-interest debt, then regular saving into the right wrapper.\n\n"
             .FinancialPlanningKnowledge::getAffordabilityRules()."\n"
             .'</savings_getting_started>';
+    }
+
+    /**
+     * Ground spouse-finance questions in the dedicated Save Tax household row.
+     */
+    private function savedHouseholdFinancesDirective(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->isOnboarding()) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+        $mentionsSpouse = preg_match('/\b(spouse|partner|husband|wife)\b/i', $message) === 1;
+        $mentionsFinances = preg_match(
+            '/\b(income|earn|salary|isa|pension|saving|investment|asset|household|financial|record)\b/i',
+            $message,
+        ) === 1;
+        if (! $mentionsSpouse || ! $mentionsFinances) {
+            return null;
+        }
+
+        $household = $ctx->user->taxStrategyHouseholdInput()->first();
+        if ($household === null) {
+            return null;
+        }
+
+        $fields = [
+            'spouse_annual_income' => 'Spouse annual income',
+            'spouse_isa_balance' => 'Spouse ISA balance',
+            'spouse_pension_input_annual' => 'Spouse annual pension contribution',
+            'spouse_existing_isa_balance' => 'Spouse existing ISA balance',
+            'spouse_existing_savings_balance' => 'Spouse existing savings balance',
+            'spouse_existing_investment_balance' => 'Spouse existing investment balance',
+            'spouse_existing_dividend_holdings_value' => 'Spouse existing dividend holdings value',
+            'spouse_existing_pension_balance' => 'Spouse existing pension balance',
+        ];
+
+        $values = [];
+        foreach ($fields as $field => $label) {
+            $value = $household->getAttribute($field);
+            if ($value !== null) {
+                $values[] = "- {$label}: £".number_format((float) $value, 2);
+            }
+        }
+
+        if ($household->spouse_employment_status !== null) {
+            $status = str_replace('_', ' ', (string) $household->spouse_employment_status);
+            $values[] = '- Spouse employment status: '.UserContentSanitiser::wrap($status);
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        return "<saved_household_finances>\n"
+            ."These are the authoritative Save Tax campaign household values currently saved for this user:\n"
+            .implode("\n", $values)."\n"
+            .'Use the listed values exactly. Do not say that a listed field is not recorded. Do not infer values for fields that are not listed.'
+            ."\n</saved_household_finances>";
     }
 
     /**

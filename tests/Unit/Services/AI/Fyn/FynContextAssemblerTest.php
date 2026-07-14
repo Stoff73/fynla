@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynTurnContext;
@@ -108,6 +109,32 @@ it('emits the declared required tools for a saved pension contribution question'
         ->toContain('<required_tools>')
         ->toContain('list_records(dc_pension)')
         ->toContain('get_tax_information(pension_allowances)');
+});
+
+it('grounds spouse financial questions in the saved campaign household row', function (): void {
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $this->user->id,
+        'spouse_annual_income' => 36000,
+        'spouse_isa_balance' => 8000,
+        'spouse_pension_input_annual' => 2400,
+    ]);
+
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Using only my saved records, what spouse income, ISA balance and annual pension contribution do you have recorded?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution', 'related' => []],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<saved_household_finances>')
+        ->toContain('Spouse annual income: £36,000.00')
+        ->toContain('Spouse ISA balance: £8,000.00')
+        ->toContain('Spouse annual pension contribution: £2,400.00')
+        ->toContain('Do not say that a listed field is not recorded');
 });
 
 it('emits CAPTURE block and NOT position on an onboarding turn', function (): void {
