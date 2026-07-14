@@ -12,6 +12,8 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\CaptureAccuracyGate;
+use App\Services\Onboarding\OnboardingChatDirector;
+use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -1123,6 +1125,21 @@ it('does not let stale duplicate captures pollute a retried group clarification'
     AiMessage::create([
         'conversation_id' => $conversation->id,
         'role' => 'assistant',
+        'content' => 'I need you to confirm whether you own them individually or jointly.',
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Welcome back. Would you like to continue?',
+        'metadata' => [
+            'onboarding_step' => 'campaign_bank_accounts',
+            'is_resume_greeting' => true,
+        ],
+    ]);
+
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
         'content' => 'Now your savings — bank accounts and savings accounts.',
         'metadata' => ['onboarding_step' => 'campaign_bank_accounts'],
     ]);
@@ -1131,8 +1148,14 @@ it('does not let stale duplicate captures pollute a retried group clarification'
         'role' => 'user',
         'content' => 'Both accounts are owned individually, 100% by me.',
     ]);
+    $agent = app(CoordinatingAgent::class);
+    $agent->clearCaptureAccuracyEvidence($conversation->id);
+    $evidenceMethod = new ReflectionMethod(CoordinatingAgent::class, 'recentUserMessageEvidence');
+    $evidenceMethod->setAccessible(true);
+    expect($evidenceMethod->invoke($agent, $conversation->id))
+        ->toBe($capture."\nBoth accounts are owned individually, 100% by me.");
 
-    $retry = app(CoordinatingAgent::class)->executeTool(
+    $retry = $agent->executeTool(
         'create_savings_account',
         $arguments,
         $user,
@@ -1143,6 +1166,60 @@ it('does not let stale duplicate captures pollute a retried group clarification'
         ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
 });
 
+it('clears unresolved capture evidence when onboarding is restarted', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
+    ]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'My Restart ISA has £20,000 and is individually owned.',
+    ]);
+    $arguments = [
+        'account_name' => 'Restart ISA',
+        'institution' => 'Restart Bank',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 20000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ];
+
+    $firstAttempt = app(CoordinatingAgent::class)->executeTool(
+        'create_savings_account',
+        $arguments,
+        $user,
+        $conversation->id,
+    );
+    expect($firstAttempt['clarification_required'] ?? false)->toBeTrue()
+        ->and($firstAttempt['missing'] ?? [])->toContain('isa_subtype');
+
+    iterator_to_array(
+        app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'restart'),
+        false,
+    );
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'It is a Cash ISA.',
+    ]);
+
+    $afterRestart = app(CoordinatingAgent::class)->executeTool(
+        'create_savings_account',
+        $arguments,
+        $user,
+        $conversation->id,
+    );
+
+    expect($afterRestart['clarification_required'] ?? false)->toBeTrue()
+        ->and($afterRestart['missing'] ?? [])->toContain('ownership_type')
+        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);
+});
+
 it('does not apply a plural clarification when the named account was not part of a group', function (): void {
     $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
         'account_name' => 'First Saver',
@@ -1150,6 +1227,18 @@ it('does not apply a plural clarification when the named account was not part of
         'current_balance' => 20000,
         'ownership_type' => 'individual',
     ], "My First Saver has £20,000.\nBoth accounts are individually owned.");
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('does not apply a plural clarification without the named cohort evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Alder Retry',
+        'account_type' => 'current_account',
+        'current_balance' => 3500,
+        'ownership_type' => 'individual',
+    ], 'Both accounts are owned individually, 100% by me.');
 
     expect($result['allowed'])->toBeFalse()
         ->and($result['missing'])->toContain('ownership_type');

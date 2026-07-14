@@ -999,6 +999,7 @@ class CoordinatingAgent extends BaseAgent
         if (! $accuracy['allowed']) {
             if ($accuracyCacheKey !== null) {
                 Cache::put($accuracyCacheKey, $accuracyEvidence, now()->addMinutes(15));
+                $this->rememberCaptureAccuracyCacheKey($conversationId, $accuracyCacheKey);
             }
             $result = [
                 'error' => true,
@@ -1015,6 +1016,7 @@ class CoordinatingAgent extends BaseAgent
 
         if ($accuracyCacheKey !== null) {
             Cache::forget($accuracyCacheKey);
+            $this->forgetCaptureAccuracyCacheKey($conversationId, $accuracyCacheKey);
         }
 
         // CoALA pointer fetch tools — `fetch_{pointer_id}` routes through the
@@ -1293,6 +1295,63 @@ class CoordinatingAgent extends BaseAgent
         $parts = array_slice(array_values(array_unique([...$parts, ...$currentParts])), -6);
 
         return [implode("\n", $parts), $cacheKey];
+    }
+
+    public function clearCaptureAccuracyEvidence(int $conversationId): void
+    {
+        $indexKey = $this->captureAccuracyCacheIndexKey($conversationId);
+        $keys = Cache::get($indexKey, []);
+        if (is_array($keys)) {
+            foreach ($keys as $key) {
+                if (is_string($key) && $key !== '') {
+                    Cache::forget($key);
+                }
+            }
+        }
+        Cache::forget($indexKey);
+    }
+
+    private function rememberCaptureAccuracyCacheKey(?int $conversationId, string $cacheKey): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $indexKey = $this->captureAccuracyCacheIndexKey($conversationId);
+        $keys = Cache::get($indexKey, []);
+        $keys = is_array($keys) ? $keys : [];
+        $keys[] = $cacheKey;
+        Cache::put($indexKey, array_values(array_unique($keys)), now()->addMinutes(15));
+    }
+
+    private function forgetCaptureAccuracyCacheKey(?int $conversationId, string $cacheKey): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $indexKey = $this->captureAccuracyCacheIndexKey($conversationId);
+        $keys = Cache::get($indexKey, []);
+        if (! is_array($keys)) {
+            return;
+        }
+
+        $remaining = array_values(array_filter(
+            $keys,
+            static fn (mixed $key): bool => is_string($key) && $key !== $cacheKey,
+        ));
+        if ($remaining === []) {
+            Cache::forget($indexKey);
+
+            return;
+        }
+
+        Cache::put($indexKey, $remaining, now()->addMinutes(15));
+    }
+
+    private function captureAccuracyCacheIndexKey(int $conversationId): string
+    {
+        return "capture_accuracy_evidence_keys:{$conversationId}";
     }
 
     /**
@@ -4898,7 +4957,7 @@ class CoordinatingAgent extends BaseAgent
             return null;
         }
 
-        $stateBoundaryId = AiMessage::query()
+        $stateBoundary = AiMessage::query()
             ->where('conversation_id', $conversationId)
             ->where('role', 'assistant')
             ->orderByDesc('id')
@@ -4909,7 +4968,8 @@ class CoordinatingAgent extends BaseAgent
 
                 return isset($metadata['onboarding_step'])
                     && ($metadata['is_resume_greeting'] ?? false) !== true;
-            })?->id;
+            });
+        $stateBoundaryId = $stateBoundary?->id;
 
         $messages = AiMessage::query()
             ->where('conversation_id', $conversationId)
@@ -4922,7 +4982,49 @@ class CoordinatingAgent extends BaseAgent
             ->filter(static fn (mixed $content): bool => is_string($content) && trim($content) !== '')
             ->values();
 
+        if ($stateBoundaryId !== null) {
+            $previousUser = AiMessage::query()
+                ->where('conversation_id', $conversationId)
+                ->where('role', 'user')
+                ->where('id', '<', $stateBoundaryId)
+                ->orderByDesc('id')
+                ->first(['id', 'content']);
+            $hasUnresolvedClarification = $previousUser !== null
+                && AiMessage::query()
+                    ->where('conversation_id', $conversationId)
+                    ->where('role', 'assistant')
+                    ->where('id', '>', $previousUser->id)
+                    ->where('id', '<', $stateBoundaryId)
+                    ->orderBy('id')
+                    ->get(['content', 'metadata'])
+                    ->contains(function (AiMessage $message): bool {
+                        $metadata = is_array($message->metadata) ? $message->metadata : [];
+
+                        return ($metadata['is_resume_greeting'] ?? false) !== true
+                            && ! isset($metadata['onboarding_step'])
+                            && $this->assistantRequestsCaptureClarification((string) $message->content);
+                    });
+
+            if ($hasUnresolvedClarification && is_string($previousUser->content)) {
+                $messages->prepend($previousUser->content);
+            }
+        }
+
         return $messages->isEmpty() ? null : $messages->implode("\n");
+    }
+
+    private function assistantRequestsCaptureClarification(string $content): bool
+    {
+        $content = trim($content);
+        if ($content === '') {
+            return false;
+        }
+
+        return str_contains($content, '?')
+            || preg_match(
+                '/\b(?:i need|could you|can you|would you|please (?:tell|confirm|provide|share)|tell me|confirm whether)\b/i',
+                $content,
+            ) === 1;
     }
 
     /**

@@ -106,6 +106,26 @@ it('emits CAPTURE block and NOT position on an onboarding turn', function (): vo
         ->and($out)->not->toContain('<financial_context>');
 });
 
+it('emits an update-only instruction block for a verify edit turn', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Change my Marcus balance to £13,250',
+        currentRoute: '/savings',
+        mode: 'onboarding',
+        onboardingFocus: 'verify_edit_savings',
+        isPreview: false,
+        classification: null,
+    );
+
+    $out = app(FynContextAssembler::class)->build($ctx);
+
+    expect($out)->toContain('<verify_edit_turn>')
+        ->and($out)->toContain('update_record')
+        ->and($out)->toContain('Never create a new record')
+        ->and($out)->not->toContain('<asset_capture_turn>')
+        ->and($out)->not->toContain('YOUR SINGLE JOB: call the appropriate create_ tool');
+});
+
 it('emits a preview notice when isPreview is true', function (): void {
     $ctx = FynTurnContext::make(
         user: $this->user, message: 'Add a goal', currentRoute: '/dashboard',

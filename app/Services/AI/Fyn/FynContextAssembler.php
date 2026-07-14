@@ -258,10 +258,16 @@ final class FynContextAssembler
 
         if ($has(ContextBucket::CAPTURE)) {
             $focus = (string) $ctx->onboardingFocus;
-            $lines[] = FynCaptureTurnInstructions::render(
-                $this->focusLabel($focus),
-                implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
-            );
+            if (str_starts_with($focus, 'verify_edit_')) {
+                $lines[] = FynVerifyEditTurnInstructions::render(
+                    substr($focus, strlen('verify_edit_')),
+                );
+            } else {
+                $lines[] = FynCaptureTurnInstructions::render(
+                    $this->focusLabel($focus),
+                    implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
+                );
+            }
         }
 
         if ($ctx->isPreview) {

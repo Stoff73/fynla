@@ -54,8 +54,19 @@ function mockDelegatedStream(array $events): void
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
         ->once()
-        ->andReturnUsing(function () use ($events) {
+        ->andReturnUsing(function (User $user, AiConversation $conversation) use ($events) {
+            $content = '';
             foreach ($events as $event) {
+                if (($event['type'] ?? null) === 'content') {
+                    $content .= (string) ($event['text'] ?? '');
+                }
+                if (($event['type'] ?? null) === 'done' && $content !== '') {
+                    $message = $conversation->messages()->create([
+                        'role' => 'assistant',
+                        'content' => $content,
+                    ]);
+                    $event['message_id'] = $message->id;
+                }
                 yield $event;
             }
         });
@@ -264,7 +275,7 @@ it('does not ack "Recorded" when the only write was a blocked duplicate (D1 roun
     expect($conversation->messages()->where('content', 'like', '%Recorded — £200%')->exists())->toBeFalse();
 });
 
-it('asks only for the missing fact when a campaign account write needs clarification', function () {
+it('asks only for the missing fact when a campaign account write needs clarification', function (string $modelText) {
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
@@ -283,7 +294,7 @@ it('asks only for the missing fact when a campaign account write needs clarifica
     mockDelegatedStream([
         [
             'type' => 'content',
-            'text' => 'Recorded — two savings accounts. I need you to confirm whether you own them individually or jointly.',
+            'text' => $modelText,
         ],
         ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
         [
@@ -304,13 +315,22 @@ it('asks only for the missing fact when a campaign account write needs clarifica
         false,
     );
     $content = collect($received)->where('type', 'content')->pluck('text')->implode("\n");
+    $persisted = $conversation->messages()->where('role', 'assistant')->latest('id')->firstOrFail();
+    $done = collect($received)->last(fn (array $event): bool => ($event['type'] ?? null) === 'done');
 
-    expect($content)->toContain('confirm whether you own them individually or jointly')
-        ->and($content)->not->toContain('Recorded')
+    expect($content)->toBe('I need you to confirm whether you own them individually or jointly.')
         ->and($content)->not->toContain("what's the balance and interest rate")
         ->and(collect($received)->where('type', 'done'))->toHaveCount(1)
+        ->and($persisted->content)->toBe('I need you to confirm whether you own them individually or jointly.')
+        ->and($persisted->metadata['capture_write_failed'] ?? false)->toBeTrue()
+        ->and($done['message_id'] ?? null)->toBe($persisted->id)
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
-});
+})->with([
+    'recorded' => 'Recorded — two savings accounts. I need you to confirm whether you own them individually or jointly.',
+    'great saved' => "Great — I've saved those. I need you to confirm whether you own them individually or jointly.",
+    'thanks recorded' => "Thanks — I've recorded both. I need you to confirm whether you own them individually or jointly.",
+    'okay accounts saved' => 'Okay, both accounts are now saved. I need you to confirm whether you own them individually or jointly.',
+]);
 
 it('still advances a question turn whose write landed', function () {
     [$user, $conversation] = captureFailureUser();

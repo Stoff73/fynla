@@ -481,6 +481,12 @@ final class CaptureAccuracyGate
         }
 
         if ($targetIndexes === []) {
+            if (collect($segments)->contains(
+                fn (string $segment): bool => $this->isSharedEntityEvidence($segment, $tool)
+            )) {
+                return '';
+            }
+
             $nonFactIndexes = array_keys(array_filter(
                 $segments,
                 fn (string $segment): bool => ! $this->isStandaloneEvidence($segment)

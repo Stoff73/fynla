@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
+use App\Services\AI\Fyn\FynVerifyEditTurnInstructions;
 use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
@@ -511,6 +512,7 @@ final class OnboardingChatDirector
      */
     private function handleRestartAction(User $user, AiConversation $conversation): \Generator
     {
+        $this->coordinatingAgent->clearCaptureAccuracyEvidence($conversation->id);
         $conversation->messages()->delete();
 
         // path_choice is meaningless for a completed user (a campaign
@@ -2748,6 +2750,9 @@ PROMPT;
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
         $delegatedMessage = $this->mergeUnresolvedCaptureMessage($conversation, $message);
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
         // April30Updates F-11 — duplicate-check guard.
         //
@@ -2841,6 +2846,7 @@ PROMPT;
             $writeFailureMessages = [];
             $ackShown = false;
             $contentBuffer = '';
+            $visibleResponse = '';
             $flushed = false;
             $recordsCreated = [];
             $modelRequestedClarification = false;
@@ -2866,7 +2872,7 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, $selection, $userAskedQuestion) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, &$visibleResponse, $selection, $userAskedQuestion) {
                 $flushed = true;
                 // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
                 // captured this turn: either no tool ran at all, or a write was
@@ -2899,6 +2905,8 @@ PROMPT;
                 if ($cleaned === '') {
                     return null;
                 }
+
+                $visibleResponse = $cleaned;
 
                 return ['type' => 'content', 'text' => $cleaned];
             };
@@ -3055,9 +3063,7 @@ PROMPT;
                 : "I couldn't record anything new there. If a figure has changed, "
                     .'tell me the specific amount and I will update it.';
             yield ['type' => 'content', 'text' => $failureText];
-            $this->saveMessage($conversation, 'assistant', $failureText, [
-                'metadata' => ['onboarding_step' => $currentStateId, 'capture_write_failed' => true],
-            ]);
+            $visibleResponse = $failureText;
             $ackShown = true;
         }
 
@@ -3066,12 +3072,18 @@ PROMPT;
         // user has already supplied those facts and should see only the missing
         // detail requested above. The next reply remains in this same state.
         if ($sawFailedWrite && ! $capturedSomething) {
+            $failureMessage = $this->persistFailedCaptureResponse(
+                $conversation,
+                $assistantBaselineId,
+                $visibleResponse,
+                $currentStateId,
+            );
             $this->recordProgress(
                 $user,
                 $currentStateId,
                 ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
             );
-            yield $delegatedDoneEvent ?? ['type' => 'done'];
+            yield ['type' => 'done', 'message_id' => $failureMessage->id];
 
             return;
         }
@@ -3201,15 +3213,12 @@ PROMPT;
                 $currentRoute,
                 persona: 'data_capture',
                 systemPromptOverride: $this->buildVerifyEditPrompt($user, $section),
-                // The capture bucket (FynCaptureTurnInstructions) is create-oriented
-                // and references the focus's create_ tools; stripping them to
-                // update-only confuses the model into the security refusal. Keep the
-                // full focus tool set (its Retraction clause already routes a
-                // correction to update_record/update_profile) and supply the record
-                // ids it normally lacks via the prompt appendix below.
-                allowedTools: OnboardingPromptBuilder::toolsForFocus($this->verifyEditFocus($section)),
+                // Verify edits use their own update-only context bucket. The
+                // ordinary capture bucket is create-oriented and caused the model
+                // to narrate an edit without calling update_record.
+                allowedTools: FynVerifyEditTurnInstructions::toolsForSection($section),
                 persistUserMessage: false, // already saved at top of handleUserMessage
-                unifiedFocus: $this->verifyEditFocus($section),
+                unifiedFocus: 'verify_edit_'.$section,
             );
 
             foreach ($generator as $event) {
@@ -3897,7 +3906,7 @@ PROMPT;
     private function stripFalseCaptureAcknowledgement(string $response): string
     {
         $cleaned = preg_replace(
-            '/^\s*(?:(?:recorded|saved|added)\b|got it\b|i[\'’]ve\s+(?:recorded|saved|added)\b|that[\'’]s\s+(?:recorded|saved|added)\b)[^.!?]*(?:[.!?]\s*|$)/iu',
+            '/^\s*(?:(?:great|thanks|thank you|okay|perfect|all set)[\s,\x{2014}\x{2013}-]*)?(?:(?:recorded|saved|added|updated)\b|got it\b|i[\'’]ve\s+(?:recorded|saved|added|updated)\b|that[\'’]s\s+(?:recorded|saved|added|updated)\b|(?:both|all|the)?\s*(?:accounts?|records?|details?|items?)\s+(?:are|have\s+been)\s+(?:now\s+)?(?:recorded|saved|added|updated)\b)[^.!?;]*(?:[.!?;]\s*|$)/iu',
             '',
             $response,
             1,
@@ -4243,6 +4252,37 @@ PROMPT;
         ], $extra));
 
         return $message;
+    }
+
+    private function persistFailedCaptureResponse(
+        AiConversation $conversation,
+        int $assistantBaselineId,
+        string $content,
+        string $stateId,
+    ): AiMessage {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $metadata = $message !== null && is_array($message->metadata)
+            ? $message->metadata
+            : [];
+        $attributes = [
+            'content' => $content,
+            'metadata' => array_merge($metadata, [
+                'onboarding_step' => $stateId,
+                'capture_write_failed' => true,
+            ]),
+        ];
+
+        if ($message !== null) {
+            $message->update($attributes);
+
+            return $message->refresh();
+        }
+
+        return $this->saveMessage($conversation, 'assistant', $content, $attributes);
     }
 
     private function errorEvent(string $text): array
