@@ -373,6 +373,7 @@ trait HasAiChat
         $messages = $messageHistory;
 
         $modelIteration = 0;
+        $verifyEditRetryForced = false;
 
         /** @var array<string, array{tool: string, model_iteration: int}> $pendingCaptureWriteFailures */
         $pendingCaptureWriteFailures = [];
@@ -1026,6 +1027,34 @@ trait HasAiChat
                 continue;
             }
 
+            // A verify-edit write can fail because the provider omitted one of
+            // the fields the user explicitly corrected, then stop in prose
+            // instead of retrying the tool. Keep that recovery inside the same
+            // turn: the original correction is still in context and the
+            // mechanical scope supplies the exact required field names. Force
+            // one retry only; if it still fails, the director's honesty gate
+            // leaves the user on the edit state without claiming success.
+            if (! $hasToolCalls
+                && $pendingCaptureWriteFailures !== []
+                && $this->verifyEditScope !== null
+                && ! $verifyEditRetryForced) {
+                $verifyEditRetryForced = true;
+                if ($iterationText !== '') {
+                    $messages[] = ['role' => 'assistant', 'content' => $iterationText];
+                }
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => 'VERIFY_EDIT_RETRY_REQUIRED: retry the failed update tool now. '
+                        .'Do not answer in prose and do not ask the user to repeat anything. '
+                        .'Read the corrected values from the original current-turn message and include every '
+                        .'required field: '.implode(', ', $this->verifyEditRequiredFieldNames()).'.',
+                ];
+                $fullResponse = '';
+                $iterationText = '';
+
+                continue;
+            }
+
             break;
         }
 
@@ -1527,6 +1556,20 @@ trait HasAiChat
 
         // General compression — recursively trim oversized nested data.
         return $this->trimForModel($result, depth: 0);
+    }
+
+    /** @return list<string> */
+    private function verifyEditRequiredFieldNames(): array
+    {
+        if ($this->verifyEditScope === null) {
+            return [];
+        }
+
+        return collect([
+            ...array_values($this->verifyEditScope['record_fields']),
+            ...array_values($this->verifyEditScope['profile_fields']),
+            ...array_values($this->verifyEditScope['tool_fields']),
+        ])->flatten()->unique()->values()->all();
     }
 
     /**

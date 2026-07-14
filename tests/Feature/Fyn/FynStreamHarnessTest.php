@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\Goal;
 use App\Models\TaxConfiguration;
 use App\Models\TierConfiguration;
 use App\Models\User;
@@ -169,6 +170,89 @@ it('correlates a corrected capture retry to the failed call from the prior model
         ->and($results[1]['tool_call_id'])->toBe('toolu_retry')
         ->and($results[1]['model_iteration'])->toBe(2)
         ->and($results[1]['retry_of_tool_call_id'])->toBe('toolu_failed');
+});
+
+it('forces one in-turn retry when a verify edit omits a requested field', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+    ]);
+    $goal = Goal::factory()->create([
+        'user_id' => $user->id,
+        'goal_name' => 'House deposit',
+        'target_amount' => 50000,
+        'target_date' => '2030-01-01',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'test',
+        'title' => 'Verify edit retry harness',
+        'message_count' => 0,
+    ]);
+
+    FynStreamHarness::fake()
+        ->toolTurn('update_record', [
+            'entity_type' => 'goal',
+            'entity_id' => $goal->id,
+            'fields' => [
+                'goal_name' => 'First home deposit',
+                'target_amount' => 60000,
+            ],
+        ], 'toolu_incomplete')
+        ->textTurn('I could not apply that change. Please tell me the value again.')
+        ->toolTurn('update_record', [
+            'entity_type' => 'goal',
+            'entity_id' => $goal->id,
+            'fields' => [
+                'goal_name' => 'First home deposit',
+                'target_amount' => 60000,
+                'target_date' => '2031-01-01',
+            ],
+        ], 'toolu_complete')
+        ->textTurn('Updated your Barclays Cash ISA.')
+        ->bind();
+
+    $agent = app(CoordinatingAgent::class);
+    $agent->setVerifyEditScope([
+        'tools' => ['update_record'],
+        'records' => ['goal' => [$goal->id]],
+        'profile_sections' => [],
+        'record_fields' => [
+            'goal' => [
+                'goal_name',
+                'target_amount',
+                'target_date',
+            ],
+        ],
+        'profile_fields' => [],
+        'tool_fields' => [],
+    ]);
+
+    $events = iterator_to_array(
+        $agent->chatWithPromptOverride(
+            $user,
+            $conversation,
+            'Rename my goal to First home deposit, set the target to £60,000, and the target date to 1 January 2031.',
+            null,
+            null,
+            ['update_record'],
+            true,
+            null,
+            'data_capture',
+        ),
+        preserve_keys: false,
+    );
+    $agent->setVerifyEditScope(null);
+    $results = collect($events)->where('type', 'capture_write_result')->values();
+
+    expect($results)->toHaveCount(2)
+        ->and($results[0]['landed'])->toBeFalse()
+        ->and($results[1]['landed'])->toBeTrue()
+        ->and($results[1]['retry_of_tool_call_id'])->toBe('toolu_incomplete')
+        ->and($goal->fresh()->goal_name)->toBe('First home deposit')
+        ->and((float) $goal->fresh()->target_amount)->toBe(60000.0)
+        ->and($goal->fresh()->target_date->toDateString())->toBe('2031-01-01');
 });
 
 it('leaves a selective retry uncorrelated when two prior same-tool failures are ambiguous', function () {
