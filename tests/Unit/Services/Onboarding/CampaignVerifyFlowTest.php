@@ -153,6 +153,12 @@ it('requires every user-requested field in the narrowed verify-edit tool schema'
             'interest_rate',
             'isa_subscription_amount',
         ])
+        ->and(array_keys($recordTool['function']['parameters']['properties']['fields']['properties']))
+        ->toEqualCanonicalizing([
+            'current_balance',
+            'interest_rate',
+            'isa_subscription_amount',
+        ])
         ->and($profileTool['function']['parameters']['properties']['fields']['required'])
         ->toEqualCanonicalizing([
             'annual_employment_income',

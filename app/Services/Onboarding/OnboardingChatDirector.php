@@ -3548,7 +3548,7 @@ PROMPT;
             if ($name === 'update_record') {
                 if (isset($parameters['oneOf']) && is_array($parameters['oneOf'])) {
                     $parameters['oneOf'] = array_values(array_filter(array_map(
-                        static function (array $branch) use ($scope): ?array {
+                        function (array $branch) use ($scope): ?array {
                             $entityType = $branch['properties']['entity_type']['const'] ?? null;
                             if (! is_string($entityType) || ! isset($scope['records'][$entityType])) {
                                 return null;
@@ -3556,7 +3556,7 @@ PROMPT;
                             $branch['properties']['entity_id']['enum'] = $scope['records'][$entityType];
                             $allowedFields = array_flip($scope['record_fields'][$entityType] ?? []);
                             $properties = $branch['properties']['fields']['properties'] ?? [];
-                            $branch['properties']['fields']['properties'] = array_intersect_key($properties, $allowedFields);
+                            $branch['properties']['fields']['properties'] = $this->verifyEditFieldProperties($properties, $allowedFields);
                             $branch['properties']['fields']['required'] = array_keys($allowedFields);
                             $branch['properties']['fields']['additionalProperties'] = false;
 
@@ -3570,7 +3570,7 @@ PROMPT;
                     $parameters['properties']['entity_id']['description'] = 'The identifier of a record on the current review screen.';
                     $allowedFields = collect($scope['record_fields'])->flatten()->unique()->flip()->all();
                     $properties = $parameters['properties']['fields']['properties'] ?? [];
-                    $parameters['properties']['fields']['properties'] = array_intersect_key($properties, $allowedFields);
+                    $parameters['properties']['fields']['properties'] = $this->verifyEditFieldProperties($properties, $allowedFields);
                     $parameters['properties']['fields']['required'] = array_keys($allowedFields);
                     $parameters['properties']['fields']['additionalProperties'] = false;
                 }
@@ -3605,6 +3605,28 @@ PROMPT;
         unset($tool);
 
         return $tools;
+    }
+
+    /**
+     * Keep the provider's field schema when it exists and add a strict,
+     * generic property for newer allowlisted fields absent from an older
+     * provider catalogue. A field listed only in `required` but missing from
+     * `properties` cannot be emitted by strict function calling.
+     *
+     * @param  array<string, mixed>  $properties
+     * @param  array<string, mixed>  $allowedFields
+     * @return array<string, mixed>
+     */
+    private function verifyEditFieldProperties(array $properties, array $allowedFields): array
+    {
+        return collect(array_keys($allowedFields))->mapWithKeys(
+            fn (string $field): array => [
+                $field => $properties[$field] ?? [
+                    'type' => ['string', 'number', 'boolean', 'null'],
+                    'description' => 'The replacement value explicitly supplied by the user for '.$field.'.',
+                ],
+            ],
+        )->all();
     }
 
     private function verifyEditProviderSnapshot(): string
