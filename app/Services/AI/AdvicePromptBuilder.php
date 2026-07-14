@@ -1146,7 +1146,11 @@ PROMPT;
 
     // ─── Layer 8b: Required Tools + Triggers ───────────────────────────
 
-    private function buildToolsAndTriggersBlock(?array $classification): string
+    /**
+     * Public so the unified FynContextAssembler carries the same declared
+     * mandatory tools and decision triggers as the legacy prompt path.
+     */
+    public function buildToolsAndTriggersBlock(?array $classification): string
     {
         if ($classification === null) {
             return '';

@@ -45,11 +45,12 @@ final class UpdateRecordAllowlist
         ],
         'savings_account' => [
             'account_name', 'account_type', 'institution', 'current_balance',
-            'interest_rate', 'access_type',
+            'interest_rate', 'access_type', 'isa_subscription_amount',
+            'regular_contribution_amount', 'contribution_frequency',
         ],
         'investment_account' => [
             'account_name', 'account_type', 'provider', 'current_value',
-            'monthly_contribution_amount',
+            'monthly_contribution_amount', 'contributions_ytd',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',

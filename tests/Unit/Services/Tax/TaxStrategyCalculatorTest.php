@@ -68,9 +68,14 @@ describe('Path A — single user', function () {
         expect($keys)->not->toContain('marriage_allowance');
 
         foreach ($output->userAllowances as $pos) {
-            expect($pos['status'])->toBeIn(['spring', 'violet', 'raspberry']);
+            expect($pos['status'])->toBeIn(['spring', 'violet', 'raspberry', 'muted']);
             expect($pos['owner'])->toBe('user');
         }
+
+        $cgt = collect($output->userAllowances)->firstWhere('key', 'cgt_allowance');
+        expect($cgt['known'])->toBeFalse()
+            ->and((float) $cgt['used'])->toBe(0.0)
+            ->and((float) $cgt['remaining'])->toBe(0.0);
     });
 
     it('does not write to the database during calculate()', function () {
@@ -89,8 +94,10 @@ describe('Path B — dual_earner', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 80000, // higher rate
+            'annual_dividend_income' => 5000,
             'marital_status' => 'married',
         ]);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_annual_income' => 30000,
@@ -169,6 +176,30 @@ describe('Path C — single_earner_couple', function () {
         expect($ma)->toBeNull();
     });
 
+    it('qualifies spouse investment transfers when current-year gains and dividends are not captured', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 80000,
+            'annual_dividend_income' => 5000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_investment_balance' => 0,
+            'spouse_existing_dividend_holdings_value' => 0,
+        ]);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+
+        $recommendation = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'gia_to_spouse');
+
+        expect($recommendation)->not->toBeNull()
+            ->and($recommendation['description'])->toContain('may have allowance available')
+            ->and($recommendation['description'])->toContain('Confirm their gains, losses and dividends for this tax year')
+            ->and($recommendation['estimated_annual_tax_saved'])->toBeNull()
+            ->and($recommendation)->not->toHaveKeys(['available_cgt_allowance', 'available_dividend_allowance']);
+    });
+
     /**
      * M11 regression — Marriage Allowance gate must use TOTAL taxable income
      * (employment + dividends + savings interest), not employment alone. A
@@ -191,13 +222,15 @@ describe('Path C — single_earner_couple', function () {
         expect(collect($output->recommendations)->firstWhere('type', 'marriage_allowance_transfer'))->toBeNull();
     });
 
-    it('reduces savings-shift suggestion when spouse already has standalone savings', function () {
+    it('omits savings-shift suggestion when spouse already has standalone savings but its interest rate is unknown', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 100000,
             'marriage_allowance_eligible' => true,
         ]);
-        // Spouse already has £100k of savings — eats some of their PSA capacity
+        // A balance alone does not reveal the spouse's interest income. The
+        // campaign does not capture the spouse account rate, so manufacturing
+        // headroom from the user's rate would be false precision.
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 100000,
@@ -210,13 +243,40 @@ describe('Path C — single_earner_couple', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
-        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
-        // Spouse already absorbing ~£3,500/yr interest from their own £100k @ 3.5%
-        // Remaining capacity ≈ £18,570 - £3,500 = £15,070
-        // Translates to ~£430k more transferable @ 3.5% — but also bounded by user's £600k
-        // Expectation: suggested transfer < 600,000 (capped by spouse's reduced capacity)
-        expect($shift)->not->toBeNull();
-        expect($shift['suggested_transfer_amount'])->toBeLessThan(600000);
+        expect(collect($output->recommendations)->firstWhere('type', 'savings_to_spouse'))->toBeNull();
+    });
+
+    it('weights savings rates by balance and never proposes or prices more cash than the user holds', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 82000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 3500,
+            'interest_rate' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 13250,
+            'interest_rate' => 4.7,
+        ]);
+
+        $shift = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'savings_to_spouse');
+
+        expect($shift)->not->toBeNull()
+            ->and($shift['suggested_transfer_amount'])->toBe(16750.0)
+            ->and($shift['estimated_annual_tax_saved'])->toBe(49.1)
+            ->and($shift['annual_interest_moved'])->toBe(622.75)
+            ->and($shift['taxable_interest_sheltered'])->toBe(122.75)
+            ->and($shift['title'])->toContain('£16,750')
+            ->and($shift['title'])->not->toContain('£17,000');
     });
 
     /**
@@ -267,11 +327,10 @@ describe('Path C — single_earner_couple', function () {
     });
 
     /**
-     * Canonical pin — Tasks 13+14.
-     * When the spouse's ISA is already at the annual allowance (£20,000),
-     * isa_topup_spouse must stay silent — there is no remaining capacity.
+     * A total account balance does not reveal current-tax-year subscriptions.
+     * The calculator must stay silent rather than manufacture exact headroom.
      */
-    it('stays silent on spouse ISA capacity when the spouse ISA is at the allowance', function () {
+    it('stays silent on spouse ISA capacity when only a positive total balance is known', function () {
         $taxConfig = app(TaxConfigService::class);
         $isaAllowance = (float) ($taxConfig->getISAAllowances()['annual_allowance'] ?? 20000);
 
@@ -283,13 +342,13 @@ describe('Path C — single_earner_couple', function () {
         ]);
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
-            'spouse_existing_isa_balance' => $isaAllowance, // fully subscribed
+            'spouse_existing_isa_balance' => $isaAllowance,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
         expect(collect($output->recommendations)->firstWhere('type', 'isa_topup_spouse'))
-            ->toBeNull('isa_topup_spouse must NOT fire when spouse ISA is fully subscribed');
+            ->toBeNull('isa_topup_spouse must not infer current-year subscriptions from a total balance');
     });
 });
 
@@ -315,7 +374,7 @@ describe('allowance grid availability + dividend usage', function () {
         expect($spouseMa['available'])->toBeFalse();
     });
 
-    it('keeps Marriage Allowance available (fully used) for an eligible basic-rate recipient', function () {
+    it('keeps an eligible but unclaimed Marriage Allowance available and unused', function () {
         $user = User::factory()->create([
             'marital_status' => 'married',
             'household_calculation_mode' => 'single_earner_couple',
@@ -327,7 +386,26 @@ describe('allowance grid availability + dividend usage', function () {
 
         $userMa = collect($output->userAllowances)->firstWhere('key', 'marriage_allowance');
         expect($userMa['available'])->toBeTrue();
-        expect((float) $userMa['used'])->toBeGreaterThan(0.0);
+        expect((float) $userMa['used'])->toBe(0.0);
+        expect((float) $userMa['remaining'])->toBe((float) $userMa['amount']);
+    });
+
+    it('marks Marriage Allowance used only when the user explicitly models it as claimed', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 35000,
+            'marriage_allowance_eligible' => true,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate(
+            $user,
+            new TaxStrategyOverridesDTO(marriageAllowanceClaimed: true),
+        );
+
+        $userMa = collect($output->userAllowances)->firstWhere('key', 'marriage_allowance');
+        expect((float) $userMa['used'])->toBe((float) $userMa['amount'])
+            ->and((float) $userMa['remaining'])->toBe(0.0);
     });
 
     it('counts captured dividend income against the Dividend Allowance', function () {
@@ -347,16 +425,203 @@ describe('allowance grid availability + dividend usage', function () {
         expect((float) $div['remaining'])->toBe(0.0);
         expect($div['utilisation_pct'])->toBeGreaterThanOrEqual(100.0);
     });
+
+    it('tapers the displayed Personal Allowance from adjusted net income', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 110000,
+        ]);
+
+        $allowance = collect(app(TaxStrategyCalculator::class)->calculate($user)->userAllowances)
+            ->firstWhere('key', 'personal_allowance');
+
+        expect((float) $allowance['amount'])->toBe(7570.0)
+            ->and((float) $allowance['used'])->toBe(7570.0)
+            ->and((float) $allowance['remaining'])->toBe(0.0);
+    });
+
+    it('shows no Personal Allowance once adjusted net income removes it completely', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 125140,
+        ]);
+
+        $allowance = collect(app(TaxStrategyCalculator::class)->calculate($user)->userAllowances)
+            ->firstWhere('key', 'personal_allowance');
+
+        expect((float) $allowance['amount'])->toBe(0.0)
+            ->and((float) $allowance['used'])->toBe(0.0)
+            ->and((float) $allowance['remaining'])->toBe(0.0);
+    });
+
+    it('uses all captured income sources when deciding whether Personal Allowance rescue applies', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 50000,
+            'annual_self_employment_income' => 40000,
+            'annual_other_income' => 20000,
+        ]);
+
+        $recommendation = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'pa_taper_rescue');
+
+        expect($recommendation)->not->toBeNull()
+            ->and((float) $recommendation['suggested_contribution'])->toBe(10000.0);
+    });
+
+    it('uses adjusted net income after Gift Aid for Personal Allowance rescue', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 105000,
+            'is_gift_aid' => true,
+            'annual_charitable_donations' => 4000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+        $allowance = collect($output->userAllowances)->firstWhere('key', 'personal_allowance');
+
+        expect((float) $allowance['amount'])->toBe(12570.0)
+            ->and(collect($output->recommendations)->firstWhere('type', 'pa_taper_rescue'))->toBeNull();
+    });
+
+    it('uses the tapered Pension Annual Allowance in the allowance grid and recommendation headroom', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 300000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+        $allowance = collect($output->userAllowances)->firstWhere('key', 'pension_annual_allowance');
+        $recommendation = collect($output->recommendations)->firstWhere('type', 'additional_rate_avoidance');
+
+        expect((float) $allowance['amount'])->toBe(40000.0)
+            ->and((float) $recommendation['suggested_contribution'])->toBeLessThanOrEqual(40000.0);
+    });
+
+    it('uses the Money Purchase Annual Allowance after flexible pension access', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'single',
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+        ]);
+        DCPension::factory()->for($user)->create([
+            'has_flexibly_accessed' => true,
+            'monthly_contribution_amount' => 0,
+            'employee_contribution_percent' => 0,
+            'employer_contribution_percent' => 0,
+        ]);
+
+        $allowance = collect(app(TaxStrategyCalculator::class)->calculate($user)->userAllowances)
+            ->firstWhere('key', 'pension_annual_allowance');
+        $expected = (float) app(TaxConfigService::class)
+            ->getPensionAllowances()['money_purchase_annual_allowance'];
+
+        expect((float) $allowance['amount'])->toBe($expected);
+    });
+
+    it('does not treat a spouse total ISA balance or unrealised gains as current-year allowance use', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 36000,
+            'spouse_isa_balance' => 13250,
+            'spouse_unrealised_gains' => 8000,
+        ]);
+
+        $allowances = collect(app(TaxStrategyCalculator::class)->calculate($user)->spouseAllowances);
+        $isa = $allowances->firstWhere('key', 'isa_allowance');
+        $cgt = $allowances->firstWhere('key', 'cgt_allowance');
+        $savings = $allowances->firstWhere('key', 'savings_allowance');
+
+        expect($isa['known'])->toBeFalse()
+            ->and((float) $isa['used'])->toBe(0.0)
+            ->and((float) $isa['remaining'])->toBe(0.0)
+            ->and($cgt['known'])->toBeFalse()
+            ->and((float) $cgt['used'])->toBe(0.0)
+            ->and((float) $cgt['remaining'])->toBe(0.0)
+            ->and($savings['known'])->toBeFalse();
+    });
+
+    it('derives the spouse Personal Savings Allowance from income instead of model-supplied band text', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 80000,
+            'spouse_psa_band' => 'basic',
+        ]);
+
+        $allowance = collect(app(TaxStrategyCalculator::class)->calculate($user)->spouseAllowances)
+            ->firstWhere('key', 'savings_allowance');
+
+        expect((float) $allowance['amount'])->toBe(
+            (float) app(TaxConfigService::class)->getIncomeTax()['personal_savings_allowance']['higher'],
+        );
+    });
+
+    it('includes spouse dividends when deriving the spouse Personal Savings Allowance', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 45000,
+            'spouse_annual_dividends' => 10000,
+            'spouse_psa_band' => 'basic',
+        ]);
+
+        $allowance = collect(app(TaxStrategyCalculator::class)->calculate($user)->spouseAllowances)
+            ->firstWhere('key', 'savings_allowance');
+
+        expect((float) $allowance['amount'])->toBe(
+            (float) app(TaxConfigService::class)->getIncomeTax()['personal_savings_allowance']['higher'],
+        );
+    });
+
+    it('does not present spouse Pension Annual Allowance headroom without total pension-input and flexible-access facts', function () {
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 36000,
+            'spouse_pension_input_annual' => 2400,
+        ]);
+
+        $allowance = collect(app(TaxStrategyCalculator::class)->calculate($user)->spouseAllowances)
+            ->firstWhere('key', 'pension_annual_allowance');
+
+        expect($allowance['known'])->toBeFalse()
+            ->and((float) $allowance['used'])->toBe(0.0)
+            ->and((float) $allowance['remaining'])->toBe(0.0);
+    });
 });
 
 describe('benchmark', function () {
-    // Wall-clock threshold is generous (100ms) on purpose — single_earner_couple
+    // Wall-clock threshold is generous (250ms) on purpose — single_earner_couple
     // mode runs ~13 strategies, each with its own SavingsAccount / DCPension /
     // Holding queries, so realistic warm-cache calculate() lands at 30-70ms on
-    // a quiet box and 60-90ms under suite load. The bound exists to catch
+    // a quiet box, while shared CI runners can reach ~150ms under full-suite
+    // load. The bound exists to catch
     // pathological regressions (e.g. accidentally re-calculating per strategy
-    // → 500ms+), not to police 5ms noise.
-    it('runs in under 100ms for a representative single_earner_couple persona', function () {
+    // → 500ms+), not to police scheduler noise.
+    it('runs in under 250ms for a representative single_earner_couple persona', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 100000,
@@ -375,7 +640,7 @@ describe('benchmark', function () {
         app(TaxStrategyCalculator::class)->calculate($user);
         $elapsedMs = (hrtime(true) - $start) / 1_000_000;
 
-        expect($elapsedMs)->toBeLessThan(100);
+        expect($elapsedMs)->toBeLessThan(250);
     });
 });
 
@@ -405,6 +670,7 @@ describe('recommendations contract (canonical)', function () {
             'spouse_isa_balance' => 5000,
             'spouse_psa_band' => 'basic',
         ]);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
@@ -535,6 +801,48 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
             ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0);
     });
 
+    it('sizes the ISA top-up from the highest-rate cash and reconciles the exact taxable interest saving', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 36000,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'institution' => 'Halifax',
+            'current_balance' => 3500,
+            'interest_rate' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'institution' => 'Marcus',
+            'current_balance' => 13250,
+            'interest_rate' => 4.7,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => true,
+            'current_balance' => 20000,
+            'isa_subscription_amount' => 5000,
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
+            'interest_rate' => 4.2,
+        ]);
+
+        $rec = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'isa_topup_vs_psa');
+
+        expect($rec)->not->toBeNull()
+            ->and($rec['annual_interest'])->toBe(622.75)
+            ->and($rec['taxable_interest_sheltered'])->toBe(122.75)
+            ->and($rec['suggested_transfer_amount'])->toBe(2611.7)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(49.1)
+            ->and($rec['title'])->toContain('£2,612')
+            ->and($rec['description'])->toContain('Marcus');
+    });
+
     it('omits ISA top-up vs PSA when interest stays under the allowance', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
@@ -602,7 +910,7 @@ describe('Phase 2 — household strategy refinements (#9, #11)', function () {
             ->and($shift)->toHaveKey('spouse_personal_savings_allowance');
     });
 
-    it('sizes GIA rebalance with an estimated tax saving when user has dividends', function () {
+    it('qualifies GIA rebalance because eligible account dividends are not stored separately', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 80000, // higher rate
@@ -614,14 +922,36 @@ describe('Phase 2 — household strategy refinements (#9, #11)', function () {
             'spouse_annual_income' => 25000,
             'spouse_psa_band' => 'basic',
         ]);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
         $rec = collect($output->recommendations)->firstWhere('type', 'gia_rebalance');
         expect($rec)->not->toBeNull()
-            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0)
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull()
+            ->and($rec['requires_advice'])->toBeTrue()
+            ->and($rec['description'])->toContain('depends on which holdings and dividends are transferred')
             ->and($rec)->toHaveKey('user_dividend_rate')
             ->and($rec)->toHaveKey('spouse_dividend_rate');
+    });
+
+    it('does not recommend a GIA rebalance when the user has no non-ISA investment account', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+            'annual_dividend_income' => 5000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 36000,
+            'spouse_psa_band' => 'basic',
+        ]);
+
+        $recommendation = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'gia_rebalance');
+
+        expect($recommendation)->toBeNull();
     });
 });
 
@@ -650,6 +980,62 @@ describe('Phase 2 — joint-savings strategy (#15)', function () {
             ->and($rec['category'])->toBe('household')
             ->and($rec['priority'])->toBe('low')
             ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0);
+    });
+
+    it('weights each savings rate by its balance when calculating joint-savings tax', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 82000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'joint_owner_id' => null,
+            'current_balance' => 3500,
+            'interest_rate' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'joint_owner_id' => null,
+            'current_balance' => 13250,
+            'interest_rate' => 4.7,
+        ]);
+
+        $recommendation = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'joint_savings_psa_split');
+
+        expect($recommendation)->not->toBeNull()
+            ->and($recommendation['annual_interest'])->toBe(622.75)
+            ->and($recommendation['shelterable_interest'])->toBe(122.75)
+            ->and($recommendation['estimated_annual_tax_saved'])->toBe(49.1);
+    });
+
+    it('does not claim spouse savings headroom when dual-earner spouse savings were not captured', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 82000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 36000,
+            'spouse_psa_band' => 'basic',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'joint_owner_id' => null,
+            'current_balance' => 20000,
+            'interest_rate' => 4.7,
+        ]);
+
+        $recommendation = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'joint_savings_psa_split');
+
+        expect($recommendation)->toBeNull();
     });
 
     it('omits joint-savings split when user is additional-rate (PSA is £0)', function () {
@@ -929,6 +1315,10 @@ describe('Phase 3 — bed & ISA capital gains harvest (#6)', function () {
         expect($rec)->not->toBeNull()
             ->and($rec['category'])->toBe('allowance')
             ->and($rec['priority'])->toBe('medium')
+            ->and($rec['requires_advice'])->toBeTrue()
+            ->and($rec['title'])->toContain('potentially shelter')
+            ->and($rec['description'])->toContain('only if you have not already used the allowance')
+            ->and($rec['description'])->toContain('gains and losses elsewhere')
             ->and($rec['total_unrealised_gain'])->toBe(5000.0)
             ->and($rec['realisable_within_aea'])->toBe(3000.0) // capped at AEA
             ->and($rec['estimated_annual_tax_saved'])->toBe(720.0); // £3,000 × 24% higher-rate CGT

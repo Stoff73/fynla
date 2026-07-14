@@ -71,6 +71,11 @@ describe('QueryClassifier', function () {
                 ->toBe(QuerySchemas::BILLING);
         });
 
+        it('classifies an explicit Fynla plan question as billing', function () {
+            expect($this->classifier->classify('Which Fynla plan am I on?')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
         // ISA-subscription is a savings concept, NOT Fynla billing — the
         // fixed-width negative lookbehind must keep it out of BILLING.
         it('does NOT classify "what is my ISA subscription limit" as billing', function () {
@@ -78,10 +83,29 @@ describe('QueryClassifier', function () {
                 ->not->toBe(QuerySchemas::BILLING);
         });
 
+        it('does not classify a saved ISA subscription question as billing', function () {
+            $result = $this->classifier->classify(
+                'Using my saved data, how much of my ISA allowance have I used this tax year, how much remains, and which account contains the subscription?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS)
+                ->and($result['related'])->toContain(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
+        });
+
         // Genuine navigation with no billing entity must still be navigation.
         it('keeps "take me to my goals page" as navigation', function () {
             expect($this->classifier->classify('take me to my goals page')['primary'])
                 ->toBe(QuerySchemas::NAVIGATION);
+        });
+
+        it('does not treat a saved tax-plan explanation as subscription billing', function () {
+            $result = $this->classifier->classify(
+                'Can you explain in plain English why moving £2,612 of my Marcus savings into my ISA could save about £49 a year, using the figures in my plan?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
         });
     });
 

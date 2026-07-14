@@ -60,6 +60,13 @@ class MobileDashboardAggregator
         return Cache::remember("mobile_dashboard_{$userId}", self::CACHE_TTL, function () use ($userId) {
             $modules = $this->aggregateModules($userId);
             $netWorth = $this->calculateNetWorth($userId);
+
+            $knownPensionValue = (float) ($netWorth['breakdown']['assets']['pensions'] ?? 0);
+            if ($knownPensionValue > 0
+                && (float) ($modules['retirement']['pot_value'] ?? 0) <= 0) {
+                $modules['retirement']['pot_value'] = round($knownPensionValue, 2);
+            }
+
             $alerts = $this->getAlerts($userId);
             $fynInsight = $this->generateFynInsight($modules, $netWorth);
 

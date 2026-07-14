@@ -11,16 +11,19 @@ use App\Models\AiMessage;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
+use App\Services\AI\Fyn\FynVerifyEditTurnInstructions;
 use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\XaiToolDefinitions;
 use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
@@ -511,6 +514,7 @@ final class OnboardingChatDirector
      */
     private function handleRestartAction(User $user, AiConversation $conversation): \Generator
     {
+        $this->coordinatingAgent->clearCaptureAccuracyEvidence($conversation->id);
         $conversation->messages()->delete();
 
         // path_choice is meaningless for a completed user (a campaign
@@ -2748,6 +2752,9 @@ PROMPT;
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
         $delegatedMessage = $this->mergeUnresolvedCaptureMessage($conversation, $message);
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
         // April30Updates F-11 — duplicate-check guard.
         //
@@ -2838,9 +2845,10 @@ PROMPT;
             $toolCallsSeen = 0;
             $toolWritesLanded = 0;
             $sawFailedWrite = false;
-            $writeFailureMessages = [];
+            $pendingWriteFailures = [];
             $ackShown = false;
             $contentBuffer = '';
+            $visibleResponse = '';
             $flushed = false;
             $recordsCreated = [];
             $modelRequestedClarification = false;
@@ -2866,7 +2874,7 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, $selection, $userAskedQuestion) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$pendingWriteFailures, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, &$visibleResponse, $selection, $userAskedQuestion) {
                 $flushed = true;
                 // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
                 // captured this turn: either no tool ran at all, or a write was
@@ -2880,6 +2888,11 @@ PROMPT;
                     && ($toolCallsSeen === 0 || $sawFailedWrite);
                 $modelRequestedClarification = $nothingCaptured
                     && $this->captureResponseRequestsClarification($contentBuffer);
+                if ($pendingWriteFailures !== [] && ! $userAskedQuestion && ! $modelRequestedClarification) {
+                    $contentBuffer = '';
+
+                    return null;
+                }
                 if ($contentBuffer === ''
                     || ($nothingCaptured && ! $userAskedQuestion && ! $modelRequestedClarification)) {
                     $contentBuffer = '';
@@ -2891,11 +2904,16 @@ PROMPT;
                     $selection,
                     allowAnswer: $userAskedQuestion || $modelRequestedClarification,
                 );
+                if ($nothingCaptured && $modelRequestedClarification) {
+                    $cleaned = $this->stripFalseCaptureAcknowledgement($cleaned);
+                }
                 $cleaned = $this->dedupeAckSentences($cleaned);
                 $contentBuffer = '';
                 if ($cleaned === '') {
                     return null;
                 }
+
+                $visibleResponse = $cleaned;
 
                 return ['type' => 'content', 'text' => $cleaned];
             };
@@ -2922,16 +2940,22 @@ PROMPT;
                 // the counts drive the honest advance gate below — a failed
                 // create must not count as a capture.
                 if ($type === 'capture_write_result') {
+                    $toolCallId = (string) ($event['tool_call_id'] ?? '');
+                    $retryOfToolCallId = (string) ($event['retry_of_tool_call_id'] ?? '');
                     if (($event['landed'] ?? false) === true) {
                         $toolWritesLanded++;
-                    } else {
+                        if ($retryOfToolCallId !== '') {
+                            unset($pendingWriteFailures[$retryOfToolCallId]);
+                        }
+                    } elseif (($event['noop'] ?? false) !== true) {
                         // A blocked duplicate carries no message; a validation
                         // failure does. Either way a write was attempted and
                         // nothing landed — enough to suppress a false "Recorded".
                         $sawFailedWrite = true;
-                        if (is_string($event['message'] ?? null) && $event['message'] !== '') {
-                            $writeFailureMessages[] = (string) $event['message'];
-                        }
+                        $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
+                        $pendingWriteFailures[$failureKey] = is_string($event['message'] ?? null)
+                            ? (string) $event['message']
+                            : '';
                     }
 
                     continue;
@@ -3045,30 +3069,35 @@ PROMPT;
         // rather than moving on in silence. A validation failure names the
         // reason; a blocked duplicate (no failure message) gets a truthful
         // "nothing new" line so Fyn never claims a figure it did not record.
-        if ($sawFailedWrite && $toolWritesLanded === 0 && $llmEmittedFills === [] && ! $ackShown) {
-            $failureText = $writeFailureMessages !== []
-                ? "I couldn't save that — ".rtrim($writeFailureMessages[0], '.')
+        if ($pendingWriteFailures !== [] && ! $ackShown) {
+            $failureReason = collect($pendingWriteFailures)->first(fn (string $message): bool => $message !== '');
+            $failureText = is_string($failureReason)
+                ? "I couldn't save that — ".rtrim($failureReason, '.')
                     .'. Give me the missing detail and I will try again.'
                 : "I couldn't record anything new there. If a figure has changed, "
                     .'tell me the specific amount and I will update it.';
             yield ['type' => 'content', 'text' => $failureText];
-            $this->saveMessage($conversation, 'assistant', $failureText, [
-                'metadata' => ['onboarding_step' => $currentStateId, 'capture_write_failed' => true],
-            ]);
+            $visibleResponse = $failureText;
             $ackShown = true;
         }
 
-        // A failed write is never completion of the current capture step.
-        // Re-ask this state's scripted prompt after the honest failure line;
-        // otherwise the next state can announce "I've saved..." and navigate
-        // even though no record exists.
-        if ($sawFailedWrite && ! $capturedSomething) {
+        // A failed write is never completion of the current capture step. Keep
+        // the state parked, but do not replay the full scripted question: the
+        // user has already supplied those facts and should see only the missing
+        // detail requested above. The next reply remains in this same state.
+        if ($pendingWriteFailures !== []) {
+            $failureMessage = $this->persistFailedCaptureResponse(
+                $conversation,
+                $assistantBaselineId,
+                $visibleResponse,
+                $currentStateId,
+            );
             $this->recordProgress(
                 $user,
                 $currentStateId,
                 ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
             );
-            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+            yield ['type' => 'done', 'message_id' => $failureMessage->id];
 
             return;
         }
@@ -3185,10 +3214,18 @@ PROMPT;
 
         // Snapshot the section's records before the edit so the read-back
         // below can name exactly what changed (and its resulting amount).
+        $editScope = $this->verifyEditScope($user, $section, $message);
         $preEdit = $this->verifyEditSnapshot($user, $section);
+        $preEditFields = $this->verifyEditFieldSnapshot($user, $editScope);
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
-        $toolCallsSeen = 0;
+        $toolWritesLanded = 0;
+        $sawFailedWrite = false;
+        $pendingWriteFailures = [];
         $contentBuffer = '';
+        $providerSnapshot = $this->verifyEditProviderSnapshot();
 
         try {
             $generator = $this->fynLoop->stream(
@@ -3198,15 +3235,15 @@ PROMPT;
                 $currentRoute,
                 persona: 'data_capture',
                 systemPromptOverride: $this->buildVerifyEditPrompt($user, $section),
-                // The capture bucket (FynCaptureTurnInstructions) is create-oriented
-                // and references the focus's create_ tools; stripping them to
-                // update-only confuses the model into the security refusal. Keep the
-                // full focus tool set (its Retraction clause already routes a
-                // correction to update_record/update_profile) and supply the record
-                // ids it normally lacks via the prompt appendix below.
-                allowedTools: OnboardingPromptBuilder::toolsForFocus($this->verifyEditFocus($section)),
+                // Verify edits use their own update-only context bucket. The
+                // ordinary capture bucket is create-oriented and caused the model
+                // to narrate an edit without calling update_record.
+                allowedTools: null,
                 persistUserMessage: false, // already saved at top of handleUserMessage
-                unifiedFocus: $this->verifyEditFocus($section),
+                toolsListOverride: $this->verifyEditToolDefinitions($user, $section, $message, $providerSnapshot),
+                unifiedFocus: 'verify_edit_'.$section,
+                verifyEditScope: $editScope,
+                providerOverride: $providerSnapshot,
             );
 
             foreach ($generator as $event) {
@@ -3219,8 +3256,29 @@ PROMPT;
                 }
 
                 if ($type === 'tool_use' || $type === 'tool_success') {
-                    $toolCallsSeen++;
                     yield $event;
+
+                    continue;
+                }
+
+                // The delegated data-capture loop reports whether each update
+                // actually committed. Consume this internal frame here: only a
+                // landed write may return the journey to its review screen.
+                if ($type === 'capture_write_result') {
+                    $toolCallId = (string) ($event['tool_call_id'] ?? '');
+                    $retryOfToolCallId = (string) ($event['retry_of_tool_call_id'] ?? '');
+                    if (($event['landed'] ?? false) === true) {
+                        $toolWritesLanded++;
+                        if ($retryOfToolCallId !== '') {
+                            unset($pendingWriteFailures[$retryOfToolCallId]);
+                        }
+                    } elseif (($event['noop'] ?? false) !== true) {
+                        $sawFailedWrite = true;
+                        $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
+                        $pendingWriteFailures[$failureKey] = is_string($event['message'] ?? null)
+                            ? (string) $event['message']
+                            : '';
+                    }
 
                     continue;
                 }
@@ -3248,47 +3306,80 @@ PROMPT;
                 'error' => $e->getMessage(),
             ]);
 
-            yield ['type' => 'content', 'text' => 'I had trouble applying that change. Could you tell me the specific value, for example "change my Cash ISA balance to £25,000"?'];
-            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+            $failureText = 'I had trouble applying that change. Tell me the exact value you want to replace and I will try again.';
+            $failureMessage = $this->persistVerifyEditResponse(
+                $conversation,
+                $assistantBaselineId,
+                $failureText,
+                $currentStateId,
+                'verify_edit_failed',
+            );
+            yield ['type' => 'content', 'text' => $failureText];
+            yield ['type' => 'done', 'message_id' => $failureMessage->id];
 
             return;
         }
 
-        $ack = trim($contentBuffer);
+        $persistedAck = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $ack = $this->dedupeAckSentences(trim((string) ($persistedAck?->content ?: $contentBuffer)));
 
-        // Honesty gate — if the model applied no update this turn, do NOT advance
-        // AND do NOT surface its acknowledgement. grok will sometimes narrate a
-        // change ("Got it — updated your balance to £X") without actually calling
-        // a write tool; showing that ack would have Fyn claim a change it never
-        // made. Suppress it, re-ask for the specific value, and stay on the edit
-        // state so the next turn cannot falsely claim success.
-        if ($toolCallsSeen === 0) {
-            yield ['type' => 'content', 'text' => "I wasn't able to apply that change. Could you tell me the specific value, for example \"change my Cash ISA balance to £25,000\"?"];
-            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+        // Honesty gate — a tool attempt is not proof of a write. A failed or
+        // blocked update stays parked on this edit state and its model success
+        // prose is replaced in-place so live SSE and a reloaded transcript agree.
+        // A legitimate no-tool clarification is preserved verbatim.
+        if ($toolWritesLanded === 0 || $pendingWriteFailures !== []) {
+            $isClarification = ! $sawFailedWrite
+                && $this->captureResponseRequestsClarification($ack);
+            if ($isClarification) {
+                $responseText = $this->stripFalseCaptureAcknowledgement($ack);
+                $metadataFlag = 'verify_edit_clarification';
+            } else {
+                $failureReason = collect($pendingWriteFailures)->first(fn (string $failure): bool => $failure !== '');
+                $responseText = is_string($failureReason)
+                    ? "I couldn't apply that change — ".rtrim($failureReason, '.').'. Tell me the corrected value and I will try again.'
+                    : "I wasn't able to apply that change. Tell me the exact value you want to replace and I will try again.";
+                $metadataFlag = 'verify_edit_failed';
+            }
+            if ($responseText === '') {
+                $responseText = "I wasn't able to apply that change. Tell me the exact value you want to replace and I will try again.";
+                $metadataFlag = 'verify_edit_failed';
+            }
+
+            $responseMessage = $this->persistVerifyEditResponse(
+                $conversation,
+                $assistantBaselineId,
+                $responseText,
+                $currentStateId,
+                $metadataFlag,
+            );
+            yield ['type' => 'content', 'text' => $responseText];
+            yield ['type' => 'done', 'message_id' => $responseMessage->id];
 
             return;
-        }
-
-        // A write tool ran — safe to surface the model's acknowledgement, then
-        // advance to re-show Gate 2 (campaign_verify_navigate).
-        if ($ack !== '') {
-            yield ['type' => 'content', 'text' => $ack];
         }
 
         // Deterministic read-back: name the resulting records from the
         // database — "add £20 to HSBC" must come back as the stored total, so
         // the user acknowledges the actual balance, not the model's
         // paraphrase of the instruction.
-        $readBack = $this->verifyEditReadBack($user, $section, $preEdit);
-        if ($readBack !== null) {
-            // Same-step advance so the /m dock opens a fresh bubble — matches
-            // the reloaded transcript, where this is its own message row.
-            yield ['type' => 'onboarding_advance', 'from_step' => $currentStateId, 'to_step' => $currentStateId];
-            yield ['type' => 'content', 'text' => $readBack];
-            $this->saveMessage($conversation, 'assistant', $readBack, [
-                'metadata' => ['onboarding_step' => $currentStateId, 'verify_edit_readback' => true],
-            ]);
+        $readBack = $this->verifyEditFieldReadBack($user, $editScope, $preEditFields)
+            ?? $this->verifyEditReadBack($user, $section, $preEdit);
+        $responseText = $readBack ?? $ack;
+        if ($responseText === '') {
+            $responseText = 'The corrected value is now saved.';
         }
+        $this->persistVerifyEditResponse(
+            $conversation,
+            $assistantBaselineId,
+            $responseText,
+            $currentStateId,
+            $readBack !== null ? 'verify_edit_readback' : 'verify_edit_success',
+        );
+        yield ['type' => 'content', 'text' => $responseText];
 
         $this->recordProgress(
             $user,
@@ -3395,6 +3486,426 @@ PROMPT;
             .$this->verifyEditRecordContext($user, $section);
     }
 
+    /**
+     * Build a provider-native, update-only catalogue whose record identifiers
+     * and profile sections are narrowed to the review currently on screen.
+     * The dispatch scope below enforces the same map server-side; the narrowed
+     * schema helps the model choose the valid target on its first attempt.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function verifyEditToolDefinitions(User $user, string $section, string $message = '', ?string $providerSnapshot = null): array
+    {
+        $provider = $providerSnapshot ?? $this->verifyEditProviderSnapshot();
+        $tools = $provider === 'xai'
+            ? app(XaiToolDefinitions::class)->getTools(false)
+            : app(AiToolDefinitions::class)->getTools(false);
+        if ($provider !== 'xai') {
+            $tools = array_map(static function (array $tool): array {
+                if (isset($tool['parameters']) && ! isset($tool['input_schema'])) {
+                    return [
+                        'name' => $tool['name'],
+                        'description' => $tool['description'],
+                        'input_schema' => $tool['parameters'],
+                    ];
+                }
+
+                return $tool;
+            }, $tools);
+        }
+        $scope = $this->verifyEditScope($user, $section, $message);
+        $allowed = array_flip($scope['tools']);
+        $entityTypes = array_keys($scope['records']);
+        $entityIds = collect($scope['records'])->flatten()->map(fn ($id): int => (int) $id)->unique()->values()->all();
+
+        $tools = array_values(array_filter($tools, static function (array $tool) use ($allowed): bool {
+            $name = $tool['name'] ?? ($tool['function']['name'] ?? null);
+
+            return is_string($name) && isset($allowed[$name]);
+        }));
+        $tools = array_values(array_filter($tools, static function (array $tool) use ($entityIds, $scope): bool {
+            $name = $tool['name'] ?? ($tool['function']['name'] ?? null);
+
+            return match ($name) {
+                'update_record' => $entityIds !== [],
+                'update_profile' => $scope['profile_sections'] !== [],
+                default => ($scope['tool_fields'][$name] ?? []) !== [],
+            };
+        }));
+
+        foreach ($tools as &$tool) {
+            $isXai = isset($tool['function']);
+            $name = $tool['name'] ?? ($tool['function']['name'] ?? null);
+            if ($isXai) {
+                $parameters = &$tool['function']['parameters'];
+            } else {
+                $parameters = &$tool['input_schema'];
+            }
+            if (! is_array($parameters)) {
+                continue;
+            }
+
+            if ($name === 'update_record') {
+                if (isset($parameters['oneOf']) && is_array($parameters['oneOf'])) {
+                    $parameters['oneOf'] = array_values(array_filter(array_map(
+                        function (array $branch) use ($scope): ?array {
+                            $entityType = $branch['properties']['entity_type']['const'] ?? null;
+                            if (! is_string($entityType) || ! isset($scope['records'][$entityType])) {
+                                return null;
+                            }
+                            $branch['properties']['entity_id']['enum'] = $scope['records'][$entityType];
+                            $allowedFields = array_flip($scope['record_fields'][$entityType] ?? []);
+                            $properties = $branch['properties']['fields']['properties'] ?? [];
+                            $branch['properties']['fields']['properties'] = $this->verifyEditFieldProperties($properties, $allowedFields);
+                            $branch['properties']['fields']['required'] = array_keys($allowedFields);
+                            $branch['properties']['fields']['additionalProperties'] = false;
+
+                            return $branch;
+                        },
+                        $parameters['oneOf'],
+                    )));
+                } else {
+                    $parameters['properties']['entity_type']['enum'] = $entityTypes;
+                    $parameters['properties']['entity_id']['enum'] = $entityIds;
+                    $parameters['properties']['entity_id']['description'] = 'The identifier of a record on the current review screen.';
+                    $allowedFields = collect($scope['record_fields'])->flatten()->unique()->flip()->all();
+                    $properties = $parameters['properties']['fields']['properties'] ?? [];
+                    $parameters['properties']['fields']['properties'] = $this->verifyEditFieldProperties($properties, $allowedFields);
+                    $parameters['properties']['fields']['required'] = array_keys($allowedFields);
+                    $parameters['properties']['fields']['additionalProperties'] = false;
+                }
+            }
+
+            if ($name === 'update_profile') {
+                if ($isXai) {
+                    $tool['function']['description'] = 'Update only the existing profile values shown on the current review screen.';
+                } else {
+                    $tool['description'] = 'Update only the existing profile values shown on the current review screen.';
+                }
+                $parameters['properties']['section']['enum'] = $scope['profile_sections'];
+                $parameters['properties']['section']['description'] = 'The profile section on the current review screen.';
+                $parameters['properties']['fields']['description'] = 'Only the replacement fields explicitly supplied by the user.';
+                $profileFieldNames = collect($scope['profile_fields'])->flatten()->unique()->values();
+                $parameters['properties']['fields']['properties'] = $profileFieldNames
+                    ->mapWithKeys(fn (string $field): array => [
+                        $field => ['type' => ['string', 'number', 'boolean', 'null']],
+                    ])->all();
+                $parameters['properties']['fields']['required'] = $profileFieldNames->all();
+                $parameters['properties']['fields']['additionalProperties'] = false;
+            }
+
+            if (! in_array($name, ['update_record', 'update_profile'], true)) {
+                $allowedFields = array_flip($scope['tool_fields'][$name] ?? []);
+                $properties = $parameters['properties'] ?? [];
+                $parameters['properties'] = array_intersect_key($properties, $allowedFields);
+                $parameters['required'] = array_keys($allowedFields);
+                $parameters['additionalProperties'] = false;
+            }
+        }
+        unset($tool);
+
+        return $tools;
+    }
+
+    /**
+     * Keep the provider's field schema when it exists and add a strict,
+     * generic property for newer allowlisted fields absent from an older
+     * provider catalogue. A field listed only in `required` but missing from
+     * `properties` cannot be emitted by strict function calling.
+     *
+     * @param  array<string, mixed>  $properties
+     * @param  array<string, mixed>  $allowedFields
+     * @return array<string, mixed>
+     */
+    private function verifyEditFieldProperties(array $properties, array $allowedFields): array
+    {
+        return collect(array_keys($allowedFields))->mapWithKeys(
+            fn (string $field): array => [
+                $field => $properties[$field] ?? [
+                    'type' => ['string', 'number', 'boolean', 'null'],
+                    'description' => 'The replacement value explicitly supplied by the user for '.$field.'.',
+                ],
+            ],
+        )->all();
+    }
+
+    private function verifyEditProviderSnapshot(): string
+    {
+        $providerVersion = (int) Cache::get('ai_provider_version', 0);
+
+        return (string) ($providerVersion > 0
+            ? Cache::get('ai_provider:v'.$providerVersion, config('services.ai_provider', 'anthropic'))
+            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic')));
+    }
+
+    /**
+     * @return array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}
+     */
+    private function verifyEditScope(User $user, string $section, string $message = ''): array
+    {
+        $positiveMessage = mb_strtolower(trim($message));
+        $records = $this->verifyEditRecordScope($user, $section, $positiveMessage);
+        $recordFields = [];
+        foreach (array_keys($records) as $entityType) {
+            $fields = $this->verifyEditRecordFields($entityType, $positiveMessage);
+            if ($section === 'recap') {
+                $fields = array_values(array_intersect($fields, match ($entityType) {
+                    'dc_pension' => ['current_fund_value', 'employee_contribution_percent'],
+                    'db_pension' => ['accrued_annual_pension'],
+                    default => [],
+                }));
+            }
+            if ($fields === []) {
+                unset($records[$entityType]);
+            } else {
+                $recordFields[$entityType] = $fields;
+            }
+        }
+
+        $profileFields = $this->verifyEditProfileFields($section, $positiveMessage);
+        $profileSections = array_keys($profileFields);
+        $toolFields = $this->verifyEditToolFields($section, $positiveMessage);
+
+        if ($section === 'state_pension' && ! $user->statePension()->exists()) {
+            $toolFields = [];
+        }
+        if ($section === 'retirement_goals' && ! $user->retirementProfile()->exists()) {
+            $toolFields = [];
+        }
+
+        $tools = array_values(array_filter(
+            FynVerifyEditTurnInstructions::toolsForSection($section),
+            static fn (string $tool): bool => match ($tool) {
+                'update_record' => $records !== [],
+                'update_profile' => $profileSections !== [],
+                default => ($toolFields[$tool] ?? []) !== [],
+            },
+        ));
+
+        return [
+            'tools' => $tools,
+            'records' => $records,
+            'profile_sections' => $profileSections,
+            'record_fields' => $recordFields,
+            'profile_fields' => $profileFields,
+            'tool_fields' => $toolFields,
+        ];
+    }
+
+    /** @return array<string, list<int>> */
+    private function verifyEditRecordScope(User $user, string $section, string $message): array
+    {
+        $candidates = collect();
+        if (in_array($section, ['savings'], true)) {
+            $candidates = app(SavingsStore::class)->forUser($user)->map(fn ($record): array => [
+                'type' => 'savings_account', 'id' => (int) $record->id,
+                'labels' => [$record->account_name, $record->institution],
+            ]);
+        } elseif ($section === 'investments') {
+            $candidates = app(InvestmentAccountStore::class)->forUser($user)->map(fn ($record): array => [
+                'type' => 'investment_account', 'id' => (int) $record->id,
+                'labels' => [$record->account_name, $record->provider],
+            ]);
+        } elseif (in_array($section, ['pensions', 'recap'], true)) {
+            $dc = app(PensionStore::class)->forUserByType($user, 'dc')->map(fn ($record): array => [
+                'type' => 'dc_pension', 'id' => (int) $record->id,
+                'labels' => [$record->scheme_name, $record->provider],
+            ]);
+            $db = app(PensionStore::class)->forUserByType($user, 'db')->map(fn ($record): array => [
+                'type' => 'db_pension', 'id' => (int) $record->id,
+                'labels' => [$record->scheme_name, $record->provider],
+            ]);
+            $candidates = $dc->concat($db);
+        }
+
+        if ($candidates->isEmpty()) {
+            return [];
+        }
+        if ($candidates->count() === 1) {
+            $selected = $candidates;
+        } elseif (preg_match('/\b(?:all|both|each|every)\b/u', $message) === 1) {
+            return [];
+        } else {
+            $selected = $candidates->filter(static function (array $candidate) use ($message): bool {
+                foreach ($candidate['labels'] as $label) {
+                    $needle = mb_strtolower(trim((string) $label));
+                    if (mb_strlen($needle) >= 3 && str_contains($message, $needle)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+        }
+
+        if ($selected->count() !== 1) {
+            return [];
+        }
+
+        return $selected->groupBy('type')->map(
+            fn ($rows): array => $rows->pluck('id')->unique()->values()->all(),
+        )->all();
+    }
+
+    /** @return list<string> */
+    private function verifyEditRecordFields(string $entityType, string $message): array
+    {
+        $fields = match ($entityType) {
+            'savings_account' => [
+                'current_balance' => ['balance', 'current value'],
+                'interest_rate' => ['interest rate', 'interest percentage'],
+                'isa_subscription_amount' => ['isa subscription', 'this tax year', 'contributed this year', 'added this year'],
+                'regular_contribution_amount' => ['regular contribution'],
+                'contribution_frequency' => ['contribution frequency'],
+                'institution' => ['provider', 'bank name', 'institution'],
+                'account_name' => ['account name', 'rename'],
+            ],
+            'investment_account' => [
+                'current_value' => ['current value', 'balance', 'portfolio value'],
+                'monthly_contribution_amount' => ['monthly contribution', 'per month'],
+                'contributions_ytd' => ['this tax year', 'contributed this year', 'year to date'],
+                'provider' => ['provider', 'platform'],
+                'account_name' => ['account name', 'rename'],
+            ],
+            'dc_pension' => [
+                'current_fund_value' => ['current pot', 'pot value', 'fund value', 'balance', 'current value'],
+                'monthly_contribution_amount' => ['monthly contribution', 'per month'],
+                'employee_contribution_percent' => ['employee contribution', 'my contribution', 'employee percentage'],
+                'employer_contribution_percent' => ['employer contribution', 'employer percentage'],
+                'annual_salary' => ['pension salary', 'salary basis'],
+                'salary_sacrifice' => ['salary sacrifice'],
+                'retirement_age' => ['pension retirement age', 'scheme retirement age'],
+                'scheme_name' => ['scheme name', 'rename'],
+                'provider' => ['provider'],
+            ],
+            'db_pension' => [
+                'accrued_annual_pension' => ['annual pension', 'accrued pension', 'yearly pension'],
+                'normal_retirement_age' => ['normal retirement age', 'scheme retirement age'],
+                'pensionable_salary' => ['pensionable salary'],
+                'pensionable_service_years' => ['service years', 'years of service'],
+                'scheme_name' => ['scheme name', 'rename'],
+            ],
+            default => [],
+        };
+
+        return array_keys(array_filter(
+            $fields,
+            fn (array $phrases): bool => collect($phrases)
+                ->contains(fn (string $phrase): bool => $this->verifyEditContainsPositivePhrase($message, $phrase)),
+        ));
+    }
+
+    /** @return array<string, list<string>> */
+    private function verifyEditProfileFields(string $section, string $message): array
+    {
+        $maps = [];
+        if ($section === 'income') {
+            $maps['income_occupation'] = [
+                'annual_employment_income' => ['salary', 'employment income', 'employed income'],
+                'annual_self_employment_income' => ['self-employed income', 'self employed income', 'self-employment income'],
+                'annual_dividend_income' => ['dividend income', 'dividends'],
+                'annual_other_income' => ['other income'],
+                'target_retirement_age' => ['target retirement age', 'want to retire'],
+                'employment_status' => ['employment status', 'i am self-employed', 'i am self employed', 'i am employed', 'now self-employed', 'now self employed', 'now employed', 'i retired', 'i am retired', 'i am unemployed'],
+            ];
+        }
+        if ($section === 'recap') {
+            $maps['income_occupation'] = [
+                'annual_employment_income' => ['salary', 'employment income', 'employed income'],
+                'annual_self_employment_income' => ['self-employed income', 'self employed income', 'self-employment income'],
+            ];
+        }
+        if ($section === 'spouse') {
+            $maps['spouse_household'] = [
+                'spouse_works' => ['spouse works', 'partner works', 'spouse does not work', "spouse doesn't work", 'partner does not work'],
+                'spouse_annual_income' => ['spouse income', "spouse's income", 'partner income', "partner's income", 'spouse salary', 'partner salary'],
+                'spouse_employment_status' => ['spouse employment', 'partner employment'],
+                'spouse_isa_balance' => ['spouse isa', 'partner isa'],
+                'spouse_unrealised_gains' => ['spouse unrealised gains', 'partner unrealised gains'],
+                'spouse_annual_dividends' => ['spouse dividends', 'partner dividends'],
+                'spouse_pension_input_annual' => ['spouse pension contribution', 'partner pension contribution'],
+                'spouse_existing_savings_balance' => ['spouse savings', 'partner savings'],
+                'spouse_existing_investment_balance' => ['spouse investments', 'partner investments'],
+                'spouse_existing_pension_balance' => ['spouse pension balance', 'partner pension balance'],
+            ];
+        }
+        if ($section === 'expenditure') {
+            $maps['expenditure'] = [
+                'annual_expenditure' => ['annual expenditure', 'yearly expenditure', 'per year'],
+                'monthly_expenditure' => ['monthly expenditure', 'monthly spending', 'per month', 'expenses', 'expenditure', 'spending'],
+            ];
+        }
+        if ($section === 'recap') {
+            $maps['personal'] = [
+                'marital_status' => ['marital status', 'married', 'single', 'divorced', 'widowed'],
+            ];
+        }
+
+        $result = [];
+        foreach ($maps as $profileSection => $fieldMap) {
+            $matched = array_keys(array_filter(
+                $fieldMap,
+                fn (array $phrases): bool => collect($phrases)
+                    ->contains(fn (string $phrase): bool => $this->verifyEditContainsPositivePhrase($message, $phrase)),
+            ));
+            if ($matched !== []) {
+                if (in_array('annual_expenditure', $matched, true)) {
+                    $matched = ['annual_expenditure'];
+                }
+                $result[$profileSection] = $matched;
+            }
+        }
+
+        return $result;
+    }
+
+    /** @return array<string, list<string>> */
+    private function verifyEditToolFields(string $section, string $message): array
+    {
+        $fields = match ($section) {
+            'state_pension' => [
+                'forecast_annual' => ['forecast', 'annual amount', 'yearly amount'],
+                'ni_years_completed' => ['national insurance', 'qualifying years'],
+                'state_pension_age' => ['state pension age'],
+            ],
+            'retirement_goals' => [
+                'target_retirement_age' => ['retirement age', 'want to retire'],
+                'target_retirement_income' => ['retirement income', 'income target', 'income in retirement'],
+            ],
+            'giving' => [
+                'annual_donations' => ['donation', 'donations', 'charitable giving', 'gift aid'],
+            ],
+            default => [],
+        };
+        $matched = array_keys(array_filter(
+            $fields,
+            fn (array $phrases): bool => collect($phrases)
+                ->contains(fn (string $phrase): bool => $this->verifyEditContainsPositivePhrase($message, $phrase)),
+        ));
+        $tool = FynVerifyEditTurnInstructions::toolsForSection($section)[0] ?? null;
+
+        return $tool !== null && $matched !== [] ? [$tool => $matched] : [];
+    }
+
+    private function verifyEditContainsPositivePhrase(string $message, string $phrase): bool
+    {
+        $pattern = '/(?<![\pL\pN_-])'.preg_quote($phrase, '/').'(?![\pL\pN_-])/iu';
+        if (preg_match_all($pattern, $message, $matches, PREG_OFFSET_CAPTURE) < 1) {
+            return false;
+        }
+
+        foreach ($matches[0] as $match) {
+            $prefix = substr($message, 0, (int) $match[1]);
+            $clauseParts = preg_split('/[.;,!]/u', $prefix);
+            $clause = mb_strtolower(trim((string) end($clauseParts)));
+            if (preg_match('/\b(?:not|rather than)\b/u', $clause) !== 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function verifyEditRecordContext(User $user, string $section): string
     {
         switch ($section) {
@@ -3415,9 +3926,13 @@ PROMPT;
                 return "Their investment accounts:\n".($rows !== '' ? $rows : '- (none on file)');
 
             case 'pensions':
-                $rows = app(PensionStore::class)->forUserByType($user, 'dc')
+                $dcRows = app(PensionStore::class)->forUserByType($user, 'dc')
                     ->map(fn ($p): string => "- entity_type: dc_pension, entity_id: {$p->id} — \"{$p->scheme_name}\" (".($p->provider ?: 'provider unknown').'), current value £'.number_format((float) $p->current_fund_value))
                     ->implode("\n");
+                $dbRows = app(PensionStore::class)->forUserByType($user, 'db')
+                    ->map(fn ($p): string => "- entity_type: db_pension, entity_id: {$p->id} — \"{$p->scheme_name}\" (".($p->provider ?: 'provider unknown').'), accrued annual pension £'.number_format((float) $p->accrued_annual_pension))
+                    ->implode("\n");
+                $rows = collect([$dcRows, $dbRows])->filter()->implode("\n");
 
                 return "Their pensions:\n".($rows !== '' ? $rows : '- (none on file)');
 
@@ -3429,21 +3944,29 @@ PROMPT;
                     .'annual_dividend_income £'.number_format((float) $user->annual_dividend_income).'.';
 
             case 'expenditure':
-                return 'Their expenditure is stored on their profile (use update_profile or set_expenditure): '
+                return 'Their expenditure is stored on their profile (use update_profile): '
                     .'monthly_expenditure £'.number_format((float) $user->monthly_expenditure).' per month.';
 
             case 'giving':
-                return 'Their charitable giving is stored on their profile (use update_profile).';
+                return 'Their charitable giving is stored on their profile (use capture_charitable_giving).';
 
             case 'spouse':
-                return "Their spouse's details are stored on the linked spouse profile (use update_profile).";
+                $household = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+                if ($household === null) {
+                    return 'Their spouse household details are not on file. Ask for clarification and do not call an update tool.';
+                }
+
+                return "Their spouse household details are stored separately from the user's own profile "
+                    .'(use update_profile with section spouse_household): '
+                    .'spouse_annual_income £'.number_format((float) $household->spouse_annual_income).', '
+                    .'spouse_isa_balance £'.number_format((float) $household->spouse_isa_balance).', '
+                    .'spouse_pension_input_annual £'.number_format((float) $household->spouse_pension_input_annual).'.';
 
             case 'recap':
-                // Existing-recap edit: the recap shows income + pensions +
-                // spouse, so give the model all three targets with ids.
-                return $this->verifyEditRecordContext($user, 'income')."\n\n"
-                    .$this->verifyEditRecordContext($user, 'pensions')."\n\n"
-                    .$this->verifyEditRecordContext($user, 'spouse');
+                return 'The recap shows annual employment income £'.number_format((float) $user->annual_employment_income)
+                    .', annual self-employment income £'.number_format((float) $user->annual_self_employment_income)
+                    .', marital status '.((string) $user->marital_status ?: 'not recorded').", and these pensions:\n"
+                    .str_replace("Their pensions:\n", '', $this->verifyEditRecordContext($user, 'pensions'));
 
             default:
                 return 'Update the relevant existing record or profile field for this section.';
@@ -3456,7 +3979,7 @@ PROMPT;
      * (income, expenditure, giving, spouse) return null — the model's prose
      * acknowledgement stands there.
      *
-     * @return array<int, array{label: string, amount: float}>|null
+     * @return array<int|string, array{label: string, amount: float, noun?: string}>|null
      */
     private function verifyEditSnapshot(User $user, string $section): ?array
     {
@@ -3471,11 +3994,20 @@ PROMPT;
                     'label' => (string) $a->account_name,
                     'amount' => (float) $a->current_value,
                 ]])->all(),
-            'pensions', 'recap' => app(PensionStore::class)->forUserByType($user, 'dc')
-                ->mapWithKeys(fn ($p): array => [$p->id => [
-                    'label' => (string) $p->scheme_name,
-                    'amount' => (float) $p->current_fund_value,
-                ]])->all(),
+            'pensions', 'recap' => array_merge(
+                app(PensionStore::class)->forUserByType($user, 'dc')
+                    ->mapWithKeys(fn ($p): array => ['dc:'.$p->id => [
+                        'label' => (string) $p->scheme_name,
+                        'amount' => (float) $p->current_fund_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                app(PensionStore::class)->forUserByType($user, 'db')
+                    ->mapWithKeys(fn ($p): array => ['db:'.$p->id => [
+                        'label' => (string) $p->scheme_name,
+                        'amount' => (float) $p->accrued_annual_pension,
+                        'noun' => 'annual pension',
+                    ]])->all(),
+            ),
             default => null,
         };
     }
@@ -3495,10 +4027,11 @@ PROMPT;
             return null;
         }
 
-        $noun = $section === 'savings' ? 'balance' : 'value';
+        $defaultNoun = $section === 'savings' ? 'balance' : 'value';
         $lines = [];
         foreach ($after as $id => $row) {
             $prev = $before[$id] ?? null;
+            $noun = $row['noun'] ?? $defaultNoun;
             if ($prev === null) {
                 $lines[] = sprintf('Added %s — %s £%s.', $row['label'], $noun, number_format($row['amount']));
             } elseif (abs($prev['amount'] - $row['amount']) > 0.005 || $prev['label'] !== $row['label']) {
@@ -3512,6 +4045,189 @@ PROMPT;
         }
 
         return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    /**
+     * Snapshot only the exact fields mechanically armed for this correction.
+     * The post-write receipt is built from these database values, never from
+     * model-authored success prose.
+     *
+     * @param  array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}  $scope
+     * @return array<string, array{subject:string,field:string,value:mixed}>
+     */
+    private function verifyEditFieldSnapshot(User $user, array $scope): array
+    {
+        $snapshot = [];
+        foreach ($scope['records'] as $entityType => $ids) {
+            foreach ($ids as $id) {
+                $record = match ($entityType) {
+                    'savings_account' => app(SavingsStore::class)->find((int) $id, $user),
+                    'investment_account' => app(InvestmentAccountStore::class)->find((int) $id, $user),
+                    'dc_pension' => app(PensionStore::class)->find((int) $id, 'dc', $user),
+                    'db_pension' => app(PensionStore::class)->find((int) $id, 'db', $user),
+                    default => null,
+                };
+                if ($record === null) {
+                    continue;
+                }
+                $subject = (string) ($record->account_name
+                    ?? $record->scheme_name
+                    ?? $record->provider
+                    ?? str_replace('_', ' ', $entityType));
+                foreach ($scope['record_fields'][$entityType] ?? [] as $field) {
+                    $snapshot[$entityType.':'.$id.':'.$field] = [
+                        'subject' => $subject,
+                        'field' => $field,
+                        'value' => $record->getAttribute($field),
+                    ];
+                }
+            }
+        }
+
+        $freshUser = $user->fresh();
+        foreach ($scope['profile_fields'] as $section => $fields) {
+            $model = $section === 'spouse_household'
+                ? TaxStrategyHouseholdInput::where('user_id', $user->id)->first()
+                : $freshUser;
+            if ($model === null) {
+                continue;
+            }
+            foreach ($fields as $field) {
+                $value = $section === 'spouse_household' && $field === 'spouse_works'
+                    ? $freshUser?->household_calculation_mode === 'dual_earner'
+                    : $model->getAttribute($field);
+                $snapshot['profile:'.$section.':'.$field] = [
+                    'subject' => match ($section) {
+                        'spouse_household' => 'spouse details',
+                        'expenditure' => 'expenditure',
+                        'personal' => 'personal details',
+                        default => 'income',
+                    },
+                    'field' => $field,
+                    'value' => $value,
+                ];
+            }
+        }
+
+        foreach ($scope['tool_fields'] as $tool => $fields) {
+            $model = match ($tool) {
+                'capture_state_pension' => $user->statePension()->first(),
+                'capture_retirement_goals' => $user->retirementProfile()->first(),
+                'capture_charitable_giving' => $freshUser,
+                default => null,
+            };
+            if ($model === null) {
+                continue;
+            }
+            foreach ($fields as $field) {
+                $column = match ($field) {
+                    'forecast_annual' => 'state_pension_forecast_annual',
+                    'annual_donations' => 'annual_charitable_donations',
+                    default => $field,
+                };
+                $snapshot['tool:'.$tool.':'.$field] = [
+                    'subject' => match ($tool) {
+                        'capture_state_pension' => 'State Pension',
+                        'capture_retirement_goals' => 'retirement goals',
+                        default => 'charitable giving',
+                    },
+                    'field' => $field,
+                    'value' => $model->getAttribute($column),
+                ];
+            }
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * @param  array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}  $scope
+     * @param  array<string, array{subject:string,field:string,value:mixed}>  $before
+     */
+    private function verifyEditFieldReadBack(User $user, array $scope, array $before): ?string
+    {
+        $after = $this->verifyEditFieldSnapshot($user, $scope);
+        $lines = [];
+        foreach ($after as $key => $row) {
+            $changed = ! array_key_exists($key, $before)
+                || $this->verifyEditComparableValue($before[$key]['value']) !== $this->verifyEditComparableValue($row['value']);
+            $lines[] = sprintf(
+                '%s %s — %s %s %s.',
+                $changed ? 'Updated' : 'Confirmed',
+                $row['subject'],
+                $this->verifyEditFieldLabel($row['field']),
+                $changed ? 'now' : 'is',
+                $this->verifyEditFieldValue($row['field'], $row['value']),
+            );
+        }
+
+        return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    private function verifyEditComparableValue(mixed $value): string
+    {
+        if (is_numeric($value)) {
+            return number_format((float) $value, 4, '.', '');
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        return mb_strtolower(trim((string) $value));
+    }
+
+    private function verifyEditFieldLabel(string $field): string
+    {
+        return [
+            'current_balance' => 'balance',
+            'interest_rate' => 'interest rate',
+            'isa_subscription_amount' => 'ISA subscriptions this tax year',
+            'current_value' => 'current value',
+            'contributions_ytd' => 'contributions this tax year',
+            'current_fund_value' => 'current pot value',
+            'accrued_annual_pension' => 'annual pension',
+            'employee_contribution_percent' => 'employee contribution',
+            'employer_contribution_percent' => 'employer contribution',
+            'annual_employment_income' => 'employment income',
+            'annual_self_employment_income' => 'self-employment income',
+            'spouse_annual_income' => 'annual income',
+            'spouse_works' => 'work status',
+            'monthly_expenditure' => 'monthly expenditure',
+            'annual_expenditure' => 'annual expenditure',
+            'forecast_annual' => 'annual forecast',
+            'ni_years_completed' => 'National Insurance qualifying years',
+            'state_pension_age' => 'State Pension age',
+            'target_retirement_age' => 'target retirement age',
+            'target_retirement_income' => 'target retirement income',
+            'annual_donations' => 'annual Gift Aid donations',
+        ][$field] ?? str_replace('_', ' ', $field);
+    }
+
+    private function verifyEditFieldValue(string $field, mixed $value): string
+    {
+        if (in_array($field, [
+            'current_balance', 'isa_subscription_amount', 'regular_contribution_amount',
+            'current_value', 'monthly_contribution_amount', 'contributions_ytd',
+            'current_fund_value', 'accrued_annual_pension', 'annual_salary',
+            'pensionable_salary', 'annual_employment_income', 'annual_self_employment_income',
+            'annual_dividend_income', 'annual_other_income', 'spouse_annual_income',
+            'spouse_isa_balance', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+            'spouse_pension_input_annual', 'monthly_expenditure', 'annual_expenditure',
+            'forecast_annual', 'target_retirement_income', 'annual_donations',
+        ], true)) {
+            return '£'.number_format((float) $value, 0);
+        }
+        if (in_array($field, ['interest_rate', 'employee_contribution_percent', 'employer_contribution_percent'], true)) {
+            return rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.').'%';
+        }
+        if (is_bool($value) || in_array($field, ['spouse_works', 'salary_sacrifice'], true)) {
+            return (bool) $value ? 'yes' : 'no';
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('j F Y');
+        }
+
+        return (string) $value;
     }
 
     /** Onboarding capture focus for a verify-edit section (keeps the turn in capture mode). */
@@ -3888,6 +4604,22 @@ PROMPT;
     }
 
     /**
+     * Remove a model-authored success sentence when every attempted write was
+     * rejected and the rest of the response is a valid clarification request.
+     */
+    private function stripFalseCaptureAcknowledgement(string $response): string
+    {
+        $cleaned = preg_replace(
+            '/^\s*(?:(?:great|thanks|thank you|okay|perfect|all set)[\s,\x{2014}\x{2013}-]*)?(?:(?:recorded|saved|added|updated)\b|got it\b|i[\'’]ve\s+(?:recorded|saved|added|updated)\b|that[\'’]s\s+(?:recorded|saved|added|updated)\b|(?:both|all|the)?\s*(?:accounts?|records?|details?|items?)\s+(?:are|have\s+been)\s+(?:now\s+)?(?:recorded|saved|added|updated)\b)[^.!?;]*(?:[.!?;]\s*|$)/iu',
+            '',
+            $response,
+            1,
+        );
+
+        return trim(is_string($cleaned) ? $cleaned : $response);
+    }
+
+    /**
      * Reconstruct one unresolved capture payload when the model asked for a
      * required fact on the preceding turn. Resume greetings are transparent:
      * they must not sever the original answer from the requested detail.
@@ -3928,7 +4660,8 @@ PROMPT;
 
             // A deterministic state prompt starts a fresh capture question;
             // it is not a model request to complete the previous user answer.
-            if (isset($metadata['onboarding_step'])) {
+            if (isset($metadata['onboarding_step'])
+                && ($metadata['capture_write_failed'] ?? false) !== true) {
                 return $message;
             }
 
@@ -4224,6 +4957,69 @@ PROMPT;
         ], $extra));
 
         return $message;
+    }
+
+    private function persistFailedCaptureResponse(
+        AiConversation $conversation,
+        int $assistantBaselineId,
+        string $content,
+        string $stateId,
+    ): AiMessage {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $metadata = $message !== null && is_array($message->metadata)
+            ? $message->metadata
+            : [];
+        $attributes = [
+            'content' => $content,
+            'metadata' => array_merge($metadata, [
+                'onboarding_step' => $stateId,
+                'capture_write_failed' => true,
+            ]),
+        ];
+
+        if ($message !== null) {
+            $message->update($attributes);
+
+            return $message->refresh();
+        }
+
+        return $this->saveMessage($conversation, 'assistant', $content, $attributes);
+    }
+
+    private function persistVerifyEditResponse(
+        AiConversation $conversation,
+        int $assistantBaselineId,
+        string $content,
+        string $stateId,
+        string $metadataFlag,
+    ): AiMessage {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $metadata = $message !== null && is_array($message->metadata)
+            ? $message->metadata
+            : [];
+        $attributes = [
+            'content' => $content,
+            'metadata' => array_merge($metadata, [
+                'onboarding_step' => $stateId,
+                $metadataFlag => true,
+            ]),
+        ];
+
+        if ($message !== null) {
+            $message->update($attributes);
+
+            return $message->refresh();
+        }
+
+        return $this->saveMessage($conversation, 'assistant', $content, $attributes);
     }
 
     private function errorEvent(string $text): array

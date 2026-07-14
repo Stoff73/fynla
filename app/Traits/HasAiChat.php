@@ -102,9 +102,105 @@ trait HasAiChat
 
     private ?string $unifiedOnboardingFocus = null;
 
+    /**
+     * Mechanical boundary for campaign verify-edit turns. Prompt instructions
+     * tell the model which reviewed record to update; this scope makes that
+     * restriction enforceable before dispatch so a model mistake cannot write
+     * to another section or record.
+     *
+     * @var array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null
+     */
+    private ?array $verifyEditScope = null;
+
     public function setUnifiedOnboardingFocus(?string $focus): void
     {
         $this->unifiedOnboardingFocus = $focus;
+    }
+
+    /** @param array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null $scope */
+    public function setVerifyEditScope(?array $scope): void
+    {
+        $this->verifyEditScope = $scope;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function verifyEditScopeError(string $toolName, array $input): ?array
+    {
+        if ($this->verifyEditScope === null) {
+            return null;
+        }
+
+        if (! in_array($toolName, $this->verifyEditScope['tools'], true)) {
+            return [
+                'error' => true,
+                'error_type' => 'verify_edit_scope_violation',
+                'message' => 'That update does not belong to the section currently being reviewed.',
+            ];
+        }
+
+        if ($toolName === 'update_record') {
+            $entityType = (string) ($input['entity_type'] ?? '');
+            $entityId = (int) ($input['entity_id'] ?? 0);
+            $allowedIds = $this->verifyEditScope['records'][$entityType] ?? [];
+            if ($entityId <= 0 || ! in_array($entityId, $allowedIds, true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'That record is not part of the section currently being reviewed.',
+                ];
+            }
+
+            $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+            $allowedFields = $this->verifyEditScope['record_fields'][$entityType] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every record field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        if ($toolName === 'update_profile') {
+            $profileSection = (string) ($input['section'] ?? '');
+            if (! in_array($profileSection, $this->verifyEditScope['profile_sections'], true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'That profile field is not part of the section currently being reviewed.',
+                ];
+            }
+
+            $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+            $allowedFields = $this->verifyEditScope['profile_fields'][$profileSection] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every profile field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        if (in_array($toolName, ['capture_state_pension', 'capture_retirement_goals', 'capture_charitable_giving'], true)) {
+            $fields = array_keys($input);
+            $allowedFields = $this->verifyEditScope['tool_fields'][$toolName] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        return null;
     }
 
     /** @var list<string>|null */
@@ -131,6 +227,9 @@ trait HasAiChat
      * `ai_messages.persona` enum (['advice', 'data_capture']).
      */
     private ?string $personaOverride = null;
+
+    /** Provider selected once by a coordinating caller for this exact turn. */
+    private ?string $providerOverride = null;
 
     /**
      * Send a message and yield SSE chunks.
@@ -208,7 +307,7 @@ trait HasAiChat
                 ."\n\n".$systemPrompt;
         }
         $maxTokens = $this->getAiMaxTokens($user);
-        $isXai = $this->getAiProvider() === 'xai';
+        $isXai = ($this->providerOverride ?? $this->getAiProvider()) === 'xai';
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)
             : $this->toolDefinitions;
@@ -274,6 +373,7 @@ trait HasAiChat
         $messages = $messageHistory;
 
         $modelIteration = 0;
+        $verifyEditRetryForced = false;
 
         /** @var array<string, array{tool: string, model_iteration: int}> $pendingCaptureWriteFailures */
         $pendingCaptureWriteFailures = [];
@@ -584,7 +684,14 @@ trait HasAiChat
                     $currentCallsByTool = [];
                     foreach ($toolUseBlocks as $currentToolUseBlock) {
                         $currentToolCallId = (string) ($currentToolUseBlock['id'] ?? '');
-                        if ($currentToolCallId !== '') {
+                        $currentFingerprint = $this->toolCallFingerprint(
+                            (string) ($currentToolUseBlock['name'] ?? ''),
+                            $currentToolUseBlock['input'] ?? [],
+                        );
+                        $previousCall = $executedCalls[$currentFingerprint] ?? null;
+                        $isPreviouslySuccessfulDuplicate = is_array($previousCall)
+                            && ($previousCall['failed'] ?? false) === false;
+                        if ($currentToolCallId !== '' && ! $isPreviouslySuccessfulDuplicate) {
                             $currentCallsByTool[$currentToolUseBlock['name']][] = $currentToolCallId;
                         }
                     }
@@ -623,7 +730,9 @@ trait HasAiChat
                     }
 
                     $callFingerprint = $this->toolCallFingerprint($functionName, $functionArgs);
-                    $isRepeatedToolCall = isset($executedCalls[$callFingerprint]);
+                    $previousCall = $executedCalls[$callFingerprint] ?? null;
+                    $isRepeatedToolCall = is_array($previousCall)
+                        && ($previousCall['failed'] ?? false) === false;
 
                     if ($isRepeatedToolCall) {
                         $toolResult = [
@@ -631,7 +740,10 @@ trait HasAiChat
                             'message' => 'The result for this identical tool call was already supplied above. Do not call it again.',
                         ];
                     } else {
-                        $executedCalls[$callFingerprint] = true;
+                        $executedCalls[$callFingerprint] = [
+                            'tool_call_id' => (string) ($toolUseBlock['id'] ?? ''),
+                            'failed' => false,
+                        ];
 
                         yield [
                             'type' => 'tool_use',
@@ -768,6 +880,9 @@ trait HasAiChat
                     ];
 
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
+                    if (! $isRepeatedToolCall) {
+                        $executedCalls[$callFingerprint]['failed'] = $isToolError;
+                    }
 
                     // April30Updates F-3 — compress the tool result before
                     // re-injecting into the LLM context. Some tools (notably
@@ -906,6 +1021,34 @@ trait HasAiChat
                 $capPassForced = true;
                 $xaiTools = [];
                 $tools = [];
+                $fullResponse = '';
+                $iterationText = '';
+
+                continue;
+            }
+
+            // A verify-edit write can fail because the provider omitted one of
+            // the fields the user explicitly corrected, then stop in prose
+            // instead of retrying the tool. Keep that recovery inside the same
+            // turn: the original correction is still in context and the
+            // mechanical scope supplies the exact required field names. Force
+            // one retry only; if it still fails, the director's honesty gate
+            // leaves the user on the edit state without claiming success.
+            if (! $hasToolCalls
+                && $pendingCaptureWriteFailures !== []
+                && $this->verifyEditScope !== null
+                && ! $verifyEditRetryForced) {
+                $verifyEditRetryForced = true;
+                if ($iterationText !== '') {
+                    $messages[] = ['role' => 'assistant', 'content' => $iterationText];
+                }
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => 'VERIFY_EDIT_RETRY_REQUIRED: retry the failed update tool now. '
+                        .'Do not answer in prose and do not ask the user to repeat anything. '
+                        .'Read the corrected values from the original current-turn message and include every '
+                        .'required field: '.implode(', ', $this->verifyEditRequiredFieldNames()).'.',
+                ];
                 $fullResponse = '';
                 $iterationText = '';
 
@@ -1411,8 +1554,28 @@ trait HasAiChat
             ];
         }
 
-        // General compression — recursively trim oversized nested data.
-        return $this->trimForModel($result, depth: 0);
+        // General compression — recursively trim oversized nested data. The
+        // composed plan returned by get_recommendations has one meaningful
+        // extra envelope (composed_tax_plan.items[]). Allow that single extra
+        // level so the model receives the strategy's balances, interest,
+        // allowance and saving instead of an opaque "[nested N items]" marker.
+        $maxDepth = $toolName === 'get_recommendations' ? 4 : 3;
+
+        return $this->trimForModel($result, depth: 0, maxDepth: $maxDepth);
+    }
+
+    /** @return list<string> */
+    private function verifyEditRequiredFieldNames(): array
+    {
+        if ($this->verifyEditScope === null) {
+            return [];
+        }
+
+        return collect([
+            ...array_values($this->verifyEditScope['record_fields']),
+            ...array_values($this->verifyEditScope['profile_fields']),
+            ...array_values($this->verifyEditScope['tool_fields']),
+        ])->flatten()->unique()->values()->all();
     }
 
     /**
@@ -1475,9 +1638,9 @@ trait HasAiChat
      * over 10 items are summarised; strings over 200 chars are
      * truncated; depth over 3 collapses to a placeholder.
      */
-    private function trimForModel(mixed $value, int $depth): mixed
+    private function trimForModel(mixed $value, int $depth, int $maxDepth = 3): mixed
     {
-        if ($depth >= 3) {
+        if ($depth >= $maxDepth) {
             if (is_array($value)) {
                 return '[nested '.count($value).' items]';
             }
@@ -1498,13 +1661,13 @@ trait HasAiChat
             $tail = array_slice($value, -2);
 
             return [
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $head),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $head),
                 '__truncated__' => count($value) - 7 .' items omitted',
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $tail),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $tail),
             ];
         }
 
-        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $value);
+        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $value);
     }
 
     /**
@@ -1671,22 +1834,26 @@ trait HasAiChat
         bool $skipUserMessagePersistence = false,
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
+        ?string $providerOverride = null,
     ): void {
         $this->systemPromptOverride = $systemPrompt;
         $this->allowedToolsOverride = $allowedTools;
         $this->skipUserMessagePersistence = $skipUserMessagePersistence;
         $this->toolsListOverride = $toolsListOverride;
         $this->personaOverride = $personaOverride;
+        $this->providerOverride = $providerOverride;
     }
 
     public function clearChatOverrides(): void
     {
         $this->systemPromptOverride = null;
         $this->unifiedOnboardingFocus = null;
+        $this->verifyEditScope = null;
         $this->allowedToolsOverride = null;
         $this->skipUserMessagePersistence = false;
         $this->toolsListOverride = null;
         $this->personaOverride = null;
+        $this->providerOverride = null;
     }
 
     /**

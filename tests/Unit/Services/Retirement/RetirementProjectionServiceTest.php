@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
@@ -169,6 +170,55 @@ describe('projectPensionPot', function () {
         expect($result['monthly_contribution'])->toBe(400.0);
     });
 
+    it('treats a zero monthly placeholder as absent when percentage contributions exist', function () {
+        DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'current_fund_value' => 45000,
+            'annual_salary' => 82000,
+            'employee_contribution_percent' => 4,
+            'employer_contribution_percent' => 2,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $this->user->load('dcPensions');
+
+        $result = $this->service->projectPensionPot($this->user);
+
+        // 4% + 2% of £82,000 = £4,920/year = £410/month.
+        expect($result['monthly_contribution'])->toBe(410.0);
+    });
+
+    it('prefers an explicit monthly contribution over percentage fields', function () {
+        DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'current_fund_value' => 80000,
+            'annual_salary' => 60000,
+            'employee_contribution_percent' => 5,
+            'employer_contribution_percent' => 3,
+            'monthly_contribution_amount' => 250,
+        ]);
+
+        $this->user->load('dcPensions');
+
+        expect($this->service->projectPensionPot($this->user)['monthly_contribution'])->toBe(250.0);
+    });
+
+    it('uses the retirement profile target age when the user mirror is missing', function () {
+        $this->user->update(['target_retirement_age' => null]);
+        RetirementProfile::create([
+            'user_id' => $this->user->id,
+            'current_age' => 45,
+            'target_retirement_age' => 64,
+        ]);
+        $this->user->unsetRelation('retirementProfile');
+        $this->user->load(['dcPensions', 'retirementProfile']);
+
+        $result = $this->service->projectPensionPot($this->user);
+
+        expect($result['retirement_age'])->toBe(64)
+            ->and($result['retirement_age_source'])->toBe('retirement_profile');
+    });
+
     it('handles zero current age gracefully', function () {
         $this->user->date_of_birth = null;
         $this->user->save();
@@ -185,6 +235,7 @@ describe('projectPensionPot', function () {
 
         // Default age of 40 assumed when no DOB
         expect($result['current_age'])->toBe(40)
+            ->and($result['current_age_source'])->toBe('assumed')
             ->and($result['years_to_retirement'])->toBe(25);
     });
 });

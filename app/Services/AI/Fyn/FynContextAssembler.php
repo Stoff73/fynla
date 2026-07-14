@@ -153,6 +153,26 @@ final class FynContextAssembler
             $lines[] = "<live_data>\n".implode("\n\n", $liveBlocks)."\n</live_data>";
         }
 
+        // A follow-up asking why a figure appears in the user's saved tax plan
+        // must be grounded in that exact live plan. POSITION contains useful
+        // module summaries, but it is not the conflict-aware composed plan and
+        // cannot safely reconstruct a surfaced recommendation. Keep the heavy
+        // plan tool-only (lean-prompt law) and require it only for this explicit
+        // explanation/reference shape.
+        $taxPlanGrounding = $this->taxPlanGroundingDirective($ctx);
+        if ($taxPlanGrounding !== null) {
+            $lines[] = $taxPlanGrounding;
+        }
+
+        // Save Tax stores spouse financial inputs in a dedicated household
+        // row rather than on users/family_members. Surface that row only when
+        // the user explicitly asks about spouse finances, so the model cannot
+        // mistake an absent linked-spouse profile for absent campaign data.
+        $householdGrounding = $this->savedHouseholdFinancesDirective($ctx);
+        if ($householdGrounding !== null) {
+            $lines[] = $householdGrounding;
+        }
+
         // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
         // per-turn layers AFTER the static prefix and after <live_data>,
         // mirroring <knowledge>/<live_data>: load the active procedures of the
@@ -226,6 +246,16 @@ final class FynContextAssembler
                 $lines[] = "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
             }
 
+            // Required tools + decision triggers (legacy Layer 8b parity).
+            // QuerySchemas already defines the minimum live reads for each
+            // advice classification; omitting this layer under unified let the
+            // model answer saved-data questions from the thin record summary
+            // and falsely claim detailed fields were missing.
+            $toolsAndTriggers = $this->advice->buildToolsAndTriggersBlock($ctx->classification);
+            if ($toolsAndTriggers !== '') {
+                $lines[] = $toolsAndTriggers;
+            }
+
             // "How do I start saving?" is a generic getting-started question, so
             // QueryClassifier rightly leaves it GENERAL (the savings keyword
             // table is deliberately narrow so "save tax" / "save for retirement"
@@ -258,10 +288,16 @@ final class FynContextAssembler
 
         if ($has(ContextBucket::CAPTURE)) {
             $focus = (string) $ctx->onboardingFocus;
-            $lines[] = FynCaptureTurnInstructions::render(
-                $this->focusLabel($focus),
-                implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
-            );
+            if (str_starts_with($focus, 'verify_edit_')) {
+                $lines[] = FynVerifyEditTurnInstructions::render(
+                    substr($focus, strlen('verify_edit_')),
+                );
+            } else {
+                $lines[] = FynCaptureTurnInstructions::render(
+                    $this->focusLabel($focus),
+                    implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
+                );
+            }
         }
 
         if ($ctx->isPreview) {
@@ -320,6 +356,97 @@ final class FynContextAssembler
             ."The user is asking how to start saving. Lead with the affordability ordering below — name the emergency-fund buffer (around three to six months of essential outgoings, more if self-employed) as the FIRST priority, before any Individual Savings Account or pension contribution. Then cover high-interest debt, then regular saving into the right wrapper.\n\n"
             .FinancialPlanningKnowledge::getAffordabilityRules()."\n"
             .'</savings_getting_started>';
+    }
+
+    /**
+     * Ground spouse-finance questions in the dedicated Save Tax household row.
+     */
+    private function savedHouseholdFinancesDirective(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->isOnboarding()) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+        $mentionsSpouse = preg_match('/\b(spouse|partner|husband|wife)\b/i', $message) === 1;
+        $mentionsFinances = preg_match(
+            '/\b(income|earn|salary|isa|pension|saving|investment|asset|household|financial|record)\b/i',
+            $message,
+        ) === 1;
+        if (! $mentionsSpouse || ! $mentionsFinances) {
+            return null;
+        }
+
+        $household = $ctx->user->taxStrategyHouseholdInput()->first();
+        if ($household === null) {
+            return null;
+        }
+
+        $fields = [
+            'spouse_annual_income' => 'Spouse annual income',
+            'spouse_isa_balance' => 'Spouse ISA balance',
+            'spouse_pension_input_annual' => 'Spouse annual pension contribution',
+            'spouse_existing_isa_balance' => 'Spouse existing ISA balance',
+            'spouse_existing_savings_balance' => 'Spouse existing savings balance',
+            'spouse_existing_investment_balance' => 'Spouse existing investment balance',
+            'spouse_existing_dividend_holdings_value' => 'Spouse existing dividend holdings value',
+            'spouse_existing_pension_balance' => 'Spouse existing pension balance',
+        ];
+
+        $values = [];
+        foreach ($fields as $field => $label) {
+            $value = $household->getAttribute($field);
+            if ($value !== null) {
+                $values[] = "- {$label}: £".number_format((float) $value, 2);
+            }
+        }
+
+        if ($household->spouse_employment_status !== null) {
+            $status = str_replace('_', ' ', (string) $household->spouse_employment_status);
+            $values[] = '- Spouse employment status: '.UserContentSanitiser::wrap($status);
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        return "<saved_household_finances>\n"
+            ."These are the authoritative Save Tax campaign household values currently saved for this user:\n"
+            .implode("\n", $values)."\n"
+            .'Use the listed values exactly. Do not say that a listed field is not recorded. Do not infer values for fields that are not listed.'
+            ."\n</saved_household_finances>";
+    }
+
+    /**
+     * Require the tool-only composed plan when the user asks Fyn to explain
+     * an existing tax-plan recommendation or calculation.
+     */
+    private function taxPlanGroundingDirective(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->isOnboarding()
+            || ($ctx->classification['primary'] ?? null) !== QuerySchemas::TAX_OPTIMISATION) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+        $referencesPlan = preg_match(
+            '/\b(my|the|saved|tax)\s+(plan|recommendation|action|strategy)\b/i',
+            $message,
+        ) === 1;
+        $asksForWorking = preg_match(
+            '/\b(explain|why|how|figure|figures|working|calculation|calculated|save|saving)\b/i',
+            $message,
+        ) === 1;
+
+        if (! $referencesPlan || ! $asksForWorking) {
+            return null;
+        }
+
+        return <<<'GROUNDING'
+<tax_plan_grounding>
+The user is asking you to explain a figure or action already shown in their saved tax plan. Before responding, you MUST call get_recommendations and use the matching item in its composed_tax_plan as the authoritative source. Do not reconstruct or rationalise the plan figure from partial conversation context. Show the matching item's exact saved balances, recorded rates, allowance, taxable amount, marginal rate, and arithmetic where present. If the amount quoted by the user differs from the live plan, say so plainly and explain the current figure instead.
+</tax_plan_grounding>
+GROUNDING;
     }
 
     private function resolveFirstName(User $user): string

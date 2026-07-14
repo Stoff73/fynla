@@ -21,6 +21,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
+      '@m': fileURLToPath(new URL('./resources/mobile', import.meta.url)),
     },
   },
 });

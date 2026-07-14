@@ -36,7 +36,7 @@ class RetirementProjectionService
      */
     public function getProjections(int $userId): array
     {
-        $user = User::with(['dcPensions', 'dbPensions', 'statePension'])
+        $user = User::with(['dcPensions', 'dbPensions', 'statePension', 'retirementProfile'])
             ->findOrFail($userId);
 
         $potProjection = $this->projectPensionPot($user);
@@ -68,9 +68,11 @@ class RetirementProjectionService
     {
         // Get user's current age
         $currentAge = $user->date_of_birth?->age ?? 40;
+        $currentAgeSource = $user->date_of_birth ? 'date_of_birth' : 'assumed';
 
         // Get retirement age from user profile or DC pensions or default
-        $retirementAge = $this->getRetirementAge($user);
+        $retirementAgeResult = $this->getRetirementAgeWithSource($user);
+        $retirementAge = $retirementAgeResult['age'];
 
         // Calculate years to retirement
         $yearsToRetirement = max(1, $retirementAge - $currentAge);
@@ -137,7 +139,9 @@ class RetirementProjectionService
             'volatility' => $riskParams['volatility'],
             'years_to_retirement' => $yearsToRetirement,
             'retirement_age' => $retirementAge,
+            'retirement_age_source' => $retirementAgeResult['source'],
             'current_age' => $currentAge,
+            'current_age_source' => $currentAgeSource,
             'percentile_20_at_retirement' => round($percentile20AtRetirement, 2),
             'median_at_retirement' => round($medianAtRetirement, 2),
             'year_by_year' => $yearByYear,
@@ -548,17 +552,27 @@ class RetirementProjectionService
 
     private function getRetirementAge(User $user): int
     {
+        return $this->getRetirementAgeWithSource($user)['age'];
+    }
+
+    /** @return array{age:int,source:string} */
+    private function getRetirementAgeWithSource(User $user): array
+    {
         if ($user->target_retirement_age) {
-            return $user->target_retirement_age;
+            return ['age' => (int) $user->target_retirement_age, 'source' => 'user_profile'];
+        }
+
+        if ($user->retirementProfile?->target_retirement_age) {
+            return ['age' => (int) $user->retirementProfile->target_retirement_age, 'source' => 'retirement_profile'];
         }
 
         foreach ($user->dcPensions as $pension) {
             if ($pension->retirement_age) {
-                return $pension->retirement_age;
+                return ['age' => (int) $pension->retirement_age, 'source' => 'pension'];
             }
         }
 
-        return self::DEFAULT_RETIREMENT_AGE;
+        return ['age' => self::DEFAULT_RETIREMENT_AGE, 'source' => 'assumed'];
     }
 
     private function getUserRiskLevel(User $user): string
@@ -593,6 +607,10 @@ class RetirementProjectionService
 
     private function calculateMonthlyContribution($pension): float
     {
+        if ((float) $pension->monthly_contribution_amount > 0) {
+            return (float) $pension->monthly_contribution_amount;
+        }
+
         if ($pension->employee_contribution_percent && $pension->annual_salary) {
             $employeeMonthly = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
             $employerMonthly = $pension->employer_contribution_percent
@@ -602,7 +620,7 @@ class RetirementProjectionService
             return $employeeMonthly + $employerMonthly;
         }
 
-        return (float) ($pension->monthly_contribution_amount ?? 0);
+        return 0.0;
     }
 
     private function getTotalDBIncome(User $user): float

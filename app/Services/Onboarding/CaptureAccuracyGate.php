@@ -67,7 +67,7 @@ final class CaptureAccuracyGate
             return ['allowed' => true];
         }
 
-        $text = $this->evidenceForEntity(mb_strtolower(trim($latestUserText)), $arguments);
+        $text = $this->evidenceForEntity(mb_strtolower(trim($latestUserText)), $arguments, $tool);
         $missing = [];
         $reasons = [];
 
@@ -420,12 +420,17 @@ final class CaptureAccuracyGate
         return preg_match('/\b(?:actually|correction|rather|instead)\b[^.!?\n]{0,35}$/u', $prefix) === 1;
     }
 
-    private function evidenceForEntity(string $text, array $arguments): string
+    private function evidenceForEntity(string $text, array $arguments, string $tool): string
     {
-        $segments = preg_split(
-            '/(?<=[.!?])\s+|\n+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)|\s+(?:and|but|while|whereas)\s+(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b))/u',
-            $text
-        ) ?: [];
+        $turns = preg_split('/\n+/u', $text) ?: [$text];
+        $segments = [];
+        $segmentTurns = [];
+        foreach ($turns as $turnIndex => $turn) {
+            foreach ($this->segmentsForTurn($turn) as $segment) {
+                $segments[] = $segment;
+                $segmentTurns[] = $turnIndex;
+            }
+        }
         $strongNeedles = array_values(array_filter(array_map(
             static fn (mixed $value): string => is_string($value) ? mb_strtolower(trim($value)) : '',
             [
@@ -476,6 +481,12 @@ final class CaptureAccuracyGate
         }
 
         if ($targetIndexes === []) {
+            if (collect($segments)->contains(
+                fn (string $segment): bool => $this->isSharedEntityEvidence($segment, $tool)
+            )) {
+                return '';
+            }
+
             $nonFactIndexes = array_keys(array_filter(
                 $segments,
                 fn (string $segment): bool => ! $this->isStandaloneEvidence($segment)
@@ -485,15 +496,41 @@ final class CaptureAccuracyGate
         }
 
         $targetIndex = $targetIndexes[0];
-        $matched = [$segments[$targetIndex]];
+        $matchedIndexes = [$targetIndex];
         for ($index = $targetIndex + 1; $index < count($segments); $index++) {
             $isImmediateAnaphoricContinuation = $index === $targetIndex + 1
                 && $this->isAnaphoricEvidenceContinuation($segments[$index]);
             if (! $this->isStandaloneEvidence($segments[$index]) && ! $isImmediateAnaphoricContinuation) {
                 break;
             }
-            $matched[] = $segments[$index];
+            $matchedIndexes[] = $index;
         }
+
+        $targetTurn = $segmentTurns[$targetIndex] ?? null;
+        foreach ($segments as $index => $segment) {
+            $segmentTurn = $segmentTurns[$index] ?? null;
+            $sameTurn = $targetTurn !== null && $segmentTurn === $targetTurn;
+            $nextTurnClarification = $targetTurn !== null
+                && $segmentTurn === $targetTurn + 1
+                && $this->isPureSharedEntityEvidence($segment, $tool);
+            if (($sameTurn || $nextTurnClarification)
+                && $this->isSharedEntityEvidence($segment, $tool)
+                && $this->sharedEvidenceMatchesCohort(
+                    $turns[$targetTurn],
+                    $segments[$targetIndex],
+                    $segment,
+                    $tool,
+                )) {
+                $matchedIndexes[] = $index;
+            }
+        }
+
+        $matchedIndexes = array_values(array_unique($matchedIndexes));
+        sort($matchedIndexes);
+        $matched = array_map(
+            static fn (int $index): string => $segments[$index],
+            $matchedIndexes,
+        );
 
         return implode("\n", array_values(array_unique($matched)));
     }
@@ -533,5 +570,116 @@ final class CaptureAccuracyGate
         return $this->ownershipFromText($segment) !== null
             || $this->isaSubtypeFromText($segment) !== null
             || $this->ownershipShareFromText($segment) !== null;
+    }
+
+    private function isSharedEntityEvidence(string $segment, string $tool): bool
+    {
+        $nouns = $this->entityGroupNouns($tool);
+        $referencesGroup = preg_match(
+            '/\b(?:(?:both|all|each)\s+(?:of\s+)?(?:the\s+)?(?:'.$nouns.')|the\s+(?:two|three|four)\s+(?:'.$nouns.')|(?:two|three|four)\s+(?:'.$nouns.')[^.!?\n]{0,50}\b(?:both|all|each)\b|(?:both|all)\s+of\s+(?:them|those)|they\s+(?:are\s+)?(?:both|all))\b/u',
+            $segment,
+        ) === 1;
+
+        return $referencesGroup
+            && ($this->ownershipFromText($segment) !== null
+                || $this->ownershipShareFromText($segment) !== null);
+    }
+
+    private function isPureSharedEntityEvidence(string $segment, string $tool): bool
+    {
+        $nouns = $this->entityGroupNouns($tool);
+
+        return preg_match(
+            '/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:(?:both|all|each)\s+(?:of\s+)?(?:the\s+)?(?:'.$nouns.')|the\s+(?:two|three|four)\s+(?:'.$nouns.')|(?:both|all)\s+of\s+(?:them|those)|they\s+(?:are\s+)?(?:both|all))\b/u',
+            $segment,
+        ) === 1;
+    }
+
+    private function sharedEvidenceMatchesCohort(
+        string $targetTurn,
+        string $targetEntitySegment,
+        string $segment,
+        string $tool,
+    ): bool {
+        $nouns = $this->entityGroupNouns($tool);
+        $targetSegments = $this->segmentsForTurn($targetTurn);
+        $declarations = [];
+        foreach ($targetSegments as $index => $targetSegment) {
+            $count = $this->simpleCohortDeclarationCount($targetSegment, $tool);
+            if ($count !== null) {
+                $declarations[] = [$index, $count];
+            }
+        }
+        if (count($declarations) !== 1) {
+            return false;
+        }
+
+        [$declarationIndex, $declaredCount] = $declarations[0];
+        $counts = ['two' => 2, 'three' => 3, 'four' => 4];
+        $groupCount = preg_match('/\bboth\b/u', $segment) === 1 ? 2 : null;
+        if ($groupCount === null
+            && preg_match('/\b(two|three|four)\b/u', $segment, $groupMatch) === 1) {
+            $groupCount = $counts[$groupMatch[1]];
+        }
+        if ($groupCount !== null && $groupCount !== $declaredCount) {
+            return false;
+        }
+
+        $cohortSegments = array_values(array_filter(
+            array_slice($targetSegments, $declarationIndex + 1),
+            static fn (string $candidate): bool => preg_match('/\b(?:'.$nouns.')\b/u', $candidate) === 1,
+        ));
+
+        return count($cohortSegments) === $declaredCount
+            && in_array($targetEntitySegment, $cohortSegments, true);
+    }
+
+    private function simpleCohortDeclarationCount(string $segment, string $tool): ?int
+    {
+        $nouns = $this->entityGroupNouns($tool);
+        if (preg_match(
+            '/^\s*(?:i|we)\s+(?:have|own)\s+(?:exactly\s+)?(two|three|four)\s+(?:'.$nouns.')\b/u',
+            $segment,
+            $match,
+            PREG_OFFSET_CAPTURE,
+        ) !== 1) {
+            return null;
+        }
+
+        $declarationEnd = $match[0][1] + strlen($match[0][0]);
+        $tail = trim(substr($segment, $declarationEnd), " \t\n\r\0\x0B,;:.!?-");
+        if ($tail !== '' && preg_match(
+            '/^(?:and\s+)?(?:both|all|each)\s+(?:(?:are\s+)?(?:owned\s+)?by\s+(?:me|us)\s+(?:individually|solely|jointly)|(?:are\s+)?(?:owned\s+)?(?:individually|solely|jointly)|(?:are\s+)?(?:mine\s+alone|just\s+me|only\s+me|ours))$/u',
+            $tail,
+        ) !== 1) {
+            return null;
+        }
+
+        return ['two' => 2, 'three' => 3, 'four' => 4][$match[1][0]];
+    }
+
+    /** @return list<string> */
+    private function segmentsForTurn(string $turn): array
+    {
+        $segments = preg_split(
+            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)|\s+(?:and|but|while|whereas)\s+(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b))/u',
+            $turn,
+        ) ?: [];
+
+        return array_values(array_filter(
+            $segments,
+            static fn (string $segment): bool => trim($segment) !== '',
+        ));
+    }
+
+    private function entityGroupNouns(string $tool): string
+    {
+        return match ($tool) {
+            'create_savings_account' => 'accounts?|isas?|savings?|savers?',
+            'create_investment_account' => 'accounts?|isas?|investments?|portfolios?',
+            'create_property' => 'properties|property',
+            'create_liability' => 'liabilities|liability|loans?|debts?',
+            default => '(?!)',
+        };
     }
 }
