@@ -33,6 +33,7 @@ final class IncomeBandStrategy implements TaxStrategy
         $additionalRateThreshold = $this->math->bandThresholds()['additional'] ?: 125140;
 
         $taxableIncome = $this->math->taxableIncomeFor($user);
+        $adjustedNetIncome = $this->math->adjustedNetIncomeFor($user);
         $availableAA = $this->math->availableAnnualAllowance($user, $overrides);
         if ($availableAA <= 0) {
             return [];
@@ -52,8 +53,8 @@ final class IncomeBandStrategy implements TaxStrategy
         // Effective only when contributing to drop income BELOW the taper
         // threshold, i.e. only the slice between £100k and the user's income
         // counts. Cap by both the in-band slice and the available AA.
-        if ($taxableIncome > $taperThreshold && $taxableIncome <= $additionalRateThreshold) {
-            $inBandSlice = $taxableIncome - $taperThreshold;
+        if ($adjustedNetIncome > $taperThreshold && $adjustedNetIncome <= $additionalRateThreshold) {
+            $inBandSlice = $adjustedNetIncome - $taperThreshold;
             $contribution = min($inBandSlice, $availableAA);
             if ($contribution > 0) {
                 // Split the 60% saving into the two mechanisms the user can see
@@ -83,7 +84,7 @@ final class IncomeBandStrategy implements TaxStrategy
                         ."Reclaim £%s of your Personal Allowance, saving £%s (%d%% of your contribution).\n\n"
                         ."Reduce your income tax at %d%% by £%s.\n\n"
                         ."Together that's £%s back this year — income between £%s and £%s is taxed at %d%%.",
-                        number_format((int) round($taxableIncome)),
+                        number_format((int) round($adjustedNetIncome)),
                         number_format($displayContribution),
                         number_format($paReclaimed),
                         number_format($paReclaimSaving),

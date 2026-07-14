@@ -21,8 +21,8 @@
             <span class="mr-hero-stat__val">{{ fmt(targetIncome) }}</span>
           </div>
           <div class="mr-hero-stat">
-            <span class="mr-hero-stat__cap">{{ isSurplus ? 'Surplus' : 'Shortfall' }}</span>
-            <span class="mr-hero-stat__val" :class="isSurplus ? 'mr-pos' : 'mr-neg'">{{ fmt(Math.abs(incomeGap)) }}</span>
+            <span class="mr-hero-stat__cap">{{ incomeComparison.label }}</span>
+            <span class="mr-hero-stat__val" :class="incomeComparison.tone">{{ incomeComparison.value }}</span>
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@
       <div class="m-card m-detail-rows">
         <p class="m-section-label" style="margin-top:0">Overview</p>
         <div class="m-detail-row">
-          <span class="m-detail-key">Total pension wealth</span>
+          <span class="m-detail-key">Defined Contribution pension value</span>
           <span class="m-detail-value">{{ fmt(totalPensionWealth) }}</span>
         </div>
         <div class="m-detail-row">
@@ -98,9 +98,10 @@
             <span class="m-detail-value">{{ fmt(pot.median_at_retirement) }}</span>
           </div>
           <p class="mr-proj-note">
-            Projected value at age {{ pot.retirement_age }} based on {{ pot.years_to_retirement }} years to
+            Projected value at {{ projectionAgeLabel }} {{ pot.retirement_age }} based on {{ pot.years_to_retirement }} years to
             retirement and an estimated {{ pot.expected_return }}% annual return. The projected figure is a
             conservative estimate (80% likelihood of exceeding it).
+            <template v-if="currentAgeAssumption"> {{ currentAgeAssumption }}</template>
           </p>
         </template>
         <p v-else class="m-sub" style="margin-bottom:0">No projection available yet.</p>
@@ -145,8 +146,11 @@ export default {
     error: '',
     data: null,
     analysis: null,
+    analysisReady: false,
     pot: null,
+    incomeDrawdown: null,
     projError: '',
+    loadGeneration: 0,
   }),
   computed: {
     profile() { return this.data?.profile || null; },
@@ -162,24 +166,67 @@ export default {
       return buildEditPrompt('pensions', "I'd like to add a pension.",
         this.pensions.map((p) => p.name));
     },
-    projectedIncome() { return Number(this.analysis?.projected_income || 0); },
-    targetIncome() { return Number(this.analysis?.target_income || 0); },
-    incomeGap() {
-      // analyze returns income_gap as the shortfall (target - projected). A negative
-      // gap (or where projected exceeds target) is a surplus.
-      const gap = Number(this.analysis?.income_gap || 0);
-      return this.targetIncome - this.projectedIncome || gap;
+    projectedIncome() {
+      if (this.analysisReady) {
+        const analyzed = this.analysis?.projected_income;
+        return analyzed != null && !isNaN(Number(analyzed)) ? Number(analyzed) : null;
+      }
+      if ((this.dbPensions?.length || 0) > 0) return null;
+      const projected = this.incomeDrawdown?.yearly_income?.[0]?.total_income;
+      if (projected != null && !isNaN(Number(projected))) return Number(projected);
+      return null;
     },
-    isSurplus() { return this.incomeGap <= 0; },
-    totalPensionWealth() { return Number(this.analysis?.total_pension_wealth || 0); },
+    targetIncome() {
+      const target = Number(this.analysisReady
+        ? this.analysis?.target_income
+        : this.profile?.target_retirement_income);
+      return Number.isFinite(target) && target > 0 ? target : null;
+    },
+    hasTargetIncome() { return this.targetIncome != null; },
+    incomeGap() {
+      if (!this.hasTargetIncome || this.projectedIncome == null) return null;
+      return this.targetIncome - this.projectedIncome;
+    },
+    isSurplus() { return this.hasTargetIncome && this.incomeGap != null && this.incomeGap <= 0; },
+    incomeComparison() {
+      if (!this.hasTargetIncome || this.incomeGap == null) {
+        return { label: 'Comparison', value: '—', tone: '' };
+      }
+      return {
+        label: this.isSurplus ? 'Surplus' : 'Shortfall',
+        value: this.fmt(Math.abs(this.incomeGap)),
+        tone: this.isSurplus ? 'mr-pos' : 'mr-neg',
+      };
+    },
+    totalPensionWealth() {
+      return this.dcPensions.reduce((sum, pension) => (
+        sum + (Number(pension.current_fund_value) || 0)
+      ), 0);
+    },
     yearsToRetirement() {
-      const y = this.analysis?.years_to_retirement;
-      return y != null ? y : (this.profile?.years_to_retirement ?? null);
+      if (!this.targetRetirementAge) return null;
+      if (Number(this.pot?.retirement_age) === Number(this.targetRetirementAge)) {
+        return this.pot?.years_to_retirement ?? null;
+      }
+      const y = this.analysisReady ? this.analysis?.years_to_retirement : null;
+      return y != null ? y : null;
     },
     targetRetirementAge() { return this.profile?.target_retirement_age || null; },
+    projectionAgeLabel() {
+      const source = this.pot?.retirement_age_source;
+      if (source === 'user_profile' || source === 'retirement_profile') return 'your target retirement age';
+      if (source === 'pension') return 'the retirement age recorded on your pension';
+      return 'an assumed retirement age';
+    },
+    currentAgeAssumption() {
+      return this.pot?.current_age_source === 'assumed'
+        ? `This projection uses an assumed current age of ${this.pot.current_age}.`
+        : '';
+    },
     recommendations() { return this.analysis?.recommendations || []; },
     gapNarrative() {
-      if (!this.targetIncome) return 'Add a target retirement income to see how your projection compares.';
+      if (!this.hasTargetIncome) return 'Add a target retirement income to see how your projection compares.';
+      if (this.projectedIncome == null) return 'A projected income is not available yet.';
       if (this.isSurplus) {
         return `You are on track to exceed your target by ${this.fmt(Math.abs(this.incomeGap))} a year.`;
       }
@@ -221,12 +268,12 @@ export default {
       return list;
     },
   },
-  async created() {
-    await this.load();
+  created() {
     // Same-route verify refresh: the onboarding chat bumps this after
     // applying an edit on this very screen — refetch so the page shows the
     // just-edited figures (no remount happens without a route change).
     this.$watch(() => store.screenRefreshTick, () => { this.load(); });
+    this.load();
   },
   methods: {
     fmt(v) { return formatCurrency(v); },
@@ -235,43 +282,53 @@ export default {
       this.$router.push({ name: 'm-retirement-pension', params: { type: p.type, id: String(p.id) } });
     },
     async load() {
+      const generation = ++this.loadGeneration;
       this.loading = true;
       this.error = '';
       this.data = null;
       this.analysis = null;
+      this.analysisReady = false;
       this.pot = null;
+      this.incomeDrawdown = null;
       this.projError = '';
       try {
         const [indexRes, analyzeRes] = await Promise.all([
           apiGet('/api/retirement', store.token),
           apiPost('/api/retirement/analyze', {}, store.token),
         ]);
+        if (generation !== this.loadGeneration) return;
         if (indexRes.ok) {
           this.data = indexRes.data?.data || indexRes.data || {};
         } else {
           this.error = indexRes.data?.message || 'We could not load your retirement data.';
           return;
         }
-        if (analyzeRes.ok) {
-          this.analysis = analyzeRes.data?.data || analyzeRes.data || {};
+        const analysisEnvelope = analyzeRes.data || {};
+        if (analyzeRes.ok && analysisEnvelope.success !== false) {
+          this.analysis = analysisEnvelope.data || analysisEnvelope;
+          this.analysisReady = true;
         }
-        await this.loadProjections();
-      } catch (e) {
+        await this.loadProjections(generation);
+      } catch {
+        if (generation !== this.loadGeneration) return;
         this.error = 'Network error. Please try again.';
       } finally {
-        this.loading = false;
+        if (generation === this.loadGeneration) this.loading = false;
       }
     },
-    async loadProjections() {
+    async loadProjections(generation) {
       try {
         const { ok, data } = await apiGet('/api/retirement/projections', store.token);
+        if (generation !== this.loadGeneration) return;
         if (ok) {
           const payload = data?.data || data || {};
           this.pot = payload.pension_pot_projection || null;
+          this.incomeDrawdown = payload.income_drawdown || null;
         } else {
           this.projError = 'Projections are not available right now.';
         }
-      } catch (e) {
+      } catch {
+        if (generation !== this.loadGeneration) return;
         this.projError = 'Projections are not available right now.';
       }
     },

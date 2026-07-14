@@ -104,6 +104,7 @@ final class FynLoop
      *
      * @param  ?array<int, array<string, mixed>>  $allowedTools
      * @param  ?array<int, array<string, mixed>>  $toolsListOverride
+     * @param  ?array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}  $verifyEditScope
      * @return \Generator<array<string, mixed>>
      */
     public function stream(
@@ -117,9 +118,14 @@ final class FynLoop
         bool $persistUserMessage = true,
         ?array $toolsListOverride = null,
         ?string $unifiedFocus = null,
+        ?array $verifyEditScope = null,
+        ?string $providerOverride = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
+        if ($verifyEditScope !== null) {
+            $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
         }
 
         try {
@@ -133,10 +139,14 @@ final class FynLoop
                 persistUserMessage: $persistUserMessage,
                 toolsListOverride: $toolsListOverride,
                 personaOverride: $persona,
+                providerOverride: $providerOverride,
             );
         } finally {
             if ($unifiedFocus !== null) {
                 $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+            }
+            if ($verifyEditScope !== null) {
+                $this->coordinatingAgent->setVerifyEditScope(null);
             }
         }
     }

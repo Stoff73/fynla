@@ -12,12 +12,80 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+});
+
+it('binds a verify edit to the exact reviewed record identifiers', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $reviewed = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => 12000,
+    ]);
+    $other = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => 5000,
+    ]);
+    $agent = app(CoordinatingAgent::class);
+    $agent->setVerifyEditScope([
+        'tools' => ['update_record'],
+        'records' => ['savings_account' => [$reviewed->id]],
+        'profile_sections' => [],
+        'record_fields' => ['savings_account' => ['current_balance']],
+        'profile_fields' => [],
+        'tool_fields' => [],
+    ]);
+
+    $rejected = $agent->executeTool('update_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $other->id,
+        'fields' => ['current_balance' => 9000],
+    ], $user);
+    $landed = $agent->executeTool('update_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $reviewed->id,
+        'fields' => ['current_balance' => 13250],
+    ], $user);
+
+    expect($rejected['error_type'] ?? null)->toBe('verify_edit_scope_violation')
+        ->and((float) $other->fresh()->current_balance)->toBe(5000.0)
+        ->and($landed['success'] ?? null)->toBeTrue()
+        ->and((float) $reviewed->fresh()->current_balance)->toBe(13250.0);
+});
+
+it('binds a verify edit to the exact field named by the user', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $reviewed = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => 12000,
+        'interest_rate' => 4.7,
+    ]);
+    $agent = app(CoordinatingAgent::class);
+    $agent->setVerifyEditScope([
+        'tools' => ['update_record'],
+        'records' => ['savings_account' => [$reviewed->id]],
+        'profile_sections' => [],
+        'record_fields' => ['savings_account' => ['current_balance']],
+        'profile_fields' => [],
+        'tool_fields' => [],
+    ]);
+
+    $result = $agent->executeTool('update_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $reviewed->id,
+        'fields' => ['current_balance' => 13250, 'interest_rate' => 1.0],
+    ], $user);
+
+    expect($result['error'])->toBeTrue()
+        ->and($result['error_type'])->toBe('verify_edit_scope_violation')
+        ->and((float) $reviewed->fresh()->current_balance)->toBe(12000.0)
+        ->and((float) $reviewed->fresh()->interest_rate)->toBe(4.7);
 });
 
 // ─── Allowlist enforcement: forbidden fields rejected ──────────────────
@@ -32,7 +100,8 @@ it('rejects Trust.settlor with fields_not_allowed', function (): void {
         'fields' => ['settlor' => 'Some Other Person'],
     ], $user);
 
-    expect($result['error'])->toBe('fields_not_allowed');
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('fields_not_allowed');
     expect($result['disallowed_fields'])->toContain('settlor');
     expect($trust->fresh()->settlor)->toBe($trust->settlor);
 });
@@ -51,7 +120,8 @@ it('rejects Mortgage.start_date with fields_not_allowed', function (): void {
         'fields' => ['start_date' => '2010-01-01'],
     ], $user);
 
-    expect($result['error'])->toBe('fields_not_allowed');
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('fields_not_allowed');
     expect($result['disallowed_fields'])->toContain('start_date');
 });
 
@@ -70,7 +140,8 @@ it('rejects Mortgage.mortgage_type with fields_not_allowed', function (): void {
         'fields' => ['mortgage_type' => 'interest_only'],
     ], $user);
 
-    expect($result['error'])->toBe('fields_not_allowed');
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('fields_not_allowed');
     expect($mortgage->fresh()->mortgage_type)->toBe('repayment');
 });
 
@@ -87,7 +158,8 @@ it('rejects FamilyMember.relationship with fields_not_allowed', function (): voi
         'fields' => ['relationship' => 'spouse'],
     ], $user);
 
-    expect($result['error'])->toBe('fields_not_allowed');
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('fields_not_allowed');
     expect($member->fresh()->relationship)->toBe('child');
 });
 
@@ -101,7 +173,8 @@ it('rejects identity FKs across every entity', function (): void {
         'fields' => ['user_id' => 9999, 'goal_name' => 'New name'],
     ], $user);
 
-    expect($result['error'])->toBe('fields_not_allowed');
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('fields_not_allowed');
     expect($result['disallowed_fields'])->toContain('user_id');
     expect($goal->fresh()->user_id)->toBe($user->id);
 });
@@ -115,7 +188,8 @@ it('rejects unsupported entity types', function (): void {
         'fields' => ['name' => 'Sparkle'],
     ], $user);
 
-    expect($result['error'])->toBe('unsupported_entity_type');
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('unsupported_entity_type');
 });
 
 // ─── Allowlist enforcement: allowed fields succeed ─────────────────────

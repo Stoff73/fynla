@@ -55,3 +55,18 @@ it('accepts the all-zero case (spouse has no standalone assets)', function () {
     expect($result['onboarding_capture'] ?? false)->toBeTrue();
     expect(TaxStrategyHouseholdInput::where('user_id', $user->id)->count())->toBe(1);
 });
+
+it('rejects invalid non-working spouse balances without creating a row', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'household_calculation_mode' => 'single_earner_couple',
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_spouse_non_working_assets', [
+        'spouse_existing_isa_balance' => -500,
+    ], $user);
+
+    expect($result['error'] ?? false)->toBeTrue()
+        ->and($result['error_type'] ?? null)->toBe('validation_failed')
+        ->and(TaxStrategyHouseholdInput::where('user_id', $user->id)->exists())->toBeFalse();
+});

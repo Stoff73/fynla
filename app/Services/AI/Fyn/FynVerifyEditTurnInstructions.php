@@ -11,9 +11,24 @@ final class FynVerifyEditTurnInstructions
     {
         return match ($section) {
             'savings', 'investments', 'pensions' => ['update_record'],
-            'expenditure' => ['update_profile', 'set_expenditure'],
+            'income', 'spouse', 'expenditure' => ['update_profile'],
+            'giving' => ['capture_charitable_giving'],
+            'state_pension' => ['capture_state_pension'],
+            'retirement_goals' => ['capture_retirement_goals'],
             'recap' => ['update_profile', 'update_record'],
-            default => ['update_profile'],
+            default => [],
+        };
+    }
+
+    /** @return list<string> */
+    public static function profileSectionsForSection(string $section): array
+    {
+        return match ($section) {
+            'income' => ['income_occupation'],
+            'spouse' => ['spouse_household'],
+            'expenditure' => ['expenditure'],
+            'recap' => ['personal', 'income_occupation'],
+            default => [],
         };
     }
 
@@ -26,6 +41,8 @@ final class FynVerifyEditTurnInstructions
             'income' => 'income',
             'spouse' => 'spouse details',
             'expenditure' => 'expenditure',
+            'state_pension' => 'State Pension details',
+            'retirement_goals' => 'retirement goals',
             'giving' => 'charitable giving',
             'recap' => 'existing profile and pension details',
             default => 'existing details',

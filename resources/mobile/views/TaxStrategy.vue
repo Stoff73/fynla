@@ -86,11 +86,12 @@
         </div>
       </div>
 
-      <!-- Available-allowance hero -->
+      <!-- Allowance-position hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Allowance available</p>
-        <p class="m-metric mts-available">{{ fmt(totalHeadroom) }}</p>
-        <p class="m-hero-sub">Across {{ headroomCount }} unused {{ headroomCount === 1 ? 'allowance' : 'allowances' }}.</p>
+        <p class="m-sub m-label">Allowances with potential headroom</p>
+        <p class="m-metric mts-available">{{ headroomCount }}</p>
+        <p class="m-hero-sub">Review each allowance below. The amounts have different tax meanings and are not additive.</p>
+        <p class="m-hero-sub">{{ taxBasisNote }}</p>
       </div>
 
       <!-- User allowances -->
@@ -106,7 +107,7 @@
           </div>
           <div class="mts-allow__foot">
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span v-if="a.available !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
+            <span v-if="a.available !== false && a.known !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
         </div>
       </div>
@@ -124,7 +125,7 @@
           </div>
           <div class="mts-allow__foot">
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span v-if="a.available !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
+            <span v-if="a.available !== false && a.known !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
         </div>
       </div>
@@ -191,20 +192,23 @@ export default {
     completedRecommendations() { return this.recommendations.filter((r) => r.category !== 'household' && r.completed); },
     householdRecommendations() { return this.recommendations.filter((r) => r.category === 'household'); },
     householdIntro() {
+      const qualification = 'Transfers between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but the recipient normally inherits the original acquisition cost and may pay tax on a later disposal. Inheritance Tax spouse-exemption conditions apply.';
       return this.calculationMode === 'single_earner_couple'
-        ? "Move assets into your spouse's name to use their unused allowances. Spousal transfers are exempt from Capital Gains and Inheritance Tax."
-        : 'Coordinate as a household. Spousal transfers are exempt from Capital Gains and Inheritance Tax.';
+        ? `Move assets into your spouse's name to use their unused allowances. ${qualification}`
+        : `Coordinate as a household. ${qualification}`;
     },
     householdHeading() {
       return this.calculationMode === 'single_earner_couple'
         ? 'Move assets to use spouse allowances'
         : 'Coordinate as a household';
     },
-    headroom() { return this.userAllowances.filter((a) => a.available !== false && Number(a.utilisation_pct) < 90); },
+    headroom() { return this.userAllowances.filter((a) => a.available !== false && a.known !== false && Number(a.remaining) > 0); },
     headroomCount() { return this.headroom.length; },
-    totalHeadroom() { return this.headroom.reduce((sum, a) => sum + (Number(a.remaining) || 0), 0); },
+    taxBasisNote() {
+      return 'Income Tax bands use England, Wales and Northern Ireland rates. Scottish Income Tax bands are not modelled in this journey.';
+    },
     emptyRecommendationsMessage() {
-      return this.totalHeadroom > 0
+      return this.headroomCount > 0
         ? 'No additional recommended actions are available from the information on file right now. Your unused allowances are shown below.'
         : 'Your allowances are well-utilised — nothing to act on right now.';
     },
@@ -215,6 +219,7 @@ export default {
     barWidth(a) { return `${Math.min(Number(a.utilisation_pct) || 0, 100)}%`; },
     remainingLabel(a) {
       if (a.available === false) return 'Not available';
+      if (a.known === false) return 'Current-year use not confirmed';
       if (Number(a.utilisation_pct) >= 100 || Number(a.remaining) <= 0) return 'Fully used';
       return `${this.fmt(a.remaining)} available`;
     },

@@ -8,6 +8,7 @@ use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
+use App\Constants\ValidationLimits;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
@@ -82,6 +83,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
 use App\Services\WhatIf\WhatIfScenarioService;
@@ -263,6 +265,7 @@ class CoordinatingAgent extends BaseAgent
         bool $persistUserMessage = true,
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
+        ?string $providerOverride = null,
     ): \Generator {
         $this->setChatOverrides(
             systemPrompt: $systemPromptOverride,
@@ -270,6 +273,7 @@ class CoordinatingAgent extends BaseAgent
             skipUserMessagePersistence: ! $persistUserMessage,
             toolsListOverride: $toolsListOverride,
             personaOverride: $personaOverride,
+            providerOverride: $providerOverride,
         );
 
         try {
@@ -929,6 +933,13 @@ class CoordinatingAgent extends BaseAgent
             ],
             atMicrotime: microtime(true),
         ));
+
+        $verifyEditScopeError = $this->verifyEditScopeError($toolName, $input);
+        if ($verifyEditScopeError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $verifyEditScopeError);
+
+            return $verifyEditScopeError;
+        }
 
         // The primary-question matrix is the effective advice gate. Do not
         // reapply broader module readiness after question-specific KYC passes.
@@ -4799,7 +4810,7 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('household');
         }
 
-        $allowed = array_intersect_key($input, array_flip([
+        $allowedFields = [
             'spouse_annual_income',
             'spouse_employment_status',
             'spouse_isa_balance',
@@ -4807,7 +4818,47 @@ class CoordinatingAgent extends BaseAgent
             'spouse_unrealised_gains',
             'spouse_annual_dividends',
             'spouse_pension_input_annual',
-        ]));
+        ];
+        if (array_diff(array_keys($input), $allowedFields) !== []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse household fields are not supported.'];
+        }
+
+        $allowed = array_intersect_key($input, array_flip($allowedFields));
+        if ($allowed === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No spouse household details were provided.'];
+        }
+
+        $rules = [
+            'spouse_employment_status' => ['sometimes', 'nullable', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'retired', 'unemployed', 'other'])],
+            'spouse_psa_band' => ['sometimes', 'nullable', Rule::in(['basic', 'higher', 'additional'])],
+        ];
+        foreach ([
+            'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
+            'spouse_annual_dividends', 'spouse_pension_input_annual',
+        ] as $field) {
+            $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+        }
+        $validator = Validator::make($allowed, $rules);
+        if ($validator->fails()) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $validator->errors()->toArray(),
+                'message' => 'Validation failed for spouse household details.',
+            ];
+        }
+
+        $existing = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        $spouseIncome = array_key_exists('spouse_annual_income', $allowed)
+            ? (float) $allowed['spouse_annual_income']
+            : ($existing?->spouse_annual_income !== null ? (float) $existing->spouse_annual_income : null);
+        $spouseDividends = array_key_exists('spouse_annual_dividends', $allowed)
+            ? (float) $allowed['spouse_annual_dividends']
+            : ($existing?->spouse_annual_dividends !== null ? (float) $existing->spouse_annual_dividends : 0.0);
+        unset($allowed['spouse_psa_band']);
+        if ($spouseIncome !== null) {
+            $allowed['spouse_psa_band'] = app(TaxStrategyMath::class)->bandFromIncome($spouseIncome + $spouseDividends);
+        }
 
         TaxStrategyHouseholdInput::updateOrCreate(
             ['user_id' => $user->id],
@@ -4828,13 +4879,35 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('household');
         }
 
-        $allowed = array_intersect_key($input, array_flip([
+        $allowedFields = [
             'spouse_existing_isa_balance',
             'spouse_existing_savings_balance',
             'spouse_existing_investment_balance',
             'spouse_existing_dividend_holdings_value',
             'spouse_existing_pension_balance',
-        ]));
+        ];
+        if (array_diff(array_keys($input), $allowedFields) !== []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse asset fields are not supported.'];
+        }
+
+        $allowed = array_intersect_key($input, array_flip($allowedFields));
+        if ($allowed === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No spouse asset details were provided.'];
+        }
+
+        $rules = [];
+        foreach ($allowedFields as $field) {
+            $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+        }
+        $validator = Validator::make($allowed, $rules);
+        if ($validator->fails()) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $validator->errors()->toArray(),
+                'message' => 'Validation failed for spouse asset details.',
+            ];
+        }
 
         TaxStrategyHouseholdInput::updateOrCreate(
             ['user_id' => $user->id],
@@ -4967,6 +5040,7 @@ class CoordinatingAgent extends BaseAgent
                 $metadata = is_array($message->metadata) ? $message->metadata : [];
 
                 return isset($metadata['onboarding_step'])
+                    && ($metadata['capture_write_failed'] ?? false) !== true
                     && ($metadata['is_resume_greeting'] ?? false) !== true;
             });
         $stateBoundaryId = $stateBoundary?->id;
@@ -5001,7 +5075,8 @@ class CoordinatingAgent extends BaseAgent
                         $metadata = is_array($message->metadata) ? $message->metadata : [];
 
                         return ($metadata['is_resume_greeting'] ?? false) !== true
-                            && ! isset($metadata['onboarding_step'])
+                            && (! isset($metadata['onboarding_step'])
+                                || ($metadata['capture_write_failed'] ?? false) === true)
                             && $this->assistantRequestsCaptureClarification((string) $message->content);
                     });
 
@@ -5161,6 +5236,10 @@ class CoordinatingAgent extends BaseAgent
 
         $existing = RetirementProfile::where('user_id', $user->id)->first();
 
+        if ($this->verifyEditScope !== null && $existing === null) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => 'No retirement goals are on file to update.'];
+        }
+
         if ($existing !== null) {
             $updates = array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null);
             $existing->update($updates);
@@ -5300,12 +5379,21 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide at least one State Pension field.'];
         }
 
-        if ($forecastAnnual !== null && $forecastAnnual < 0) {
+        if ($forecastAnnual !== null && ($forecastAnnual < 0 || $forecastAnnual > ValidationLimits::MAX_CURRENCY_VALUE)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension forecast must be 0 or more.'];
         }
 
         if ($niYears !== null && ($niYears < 0 || $niYears > 60)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'National Insurance qualifying years must be between 0 and 60.'];
+        }
+
+        if ($spAge !== null && ($spAge < 55 || $spAge > 75)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension age must be between 55 and 75.'];
+        }
+
+        $existing = StatePension::where('user_id', $user->id)->first();
+        if ($this->verifyEditScope !== null && $existing === null) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => 'No State Pension details are on file to update.'];
         }
 
         // Guard against the "not sure" garbage call. When the user says they don't
@@ -5322,7 +5410,7 @@ class CoordinatingAgent extends BaseAgent
         $hasPositiveSignal = ($forecastAnnual !== null && $forecastAnnual > 0)
             || ($niYears !== null && $niYears > 0);
 
-        if (! $hasPositiveSignal) {
+        if (! $hasPositiveSignal && $existing === null) {
             return [
                 'onboarding_capture' => false,
                 'summary' => 'No State Pension figures recorded — the user did not give a forecast, qualifying years, or age.',
@@ -5335,7 +5423,11 @@ class CoordinatingAgent extends BaseAgent
             'state_pension_age' => $spAge,
         ], fn ($v) => $v !== null);
 
-        StatePension::updateOrCreate(['user_id' => $user->id], $updates);
+        if ($existing !== null) {
+            $existing->update($updates);
+        } else {
+            StatePension::create(['user_id' => $user->id, ...$updates]);
+        }
 
         // Bust the user's caches so the retirement analysis (and the "No State
         // Pension Forecast" recommendation that depends on this row) recompute —
@@ -5375,7 +5467,7 @@ class CoordinatingAgent extends BaseAgent
         $fields = $input['fields'] ?? [];
 
         if (empty($fields)) {
-            return ['error' => 'validation_failed', 'message' => 'No fields provided to update.'];
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
         }
 
         // Map AI tool field names to actual model field names. Aliasing happens
@@ -5414,7 +5506,8 @@ class CoordinatingAgent extends BaseAgent
         $allowed = UpdateRecordAllowlist::allowedFields($entityType);
         if (empty($allowed)) {
             return [
-                'error' => 'unsupported_entity_type',
+                'error' => true,
+                'error_type' => 'unsupported_entity_type',
                 'entity_type' => $entityType,
                 'message' => "The entity type '{$entityType}' cannot be updated via this tool.",
             ];
@@ -5423,7 +5516,8 @@ class CoordinatingAgent extends BaseAgent
         $disallowed = array_diff(array_keys($fields), $allowed);
         if (! empty($disallowed)) {
             return [
-                'error' => 'fields_not_allowed',
+                'error' => true,
+                'error_type' => 'fields_not_allowed',
                 'entity_type' => $entityType,
                 'disallowed_fields' => array_values($disallowed),
                 'allowed_fields' => $allowed,
@@ -5454,6 +5548,31 @@ class CoordinatingAgent extends BaseAgent
                 'success' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $pension->id,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
+            ];
+        }
+
+        if ($entityType === 'savings_account' || $entityType === 'investment_account') {
+            try {
+                $record = $entityType === 'savings_account'
+                    ? app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI)
+                    : app(InvestmentAccountStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI);
+            } catch (ModelNotFoundException $e) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            } catch (StoreValidationException $e) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $e->errors,
+                    'message' => 'Validation failed for account update.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $record->id,
                 'fields_updated' => array_keys($fields),
                 'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
             ];
@@ -5637,22 +5756,159 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('profile');
         }
 
-        $section = $input['section'];
-
-        // Redirect expenditure to set_expenditure tool
-        if ($section === 'expenditure') {
-            return $this->handleSetExpenditure($input['fields'] ?? $input, $user, $isPreview);
-        }
+        $section = (string) ($input['section'] ?? '');
         $fields = $input['fields'] ?? [];
 
-        if (empty($fields)) {
+        if (! is_array($fields) || empty($fields)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
+        }
+
+        // Save Tax spouse review data belongs to the household-input row, not
+        // the authenticated user's profile. Require that reviewed row to exist:
+        // an edit must never create a new spouse record or overwrite the user's
+        // own income when the model says "my spouse earns ...".
+        if ($section === 'spouse_household') {
+            $household = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+            if ($household === null) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'No spouse household details are on file to update.'];
+            }
+
+            $allowedFields = [
+                'spouse_works',
+                'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+                'spouse_pension_input_annual', 'spouse_existing_isa_balance',
+                'spouse_existing_savings_balance', 'spouse_existing_investment_balance',
+                'spouse_existing_dividend_holdings_value', 'spouse_existing_pension_balance',
+            ];
+            $disallowed = array_diff(array_keys($fields), $allowedFields);
+            if ($disallowed !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'message' => 'One or more spouse fields cannot be updated.',
+                ];
+            }
+            if ($fields === []) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided spouse fields can be updated.'];
+            }
+
+            $moneyFields = [
+                'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
+                'spouse_annual_dividends', 'spouse_pension_input_annual',
+                'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
+                'spouse_existing_pension_balance',
+            ];
+            $rules = [
+                'spouse_works' => ['sometimes', 'boolean'],
+                'spouse_employment_status' => ['sometimes', 'nullable', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'retired', 'unemployed', 'other'])],
+                'spouse_psa_band' => ['sometimes', 'nullable', Rule::in(['basic', 'higher', 'additional'])],
+            ];
+            foreach ($moneyFields as $field) {
+                $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+            }
+            $validator = Validator::make($fields, $rules);
+            if ($validator->fails()) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $validator->errors()->toArray(),
+                    'message' => 'Validation failed for spouse household details.',
+                ];
+            }
+
+            $safeFields = $fields;
+            $works = array_key_exists('spouse_works', $safeFields) ? (bool) $safeFields['spouse_works'] : null;
+            unset($safeFields['spouse_works']);
+            if (array_key_exists('spouse_annual_income', $safeFields)) {
+                $safeFields['spouse_psa_band'] = app(TaxStrategyMath::class)
+                    ->bandFromIncome((float) $safeFields['spouse_annual_income']);
+            }
+
+            DB::transaction(function () use ($user, $household, $safeFields, $works): void {
+                if ($works !== null) {
+                    $user->update([
+                        'household_calculation_mode' => $works ? 'dual_earner' : 'single_earner_couple',
+                        'marriage_allowance_eligible' => ! $works,
+                    ]);
+                    $safeFields = array_merge($safeFields, array_fill_keys($works ? [
+                        'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                        'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
+                        'spouse_existing_pension_balance',
+                    ] : [
+                        'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                        'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+                        'spouse_pension_input_annual',
+                    ], null));
+                }
+                if ($safeFields !== []) {
+                    $household->update($safeFields);
+                }
+            });
+
+            return [
+                'updated' => true,
+                'section' => $section,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Spouse household details updated successfully.',
+            ];
+        }
+
+        // The campaign review page shows a single monthly total. Preserve that
+        // representation when it is edited and keep ExpenditureProfile in sync.
+        // Category-shaped updates still use the canonical category handler.
+        if ($section === 'expenditure') {
+            $hasMonthlyTotal = array_key_exists('monthly_expenditure', $fields);
+            $hasAnnualTotal = array_key_exists('annual_expenditure', $fields);
+            $categoryFields = array_diff(array_keys($fields), ['monthly_expenditure', 'annual_expenditure']);
+            if (($hasMonthlyTotal || $hasAnnualTotal) && $categoryFields !== []) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide either a total expenditure amount or category amounts, not both.'];
+            }
+            if ($hasMonthlyTotal && $hasAnnualTotal) {
+                if (! is_numeric($fields['monthly_expenditure']) || ! is_numeric($fields['annual_expenditure'])
+                    || abs(((float) $fields['monthly_expenditure'] * 12) - (float) $fields['annual_expenditure']) > 0.01) {
+                    return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly and annual expenditure totals do not agree.'];
+                }
+            }
+            if (! $hasMonthlyTotal && ! $hasAnnualTotal) {
+                return $this->handleSetExpenditure($fields, $user, $isPreview);
+            }
+
+            $sourceAmount = $hasMonthlyTotal
+                ? $fields['monthly_expenditure']
+                : $fields['annual_expenditure'];
+            if (! is_numeric($sourceAmount) || (float) $sourceAmount < ValidationLimits::MIN_CURRENCY_VALUE
+                || (float) $sourceAmount > ValidationLimits::MAX_CURRENCY_VALUE) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly expenditure must be zero or more.'];
+            }
+            $monthly = $hasMonthlyTotal
+                ? (float) $sourceAmount
+                : ((float) $sourceAmount / 12);
+            DB::transaction(function () use ($user, $monthly): void {
+                $user->update([
+                    'monthly_expenditure' => $monthly,
+                    'annual_expenditure' => $monthly * 12,
+                    'expenditure_entry_mode' => 'simple',
+                ]);
+                ExpenditureProfile::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['total_monthly_expenditure' => $monthly],
+                );
+            });
+
+            return [
+                'updated' => true,
+                'section' => $section,
+                'fields_updated' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
+                'message' => 'Monthly expenditure updated successfully.',
+            ];
         }
 
         $allowedFields = match ($section) {
             // NI number excluded — sensitive PII should not be AI-writable
             'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode'],
-            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_rental_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
+            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
             'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
             'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],
             default => [],
@@ -5665,6 +5921,59 @@ class CoordinatingAgent extends BaseAgent
         $safeFields = array_intersect_key($fields, array_flip($allowedFields));
         if (empty($safeFields)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are valid for this profile section.'];
+        }
+
+        if ($section === 'income_occupation') {
+            $disallowed = array_diff(array_keys($fields), $allowedFields);
+            if ($disallowed !== []) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more income fields cannot be updated.'];
+            }
+            $rules = [
+                'employment_status' => ['sometimes', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'retired', 'unemployed', 'other'])],
+                'occupation' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'employer' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'industry' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'target_retirement_age' => ['sometimes', 'nullable', 'integer', 'min:'.ValidationLimits::MIN_RETIREMENT_AGE, 'max:'.ValidationLimits::MAX_RETIREMENT_AGE],
+            ];
+            foreach (['annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income'] as $field) {
+                $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+            }
+            $validator = Validator::make($safeFields, $rules);
+            if ($validator->fails()) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $validator->errors()->toArray(),
+                    'message' => 'Validation failed for income details.',
+                ];
+            }
+
+            $newStatus = $safeFields['employment_status'] ?? null;
+            $oldStatus = (string) ($user->employment_status ?? '');
+            $oldIsSelfEmployed = $oldStatus === 'self_employed';
+            $newIsSelfEmployed = $newStatus === 'self_employed';
+            $newIsEmployed = in_array($newStatus, ['employed', 'full_time', 'part_time'], true);
+            if ($newStatus !== null && $newIsSelfEmployed !== $oldIsSelfEmployed) {
+                $replacementField = $newIsSelfEmployed
+                    ? 'annual_self_employment_income'
+                    : ($newIsEmployed ? 'annual_employment_income' : null);
+                if ($replacementField !== null && ! array_key_exists($replacementField, $safeFields)) {
+                    return [
+                        'error' => true,
+                        'error_type' => 'validation_failed',
+                        'message' => 'Include the replacement annual income when changing employment type.',
+                    ];
+                }
+            }
+
+            if ($newIsSelfEmployed && array_key_exists('annual_self_employment_income', $safeFields)) {
+                $safeFields['annual_employment_income'] = null;
+            } elseif ($newIsEmployed && array_key_exists('annual_employment_income', $safeFields)) {
+                $safeFields['annual_self_employment_income'] = null;
+            } elseif (in_array($newStatus, ['retired', 'unemployed'], true)) {
+                $safeFields['annual_employment_income'] = null;
+                $safeFields['annual_self_employment_income'] = null;
+            }
         }
 
         $user->update($safeFields);
