@@ -170,6 +170,24 @@ describe('projectPensionPot', function () {
         expect($result['monthly_contribution'])->toBe(400.0);
     });
 
+    it('treats a zero monthly placeholder as absent when percentage contributions exist', function () {
+        DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'current_fund_value' => 45000,
+            'annual_salary' => 82000,
+            'employee_contribution_percent' => 4,
+            'employer_contribution_percent' => 2,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $this->user->load('dcPensions');
+
+        $result = $this->service->projectPensionPot($this->user);
+
+        // 4% + 2% of £82,000 = £4,920/year = £410/month.
+        expect($result['monthly_contribution'])->toBe(410.0);
+    });
+
     it('prefers an explicit monthly contribution over percentage fields', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,

@@ -607,7 +607,7 @@ class RetirementProjectionService
 
     private function calculateMonthlyContribution($pension): float
     {
-        if ($pension->monthly_contribution_amount !== null) {
+        if ((float) $pension->monthly_contribution_amount > 0) {
             return (float) $pension->monthly_contribution_amount;
         }
 
