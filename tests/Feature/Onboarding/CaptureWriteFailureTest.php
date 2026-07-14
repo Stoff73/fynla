@@ -119,6 +119,54 @@ it('holds a question turn whose only write failed instead of advancing', functio
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
+it('holds a campaign ISA turn when Fyn asks for missing capture facts without calling a tool', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
+        'onboarding_fyn_selection' => 'savetax',
+        'funnel_answers' => [
+            'campaign' => 'savetax',
+            'assets' => ['isa'],
+        ],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    mockDelegatedStream([
+        [
+            'type' => 'content',
+            'text' => 'I need the ISA type and whether it is owned individually.',
+        ],
+        ['type' => 'done', 'message_id' => 100],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'My Barclays ISA has £20,000 and I added £5,000 this tax year.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $content = collect($received)
+        ->where('type', 'content')
+        ->pluck('text')
+        ->implode("\n");
+
+    expect($user->fresh()->onboarding_fyn_step)
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS)
+        ->and($content)->toContain('I need the ISA type')
+        ->and($content)->not->toContain("I've saved your ISA accounts");
+});
+
 it('does not ack "Recorded" when the only write was a blocked duplicate (D1 round 4)', function () {
     // user 168 SIPP turn: the model narrated "Recorded — £200 monthly" but its
     // create_pension was a blocked duplicate (warning, existing_id) — nothing

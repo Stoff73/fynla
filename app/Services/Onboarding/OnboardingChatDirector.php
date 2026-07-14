@@ -2842,6 +2842,8 @@ PROMPT;
             $contentBuffer = '';
             $flushed = false;
             $recordsCreated = [];
+            $modelRequestedClarification = false;
+            $delegatedDoneEvent = null;
 
             // A1 — answer-the-user-first. When the user's message asks a
             // question, the capture turn is allowed to answer it before
@@ -2863,7 +2865,7 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, $selection, $userAskedQuestion) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, $selection, $userAskedQuestion) {
                 $flushed = true;
                 // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
                 // captured this turn: either no tool ran at all, or a write was
@@ -2875,12 +2877,19 @@ PROMPT;
                 // to still shows.
                 $nothingCaptured = $toolWritesLanded === 0 && $llmEmittedFills === []
                     && ($toolCallsSeen === 0 || $sawFailedWrite);
-                if ($contentBuffer === '' || ($nothingCaptured && ! $userAskedQuestion)) {
+                $modelRequestedClarification = $nothingCaptured
+                    && $this->captureResponseRequestsClarification($contentBuffer);
+                if ($contentBuffer === ''
+                    || ($nothingCaptured && ! $userAskedQuestion && ! $modelRequestedClarification)) {
                     $contentBuffer = '';
 
                     return null;
                 }
-                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection, allowAnswer: $userAskedQuestion);
+                $cleaned = $this->filterOffScriptContent(
+                    $contentBuffer,
+                    $selection,
+                    allowAnswer: $userAskedQuestion || $modelRequestedClarification,
+                );
                 $cleaned = $this->dedupeAckSentences($cleaned);
                 $contentBuffer = '';
                 if ($cleaned === '') {
@@ -2953,6 +2962,7 @@ PROMPT;
                 }
 
                 if ($type === 'done') {
+                    $delegatedDoneEvent = $event;
                     // Flush the buffered ack content now, but DON'T forward the
                     // delegated chat's own `done` — the director emits the next
                     // turn (emitTurnForState / emitTerminalNavigationTurn) after
@@ -3058,6 +3068,23 @@ PROMPT;
                 ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
             );
             yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+            return;
+        }
+
+        // A model may spot missing capture facts before attempting the write
+        // tool. That is a valid clarification turn, not completion of the
+        // current state. Keep the state parked and finish this SSE response
+        // with the delegated message's own done marker; advancing here would
+        // immediately follow the clarification with a false "I've saved..."
+        // verification announcement even though no write was attempted.
+        if ($modelRequestedClarification && ! $capturedSomething) {
+            $this->recordProgress(
+                $user,
+                $currentStateId,
+                ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
+            );
+            yield $delegatedDoneEvent ?? ['type' => 'done'];
 
             return;
         }
@@ -3838,6 +3865,25 @@ PROMPT;
     {
         return str_contains($message, '?')
             || preg_match('/^(explain|what|why|how|when|tell me|define|describe)\b/i', trim($message)) === 1;
+    }
+
+    /**
+     * Detect a delegated model response that asks for a missing capture fact
+     * before it attempts any write tool. This response must remain visible and
+     * keep the current state parked; it is not a zero-entity completion turn.
+     */
+    private function captureResponseRequestsClarification(string $response): bool
+    {
+        $response = trim($response);
+        if ($response === '') {
+            return false;
+        }
+
+        return str_contains($response, '?')
+            || preg_match(
+                '/\b(?:i need|could you|can you|would you|please (?:tell|confirm|provide|share)|tell me|confirm whether)\b/i',
+                $response,
+            ) === 1;
     }
 
     /**
