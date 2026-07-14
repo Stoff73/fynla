@@ -228,6 +228,39 @@ it('suppresses billing_guidance in preview mode even on a billing turn', functio
         ->not->toContain('<billing_guidance>');
 });
 
+it('requires the live composed plan when explaining a saved tax-plan figure', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Can you explain in plain English why moving £2,612 of my Marcus savings into my ISA could save about £49 a year, using the figures in my plan?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'tax_optimisation'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<tax_plan_grounding>')
+        ->toContain('MUST call get_recommendations')
+        ->toContain('composed_tax_plan')
+        ->not->toContain('<billing_guidance>');
+});
+
+it('does not require the composed plan for a general ISA allowance question', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'What is the ISA allowance?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'tax_optimisation'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('<tax_plan_grounding>');
+});
+
 // "How do I start saving properly?" rightly stays GENERAL (the QueryClassifier
 // savings table is deliberately narrow so "save tax" / "save for retirement"
 // are not swallowed), but GENERAL injects no knowledge — so the factual answer

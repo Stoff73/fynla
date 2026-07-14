@@ -153,6 +153,17 @@ final class FynContextAssembler
             $lines[] = "<live_data>\n".implode("\n\n", $liveBlocks)."\n</live_data>";
         }
 
+        // A follow-up asking why a figure appears in the user's saved tax plan
+        // must be grounded in that exact live plan. POSITION contains useful
+        // module summaries, but it is not the conflict-aware composed plan and
+        // cannot safely reconstruct a surfaced recommendation. Keep the heavy
+        // plan tool-only (lean-prompt law) and require it only for this explicit
+        // explanation/reference shape.
+        $taxPlanGrounding = $this->taxPlanGroundingDirective($ctx);
+        if ($taxPlanGrounding !== null) {
+            $lines[] = $taxPlanGrounding;
+        }
+
         // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
         // per-turn layers AFTER the static prefix and after <live_data>,
         // mirroring <knowledge>/<live_data>: load the active procedures of the
@@ -326,6 +337,38 @@ final class FynContextAssembler
             ."The user is asking how to start saving. Lead with the affordability ordering below — name the emergency-fund buffer (around three to six months of essential outgoings, more if self-employed) as the FIRST priority, before any Individual Savings Account or pension contribution. Then cover high-interest debt, then regular saving into the right wrapper.\n\n"
             .FinancialPlanningKnowledge::getAffordabilityRules()."\n"
             .'</savings_getting_started>';
+    }
+
+    /**
+     * Require the tool-only composed plan when the user asks Fyn to explain
+     * an existing tax-plan recommendation or calculation.
+     */
+    private function taxPlanGroundingDirective(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->isOnboarding()
+            || ($ctx->classification['primary'] ?? null) !== QuerySchemas::TAX_OPTIMISATION) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+        $referencesPlan = preg_match(
+            '/\b(my|the|saved|tax)\s+(plan|recommendation|action|strategy)\b/i',
+            $message,
+        ) === 1;
+        $asksForWorking = preg_match(
+            '/\b(explain|why|how|figure|figures|working|calculation|calculated|save|saving)\b/i',
+            $message,
+        ) === 1;
+
+        if (! $referencesPlan || ! $asksForWorking) {
+            return null;
+        }
+
+        return <<<'GROUNDING'
+<tax_plan_grounding>
+The user is asking you to explain a figure or action already shown in their saved tax plan. Before responding, you MUST call get_recommendations and use the matching item in its composed_tax_plan as the authoritative source. Do not reconstruct or rationalise the plan figure from partial conversation context. Show the matching item's exact saved balances, recorded rates, allowance, taxable amount, marginal rate, and arithmetic where present. If the amount quoted by the user differs from the live plan, say so plainly and explain the current figure instead.
+</tax_plan_grounding>
+GROUNDING;
     }
 
     private function resolveFirstName(User $user): string

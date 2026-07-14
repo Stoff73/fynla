@@ -284,8 +284,12 @@ final class QuerySchemas
             '/\bwhen\s+(am\s+i\s+)?charged\b/i',
             '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',
             '/\bwhat\s+(am\s+i\s+)?paying\s+(for\s+)?fynla\b/i',
-            '/\bcurrent\s+plan\b/i',
-            '/\bmy\s+plan\b/i',
+            // "My plan" is normally the user's financial plan in Fynla, not
+            // their paid subscription. Keep billing classification behind an
+            // explicit product/subscription signal so advice questions such as
+            // "using the figures in my plan" retain their financial context.
+            '/\b(current|my)\s+(fynla|subscription|pricing|membership)\s+plan\b/i',
+            '/\b(which|what)\s+(fynla\s+)?plan\s+(am\s+i|are\s+we)\s+on\b/i',
         ],
         self::HOLISTIC_HEALTH => [
             '/\bnet\s+worth\b/i',
@@ -420,6 +424,7 @@ final class QuerySchemas
         ],
         self::TAX_OPTIMISATION => [
             '/\btax\s+(plan|optimi[sz]|efficien|strateg|saving|position)/i',
+            '/\b(mov(e|ing)|transfer(ring)?)\b.{0,80}\b(savings?|cash)\b.{0,80}\b(isa|individual\s+savings\s+account)\b/i',
             '/\bspousal\s+transfer\b/i',
             '/\bcapital\s+gains\s+tax\b/i',
             '/\bcgt\b/i',
