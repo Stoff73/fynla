@@ -1554,8 +1554,14 @@ trait HasAiChat
             ];
         }
 
-        // General compression — recursively trim oversized nested data.
-        return $this->trimForModel($result, depth: 0);
+        // General compression — recursively trim oversized nested data. The
+        // composed plan returned by get_recommendations has one meaningful
+        // extra envelope (composed_tax_plan.items[]). Allow that single extra
+        // level so the model receives the strategy's balances, interest,
+        // allowance and saving instead of an opaque "[nested N items]" marker.
+        $maxDepth = $toolName === 'get_recommendations' ? 4 : 3;
+
+        return $this->trimForModel($result, depth: 0, maxDepth: $maxDepth);
     }
 
     /** @return list<string> */
@@ -1632,9 +1638,9 @@ trait HasAiChat
      * over 10 items are summarised; strings over 200 chars are
      * truncated; depth over 3 collapses to a placeholder.
      */
-    private function trimForModel(mixed $value, int $depth): mixed
+    private function trimForModel(mixed $value, int $depth, int $maxDepth = 3): mixed
     {
-        if ($depth >= 3) {
+        if ($depth >= $maxDepth) {
             if (is_array($value)) {
                 return '[nested '.count($value).' items]';
             }
@@ -1655,13 +1661,13 @@ trait HasAiChat
             $tail = array_slice($value, -2);
 
             return [
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $head),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $head),
                 '__truncated__' => count($value) - 7 .' items omitted',
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $tail),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $tail),
             ];
         }
 
-        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $value);
+        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $value);
     }
 
     /**
