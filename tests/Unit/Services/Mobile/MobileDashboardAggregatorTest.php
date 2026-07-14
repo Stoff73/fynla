@@ -8,6 +8,7 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Models\DCPension;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
@@ -109,6 +110,33 @@ describe('getAggregatedDashboard', function () {
         // fakeRetirementAnalysis has current_dc_value = 45000; the card headline binds
         // to pot_value, not income_gap (which is 0 whenever no target is captured).
         expect($result['modules']['retirement']['pot_value'])->toBe(45000.0);
+    });
+
+    it('retains the known pension pot when retirement goals are not configured', function () {
+        $user = User::factory()->create();
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'current_fund_value' => 47500,
+        ]);
+
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeProtectionAnalysis());
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([
+            'success' => false,
+            'message' => 'No retirement profile found',
+            'data' => [],
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->with($user->id)->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['retirement']['status'])->toBe('not_configured')
+            ->and($result['modules']['retirement']['pot_value'])->toBe(47500.0)
+            ->and($result['net_worth']['breakdown']['assets']['pensions'])->toBe(47500.0);
     });
 
     it('reports not_configured when the readiness gate blocks the protection agent', function () {

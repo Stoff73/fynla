@@ -592,7 +592,10 @@ export default {
       const projected = num(ret.projected_income);
       const target = num(ret.target_income);
       const retPct = target > 0 ? Math.min(100, Math.round((projected / target) * 100)) : 0;
-      const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
+      const pensionAssets = num(nw.breakdown?.assets?.pensions);
+      const retValue = num(ret.pot_value != null
+        ? ret.pot_value
+        : (pensionAssets > 0 ? pensionAssets : (ret.income_gap != null ? ret.income_gap : ret.value)));
 
       // Investment — portfolio value as a full-width donut tile (5th panel).
       const inv = find('investment');
@@ -630,9 +633,9 @@ export default {
           value: this.fmt(retValue), route: '/retirement',
           viz: 'bar',
           barFill: retPct,
-          barValue: retPct + '%',
-          barUnit: 'of target',
-          caption: target > 0 ? 'Towards your target' : 'Plan your retirement',
+          barValue: target > 0 ? retPct + '%' : 'Target not set',
+          barUnit: target > 0 ? 'of target' : '',
+          caption: target > 0 ? 'Towards your target' : (retValue > 0 ? 'Your pension pot' : 'Plan your retirement'),
         },
         {
           key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true,
