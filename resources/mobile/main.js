@@ -32,11 +32,11 @@ async function boot() {
         // dashboard on 401 responses.
         try {
           (window.top || window).sessionStorage.setItem('auth_token', rotatedToken);
-        } catch (e) {
+        } catch {
           /* partitioned storage — the mobile token remains authoritative */
         }
       }
-    } catch (e) {
+    } catch {
       /* keep the existing token — it is still valid */
     }
   }

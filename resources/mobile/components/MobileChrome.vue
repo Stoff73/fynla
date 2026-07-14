@@ -295,7 +295,7 @@ export default {
         if (token && window.top && window.top !== window) {
           window.top.sessionStorage.setItem('auth_token', token);
         }
-      } catch (e) { /* iOS partitioned storage — desktop boot bridge covers it */ }
+      } catch { /* iOS partitioned storage — desktop boot bridge covers it */ }
       (window.top || window).location.href = url;
     },
     async doShare(shareType) {
@@ -306,14 +306,14 @@ export default {
         const payload = { title: c.title || 'Fynla', text: c.text || '', url: c.url || 'https://fynla.org' };
         if (navigator.share) await navigator.share(payload);
         else if (navigator.clipboard) await navigator.clipboard.writeText(`${payload.text} ${payload.url}`.trim());
-      } catch (e) { /* cancelled / unsupported — no-op */ }
+      } catch { /* cancelled / unsupported — no-op */ }
     },
     shareReferral() {
       this.closeDrawer();
       this.doShare('app_referral');
     },
     async signOut() {
-      try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch (e) { /* best-effort */ }
+      try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch { /* best-effort */ }
       store.logout();
       this.closeDrawer();
       this.$router.push('/login');
@@ -391,7 +391,7 @@ export default {
       try {
         const res = await apiGet('/api/auth/user', store.token);
         if (res.ok) store.user = res.data?.data?.user || res.data?.user || res.data?.data || null;
-      } catch (e) { /* non-fatal */ }
+      } catch { /* non-fatal */ }
     },
   },
   mounted() {

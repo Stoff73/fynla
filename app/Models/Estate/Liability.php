@@ -38,7 +38,7 @@ class Liability extends Model
 
     protected $casts = [
         'current_balance' => 'float',
-        'ownership_percentage' => 'float',
+        'ownership_percentage' => 'decimal:2',
         'monthly_payment' => 'float',
         'interest_rate' => 'float',
         'maturity_date' => 'date',

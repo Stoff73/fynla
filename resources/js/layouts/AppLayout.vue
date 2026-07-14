@@ -486,7 +486,8 @@ export default {
 
       this.handleSubscribeFromOverlay();
 
-      const { openPricing, ...rest } = this.$route.query;
+      const rest = { ...this.$route.query };
+      delete rest.openPricing;
       this.$router
         .replace({ path: this.$route.path, query: rest })
         .catch(() => {});

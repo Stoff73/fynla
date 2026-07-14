@@ -952,7 +952,7 @@ it('persists a tenants-in-common liability share', function (): void {
     $liability = Liability::where('user_id', $user->id)->sole();
     expect($liability->ownership_type)->toBe('tenants_in_common')
         ->and($liability->joint_owner_id)->toBe($spouse->id)
-        ->and($liability->ownership_percentage)->toBe(60.0);
+        ->and($liability->ownership_percentage)->toBe('60.00');
 });
 
 it('fails closed when an ownership write has no conversation evidence', function (): void {

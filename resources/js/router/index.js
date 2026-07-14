@@ -163,7 +163,7 @@ async function requireFullEstateAccess(to, from, next) {
     try {
       await store.dispatch('estate/fetchEstateData');
       mode = store.getters['estate/mode'];
-    } catch (e) {
+    } catch {
       // Transient fetch failure — let the view/backend handle it (backend
       // remains the authoritative 403 gate).
     }
@@ -1546,7 +1546,7 @@ router.beforeEach(async (to, from, next) => {
   // is the cross-origin-safe "am I framed?" check (window.frameElement throws
   // on a cross-origin parent; this never does).
   let inMobileFrame = false;
-  try { inMobileFrame = window.self !== window.top; } catch (e) { inMobileFrame = true; }
+  try { inMobileFrame = window.self !== window.top; } catch { inMobileFrame = true; }
   if (inMobileFrame
       && store.getters['auth/isAuthenticated']
       && to.matched.some(r => r.meta.requiresAuth)) {
@@ -1557,7 +1557,7 @@ router.beforeEach(async (to, from, next) => {
     // shared same-origin; both are the same Sanctum bearer token.
     const token = getTokenSync();
     if (token) {
-      try { localStorage.setItem('m_scaffold_token', token); } catch (e) { /* private mode */ }
+      try { localStorage.setItem('m_scaffold_token', token); } catch { /* private mode */ }
     }
     const mobileQuery = new URLSearchParams();
     if (typeof to.query.from === 'string' && to.query.from) {
@@ -1649,7 +1649,7 @@ router.beforeEach(async (to, from, next) => {
       && to.matched.some(r => r.meta.requiresAdmin || r.meta.requiresAdvisor)) {
     try {
       await store.dispatch('auth/fetchUser');
-    } catch (e) {
+    } catch {
       // Token invalid/expired — leave state as-is; the requiresAuth / requiresAdmin
       // branches below still apply (and API 401s force a re-login).
     }
@@ -1698,7 +1698,7 @@ router.beforeEach(async (to, from, next) => {
           const resp = await api.get('/payment/trial-status');
           store.commit('auth/setSubscriptionData', resp.data);
           matrix = resp.data?.capability_matrix;
-        } catch (e) {
+        } catch {
           // Allow through — the backend is the primary enforcement.
         }
       }

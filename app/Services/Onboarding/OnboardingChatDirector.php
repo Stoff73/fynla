@@ -1518,10 +1518,16 @@ final class OnboardingChatDirector
             $user->expenditure_entry_mode = 'simple';
             DB::transaction(function () use ($user, $capturedValue): void {
                 $user->save();
-                ExpenditureProfile::updateOrCreate(
-                    ['user_id' => $user->id],
-                    ['total_monthly_expenditure' => (float) $capturedValue],
-                );
+                $monthlyTotal = (float) $capturedValue;
+                if ($monthlyTotal > 0) {
+                    ExpenditureProfile::updateOrCreate(
+                        ['user_id' => $user->id],
+                        ['total_monthly_expenditure' => $monthlyTotal],
+                    );
+                } else {
+                    ExpenditureProfile::where('user_id', $user->id)
+                        ->update(['total_monthly_expenditure' => 0]);
+                }
             });
 
             return;

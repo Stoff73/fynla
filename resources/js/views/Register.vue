@@ -541,7 +541,7 @@ export default {
 
       try {
         await store.dispatch('auth/fetchUser');
-      } catch (e) {
+      } catch {
         // fetchUser failure shouldn't block redirect — token is set.
       }
 
