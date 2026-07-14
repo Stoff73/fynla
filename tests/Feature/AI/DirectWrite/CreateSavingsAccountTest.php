@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Agents\CoordinatingAgent;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -25,13 +24,14 @@ beforeEach(function () {
 it('create_savings_account persists a SavingsAccount row directly', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Nationwide Cash ISA',
         'institution' => 'Nationwide',
-        'account_type' => 'easy_access',
+        'account_type' => 'cash_isa',
         'current_balance' => 5000,
         'interest_rate' => 4.5,
         'is_isa' => true,
+        'ownership_type' => 'individual',
     ], $user);
 
     expect($result['success'])->toBeTrue();
@@ -49,7 +49,7 @@ it('create_savings_account persists a SavingsAccount row directly', function ():
     expect((float) $account->current_balance)->toBe(5000.00);
     expect((float) $account->interest_rate)->toBe(4.5);
     expect($account->is_isa)->toBeTrue();
-    expect($account->account_type)->toBe('cash_isa'); // ISA auto-inference
+    expect($account->account_type)->toBe('cash_isa');
     expect($account->ownership_type)->toBe('individual');
     expect((float) $account->ownership_percentage)->toBe(100.00);
 });
@@ -57,7 +57,7 @@ it('create_savings_account persists a SavingsAccount row directly', function ():
 it('create_savings_account maps AI-specific account_type enums to DB values', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $fixed = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $fixed = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Shawbrook 5-year bond',
         'account_type' => 'fixed_term',
         'current_balance' => 20000,
@@ -65,7 +65,7 @@ it('create_savings_account maps AI-specific account_type enums to DB values', fu
 
     expect(SavingsAccount::find($fixed['entity_id'])->account_type)->toBe('fixed');
 
-    $regular = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $regular = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'First Direct regular saver',
         'account_type' => 'regular_saver',
         'current_balance' => 300,
@@ -77,7 +77,7 @@ it('create_savings_account maps AI-specific account_type enums to DB values', fu
 it('create_savings_account returns validation_failed on missing required field', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'institution' => 'Aviva',
     ], $user);
 
@@ -90,7 +90,7 @@ it('create_savings_account returns validation_failed on missing required field',
 it('create_savings_account blocks preview users', function (): void {
     $user = User::factory()->create(['is_preview_user' => true]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Preview Test',
         'current_balance' => 1000,
     ], $user);
@@ -106,8 +106,10 @@ it('create_savings_account rejects duplicate account names for the same user', f
         'account_name' => 'Nationwide Cash ISA',
     ]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Nationwide Cash ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
         'current_balance' => 5000,
     ], $user);
 
@@ -119,7 +121,7 @@ it('create_savings_account rejects duplicate account names for the same user', f
 it('create_savings_account return shape does not contain fill_form action', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Test',
         'current_balance' => 100,
     ], $user);
@@ -135,7 +137,7 @@ it('stamps current-tax-year ISA subscriptions when the user states them', functi
     // year proxy) and the ISA top-up strategy never fires.
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Cash ISA',
         'account_type' => 'cash_isa',
         'current_balance' => 19000,
@@ -154,7 +156,7 @@ it('stamps current-tax-year ISA subscriptions when the user states them', functi
 it('ignores isa_subscription_amount on non-ISA accounts', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+    $this->executeCaptureToolWithEvidence('create_savings_account', [
         'account_name' => 'Marcus Savings',
         'current_balance' => 81000,
         'is_isa' => false,

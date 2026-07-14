@@ -457,15 +457,15 @@ export default {
             inputMessage: '',
             windowWidth: window.innerWidth,
             dockedInputHeight: 0,
-            _defaultInputHeight: 0,
+            defaultInputHeight: 0,
             suggestionsCollapsed: true,
-            _resizing: false,
-            _resizeStartY: 0,
-            _resizeStartHeight: 0,
+            resizing: false,
+            resizeStartY: 0,
+            resizeStartHeight: 0,
             thinkingStatusIndex: 0,
-            _thinkingTimer: null,
+            thinkingTimer: null,
             countdownSeconds: null,
-            _countdownTimer: null,
+            countdownTimer: null,
             scrollSpacerHeight: 300,
         };
     },
@@ -689,7 +689,7 @@ export default {
                 const inputContainer = this.$refs.inputContainer;
                 if (inputContainer) {
                     const naturalHeight = inputContainer.offsetHeight;
-                    this._defaultInputHeight = naturalHeight;
+                    this.defaultInputHeight = naturalHeight;
                     this.dockedInputHeight = naturalHeight;
                 }
                 this.updateScrollSpacer();
@@ -709,11 +709,11 @@ export default {
         if (this._onResizeEnd) {
             document.removeEventListener('mouseup', this._onResizeEnd);
         }
-        if (this._thinkingTimer) {
-            clearInterval(this._thinkingTimer);
+        if (this.thinkingTimer) {
+            clearInterval(this.thinkingTimer);
         }
-        if (this._countdownTimer) {
-            clearInterval(this._countdownTimer);
+        if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
         }
     },
 
@@ -733,17 +733,17 @@ export default {
         },
 
         secondsUntilReset(newVal) {
-            if (this._countdownTimer) {
-                clearInterval(this._countdownTimer);
-                this._countdownTimer = null;
+            if (this.countdownTimer) {
+                clearInterval(this.countdownTimer);
+                this.countdownTimer = null;
             }
             if (newVal && newVal > 0) {
                 this.countdownSeconds = newVal;
-                this._countdownTimer = setInterval(() => {
+                this.countdownTimer = setInterval(() => {
                     this.countdownSeconds--;
                     if (this.countdownSeconds <= 0) {
-                        clearInterval(this._countdownTimer);
-                        this._countdownTimer = null;
+                        clearInterval(this.countdownTimer);
+                        this.countdownTimer = null;
                         this.$store.commit('aiChat/SET_TOKEN_LIMIT', { reached: false, resetAt: null, secondsUntilReset: null });
                     }
                 }, 1000);
@@ -786,14 +786,14 @@ export default {
                 this.$nextTick(() => this.scrollToLastUserMessage());
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
-                this._thinkingTimer = setInterval(() => {
+                this.thinkingTimer = setInterval(() => {
                     this.thinkingStatusIndex++;
                 }, 2500);
             } else {
                 // Stop rotating status messages
-                if (this._thinkingTimer) {
-                    clearInterval(this._thinkingTimer);
-                    this._thinkingTimer = null;
+                if (this.thinkingTimer) {
+                    clearInterval(this.thinkingTimer);
+                    this.thinkingTimer = null;
                 }
             }
         },
@@ -835,6 +835,10 @@ export default {
     },
 
     methods: {
+        focusInput() {
+            this.$nextTick(() => this.$refs.inputField?.focus());
+        },
+
         ...mapActions('aiChat', [
             'close',
             'toggle',
@@ -987,19 +991,19 @@ export default {
         },
 
         startInputResize(e) {
-            this._resizing = true;
-            this._resizeStartY = e.clientY;
-            this._resizeStartHeight = this.dockedInputHeight;
+            this.resizing = true;
+            this.resizeStartY = e.clientY;
+            this.resizeStartHeight = this.dockedInputHeight;
             document.body.style.cursor = 'row-resize';
             document.body.style.userSelect = 'none';
             this._onResizeMove = (ev) => {
-                if (!this._resizing) return;
-                const delta = this._resizeStartY - ev.clientY;
-                const newHeight = Math.max(this._defaultInputHeight, Math.min(400, this._resizeStartHeight + delta));
+                if (!this.resizing) return;
+                const delta = this.resizeStartY - ev.clientY;
+                const newHeight = Math.max(this.defaultInputHeight, Math.min(400, this.resizeStartHeight + delta));
                 this.dockedInputHeight = newHeight;
             };
             this._onResizeEnd = () => {
-                this._resizing = false;
+                this.resizing = false;
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
                 document.removeEventListener('mousemove', this._onResizeMove);

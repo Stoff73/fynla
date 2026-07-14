@@ -258,13 +258,24 @@ const authService = {
     return response.data;
   },
 
+  async restoreCheckHandoff(registrationHandoff, password) {
+    const response = await api.post('/auth/restore/check', {
+      registration_handoff: registrationHandoff,
+      password,
+    });
+    return response.data;
+  },
+
   /**
    * Restore an account previously scheduled for deletion.
    * @param {string} restorationToken
    * @returns {Promise}
    */
-  async restore(restorationToken) {
-    const response = await api.post('/auth/restore', { restoration_token: restorationToken });
+  async restore(restorationToken, mfaCode = null) {
+    const response = await api.post('/auth/restore', {
+      restoration_token: restorationToken,
+      ...(mfaCode ? { mfa_code: mfaCode } : {}),
+    });
     return response.data;
   },
 };

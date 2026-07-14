@@ -88,9 +88,11 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
   const consumeLine = (line, state) => {
     if (!line.startsWith('data: ')) return false;
     let data;
-    try { data = JSON.parse(line.slice(6)); } catch (e) { return false; }
-    // Surface the full parsed event so callers can handle non-text turns
-    // (onboarding quick_replies + bubbles, conversation_created, level_up, etc.).
+    try { data = JSON.parse(line.slice(6)); } catch { return false; }
+    // Surface the full parsed event so callers can handle non-text turns,
+    // including user-visible failures and capture confirmations. The mixin is
+    // the presentation boundary; this transport never collapses typed events
+    // into generic errors.
     // ALL typed frames pass through to onEvent — including the gamification
     // `level_up` frame the backend emits strictly AFTER `done`.
     if (onEvent) onEvent(data);

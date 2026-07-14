@@ -197,7 +197,11 @@ final class FynContextAssembler
             // The static NAVIGATION / BLOCKED-MODULE / MODULE-DEPENDENCY rules
             // now live once in the cached FynSystemPrompt
             // (<data_completeness_rules>) instead of ~595 tok every advice turn.
-            $lines[] = $this->advice->buildPrerequisiteStateContextLean($ctx->user);
+            $lines[] = $this->advice->buildPrerequisiteStateContextLean(
+                $ctx->user,
+                $ctx->classification,
+                $ctx->kycResult,
+            );
         }
 
         // KYC gate result (parity with legacy AdvicePromptBuilder Layer 9,

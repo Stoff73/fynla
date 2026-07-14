@@ -1,0 +1,174 @@
+name: Quality Gate
+
+"on":
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  APP_ENV: testing
+  APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  DB_CONNECTION: mysql
+  DB_HOST: 127.0.0.1
+  DB_PORT: 3306
+  DB_USERNAME: root
+  DB_PASSWORD: password
+  DB_DATABASE: laravel_testing
+  CACHE_DRIVER: array
+  QUEUE_CONNECTION: sync
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Run range-aware lint checks
+        env:
+          QUALITY_BASE: ${{ github.event.pull_request.base.sha }}
+          QUALITY_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: bash scripts/quality/run.sh lint
+      - name: Check mobile impact declaration
+        env:
+          QUALITY_BASE: ${{ github.event.pull_request.base.sha }}
+          QUALITY_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/quality/check-mobile-impact.mjs
+
+  php-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: laravel_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [Architecture, Unit, Feature, Integration, Eval]
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Run ${{ matrix.suite }} tests
+        run: ./vendor/bin/pest --testsuite=${{ matrix.suite }}
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+  builds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Build desktop and mobile bundles for dev and production
+        run: bash scripts/quality/run.sh build
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: fynla_e2e_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install browser dependencies
+        run: npx playwright install --with-deps chromium webkit
+      - name: Prepare the end-to-end database
+        env:
+          E2E_DB_NAME: fynla_e2e_ci
+        run: bash scripts/e2e/prepare.sh
+      - name: Run browser smoke tests
+        env:
+          APP_ENV: e2e
+          DB_DATABASE: fynla_e2e_ci
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
+        run: npm run test:e2e:smoke
+      - name: Upload browser smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke
+          path: |
+            playwright-report
+            test-results

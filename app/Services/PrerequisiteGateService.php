@@ -4,14 +4,29 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Constants\GateRoutes;
+use App\Constants\QuerySchemas;
 use App\Events\Eval\GateChecked;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\CriticalIllnessPolicy;
+use App\Models\Estate\Liability;
+use App\Models\Goal;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Investment\Recommendation\DataReadinessService as InvestmentDataReadinessService;
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Retirement\RetirementDataReadinessService;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Traits\ResolvesIncome;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Centralised prerequisite enforcement for all module analysis, tool execution,
@@ -40,6 +55,9 @@ class PrerequisiteGateService
         private readonly RetirementDataReadinessService $retirementReadiness,
         private readonly InvestmentDataReadinessService $investmentReadiness,
         private readonly EstateDataReadinessService $estateReadiness,
+        private readonly SavingsStore $savingsStore,
+        private readonly PropertyStore $propertyStore,
+        private readonly PensionStore $pensionStore,
     ) {}
 
     /**
@@ -59,6 +77,43 @@ class PrerequisiteGateService
             'tax_optimisation' => $this->canAnalyseTax($user),
             'holistic_plan' => $this->canGenerateHolisticPlan($user),
             default => $this->pass(),
+        };
+    }
+
+    /**
+     * Question-specific record-presence check used by the KYC need matrix.
+     * This intentionally does not apply a module's full analysis-readiness
+     * gate; unrelated module fields must not block an answer whose primary
+     * question only needs an existing record in that domain.
+     */
+    public function hasDataForRequirement(string $requirement, User $user): bool
+    {
+        return match ($requirement) {
+            QuerySchemas::REQUIREMENT_PROTECTION => $user->protectionProfile()->exists()
+                || LifeInsurancePolicy::where('user_id', $user->id)->exists()
+                || CriticalIllnessPolicy::where('user_id', $user->id)->exists()
+                || IncomeProtectionPolicy::where('user_id', $user->id)->exists(),
+            QuerySchemas::REQUIREMENT_SAVINGS => $this->savingsStore->existsForUser($user),
+            QuerySchemas::REQUIREMENT_LIABILITIES => $this->ownedOrJointExists(Liability::class, $user->id)
+                || $this->ownedOrJointExists(Mortgage::class, $user->id),
+            QuerySchemas::REQUIREMENT_RETIREMENT => $this->pensionStore->existsForUser($user),
+            QuerySchemas::REQUIREMENT_INVESTMENT => $this->ownedOrJointExists(InvestmentAccount::class, $user->id),
+            QuerySchemas::REQUIREMENT_ESTATE => $user->assets()->exists()
+                || $user->trusts()->exists()
+                || $user->gifts()->exists()
+                || $this->propertyStore->existsForUser($user)
+                || $this->savingsStore->existsForUser($user)
+                || $this->ownedOrJointExists(InvestmentAccount::class, $user->id)
+                || $this->pensionStore->existsForUser($user)
+                || BusinessInterest::where(fn ($query) => $query
+                    ->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id))->exists()
+                || Chattel::where(fn ($query) => $query
+                    ->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id))->exists(),
+            QuerySchemas::REQUIREMENT_GOALS => $this->ownedOrJointExists(Goal::class, $user->id),
+            QuerySchemas::REQUIREMENT_PROPERTY => $this->propertyStore->existsForUser($user),
+            default => false,
         };
     }
 
@@ -293,8 +348,22 @@ class PrerequisiteGateService
 
     // ─── Data completeness summary for AI prompt ─────────────────────
 
-    public function buildCompletenessContext(User $user): string
-    {
+    public function buildCompletenessContext(
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): string {
+        $primary = $classification['primary'] ?? null;
+        if (is_string($primary) && QuerySchemas::isAdviceType($primary) && $kycResult !== null) {
+            if (($kycResult['passed'] ?? false) === true) {
+                return '- Current question: READY (required data available)';
+            }
+
+            $missing = implode(', ', $kycResult['missing'] ?? []);
+
+            return '- Current question: BLOCKED'.($missing !== '' ? " -- {$missing}" : '');
+        }
+
         $assessments = $this->assessAll($user);
         $gates = [
             'Protection' => $this->canAnalyseProtection($user),
@@ -324,8 +393,13 @@ class PrerequisiteGateService
                     }
                 }
                 $blockingList = ! empty($blockingItems) ? implode('; ', $blockingItems) : implode(', ', $gate['missing']);
-                $route = $gate['required_actions'][0]['route'] ?? '/profile';
-                $lines[] = "- {$name}: BLOCKED -- {$blockingList} -- navigate user to: {$route}";
+                $route = $gate['required_actions'][0]['route'] ?? '';
+                $destination = GateRoutes::destinationForRoute(
+                    $route,
+                    $this->gateDestinationForModule($name),
+                );
+                $pageLabel = GateRoutes::resolve($destination)['label'];
+                $lines[] = "- {$name}: BLOCKED -- {$blockingList} -- signpost page: {$pageLabel}";
             }
         }
 
@@ -365,6 +439,28 @@ class PrerequisiteGateService
             ?? ($totalChecks > 0 ? (int) round(($passedChecks / $totalChecks) * 100) : 0);
 
         return $assessment;
+    }
+
+    private function gateDestinationForModule(string $moduleName): string
+    {
+        return match ($moduleName) {
+            'Protection' => GateRoutes::PROTECTION,
+            'Savings' => GateRoutes::SAVINGS,
+            'Retirement' => GateRoutes::RETIREMENT,
+            'Investment' => GateRoutes::INVESTMENT,
+            'Estate' => GateRoutes::ESTATE,
+            'Goals' => GateRoutes::GOALS,
+            'Tax Optimisation' => GateRoutes::TAX_STRATEGY,
+            default => GateRoutes::DASHBOARD,
+        };
+    }
+
+    /** @param class-string<Model> $model */
+    private function ownedOrJointExists(string $model, int $userId): bool
+    {
+        return $model::where(fn ($query) => $query
+            ->where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId))->exists();
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────

@@ -55,7 +55,7 @@
     </div>
 
     <!-- Docked Fyn bar -->
-    <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
+    <button ref="fynDock" type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
@@ -150,7 +150,7 @@
 
       <form class="md-fyn__compose" @submit.prevent="send()">
         <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
-        <input id="mc-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
+        <input id="mc-fyn-input" ref="fynInput" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7" /></svg>
         </button>
@@ -295,7 +295,7 @@ export default {
         if (token && window.top && window.top !== window) {
           window.top.sessionStorage.setItem('auth_token', token);
         }
-      } catch (e) { /* iOS partitioned storage — desktop boot bridge covers it */ }
+      } catch { /* iOS partitioned storage — desktop boot bridge covers it */ }
       (window.top || window).location.href = url;
     },
     async doShare(shareType) {
@@ -306,14 +306,14 @@ export default {
         const payload = { title: c.title || 'Fynla', text: c.text || '', url: c.url || 'https://fynla.org' };
         if (navigator.share) await navigator.share(payload);
         else if (navigator.clipboard) await navigator.clipboard.writeText(`${payload.text} ${payload.url}`.trim());
-      } catch (e) { /* cancelled / unsupported — no-op */ }
+      } catch { /* cancelled / unsupported — no-op */ }
     },
     shareReferral() {
       this.closeDrawer();
       this.doShare('app_referral');
     },
     async signOut() {
-      try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch (e) { /* best-effort */ }
+      try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch { /* best-effort */ }
       store.logout();
       this.closeDrawer();
       this.$router.push('/login');
@@ -324,10 +324,12 @@ export default {
         this.fynOpen = true;
         this.scrollFyn();
         this.initFyn();
+        this.$nextTick(() => this.$refs.fynInput?.focus());
       });
     },
     closeFyn() {
       this.fynOpen = false;
+      this.$nextTick(() => this.$refs.fynDock?.focus());
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
     // Open Fyn and immediately ask a preset question (e.g. from "Edit details").
@@ -389,7 +391,7 @@ export default {
       try {
         const res = await apiGet('/api/auth/user', store.token);
         if (res.ok) store.user = res.data?.data?.user || res.data?.user || res.data?.data || null;
-      } catch (e) { /* non-fatal */ }
+      } catch { /* non-fatal */ }
     },
   },
   mounted() {

@@ -548,6 +548,17 @@ final class AssetCaptureEntityExtractor
         }
 
         $isIsa = preg_match('/\bisa\b|individual[\s-]savings[\s-]account/u', $lower) === 1;
+        if ($isIsa) {
+            $isCashIsa = preg_match('/\bcash[\s-]isa\b/u', $lower) === 1;
+            $isInvestmentIsa = preg_match('/\b(?:stocks?[\s&and-]+shares?|lifetime|lisa|innovative[\s-]finance)[\s-]isa\b/u', $lower) === 1;
+
+            // A bare ISA has no safe product type, while investment ISAs
+            // belong to extractInvestmentAccounts(). Never turn either into
+            // a Cash ISA merely to satisfy a create tool schema.
+            if (! $isCashIsa || $isInvestmentIsa) {
+                return null;
+            }
+        }
 
         // Only classify as a savings product on an explicit savings signal; a
         // bare provider + balance ("Barclays, £5,000") is a current/bank account
@@ -556,6 +567,7 @@ final class AssetCaptureEntityExtractor
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b|\b\d+[\s-]year\s+bond\b/u', $lower) === 1 => 'fixed_term',
             preg_match('/\bnotice[\s-]account\b|\b\d+[\s-]day\s+notice\b/u', $lower) === 1 => 'notice',
             preg_match('/\bregular[\s-]saver\b|\bmonthly[\s-]saver\b/u', $lower) === 1 => 'regular_saver',
+            $isIsa => 'cash_isa',
             $hasSavingsSignal => 'easy_access',
             default => 'current_account',
         };

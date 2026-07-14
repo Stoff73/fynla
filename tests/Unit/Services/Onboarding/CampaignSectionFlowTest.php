@@ -165,7 +165,7 @@ it('recaps the spouse income band when the spouse has income', function () {
     ]);
 
     expect(SM::buildWorkPrompt('', $u))
-        ->toContain('spouse earning £50,271 to £100,000');
+        ->toContain('spouse earning £50,271–£100,000');
 });
 
 it('omits the spouse income line when the spouse has no income', function () {

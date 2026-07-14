@@ -454,6 +454,19 @@ class AiChatController extends Controller
                     }
                     flush();
                 }
+
+                $frame = self::levelUpFrame(
+                    app(LevelUpCollector::class),
+                    app(LevelService::class),
+                    $user,
+                );
+                if ($frame !== null) {
+                    echo 'data: '.json_encode($frame)."\n\n";
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
             } catch (\Exception $e) {
                 Log::error('[AiChatController] Queued-turn streaming error', [
                     'user_id' => $user->id,

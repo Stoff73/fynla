@@ -1,56 +1,117 @@
-/**
- * Authentication helpers for Playwright tests
- */
+import { expect } from '@playwright/test';
 
-/**
- * Login to the application
- * @param {import('@playwright/test').Page} page
- * @param {string} email
- * @param {string} password
- */
-export async function login(page, email = 'test@example.com', password = 'password') {
-  await page.goto('/login');
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
+const VERIFICATION_INPUT = 'input[inputmode="numeric"][maxlength="1"]';
 
-  // Wait for navigation to dashboard
-  await page.waitForURL('/dashboard', { timeout: 10000 });
+export async function fetchVerificationCode(request, email) {
+  const response = await request.get(
+    `/__e2e/verification-code?email=${encodeURIComponent(email)}`,
+  );
+
+  expect(response.ok()).toBeTruthy();
+
+  const payload = await response.json();
+  expect(payload.code).toMatch(/^\d{6}$/);
+
+  return payload.code;
 }
 
-/**
- * Register a new user
- * @param {import('@playwright/test').Page} page
- * @param {Object} userData
- */
-export async function register(page, userData = {}) {
-  const defaultData = {
-    name: 'Test User',
-    email: `test${Date.now()}@example.com`,
-    password: 'password123',
-    password_confirmation: 'password123',
-  };
+export async function enterVerificationCode(page, code) {
+  const inputs = page.locator(VERIFICATION_INPUT);
+  await expect(inputs).toHaveCount(6);
 
-  const user = { ...defaultData, ...userData };
+  for (const [index, digit] of [...code].entries()) {
+    await inputs.nth(index).fill(digit);
+  }
+}
 
+export async function login(page, request, { email, password }) {
+  if (!/\/login(?:[/?#]|$)/.test(page.url())) {
+    await page.goto('/login');
+  }
+  await page.locator('#email').fill(email);
+  await page.locator('#password').fill(password);
+
+  const loginResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/login')
+      && response.request().method() === 'POST',
+  );
+
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+
+  const loginResponse = await loginResponsePromise;
+  expect(loginResponse.ok()).toBeTruthy();
+  await expect(page.getByRole('heading', { name: 'Enter Verification Code' })).toBeVisible();
+
+  const code = await fetchVerificationCode(request, email);
+  const verificationResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/verify-code')
+      && response.request().method() === 'POST',
+  );
+
+  await enterVerificationCode(page, code);
+
+  const verificationResponse = await verificationResponsePromise;
+  expect(verificationResponse.ok()).toBeTruthy();
+  await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/);
+  await expect(page.getByRole('main')).toBeVisible();
+}
+
+export async function register(page, request, {
+  firstName,
+  surname,
+  email,
+  password,
+}) {
   await page.goto('/register');
-  await page.fill('input[name="name"]', user.name);
-  await page.fill('input[name="email"]', user.email);
-  await page.fill('input[name="password"]', user.password);
-  await page.fill('input[name="password_confirmation"]', user.password_confirmation);
-  await page.click('button[type="submit"]');
 
-  // Wait for navigation to dashboard
-  await page.waitForURL('/dashboard', { timeout: 10000 });
+  await page.locator('#first_name').fill(firstName);
+  await page.locator('#last_name').fill(surname);
+  await page.locator('#email').fill(email);
+  await page.locator('#password').fill(password);
+  await page.locator('#password_confirmation').fill(password);
 
-  return user;
+  const registrationResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/register')
+      && response.request().method() === 'POST',
+  );
+
+  await page.getByRole('button', { name: 'Create Account', exact: true }).click();
+
+  const registrationResponse = await registrationResponsePromise;
+  expect(registrationResponse.ok()).toBeTruthy();
+  await expect(page.getByRole('heading', { name: 'Enter Verification Code' })).toBeVisible();
+
+  const code = await fetchVerificationCode(request, email);
+  const verificationResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/verify-code')
+      && response.request().method() === 'POST',
+  );
+
+  await enterVerificationCode(page, code);
+
+  const verificationResponse = await verificationResponsePromise;
+  expect(verificationResponse.ok()).toBeTruthy();
+  await expect(page).toHaveURL(/\/(?:onboarding|dashboard)(?:[/?#]|$)/);
+
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/);
+  await expect(page.getByRole('main')).toBeVisible();
+
+  return { firstName, surname, email, password };
 }
 
-/**
- * Logout from the application
- * @param {import('@playwright/test').Page} page
- */
 export async function logout(page) {
-  await page.click('[data-testid="logout-button"]');
-  await page.waitForURL('/login');
+  const signOut = page.getByRole('button', { name: 'Sign Out', exact: true }).first();
+  await expect(signOut).toBeVisible();
+
+  const logoutResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/logout')
+      && response.request().method() === 'POST',
+  );
+
+  await signOut.click();
+
+  const logoutResponse = await logoutResponsePromise;
+  expect(logoutResponse.ok()).toBeTruthy();
+  await expect(page).toHaveURL(/\/login(?:[/?#]|$)/);
 }

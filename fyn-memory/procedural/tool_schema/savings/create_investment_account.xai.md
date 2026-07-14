@@ -11,7 +11,7 @@ effective_from: 2026-06-11
 ```json
 {
     "name": "create_investment_account",
-    "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create an investment account only after the user explicitly states its type and whether it is owned individually or jointly. A bare ISA must be clarified as Stocks & Shares, Lifetime, Innovative Finance, or Cash before choosing this tool. Joint records also require the joint owner and primary owner's percentage share. Use account_type other for alternative financial assets.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -24,6 +24,7 @@ effective_from: 2026-06-11
                 "enum": [
                     "stocks_shares_isa",
                     "lifetime_isa",
+                    "innovative_finance_isa",
                     "personal_investment_account",
                     "onshore_bond",
                     "offshore_bond",
@@ -50,6 +51,19 @@ effective_from: 2026-06-11
             "current_value": {
                 "type": "number",
                 "description": "Current value in pounds"
+            },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint"],
+                "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+            },
+            "joint_owner_id": {
+                "type": ["integer", "null"],
+                "description": "User ID of the confirmed joint owner. Required when ownership is joint; otherwise null."
+            },
+            "ownership_percentage": {
+                "type": ["number", "null"],
+                "description": "Primary owner's confirmed percentage share. Required when ownership is joint or tenants_in_common; otherwise 100 for individual."
             },
             "monthly_contribution_amount": {
                 "type": [
@@ -417,6 +431,9 @@ effective_from: 2026-06-11
             "account_type",
             "provider",
             "current_value",
+            "ownership_type",
+            "joint_owner_id",
+            "ownership_percentage",
             "monthly_contribution_amount",
             "platform_fee_percent",
             "annual_dividend_income",

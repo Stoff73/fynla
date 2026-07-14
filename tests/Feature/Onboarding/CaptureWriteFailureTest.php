@@ -91,7 +91,8 @@ it('names what could not be saved when every write failed and the model said not
         ->and($failureText)->toContain('Validation failed for pension');
 
     // The failure explanation persists so the transcript matches on reload.
-    expect($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeTrue();
+    expect($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeTrue()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
 it('holds a question turn whose only write failed instead of advancing', function () {
@@ -116,6 +117,111 @@ it('holds a question turn whose only write failed instead of advancing', functio
     // capture state (before WP-1 the raw tool attempt counted and advanced).
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});
+
+it('holds a campaign ISA turn when Fyn asks for missing capture facts without calling a tool', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
+        'onboarding_fyn_selection' => 'savetax',
+        'funnel_answers' => [
+            'campaign' => 'savetax',
+            'assets' => ['isa'],
+        ],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    mockDelegatedStream([
+        [
+            'type' => 'content',
+            'text' => 'I need the ISA type and whether it is owned individually.',
+        ],
+        ['type' => 'done', 'message_id' => 100],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'My Barclays ISA has £20,000 and I added £5,000 this tax year.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $content = collect($received)
+        ->where('type', 'content')
+        ->pluck('text')
+        ->implode("\n");
+
+    expect($user->fresh()->onboarding_fyn_step)
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS)
+        ->and($content)->toContain('I need the ISA type')
+        ->and($content)->not->toContain("I've saved your ISA accounts");
+});
+
+it('combines an unresolved ISA answer with its requested missing facts after resume', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
+        'onboarding_fyn_selection' => 'savetax',
+        'funnel_answers' => [
+            'campaign' => 'savetax',
+            'assets' => ['isa'],
+        ],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+    $conversation->messages()->create([
+        'role' => 'user',
+        'content' => 'My Barclays ISA has £20,000 and I added £5,000 this tax year.',
+    ]);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I need the ISA type and whether it is owned individually.',
+    ]);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'Welcome back. Would you like to continue?',
+        'metadata' => ['is_resume_greeting' => true],
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->withArgs(fn (
+            User $streamUser,
+            AiConversation $streamConversation,
+            string $streamMessage
+        ): bool => $streamUser->is($user)
+            && $streamConversation->is($conversation)
+            && str_contains($streamMessage, 'My Barclays ISA has £20,000')
+            && str_contains($streamMessage, 'It is a Cash ISA and I own it individually.'))
+        ->andReturnUsing(function () {
+            yield ['type' => 'done', 'message_id' => 101];
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'It is a Cash ISA and I own it individually.'
+    ));
 });
 
 it('does not ack "Recorded" when the only write was a blocked duplicate (D1 round 4)', function () {
@@ -163,6 +269,7 @@ it('still advances a question turn whose write landed', function () {
 
     mockDelegatedStream([
         ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 42, 'name' => 'Halifax ISA'],
         ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null],
         ['type' => 'tool_success', 'tool' => 'create_savings_account', 'summary' => 'Halifax ISA added'],
         ['type' => 'content', 'text' => 'Recorded — Halifax ISA.'],
@@ -182,5 +289,9 @@ it('still advances a question turn whose write landed', function () {
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ADD_MORE);
 
     // The landed/failed signal itself never reaches the frontend.
-    expect(collect($received)->firstWhere('type', 'capture_write_result'))->toBeNull();
+    expect(collect($received)->firstWhere('type', 'capture_write_result'))->toBeNull()
+        ->and(collect($received)->where('type', 'capture_complete'))->toHaveCount(1)
+        ->and(collect($received)->firstWhere('type', 'capture_complete')['records_created'])->toBe([
+            ['type' => 'savings_account', 'id' => 42, 'name' => 'Halifax ISA'],
+        ]);
 });

@@ -4,235 +4,186 @@ import { createStore } from 'vuex';
 import AnnualAllowanceTracker from '@/components/Retirement/AnnualAllowanceTracker.vue';
 
 describe('AnnualAllowanceTracker', () => {
-  const createMockStore = (annualAllowanceData = null) => {
-    return createStore({
-      modules: {
-        retirement: {
-          namespaced: true,
-          state: {
-            annualAllowance: annualAllowanceData,
-          },
-          actions: {
-            fetchAnnualAllowance: () => Promise.resolve(),
-          },
-        },
-      },
-    });
-  };
-
-  const defaultAnnualAllowance = {
-    standard_allowance: 60000,
-    available_allowance: 60000,
+  const annualAllowance = {
     contributions_used: 15000,
-    remaining_allowance: 45000,
     is_tapered: false,
     tapered_allowance: null,
     mpaa_triggered: false,
-    carry_forward_available: 0,
   };
 
-  it('renders with annual allowance data', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
+  const createMockStore = ({
+    allowance = annualAllowance,
+    definedContributionPensions = [],
+    profile = { current_income: 50000 },
+    standardAllowance = 60000,
+    moneyPurchaseAnnualAllowance = 10000,
+  } = {}) => createStore({
+    modules: {
+      retirement: {
+        namespaced: true,
+        state: {
+          annualAllowance: allowance,
+          dcPensions: definedContributionPensions,
+          profile,
+        },
+        actions: { fetchAnnualAllowance: () => Promise.resolve() },
       },
-    });
-
-    expect(wrapper.exists()).toBe(true);
+      taxConfig: {
+        namespaced: true,
+        getters: {
+          pensionAnnualAllowance: () => standardAllowance,
+          moneyPurchaseAnnualAllowance: () => moneyPurchaseAnnualAllowance,
+        },
+      },
+    },
   });
 
-  it('displays standard allowance £60,000', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/60,?000|£60,?000/);
+  const mountTracker = (options = {}) => mount(AnnualAllowanceTracker, {
+    global: { plugins: [createMockStore(options)] },
   });
 
-  it('displays contributions used', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
+  it('renders the current Annual Allowance', () => {
+    const wrapper = mountTracker();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/15,?000|£15,?000/);
+    expect(wrapper.text()).toContain('Annual Allowance Tracker');
+    expect(wrapper.text()).toContain('£15,000');
+    expect(wrapper.text()).toContain('/ £60,000');
   });
 
-  it('displays remaining allowance', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
+  it('calculates and displays the remaining allowance', () => {
+    const wrapper = mountTracker();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/45,?000|£45,?000/);
+    expect(wrapper.vm.remainingAllowance).toBe(45000);
+    expect(wrapper.text()).toContain('£45,000');
   });
 
-  it('shows progress bar', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
+  it('calculates usage as a percentage of the configured allowance', () => {
+    const wrapper = mountTracker();
 
-    const progressBar = wrapper.find('.progress-bar, [role="progressbar"]');
-    expect(progressBar.exists()).toBe(true);
-  });
-
-  it('calculates percentage correctly', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    // 15,000 / 60,000 = 25%
     expect(wrapper.vm.progressPercent).toBe(25);
+    expect(wrapper.text()).toContain('25% used');
   });
 
-  it('displays tapered allowance when applicable', () => {
-    const taperedAllowance = {
-      standard_allowance: 60000,
-      available_allowance: 40000,
-      contributions_used: 15000,
-      remaining_allowance: 25000,
-      is_tapered: true,
-      tapered_allowance: 40000,
-      mpaa_triggered: false,
-      carry_forward_available: 0,
-    };
-    const store = createMockStore(taperedAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
+  it('renders progress width and the spring on-track palette', () => {
+    const wrapper = mountTracker();
+    const progress = wrapper.find('.h-4.rounded-full.transition-all');
+
+    expect(progress.attributes('style')).toContain('width: 25%');
+    expect(progress.classes()).toContain('bg-spring-500');
+    expect(wrapper.vm.statusText).toBe('On Track');
+  });
+
+  it('uses a tapered allowance supplied by the backend', () => {
+    const wrapper = mountTracker({
+      allowance: {
+        ...annualAllowance,
+        is_tapered: true,
+        tapered_allowance: 40000,
       },
     });
 
-    const html = wrapper.html();
-    expect(html).toMatch(/tapered|reduced/i);
-    expect(html).toMatch(/40,?000|£40,?000/);
+    expect(wrapper.vm.currentAllowance).toBe(40000);
+    expect(wrapper.text()).toContain('Tapered Annual Allowance');
+    expect(wrapper.text()).toContain('£40,000');
   });
 
-  it('displays MPAA status when triggered', () => {
-    const mpaaAllowance = {
-      ...defaultAnnualAllowance,
-      available_allowance: 10000,
-      mpaa_triggered: true,
-    };
-    const store = createMockStore(mpaaAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
+  it('uses the Money Purchase Annual Allowance after flexible access', () => {
+    const wrapper = mountTracker({
+      allowance: { ...annualAllowance, mpaa_triggered: true },
     });
 
-    const html = wrapper.html();
-    expect(html).toMatch(/MPAA|Money Purchase Annual Allowance/i);
-    expect(html).toMatch(/10,?000|£10,?000/);
+    expect(wrapper.vm.currentAllowance).toBe(10000);
+    expect(wrapper.text()).toContain('Money Purchase Annual Allowance Triggered');
+    expect(wrapper.text()).toContain('reduced to £10,000');
+    expect(wrapper.vm.carryForwardYears).toEqual([]);
   });
 
-  it('shows carry forward available', () => {
-    const carryForwardAllowance = {
-      ...defaultAnnualAllowance,
-      carry_forward_available: 30000,
-    };
-    const store = createMockStore(carryForwardAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
+  it('shows the three eligible carry-forward years dynamically', () => {
+    const wrapper = mountTracker();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/carry forward/i);
-    expect(html).toMatch(/30,?000|£30,?000/);
+    expect(wrapper.vm.carryForwardYears).toHaveLength(3);
+    expect(wrapper.findAll('.space-y-3 > div')).toHaveLength(3);
   });
 
-  it('shows carry forward years (3 years)', () => {
-    const carryForwardAllowance = {
-      ...defaultAnnualAllowance,
-      carry_forward_available: 30000,
-    };
-    const store = createMockStore(carryForwardAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
-    });
+  it('makes clear when historical carry-forward data is not yet tracked', () => {
+    const wrapper = mountTracker();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/3 years|previous 3 years/i);
+    expect(wrapper.vm.hasCarryForwardData).toBe(false);
+    expect(wrapper.findAll('.space-y-3 .italic').map(item => item.text())).toEqual([
+      'Not yet tracked',
+      'Not yet tracked',
+      'Not yet tracked',
+    ]);
+    expect(wrapper.vm.totalAvailableWithCarryForward).toBe(45000);
   });
 
-  it('highlights when approaching limit (>80%)', () => {
-    const highUsageAllowance = {
-      standard_allowance: 60000,
-      available_allowance: 60000,
-      contributions_used: 50000, // 83%
-      remaining_allowance: 10000,
-      is_tapered: false,
-      tapered_allowance: null,
-      mpaa_triggered: false,
-      carry_forward_available: 0,
-    };
-    const store = createMockStore(highUsageAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
+  it('calculates personal pension contributions from monthly amounts', () => {
+    const wrapper = mountTracker({
+      allowance: null,
+      definedContributionPensions: [
+        { scheme_type: 'personal', monthly_contribution_amount: 500 },
+      ],
     });
 
-    const html = wrapper.html();
-    // Should have warning styling
-    expect(html).toMatch(/warning|orange/i);
+    expect(wrapper.vm.calculatedContributions).toBe(6000);
+    expect(wrapper.vm.contributionsUsed).toBe(6000);
   });
 
-  it('highlights when exceeding limit', () => {
-    const exceededAllowance = {
-      standard_allowance: 60000,
-      available_allowance: 60000,
-      contributions_used: 65000, // Exceeded
-      remaining_allowance: -5000,
-      is_tapered: false,
-      tapered_allowance: null,
-      mpaa_triggered: false,
-      carry_forward_available: 0,
-      excess_contributions: 5000,
-    };
-    const store = createMockStore(exceededAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
+  it('calculates workplace contributions from employee and employer percentages', () => {
+    const wrapper = mountTracker({
+      allowance: null,
+      definedContributionPensions: [{
+        scheme_type: 'workplace',
+        employee_contribution_percent: 5,
+        employer_contribution_percent: 3,
+        annual_salary: 50000,
+      }],
     });
 
-    const html = wrapper.html();
-    // Should have danger/red styling
-    expect(html).toMatch(/exceeded|excess|danger|red/i);
+    expect(wrapper.vm.calculatedContributions).toBe(4000);
   });
 
-  it('shows tax year selector', () => {
-    const store = createMockStore(defaultAnnualAllowance);
-    const wrapper = mount(AnnualAllowanceTracker, {
-      global: {
-        plugins: [store],
-      },
+  it('uses profile income when a workplace pension has no salary field', () => {
+    const wrapper = mountTracker({
+      allowance: null,
+      profile: { current_income: 80000 },
+      definedContributionPensions: [{
+        scheme_type: 'workplace',
+        employee_contribution_percent: 5,
+        employer_contribution_percent: 5,
+      }],
     });
 
-    const html = wrapper.html();
-    // Should have tax year dropdown with current year
-    expect(html).toMatch(/2024\/25/);
+    expect(wrapper.vm.calculatedContributions).toBe(8000);
+  });
+
+  it('uses violet caution styling when usage approaches the limit', () => {
+    const wrapper = mountTracker({
+      allowance: { ...annualAllowance, contributions_used: 50000 },
+    });
+
+    expect(wrapper.vm.progressPercent).toBe(83);
+    expect(wrapper.vm.progressBarColour).toBe('bg-violet-500');
+    expect(wrapper.vm.statusTextColour).toBe('text-violet-600');
+    expect(wrapper.vm.statusText).toBe('Approaching Limit');
+  });
+
+  it('caps progress and uses raspberry danger styling after the limit is exceeded', () => {
+    const wrapper = mountTracker({
+      allowance: { ...annualAllowance, contributions_used: 65000 },
+    });
+
+    expect(wrapper.vm.progressPercent).toBe(100);
+    expect(wrapper.vm.progressBarColour).toBe('bg-raspberry-500');
+    expect(wrapper.vm.statusText).toBe('Allowance Exceeded');
+    expect(wrapper.text()).toContain('£0');
+  });
+
+  it('offers the current tax year and three previous tax years', () => {
+    const wrapper = mountTracker();
+
+    expect(wrapper.vm.taxYearOptions).toHaveLength(4);
+    expect(wrapper.find('select').findAll('option')).toHaveLength(4);
+    expect(wrapper.vm.taxYearOptions[0]).toBe(wrapper.vm.currentTaxYear);
   });
 });

@@ -72,7 +72,7 @@
     @media(min-width:1024px){.pricing-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
   <link rel="stylesheet" href="/pages/css/global.css?v=113"  />
-  <link rel="stylesheet" href="/pages/css/pricing.css?v=7" />
+  <link rel="stylesheet" href="/pages/css/pricing.css?v=8" />
 </head>
 <body class="pricing-page">
 
@@ -114,7 +114,7 @@
           </button>
           <button class="billing-toggle__btn billing-toggle__btn--active" id="btn-yearly" aria-pressed="true">
             Yearly
-            <span class="billing-toggle__save" id="save-label">Save with yearly billing</span>
+            <span class="billing-toggle__save" id="save-label" hidden></span>
           </button>
         </div>
 
@@ -262,7 +262,7 @@
         'items' => [
             [
                 'q' => 'Is there a free trial?',
-                'a' => "There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.",
+                'a' => 'There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.',
             ],
             [
                 'q' => 'Can I change plans?',
@@ -311,7 +311,7 @@
   <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
-  <script src="/pages/js/pricing.js?v=10" defer></script>
+  <script src="/pages/js/pricing.js?v=11" defer></script>
 
 </body>
 </html>

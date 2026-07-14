@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Enums\AiMessageStatus;
 use App\Models\AiConversation;
+use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
+use App\Services\Gamification\LevelUpCollector;
 use App\Services\GDPR\ConsentService;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\Sanctum;
@@ -19,6 +21,8 @@ use Laravel\Sanctum\Sanctum;
  */
 function gateConversation(): array
 {
+    TierConfiguration::create(tierConfigFixture('free'));
+
     $user = User::factory()->create([
         'onboarding_completed' => true,
         'is_preview_user' => false,
@@ -101,6 +105,21 @@ it('streams a queued turn (2c) without duplicating the user row and marks it ans
         ->and($conversation->messages()->where('role', 'user')->count())->toBe(1)
         // Lock released so the next queued turn can stream.
         ->and(Cache::lock('fyn:inflight:'.$conversation->id, 5)->get())->toBeTrue();
+});
+
+it('emits a queued-turn level-up frame after the terminal done frame', function () {
+    [, $conversation] = gateConversation();
+    $queued = app(ConcurrentTurnQueue::class)->enqueue($conversation, 'what is my net worth');
+    app(LevelUpCollector::class)->record(3, 'Building');
+
+    $response = $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages/{$queued->id}/stream");
+
+    $response->assertOk();
+    $stream = $response->streamedContent();
+
+    expect($stream)->toContain('"type":"done"')
+        ->and($stream)->toContain('"type":"level_up"')
+        ->and(strpos($stream, '"type":"done"'))->toBeLessThan(strpos($stream, '"type":"level_up"'));
 });
 
 it('returns 409 not_queued for a message that is not queued', function () {

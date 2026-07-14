@@ -1,48 +1,63 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
-import { createRouter, createMemoryHistory } from 'vue-router';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import NetWorthOverviewCard from '../../Dashboard/NetWorthOverviewCard.vue';
 
 describe('NetWorthOverviewCard.vue', () => {
   let wrapper;
   let store;
   let router;
-  let mockActions;
+  let fetchOverview;
 
-  beforeEach(() => {
-    mockActions = {
-      fetchOverview: vi.fn(() => Promise.resolve()),
-    };
+  const overview = {
+    totalAssets: 750000,
+    totalLiabilities: 300000,
+    netWorth: 450000,
+    breakdown: {
+      pensions: 50000,
+      property: 500000,
+      investments: 150000,
+      cash: 50000,
+      business: 0,
+      chattels: 0,
+    },
+    liabilitiesBreakdown: {
+      mortgages: 280000,
+      loans: 15000,
+      credit_cards: 5000,
+      other: 0,
+    },
+    asOfDate: '2024-10-18',
+  };
+
+  beforeEach(async () => {
+    fetchOverview = vi.fn(() => Promise.resolve());
 
     store = createStore({
       modules: {
         netWorth: {
           namespaced: true,
-          state: {
-            overview: {
-              total_assets: 750000,
-              total_liabilities: 300000,
-              net_worth: 450000,
-              breakdown: {
-                property: 500000,
-                investments: 150000,
-                cash: 50000,
-                business: 40000,
-                chattels: 10000,
-              },
-              as_of_date: '2024-10-18',
-            },
+          state: () => ({
+            overview: structuredClone(overview),
             loading: false,
             error: null,
-          },
+          }),
           getters: {
-            netWorth: (state) => state.overview.net_worth,
-            totalAssets: (state) => state.overview.total_assets,
-            totalLiabilities: (state) => state.overview.total_liabilities,
-            assetBreakdown: (state) => state.overview.breakdown,
+            formattedNetWorth: (state) => `£${state.overview.netWorth.toLocaleString('en-GB')}`,
+            netWorth: (state) => state.overview.netWorth,
+            totalAssets: (state) => state.overview.totalAssets,
+            totalLiabilities: (state) => state.overview.totalLiabilities,
           },
-          actions: mockActions,
+          actions: {
+            fetchOverview,
+          },
+        },
+        preview: {
+          namespaced: true,
+          getters: {
+            isPreviewMode: () => false,
+          },
         },
       },
     });
@@ -50,99 +65,104 @@ describe('NetWorthOverviewCard.vue', () => {
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/net-worth', name: 'net-worth', component: { template: '<div>Net Worth</div>' } },
+        { path: '/:pathMatch(.*)*', component: { template: '<div />' } },
       ],
     });
+    await router.push('/dashboard');
+    await router.isReady();
 
     wrapper = mount(NetWorthOverviewCard, {
       global: {
         plugins: [store, router],
+        mocks: {
+          $route: { path: '/dashboard' },
+          $router: router,
+        },
       },
     });
   });
 
-  it('renders net worth overview card', () => {
-    expect(wrapper.find('h3').exists() || wrapper.find('h2').exists()).toBe(true);
+  it('renders the total net-worth summary', () => {
+    expect(wrapper.find('.value-label').text()).toBe('Total Net Worth');
+    expect(wrapper.find('.value-amount').text()).toBe('£450,000');
   });
 
-  it('displays net worth value', () => {
-    const html = wrapper.html();
-    expect(html).toContain('450000');
+  it('uses positive styling for a positive net worth', () => {
+    expect(wrapper.find('.value-amount').classes()).toContain('positive');
   });
 
-  it('formats currency with £ symbol', () => {
-    const html = wrapper.html();
-    expect(html).toContain('£');
+  it('displays the populated asset categories', () => {
+    const text = wrapper.text();
+    expect(text).toContain('Pensions');
+    expect(text).toContain('Property');
+    expect(text).toContain('Investments');
+    expect(text).toContain('Cash');
+    expect(text).not.toContain('Personal Valuables');
   });
 
-  it('displays asset breakdown', () => {
-    const html = wrapper.html();
-    expect(html).toContain('Property');
-    expect(html).toContain('Investments');
-    expect(html).toContain('Cash');
+  it('displays asset values as currency', () => {
+    expect(wrapper.text()).toContain('£500,000');
+    expect(wrapper.text()).toContain('£150,000');
   });
 
-  it('shows property value in breakdown', () => {
-    const html = wrapper.html();
-    expect(html).toContain('500');
+  it('displays the populated liability categories', () => {
+    const text = wrapper.text();
+    expect(text).toContain('Liabilities');
+    expect(text).toContain('Mortgages');
+    expect(text).toContain('Loans');
+    expect(text).toContain('Credit Cards');
+    expect(text).not.toContain('Other');
   });
 
-  it('shows investments value in breakdown', () => {
-    const html = wrapper.html();
-    expect(html).toContain('150');
+  it('navigates to the wealth summary when clicked', async () => {
+    await wrapper.get('[role="button"]').trigger('click');
+    await flushPromises();
+
+    expect(router.currentRoute.value.path).toBe('/net-worth/wealth-summary');
   });
 
-  it('navigates to /net-worth on click', async () => {
-    const clickableElement = wrapper.find('[role="button"]') || wrapper.find('div');
+  it('supports keyboard navigation to the wealth summary', async () => {
+    await wrapper.get('[role="button"]').trigger('keypress', { key: 'Enter' });
+    await flushPromises();
 
-    if (clickableElement.exists()) {
-      await clickableElement.trigger('click');
-
-      // Check if navigation was attempted
-      expect(router.currentRoute.value.path === '/net-worth' || wrapper.emitted('click')).toBeTruthy();
-    }
+    expect(router.currentRoute.value.path).toBe('/net-worth/wealth-summary');
   });
 
-  it('shows loading state when fetching data', async () {
+  it('shows a skeleton while the overview is loading', async () => {
     store.state.netWorth.loading = true;
     await wrapper.vm.$nextTick();
 
-    // Component should indicate loading
-    expect(wrapper.html()).toMatch(/loading|skeleton|spinner/i);
+    expect(wrapper.find('.loading-skeleton').exists()).toBe(true);
+    expect(wrapper.find('.card-content').exists()).toBe(false);
   });
 
-  it('displays error state when fetch fails', async () {
+  it('shows a skeleton before the first overview has arrived', async () => {
+    store.state.netWorth.overview.asOfDate = null;
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.loading-skeleton').exists()).toBe(true);
+  });
+
+  it('displays an error and retries the overview request', async () => {
     store.state.netWorth.error = 'Failed to load net worth';
     await wrapper.vm.$nextTick();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/error|failed|unavailable/i);
+    expect(wrapper.find('.error-message').text()).toBe('Failed to load net worth');
+    await wrapper.get('.retry-button').trigger('click');
+    expect(fetchOverview).toHaveBeenCalledTimes(1);
   });
 
-  it('calculates net worth correctly (assets - liabilities)', () => {
-    const netWorth = store.getters['netWorth/netWorth'];
-    const totalAssets = store.getters['netWorth/totalAssets'];
-    const totalLiabilities = store.getters['netWorth/totalLiabilities'];
-
-    expect(netWorth).toBe(totalAssets - totalLiabilities);
+  it('derives net worth from the fixture totals', () => {
+    expect(store.getters['netWorth/netWorth']).toBe(
+      store.getters['netWorth/totalAssets'] - store.getters['netWorth/totalLiabilities']
+    );
   });
 
-  it('displays all 5 asset types in breakdown', () => {
-    const html = wrapper.html();
+  it('uses negative styling when liabilities exceed assets', async () => {
+    store.state.netWorth.overview.netWorth = -25000;
+    await wrapper.vm.$nextTick();
 
-    // Should show all asset categories
-    const breakdown = store.getters['netWorth/assetBreakdown'];
-    expect(breakdown).toHaveProperty('property');
-    expect(breakdown).toHaveProperty('investments');
-    expect(breakdown).toHaveProperty('cash');
-    expect(breakdown).toHaveProperty('business');
-    expect(breakdown).toHaveProperty('chattels');
-  });
-
-  it('formats large numbers with commas', () => {
-    const html = wrapper.html();
-
-    // Large numbers should be formatted (either 450,000 or 450K or similar)
-    expect(html).toMatch(/450[,\s]/);
+    expect(wrapper.find('.value-amount').text()).toBe('£-25,000');
+    expect(wrapper.find('.value-amount').classes()).toContain('negative');
   });
 });

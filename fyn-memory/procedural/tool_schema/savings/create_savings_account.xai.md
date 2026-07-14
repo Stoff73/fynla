@@ -11,7 +11,7 @@ effective_from: 2026-06-11
 ```json
 {
     "name": "create_savings_account",
-    "description": "Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. \"I have a Halifax ISA and a Nationwide saver\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create a bank account or savings product only after the user explicitly states its type and whether it is owned individually or jointly. Never infer Cash ISA from a bare ISA. Joint records also require the joint owner and the primary owner's percentage share. You MAY call this tool multiple times when every record has those facts.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -40,7 +40,7 @@ effective_from: 2026-06-11
                         "type": "null"
                     }
                 ],
-                "description": "Product type. DEFAULT to \"current_account\" for any everyday bank or current account, and whenever the user does NOT name a specific savings product. Only use a savings type when the user explicitly says so: \"easy_access\" or \"savings_account\" for a savings account, \"notice\" for notice accounts, \"fixed\" for fixed term, \"cash_isa\" for a Cash ISA, \"premium_bonds\" for NS&I Premium Bonds, \"nsi\" for other NS&I products."
+                "description": "Product type explicitly stated by the user. Cash ISA and Junior ISA are distinct; never default a bare ISA to either subtype."
             },
             "institution": {
                 "type": [
@@ -65,7 +65,7 @@ effective_from: 2026-06-11
                     "boolean",
                     "null"
                 ],
-                "description": "Whether this is a Cash ISA. Set true if user says \"ISA\" or \"tax-free\". Default false."
+                "description": "Whether this is an explicitly confirmed ISA wrapper. Set true only after the user confirms Cash ISA or Junior ISA; never infer it from a bare or negated ISA reference."
             },
             "is_emergency_fund": {
                 "type": [
@@ -87,6 +87,23 @@ effective_from: 2026-06-11
                     "null"
                 ],
                 "description": "For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. \"about £100 this year\" → 100). Leave null if not mentioned."
+            },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint", "tenants_in_common", "trust"],
+                "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual. ISAs must be individual."
+            },
+            "joint_owner_id": {
+                "type": ["integer", "null"],
+                "description": "User ID of the confirmed joint owner. Required when ownership is joint or tenants_in_common; otherwise null."
+            },
+            "trust_id": {
+                "type": ["integer", "null"],
+                "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership; otherwise null."
+            },
+            "ownership_percentage": {
+                "type": ["number", "null"],
+                "description": "Primary owner's confirmed percentage share. Required when ownership is joint or tenants_in_common; otherwise 100 for individual."
             }
         },
         "required": [
@@ -98,7 +115,11 @@ effective_from: 2026-06-11
             "is_isa",
             "is_emergency_fund",
             "regular_contribution_amount",
-            "isa_subscription_amount"
+            "isa_subscription_amount",
+            "ownership_type",
+            "joint_owner_id",
+            "trust_id",
+            "ownership_percentage"
         ],
         "additionalProperties": false
     },

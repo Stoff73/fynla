@@ -1,0 +1,181 @@
+source:
+  document_id: 1rQAgOR7KTocntyt9l5AXzIJRiA3KwoBkhSLOFu9wnio
+  revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+  reviewed_at: '2026-07-11'
+
+findings:
+  - id: UT-01
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-02
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-03
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: continuation_decision
+    programme_tasks: [29]
+    status: deferred
+    tests: []
+    evidence: []
+  - id: UT-04
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-05
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-06
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-07
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [8, 10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-08
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [10, 10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-09
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-10
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10, 10A, 24]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-11
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [10, 10A, 15]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-12
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_regression
+    programme_tasks: [9, 10, 10A, 22J]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-13
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-14
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10A, 16]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-15
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-16
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-17
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-18
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-19
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-20
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-21
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-22
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-23
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_fix
+    programme_tasks: [10A]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-24
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []
+  - id: UT-25
+    source_revision: ALtnJHwFove9vFBwb0swbbomT3l2IUyrgLUqXvszSAgI9qHVaJJdph8g1KRHT650bTEim3GQn5FZgo1rSHjagf0G5cgTrS_zbZJZ7QOHhCk
+    disposition: prelaunch_clarity
+    programme_tasks: [10B]
+    status: open
+    tests: []
+    evidence: []

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import AssetAllocationChart from '@/components/Investment/AssetAllocationChart.vue';
 
@@ -30,8 +30,8 @@ describe('AssetAllocationChart', () => {
     });
 
     expect(wrapper.exists()).toBe(true);
-    // When there's data, the chart should render
-    expect(wrapper.html()).toContain('apexchart');
+    expect(wrapper.find('.chart-container').exists()).toBe(true);
+    expect(wrapper.findAll('circle')).toHaveLength(6);
   });
 
   it('displays chart title', () => {
@@ -244,8 +244,9 @@ describe('AssetAllocationChart', () => {
       },
     });
 
-    // Check if the apexchart component exists
-    expect(wrapper.html()).toContain('apexchart');
+    const donut = wrapper.find('.chart-container .relative');
+    expect(donut.attributes('style')).toContain('width: 300px');
+    expect(donut.attributes('style')).toContain('height: 300px');
   });
 
   it('updates when allocation data changes', async () => {

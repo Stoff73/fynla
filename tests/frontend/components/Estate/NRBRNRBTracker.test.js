@@ -1,215 +1,111 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import NRBRNRBTracker from '@/components/Estate/NRBRNRBTracker.vue';
 
+const taxStore = () => createStore({
+  modules: {
+    taxConfig: {
+      namespaced: true,
+      getters: {
+        ihtNilRateBand: () => 325000,
+        ihtResidenceNilRateBand: () => 175000,
+        ihtRnrbTaperThreshold: () => 2000000,
+      },
+    },
+  },
+});
+
+const mountTracker = (props = {}) => mount(NRBRNRBTracker, {
+  props: { estateValue: 800000, ...props },
+  global: { plugins: [taxStore()] },
+});
+
 describe('NRBRNRBTracker', () => {
-  it('renders with estate value prop', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 800000,
-        hasSpouse: false,
-        isRnrbEligible: false,
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
+  it('renders with the estate value contract', () => {
+    expect(mountTracker().exists()).toBe(true);
   });
 
-  it('displays standard NRB of £325,000', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 600000,
-        hasSpouse: false,
-        isRnrbEligible: false,
-      },
-    });
-
-    expect(wrapper.vm.nrbStandard).toBe(325000);
+  it('uses the configured nil-rate band', () => {
+    expect(mountTracker().vm.nrbTotal).toBe(325000);
   });
 
-  it('displays standard RNRB of £175,000', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 600000,
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    expect(wrapper.vm.rnrbStandard).toBe(175000);
+  it('uses the configured residence nil-rate band for an eligible estate', () => {
+    const wrapper = mountTracker({ hasMainResidence: true, hasDirectDescendants: true });
+    expect(wrapper.vm.rnrbTotal).toBe(175000);
   });
 
-  it('doubles NRB when spouse transfers unused allowance', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 800000,
-        hasSpouse: true,
-        isRnrbEligible: false,
-      },
-    });
-
-    expect(wrapper.vm.nrbTotal).toBe(650000); // 325k * 2
+  it('adds a transferred spouse nil-rate band', () => {
+    const wrapper = mountTracker({ hasSpouseTransfer: true, spouseNrbTransfer: 325000 });
+    expect(wrapper.vm.nrbTotal).toBe(650000);
   });
 
-  it('applies RNRB tapering for estates over £2m', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 2200000, // £200k over threshold
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    // Reduction = £200k excess / 2 = £100k
-    // RNRB = £175k - £100k = £75k
+  it('tapers the residence nil-rate band above the configured threshold', () => {
+    const wrapper = mountTracker({ estateValue: 2200000, hasMainResidence: true, hasDirectDescendants: true });
     expect(wrapper.vm.rnrbTotal).toBe(75000);
     expect(wrapper.vm.rnrbTapered).toBe(true);
   });
 
-  it('sets RNRB to zero when fully tapered', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 2500000, // Fully tapered
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    // Excess = £500k, reduction = £250k, RNRB = 0
+  it('does not allow a tapered residence band to become negative', () => {
+    const wrapper = mountTracker({ estateValue: 2500000, hasMainResidence: true, hasDirectDescendants: true });
     expect(wrapper.vm.rnrbTotal).toBe(0);
   });
 
-  it('returns zero RNRB when not eligible', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 800000,
-        hasSpouse: false,
-        isRnrbEligible: false,
-      },
-    });
-
-    expect(wrapper.vm.rnrbTotal).toBe(0);
+  it('returns no residence band when the estate is ineligible', () => {
+    expect(mountTracker({ hasMainResidence: true, hasDirectDescendants: false }).vm.rnrbTotal).toBe(0);
   });
 
-  it('calculates combined allowance correctly', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 800000,
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    // NRB: £325k, RNRB: £175k
-    expect(wrapper.vm.combinedAllowance).toBe(500000);
+  it('combines the available nil-rate bands', () => {
+    const wrapper = mountTracker({ hasMainResidence: true, hasDirectDescendants: true });
+    expect(wrapper.vm.totalAllowance).toBe(500000);
   });
 
-  it('calculates taxable estate above allowances', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 800000,
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    // Estate: £800k, Combined: £500k
-    expect(wrapper.vm.taxableEstate).toBe(300000);
+  it('calculates the taxable amount above available bands', () => {
+    const wrapper = mountTracker({ hasMainResidence: true, hasDirectDescendants: true });
+    expect(wrapper.vm.taxableAmount).toBe(300000);
   });
 
-  it('returns zero taxable estate when below allowances', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 400000,
-        hasSpouse: false,
-        isRnrbEligible: false,
-      },
-    });
-
-    // Estate: £400k, NRB only: £325k, taxable: £75k
-    expect(wrapper.vm.taxableEstate).toBe(75000);
+  it('calculates the taxable amount when only the standard band applies', () => {
+    expect(mountTracker({ estateValue: 400000 }).vm.taxableAmount).toBe(75000);
   });
 
-  it('calculates NRB usage percentage', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 650000,
-        hasSpouse: false,
-        isRnrbEligible: false,
-      },
-    });
-
-    // Estate: £650k, NRB: £325k = 100% used
-    expect(wrapper.vm.nrbUsagePercentage).toBe(100);
+  it('calculates standard-band usage from the supplied used amount', () => {
+    expect(mountTracker({ nrbUsed: 325000 }).vm.nrbPercentage).toBe(100);
   });
 
-  it('calculates RNRB usage percentage when eligible', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 437500, // Uses 50% of RNRB
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    // Estate: £437.5k, NRB: £325k, RNRB: £175k
-    // Excess over NRB: £112.5k = ~64% of RNRB
-    const rnrbUsage = wrapper.vm.rnrbUsagePercentage;
-    expect(rnrbUsage).toBeGreaterThan(0);
-    expect(rnrbUsage).toBeLessThanOrEqual(100);
+  it('calculates residence-band usage from the supplied used amount', () => {
+    const wrapper = mountTracker({ hasMainResidence: true, hasDirectDescendants: true, rnrbUsed: 87500 });
+    expect(wrapper.vm.rnrbPercentage).toBe(50);
   });
 
-  it('displays spouse transfer status correctly', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 800000,
-        hasSpouse: true,
-        isRnrbEligible: false,
-      },
-    });
-
-    expect(wrapper.vm.hasSpouse).toBe(true);
+  it('exposes spouse-transfer status for the eligibility note', () => {
+    const wrapper = mountTracker({ hasSpouseTransfer: true, spouseNrbTransfer: 100000 });
+    expect(wrapper.vm.hasSpouseTransfer).toBe(true);
+    expect(wrapper.vm.showEligibilityNotes).toBe(true);
   });
 
-  it('handles edge case at exactly £2m (RNRB tapering threshold)', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 2000000,
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    expect(wrapper.vm.rnrbTotal).toBe(175000); // No tapering at exactly £2m
+  it('does not taper an estate exactly at the configured threshold', () => {
+    const wrapper = mountTracker({ estateValue: 2000000, hasMainResidence: true, hasDirectDescendants: true });
+    expect(wrapper.vm.rnrbTotal).toBe(175000);
     expect(wrapper.vm.rnrbTapered).toBe(false);
   });
 
-  it('handles both spouse transfer and RNRB eligibility', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 1200000,
-        hasSpouse: true,
-        isRnrbEligible: true,
-      },
+  it('combines a spouse transfer with the available residence band', () => {
+    const wrapper = mountTracker({
+      estateValue: 1200000,
+      hasSpouseTransfer: true,
+      spouseNrbTransfer: 325000,
+      hasMainResidence: true,
+      hasDirectDescendants: true,
     });
-
-    // NRB: £650k (doubled), RNRB: £350k (doubled)
     expect(wrapper.vm.nrbTotal).toBe(650000);
-    expect(wrapper.vm.rnrbTotal).toBe(350000);
-    expect(wrapper.vm.combinedAllowance).toBe(1000000);
+    expect(wrapper.vm.rnrbTotal).toBe(175000);
+    expect(wrapper.vm.totalAllowance).toBe(825000);
   });
 
-  it('formats currency values correctly', () => {
-    const wrapper = mount(NRBRNRBTracker, {
-      props: {
-        estateValue: 1250000,
-        hasSpouse: false,
-        isRnrbEligible: true,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/£325,000|325000/); // NRB
-    expect(html).toMatch(/£175,000|175000/); // RNRB
+  it('formats configured allowances as currency in the rendered summary', () => {
+    const text = mountTracker({ hasMainResidence: true, hasDirectDescendants: true }).text();
+    expect(text).toContain('£325,000');
+    expect(text).toContain('£175,000');
   });
 });

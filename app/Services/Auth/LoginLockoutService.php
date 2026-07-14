@@ -7,6 +7,7 @@ namespace App\Services\Auth;
 use App\Models\LoginAttempt;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class LoginLockoutService
 {
@@ -37,7 +38,7 @@ class LoginLockoutService
      */
     public function isLocked(string $email): bool
     {
-        $user = User::where('email', $email)->first();
+        $user = User::withTrashed()->where('email', $email)->first();
 
         if (! $user) {
             // For non-existent users, check by IP rate limiting only
@@ -67,7 +68,7 @@ class LoginLockoutService
      */
     public function getRemainingLockoutSeconds(string $email): int
     {
-        $user = User::where('email', $email)->first();
+        $user = User::withTrashed()->where('email', $email)->first();
 
         if (! $user || ! $user->locked_until) {
             return 0;
@@ -90,20 +91,24 @@ class LoginLockoutService
         // Record the attempt
         LoginAttempt::record($email, false, $reason);
 
-        // Update user's failed login count
-        $user = User::where('email', $email)->first();
+        DB::transaction(function () use ($email): void {
+            $user = User::withTrashed()
+                ->where('email', $email)
+                ->lockForUpdate()
+                ->first();
 
-        if ($user) {
+            if (! $user) {
+                return;
+            }
+
             $user->failed_login_count++;
             $user->last_failed_login_at = now();
 
-            // Calculate lockout duration based on failed count
             $lockoutMinutes = $this->calculateLockoutDuration($user->failed_login_count);
 
             if ($lockoutMinutes > 0) {
                 $user->locked_until = now()->addMinutes($lockoutMinutes);
 
-                // Log significant lockouts
                 if ($lockoutMinutes >= 30) {
                     \Log::warning('Account locked due to repeated failed login attempts', [
                         'user_id' => $user->id,
@@ -115,7 +120,7 @@ class LoginLockoutService
             }
 
             $user->save();
-        }
+        });
     }
 
     /**
@@ -126,7 +131,7 @@ class LoginLockoutService
         LoginAttempt::record($email, true);
 
         // Reset failed login counter on successful login
-        $user = User::where('email', $email)->first();
+        $user = User::withTrashed()->where('email', $email)->first();
 
         if ($user) {
             $user->failed_login_count = 0;

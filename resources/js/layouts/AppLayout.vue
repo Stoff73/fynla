@@ -77,13 +77,15 @@
       Stays right-anchored in all cases so the sidebar and chat never overlap.
     -->
     <aside
-      v-if="showDockedChat && !chatCollapsed"
+      v-if="showDockedChat"
+      v-show="!chatCollapsed"
       class="hidden lg:flex lg:flex-col fixed right-0 border-l border-light-gray bg-white z-40 transition-all duration-300"
       :class="asideWidthClass"
       style="box-shadow: -6px 0 18px rgba(0, 0, 0, 0.12), 0 -4px 14px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.06);"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
       <component
+        ref="dockedChat"
         :is="isOnboardingRoute ? 'FynOnboardingChat' : 'AiChatPanel'"
         :docked="true"
         @collapse="toggleChat"
@@ -97,6 +99,7 @@
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
       <button
+        ref="chatExpandButton"
         @click="toggleChat"
         class="w-7 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors"
         title="Expand Fyn chat"
@@ -435,6 +438,9 @@ export default {
       storage.set('fynChatCollapsed', this.chatCollapsed);
       if (this.chatCollapsed) {
         window.dispatchEvent(new Event('fyn-chat-interaction'));
+        this.$nextTick(() => this.$refs.chatExpandButton?.focus());
+      } else {
+        this.$nextTick(() => this.$refs.dockedChat?.focusInput?.());
       }
     },
 
@@ -480,7 +486,8 @@ export default {
 
       this.handleSubscribeFromOverlay();
 
-      const { openPricing, ...rest } = this.$route.query;
+      const rest = { ...this.$route.query };
+      delete rest.openPricing;
       this.$router
         .replace({ path: this.$route.path, query: rest })
         .catch(() => {});

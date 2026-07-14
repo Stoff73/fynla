@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
@@ -61,6 +62,8 @@ use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Onboarding\CaptureAccuracyGate;
+use App\Services\Onboarding\HouseholdProvisioner;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Retirement\AnnualAllowanceChecker;
@@ -80,6 +83,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\WhatIf\WhatIfScenarioService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
@@ -136,6 +140,9 @@ class CoordinatingAgent extends BaseAgent
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
         private readonly ComposedTaxPlanService $composedTaxPlans,
+        private readonly TeaserGate $teaserGate,
+        private readonly CaptureAccuracyGate $captureAccuracyGate,
+        private readonly HouseholdProvisioner $householdProvisioner,
     ) {}
 
     /**
@@ -181,8 +188,11 @@ class CoordinatingAgent extends BaseAgent
      *   builder still renders net worth, goals, life events from the
      *   user record directly.
      */
-    public function analyzeRelevantModules(int $userId, ?array $classification): array
-    {
+    public function analyzeRelevantModules(
+        int $userId,
+        ?array $classification,
+        ?array $kycResult = null,
+    ): array {
         $primary = is_array($classification) ? ($classification['primary'] ?? null) : null;
         $level = AdviceFyn::engineCallLevelFor(is_string($primary) ? $primary : null);
 
@@ -201,6 +211,7 @@ class CoordinatingAgent extends BaseAgent
         // property and income from the user record directly.
         $modules = QuerySchemas::getModulesForClassification(is_array($classification) ? $classification : []);
         $moduleAnalysis = [];
+        $analysisUser = null;
         foreach ($modules as $module) {
             $analysis = match ($module) {
                 'protection' => $this->protectionAgent->analyze($userId),
@@ -212,6 +223,14 @@ class CoordinatingAgent extends BaseAgent
                 default => null,
             };
             if ($analysis !== null) {
+                if ($this->isQuestionScopedModule($module, $classification, $kycResult)
+                    && $this->requiresQuestionScopedFallback($analysis)) {
+                    $analysis = $this->questionScopedModuleAnalysis(
+                        $module,
+                        $analysisUser ??= User::findOrFail($userId),
+                        (string) $primary,
+                    );
+                }
                 $moduleAnalysis[$module] = $analysis;
             }
         }
@@ -841,8 +860,14 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Execute a tool call with prerequisite gate enforcement.
      */
-    public function executeTool(string $toolName, array $input, User $user, ?int $conversationId = null): array
-    {
+    public function executeTool(
+        string $toolName,
+        array $input,
+        User $user,
+        ?int $conversationId = null,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
@@ -855,6 +880,23 @@ class CoordinatingAgent extends BaseAgent
 
             return $v;
         }, $input);
+
+        // Strict tool schemas can serialize an absent nullable owner as the
+        // numeric sentinel 0. User IDs are positive, so treat only that
+        // sentinel as null before the ownership security gate. Real non-zero
+        // IDs remain subject to reciprocal-spouse authorization below.
+        if (($input['joint_owner_id'] ?? null) === 0 || ($input['joint_owner_id'] ?? null) === '0') {
+            $input['joint_owner_id'] = null;
+        }
+        if (($input['trust_id'] ?? null) === 0 || ($input['trust_id'] ?? null) === '0') {
+            $input['trust_id'] = null;
+        }
+        if ($toolName === 'capture_dependants' && $conversationId !== null) {
+            $input = $this->captureAccuracyGate->restoreDependantNames(
+                $input,
+                $this->latestUserMessageText($conversationId) ?? '',
+            );
+        }
 
         // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
         // (eval flow) AND the X-Eval-Run-Id header is set
@@ -888,20 +930,91 @@ class CoordinatingAgent extends BaseAgent
             atMicrotime: microtime(true),
         ));
 
-        // Prerequisite gate check
-        $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
+        // The primary-question matrix is the effective advice gate. Do not
+        // reapply broader module readiness after question-specific KYC passes.
+        $questionScopedAnalysis = $this->isQuestionScopedModuleTool(
+            $toolName,
+            $input,
+            $classification,
+            $kycResult,
+        );
+        $questionScopedHolistic = $this->isQuestionScopedHolisticTool(
+            $toolName,
+            $classification,
+            $kycResult,
+        );
+        $nonEntitledHolisticPlan = $toolName === 'generate_financial_plan'
+            && ! $this->teaserGate->isFull($user, 'holistic_plan');
+
+        // Entitlement precedes readiness for the holistic tool, matching the
+        // REST middleware. The handler still uses the audited completion path.
+        $gate = ($questionScopedAnalysis || $questionScopedHolistic || $nonEntitledHolisticPlan)
+            ? ['can_proceed' => true]
+            : $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
         if (! $gate['can_proceed']) {
             $firstAction = $gate['required_actions'][0] ?? null;
+            $pageLabel = null;
+            if ($firstAction !== null) {
+                $destination = GateRoutes::destinationForRoute(
+                    $firstAction['route'] ?? '',
+                    GateRoutes::DASHBOARD,
+                );
+                $pageLabel = GateRoutes::resolve($destination)['label'];
+            }
 
             return [
                 'blocked' => true,
                 'reason' => $gate['guidance'],
                 'missing_data' => $gate['missing'],
-                'suggested_action' => $firstAction,
+                'suggested_action' => $pageLabel === null ? null : ['label' => $pageLabel],
                 'instruction' => 'Explain to the user exactly what data is missing and why it is needed. '
                     .'List each missing item clearly. '
-                    .($firstAction ? "Then use the navigate_to_page tool to take them to \"{$firstAction['route']}\" where they can add the missing information." : ''),
+                    .($pageLabel ? "Then signpost the {$pageLabel} page by its label in plain text. Do not output an internal route or call a navigation or write tool on the advice surface." : ''),
             ];
+        }
+
+        $jointOwnerError = $this->captureJointOwnerError($toolName, $input, $user);
+        if ($jointOwnerError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $jointOwnerError);
+
+            return $jointOwnerError;
+        }
+
+        $trustError = $this->captureTrustError($toolName, $input, $user);
+        if ($trustError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $trustError);
+
+            return $trustError;
+        }
+
+        $latestUserText = $this->latestUserMessageText($conversationId);
+        $recentUserEvidence = $this->recentUserMessageEvidence($conversationId) ?? $latestUserText;
+        [$accuracyEvidence, $accuracyCacheKey] = $this->captureAccuracyEvidence(
+            $conversationId,
+            $toolName,
+            $recentUserEvidence ?? '',
+            $input,
+        );
+        $accuracy = $this->captureAccuracyGate->inspect($toolName, $input, $accuracyEvidence);
+        if (! $accuracy['allowed']) {
+            if ($accuracyCacheKey !== null) {
+                Cache::put($accuracyCacheKey, $accuracyEvidence, now()->addMinutes(15));
+            }
+            $result = [
+                'error' => true,
+                'error_type' => 'clarification_required',
+                'clarification_required' => true,
+                'reason' => $accuracy['reason'],
+                'missing' => $accuracy['missing'],
+                'message' => $accuracy['reason'],
+            ];
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
+
+            return $result;
+        }
+
+        if ($accuracyCacheKey !== null) {
+            Cache::forget($accuracyCacheKey);
         }
 
         // CoALA pointer fetch tools — `fetch_{pointer_id}` routes through the
@@ -942,7 +1055,7 @@ class CoordinatingAgent extends BaseAgent
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
-                'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
+                'get_module_analysis' => $this->handleModuleAnalysis($input, $user, $classification, $kycResult),
                 'search_conversation_index' => $this->handleSearchConversationIndex($input, $user, $conversationId),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
@@ -1030,6 +1143,156 @@ class CoordinatingAgent extends BaseAgent
 
             return ['error' => true, 'error_type' => 'execution_failed', 'message' => 'An unexpected error occurred. Please try again.'];
         }
+    }
+
+    /**
+     * A joint_owner_id grants the linked account visibility of the record, so
+     * Fyn may attach only the user's reciprocally linked spouse. A merely
+     * existing user ID is not sufficient authorization.
+     */
+    private function captureJointOwnerError(string $toolName, array $input, User $user): ?array
+    {
+        if (! in_array($toolName, [
+            'create_savings_account',
+            'create_investment_account',
+            'create_property',
+            'create_liability',
+        ], true)) {
+            return null;
+        }
+
+        $ownershipType = $input['ownership_type'] ?? null;
+        $hasJointOwner = array_key_exists('joint_owner_id', $input)
+            && $input['joint_owner_id'] !== null;
+        if (! in_array($ownershipType, ['joint', 'tenants_in_common'], true)) {
+            if (! $hasJointOwner) {
+                return null;
+            }
+
+            return [
+                'error' => true,
+                'error_type' => 'clarification_required',
+                'clarification_required' => true,
+                'reason' => 'A joint owner can only be attached to a jointly owned record.',
+                'missing' => ['ownership_type'],
+                'message' => 'A joint owner can only be attached to a jointly owned record.',
+            ];
+        }
+
+        $jointOwnerId = isset($input['joint_owner_id']) && is_numeric($input['joint_owner_id'])
+            ? (int) $input['joint_owner_id']
+            : null;
+        $isReciprocalSpouse = $jointOwnerId !== null
+            && (int) $user->spouse_id === $jointOwnerId
+            && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
+
+        if ($isReciprocalSpouse) {
+            return null;
+        }
+
+        return [
+            'error' => true,
+            'error_type' => 'clarification_required',
+            'clarification_required' => true,
+            'reason' => 'I can only attach a joint record after the other owner is securely linked to your account.',
+            'missing' => ['joint_owner_id'],
+            'message' => 'I can only attach a joint record after the other owner is securely linked to your account.',
+        ];
+    }
+
+    /**
+     * A trust_id makes the record visible in trust reporting. It must therefore
+     * resolve inside the authenticated user's own household, never merely exist.
+     */
+    private function captureTrustError(string $toolName, array $input, User $user): ?array
+    {
+        if (! in_array($toolName, ['create_savings_account', 'create_property', 'create_liability'], true)) {
+            return null;
+        }
+
+        $ownershipType = $input['ownership_type'] ?? null;
+        $trustId = isset($input['trust_id'])
+            && is_numeric($input['trust_id'])
+            && (int) $input['trust_id'] > 0
+            ? (int) $input['trust_id']
+            : null;
+
+        if ($ownershipType !== 'trust' && $trustId === null) {
+            return null;
+        }
+
+        $authorised = $ownershipType === 'trust'
+            && $trustId !== null
+            && Trust::query()
+                ->whereKey($trustId)
+                ->where(function ($query) use ($user): void {
+                    $query->where('user_id', $user->id);
+                    if ($user->household_id !== null) {
+                        $query->orWhere('household_id', $user->household_id);
+                    }
+                })
+                ->exists();
+
+        if ($authorised) {
+            return null;
+        }
+
+        $recordLabel = match ($toolName) {
+            'create_savings_account' => 'savings account',
+            'create_liability' => 'liability',
+            default => 'property',
+        };
+        $message = "I can only attach a trust-owned {$recordLabel} after the trust is securely linked to your household.";
+
+        return [
+            'error' => true,
+            'error_type' => 'clarification_required',
+            'clarification_required' => true,
+            'reason' => $message,
+            'missing' => ['trust_id'],
+            'message' => $message,
+        ];
+    }
+
+    /**
+     * Retain only evidence from an unresolved accuracy clarification for this
+     * conversation and tool. Successful capture clears it immediately.
+     *
+     * @return array{0:string,1:?string}
+     */
+    private function captureAccuracyEvidence(
+        ?int $conversationId,
+        string $toolName,
+        string $currentUserEvidence,
+        array $input,
+    ): array {
+        if ($conversationId === null) {
+            return [$currentUserEvidence, null];
+        }
+
+        $identity = array_filter([
+            'account_name' => $input['account_name'] ?? $input['name'] ?? null,
+            'provider' => $input['provider'] ?? $input['institution'] ?? $input['platform'] ?? null,
+            'address' => $input['address'] ?? $input['property_address'] ?? $input['address_line_1'] ?? null,
+            'property_type' => $input['property_type'] ?? null,
+            'lender' => $input['lender'] ?? $input['creditor'] ?? $input['lender_name'] ?? null,
+            'liability_name' => $input['liability_name'] ?? null,
+        ], static fn (mixed $value): bool => is_scalar($value) && trim((string) $value) !== '');
+        if ($identity === []) {
+            return [$currentUserEvidence, null];
+        }
+
+        $identityHash = hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
+        $cacheKey = "capture_accuracy_evidence:{$conversationId}:{$toolName}:{$identityHash}";
+        $prior = Cache::get($cacheKey, '');
+        $parts = is_string($prior) && trim($prior) !== ''
+            ? preg_split('/\n+/', trim($prior))
+            : [];
+        $parts = is_array($parts) ? $parts : [];
+        $currentParts = preg_split('/\n+/', trim($currentUserEvidence)) ?: [];
+        $parts = array_slice(array_values(array_unique([...$parts, ...$currentParts])), -6);
+
+        return [implode("\n", $parts), $cacheKey];
     }
 
     /**
@@ -1403,9 +1666,8 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
-     * capture_dependants — creates one FamilyMember row per dependant.
-     * Age drives relationship (child < 18, other_dependent >= 18 unless
-     * the caller already specified 'parent'). DOB is inferred from age.
+     * capture_dependants — creates one FamilyMember row per dependant only
+     * when every date of birth was supplied explicitly.
      */
     private function handleCaptureDependants(array $input, User $user): array
     {
@@ -1414,38 +1676,72 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'message' => 'dependants list is empty'];
         }
 
-        $created = [];
-        foreach ($dependants as $dep) {
-            $age = (int) ($dep['age'] ?? -1);
-            if ($age < 0 || $age > 120) {
+        $normalised = [];
+        $missing = [];
+        foreach ($dependants as $index => $dep) {
+            $dateOfBirth = trim((string) ($dep['date_of_birth'] ?? ''));
+            try {
+                $date = $dateOfBirth === '' ? null : Carbon::createFromFormat('!Y-m-d', $dateOfBirth);
+            } catch (\Throwable) {
+                $date = null;
+            }
+
+            if ($date === null
+                || $date->format('Y-m-d') !== $dateOfBirth
+                || $date->isFuture()
+                || $date->age > 120) {
+                $missing[] = "dependants.{$index}.date_of_birth";
+
                 continue;
             }
 
-            $relationship = (string) ($dep['relationship'] ?? 'other_dependent');
+            $relationship = (string) ($dep['relationship'] ?? '');
             if (! in_array($relationship, ['child', 'parent', 'other_dependent'], true)) {
-                $relationship = $age < 18 ? 'child' : 'other_dependent';
+                $missing[] = "dependants.{$index}.relationship";
+
+                continue;
             }
 
             $firstName = trim((string) ($dep['first_name'] ?? ''));
-            $resolvedName = $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant');
+            $normalised[] = [
+                'date' => $date,
+                'relationship' => $relationship,
+                'first_name' => $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant'),
+            ];
+        }
 
+        if ($missing !== []) {
+            return [
+                'onboarding_capture' => true,
+                'clarification_required' => true,
+                'field_group' => 'dependants',
+                'summary' => 'Exact dependant details are required before anything is saved.',
+                'details' => ['missing' => $missing],
+            ];
+        }
+
+        $this->householdProvisioner->ensureFor($user);
+
+        $created = [];
+        foreach ($normalised as $dep) {
             $familyMember = FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $user->household_id,
-                'relationship' => $relationship,
-                'first_name' => $resolvedName,
-                'name' => $resolvedName,
-                'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
+                'relationship' => $dep['relationship'],
+                'first_name' => $dep['first_name'],
+                'name' => $dep['first_name'],
+                'date_of_birth' => $dep['date']->toDateString(),
                 'is_dependent' => true,
-                'education_status' => $this->educationStatusForAge($age),
+                'education_status' => $this->educationStatusForAge($dep['date']->age),
                 'notes' => 'Captured via Fyn onboarding.',
             ]);
 
             $created[] = [
                 'id' => $familyMember->id,
                 'first_name' => $familyMember->first_name,
-                'age' => $age,
-                'relationship' => $relationship,
+                'date_of_birth' => $familyMember->date_of_birth?->toDateString(),
+                'age' => $dep['date']->age,
+                'relationship' => $dep['relationship'],
             ];
         }
 
@@ -1767,8 +2063,12 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleModuleAnalysis(array $input, User $user): array
-    {
+    private function handleModuleAnalysis(
+        array $input,
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): array {
         $module = $input['module'];
 
         $analyzeStart = microtime(true);
@@ -1783,6 +2083,15 @@ class CoordinatingAgent extends BaseAgent
             default => ['error' => "Unknown module: {$module}"],
         };
         $analyzeDuration = (int) round((microtime(true) - $analyzeStart) * 1000);
+
+        if ($this->isQuestionScopedModule($module, $classification, $kycResult)
+            && $this->requiresQuestionScopedFallback($analysis)) {
+            $analysis = $this->questionScopedModuleAnalysis(
+                $module,
+                $user,
+                (string) $classification['primary'],
+            );
+        }
 
         // Eval trace — every module analyze invocation through this tool
         // gets one EngineCalled. result_path inferred from response shape:
@@ -1800,7 +2109,144 @@ class CoordinatingAgent extends BaseAgent
             atMicrotime: microtime(true),
         ));
 
+        if (($analysis['analysis_scope'] ?? null) === 'question_required_data') {
+            return $analysis;
+        }
+
         return $this->summariseToolAnalysis($module, $analysis);
+    }
+
+    private function isQuestionScopedModuleTool(
+        string $toolName,
+        array $input,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        return $toolName === 'get_module_analysis'
+            && isset($input['module'])
+            && $this->isQuestionScopedModule((string) $input['module'], $classification, $kycResult);
+    }
+
+    private function isQuestionScopedModule(
+        string $module,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        $primary = $classification['primary'] ?? null;
+        if (! $this->hasPassedPrimaryKyc($classification, $kycResult)) {
+            return false;
+        }
+
+        $primaryModules = QuerySchemas::getModulesForClassification([
+            'primary' => $primary,
+            'related' => [],
+        ]);
+
+        return $module !== 'holistic' && in_array($module, $primaryModules, true);
+    }
+
+    private function isQuestionScopedHolisticTool(
+        string $toolName,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        return ($classification['primary'] ?? null) === QuerySchemas::HOLISTIC_HEALTH
+            && $this->hasPassedPrimaryKyc($classification, $kycResult)
+            && in_array($toolName, ['get_recommendations', 'generate_financial_plan'], true);
+    }
+
+    private function hasPassedPrimaryKyc(?array $classification, ?array $kycResult): bool
+    {
+        $primary = $classification['primary'] ?? null;
+
+        return is_string($primary)
+            && QuerySchemas::isAdviceType($primary)
+            && ($kycResult['passed'] ?? false) === true;
+    }
+
+    private function requiresQuestionScopedFallback(array $analysis): bool
+    {
+        if (($analysis['can_proceed'] ?? null) === false
+            || ($analysis['data']['can_proceed'] ?? null) === false) {
+            return true;
+        }
+
+        if (($analysis['success'] ?? null) !== false) {
+            return false;
+        }
+
+        $message = strtolower((string) ($analysis['message'] ?? ''));
+
+        return str_contains($message, 'profile not found')
+            || str_contains($message, 'no retirement profile')
+            || str_contains($message, 'no investment accounts')
+            || str_contains($message, 'no savings accounts');
+    }
+
+    /**
+     * Return current, factual data for the primary question when a module's
+     * broader readiness contract needs fields outside REQUIRED_DATA.
+     * No financial-quality score or recommendation is manufactured here.
+     *
+     * @return array<string, mixed>
+     */
+    private function questionScopedModuleAnalysis(string $module, User $user, string $primary): array
+    {
+        $recordTypes = match ($module) {
+            'retirement' => ['dc_pension', 'db_pension'],
+            'savings' => ['savings_account'],
+            'investment' => ['investment_account'],
+            'protection' => ['life_insurance', 'critical_illness', 'income_protection'],
+            'estate' => ['property', 'trust', 'estate_gift', 'estate_liability', 'business_interest', 'chattel'],
+            default => [],
+        };
+
+        $records = [];
+        foreach ($recordTypes as $recordType) {
+            $listed = $this->handleListRecords(['entity_type' => $recordType], $user);
+            $records[$recordType] = $listed['records'] ?? [];
+        }
+
+        if ($module === 'goals') {
+            $records['goals'] = $this->handleListGoals($user)['goals'] ?? [];
+        }
+
+        $analysis = [
+            'module' => $module,
+            'query_type' => $primary,
+            'analysis_scope' => 'question_required_data',
+            'can_proceed' => true,
+            'records' => $records,
+        ];
+
+        if ($module === 'retirement') {
+            $statePension = $user->statePension()->first();
+            $analysis['state_pension'] = $statePension ? [
+                'forecast_annual' => (float) ($statePension->state_pension_forecast_annual ?? 0),
+                'qualifying_years' => $statePension->ni_years_completed,
+                'state_pension_age' => $statePension->state_pension_age,
+            ] : null;
+            $analysis['total_pension_value'] = (float) collect($records['dc_pension'])->sum('current_value');
+            $analysis['projected_annual_income'] = (float) collect($records['db_pension'])->sum('annual_pension')
+                + (float) ($analysis['state_pension']['forecast_annual'] ?? 0);
+        }
+
+        if ($module === 'savings') {
+            $analysis['total_savings'] = (float) collect($records['savings_account'])->sum('balance');
+        }
+
+        if ($module === 'investment') {
+            $analysis['total_portfolio_value'] = (float) collect($records['investment_account'])->sum('current_value');
+        }
+
+        if ($module === 'protection') {
+            $analysis['full_analysis'] = [
+                'total_cover' => (float) collect($records['life_insurance'])->sum('sum_assured')
+                    + (float) collect($records['critical_illness'])->sum('sum_assured'),
+            ];
+        }
+
+        return $analysis;
     }
 
     /**
@@ -2065,6 +2511,14 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleFinancialPlan(User $user): array
     {
+        if (! $this->teaserGate->isFull($user, 'holistic_plan')) {
+            return [
+                'error' => 'upgrade_required',
+                'message' => 'The Holistic Plan is part of Tier 2 and above.',
+                'required_tier' => 'tier2',
+            ];
+        }
+
         $plan = $this->generateHolisticPlan($user->id);
 
         $summary = [];
@@ -2241,7 +2695,6 @@ class CoordinatingAgent extends BaseAgent
                     'bank_account' => 'current_account',
                     'current' => 'current_account',
                     'current account' => 'current_account',
-                    'isa' => 'cash_isa',
                     'cash isa' => 'cash_isa',
                     'junior isa' => 'junior_isa',
                     'fixed_rate' => 'fixed',
@@ -2250,9 +2703,28 @@ class CoordinatingAgent extends BaseAgent
                     'notice_account' => 'notice',
                 ];
                 $key = strtolower((string) $input['account_type']);
-                $input['account_type'] = $synonyms[$key]
-                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'current_account');
+                if ($key === 'isa' || ! empty($input['is_isa'])) {
+                    return [
+                        'error' => true,
+                        'clarification_required' => true,
+                        'error_type' => 'capture_accuracy_required',
+                        'missing' => ['isa_subtype'],
+                        'message' => 'I need to know whether this is a Cash ISA, Stocks & Shares ISA, Lifetime ISA, or Innovative Finance ISA before I can save it.',
+                    ];
+                }
+
+                $input['account_type'] = $synonyms[$key] ?? 'current_account';
             }
+        }
+
+        if (! empty($input['is_isa']) && ! in_array($input['account_type'] ?? null, ['cash_isa', 'junior_isa'], true)) {
+            return [
+                'error' => true,
+                'clarification_required' => true,
+                'error_type' => 'capture_accuracy_required',
+                'missing' => ['isa_subtype'],
+                'message' => 'I need to know whether this is a Cash ISA, Stocks & Shares ISA, Lifetime ISA, or Innovative Finance ISA before I can save it.',
+            ];
         }
 
         $validationError = $this->validateToolInput($input, [
@@ -2265,9 +2737,22 @@ class CoordinatingAgent extends BaseAgent
             'is_emergency_fund' => 'nullable|boolean',
             'regular_contribution_amount' => 'nullable|numeric|min:0',
             'isa_subscription_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        if (in_array($input['account_type'] ?? null, ['cash_isa', 'junior_isa'], true)
+            && ($input['ownership_type'] ?? 'individual') !== 'individual') {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'message' => 'ISAs can only be individually owned under UK tax rules.',
+            ];
         }
 
         $duplicateCheck = $this->checkForDuplicate(SavingsAccount::class, $user->id, 'account_name', $input['account_name']);
@@ -2329,13 +2814,14 @@ class CoordinatingAgent extends BaseAgent
             'account_name' => 'required|string|max:255',
             'current_value' => 'required|numeric|min:0|max:999999999.99',
             'account_type' => ['nullable', Rule::in([
-                'stocks_shares_isa', 'lifetime_isa', 'personal_investment_account',
+                'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa', 'personal_investment_account',
                 'onshore_bond', 'offshore_bond', 'vct', 'eis',
                 'private_company', 'crowdfunding', 'saye', 'csop',
                 'emi', 'unapproved_options', 'rsu', 'other',
                 // DB-canonical values (the HTTP form posts these directly)
                 'isa', 'gia',
             ])],
+            'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'provider' => 'nullable|string|max:255',
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
@@ -2343,6 +2829,7 @@ class CoordinatingAgent extends BaseAgent
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
         ]);
         if ($validationError) {
             return $validationError;
@@ -2359,7 +2846,7 @@ class CoordinatingAgent extends BaseAgent
         // form-fill mapping so AI direct-write and HTTP form path persist
         // identical rows).
         $dbAccountType = match ($accountType) {
-            'stocks_shares_isa', 'lifetime_isa' => 'isa',
+            'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa' => 'isa',
             'personal_investment_account' => 'gia',
             default => $accountType,
         };
@@ -2367,6 +2854,8 @@ class CoordinatingAgent extends BaseAgent
         $isaType = match ($accountType) {
             'stocks_shares_isa' => 'stocks_and_shares',
             'lifetime_isa' => 'lifetime',
+            'innovative_finance_isa' => 'innovative_finance',
+            'isa' => $input['isa_type'] ?? null,
             default => null,
         };
 
@@ -2391,6 +2880,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_percentage' => isset($input['ownership_percentage'])
                 ? (float) $input['ownership_percentage']
                 : 100.00,
+            'joint_owner_id' => $input['joint_owner_id'] ?? null,
         ];
 
         if ($isaType !== null) {
@@ -2656,6 +3146,8 @@ class CoordinatingAgent extends BaseAgent
             'purchase_price' => 'nullable|numeric|min:0|max:999999999.99',
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'trust_id' => 'nullable|integer|exists:trusts,id',
             'tenure_type' => ['nullable', Rule::in(['freehold', 'leasehold'])],
             'lease_remaining_years' => 'nullable|integer|min:0|max:999',
             'has_mortgage' => 'nullable|boolean',
@@ -2693,7 +3185,6 @@ class CoordinatingAgent extends BaseAgent
             ? (float) $input['ownership_percentage']
             : match ($ownershipType) {
                 'joint', 'tenants_in_common' => 50.0,
-                'trust' => 0.0,
                 default => 100.0,
             };
 
@@ -2705,6 +3196,7 @@ class CoordinatingAgent extends BaseAgent
             'postcode' => 'N/A',
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
+            'joint_owner_id' => $input['joint_owner_id'] ?? null,
         ], $input);
 
         $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
@@ -2739,6 +3231,7 @@ class CoordinatingAgent extends BaseAgent
                         'monthly_payment' => 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipPct,
+                        'joint_owner_id' => $property->joint_owner_id,
                     ];
                     if (is_numeric($rate)) {
                         $mortgagePayload['interest_rate'] = (float) $rate;
@@ -2841,11 +3334,13 @@ class CoordinatingAgent extends BaseAgent
         $payload = [
             'user_id' => $user->id,
             'property_id' => $property->id,
+            'lender_name' => $input['lender_name'] ?? 'To be completed',
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
             'rate_type' => $input['rate_type'] ?? 'fixed',
             'outstanding_balance' => (float) $input['outstanding_balance'],
             'ownership_type' => $property->ownership_type,
             'ownership_percentage' => (float) $property->ownership_percentage,
+            'joint_owner_id' => $property->joint_owner_id,
         ];
 
         if (isset($input['lender_name']) && $input['lender_name'] !== '') {
@@ -3174,6 +3669,10 @@ class CoordinatingAgent extends BaseAgent
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
             'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
             'interest_rate' => 'nullable|numeric|min:0|max:50',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3189,7 +3688,10 @@ class CoordinatingAgent extends BaseAgent
             'liability_name' => $input['liability_name'],
             'liability_type' => $dbLiabilityType,
             'current_balance' => (float) $input['current_balance'],
-            'ownership_type' => 'individual',
+            'ownership_type' => $input['ownership_type'] ?? 'individual',
+            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100.0,
+            'joint_owner_id' => $input['joint_owner_id'] ?? null,
+            'trust_id' => $input['trust_id'] ?? null,
         ];
 
         if (isset($input['monthly_payment']) && is_numeric($input['monthly_payment'])) {
@@ -4095,37 +4597,50 @@ class CoordinatingAgent extends BaseAgent
         ];
 
         $updateData = [];
-        $total = 0;
+        $resolvedAmounts = [];
         foreach ($categoryFields as $field) {
-            if (isset($input[$field]) && is_numeric($input[$field]) && $input[$field] > 0) {
-                $updateData[$field] = (float) $input[$field];
-                $total += (float) $input[$field];
+            $stored = $user->getAttribute($field);
+            $resolvedAmounts[$field] = is_numeric($stored) ? max(0.0, (float) $stored) : 0.0;
+
+            if (! array_key_exists($field, $input)) {
+                continue;
             }
+            if (! is_numeric($input[$field]) || (float) $input[$field] < 0) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'message' => 'Expenditure amounts must be zero or more.',
+                ];
+            }
+
+            $resolvedAmounts[$field] = (float) $input[$field];
+            $updateData[$field] = (float) $input[$field];
         }
 
         if (empty($updateData)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No expenditure amounts provided.'];
         }
 
-        // Save directly to user model (same as manual form save)
+        // A Fyn turn may update only one category. Recalculate from that edit
+        // plus every stored category so omitted values are preserved, while an
+        // explicit zero clears the named category.
+        $total = array_sum($resolvedAmounts);
         $updateData['monthly_expenditure'] = $total;
         $updateData['annual_expenditure'] = $total * 12;
-        $updateData['use_simple_entry'] = false;
-        $user->update($updateData);
+        $updateData['expenditure_entry_mode'] = 'category';
+        DB::transaction(function () use ($user, $updateData, $total): void {
+            $user->update($updateData);
 
-        // FR-M12 — mirror the monthly total into ExpenditureProfile so the
-        // dashboard expenditure widget (which reads total_monthly_expenditure
-        // off the profile, not users.monthly_expenditure) reflects the change
-        // immediately. Without this, Fyn confirms "captured" but the
-        // dashboard stays blank. Same pattern as the onboarding fix in
-        // OnboardingChatDirector::persistCapture (commit 88018a5).
-        ExpenditureProfile::updateOrCreate(
-            ['user_id' => $user->id],
-            ['total_monthly_expenditure' => $total],
-        );
+            // FR-M12 — mirror the monthly total into ExpenditureProfile so the
+            // dashboard and both review surfaces see the same committed total.
+            ExpenditureProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                ['total_monthly_expenditure' => $total],
+            );
+        });
 
         $formatted = collect($updateData)
-            ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])
+            ->except(['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'])
             ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)).': £'.number_format($v, 2))
             ->values()
             ->implode(', ');
@@ -4369,6 +4884,31 @@ class CoordinatingAgent extends BaseAgent
         $text = $message?->content;
 
         return is_string($text) && $text !== '' ? $text : null;
+    }
+
+    /**
+     * Return a bounded, chronological window of the user's own words so a
+     * create tool called after several clarification turns can validate every
+     * required fact. CaptureAccuracyGate still scopes this text to the target
+     * entity, preventing another account's ownership facts from being reused.
+     */
+    private function recentUserMessageEvidence(?int $conversationId): ?string
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $messages = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'user')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->pluck('content')
+            ->reverse()
+            ->filter(static fn (mixed $content): bool => is_string($content) && trim($content) !== '')
+            ->values();
+
+        return $messages->isEmpty() ? null : $messages->implode("\n");
     }
 
     /**

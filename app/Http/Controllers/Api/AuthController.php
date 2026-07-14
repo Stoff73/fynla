@@ -22,10 +22,12 @@ use App\Services\Audit\AuditService;
 use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
+use App\Services\Auth\RegistrationHandoffService;
 use App\Services\Auth\SessionService;
 use App\Services\Gamification\PointsService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
+use App\Services\Onboarding\FunnelIncomeBand;
 use App\Services\Payment\ReferralService;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
@@ -52,6 +54,7 @@ class AuthController extends Controller
         private readonly ConsentService $consentService,
         private readonly TierConfigurationStore $tierStore,
         private readonly TierResolver $tierResolver,
+        private readonly RegistrationHandoffService $registrationHandoff,
     ) {}
 
     /**
@@ -63,10 +66,21 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        $campaignSource = $request->validated('funnel_answers.campaign');
+        $funnelAnswers = $this->stampFunnelIncomeContext($request->validated('funnel_answers'));
+
         // Trashed-email detection: if a soft-deleted account exists for this email,
         // surface restorability rather than creating a new pending registration.
         $existing = User::withTrashed()->where('email', $request->input('email'))->first();
-        if ($existing && $existing->trashed() && $existing->deletion_reason !== 'legacy_purged') {
+        if ($existing && $existing->trashed() && $existing->canBeRestored()) {
+            if (is_string($campaignSource)) {
+                return response()->json([
+                    'account_deleted_restorable' => true,
+                    'requires_password_verification' => true,
+                    'handoff_token' => $this->registrationHandoff->issue($existing, 'restoration', $campaignSource),
+                ]);
+            }
+
             return response()->json([
                 'account_deleted_restorable' => true,
                 'requires_password_verification' => true,
@@ -74,6 +88,14 @@ class AuthController extends Controller
                 'deletion_reason' => $existing->deletion_reason,
                 'first_name' => $existing->first_name,
             ]);
+        }
+
+        if ($existing && $existing->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An account with this email address already exists. Please sign in or reset your password.',
+                'email_exists' => true,
+            ], 422);
         }
 
         // Check if email is already registered as a verified user
@@ -101,7 +123,7 @@ class AuthController extends Controller
             'billing_cycle' => $request->billing_cycle ?? null,
             'referral_code' => $request->referral_code ?? null,
             'signup_source' => $request->validated('signup_source'),
-            'funnel_answers' => $request->validated('funnel_answers'),
+            'funnel_answers' => $funnelAnswers,
         ]);
 
         Log::info('Pending registration created', [
@@ -125,15 +147,55 @@ class AuthController extends Controller
             ]);
         }
 
+        $data = [
+            'pending_id' => $pending->id,
+            'email' => $this->maskEmail($pending->email),
+        ];
+        if (is_string($campaignSource)) {
+            $data['handoff_token'] = $this->registrationHandoff->issue($pending, 'verification', $campaignSource);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Please check your email for verification code.',
             'requires_verification' => true,
-            'data' => [
-                'pending_id' => $pending->id,
-                'email' => $this->maskEmail($pending->email),
-            ],
+            'data' => $data,
         ], 201);
+    }
+
+    private function stampFunnelIncomeContext(?array $answers): ?array
+    {
+        if (($answers['campaign'] ?? null) !== 'savetax') {
+            return $answers;
+        }
+
+        foreach (['income' => 'income_context', 'spouseIncome' => 'spouse_income_context'] as $field => $contextField) {
+            $band = $answers[$field] ?? null;
+            if (! is_string($band) || ! FunnelIncomeBand::isKnown($band)) {
+                continue;
+            }
+
+            try {
+                $answers[$contextField] = FunnelIncomeBand::context($band);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return $answers;
+    }
+
+    public function resolveRegistrationHandoff(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'handoff' => ['required', 'string', 'max:4096'],
+        ]);
+
+        try {
+            return response()->json($this->registrationHandoff->resolve($validated['handoff']));
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
     }
 
     /**
@@ -143,13 +205,41 @@ class AuthController extends Controller
     {
         $email = $request->email;
 
+        // Apply the same account and IP lockout boundary before checking active
+        // or soft-deleted credentials. Deleted accounts are not a weaker login
+        // surface.
+        if ($this->lockoutService->isLocked($email)) {
+            $lockoutInfo = $this->lockoutService->getLockoutInfo($email);
+
+            return response()->json([
+                'success' => false,
+                'message' => $lockoutInfo['message'],
+                'locked' => true,
+                'remaining_seconds' => $lockoutInfo['remaining_seconds'],
+            ], 423);
+        }
+        if ($this->lockoutService->isIpLocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many failed attempts from this location. Please try again later.',
+                'locked' => true,
+            ], 423);
+        }
+
         // Trashed-user detection: only reveal restorability after correct password
         $candidate = User::withTrashed()->where('email', $request->input('email'))->first();
         if ($candidate && $candidate->trashed()) {
             if (! Hash::check($request->input('password'), $candidate->password)) {
+                $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
+                $this->auditService->logAuth(AuditLog::ACTION_LOGIN_FAILED, $candidate, [
+                    'email' => $email,
+                    'reason' => 'invalid_password',
+                    'method' => 'account_restoration',
+                ]);
+
                 return response()->json(['message' => 'Invalid credentials'], 401);
             }
-            if ($candidate->deletion_reason === 'legacy_purged') {
+            if (! $candidate->canBeRestored()) {
                 return response()->json(['message' => 'Invalid credentials'], 401);
             }
 
@@ -161,27 +251,6 @@ class AuthController extends Controller
                 'first_name' => $candidate->first_name,
                 'restoration_token' => $this->issueRestorationToken($candidate),
             ]);
-        }
-
-        // Check if account is locked
-        if ($this->lockoutService->isLocked($email)) {
-            $lockoutInfo = $this->lockoutService->getLockoutInfo($email);
-
-            return response()->json([
-                'success' => false,
-                'message' => $lockoutInfo['message'],
-                'locked' => true,
-                'remaining_seconds' => $lockoutInfo['remaining_seconds'],
-            ], 423); // 423 Locked
-        }
-
-        // Check if IP is blocked
-        if ($this->lockoutService->isIpLocked()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Too many failed attempts from this location. Please try again later.',
-                'locked' => true,
-            ], 423);
         }
 
         // Check if user exists first

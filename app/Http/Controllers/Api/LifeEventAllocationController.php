@@ -11,7 +11,6 @@ use App\Models\LifeEventAllocation;
 use App\Services\Goals\LifeEventAllocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class LifeEventAllocationController extends Controller
 {
@@ -39,12 +38,7 @@ class LifeEventAllocationController extends Controller
             // guards write verbs, so run the generate-on-read inside a rolled-back
             // transaction: they see the suggestions, nothing is persisted.
             if ($user->is_preview_user) {
-                DB::beginTransaction();
-                try {
-                    $allocations = $this->allocationService->getAllocations($event, $user)->values();
-                } finally {
-                    DB::rollBack();
-                }
+                $allocations = $this->allocationService->getAllocationsWithoutPersisting($event, $user);
             } else {
                 $allocations = $this->allocationService->getAllocations($event, $user);
             }

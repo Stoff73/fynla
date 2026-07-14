@@ -1,240 +1,145 @@
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import QuickActions from '@/components/Dashboard/QuickActions.vue';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 
-describe('QuickActions', () => {
-  let wrapper;
-  let mockRouter;
+const serviceMocks = vi.hoisted(() => ({
+  investment: vi.fn(),
+  protection: vi.fn(),
+  estate: vi.fn(),
+}));
+
+vi.mock('@/services/investmentService', () => ({
+  default: { getPortfolioStrategy: serviceMocks.investment },
+}));
+vi.mock('@/services/protectionService', () => ({
+  default: { getRecommendations: serviceMocks.protection },
+}));
+vi.mock('@/services/estateService', () => ({
+  default: { calculateIHTPlanning: serviceMocks.estate },
+}));
+
+import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
+
+describe('ActionsOverviewCard', () => {
+  let router;
+
+  const mountCard = (props = {}) => mount(ActionsOverviewCard, {
+    props,
+    global: { mocks: { $router: router } },
+  });
 
   beforeEach(() => {
-    mockRouter = {
-      push: vi.fn(),
-    };
+    router = { push: vi.fn() };
+    serviceMocks.investment.mockReset().mockResolvedValue({ recommendations: [] });
+    serviceMocks.protection.mockReset().mockResolvedValue({ data: { recommendations: [] } });
+    serviceMocks.estate.mockReset().mockResolvedValue({ success: true, data: {} });
   });
 
-  it('renders correctly', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    expect(wrapper.find('h3').text()).toContain('Quick Actions');
-    expect(wrapper.exists()).toBe(true);
+  it('renders the current review-actions heading', async () => {
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.get('h3').text()).toBe('Items for Review');
   });
 
-  it('displays all 6 quick action buttons', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    expect(wrapper.vm.actions.length).toBe(6);
-
-    // Check all actions are present
-    const actionTitles = wrapper.vm.actions.map(a => a.title);
-    expect(actionTitles).toContain('Add Savings Goal');
-    expect(actionTitles).toContain('Record Gift');
-    expect(actionTitles).toContain('Update Pension Contribution');
-    expect(actionTitles).toContain('Add Investment Holding');
-    expect(actionTitles).toContain('Check IHT Liability');
-    expect(actionTitles).toContain('Update Protection Coverage');
+  it('loads investment, protection, and estate actions in parallel', async () => {
+    mountCard();
+    await flushPromises();
+    expect(serviceMocks.investment).toHaveBeenCalledOnce();
+    expect(serviceMocks.protection).toHaveBeenCalledOnce();
+    expect(serviceMocks.estate).toHaveBeenCalledOnce();
   });
 
-  it('navigates to savings module when "Add Savings Goal" clicked', async () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    await wrapper.vm.handleAction('/savings');
-    expect(mockRouter.push).toHaveBeenCalledWith('/savings');
+  it('normalises investment strategies', async () => {
+    serviceMocks.investment.mockResolvedValue({ recommendations: [{ title: 'Rebalance holdings', priority: 2 }] });
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.vm.allActions[0]).toMatchObject({ module: 'investment', title: 'Rebalance holdings', priority: 2 });
   });
 
-  it('navigates to estate module when "Record Gift" clicked', async () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    await wrapper.vm.handleAction('/estate');
-    expect(mockRouter.push).toHaveBeenCalledWith('/estate');
+  it('normalises protection recommendations and string priorities', async () => {
+    serviceMocks.protection.mockResolvedValue({ data: { recommendations: [{ action: 'Review cover', priority: 'high' }] } });
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.vm.allActions[0]).toMatchObject({ module: 'protection', title: 'Review cover', priority: 1 });
   });
 
-  it('navigates to retirement module when "Update Pension Contribution" clicked', async () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    await wrapper.vm.handleAction('/retirement');
-    expect(mockRouter.push).toHaveBeenCalledWith('/retirement');
+  it('normalises estate gifting strategies', async () => {
+    serviceMocks.estate.mockResolvedValue({ success: true, data: { gifting_strategy: { strategies: [{ strategy_name: 'Use annual exemption' }] } } });
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.vm.allActions[0]).toMatchObject({ module: 'estate', title: 'Use annual exemption', priority: 2 });
   });
 
-  it('navigates to investment module when "Add Investment Holding" clicked', async () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    await wrapper.vm.handleAction('/investment');
-    expect(mockRouter.push).toHaveBeenCalledWith('/investment');
+  it('adds the estate life-cover recommendation when present', async () => {
+    serviceMocks.estate.mockResolvedValue({ success: true, data: { life_cover_strategy: { recommendation: 'Consider cover', cover_required: 125000 } } });
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.vm.allActions[0]).toMatchObject({ module: 'estate', potential_saving: 125000 });
   });
 
-  it('navigates to estate module when "Check IHT Liability" clicked', async () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
+  it('sorts displayed actions by ascending priority', async () => {
+    const wrapper = mountCard();
+    await flushPromises();
+    await wrapper.setData({
+      investmentStrategies: [{ title: 'Medium', priority: 3 }, { title: 'Urgent', priority: 1 }],
     });
-
-    await wrapper.vm.handleAction('/estate');
-    expect(mockRouter.push).toHaveBeenCalledWith('/estate');
+    expect(wrapper.vm.displayedActions.map(action => action.title)).toEqual(['Urgent', 'Medium']);
   });
 
-  it('navigates to protection module when "Update Protection Coverage" clicked', async () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    await wrapper.vm.handleAction('/protection');
-    expect(mockRouter.push).toHaveBeenCalledWith('/protection');
+  it('applies the configured display limit', async () => {
+    const wrapper = mountCard({ limit: 1 });
+    await flushPromises();
+    await wrapper.setData({ investmentStrategies: [{ title: 'One', priority: 1 }, { title: 'Two', priority: 2 }] });
+    expect(wrapper.vm.displayedActions).toHaveLength(1);
   });
 
-  it('displays action icons correctly', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
+  it('totals actions across modules', async () => {
+    const wrapper = mountCard();
+    await flushPromises();
+    await wrapper.setData({
+      investmentStrategies: [{ title: 'One' }],
+      protectionRecommendations: [{ action: 'Two' }],
+      estateStrategies: [{ strategy_name: 'Three' }],
     });
-
-    const actions = wrapper.vm.actions;
-
-    // Check each action has an icon and color
-    actions.forEach(action => {
-      expect(action.icon).toBeDefined();
-      expect(action.color).toBeDefined();
-    });
+    expect(wrapper.vm.totalActions).toBe(3);
   });
 
-  it('uses different colors for each action', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const colors = wrapper.vm.actions.map(a => a.color);
-
-    // Check we have variety in colors (at least 4 different colors)
-    const uniqueColors = new Set(colors);
-    expect(uniqueColors.size).toBeGreaterThanOrEqual(4);
+  it('totals available potential savings', async () => {
+    const wrapper = mountCard();
+    await flushPromises();
+    await wrapper.setData({ investmentStrategies: [{ title: 'One', potential_saving: 1000 }], estateStrategies: [{ strategy_name: 'Two', iht_saved: 2500 }] });
+    expect(wrapper.vm.totalPotentialSavings).toBe(3500);
   });
 
-  it('displays correct number of action buttons in grid', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const buttons = wrapper.findAll('button');
-    expect(buttons.length).toBe(6);
+  it.each([
+    ['investment', '/net-worth/investments'],
+    ['protection', '/protection'],
+    ['estate', '/estate'],
+  ])('navigates %s actions to their module', async (module, route) => {
+    const wrapper = mountCard();
+    await flushPromises();
+    wrapper.vm.navigateToModule(module);
+    expect(router.push).toHaveBeenCalledWith(route);
   });
 
-  it('action buttons have hover effects', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const buttons = wrapper.findAll('button');
-
-    buttons.forEach(button => {
-      expect(button.classes()).toContain('quick-action-btn');
-      expect(button.classes()).toContain('group');
-    });
+  it('falls back to the dashboard for an unknown module', async () => {
+    const wrapper = mountCard();
+    await flushPromises();
+    wrapper.vm.navigateToModule('unknown');
+    expect(router.push).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('grid layout is responsive', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const grid = wrapper.find('.grid');
-    expect(grid.exists()).toBe(true);
-
-    // Check responsive classes
-    const gridClasses = grid.classes().join(' ');
-    expect(gridClasses).toContain('grid-cols');
+  it('uses functional priority dots and module badges', async () => {
+    serviceMocks.investment.mockResolvedValue({ recommendations: [{ title: 'Review portfolio', priority: 1 }] });
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.get('.priority-dot').classes()).toContain('dot-critical');
+    expect(wrapper.get('.module-badge').classes()).toContain('module-investment');
   });
 
-  it('each action has a link', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const actions = wrapper.vm.actions;
-
-    actions.forEach(action => {
-      expect(action.link).toBeDefined();
-      expect(action.link).toMatch(/^\//); // Should start with /
-    });
-  });
-
-  it('action titles are descriptive', () => {
-    wrapper = mount(QuickActions, {
-      global: {
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const actions = wrapper.vm.actions;
-
-    actions.forEach(action => {
-      expect(action.title.length).toBeGreaterThan(10); // Descriptive titles
-    });
+  it('shows the empty state after successful empty responses', async () => {
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.text()).toContain('All caught up!');
+    expect(wrapper.vm.loading).toBe(false);
   });
 });

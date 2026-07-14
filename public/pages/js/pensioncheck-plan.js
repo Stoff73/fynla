@@ -40,24 +40,16 @@
   };
 
   function readAnswers() {
-    try {
-      var raw = localStorage.getItem('pensioncheck_answers');
-      if (raw) {
-        var a = JSON.parse(raw);
-        if (a && typeof a === 'object') {
-          return {
-            campaign:   a.campaign || 'pensioncheck',
-            employment: a.employment || DEMO.employment,
-            income:     a.income || DEMO.income,
-            age:        a.age || DEMO.age,
-            pensions:   Array.isArray(a.pensions) ? a.pensions : [],
-            pot:        a.pot || DEMO.pot,
-            spouse:     a.spouse || DEMO.spouse,
-          };
-        }
-      }
-    } catch (e) { /* ignore */ }
-    return DEMO;
+    var a = realFunnelAnswers();
+    return {
+      campaign: 'pensioncheck',
+      employment: a.employment || DEMO.employment,
+      income: a.income || DEMO.income,
+      age: a.age || DEMO.age,
+      pensions: Array.isArray(a.pensions) ? a.pensions : [],
+      pot: a.pot || DEMO.pot,
+      spouse: a.spouse || DEMO.spouse,
+    };
   }
 
   var ans = readAnswers();
@@ -311,14 +303,40 @@
     return m ? decodeURIComponent(m[1]) : null;
   }
 
-  // Persist the funnel answers only when the user actually came through the
-  // funnel (real localStorage answers) — never the demo persona.
   function realFunnelAnswers() {
+    var params = new URLSearchParams(window.location.search);
+    var queryAnswers = {
+      campaign: 'pensioncheck',
+      employment: params.get('employment') || null,
+      income: params.get('income') || null,
+      age: params.get('age') || null,
+      pensions: (params.get('pensions') || '').split(',').map(function (pension) {
+        return pension.trim();
+      }).filter(Boolean).slice(0, 12),
+      pot: params.get('pot') || null,
+      spouse: params.get('spouse') || null,
+    };
+
     try {
       var raw = localStorage.getItem('pensioncheck_answers');
-      if (raw) { var a = JSON.parse(raw); if (a && typeof a === 'object') return a; }
-    } catch (e) { /* ignore */ }
-    return null;
+      if (raw) {
+        var a = JSON.parse(raw);
+        if (a && typeof a === 'object') {
+          return {
+            campaign: 'pensioncheck',
+            employment: params.has('employment') ? queryAnswers.employment : (a.employment || null),
+            income: params.has('income') ? queryAnswers.income : (a.income || null),
+            age: params.has('age') ? queryAnswers.age : (a.age || null),
+            pensions: params.has('pensions')
+              ? queryAnswers.pensions
+              : (Array.isArray(a.pensions) ? a.pensions.slice(0, 12) : []),
+            pot: params.has('pot') ? queryAnswers.pot : (a.pot || null),
+            spouse: params.has('spouse') ? queryAnswers.spouse : (a.spouse || null),
+          };
+        }
+      }
+    } catch { /* ignore */ }
+    return queryAnswers;
   }
 
   function showRegError(msg) {
@@ -348,13 +366,13 @@
       if (!sessionStorage.getItem('fynla.signup_source')) {
         sessionStorage.setItem('fynla.signup_source', norm);
       }
-    } catch (e) { /* private mode */ }
+    } catch { /* private mode */ }
   }
   function storedSignupSource() {
     try {
       var v = sessionStorage.getItem('fynla.signup_source');
       return v && SIGNUP_SOURCES.indexOf(v) !== -1 ? v : null;
-    } catch (e) { return null; }
+    } catch { return null; }
   }
 
   function wireRegister() {
@@ -418,32 +436,23 @@
           return;
         }
 
-        // Soft-deleted but restorable — let the full /register page handle restore.
-        if (data.account_deleted_restorable) {
-          window.location.href = base() + '/register';
+        // Soft-deleted but restorable — continue through the same encrypted
+        // campaign handoff so the user does not repeat their details.
+        if (data.account_deleted_restorable && data.handoff_token) {
+          window.location.href = base() + '/register?from=pensioncheck&handoff=' + encodeURIComponent(data.handoff_token);
           return;
         }
 
-        // Account pending + code emailed. Hand to the EXISTING /register
-        // verification screen (reuses the tested Vue verify UI). Stash the
-        // pending id + email same-origin so Register.vue opens the code modal
-        // directly. from=pensioncheck — after verifying, the user is routed to
-        // the dashboard; inside the /m mobile iframe the auth handoff shows
-        // the mobile dashboard (/m/app).
-        if (data.requires_verification && data.data) {
-          try {
-            sessionStorage.setItem('fynla_pending_verify', JSON.stringify({
-              pending_id: data.data.pending_id,
-              email:      data.data.email,
-            }));
-          } catch (err) { /* private mode — Register.vue falls back to its form */ }
-          window.location.href = base() + '/register?from=pensioncheck';
+        // Account pending + code emailed. The encrypted, expiring handoff is
+        // the only state carried to the existing verification screen.
+        if (data.requires_verification && data.data && data.data.handoff_token) {
+          window.location.href = base() + '/register?from=pensioncheck&handoff=' + encodeURIComponent(data.data.handoff_token);
           return;
         }
 
         // Unexpected shape — fall back to the full register page.
         window.location.href = base() + '/register?from=pensioncheck';
-      } catch (err) {
+      } catch {
         showRegError('Network error. Please try again.');
         if (btn) { btn.disabled = false; btn.textContent = orig; }
       }

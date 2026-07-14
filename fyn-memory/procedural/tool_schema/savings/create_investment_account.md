@@ -10,7 +10,7 @@ effective_from: 2026-06-11
 ```json
 {
     "name": "create_investment_account",
-    "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Create an investment account only after the user explicitly states its type and whether it is owned individually or jointly. A bare ISA must be clarified as Stocks & Shares, Lifetime, Innovative Finance, or Cash before choosing this tool. Joint records also require the joint owner and primary owner's percentage share.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -23,6 +23,7 @@ effective_from: 2026-06-11
                 "enum": [
                     "stocks_shares_isa",
                     "lifetime_isa",
+                    "innovative_finance_isa",
                     "personal_investment_account",
                     "onshore_bond",
                     "offshore_bond",
@@ -37,7 +38,7 @@ effective_from: 2026-06-11
                     "rsu",
                     "other"
                 ],
-                "description": "Type of investment account. Use \"stocks_shares_isa\" for Stocks & Shares ISA, \"lifetime_isa\" for Lifetime ISA, \"personal_investment_account\" for GIA, \"vct\" for Venture Capital Trust, \"eis\" for Enterprise Investment Scheme, \"private_company\" for private company shares, \"crowdfunding\" for crowdfunding investments, \"saye\" for Save As You Earn/Sharesave, \"csop\" for Company Share Option Plan, \"emi\" for Enterprise Management Incentives, \"unapproved_options\" for unapproved share options, \"rsu\" for Restricted Stock Units, \"other\" for anything else. Default to \"personal_investment_account\" if not specified."
+                "description": "Investment type explicitly stated by the user. Use innovative_finance_isa for an Innovative Finance ISA. Never default a missing type."
             },
             "provider": {
                 "type": "string",
@@ -46,6 +47,19 @@ effective_from: 2026-06-11
             "current_value": {
                 "type": "number",
                 "description": "Current value in pounds"
+            },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint"],
+                "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+            },
+            "joint_owner_id": {
+                "type": "integer",
+                "description": "User ID of the confirmed joint owner. Required for joint ownership."
+            },
+            "ownership_percentage": {
+                "type": "number",
+                "description": "Primary owner's confirmed percentage share. Required for joint ownership."
             },
             "monthly_contribution_amount": {
                 "type": "number",
@@ -230,7 +244,8 @@ effective_from: 2026-06-11
         },
         "required": [
             "account_name",
-            "current_value"
+            "current_value",
+            "ownership_type"
         ],
         "additionalProperties": false
     }

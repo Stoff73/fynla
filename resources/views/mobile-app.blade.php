@@ -6,16 +6,17 @@
     <meta name="theme-color" content="#F7F6F4">
     <title>Fynla</title>
     @php
-        $manifestPath = public_path('m-build/manifest.json');
+        $buildDirectory = app()->environment('e2e') ? 'm-e2e-build' : 'm-build';
+        $manifestPath = public_path($buildDirectory . '/manifest.json');
         $entryJs = null;
         $entryCss = [];
         if (is_file($manifestPath)) {
             $manifest = json_decode((string) file_get_contents($manifestPath), true) ?: [];
             $entry = $manifest['resources/mobile/main.js'] ?? null;
             if ($entry) {
-                $entryJs = asset('m-build/' . $entry['file']);
+                $entryJs = asset($buildDirectory . '/' . $entry['file']);
                 foreach (($entry['css'] ?? []) as $css) {
-                    $entryCss[] = asset('m-build/' . $css);
+                    $entryCss[] = asset($buildDirectory . '/' . $css);
                 }
             }
         }

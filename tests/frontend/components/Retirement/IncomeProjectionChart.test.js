@@ -103,7 +103,7 @@ describe('IncomeProjectionChart', () => {
     expect(chartOptions.chart.stacked).toBe(true);
   });
 
-  it('includes DC pension series', () => {
+  it('includes the Defined Contribution Pension series', () => {
     const store = createMockStore(
       defaultDCPensions,
       defaultDBPensions,
@@ -120,11 +120,11 @@ describe('IncomeProjectionChart', () => {
     });
 
     const series = wrapper.vm.series;
-    const dcSeries = series.find((s) => s.name === 'DC Pension');
+    const dcSeries = series.find((s) => s.name === 'Defined Contribution Pension');
     expect(dcSeries).toBeDefined();
   });
 
-  it('includes DB pension series', () => {
+  it('includes the Defined Benefit Pension series', () => {
     const store = createMockStore(
       defaultDCPensions,
       defaultDBPensions,
@@ -141,7 +141,7 @@ describe('IncomeProjectionChart', () => {
     });
 
     const series = wrapper.vm.series;
-    const dbSeries = series.find((s) => s.name === 'DB Pension');
+    const dbSeries = series.find((s) => s.name === 'Defined Benefit Pension');
     expect(dbSeries).toBeDefined();
   });
 
@@ -207,7 +207,7 @@ describe('IncomeProjectionChart', () => {
     expect(ages[ages.length - 1]).toBe(90); // Life expectancy
   });
 
-  it('calculates DC income using 4% rule', () => {
+  it('calculates Defined Contribution income from the pot projected to retirement', () => {
     const store = createMockStore(
       defaultDCPensions,
       defaultDBPensions,
@@ -224,8 +224,8 @@ describe('IncomeProjectionChart', () => {
     });
 
     const dcIncomeData = wrapper.vm.dcIncomeData;
-    // £200,000 * 4% = £8,000 per year
-    expect(dcIncomeData[0]).toBeCloseTo(8000, 0);
+    // £100,000 grown at 5% for 22 years, then a 4% annual drawdown.
+    expect(dcIncomeData[0]).toBe(11701);
   });
 
   it('projects DB pension correctly', () => {
@@ -287,9 +287,9 @@ describe('IncomeProjectionChart', () => {
     });
 
     const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.colors.length).toBeGreaterThanOrEqual(3);
+    expect(chartOptions.colours.length).toBeGreaterThanOrEqual(3);
     // Colors should be unique
-    const uniqueColors = new Set(chartOptions.colors);
+    const uniqueColors = new Set(chartOptions.colours);
     expect(uniqueColors.size).toBeGreaterThanOrEqual(3);
   });
 
@@ -311,7 +311,9 @@ describe('IncomeProjectionChart', () => {
 
     const chartOptions = wrapper.vm.chartOptions;
     expect(chartOptions.tooltip).toBeDefined();
-    expect(chartOptions.tooltip.enabled).toBe(true);
+    expect(chartOptions.tooltip.shared).toBe(true);
+    expect(chartOptions.tooltip.intersect).toBe(false);
+    expect(chartOptions.tooltip.y.formatter(15000)).toBe('£15,000');
   });
 
   it('formats y-axis as currency', () => {

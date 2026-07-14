@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\TaxConfiguration;
 use App\Services\Onboarding\FunnelIncomeBand;
+use App\Services\TaxConfigService;
 
 it('knows the funnel band keys', function () {
     expect(FunnelIncomeBand::isKnown('upto_50270'))->toBeTrue()
@@ -50,4 +52,22 @@ it('returns a human label for each band and empty for unknown', function () {
         ->and(FunnelIncomeBand::label('zero'))->toBe('no income')
         ->and(FunnelIncomeBand::label('over_125140'))->toBe('over £125,140')
         ->and(FunnelIncomeBand::label('nonsense'))->toBe('');
+});
+
+it('derives ranges, labels and assumptions from the active tax configuration', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $data['income_tax']['personal_allowance_taper_threshold'] = 110000;
+    $data['income_tax']['additional_rate_threshold'] = 140000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+
+    expect(FunnelIncomeBand::inBand('upto_50270', 55000))->toBeTrue()
+        ->and(FunnelIncomeBand::inBand('upto_50270', 60001))->toBeFalse()
+        ->and(FunnelIncomeBand::inBand('100001_125140', 135140))->toBeTrue()
+        ->and(FunnelIncomeBand::inBand('over_125140', 135141))->toBeTrue()
+        ->and(FunnelIncomeBand::label('upto_50270'))->toBe('up to £60,000')
+        ->and(FunnelIncomeBand::label('100001_125140'))->toBe('£110,001–£135,140')
+        ->and(FunnelIncomeBand::assumedIncome('100001_125140'))->toBe(135140);
 });

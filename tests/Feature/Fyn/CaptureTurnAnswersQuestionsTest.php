@@ -57,7 +57,18 @@ it('softens the two FR-M14 absolutes that conflict with the exception', function
 
     // ...and the FR-M14 guardrail's "Do NOT ask any question" is now scoped
     // to everything OUTSIDE the exception, so the protection survives.
-    expect($rendered)->toContain('Outside the QUESTION EXCEPTION above, do NOT ask any question');
+    expect($rendered)->toContain('Outside the QUESTION EXCEPTION and')
+        ->and($rendered)->toContain('CAPTURE ACCURACY RULE above, do NOT ask any question');
+});
+
+it('requires explicit ownership and ISA subtype before creating an asset', function () {
+    $rendered = FynCaptureTurnInstructions::render('SaveTax', 'create_savings_account');
+
+    expect($rendered)->toContain('CAPTURE ACCURACY RULE')
+        ->and($rendered)->toContain('never infer an ISA subtype or asset ownership')
+        ->and($rendered)->toContain('Never convert a missing ownership answer to individual')
+        ->and($rendered)->toContain('never convert a bare')
+        ->and($rendered)->toContain('ISA to a Cash ISA');
 });
 
 it('keeps the unified and legacy capture templates in lockstep', function () {
@@ -79,7 +90,7 @@ it('keeps the unified and legacy capture templates in lockstep', function () {
         // softened absolutes (the "Do NOT greet" line minus follow-up
         // questions, and the "Outside the QUESTION EXCEPTION above" prefix).
         // Everything in this window is slot-free, so byte-identity holds.
-        $endMarker = 'Outside the QUESTION EXCEPTION above, do NOT ask any question';
+        $endMarker = 'CAPTURE ACCURACY RULE above, do NOT ask any question';
         $start = strpos($text, 'QUESTION EXCEPTION');
         $end = strpos($text, $endMarker);
         expect($start)->not->toBeFalse();

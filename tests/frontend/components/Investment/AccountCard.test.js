@@ -1,271 +1,217 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import AccountCard from '@/components/Investment/AccountCard.vue';
+import { createStore } from 'vuex';
+import AccountStrategyCard from '@/components/Investment/AccountStrategyCard.vue';
 
-describe('AccountCard', () => {
-  const mockISAAccount = {
+describe('AccountStrategyCard', () => {
+  const baseAccount = {
     id: 1,
     account_type: 'isa',
-    provider: 'Vanguard',
-    platform: 'Investment Account',
-    platform_fee_percent: 0.15,
     current_value: 25000,
-    holdings: [{ id: 1 }, { id: 2 }, { id: 3 }],
-    isa_type: 'stocks_and_shares',
+    contributions_ytd: 5000,
     isa_subscription_current_year: 5000,
+    platform_fee_type: 'percentage',
+    platform_fee_percent: 0.15,
+    holdings: [
+      { id: 1, fund_name: 'Global Equity', asset_type: 'equity', current_value: 10000, ocf_percent: 0.15 },
+      { id: 2, fund_name: 'Bond Fund', asset_type: 'bonds', current_value: 8000, ocf_percent: 0.1 },
+      { id: 3, fund_name: 'Property Fund', asset_type: 'property', current_value: 7000, ocf_percent: 0.2 },
+    ],
   };
 
-  const mockGIAAccount = {
-    id: 2,
-    account_type: 'gia',
-    provider: 'Hargreaves Lansdown',
-    platform: 'Fund & Share Account',
-    platform_fee_percent: 0.45,
-    current_value: 50000,
-    holdings: [{ id: 4 }, { id: 5 }],
+  const mountCard = ({ account = baseAccount, hasRiskProfile = true, rebalancingData = null } = {}) => {
+    const store = createStore({
+      modules: {
+        investment: {
+          namespaced: true,
+          getters: { hasRiskProfile: () => hasRiskProfile },
+        },
+        taxConfig: {
+          namespaced: true,
+          getters: { isaAnnualAllowance: () => 20000 },
+        },
+      },
+    });
+
+    return mount(AccountStrategyCard, {
+      props: { account, rebalancingData },
+      global: { plugins: [store] },
+    });
   };
 
-  it('renders with ISA account props', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
+  it('renders the live strategies card', () => {
+    const wrapper = mountCard();
 
     expect(wrapper.exists()).toBe(true);
-    expect(wrapper.text()).toContain('Vanguard');
-    expect(wrapper.text()).toContain('£25,000');
-    expect(wrapper.text()).toContain('3');
+    expect(wrapper.text()).toContain('Strategies');
   });
 
-  it('renders with GIA account props', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockGIAAccount,
+  it('recommends adding holdings when an account is empty', () => {
+    const wrapper = mountCard({
+      account: { ...baseAccount, holdings: [] },
+    });
+
+    expect(wrapper.text()).toContain('Add Your Holdings');
+  });
+
+  it('recommends completing the risk profile when it is missing', () => {
+    const wrapper = mountCard({ hasRiskProfile: false });
+
+    expect(wrapper.text()).toContain('Set Risk Profile');
+  });
+
+  it('calculates percentage platform fees with weighted holding charges', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        platform_fee_percent: 0.6,
+        holdings: baseAccount.holdings.map(holding => ({ ...holding, ocf_percent: 0.3 })),
       },
     });
 
-    expect(wrapper.exists()).toBe(true);
-    expect(wrapper.text()).toContain('Hargreaves Lansdown');
-    expect(wrapper.text()).toContain('£50,000');
-    expect(wrapper.text()).toContain('2');
+    const recommendation = wrapper.vm.accountRecommendations.find(rec => rec.title === 'Review Account Fees');
+    expect(recommendation.description).toContain('0.90%');
+    expect(recommendation.description).toContain('£225');
   });
 
-  it('displays ISA badge with green color', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
+  it('annualises a monthly fixed platform fee', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        current_value: 10000,
+        platform_fee_type: 'fixed',
+        platform_fee_amount: 10,
+        platform_fee_frequency: 'monthly',
+        holdings: [],
       },
     });
 
-    const html = wrapper.html();
-    expect(html).toContain('ISA');
-    expect(html).toMatch(/bg-green-100.*text-green-800/);
+    expect(wrapper.text()).toContain('Review Account Fees');
+    expect(wrapper.text()).toContain('£120');
   });
 
-  it('displays GIA badge with blue color', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockGIAAccount,
+  it('identifies a concentrated holding using specific allocation data', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        holdings: [
+          { fund_name: 'Global Equity', asset_type: 'equity', current_value: 18000, ocf_percent: 0.1 },
+          { fund_name: 'Bond Fund', asset_type: 'bonds', current_value: 7000, ocf_percent: 0.1 },
+        ],
       },
     });
 
-    const html = wrapper.html();
-    expect(html).toContain('General Investment Account');
-    expect(html).toMatch(/bg-blue-100.*text-blue-800/);
+    expect(wrapper.text()).toContain('High Concentration');
+    expect(wrapper.text()).toContain('72%');
   });
 
-  it('displays SIPP badge with purple color', () => {
-    const sippAccount = { ...mockGIAAccount, account_type: 'sipp' };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: sippAccount,
+  it('identifies limited asset-class diversification', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        holdings: [
+          { fund_name: 'Fund One', asset_type: 'equity', current_value: 12000, ocf_percent: 0.1 },
+          { fund_name: 'Fund Two', asset_type: 'equity', current_value: 13000, ocf_percent: 0.1 },
+        ],
       },
     });
 
-    const html = wrapper.html();
-    expect(html).toContain('SIPP');
-    expect(html).toMatch(/bg-purple-100.*text-purple-800/);
+    expect(wrapper.text()).toContain('Limited Diversification');
+    expect(wrapper.text()).toContain('Equity');
   });
 
-  it('displays platform fee when present', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
+  it('identifies individual holdings with high fees', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        holdings: baseAccount.holdings.map((holding, index) => ({
+          ...holding,
+          ocf_percent: index === 0 ? 0.9 : 0.1,
+        })),
       },
     });
 
-    expect(wrapper.text()).toContain('0.15');
-    expect(wrapper.text()).toContain('Platform Fee');
+    expect(wrapper.text()).toContain('High-Fee Holdings');
+    expect(wrapper.text()).toContain('1 holding(s)');
   });
 
-  it('hides platform fee section when not present', () => {
-    const accountWithoutFee = { ...mockISAAccount, platform_fee_percent: null };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: accountWithoutFee,
+  it('uses the configured ISA allowance when calculating the remaining amount', () => {
+    const wrapper = mountCard();
+
+    expect(wrapper.text()).toContain('ISA Allowance Available');
+    expect(wrapper.text()).toContain('£15,000');
+  });
+
+  it('recommends rebalancing when allocation drift exceeds the threshold', () => {
+    const wrapper = mountCard({
+      rebalancingData: {
+        drift_analysis: { needs_rebalancing: true, drift_score: 8.2 },
       },
     });
 
-    expect(wrapper.text()).not.toContain('Platform Fee');
+    expect(wrapper.text()).toContain('Rebalancing Needed');
+    expect(wrapper.text()).toContain('8.2%');
   });
 
-  it('displays ISA information box for ISA accounts', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
+  it('limits the visible recommendations to three', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        platform_fee_percent: 1,
+        holdings: [],
+      },
+      hasRiskProfile: false,
+    });
+
+    expect(wrapper.findAll('.strategy-card')).toHaveLength(3);
+  });
+
+  it('emits add-holding for the empty-account recommendation', async () => {
+    const wrapper = mountCard({ account: { ...baseAccount, holdings: [] } });
+
+    await wrapper.find('.strategy-card').trigger('click');
+
+    expect(wrapper.emitted('add-holding')).toEqual([[]]);
+  });
+
+  it('emits the requested tab for an actionable recommendation', async () => {
+    const wrapper = mountCard({
+      account: { ...baseAccount, platform_fee_percent: 1 },
+    });
+    const feeCard = wrapper.findAll('.strategy-card').find(card => card.text().includes('Review Account Fees'));
+
+    await feeCard.trigger('click');
+
+    expect(wrapper.emitted('change-tab')).toContainEqual(['fees']);
+  });
+
+  it('does not emit navigation for informational recommendations', async () => {
+    const wrapper = mountCard();
+    const allowanceCard = wrapper.findAll('.strategy-card').find(card => card.text().includes('ISA Allowance Available'));
+
+    await allowanceCard.trigger('click');
+
+    expect(wrapper.emitted('change-tab')).toBeUndefined();
+  });
+
+  it('uses the canonical palette for recommendation priority badges', () => {
+    const wrapper = mountCard();
+
+    expect(wrapper.vm.getPriorityBadgeClass(1)).toContain('bg-raspberry-500');
+    expect(wrapper.vm.getPriorityBadgeClass(3)).toContain('bg-violet-500');
+    expect(wrapper.vm.getPriorityBadgeClass(4)).toContain('bg-savannah-300');
+  });
+
+  it('shows the positive empty state when no recommendations apply', () => {
+    const wrapper = mountCard({
+      account: {
+        ...baseAccount,
+        account_type: 'nsi',
+        isa_subscription_current_year: null,
       },
     });
 
-    const html = wrapper.html();
-    expect(html).toContain('ISA Account');
-    expect(wrapper.text()).toContain('Tax-free wrapper');
-    expect(wrapper.text()).toContain('£20,000');
-  });
-
-  it('hides ISA information box for non-ISA accounts', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockGIAAccount,
-      },
-    });
-
-    expect(wrapper.text()).not.toContain('Tax-free wrapper');
-  });
-
-  it('displays holdings count correctly', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
-
-    expect(wrapper.text()).toContain('Holdings:');
-    expect(wrapper.text()).toContain('3');
-  });
-
-  it('displays zero holdings count when no holdings', () => {
-    const accountWithoutHoldings = { ...mockISAAccount, holdings: [] };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: accountWithoutHoldings,
-      },
-    });
-
-    expect(wrapper.text()).toContain('0');
-  });
-
-  it('formats currency values correctly', () => {
-    const accountWithLargeValue = { ...mockISAAccount, current_value: 123456 };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: accountWithLargeValue,
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toMatch(/£123,456|£123456/);
-  });
-
-  it('emits edit event when edit button is clicked', async () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
-
-    const editButton = wrapper.findAll('button')[0];
-    await editButton.trigger('click');
-
-    expect(wrapper.emitted('edit')).toBeTruthy();
-    expect(wrapper.emitted('edit')[0]).toEqual([mockISAAccount]);
-  });
-
-  it('emits delete event when delete button is clicked', async () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
-
-    const deleteButton = wrapper.findAll('button')[1];
-    await deleteButton.trigger('click');
-
-    expect(wrapper.emitted('delete')).toBeTruthy();
-    expect(wrapper.emitted('delete')[0]).toEqual([mockISAAccount]);
-  });
-
-  it('emits view-holdings event when View Holdings button is clicked', async () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
-
-    const viewHoldingsButton = wrapper.find('button.bg-blue-50');
-    await viewHoldingsButton.trigger('click');
-
-    expect(wrapper.emitted('view-holdings')).toBeTruthy();
-    expect(wrapper.emitted('view-holdings')[0]).toEqual([mockISAAccount]);
-  });
-
-  it('displays platform name when provided', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
-
-    expect(wrapper.text()).toContain('Investment Account');
-  });
-
-  it('displays fallback text when platform not provided', () => {
-    const accountWithoutPlatform = { ...mockISAAccount, platform: null };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: accountWithoutPlatform,
-      },
-    });
-
-    expect(wrapper.text()).toContain('Platform not specified');
-  });
-
-  it('handles accounts with other account type', () => {
-    const otherAccount = {
-      ...mockGIAAccount,
-      account_type: 'other',
-    };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: otherAccount,
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
-    const html = wrapper.html();
-    expect(html).toMatch(/bg-gray-100.*text-gray-800/);
-  });
-
-  it('handles zero account value', () => {
-    const zeroValueAccount = { ...mockISAAccount, current_value: 0 };
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: zeroValueAccount,
-      },
-    });
-
-    expect(wrapper.text()).toContain('£0');
-  });
-
-  it('applies hover effect class', () => {
-    const wrapper = mount(AccountCard, {
-      props: {
-        account: mockISAAccount,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toContain('hover:shadow-md');
-    expect(html).toContain('transition-shadow');
+    expect(wrapper.text()).toContain('Looking Good');
+    expect(wrapper.text()).toContain('No recommendations for this account');
   });
 });

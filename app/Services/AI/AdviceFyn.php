@@ -365,8 +365,6 @@ final class AdviceFyn
                 $currentRoute,
             );
 
-            yield ['type' => 'done'];
-
             return;
         }
 

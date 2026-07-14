@@ -1,71 +1,58 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import PersonalAccounts from '../../UserProfile/PersonalAccounts.vue';
 
 describe('PersonalAccounts.vue', () => {
   let wrapper;
   let store;
-  let mockActions;
+  let calculatePersonalAccounts;
 
-  beforeEach(() => {
-    mockActions = {
-      calculatePersonalAccounts: vi.fn(() => Promise.resolve()),
-      addLineItem: vi.fn(() => Promise.resolve()),
-      updateLineItem: vi.fn(() => Promise.resolve()),
-      deleteLineItem: vi.fn(() => Promise.resolve()),
-    };
+  const personalAccounts = {
+    profitAndLoss: {
+      totalIncome: 87000,
+      totalExpenses: 18000,
+      netProfitLoss: 69000,
+    },
+    cashflow: {
+      totalInflows: 75000,
+      totalOutflows: 18000,
+      netCashflow: 57000,
+    },
+    balanceSheet: {
+      totalAssets: 550000,
+      totalLiabilities: 300000,
+      totalEquity: 250000,
+    },
+  };
+
+  const spouseAccounts = {
+    profitAndLoss: { totalIncome: 42000 },
+    cashflow: { totalInflows: 42000 },
+    balanceSheet: { totalAssets: 100000 },
+  };
+
+  beforeEach(async () => {
+    window.localStorage.clear();
+    calculatePersonalAccounts = vi.fn(() => Promise.resolve());
 
     store = createStore({
       modules: {
         userProfile: {
           namespaced: true,
-          state: {
-            personalAccounts: {
-              profit_and_loss: {
-                income: [
-                  { line_item: 'Employment Income', amount: 75000 },
-                  { line_item: 'Rental Income', amount: 12000 },
-                ],
-                total_income: 87000,
-                expenses: [
-                  { line_item: 'Mortgage Payments', amount: 18000 },
-                ],
-                total_expenses: 18000,
-                net_profit_loss: 69000,
-              },
-              cashflow: {
-                inflows: [
-                  { line_item: 'Employment Income', amount: 75000 },
-                ],
-                total_inflows: 75000,
-                outflows: [
-                  { line_item: 'Mortgage Payments', amount: 18000 },
-                ],
-                total_outflows: 18000,
-                net_cashflow: 57000,
-              },
-              balance_sheet: {
-                assets: [
-                  { line_item: 'Properties', amount: 500000 },
-                  { line_item: 'Investments', amount: 50000 },
-                ],
-                total_assets: 550000,
-                liabilities: [
-                  { line_item: 'Mortgages', amount: 300000 },
-                ],
-                total_liabilities: 300000,
-                total_equity: 250000,
-              },
-            },
+          state: () => ({
+            personalAccounts,
+            spouseAccounts,
             loading: false,
-            error: null,
-          },
+          }),
           getters: {
             personalAccounts: (state) => state.personalAccounts,
+            spouseAccounts: (state) => state.spouseAccounts,
             loading: (state) => state.loading,
           },
-          actions: mockActions,
+          actions: {
+            calculatePersonalAccounts,
+          },
         },
       },
     });
@@ -74,135 +61,110 @@ describe('PersonalAccounts.vue', () => {
       global: {
         plugins: [store],
         stubs: {
-          apexchart: {
-            template: '<div class="apexchart-stub"></div>',
-            props: ['options', 'series', 'type', 'height'],
-          },
-          ProfitAndLossView: {
-            template: '<div class="profit-loss-stub"></div>',
-            props: ['data'],
+          BalanceSheetView: {
+            name: 'BalanceSheetView',
+            props: ['data', 'spouseData'],
+            template: '<div class="balance-sheet-stub">Balance sheet</div>',
           },
           CashflowView: {
-            template: '<div class="cashflow-stub"></div>',
-            props: ['data'],
+            name: 'CashflowView',
+            props: ['data', 'spouseData'],
+            template: '<div class="cashflow-stub">Cashflow statement</div>',
           },
-          BalanceSheetView: {
-            template: '<div class="balance-sheet-stub"></div>',
-            props: ['data'],
+          ProfitAndLossView: {
+            name: 'ProfitAndLossView',
+            props: ['data', 'spouseData'],
+            template: '<div class="profit-loss-stub">Profit and loss statement</div>',
           },
         },
       },
     });
+    await flushPromises();
   });
 
-  it('renders personal accounts component', () => {
-    expect(wrapper.find('h2').text()).toBe('Personal Accounts');
+  it('renders the personal accounts heading and description', () => {
+    expect(wrapper.get('h2').text()).toBe('Personal Accounts');
+    expect(wrapper.text()).toContain('Auto-calculated financial statements');
   });
 
-  it('has tab selector for P&L, Cashflow, and Balance Sheet', () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-    expect(tabs.length).toBe(3);
-    expect(tabs[0].text()).toContain('Profit & Loss');
-    expect(tabs[1].text()).toContain('Cashflow');
-    expect(tabs[2].text()).toContain('Balance Sheet');
+  it('renders the current balance-sheet, cashflow, and profit-and-loss tabs', () => {
+    const tabs = wrapper.findAll('nav[aria-label="Tabs"] button');
+    expect(tabs.map((tab) => tab.text())).toEqual([
+      'Balance Sheet',
+      'Cashflow',
+      'Profit & Loss',
+    ]);
   });
 
-  it('shows Profit & Loss tab by default', () => {
-    const activeTab = wrapper.find('button[role="tab"][aria-selected="true"]');
-    expect(activeTab.text()).toContain('Profit & Loss');
+  it('shows the balance sheet by default', () => {
+    expect(wrapper.vm.activeTab).toBe('balance_sheet');
+    expect(wrapper.find('.balance-sheet-stub').isVisible()).toBe(true);
+    expect(wrapper.find('.cashflow-stub').isVisible()).toBe(false);
+    expect(wrapper.find('.profit-loss-stub').isVisible()).toBe(false);
   });
 
-  it('switches tabs when clicked', async () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
+  it('switches to the cashflow statement', async () => {
+    const tabs = wrapper.findAll('nav[aria-label="Tabs"] button');
     await tabs[1].trigger('click');
 
     expect(wrapper.vm.activeTab).toBe('cashflow');
+    expect(wrapper.find('.cashflow-stub').isVisible()).toBe(true);
   });
 
-  it('has date range picker inputs', () => {
-    expect(wrapper.find('input[type="date"][name="start_date"]').exists() ||
-           wrapper.find('input[placeholder*="Start"]').exists()).toBe(true);
-    expect(wrapper.find('input[type="date"][name="end_date"]').exists() ||
-           wrapper.find('input[placeholder*="End"]').exists()).toBe(true);
-  });
-
-  it('has Calculate button', () => {
-    const calculateButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Calculate')
-    );
-    expect(calculateButton).toBeDefined();
-  });
-
-  it('calls calculatePersonalAccounts when Calculate button is clicked', async () => {
-    const calculateButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Calculate')
-    );
-
-    if (calculateButton) {
-      await calculateButton.trigger('click');
-      expect(mockActions.calculatePersonalAccounts).toHaveBeenCalled();
-    }
-  });
-
-  it('displays chart visualization', () => {
-    const chart = wrapper.findComponent({ name: 'apexchart' });
-    expect(chart.exists()).toBe(true);
-  });
-
-  it('renders ProfitAndLossView for P&L tab', async () => {
-    await wrapper.vm.$nextTick();
-    const profitLossView = wrapper.findComponent({ name: 'ProfitAndLossView' });
-    expect(profitLossView.exists()).toBe(true);
-  });
-
-  it('renders CashflowView for Cashflow tab', async () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
-    await tabs[1].trigger('click');
-    await wrapper.vm.$nextTick();
-
-    const cashflowView = wrapper.findComponent({ name: 'CashflowView' });
-    expect(cashflowView.exists()).toBe(true);
-  });
-
-  it('renders BalanceSheetView for Balance Sheet tab', async () => {
-    const tabs = wrapper.findAll('button[role="tab"]');
+  it('switches to the profit-and-loss statement', async () => {
+    const tabs = wrapper.findAll('nav[aria-label="Tabs"] button');
     await tabs[2].trigger('click');
-    await wrapper.vm.$nextTick();
 
-    const balanceSheetView = wrapper.findComponent({ name: 'BalanceSheetView' });
-    expect(balanceSheetView.exists()).toBe(true);
+    expect(wrapper.vm.activeTab).toBe('profit_loss');
+    expect(wrapper.find('.profit-loss-stub').isVisible()).toBe(true);
   });
 
-  it('displays totals correctly', () => {
-    // Check if totals are displayed in the component
-    expect(wrapper.html()).toContain('87000'); // total_income
-    expect(wrapper.html()).toContain('69000'); // net_profit_loss
+  it('renders start, end, and balance-sheet dates', () => {
+    expect(wrapper.get('#start_date').attributes('type')).toBe('date');
+    expect(wrapper.get('#end_date').attributes('type')).toBe('date');
+    expect(wrapper.get('#as_of_date').attributes('type')).toBe('date');
+    expect(wrapper.get('#start_date').element.value).toMatch(/^\d{4}-04-06$/);
+    expect(wrapper.get('#end_date').element.value).toMatch(/^\d{4}-04-05$/);
   });
 
-  it('formats currency values', () => {
-    // Currency should be formatted with £ symbol
-    expect(wrapper.html()).toContain('£');
+  it('auto-calculates the accounts on mount', () => {
+    expect(calculatePersonalAccounts).toHaveBeenCalledTimes(1);
+    expect(calculatePersonalAccounts.mock.calls[0][1]).toEqual(wrapper.vm.period);
   });
 
-  it('has Export to CSV button', () => {
-    const exportButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Export') || btn.text().includes('CSV')
-    );
-    expect(exportButton).toBeDefined();
+  it('recalculates when a period date changes', async () => {
+    await wrapper.get('#start_date').setValue('2025-04-06');
+    await flushPromises();
+
+    expect(calculatePersonalAccounts).toHaveBeenCalledTimes(2);
+    expect(calculatePersonalAccounts.mock.calls[1][1]).toMatchObject({
+      start_date: '2025-04-06',
+    });
   });
 
-  it('shows loading state when calculating', async () => {
+  it('passes the balance-sheet data for both account holders', () => {
+    const view = wrapper.findComponent({ name: 'BalanceSheetView' });
+    expect(view.props('data')).toEqual(personalAccounts.balanceSheet);
+    expect(view.props('spouseData')).toEqual(spouseAccounts.balanceSheet);
+  });
+
+  it('passes the cashflow data for both account holders', () => {
+    const view = wrapper.findComponent({ name: 'CashflowView' });
+    expect(view.props('data')).toEqual(personalAccounts.cashflow);
+    expect(view.props('spouseData')).toEqual(spouseAccounts.cashflow);
+  });
+
+  it('passes the profit-and-loss data for both account holders', () => {
+    const view = wrapper.findComponent({ name: 'ProfitAndLossView' });
+    expect(view.props('data')).toEqual(personalAccounts.profitAndLoss);
+    expect(view.props('spouseData')).toEqual(spouseAccounts.profitAndLoss);
+  });
+
+  it('shows the calculating state while data is loading', async () => {
     store.state.userProfile.loading = true;
     await wrapper.vm.$nextTick();
 
-    // Component should show loading indicator
-    expect(wrapper.vm.$store.state.userProfile.loading).toBe(true);
-  });
-
-  it('displays error message when calculation fails', async () => {
-    store.state.userProfile.error = 'Calculation failed';
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.vm.$store.state.userProfile.error).toBe('Calculation failed');
+    expect(wrapper.text()).toContain('Calculating accounts...');
+    expect(wrapper.find('.balance-sheet-stub').exists()).toBe(false);
   });
 });

@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Agents\CoordinatingAgent;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyMath;
@@ -20,7 +19,7 @@ beforeEach(function () {
 it('create_investment_account persists an InvestmentAccount row directly', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'Vanguard Stocks & Shares ISA',
         'provider' => 'Vanguard',
         'account_type' => 'stocks_shares_isa',
@@ -47,7 +46,7 @@ it('create_investment_account persists an InvestmentAccount row directly', funct
 it('create_investment_account records the ISA subscription this tax year and counts it toward the allowance', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'Vanguard Stocks & Shares ISA',
         'account_type' => 'stocks_shares_isa',
         'current_value' => 30000,
@@ -67,7 +66,7 @@ it('create_investment_account records the ISA subscription this tax year and cou
 it('create_investment_account maps personal_investment_account to gia', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'HL GIA',
         'account_type' => 'personal_investment_account',
         'current_value' => 10000,
@@ -79,7 +78,7 @@ it('create_investment_account maps personal_investment_account to gia', function
 it('create_investment_account feeds taxable dividend income onto the user profile', function (): void {
     $user = User::factory()->create(['is_preview_user' => false, 'annual_dividend_income' => null]);
 
-    app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'General Investment Account',
         'account_type' => 'personal_investment_account',
         'current_value' => 40000,
@@ -91,7 +90,7 @@ it('create_investment_account feeds taxable dividend income onto the user profil
     expect((float) $user->fresh()->annual_dividend_income)->toBe(800.00);
 
     // A second dividend-paying account accumulates.
-    app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'Share Trading Account',
         'account_type' => 'personal_investment_account',
         'current_value' => 5000,
@@ -104,7 +103,7 @@ it('create_investment_account feeds taxable dividend income onto the user profil
 it('create_investment_account never counts ISA dividends against the Dividend Allowance', function (): void {
     $user = User::factory()->create(['is_preview_user' => false, 'annual_dividend_income' => null]);
 
-    app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'Vanguard Stocks & Shares ISA',
         'account_type' => 'stocks_shares_isa',
         'current_value' => 30000,
@@ -119,7 +118,7 @@ it('create_investment_account passes through specialised types unchanged', funct
     $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
 
     foreach (['vct', 'eis', 'private_company', 'crowdfunding', 'saye'] as $type) {
-        $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+        $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
             'account_name' => "Test {$type}",
             'account_type' => $type,
             'current_value' => 1000,
@@ -133,7 +132,7 @@ it('create_investment_account passes through specialised types unchanged', funct
 it('create_investment_account returns validation_failed on missing required field', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
         'provider' => 'Vanguard',
     ], $user);
 
@@ -145,7 +144,7 @@ it('create_investment_account returns validation_failed on missing required fiel
 it('create_investment_account blocks preview users', function (): void {
     $user = User::factory()->create(['is_preview_user' => true]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'Preview',
         'current_value' => 1000,
     ], $user);
@@ -157,7 +156,7 @@ it('create_investment_account blocks preview users', function (): void {
 it('create_investment_account return shape has no fill_form action', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+    $result = $this->executeCaptureToolWithEvidence('create_investment_account', [
         'account_name' => 'Test',
         'current_value' => 100,
     ], $user);

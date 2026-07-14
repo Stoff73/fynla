@@ -1,3 +1,20 @@
+<?php
+
+use App\Services\Onboarding\FunnelIncomeBand;
+
+$incomeBandLabels = [
+    'upto_50270' => 'Basic-rate income range',
+    '50271_100000' => 'Higher-rate income range',
+    '100001_125140' => 'Personal Allowance taper range',
+    'over_125140' => 'Above the Personal Allowance taper range',
+];
+
+try {
+    $incomeBandLabels = FunnelIncomeBand::pageLabels();
+} catch (Throwable $e) {
+    report($e);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -164,7 +181,7 @@
         <p class="qr-q-sub">Your gross income before tax, including salary, self-employment, and pension income.</p>
         <div class="qr-options" role="group" aria-label="Annual income options">
           <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
-            <span class="qr-opt__label">Up to £50,270</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['upto_50270'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -173,7 +190,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="50271_100000" aria-pressed="false">
-            <span class="qr-opt__label">£50,271 to £100,000</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['50271_100000'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -182,7 +199,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="100001_125140" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 to £125,140</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['100001_125140'], ENT_QUOTES) ?></span>
             <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -192,7 +209,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="over_125140" aria-pressed="false">
-            <span class="qr-opt__label">Above £125,140</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['over_125140'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -246,7 +263,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
-            <span class="qr-opt__label">Up to £50,270</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['upto_50270'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -255,7 +272,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="50271_100000" aria-pressed="false">
-            <span class="qr-opt__label">£50,271 to £100,000</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['50271_100000'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -264,7 +281,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="100001_125140" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 to £125,140</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['100001_125140'], ENT_QUOTES) ?></span>
             <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -274,7 +291,7 @@
           </button>
 
           <button type="button" class="qr-opt" data-value="over_125140" aria-pressed="false">
-            <span class="qr-opt__label">Above £125,140</span>
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['over_125140'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>

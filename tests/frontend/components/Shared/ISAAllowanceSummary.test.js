@@ -1,359 +1,116 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import ISAAllowanceSummary from '@/components/Shared/ISAAllowanceSummary.vue';
 
+const createISAStore = (cash = 8000, stocks = 4000, allowance = 20000) => createStore({
+  modules: {
+    savings: {
+      namespaced: true,
+      getters: { currentYearISASubscription: () => cash },
+    },
+    investment: {
+      namespaced: true,
+      getters: { investmentISASubscription: () => stocks },
+    },
+    taxConfig: {
+      namespaced: true,
+      getters: { isaAnnualAllowance: () => allowance },
+    },
+  },
+});
+
 describe('ISAAllowanceSummary', () => {
-  let store;
-  let wrapper;
+  let router;
+
+  const mountSummary = (cash, stocks, allowance) => mount(ISAAllowanceSummary, {
+    global: {
+      plugins: [createISAStore(cash, stocks, allowance)],
+      mocks: { $router: router },
+    },
+  });
 
   beforeEach(() => {
-    // Create mock Vuex store with savings and investment modules
-    store = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 8000, // Cash ISA
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 4000, // Stocks & Shares ISA
-          },
-        },
-      },
-    });
+    router = { push: vi.fn() };
   });
 
-  it('renders correctly', () => {
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    expect(wrapper.find('h3').text()).toContain('ISA Allowance');
-    expect(wrapper.exists()).toBe(true);
+  it('renders the shared ISA allowance summary', () => {
+    const wrapper = mountSummary();
+    expect(wrapper.get('h3').text()).toContain('ISA Allowance');
   });
 
-  it('displays combined ISA usage from both modules', () => {
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    // Cash ISA: £8,000
+  it('combines cash and Stocks & Shares ISA subscriptions', () => {
+    const wrapper = mountSummary();
     expect(wrapper.vm.cashISAUsed).toBe(8000);
-
-    // Stocks & Shares ISA: £4,000
     expect(wrapper.vm.stocksISAUsed).toBe(4000);
-
-    // Total: £12,000
     expect(wrapper.vm.totalUsed).toBe(12000);
   });
 
-  it('calculates remaining allowance correctly', () => {
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    // Allowance: £20,000
-    // Used: £12,000
-    // Remaining: £8,000
-    expect(wrapper.vm.remaining).toBe(8000);
+  it('calculates the remaining configured allowance', () => {
+    expect(mountSummary().vm.remaining).toBe(8000);
   });
 
-  it('calculates percentage used correctly', () => {
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    // 12,000 / 20,000 = 60%
-    expect(wrapper.vm.usagePercent).toBe(60);
+  it('calculates percentage used', () => {
+    expect(mountSummary().vm.usagePercent).toBe(60);
   });
 
-  it('displays correct progress bar color for low usage (<50%)', () => {
-    const lowUsageStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 5000,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 2000,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [lowUsageStore],
-      },
-    });
-
-    // 7,000 / 20,000 = 35%
-    expect(wrapper.vm.progressBarClass).toBe('bg-green-600');
+  it('uses the success palette below half of the allowance', () => {
+    expect(mountSummary(5000, 2000).vm.progressBarClass).toBe('bg-spring-600');
   });
 
-  it('displays correct progress bar color for medium usage (50-75%)', () => {
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-      },
-    });
-
-    // 12,000 / 20,000 = 60%
-    expect(wrapper.vm.progressBarClass).toBe('bg-green-600');
+  it('keeps the success palette for medium usage', () => {
+    expect(mountSummary().vm.progressBarClass).toBe('bg-spring-600');
   });
 
-  it('displays correct progress bar color for high usage (75-90%)', () => {
-    const highUsageStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 12000,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 5000,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [highUsageStore],
-      },
-    });
-
-    // 17,000 / 20,000 = 85% - should be orange (>=75%)
-    expect(wrapper.vm.progressBarClass).toBe('bg-orange-500');
+  it('uses the warning palette from seventy-five percent', () => {
+    expect(mountSummary(12000, 5000).vm.progressBarClass).toBe('bg-violet-500');
   });
 
-  it('displays correct progress bar color for very high usage (>=90%)', () => {
-    const veryHighUsageStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 10000,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 10000,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [veryHighUsageStore],
-      },
-    });
-
-    // 20,000 / 20,000 = 100% - should be orange (>=90%, not over limit)
-    expect(wrapper.vm.progressBarClass).toBe('bg-orange-500');
+  it('uses the warning palette at the full allowance', () => {
+    expect(mountSummary(10000, 10000).vm.progressBarClass).toBe('bg-violet-500');
   });
 
   it('handles zero ISA usage', () => {
-    const zeroStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 0,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 0,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [zeroStore],
-      },
-    });
-
+    const wrapper = mountSummary(0, 0);
     expect(wrapper.vm.totalUsed).toBe(0);
     expect(wrapper.vm.remaining).toBe(20000);
     expect(wrapper.vm.usagePercent).toBe(0);
   });
 
-  it('handles over-limit subscriptions', () => {
-    const overLimitStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 15000,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 10000,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [overLimitStore],
-      },
-    });
-
-    // Total: £25,000 (over £20,000 limit)
+  it('caps remaining allowance at zero when subscriptions exceed it', () => {
+    const wrapper = mountSummary(15000, 10000);
     expect(wrapper.vm.totalUsed).toBe(25000);
-
-    // Remaining should be 0 (capped)
     expect(wrapper.vm.remaining).toBe(0);
-
-    // Percentage > 100%
     expect(wrapper.vm.usagePercent).toBe(125);
-
-    // Should show warning
     expect(wrapper.vm.isOverLimit).toBe(true);
   });
 
-  it('displays warning for over-limit subscriptions', () => {
-    const overLimitStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => 15000,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => 10000,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [overLimitStore],
-      },
-    });
-
-    expect(wrapper.text()).toContain('exceeded');
+  it('renders the over-limit warning', () => {
+    expect(mountSummary(15000, 10000).text()).toContain('ISA allowance exceeded');
   });
 
-  it('formats currency correctly', () => {
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-      },
-    });
-
+  it('formats currency consistently', () => {
+    const wrapper = mountSummary();
     expect(wrapper.vm.formatCurrency(12000)).toBe('£12,000');
     expect(wrapper.vm.formatCurrency(8000)).toBe('£8,000');
     expect(wrapper.vm.formatCurrency(20000)).toBe('£20,000');
   });
 
-  it('navigates to Savings module when clicking Savings button', async () => {
-    const mockRouter = {
-      push: vi.fn(),
-    };
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const savingsButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Savings')
-    );
-
-    if (savingsButton) {
-      await savingsButton.trigger('click');
-      expect(mockRouter.push).toHaveBeenCalledWith('/savings');
-    }
+  it('navigates to Savings management', () => {
+    const wrapper = mountSummary();
+    wrapper.vm.navigateToSavings();
+    expect(router.push).toHaveBeenCalledWith('/savings');
   });
 
-  it('navigates to Investment module when clicking Investment button', async () => {
-    const mockRouter = {
-      push: vi.fn(),
-    };
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [store],
-        mocks: {
-          $router: mockRouter,
-        },
-      },
-    });
-
-    const investmentButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('Investment')
-    );
-
-    if (investmentButton) {
-      await investmentButton.trigger('click');
-      expect(mockRouter.push).toHaveBeenCalledWith('/investment');
-    }
+  it('navigates to Investment management', () => {
+    const wrapper = mountSummary();
+    wrapper.vm.navigateToInvestment();
+    expect(router.push).toHaveBeenCalledWith('/investment');
   });
 
-  it('handles missing getters gracefully', () => {
-    const emptyStore = createStore({
-      modules: {
-        savings: {
-          namespaced: true,
-          getters: {
-            currentYearISASubscription: () => undefined,
-          },
-        },
-        investment: {
-          namespaced: true,
-          getters: {
-            investmentISASubscription: () => undefined,
-          },
-        },
-      },
-    });
-
-    wrapper = mount(ISAAllowanceSummary, {
-      global: {
-        plugins: [emptyStore],
-      },
-    });
-
-    // Should default to 0
-    expect(wrapper.vm.cashISAUsed).toBe(0);
-    expect(wrapper.vm.stocksISAUsed).toBe(0);
-    expect(wrapper.vm.totalUsed).toBe(0);
+  it('uses the configured allowance rather than a test hardcode', () => {
+    const wrapper = mountSummary(2000, 1000, 24000);
+    expect(wrapper.vm.remaining).toBe(21000);
+    expect(wrapper.vm.formattedAllowance).toBe('£24,000');
   });
 });

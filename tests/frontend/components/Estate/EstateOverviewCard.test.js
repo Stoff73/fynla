@@ -1,167 +1,77 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import EstateOverviewCard from '@/components/Estate/EstateOverviewCard.vue';
 
 describe('EstateOverviewCard', () => {
-  it('renders with all required props', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 750000,
-        ihtLiability: 50000,
-        probateReadiness: 75,
-      },
-    });
+  let router;
 
-    expect(wrapper.exists()).toBe(true);
+  const mountCard = (props = {}) => mount(EstateOverviewCard, {
+    props: {
+      taxableEstate: 750000,
+      ihtLiability: 50000,
+      probateReadiness: 0,
+      ...props,
+    },
+    global: {
+      mocks: {
+        $router: router,
+        $store: { state: { auth: { user: null } } },
+      },
+    },
   });
 
-  it('displays net worth correctly formatted', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 850000,
-        ihtLiability: 60000,
-        probateReadiness: 80,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/£850,000|850000/);
+  beforeEach(() => {
+    router = { push: vi.fn() };
   });
 
-  it('displays IHT liability with red color for high values', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 1000000,
-        ihtLiability: 200000, // High IHT
-        probateReadiness: 60,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/200,000|200000/);
-    expect(html).toMatch(/text-red-600/);
+  it('renders with the current required estate values', () => {
+    expect(mountCard().exists()).toBe(true);
   });
 
-  it('displays probate readiness percentage', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 500000,
-        ihtLiability: 0,
-        probateReadiness: 85,
-      },
-    });
-
-    expect(wrapper.vm.probateReadiness).toBe(85);
-    const html = wrapper.html();
-    expect(html).toMatch(/85%/);
+  it('formats the current taxable estate', () => {
+    expect(mountCard({ taxableEstate: 850000 }).text()).toContain('£850,000');
   });
 
-  it('displays probate readiness with correct color coding', () => {
-    const highReadiness = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 600000,
-        ihtLiability: 30000,
-        probateReadiness: 90,
-      },
-    });
-
-    expect(highReadiness.vm.probateReadinessColor).toMatch(/green/);
-
-    const mediumReadiness = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 600000,
-        ihtLiability: 30000,
-        probateReadiness: 60,
-      },
-    });
-
-    expect(mediumReadiness.vm.probateReadinessColor).toMatch(/orange/);
-
-    const lowReadiness = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 600000,
-        ihtLiability: 30000,
-        probateReadiness: 30,
-      },
-    });
-
-    expect(lowReadiness.vm.probateReadinessColor).toMatch(/red/);
+  it('uses the danger palette for a high Inheritance Tax liability', () => {
+    const wrapper = mountCard({ ihtLiability: 200000 });
+    expect(wrapper.text()).toContain('£200,000');
+    expect(wrapper.vm.ihtLiabilityColour).toContain('raspberry');
   });
 
-  it('emits click event when card is clicked', async () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 700000,
-        ihtLiability: 40000,
-        probateReadiness: 70,
-      },
-    });
+  it('uses the success palette when no Inheritance Tax is due', () => {
+    expect(mountCard({ ihtLiability: 0 }).vm.ihtLiabilityColour).toContain('spring');
+  });
 
+  it('renders supplied future estate and liability values', () => {
+    const text = mountCard({ futureTaxableEstate: 900000, futureIHTLiability: 160000 }).text();
+    expect(text).toContain('£900,000');
+    expect(text).toContain('£160,000');
+  });
+
+  it('derives a future liability when only a future taxable estate is supplied', () => {
+    const wrapper = mountCard({ futureTaxableEstate: 250000, futureIHTLiability: null });
+    expect(wrapper.vm.formattedFutureIHTLiability).toBe('£100,000');
+  });
+
+  it('labels married users as a joint-death calculation', () => {
+    expect(mountCard({ isMarried: true }).text()).toContain('Joint Death');
+  });
+
+  it('renders the supplied future-death age', () => {
+    expect(mountCard({ futureDeathAge: 85 }).text()).toContain('Death at Age 85');
+  });
+
+  it('navigates to estate planning when selected', async () => {
+    const wrapper = mountCard();
     await wrapper.trigger('click');
-    expect(wrapper.emitted()).toHaveProperty('click');
+    expect(router.push).toHaveBeenCalledWith('/estate');
   });
 
-  it('handles zero net worth', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 0,
-        ihtLiability: 0,
-        probateReadiness: 0,
-      },
-    });
-
-    expect(wrapper.vm.netWorth).toBe(0);
-    expect(wrapper.exists()).toBe(true);
+  it('recommends planning when a liability exists', () => {
+    expect(mountCard({ ihtLiability: 50000 }).text()).toContain('Inheritance Tax planning recommended');
   });
 
-  it('handles negative net worth (liabilities exceed assets)', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: -50000,
-        ihtLiability: 0,
-        probateReadiness: 20,
-      },
-    });
-
-    expect(wrapper.vm.netWorth).toBe(-50000);
-  });
-
-  it('displays estate planning card title', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 800000,
-        ihtLiability: 50000,
-        probateReadiness: 75,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/estate|planning/i);
-  });
-
-  it('shows IHT planning recommended banner when liability > 0', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 800000,
-        ihtLiability: 50000,
-        probateReadiness: 70,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/IHT planning recommended/i);
-  });
-
-  it('shows no IHT liability banner when liability is 0', () => {
-    const wrapper = mount(EstateOverviewCard, {
-      props: {
-        netWorth: 300000,
-        ihtLiability: 0,
-        probateReadiness: 90,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/No IHT liability forecast/i);
+  it('confirms when no liability is forecast', () => {
+    expect(mountCard({ ihtLiability: 0 }).text()).toContain('No Inheritance Tax liability forecast');
   });
 });

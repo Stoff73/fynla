@@ -140,6 +140,12 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api/v1')
                 ->group(base_path('routes/api_v1.php'));
 
+            if ($this->app->environment('e2e')) {
+                Route::middleware('api')
+                    ->prefix('__e2e')
+                    ->group(base_path('routes/e2e.php'));
+            }
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });

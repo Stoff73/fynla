@@ -1153,10 +1153,14 @@ class UserProfileService
         foreach ($liabilities as $liability) {
             if ($liability->monthly_payment > 0) {
                 // Adjust for joint ownership
-                $isJoint = $liability->ownership_type === 'joint';
+                $isJoint = in_array($liability->ownership_type, ['joint', 'tenants_in_common'], true);
                 $userIsOwner = $liability->user_id === $user->id;
+                $primaryPercentage = (float) ($liability->ownership_percentage ?? 50);
+                if ($primaryPercentage === 100.0) {
+                    $primaryPercentage = 50.0;
+                }
                 $ownershipPercentage = $isJoint
-                    ? ($userIsOwner ? ($liability->ownership_percentage ?? 50) : (100 - ($liability->ownership_percentage ?? 50)))
+                    ? ($userIsOwner ? $primaryPercentage : (100 - $primaryPercentage))
                     : 100;
 
                 // Apply ownership filter

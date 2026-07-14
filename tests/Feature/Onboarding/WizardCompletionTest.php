@@ -19,7 +19,14 @@ it('marks onboarding complete and clears the fyn step on POST /onboarding/comple
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
+        'active_campaign' => 'savetax',
+        'onboarding_fyn_path' => 'journey',
+        'onboarding_fyn_selection' => 'savetax',
         'onboarding_fyn_step' => 'path_choice',
+        'onboarding_fyn_context' => [
+            'paused_at_step' => 'path_choice',
+            'retained_key' => 'retained value',
+        ],
     ]);
     Sanctum::actingAs($user);
 
@@ -29,14 +36,25 @@ it('marks onboarding complete and clears the fyn step on POST /onboarding/comple
     $user->refresh();
     expect($user->onboarding_completed)->toBeTrue()
         ->and($user->onboarding_completed_at)->not->toBeNull()
-        ->and($user->onboarding_fyn_step)->toBeNull();
+        ->and($user->active_campaign)->toBeNull()
+        ->and($user->onboarding_fyn_path)->toBeNull()
+        ->and($user->onboarding_fyn_selection)->toBeNull()
+        ->and($user->onboarding_fyn_step)->toBeNull()
+        ->and($user->onboarding_fyn_context)->toBe(['retained_key' => 'retained value']);
 });
 
 it('marks onboarding complete and clears the fyn step on POST /onboarding/complete-quick', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
+        'active_campaign' => 'pensioncheck',
+        'onboarding_fyn_path' => 'journey',
+        'onboarding_fyn_selection' => 'pensioncheck',
         'onboarding_fyn_step' => 'path_choice',
+        'onboarding_fyn_context' => [
+            'paused_at_step' => 'path_choice',
+            'retained_key' => 'retained value',
+        ],
     ]);
     Sanctum::actingAs($user);
 
@@ -46,14 +64,25 @@ it('marks onboarding complete and clears the fyn step on POST /onboarding/comple
     $user->refresh();
     expect($user->onboarding_completed)->toBeTrue()
         ->and($user->onboarding_mode)->toBe('quick')
-        ->and($user->onboarding_fyn_step)->toBeNull();
+        ->and($user->active_campaign)->toBeNull()
+        ->and($user->onboarding_fyn_path)->toBeNull()
+        ->and($user->onboarding_fyn_selection)->toBeNull()
+        ->and($user->onboarding_fyn_step)->toBeNull()
+        ->and($user->onboarding_fyn_context)->toBe(['retained_key' => 'retained value']);
 });
 
 it('marks onboarding complete and clears the fyn step on POST /onboarding/skip-to-dashboard', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
+        'active_campaign' => 'savetax',
+        'onboarding_fyn_path' => 'journey',
+        'onboarding_fyn_selection' => 'savetax',
         'onboarding_fyn_step' => 'path_choice',
+        'onboarding_fyn_context' => [
+            'paused_at_step' => 'path_choice',
+            'retained_key' => 'retained value',
+        ],
         'life_stage' => 'young_family',
     ]);
     Sanctum::actingAs($user);
@@ -63,5 +92,9 @@ it('marks onboarding complete and clears the fyn step on POST /onboarding/skip-t
     $response->assertOk();
     $user->refresh();
     expect($user->onboarding_completed)->toBeTrue()
-        ->and($user->onboarding_fyn_step)->toBeNull();
+        ->and($user->active_campaign)->toBeNull()
+        ->and($user->onboarding_fyn_path)->toBeNull()
+        ->and($user->onboarding_fyn_selection)->toBeNull()
+        ->and($user->onboarding_fyn_step)->toBeNull()
+        ->and($user->onboarding_fyn_context)->toBe(['retained_key' => 'retained value']);
 });

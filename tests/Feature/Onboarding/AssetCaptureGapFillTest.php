@@ -96,7 +96,8 @@ it('synthesises fill_form events for entities the LLM dropped on protection', fu
                     && ($input['provider'] ?? null) === 'Vitality'
                     && (float) ($input['sum_assured'] ?? 0) === 100000.0;
             }),
-            Mockery::type(User::class)
+            Mockery::type(User::class),
+            $conversation->id,
         )
         ->andReturn([
             'action' => 'fill_form',

@@ -13,26 +13,29 @@ class SavingsAccountNormaliser
      * by SavingsStore::create(). Replicates the ownership / country logic
      * that previously lived in SavingsController::storeAccount (lines 266-285).
      */
-    public function fromForm(array $request): array
+    public function fromForm(array $request, bool $partial = false): array
     {
         $data = $request;
 
-        $data['ownership_type'] = $data['ownership_type'] ?? 'individual';
-
-        if (! isset($data['ownership_percentage'])) {
-            $data['ownership_percentage'] = 100.00;
+        if (! $partial) {
+            $data['ownership_type'] = $data['ownership_type'] ?? 'individual';
         }
 
-        if ($data['ownership_type'] === 'joint' && (float) $data['ownership_percentage'] === 100.00) {
+        $ownershipType = $data['ownership_type'] ?? null;
+        if (! $partial && $ownershipType === 'individual' && ! isset($data['ownership_percentage'])) {
+            $data['ownership_percentage'] = 100.00;
+        }
+        if (! $partial && $ownershipType === 'joint' && ! isset($data['ownership_percentage'])) {
             $data['ownership_percentage'] = 50.00;
         }
 
-        // Reset ownership to sole when switching back to individual.
+        // Reset ownership fields when switching back to individual.
         // Forces both fields regardless of what the caller passed — matches
         // SavingsController::updateAccount (lines 387-391).
-        if ($data['ownership_type'] === 'individual') {
+        if ($ownershipType === 'individual') {
             $data['joint_owner_id'] = null;
             $data['ownership_percentage'] = 100.00;
+            $data['trust_id'] = null;
         }
 
         // ISA accounts must always be United Kingdom.
@@ -62,6 +65,7 @@ class SavingsAccountNormaliser
             'current_balance' => (float) ($extraction['current_balance'] ?? 0),
             'ownership_type' => 'individual',
             'ownership_percentage' => 100.00,
+            'joint_owner_id' => null,
             'country' => $extraction['country'] ?? 'United Kingdom',
         ];
 
@@ -87,10 +91,11 @@ class SavingsAccountNormaliser
      */
     public function fromFyn(array $toolParams): array
     {
-        $isIsa = (bool) ($toolParams['is_isa'] ?? false);
         // An untyped account is a current/bank account by default, not a savings
         // product (CSJ: only store a savings type when the user stipulates one).
         $accountType = $toolParams['account_type'] ?? 'current_account';
+        $isIsa = in_array($accountType, ['cash_isa', 'junior_isa'], true)
+            || (bool) ($toolParams['is_isa'] ?? false);
 
         $dbAccountType = match ($accountType) {
             'fixed_term' => 'fixed',
@@ -116,8 +121,12 @@ class SavingsAccountNormaliser
             'access_type' => $accessType,
             'is_isa' => $isIsa,
             'is_emergency_fund' => (bool) ($toolParams['is_emergency_fund'] ?? false),
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100.00,
+            'ownership_type' => $toolParams['ownership_type'] ?? 'individual',
+            'ownership_percentage' => isset($toolParams['ownership_percentage'])
+                ? (float) $toolParams['ownership_percentage']
+                : 100.00,
+            'joint_owner_id' => $toolParams['joint_owner_id'] ?? null,
+            'trust_id' => $toolParams['trust_id'] ?? null,
         ];
 
         if (isset($toolParams['interest_rate'])) {

@@ -11,7 +11,7 @@ use App\Services\Stores\TierConfigurationStore;
  * Generic capability teaser-gate.
  *
  * Consults TierConfigurationStore (the single source of truth) via the
- * TierResolver boundary. Estate is the only SP2 consumer.
+ * TierResolver boundary. Estate and the Holistic Plan consume this gate.
  */
 class TeaserGate
 {

@@ -1,0 +1,105 @@
+name: Nightly Quality
+
+"on":
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-quality
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  APP_ENV: e2e
+  APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  DB_CONNECTION: mysql
+  DB_HOST: 127.0.0.1
+  DB_PORT: 3306
+  DB_USERNAME: root
+  DB_PASSWORD: password
+  DB_DATABASE: fynla_e2e_ci
+  CACHE_DRIVER: array
+  QUEUE_CONNECTION: sync
+
+jobs:
+  full-browser:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: fynla_e2e_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Check out dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install browser dependencies
+        run: npx playwright install --with-deps chromium webkit
+      - name: Prepare the end-to-end database
+        env:
+          E2E_DB_NAME: fynla_e2e_ci
+        run: bash scripts/e2e/prepare.sh
+      - name: Run the full browser suite
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
+        run: npm run test:e2e:full
+      - name: Upload full browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-full
+          path: |
+            playwright-report
+            test-results
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Audit PHP dependencies
+        run: composer audit
+      - name: Audit production frontend dependencies
+        run: npm audit --omit=dev

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\TaxConfiguration;
 use App\Services\Marketing\SaveTaxEstimateService;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 
 /**
@@ -58,18 +59,32 @@ it('merges the 60% trap into the tapered Personal Allowance card (no standalone 
     // gains "(tapered)" and the trap saving still drives the headline figure.
     $pa = collect($trap['allowances']['items'])->firstWhere('key', 'personal_allowance');
     expect($pa['on'])->toBeTrue()
+        ->and($pa['state'])->toBe('available')
         ->and($pa['label'])->toContain('(tapered)')
         ->and($pa['amount'])->toBe(0) // £125,140 → Personal Allowance fully tapered
         ->and(hasSaving($trap, 'tax_trap_60'))->toBeTrue();
 });
 
-it('greys the Personal Allowance for a working earner; shows it only for £0 or the £100k–£125,140 band', function () {
+it('keeps a fully tapered Personal Allowance actionable at the exact taper boundary', function () {
+    $result = $this->service->estimate([
+        'income' => '100001_125140',
+        'assets' => ['savings'],
+    ]);
+    $allowance = collect($result['allowances']['items'])
+        ->firstWhere('key', 'personal_allowance');
+
+    expect($allowance['amount'])->toBe(0)
+        ->and($allowance['state'])->toBe('available')
+        ->and($allowance['on'])->toBeTrue()
+        ->and($allowance['explanation'])->toContain('pension contribution may restore');
+});
+
+it('marks the Personal Allowance as automatic below the taper and actionable at the taper boundary', function () {
     // A working earner's Personal Allowance is used automatically by their
     // salary — greyed.
     expect(itemOn($this->service->estimate(['income' => 'upto_50270', 'assets' => []]), 'personal_allowance'))->toBeFalse()
         ->and(itemOn($this->service->estimate(['income' => '50271_100000', 'assets' => []]), 'personal_allowance'))->toBeFalse()
         ->and(itemOn($this->service->estimate(['income' => 'over_125140', 'assets' => []]), 'personal_allowance'))->toBeFalse()
-        // Shown only in the £100k–£125,140 taper (reclaimable via a pension).
         ->and(itemOn($this->service->estimate(['income' => '100001_125140', 'assets' => []]), 'personal_allowance'))->toBeTrue();
 });
 
@@ -85,12 +100,39 @@ it('always shows the Pension Annual Allowance — £60k for a worker (it is for 
     }
 });
 
-it('shows a non-earning spouse a £3,600 pension allowance and the £5,000 starting-rate card', function () {
+it('gives every allowance a truthful semantic state and explanation', function () {
+    $ordinaryWorker = $this->service->estimate([
+        'income' => '50271_100000',
+        'assets' => [],
+    ]);
+
+    foreach ($ordinaryWorker['allowances']['items'] as $item) {
+        expect($item)->toHaveKeys(['state', 'label', 'amount', 'explanation'])
+            ->and($item['state'])->toBeIn(['available', 'used_automatically', 'not_applicable'])
+            ->and(trim($item['explanation']))->not->toBe('');
+    }
+
+    expect(itemState($ordinaryWorker, 'personal_allowance'))->toBe('used_automatically')
+        ->and(itemState($ordinaryWorker, 'pension_aa'))->toBe('available')
+        ->and(itemState($ordinaryWorker, 'psa'))->toBe('not_applicable')
+        ->and(itemState($ordinaryWorker, 'dividend'))->toBe('not_applicable')
+        ->and(itemState($ordinaryWorker, 'cgt'))->toBe('not_applicable');
+
+    $pension = collect($ordinaryWorker['allowances']['items'])->firstWhere('key', 'pension_aa');
+    expect($pension['explanation'])
+        ->toContain('open or contribute to a pension')
+        ->toContain('earnings')
+        ->toContain('allowance rules')
+        ->toContain('personal circumstances');
+});
+
+it('shows a non-earning spouse the Pension Annual Allowance and explains the contribution limit', function () {
     $r = $this->service->estimate(['income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
 
     $spouseAa = collect($r['allowances']['items'])->firstWhere('key', 'spouse_pension_aa');
     expect($spouseAa['on'])->toBeTrue()
-        ->and($spouseAa['amount'])->toBe(3600) // capped at the relevant-earnings minimum, not £60k
+        ->and($spouseAa['amount'])->toBe(60000)
+        ->and($spouseAa['note'])->toContain('£3,600')
         ->and($spouseAa['note'])->toContain('£2,880'); // net contribution after basic-rate relief
 
     $spouseStart = collect($r['allowances']['items'])->firstWhere('key', 'spouse_starting_rate');
@@ -169,11 +211,49 @@ it('offers Marriage Allowance only to a basic-rate recipient with a £0 spouse',
     expect(lineAmount($higher, 'marriage_allowance'))->toBe(0);
 });
 
+it('derives Marriage Allowance tax saving from the configured basic rate', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    foreach ($data['income_tax']['bands'] as &$band) {
+        if (str_contains($band['name'], 'Basic')) {
+            $band['rate'] = 0.19;
+        }
+    }
+    unset($band);
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    app()->forgetInstance(SaveTaxEstimateService::class);
+
+    $result = app(SaveTaxEstimateService::class)->estimate([
+        'income' => 'upto_50270',
+        'spouse' => 'yes',
+        'spouseIncome' => 'zero',
+        'assets' => [],
+    ]);
+
+    expect(lineAmount($result, 'marriage_allowance'))->toBe(239);
+});
+
 it('does not add spouse levers when there is no spouse', function () {
     $result = $this->service->estimate(['income' => '50271_100000', 'assets' => []]);
 
     expect(lineAmount($result, 'spouse_pa'))->toBe(0)
         ->and(lineAmount($result, 'marriage_allowance'))->toBe(0);
+});
+
+it('does not assume a non-earning spouse when the spouse income answer is missing', function () {
+    $result = $this->service->estimate([
+        'income' => '50271_100000',
+        'spouse' => 'yes',
+        'assets' => ['savings'],
+    ]);
+
+    expect(collect($result['savings'])->pluck('key')->filter(
+        fn (string $key): bool => str_starts_with($key, 'spouse_') || $key === 'marriage_allowance'
+    )->all())->toBe([])
+        ->and(collect($result['allowances']['items'])->pluck('key')->filter(
+            fn (string $key): bool => str_starts_with($key, 'spouse_') || $key === 'marriage_allowance'
+        )->all())->toBe([]);
 });
 
 it('builds the allowances-available total and doubles per-person allowances when married', function () {
@@ -189,10 +269,10 @@ it('builds the allowances-available total and doubles per-person allowances when
         'assets' => ['savings', 'investments'],
     ]);
     // Single part 84,000 + spouse PA 12,570 (non-earner, shown) + starting rate
-    // 5,000 + spouse PSA 1,000 + spouse ISA 20,000 + spouse AA 3,600 (non-earner)
-    // + spouse dividend 500 + spouse CGT 3,000 = 129,670.
+    // 5,000 + spouse PSA 1,000 + spouse ISA 20,000 + spouse AA 60,000
+    // + spouse dividend 500 + spouse CGT 3,000 = 186,070.
     // Marriage Allowance NOT eligible (higher-rate primary).
-    expect($married['allowances']['total'])->toBe(129670);
+    expect($married['allowances']['total'])->toBe(186070);
 });
 
 it('gives the spouse every per-person allowance the primary gets (PSA, dividend, CGT)', function () {
@@ -226,11 +306,56 @@ it('reports the active tax year from config', function () {
     expect($result['tax_year'])->toBe('2026/27');
 });
 
+it('derives funnel band assumptions from the active tax configuration', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['tax_year'] = '2030/31';
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $data['income_tax']['personal_allowance_taper_threshold'] = 110000;
+    $data['income_tax']['additional_rate_threshold'] = 140000;
+    $configuration->update(['config_data' => $data]);
+    config()->set('onboarding.savetax_over_band_assumed_income', 165000);
+    app()->forgetInstance(TaxConfigService::class);
+    app()->forgetInstance(SaveTaxEstimateService::class);
+    $service = app(SaveTaxEstimateService::class);
+
+    expect($service->estimate(['income' => 'upto_50270', 'assets' => []])['assumed_income'])->toBe(60000)
+        ->and($service->estimate(['income' => '50271_100000', 'assets' => []])['assumed_income'])->toBe(110000)
+        ->and($service->estimate(['income' => '100001_125140', 'assets' => []])['assumed_income'])->toBe(135140)
+        ->and($service->estimate(['income' => 'over_125140', 'assets' => []])['assumed_income'])->toBe(165000)
+        ->and($service->estimate(['income' => 'upto_50270', 'assets' => []])['tax_year'])->toBe('2030/31');
+});
+
+it('fails closed when a required tax value is missing', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    unset($data['dividend_tax']['allowance']);
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    app()->forgetInstance(SaveTaxEstimateService::class);
+
+    expect(fn () => app(SaveTaxEstimateService::class)->estimate([
+        'income' => '50271_100000',
+        'assets' => ['investments'],
+    ]))->toThrow(LogicException::class, 'dividend_tax.allowance');
+});
+
 function itemOn(array $result, string $key): ?bool
 {
     foreach ($result['allowances']['items'] as $i) {
         if ($i['key'] === $key) {
             return $i['on'];
+        }
+    }
+
+    return null;
+}
+
+function itemState(array $result, string $key): ?string
+{
+    foreach ($result['allowances']['items'] as $item) {
+        if ($item['key'] === $key) {
+            return $item['state'] ?? null;
         }
     }
 
@@ -307,8 +432,9 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 }
 
                 // --- Allowance highlighting (on/off) correctness ---
-                // Personal Allowance: greyed for a working earner (auto-used);
-                // shown only in the £100k–£125,140 taper (primary has no £0 band).
+                // Personal Allowance: greyed for a working earner (auto-used).
+                // The funnel's taper band maps to the exact upper boundary,
+                // where pension action can restore the currently-zero amount.
                 expect(itemOn($r, 'personal_allowance'))->toBe($isTrap, "PA gating wrong [$label]");
                 expect(itemOn($r, 'isa'))->toBeTrue("ISA must always show [$label]");
                 // Pension Annual Allowance is always shown — a worker gets £60k.
@@ -331,9 +457,10 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 $marriageEligible = $married && $spouseOpt === 'zero' && $primaryBasic;
                 if ($married) {
                     expect(itemOn($r, 'marriage_allowance'))->toBe($marriageEligible, "MA eligibility wrong [$label]");
-                    // Spouse Personal Allowance: greyed for a working spouse; shown
-                    // only for a non-earner (£0) or the £100k–£125,140 taper.
-                    $spousePaClaimable = $spouseOpt === 'zero' || $spouseOpt === '100001_125140';
+                    // Spouse Personal Allowance: shown for a non-earner and at
+                    // the exact upper taper boundary, where pension action can
+                    // restore allowance even though the current amount is zero.
+                    $spousePaClaimable = in_array($spouseOpt, ['zero', '100001_125140'], true);
                     expect(itemOn($r, 'spouse_pa'))->toBe($spousePaClaimable, "spouse PA gating wrong [$label]");
                     // Spouse Pension AA always shown (£3,600 non-earner / £60k worker);
                     // spouse Starting Rate for Savings only for a non-earning spouse.

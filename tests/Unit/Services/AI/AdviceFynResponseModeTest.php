@@ -8,7 +8,7 @@ use App\Services\AI\AdviceFyn;
 /**
  * S1.8 — Response-mode classifier (INV-2.3.1).
  *
- * Every `QuerySchemas` constant must map to exactly one of three modes:
+ * Every `QuerySchemas` query-type constant must map to exactly one of three modes:
  * `'factual'`, `'recommendation'`, or `'out_of_remit'`. The map is the
  * single source of truth for whether a turn emits an `advice_response`
  * SSE panel.
@@ -33,6 +33,7 @@ describe('AdviceFyn::classifyResponseMode — exhaustive coverage', function () 
                 && ! str_ends_with($key, '_RECORD_TYPES')
                 && ! str_ends_with($key, '_RELATED')
                 && ! str_ends_with($key, '_PRIORITY')
+                && ! str_starts_with($key, 'REQUIREMENT_')
                 && $key !== 'RECORD_TYPES',
             ARRAY_FILTER_USE_BOTH,
         );

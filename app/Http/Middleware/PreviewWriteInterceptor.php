@@ -56,6 +56,7 @@ class PreviewWriteInterceptor
         'api/auth/logout',
         'api/auth/logout-beacon', // Beacon logout for browser/tab close
         'api/auth/register',      // Allow preview users to create real accounts
+        'api/auth/registration-handoff/resolve', // Allow campaign registration continuation
         'api/auth/verify-code',   // Required for registration verification
         'api/auth/resend-code',   // Required for registration verification
         'api/auth/password-reset/request',       // Allow password reset

@@ -457,7 +457,7 @@
         "type": "function",
         "function": {
             "name": "create_savings_account",
-            "description": "Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. \"I have a Halifax ISA and a Nationwide saver\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+            "description": "Create a bank account or savings product only after the user explicitly states its type and whether it is owned individually or jointly. Never infer Cash ISA from a bare ISA. Joint records also require the joint owner and the primary owner's percentage share. You MAY call this tool multiple times when every record has those facts.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -486,7 +486,7 @@
                                 "type": "null"
                             }
                         ],
-                        "description": "Product type. DEFAULT to \"current_account\" for any everyday bank or current account, and whenever the user does NOT name a specific savings product. Only use a savings type when the user explicitly says so: \"easy_access\" or \"savings_account\" for a savings account, \"notice\" for notice accounts, \"fixed\" for fixed term, \"cash_isa\" for a Cash ISA, \"premium_bonds\" for NS&I Premium Bonds, \"nsi\" for other NS&I products."
+                        "description": "Product type explicitly stated by the user. Cash ISA and Junior ISA are distinct; never default a bare ISA to either subtype."
                     },
                     "institution": {
                         "type": [
@@ -511,7 +511,7 @@
                             "boolean",
                             "null"
                         ],
-                        "description": "Whether this is a Cash ISA. Set true if user says \"ISA\" or \"tax-free\". Default false."
+                        "description": "Whether this is an explicitly confirmed ISA wrapper. Set true only after the user confirms Cash ISA or Junior ISA; never infer it from a bare or negated ISA reference."
                     },
                     "is_emergency_fund": {
                         "type": [
@@ -533,6 +533,37 @@
                             "null"
                         ],
                         "description": "For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. \"about £100 this year\" → 100). Leave null if not mentioned."
+                    },
+                    "ownership_type": {
+                        "type": "string",
+                        "enum": [
+                            "individual",
+                            "joint",
+                            "tenants_in_common",
+                            "trust"
+                        ],
+                        "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual. ISAs must be individual."
+                    },
+                    "joint_owner_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "User ID of the confirmed joint owner. Required when ownership is joint or tenants_in_common; otherwise null."
+                    },
+                    "trust_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership; otherwise null."
+                    },
+                    "ownership_percentage": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Primary owner's confirmed percentage share. Required when ownership is joint or tenants_in_common; otherwise 100 for individual."
                     }
                 },
                 "required": [
@@ -544,7 +575,11 @@
                     "is_isa",
                     "is_emergency_fund",
                     "regular_contribution_amount",
-                    "isa_subscription_amount"
+                    "isa_subscription_amount",
+                    "ownership_type",
+                    "joint_owner_id",
+                    "trust_id",
+                    "ownership_percentage"
                 ],
                 "additionalProperties": false
             },
@@ -555,7 +590,7 @@
         "type": "function",
         "function": {
             "name": "create_investment_account",
-            "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+            "description": "Create an investment account only after the user explicitly states its type and whether it is owned individually or jointly. A bare ISA must be clarified as Stocks & Shares, Lifetime, Innovative Finance, or Cash before choosing this tool. Joint records also require the joint owner and primary owner's percentage share. Use account_type other for alternative financial assets.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -568,6 +603,7 @@
                         "enum": [
                             "stocks_shares_isa",
                             "lifetime_isa",
+                            "innovative_finance_isa",
                             "personal_investment_account",
                             "onshore_bond",
                             "offshore_bond",
@@ -594,6 +630,28 @@
                     "current_value": {
                         "type": "number",
                         "description": "Current value in pounds"
+                    },
+                    "ownership_type": {
+                        "type": "string",
+                        "enum": [
+                            "individual",
+                            "joint"
+                        ],
+                        "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+                    },
+                    "joint_owner_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "User ID of the confirmed joint owner. Required when ownership is joint; otherwise null."
+                    },
+                    "ownership_percentage": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Primary owner's confirmed percentage share. Required when ownership is joint or tenants_in_common; otherwise 100 for individual."
                     },
                     "monthly_contribution_amount": {
                         "type": [
@@ -961,6 +1019,9 @@
                     "account_type",
                     "provider",
                     "current_value",
+                    "ownership_type",
+                    "joint_owner_id",
+                    "ownership_percentage",
                     "monthly_contribution_amount",
                     "platform_fee_percent",
                     "annual_dividend_income",
@@ -1239,7 +1300,7 @@
         "type": "function",
         "function": {
             "name": "create_property",
-            "description": "Create a property record and optionally a linked mortgage. Call this tool IMMEDIATELY when the user mentions a property — do not ask questions first. Fill in every field you can from what the user said and set null for anything not mentioned. The form will be opened, filled, and saved automatically. After saving, confirm what was added and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. Infer sensible values: if they say \"my house\" assume main_residence, if they say \"our house\" assume joint ownership. You MAY call this tool multiple times in the same turn when the user mentions multiple properties (e.g. \"main residence and a buy-to-let\" → two tool calls) — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+            "description": "Create a property only after the user explicitly confirms whether it is owned individually, jointly, as tenants in common, or in trust. Joint and tenants-in-common records also require the joint owner and primary owner's percentage share. Never infer ownership from my or our. Set optional fields to null when not stated.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1327,7 +1388,7 @@
                                 "type": "null"
                             }
                         ],
-                        "description": "How the property is owned. \"individual\" = sole owner. \"joint\" = joint tenancy (equal shares, passes to survivor). \"tenants_in_common\" = can have unequal shares, passes via will. \"trust\" = held in a trust. Default to \"individual\" if not specified."
+                        "description": "How the property is owned, only after the user explicitly confirms it. \"individual\" = sole owner. \"joint\" = joint tenancy. \"tenants_in_common\" = separate shares. \"trust\" = held in a trust. Never default missing ownership."
                     },
                     "ownership_percentage": {
                         "type": [
@@ -1342,6 +1403,20 @@
                             "null"
                         ],
                         "description": "Name of joint owner. Only if joint or tenants_in_common. Use spouse name if mentioned."
+                    },
+                    "joint_owner_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "User ID of the confirmed joint owner. Required when ownership is joint or tenants_in_common; otherwise null."
+                    },
+                    "trust_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership; otherwise null."
                     },
                     "tenure_type": {
                         "anyOf": [
@@ -1551,6 +1626,8 @@
                     "ownership_type",
                     "ownership_percentage",
                     "joint_owner_name",
+                    "joint_owner_id",
+                    "trust_id",
                     "tenure_type",
                     "lease_remaining_years",
                     "lease_expiry_date",
@@ -1855,7 +1932,7 @@
         "type": "function",
         "function": {
             "name": "create_liability",
-            "description": "Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+            "description": "Create a liability only after the user explicitly confirms whether it is owned individually or jointly. Joint records also require the joint owner and primary owner's percentage share. Never infer ownership.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1881,6 +1958,37 @@
                         "type": "number",
                         "description": "Outstanding balance (£)"
                     },
+                    "ownership_type": {
+                        "type": "string",
+                        "enum": [
+                            "individual",
+                            "joint",
+                            "tenants_in_common",
+                            "trust"
+                        ],
+                        "description": "Ownership explicitly confirmed by the user."
+                    },
+                    "joint_owner_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership; otherwise null."
+                    },
+                    "trust_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership; otherwise null."
+                    },
+                    "ownership_percentage": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership; otherwise 100 for individual."
+                    },
                     "monthly_payment": {
                         "type": [
                             "number",
@@ -1900,6 +2008,10 @@
                     "liability_name",
                     "liability_type",
                     "current_balance",
+                    "ownership_type",
+                    "joint_owner_id",
+                    "trust_id",
+                    "ownership_percentage",
                     "monthly_payment",
                     "interest_rate"
                 ],

@@ -246,7 +246,7 @@
     </div>
 
     <!-- Docked Fyn bar -->
-    <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
+    <button ref="fynDock" type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
@@ -346,7 +346,7 @@
 
       <form class="md-fyn__compose" @submit.prevent="send()">
         <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
-        <input id="md-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
+        <input id="md-fyn-input" ref="fynInput" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7" /></svg>
         </button>
@@ -442,13 +442,13 @@ export default {
       // navigation back to the dashboard. Persisted in sessionStorage, which
       // clears when the tab/session ends.
       nudgeDismissed: (() => {
-        try { return sessionStorage.getItem('m_fyn_nudge_dismissed') === '1'; } catch (e) { return false; }
+        try { return sessionStorage.getItem('m_fyn_nudge_dismissed') === '1'; } catch { return false; }
       })(),
       // "Not now" holds for the whole browsing session (spec decision D — the
       // bubble must not re-nag on every navigation back to the dashboard), so
       // the flag lives in sessionStorage, not just component state.
       unlockBubbleDismissed: (() => {
-        try { return sessionStorage.getItem('m_unlock_bubble_dismissed') === '1'; } catch (e) { return false; }
+        try { return sessionStorage.getItem('m_unlock_bubble_dismissed') === '1'; } catch { return false; }
       })(),
       // conversationId / resumeId / messages / draft / sending / fynStarted come
       // from the onboardingChat mixin (the shared chat client owns that state).
@@ -703,7 +703,7 @@ export default {
           const goal = ms.filter((m) => m.type === 'goal').sort((a, b) => b.threshold - a.threshold);
           this.milestoneToast = nw[0] || goal[0] || ms[0];
         }
-      } catch (e) {
+      } catch {
         if (!silent) this.error = 'Network error. Please try again.';
       } finally {
         if (!silent) this.loading = false;
@@ -768,13 +768,13 @@ export default {
     },
     dismissUnlockBubble() {
       this.unlockBubbleDismissed = true;
-      try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+      try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch { /* private mode — in-memory dismissal still applies */ }
     },
     // "Later" on the tax-plan nudge — hold the dismissal for the session so it
     // doesn't reappear on every dashboard visit until the next login.
     dismissNudge() {
       this.nudgeDismissed = true;
-      try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+      try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch { /* private mode — in-memory dismissal still applies */ }
     },
     openFynForCapture(module) {
       const prompts = {
@@ -845,7 +845,7 @@ export default {
         if (token && window.top && window.top !== window) {
           window.top.sessionStorage.setItem('auth_token', token);
         }
-      } catch (e) { /* iOS partitioned storage — the desktop boot bridge covers it */ }
+      } catch { /* iOS partitioned storage — the desktop boot bridge covers it */ }
       (window.top || window).location.href = url;
     },
     // Share via the native share sheet (navigator.share) with a clipboard
@@ -862,7 +862,7 @@ export default {
         } else if (navigator.clipboard) {
           await navigator.clipboard.writeText(`${payload.text} ${payload.url}`.trim());
         }
-      } catch (e) { /* user cancelled / unsupported — no-op */ }
+      } catch { /* user cancelled / unsupported — no-op */ }
     },
     shareMilestone() {
       if (this.milestoneToast) this.doShare(this.milestoneToast.share_type);
@@ -879,7 +879,7 @@ export default {
       // local state + redirect even if the call fails (expired token / offline).
       try {
         if (store.token) await apiPost('/api/auth/logout', {}, store.token);
-      } catch (e) { /* best-effort — proceed to local clear regardless */ }
+      } catch { /* best-effort — proceed to local clear regardless */ }
       store.logout();
       // Stay inside the /m SPA: route to the mobile login (/m/app/login), not the
       // desktop /login page. The mobile router base already carries the m/app/
@@ -896,14 +896,16 @@ export default {
     },
     openFyn() {
       this.fynMounted = true;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
         this.fynOpen = true;
         this.scrollFyn();
-        this.initFyn();
+        await this.initFyn();
+        this.$nextTick(() => { this.$refs.fynInput?.focus(); });
       });
     },
     closeFyn() {
       this.fynOpen = false;
+      this.$nextTick(() => { this.$refs.fynDock?.focus(); });
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
     // Open the bug-report sheet from the Fyn chat, carrying the active
@@ -949,7 +951,7 @@ export default {
         if (res.ok) {
           store.user = res.data?.data?.user || res.data?.user || res.data?.data || null;
         }
-      } catch (e) {
+      } catch {
         /* non-fatal — greeting falls back to a generic label */
       }
     },

@@ -1,62 +1,57 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * Playwright configuration for FPS (Financial Planning System) testing
- * @see https://playwright.dev/docs/test-configuration
- */
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8000';
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === '1' && !process.env.CI;
+const chromeChannel = process.env.PLAYWRIGHT_CHROME_CHANNEL || undefined;
+
 export default defineConfig({
-  testDir: './tests/e2e',
-
-  /* Maximum time one test can run for */
-  timeout: 60 * 1000,
-
-  /* Run tests in files in parallel */
+  testDir: './tests/E2E',
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   fullyParallel: false,
-
-  /* Fail the build on CI if you accidentally left test.only in the source code */
-  forbidOnly: !!process.env.CI,
-
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-
-  /* Opt out of parallel tests on CI */
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-
-  /* Reporter to use */
   reporter: [
-    ['html'],
     ['list'],
-    ['json', { outputFile: 'test-results/results.json' }]
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'test-results/results.json' }],
   ],
-
-  /* Shared settings for all the projects below */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://127.0.0.1:8000',
-
-    /* Collect trace when retrying the failed test */
-    trace: 'on-first-retry',
-
-    /* Screenshot on failure */
+    baseURL,
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-
-    /* Video on failure */
     video: 'retain-on-failure',
   },
-
-  /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'desktop-chromium',
+      testIgnore: /mobile\.spec\.js$/,
+      use: { ...devices['Desktop Chrome'], channel: chromeChannel },
+    },
+    {
+      name: 'mobile-chromium',
+      testMatch: /mobile\.spec\.js$/,
+      use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'mobile-webkit',
+      testMatch: /mobile\.spec\.js$/,
+      use: { ...devices['iPhone 14'] },
     },
   ],
-
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'php artisan serve',
-    url: 'http://127.0.0.1:8000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      command: 'bash scripts/e2e/serve.sh laravel',
+      url: baseURL,
+      reuseExistingServer,
+      timeout: 120_000,
+    },
+    {
+      command: 'bash scripts/e2e/serve.sh vite',
+      url: 'http://127.0.0.1:5173/@vite/client',
+      reuseExistingServer,
+      timeout: 120_000,
+    },
+  ],
 });

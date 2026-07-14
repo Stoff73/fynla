@@ -1,212 +1,150 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DrawdownSimulator from '@/components/Retirement/DrawdownSimulator.vue';
+import { SUCCESS_COLORS, ERROR_COLORS } from '@/constants/designSystem';
 
 describe('DrawdownSimulator', () => {
-  beforeEach(() => {
-    // Mock ApexCharts if not already mocked globally
-    if (!global.ApexCharts) {
-      global.ApexCharts = class {
-        constructor() {}
-        render() {}
-        updateOptions() {}
-        updateSeries() {}
-        destroy() {}
-      };
-    }
+  const mountSimulator = () => mount(DrawdownSimulator, {
+    global: {
+      stubs: {
+        apexchart: {
+          name: 'ApexChart',
+          props: ['options', 'series', 'type', 'height'],
+          template: '<div class="apexchart-stub" />',
+        },
+      },
+    },
   });
 
-  const defaultProps = {
-    initialPot: 500000,
-    retirementAge: 67,
-    lifeExpectancy: 90,
-  };
+  it('renders with the current default assumptions', () => {
+    const wrapper = mountSimulator();
 
-  it('renders with required props', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
+    expect(wrapper.text()).toContain('Drawdown Simulator');
+    expect(wrapper.text()).toContain('Initial Pension Pot: £500,000');
+    expect(wrapper.vm.simulatorData).toEqual({
+      initialPot: 500000,
+      withdrawalRate: 4,
+      growthRate: 5,
+      inflationRate: 2.5,
     });
-
-    expect(wrapper.exists()).toBe(true);
   });
 
-  it('displays initial pot value', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
+  it('provides controls for the pot, withdrawal, growth, and inflation assumptions', () => {
+    const wrapper = mountSimulator();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/500,?000|£500,?000/);
+    expect(wrapper.findAll('input[type="range"]')).toHaveLength(4);
   });
 
-  it('has withdrawal rate slider', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
+  it('updates the initial pension pot and reruns the simulation', async () => {
+    const wrapper = mountSimulator();
+    const initialKey = wrapper.vm.chartKey;
 
-    const slider = wrapper.find('input[type="range"]');
-    expect(slider.exists()).toBe(true);
+    await wrapper.findAll('input[type="range"]')[0].setValue(600000);
+
+    expect(wrapper.vm.simulatorData.initialPot).toBe(600000);
+    expect(wrapper.vm.simulationResults.portfolioValues[0]).toBe(600000);
+    expect(wrapper.vm.chartKey).not.toBe(initialKey);
   });
 
-  it('defaults to 4% withdrawal rate (4% rule)', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
+  it('updates the annual withdrawal rate from its own slider', async () => {
+    const wrapper = mountSimulator();
 
-    expect(wrapper.vm.simulatorData.withdrawalRate).toBe(4);
-  });
-
-  it('updates withdrawal rate when slider changes', async () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
-
-    const slider = wrapper.find('input[type="range"]');
-    await slider.setValue(5);
+    await wrapper.findAll('input[type="range"]')[1].setValue(5);
 
     expect(wrapper.vm.simulatorData.withdrawalRate).toBe(5);
+    expect(wrapper.vm.annualWithdrawal).toBe(25000);
   });
 
-  it('has growth rate slider', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
+  it('updates the investment growth rate from its own slider', async () => {
+    const wrapper = mountSimulator();
 
-    const sliders = wrapper.findAll('input[type="range"]');
-    expect(sliders.length).toBeGreaterThanOrEqual(2);
+    await wrapper.findAll('input[type="range"]')[2].setValue(6);
+
+    expect(wrapper.vm.simulatorData.growthRate).toBe(6);
   });
 
-  it('has inflation rate slider', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
+  it('updates the inflation rate from its own slider', async () => {
+    const wrapper = mountSimulator();
 
-    const sliders = wrapper.findAll('input[type="range"]');
-    expect(sliders.length).toBeGreaterThanOrEqual(3);
+    await wrapper.findAll('input[type="range"]')[3].setValue(3);
+
+    expect(wrapper.vm.simulatorData.inflationRate).toBe(3);
+    expect(wrapper.vm.simulationResults.realValueLoss).toBeGreaterThan(0);
   });
 
-  it('runs simulation on mount', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
+  it('runs a projection from age 67 through age 95 on mount', () => {
+    const wrapper = mountSimulator();
 
-    // Should have simulation results
-    expect(wrapper.vm.simulationResults).toBeDefined();
+    expect(wrapper.vm.simulationResults.ages[0]).toBe(67);
+    expect(wrapper.vm.simulationResults.ages.at(-1)).toBe(95);
+    expect(wrapper.vm.simulationResults.portfolioValues).toHaveLength(29);
   });
 
-  it('calculates portfolio depletion correctly', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: {
-        ...defaultProps,
-        initialPot: 100000,
-      },
-    });
+  it('calculates each year from the remaining pot using the chosen rates', () => {
+    const wrapper = mountSimulator();
 
-    // Set high withdrawal rate
-    wrapper.vm.simulatorData.withdrawalRate = 10; // 10% withdrawal
-    wrapper.vm.simulatorData.growthRate = 2; // Low growth
-    wrapper.vm.runSimulation();
-
-    // Portfolio should deplete
-    expect(wrapper.vm.simulationResults.depletes).toBe(true);
-    expect(wrapper.vm.simulationResults.depletionAge).toBeGreaterThan(0);
+    expect(wrapper.vm.simulationResults.portfolioValues[1]).toBe(504000);
   });
 
-  it('shows portfolio survives with sustainable rate', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: {
-        ...defaultProps,
-        initialPot: 500000,
-      },
-    });
-
-    // Set sustainable withdrawal rate
-    wrapper.vm.simulatorData.withdrawalRate = 3; // 3% withdrawal
-    wrapper.vm.simulatorData.growthRate = 5; // Reasonable growth
-    wrapper.vm.runSimulation();
-
-    // Portfolio should survive
-    expect(wrapper.vm.simulationResults.depletes).toBe(false);
-  });
-
-  it('displays portfolio survives message', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
-
-    // Default 4% rule with 5% growth should survive
-    wrapper.vm.simulatorData.withdrawalRate = 4;
-    wrapper.vm.simulatorData.growthRate = 5;
-    wrapper.vm.runSimulation();
-
-    const html = wrapper.html();
-    expect(html).toMatch(/survives|sustainable|sufficient/i);
-  });
-
-  it('displays depletion age when portfolio depletes', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: {
-        ...defaultProps,
-        initialPot: 100000,
-      },
-    });
-
-    // High withdrawal, low growth
-    wrapper.vm.simulatorData.withdrawalRate = 8;
-    wrapper.vm.simulatorData.growthRate = 2;
-    wrapper.vm.runSimulation();
-
-    if (wrapper.vm.simulationResults.depletes) {
-      const html = wrapper.html();
-      expect(html).toMatch(/depleted|runs out|age \d+/i);
-    }
-  });
-
-  it('applies green color for sustainable portfolio', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
-
-    wrapper.vm.simulatorData.withdrawalRate = 3;
-    wrapper.vm.simulatorData.growthRate = 5;
-    wrapper.vm.runSimulation();
-
-    // Chart color should be green
-    const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.colors[0]).toMatch(/#10b981|#22c55e|green/i);
-  });
-
-  it('applies red color for depleting portfolio', () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: {
-        ...defaultProps,
-        initialPot: 100000,
-      },
-    });
-
-    wrapper.vm.simulatorData.withdrawalRate = 10;
-    wrapper.vm.simulatorData.growthRate = 2;
-    wrapper.vm.runSimulation();
-
-    if (wrapper.vm.simulationResults.depletes) {
-      // Chart color should be red
-      const chartOptions = wrapper.vm.chartOptions;
-      expect(chartOptions.colors[0]).toMatch(/#ef4444|#dc2626|red/i);
-    }
-  });
-
-  it('reruns simulation when withdrawal rate changes', async () => {
-    const wrapper = mount(DrawdownSimulator, {
-      props: defaultProps,
-    });
-
-    const initialResults = { ...wrapper.vm.simulationResults };
-
-    // Change withdrawal rate
-    wrapper.vm.simulatorData.withdrawalRate = 6;
+  it('describes a surviving projection with specific remaining value', async () => {
+    const wrapper = mountSimulator();
     await wrapper.vm.$nextTick();
 
-    // Results should have changed
-    expect(wrapper.vm.simulationResults).not.toEqual(initialResults);
+    expect(wrapper.vm.simulationResults.depletes).toBe(false);
+    expect(wrapper.text()).toContain('Sustainable Drawdown');
+    expect(wrapper.text()).toContain('remaining at age 95');
+  });
+
+  it('uses the spring success colour for a surviving projection', async () => {
+    const wrapper = mountSimulator();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.chartOptions.colours).toEqual([SUCCESS_COLORS[500]]);
+    expect(wrapper.html()).toContain('text-spring-600');
+  });
+
+  it('records depletion when a scenario withdraws the whole remaining pot', async () => {
+    const wrapper = mountSimulator();
+    wrapper.vm.simulatorData.withdrawalRate = 100;
+    wrapper.vm.runSimulation();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.simulationResults.depletes).toBe(true);
+    expect(wrapper.vm.simulationResults.depletionAge).toBe(68);
+    expect(wrapper.text()).toContain('Portfolio runs out');
+    expect(wrapper.text()).toContain('Age 68');
+  });
+
+  it('uses the raspberry danger colour for a depleting projection', () => {
+    const wrapper = mountSimulator();
+    wrapper.vm.simulatorData.withdrawalRate = 100;
+    wrapper.vm.runSimulation();
+
+    expect(wrapper.vm.chartOptions.colours).toEqual([ERROR_COLORS[500]]);
+  });
+
+  it('exposes projected portfolio values as the chart series', () => {
+    const wrapper = mountSimulator();
+
+    expect(wrapper.vm.chartSeries).toEqual([{
+      name: 'Portfolio Value',
+      data: wrapper.vm.simulationResults.portfolioValues,
+    }]);
+  });
+
+  it('formats chart values as pounds', () => {
+    const wrapper = mountSimulator();
+
+    expect(wrapper.vm.chartOptions.yaxis.labels.formatter(100000)).toBe('£100,000');
+    expect(wrapper.vm.chartOptions.tooltip.y.formatter(25000)).toBe('£25,000');
+  });
+
+  it('changes the results when the withdrawal control changes', async () => {
+    const wrapper = mountSimulator();
+    const initialResults = [...wrapper.vm.simulationResults.portfolioValues];
+
+    await wrapper.findAll('input[type="range"]')[1].setValue(6);
+
+    expect(wrapper.vm.simulationResults.portfolioValues).not.toEqual(initialResults);
   });
 });

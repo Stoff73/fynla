@@ -1051,34 +1051,22 @@ class OnboardingService
             }
         }
 
-        $user->update([
-            'onboarding_skipped_steps' => $skippedSteps,
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-            'onboarding_fyn_step' => null,
-        ]);
+        $user->onboarding_skipped_steps = $skippedSteps;
 
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
     }
 
     /**
      * Complete the onboarding process.
      *
-     * Also nulls onboarding_fyn_step so the AiChatController dispatch predicate
-     * routes this user to advice Fyn on every surface — mirroring how the
-     * OnboardingChatDirector completion chain finishes the chat-led flow.
+     * Clears every active Fyn routing field so the server and both clients
+     * resolve the completed user to the read-only advice state.
      */
     public function completeOnboarding(int $userId): User
     {
         $user = User::findOrFail($userId);
 
-        $user->update([
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-            'onboarding_fyn_step' => null,
-        ]);
-
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
     }
 
     /**
@@ -1088,14 +1076,36 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        $user->update([
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-            'onboarding_mode' => 'quick',
-            'onboarding_fyn_step' => null,
-        ]);
+        $user->onboarding_mode = 'quick';
 
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
+    }
+
+    /**
+     * Complete either wizard flow and clear stale Fyn routing state atomically.
+     */
+    private function finaliseOnboardingState(User $user): User
+    {
+        return DB::transaction(function () use ($user): User {
+            $context = $user->onboarding_fyn_context;
+            if (is_array($context)) {
+                unset($context['paused_at_step']);
+            }
+
+            $user->update([
+                'onboarding_skipped_steps' => $user->onboarding_skipped_steps,
+                'onboarding_completed' => true,
+                'onboarding_completed_at' => Carbon::now(),
+                'onboarding_mode' => $user->onboarding_mode,
+                'active_campaign' => null,
+                'onboarding_fyn_path' => null,
+                'onboarding_fyn_selection' => null,
+                'onboarding_fyn_step' => null,
+                'onboarding_fyn_context' => $context,
+            ]);
+
+            return $user->fresh();
+        });
     }
 
     /**

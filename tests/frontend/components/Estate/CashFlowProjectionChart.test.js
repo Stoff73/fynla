@@ -192,7 +192,6 @@ describe('CashFlowProjectionChart', () => {
 
     wrapper.vm.growthRate = 5;
 
-    const firstYear = wrapper.vm.projectionData[0];
     const secondYear = wrapper.vm.projectionData[1];
 
     const expectedIncome = Math.round(60000 * 1.05);
@@ -211,7 +210,7 @@ describe('CashFlowProjectionChart', () => {
     expect(formatted).toMatch(/£60,000|60000/);
   });
 
-  it('formats short currency values for axis labels', () => {
+  it('formats compact currency values for axis labels', () => {
     const wrapper = mount(CashFlowProjectionChart, {
       props: {
         currentIncome: 60000,
@@ -219,7 +218,7 @@ describe('CashFlowProjectionChart', () => {
       },
     });
 
-    const formatted = wrapper.vm.formatCurrencyShort(1500000);
+    const formatted = wrapper.vm.chartOptions.yaxis[0].labels.formatter(1500000);
     expect(formatted).toMatch(/£1\.5M|1.5M/);
   });
 
@@ -295,6 +294,6 @@ describe('CashFlowProjectionChart', () => {
     });
 
     const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.plotOptions.bar.colors.ranges).toBeDefined();
+    expect(chartOptions.plotOptions.bar.colours.ranges).toHaveLength(2);
   });
 });
