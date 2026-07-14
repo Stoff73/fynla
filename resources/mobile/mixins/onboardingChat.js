@@ -48,6 +48,15 @@ export default {
       return (store.user?.onboarding_completed === false || Boolean(store.user?.active_campaign))
         && store.user?.onboarding_fyn_step !== null;
     },
+    // A newly registered user has no step until the first /onboarding/start
+    // request assigns one. That is distinct from "Something else", which also
+    // nulls the step but is deliberately parked and exposed as paused by the
+    // user resource. Only the fresh state should auto-start on the dashboard.
+    onboardingNeedsStart() {
+      return store.user?.onboarding_completed === false
+        && store.user?.onboarding_fyn_step === null
+        && store.user?.onboarding_fyn_paused !== true;
+    },
   },
   methods: {
     // Brief level-wheel pulse on a level-up. No-op here; the dashboard overrides

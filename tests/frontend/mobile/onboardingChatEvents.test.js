@@ -83,6 +83,31 @@ describe('/m Fyn stream event parity', () => {
     expect(isActive()).toBe(false);
   });
 
+  it('starts a fresh incomplete user while leaving a deliberately paused user parked', () => {
+    const shouldStart = () => onboardingChat.computed.onboardingNeedsStart.call({});
+
+    store.user = {
+      onboarding_completed: false,
+      onboarding_fyn_step: null,
+      onboarding_fyn_paused: false,
+    };
+    expect(shouldStart()).toBe(true);
+
+    store.user = {
+      onboarding_completed: false,
+      onboarding_fyn_step: null,
+      onboarding_fyn_paused: true,
+    };
+    expect(shouldStart()).toBe(false);
+
+    store.user = {
+      onboarding_completed: true,
+      onboarding_fyn_step: null,
+      onboarding_fyn_paused: false,
+    };
+    expect(shouldStart()).toBe(false);
+  });
+
   it.each([
     [
       'token_limit',

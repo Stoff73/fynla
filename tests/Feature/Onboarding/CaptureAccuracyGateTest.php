@@ -1031,6 +1031,89 @@ it('uses the bounded conversation evidence when the tool is called only after al
         ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
 });
 
+it('applies an explicit shared ownership clarification to both named accounts', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    foreach ([
+        'I have two accounts. My Halifax Everyday account has £3,500. My Marcus Rainy Day account has £12,000.',
+        'Both accounts are owned individually, 100% by me.',
+    ] as $message) {
+        AiMessage::create([
+            'conversation_id' => $conversation->id,
+            'role' => 'user',
+            'content' => $message,
+        ]);
+    }
+
+    foreach ([
+        [
+            'account_name' => 'Halifax Everyday',
+            'provider' => 'Halifax',
+            'account_type' => 'current_account',
+            'current_balance' => 3500,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+        ],
+        [
+            'account_name' => 'Marcus Rainy Day',
+            'provider' => 'Marcus',
+            'account_type' => 'easy_access',
+            'current_balance' => 12000,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+        ],
+    ] as $arguments) {
+        $result = app(CoordinatingAgent::class)->executeTool(
+            'create_savings_account',
+            $arguments,
+            $user,
+            $conversation->id,
+        );
+
+        expect($result['success'] ?? false)->toBeTrue();
+    }
+
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
+});
+
+it('does not apply a plural clarification when the named account was not part of a group', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'First Saver',
+        'account_type' => 'easy_access',
+        'current_balance' => 20000,
+        'ownership_type' => 'individual',
+    ], "My First Saver has £20,000.\nBoth accounts are individually owned.");
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('does not apply shared ownership evidence from another entity type', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Everyday',
+        'account_type' => 'current_account',
+        'current_balance' => 3500,
+        'ownership_type' => 'individual',
+    ], "My Halifax Everyday account has £3,500.\nBoth properties are individually owned.");
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('does not apply shared ownership evidence from a separate same-type cohort', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Everyday',
+        'account_type' => 'current_account',
+        'current_balance' => 3500,
+        'ownership_type' => 'individual',
+    ], "I have two savings accounts, Barclays and Marcus, both individually owned. My Halifax Everyday current account has £3,500. My Lloyds current account has £5,000.\nBoth savings accounts are individually owned.");
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
 it('does not reuse ownership evidence for a different account using the same tool', function (): void {
     $this->seed(TierConfigurationSeeder::class);
     $user = User::factory()->create(['is_preview_user' => false]);

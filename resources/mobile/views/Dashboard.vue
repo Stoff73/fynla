@@ -931,7 +931,7 @@ export default {
       // covers the 409. Without this /m had no re-entry entry point at all
       // (re-entry was desktop-only — Rule 19).
       const from = this.$route.query.from || null;
-      if (this.onboardingActive || from) {
+      if (this.onboardingActive || this.onboardingNeedsStart || from) {
         this.startOnboarding(from);
       } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
@@ -970,7 +970,7 @@ export default {
     await this.loadUser();
     // Campaign re-entry arrivals (?from=<campaign>) open Fyn too — initFyn
     // forwards the token and the server decides whether it re-enters a walk.
-    if (this.onboardingActive || this.$route.query.from) {
+    if (this.onboardingActive || this.onboardingNeedsStart || this.$route.query.from) {
       this.openFyn();
     }
   },
