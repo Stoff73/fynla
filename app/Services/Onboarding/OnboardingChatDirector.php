@@ -3557,6 +3557,7 @@ PROMPT;
                             $allowedFields = array_flip($scope['record_fields'][$entityType] ?? []);
                             $properties = $branch['properties']['fields']['properties'] ?? [];
                             $branch['properties']['fields']['properties'] = array_intersect_key($properties, $allowedFields);
+                            $branch['properties']['fields']['required'] = array_keys($allowedFields);
                             $branch['properties']['fields']['additionalProperties'] = false;
 
                             return $branch;
@@ -3570,6 +3571,7 @@ PROMPT;
                     $allowedFields = collect($scope['record_fields'])->flatten()->unique()->flip()->all();
                     $properties = $parameters['properties']['fields']['properties'] ?? [];
                     $parameters['properties']['fields']['properties'] = array_intersect_key($properties, $allowedFields);
+                    $parameters['properties']['fields']['required'] = array_keys($allowedFields);
                     $parameters['properties']['fields']['additionalProperties'] = false;
                 }
             }
@@ -3583,10 +3585,12 @@ PROMPT;
                 $parameters['properties']['section']['enum'] = $scope['profile_sections'];
                 $parameters['properties']['section']['description'] = 'The profile section on the current review screen.';
                 $parameters['properties']['fields']['description'] = 'Only the replacement fields explicitly supplied by the user.';
-                $parameters['properties']['fields']['properties'] = collect($scope['profile_fields'])
-                    ->flatten()->unique()->mapWithKeys(fn (string $field): array => [
+                $profileFieldNames = collect($scope['profile_fields'])->flatten()->unique()->values();
+                $parameters['properties']['fields']['properties'] = $profileFieldNames
+                    ->mapWithKeys(fn (string $field): array => [
                         $field => ['type' => ['string', 'number', 'boolean', 'null']],
                     ])->all();
+                $parameters['properties']['fields']['required'] = $profileFieldNames->all();
                 $parameters['properties']['fields']['additionalProperties'] = false;
             }
 
@@ -3594,7 +3598,7 @@ PROMPT;
                 $allowedFields = array_flip($scope['tool_fields'][$name] ?? []);
                 $properties = $parameters['properties'] ?? [];
                 $parameters['properties'] = array_intersect_key($properties, $allowedFields);
-                $parameters['required'] = array_values(array_intersect($parameters['required'] ?? [], array_keys($allowedFields)));
+                $parameters['required'] = array_keys($allowedFields);
                 $parameters['additionalProperties'] = false;
             }
         }

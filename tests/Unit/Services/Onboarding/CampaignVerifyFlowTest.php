@@ -111,6 +111,60 @@ it('narrows xAI verify-edit tools to the current profile section and record ids'
         ->toBe([$reviewed->id]);
 });
 
+it('requires every user-requested field in the narrowed verify-edit tool schema', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    Cache::put('ai_provider', 'xai');
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'verifyEditToolDefinitions');
+    $method->setAccessible(true);
+    $user = User::factory()->create(['is_preview_user' => false]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'is_isa' => true,
+        'isa_type' => 'cash',
+    ]);
+    StatePension::factory()->create(['user_id' => $user->id]);
+
+    $recordTools = $method->invoke(
+        $director,
+        $user,
+        'savings',
+        'Set the balance to £20,000, subscriptions this tax year to £5,000, and interest rate to 4.2%.'
+    );
+    $recordTool = collect($recordTools)->firstWhere('function.name', 'update_record');
+    $profileTools = $method->invoke(
+        $director,
+        $user,
+        'income',
+        'Set my employment income to £82,000 and my self-employed income to £5,000.'
+    );
+    $profileTool = collect($profileTools)->firstWhere('function.name', 'update_profile');
+    $captureTools = $method->invoke(
+        $director,
+        $user,
+        'state_pension',
+        'Set my forecast to £12,000 a year and my qualifying years to 30.'
+    );
+    $captureTool = collect($captureTools)->firstWhere('function.name', 'capture_state_pension');
+
+    expect($recordTool['function']['parameters']['properties']['fields']['required'])
+        ->toEqualCanonicalizing([
+            'current_balance',
+            'interest_rate',
+            'isa_subscription_amount',
+        ])
+        ->and($profileTool['function']['parameters']['properties']['fields']['required'])
+        ->toEqualCanonicalizing([
+            'annual_employment_income',
+            'annual_self_employment_income',
+        ])
+        ->and($captureTool['function']['parameters']['required'])
+        ->toEqualCanonicalizing([
+            'forecast_annual',
+            'ni_years_completed',
+        ]);
+});
+
 it('offers no record-update tool when the reviewed section has no existing records', function (): void {
     $this->seed(TaxConfigurationSeeder::class);
     Cache::put('ai_provider', 'xai');
