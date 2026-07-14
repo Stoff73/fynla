@@ -277,9 +277,10 @@ final class QuerySchemas
             '/\bbilling\b/i',
             '/\bsubscription\s+(status|plan|active|cancelled|paused|trial|trialing|renew(al|s)?)\b/i',
             // Bare "subscription" ("show my subscription", "my subscription")
-            // EXCEPT the ISA-subscription savings concept ("ISA subscription
-            // limit") — fixed-width negative lookbehind, case-insensitive.
-            '/\b(?<!isa\s)subscription\b/i',
+            // EXCEPT any question that also names an ISA. "Which account
+            // contains the subscription?" is still an ISA-usage question even
+            // though the two words are not adjacent.
+            '/^(?!.*\bisa\b).*\bsubscription\b/i',
             '/\bnext\s+(charge|payment|bill|invoice)\b/i',
             '/\bwhen\s+(am\s+i\s+)?charged\b/i',
             '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',

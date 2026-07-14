@@ -83,6 +83,16 @@ describe('QueryClassifier', function () {
                 ->not->toBe(QuerySchemas::BILLING);
         });
 
+        it('does not classify a saved ISA subscription question as billing', function () {
+            $result = $this->classifier->classify(
+                'Using my saved data, how much of my ISA allowance have I used this tax year, how much remains, and which account contains the subscription?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS)
+                ->and($result['related'])->toContain(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
+        });
+
         // Genuine navigation with no billing entity must still be navigation.
         it('keeps "take me to my goals page" as navigation', function () {
             expect($this->classifier->classify('take me to my goals page')['primary'])
