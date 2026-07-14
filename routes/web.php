@@ -57,6 +57,11 @@ Route::get('/unsubscribe/news/{token}', [\App\Http\Controllers\NewsletterActionC
     ->name('newsletter.unsubscribe')
     ->where('token', '[A-Za-z0-9]{48}');
 
+// Marketing pipeline — Google OAuth callback (one-time, from `pipeline:authorise-google`).
+// MUST be before the SPA catch-all so the redirect renders the confirmation page.
+Route::get('/pipeline/oauth/google/callback', [\App\Http\Controllers\Pipeline\GoogleOAuthController::class, 'callback'])
+    ->name('pipeline.oauth.google.callback');
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');

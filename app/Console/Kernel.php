@@ -32,6 +32,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
 
         $schedule->job(new \App\Jobs\PublishScheduledInsightsJob())->everyFiveMinutes();
+
+        $schedule->command('pipeline:detect-new-articles')
+            ->dailyAt(config('pipeline.detect_schedule', '07:00'));
     }
 
     /**

@@ -73,6 +73,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'pipeline' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/pipeline.log'),
+            'level' => env('PIPELINE_LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
