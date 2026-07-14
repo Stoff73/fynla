@@ -1682,6 +1682,30 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "isa_subscription_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "regular_contribution_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "contribution_frequency": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1741,6 +1765,14 @@
                                     ]
                                 },
                                 "monthly_contribution_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "contributions_ytd": {
                                     "type": [
                                         "string",
                                         "number",

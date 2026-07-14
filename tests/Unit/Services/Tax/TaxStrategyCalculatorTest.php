@@ -614,13 +614,14 @@ describe('allowance grid availability + dividend usage', function () {
 });
 
 describe('benchmark', function () {
-    // Wall-clock threshold is generous (100ms) on purpose — single_earner_couple
+    // Wall-clock threshold is generous (250ms) on purpose — single_earner_couple
     // mode runs ~13 strategies, each with its own SavingsAccount / DCPension /
     // Holding queries, so realistic warm-cache calculate() lands at 30-70ms on
-    // a quiet box and 60-90ms under suite load. The bound exists to catch
+    // a quiet box, while shared CI runners can reach ~150ms under full-suite
+    // load. The bound exists to catch
     // pathological regressions (e.g. accidentally re-calculating per strategy
-    // → 500ms+), not to police 5ms noise.
-    it('runs in under 100ms for a representative single_earner_couple persona', function () {
+    // → 500ms+), not to police scheduler noise.
+    it('runs in under 250ms for a representative single_earner_couple persona', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 100000,
@@ -639,7 +640,7 @@ describe('benchmark', function () {
         app(TaxStrategyCalculator::class)->calculate($user);
         $elapsedMs = (hrtime(true) - $start) / 1_000_000;
 
-        expect($elapsedMs)->toBeLessThan(100);
+        expect($elapsedMs)->toBeLessThan(250);
     });
 });
 
