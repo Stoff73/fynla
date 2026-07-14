@@ -2747,6 +2747,7 @@ PROMPT;
         array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
+        $delegatedMessage = $this->mergeUnresolvedCaptureMessage($conversation, $message);
 
         // April30Updates F-11 — duplicate-check guard.
         //
@@ -2770,7 +2771,7 @@ PROMPT;
         };
         if ($entityType !== null) {
             $intent = ['entity_type' => $entityType];
-            if ($this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+            if ($this->duplicateChecker->alreadyExists($user, $intent, $delegatedMessage)) {
                 Log::info('[OnboardingChatDirector] Duplicate capture suppressed', [
                     'user_id' => $user->id,
                     'conversation_id' => $conversation->id,
@@ -2804,7 +2805,7 @@ PROMPT;
             $generator = $this->fynLoop->stream(
                 $user,
                 $conversation,
-                $message,
+                $delegatedMessage,
                 $currentRoute,
                 // May18 tripled-ack Fix A only fires under the data_capture
                 // persona (HasAiChat::captureTurnCompleteDirective gates on it).
@@ -2980,7 +2981,7 @@ PROMPT;
                     // B-1 — synthesize tool calls for entities the LLM
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
-                    yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $message, $llmEmittedFills);
+                    yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $delegatedMessage, $llmEmittedFills);
 
                     continue;
                 }
@@ -2997,7 +2998,7 @@ PROMPT;
                     $ackShown = true;
                     yield $flushEvent;
                 }
-                yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $message, $llmEmittedFills);
+                yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $delegatedMessage, $llmEmittedFills);
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -3884,6 +3885,66 @@ PROMPT;
                 '/\b(?:i need|could you|can you|would you|please (?:tell|confirm|provide|share)|tell me|confirm whether)\b/i',
                 $response,
             ) === 1;
+    }
+
+    /**
+     * Reconstruct one unresolved capture payload when the model asked for a
+     * required fact on the preceding turn. Resume greetings are transparent:
+     * they must not sever the original answer from the requested detail.
+     */
+    private function mergeUnresolvedCaptureMessage(AiConversation $conversation, string $message): string
+    {
+        $currentUserMessage = $conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->first(['id', 'content']);
+
+        if ($currentUserMessage === null || $currentUserMessage->content !== $message) {
+            return $message;
+        }
+
+        $previousUserMessage = $conversation->messages()
+            ->where('role', 'user')
+            ->where('id', '<', $currentUserMessage->id)
+            ->latest('id')
+            ->first(['id', 'content']);
+
+        if ($previousUserMessage === null) {
+            return $message;
+        }
+
+        $clarificationFound = false;
+        $assistantMessages = $conversation->messages()
+            ->where('role', 'assistant')
+            ->whereBetween('id', [$previousUserMessage->id + 1, $currentUserMessage->id - 1])
+            ->orderBy('id')
+            ->get(['content', 'metadata']);
+
+        foreach ($assistantMessages as $assistantMessage) {
+            $metadata = is_array($assistantMessage->metadata) ? $assistantMessage->metadata : [];
+            if (($metadata['is_resume_greeting'] ?? false) === true) {
+                continue;
+            }
+
+            // A deterministic state prompt starts a fresh capture question;
+            // it is not a model request to complete the previous user answer.
+            if (isset($metadata['onboarding_step'])) {
+                return $message;
+            }
+
+            if (! $this->captureResponseRequestsClarification((string) $assistantMessage->content)) {
+                return $message;
+            }
+
+            $clarificationFound = true;
+        }
+
+        if (! $clarificationFound) {
+            return $message;
+        }
+
+        return "Original capture details: {$previousUserMessage->content}\n"
+            ."Requested missing details: {$message}";
     }
 
     /**

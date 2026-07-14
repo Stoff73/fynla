@@ -167,6 +167,63 @@ it('holds a campaign ISA turn when Fyn asks for missing capture facts without ca
         ->and($content)->not->toContain("I've saved your ISA accounts");
 });
 
+it('combines an unresolved ISA answer with its requested missing facts after resume', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
+        'onboarding_fyn_selection' => 'savetax',
+        'funnel_answers' => [
+            'campaign' => 'savetax',
+            'assets' => ['isa'],
+        ],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+    $conversation->messages()->create([
+        'role' => 'user',
+        'content' => 'My Barclays ISA has £20,000 and I added £5,000 this tax year.',
+    ]);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I need the ISA type and whether it is owned individually.',
+    ]);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'Welcome back. Would you like to continue?',
+        'metadata' => ['is_resume_greeting' => true],
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->withArgs(fn (
+            User $streamUser,
+            AiConversation $streamConversation,
+            string $streamMessage
+        ): bool => $streamUser->is($user)
+            && $streamConversation->is($conversation)
+            && str_contains($streamMessage, 'My Barclays ISA has £20,000')
+            && str_contains($streamMessage, 'It is a Cash ISA and I own it individually.'))
+        ->andReturnUsing(function () {
+            yield ['type' => 'done', 'message_id' => 101];
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'It is a Cash ISA and I own it individually.'
+    ));
+});
+
 it('does not ack "Recorded" when the only write was a blocked duplicate (D1 round 4)', function () {
     // user 168 SIPP turn: the model narrated "Recorded — £200 monthly" but its
     // create_pension was a blocked duplicate (warning, existing_id) — nothing
