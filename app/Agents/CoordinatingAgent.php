@@ -4898,9 +4898,23 @@ class CoordinatingAgent extends BaseAgent
             return null;
         }
 
+        $stateBoundaryId = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'assistant')
+            ->orderByDesc('id')
+            ->limit(12)
+            ->get(['id', 'metadata'])
+            ->first(function (AiMessage $message): bool {
+                $metadata = is_array($message->metadata) ? $message->metadata : [];
+
+                return isset($metadata['onboarding_step'])
+                    && ($metadata['is_resume_greeting'] ?? false) !== true;
+            })?->id;
+
         $messages = AiMessage::query()
             ->where('conversation_id', $conversationId)
             ->where('role', 'user')
+            ->when($stateBoundaryId !== null, fn ($query) => $query->where('id', '>', $stateBoundaryId))
             ->orderByDesc('id')
             ->limit(6)
             ->pluck('content')

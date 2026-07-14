@@ -1078,6 +1078,71 @@ it('applies an explicit shared ownership clarification to both named accounts', 
     expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
 });
 
+it('does not let stale duplicate captures pollute a retried group clarification', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $capture = 'I have two accounts. My Alder Retry current account has £3,500. '
+        .'My Birch Retry easy-access savings account has £12,000.';
+
+    foreach ([$capture, 'Both accounts are owned individually, 100% by me.'] as $message) {
+        AiMessage::create([
+            'conversation_id' => $conversation->id,
+            'role' => 'user',
+            'content' => $message,
+        ]);
+    }
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Now your savings — bank accounts and savings accounts.',
+        'metadata' => ['onboarding_step' => 'campaign_bank_accounts'],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => $capture,
+    ]);
+
+    $arguments = [
+        'account_name' => 'Alder Retry',
+        'institution' => 'Alder',
+        'account_type' => 'current_account',
+        'current_balance' => 3500,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ];
+    $firstAttempt = app(CoordinatingAgent::class)->executeTool(
+        'create_savings_account',
+        $arguments,
+        $user,
+        $conversation->id,
+    );
+    expect($firstAttempt['clarification_required'] ?? false)->toBeTrue();
+
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Now your savings — bank accounts and savings accounts.',
+        'metadata' => ['onboarding_step' => 'campaign_bank_accounts'],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Both accounts are owned individually, 100% by me.',
+    ]);
+
+    $retry = app(CoordinatingAgent::class)->executeTool(
+        'create_savings_account',
+        $arguments,
+        $user,
+        $conversation->id,
+    );
+
+    expect($retry['success'] ?? false)->toBeTrue()
+        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
+});
+
 it('does not apply a plural clarification when the named account was not part of a group', function (): void {
     $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
         'account_name' => 'First Saver',

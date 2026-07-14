@@ -264,6 +264,54 @@ it('does not ack "Recorded" when the only write was a blocked duplicate (D1 roun
     expect($conversation->messages()->where('content', 'like', '%Recorded — £200%')->exists())->toBeFalse();
 });
 
+it('asks only for the missing fact when a campaign account write needs clarification', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
+        'onboarding_fyn_selection' => 'savetax',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    mockDelegatedStream([
+        [
+            'type' => 'content',
+            'text' => 'Recorded — two savings accounts. I need you to confirm whether you own them individually or jointly.',
+        ],
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        [
+            'type' => 'capture_write_result',
+            'tool' => 'create_savings_account',
+            'landed' => false,
+            'message' => 'I need explicit ownership for each account.',
+        ],
+        ['type' => 'done', 'message_id' => 102],
+    ]);
+
+    $received = iterator_to_array(
+        app(OnboardingChatDirector::class)->handleUserMessage(
+            $user,
+            $conversation,
+            'My Halifax account has £3,500 and my Marcus account has £12,000.'
+        ),
+        false,
+    );
+    $content = collect($received)->where('type', 'content')->pluck('text')->implode("\n");
+
+    expect($content)->toContain('confirm whether you own them individually or jointly')
+        ->and($content)->not->toContain('Recorded')
+        ->and($content)->not->toContain("what's the balance and interest rate")
+        ->and(collect($received)->where('type', 'done'))->toHaveCount(1)
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+});
+
 it('still advances a question turn whose write landed', function () {
     [$user, $conversation] = captureFailureUser();
 

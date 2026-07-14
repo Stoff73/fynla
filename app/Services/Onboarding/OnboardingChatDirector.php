@@ -2891,6 +2891,9 @@ PROMPT;
                     $selection,
                     allowAnswer: $userAskedQuestion || $modelRequestedClarification,
                 );
+                if ($nothingCaptured && $modelRequestedClarification) {
+                    $cleaned = $this->stripFalseCaptureAcknowledgement($cleaned);
+                }
                 $cleaned = $this->dedupeAckSentences($cleaned);
                 $contentBuffer = '';
                 if ($cleaned === '') {
@@ -3058,17 +3061,17 @@ PROMPT;
             $ackShown = true;
         }
 
-        // A failed write is never completion of the current capture step.
-        // Re-ask this state's scripted prompt after the honest failure line;
-        // otherwise the next state can announce "I've saved..." and navigate
-        // even though no record exists.
+        // A failed write is never completion of the current capture step. Keep
+        // the state parked, but do not replay the full scripted question: the
+        // user has already supplied those facts and should see only the missing
+        // detail requested above. The next reply remains in this same state.
         if ($sawFailedWrite && ! $capturedSomething) {
             $this->recordProgress(
                 $user,
                 $currentStateId,
                 ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
             );
-            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+            yield $delegatedDoneEvent ?? ['type' => 'done'];
 
             return;
         }
@@ -3885,6 +3888,22 @@ PROMPT;
                 '/\b(?:i need|could you|can you|would you|please (?:tell|confirm|provide|share)|tell me|confirm whether)\b/i',
                 $response,
             ) === 1;
+    }
+
+    /**
+     * Remove a model-authored success sentence when every attempted write was
+     * rejected and the rest of the response is a valid clarification request.
+     */
+    private function stripFalseCaptureAcknowledgement(string $response): string
+    {
+        $cleaned = preg_replace(
+            '/^\s*(?:(?:recorded|saved|added)\b|got it\b|i[\'’]ve\s+(?:recorded|saved|added)\b|that[\'’]s\s+(?:recorded|saved|added)\b)[^.!?]*(?:[.!?]\s*|$)/iu',
+            '',
+            $response,
+            1,
+        );
+
+        return trim(is_string($cleaned) ? $cleaned : $response);
     }
 
     /**
