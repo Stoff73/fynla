@@ -102,7 +102,7 @@
             </div>
             <!-- Most Popular Badge -->
             <div
-              v-else-if="plan.slug === 'tier2'"
+              v-else-if="plan.slug === 'premium'"
               class="absolute -top-3 left-1/2 -translate-x-1/2"
             >
               <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-spring-500 text-white whitespace-nowrap">
@@ -174,7 +174,7 @@ import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
-const PLAN_ORDER = ['free', 'tier1', 'tier2', 'tier3'];
+const PLAN_ORDER = ['free', 'premium'];
 
 // Student plan is gated to UK university students. Backend (PaymentController +
 // User::isEligibleForStudentPlan) is the authoritative gate; this mirrors that
@@ -346,7 +346,7 @@ export default {
       return this.showAllPlans && plan.slug === this.currentPlan;
     },
 
-    // The three paid tiers (Tier 1/2/3) carry self-contained feature lists from
+    // Premium carries a self-contained feature list from
     // tier_configurations, so the card renders the DB list verbatim — no
     // per-slug adjustments (the legacy Student-inline and Family add-on hacks
     // were removed when the plans were relabelled onto the tier model).

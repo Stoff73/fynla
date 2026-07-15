@@ -36,14 +36,14 @@ class CrossModuleIntegrationTest extends TestCase
         $this->seed(TaxConfigurationSeeder::class);
         $this->seed(TierConfigurationSeeder::class);
 
-        // tier2 grants full Estate access — this suite exercises the full
+        // Premium grants full Estate access — this suite exercises the full
         // cross-module path including /api/estate/net-worth (gated by
         // TeaserGate::isFull since SP2 PR7). Matches the canonical
         // EstateApiTest setup.
         $this->user = User::factory()->create([
             'email' => 'test@example.com',
             'password' => bcrypt('password'),
-            'tier' => 'tier2',
+            'tier' => 'premium',
         ]);
 
         $this->actingAs($this->user, 'sanctum');

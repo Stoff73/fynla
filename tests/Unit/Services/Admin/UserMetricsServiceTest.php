@@ -77,78 +77,67 @@ describe('getSnapshot', function () {
 
 describe('getPlanBreakdown', function () {
     it('groups active subscriptions by plan and billing cycle', function () {
-        // 2 monthly student subs
+        // 2 monthly Premium subscriptions
         foreach (range(1, 2) as $_) {
             $user = User::factory()->create(['is_preview_user' => false]);
             Subscription::factory()->create([
                 'user_id' => $user->id,
-                'plan' => 'student',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
                 'status' => 'active',
-                'amount' => 399,
+                'amount' => 699,
             ]);
         }
 
-        // 1 yearly standard sub
+        // 1 yearly Premium subscription
         $user = User::factory()->create(['is_preview_user' => false]);
         Subscription::factory()->create([
             'user_id' => $user->id,
-            'plan' => 'standard',
+            'plan' => 'premium',
             'billing_cycle' => 'yearly',
             'status' => 'active',
-            'amount' => 10000,
+            'amount' => 5999,
         ]);
 
         // 1 trialing sub (should NOT count)
         $trialUser = User::factory()->create(['is_preview_user' => false]);
         Subscription::factory()->trialing()->create([
             'user_id' => $trialUser->id,
-            'plan' => 'pro',
+            'plan' => 'premium',
         ]);
 
         $breakdown = $this->service->getPlanBreakdown();
 
-        // Find student plan
-        $student = collect($breakdown)->firstWhere('plan', 'student');
-        expect($student['total'])->toBe(2)
-            ->and($student['monthly'])->toBe(2)
-            ->and($student['yearly'])->toBe(0)
-            ->and($student['monthly_revenue'])->toBe(798);
-
-        // Find standard plan
-        $standard = collect($breakdown)->firstWhere('plan', 'standard');
-        expect($standard['total'])->toBe(1)
-            ->and($standard['monthly'])->toBe(0)
-            ->and($standard['yearly'])->toBe(1)
-            ->and($standard['yearly_revenue'])->toBe(10000);
-
-        // Pro should be 0 (trialing doesn't count)
-        $pro = collect($breakdown)->firstWhere('plan', 'pro');
-        expect($pro['total'])->toBe(0);
+        $premium = collect($breakdown)->firstWhere('plan', 'premium');
+        expect($premium['total'])->toBe(3)
+            ->and($premium['monthly'])->toBe(2)
+            ->and($premium['yearly'])->toBe(1)
+            ->and($premium['monthly_revenue'])->toBe(1398)
+            ->and($premium['yearly_revenue'])->toBe(5999);
     });
 
-    it('returns all four plan types', function () {
+    it('returns only the canonical paid plan type', function () {
         $breakdown = $this->service->getPlanBreakdown();
 
         $planNames = array_column($breakdown, 'plan');
-        expect($planNames)->toBe(['student', 'standard', 'family', 'pro']);
+        expect($planNames)->toBe(['premium']);
     });
 
     it('excludes preview user subscriptions', function () {
         $previewUser = User::factory()->create(['is_preview_user' => true]);
         Subscription::factory()->create([
             'user_id' => $previewUser->id,
-            'plan' => 'pro',
+            'plan' => 'premium',
             'billing_cycle' => 'monthly',
             'status' => 'active',
             'amount' => 1999,
         ]);
 
         $breakdown = $this->service->getPlanBreakdown();
-        $pro = collect($breakdown)->firstWhere('plan', 'pro');
+        $premium = collect($breakdown)->firstWhere('plan', 'premium');
 
-        expect($pro['total'])->toBe(0)
-            ->and($pro['monthly_revenue'])->toBe(0);
+        expect($premium['total'])->toBe(0)
+            ->and($premium['monthly_revenue'])->toBe(0);
     });
 });
 

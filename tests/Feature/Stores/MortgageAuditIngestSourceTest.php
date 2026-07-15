@@ -34,7 +34,7 @@ beforeEach(function () {
 });
 
 it('MortgageStore::create writes an audit row with ingest_source = form', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 
@@ -60,7 +60,7 @@ it('MortgageStore::create writes an audit row with ingest_source = form', functi
 });
 
 it('MortgageStore::create writes an audit row with ingest_source = fyn_ai', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 
@@ -86,7 +86,7 @@ it('MortgageStore::create writes an audit row with ingest_source = fyn_ai', func
 });
 
 it('MortgageStore::create writes an audit row with ingest_source = upload', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 
@@ -112,7 +112,7 @@ it('MortgageStore::create writes an audit row with ingest_source = upload', func
 });
 
 it('MortgageStore::create writes an audit row with ingest_source = seeder', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 
@@ -138,7 +138,7 @@ it('MortgageStore::create writes an audit row with ingest_source = seeder', func
 });
 
 it('MortgageStore::create writes an audit row with ingest_source = admin', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 
@@ -164,7 +164,7 @@ it('MortgageStore::create writes an audit row with ingest_source = admin', funct
 });
 
 it('audit context is cleared after the mortgage store call (no leak to a later unrelated write)', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 

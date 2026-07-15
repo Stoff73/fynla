@@ -42,12 +42,27 @@ class SubscriptionFactory extends Factory
     }
 
     /**
-     * A trialing subscription.
+     * A pending checkout that does not confer paid entitlement.
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => Subscription::STATUS_PENDING,
+            'trial_started_at' => null,
+            'trial_ends_at' => null,
+            'current_period_start' => null,
+            'current_period_end' => null,
+            'revolut_order_id' => null,
+        ]);
+    }
+
+    /**
+     * A historical trialing subscription retained for compatibility audits.
      */
     public function trialing(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'trialing',
+            'status' => Subscription::STATUS_TRIALING,
             'trial_started_at' => now(),
             'trial_ends_at' => now()->addDays(14),
             'current_period_start' => null,

@@ -30,7 +30,7 @@
               </p>
             </div>
             <button
-              v-if="!subscriptionLoading && activePlanSlug !== 'pro'"
+              v-if="!subscriptionLoading && activePlanSlug !== 'premium'"
               @click="showPlanModal = true"
               class="btn-primary"
             >
@@ -72,10 +72,8 @@ import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
 
 const PLAN_NAMES = {
-  student: 'Student Plan',
-  standard: 'Standard Plan',
-  family: 'Family Plan',
-  pro: 'Pro Plan',
+  free: 'Free',
+  premium: 'Premium',
 };
 
 export default {
@@ -95,29 +93,18 @@ export default {
 
     const activePlanSlug = computed(() => {
       if (!subscriptionData.value) return null;
-      if (subscriptionData.value.status === 'active') return subscriptionData.value.plan;
-      return null;
+      return subscriptionData.value.tier || 'free';
     });
 
     const planDisplayName = computed(() => {
-      if (!subscriptionData.value) return 'Free Trial';
-      if (subscriptionData.value.status === 'trialing') {
-        const days = subscriptionData.value.days_remaining;
-        if (days !== undefined && days !== null) {
-          return `Free Trial (${days} ${days === 1 ? 'day' : 'days'} remaining)`;
-        }
-        return 'Free Trial';
-      }
-      if (subscriptionData.value.status === 'active' && subscriptionData.value.plan) {
-        return PLAN_NAMES[subscriptionData.value.plan] || subscriptionData.value.plan;
-      }
-      return 'Free Trial';
+      const tier = subscriptionData.value?.tier || 'free';
+      return PLAN_NAMES[tier] || tier;
     });
 
     const fetchSubscription = async () => {
       subscriptionLoading.value = true;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
       } catch {
         // Silently fail

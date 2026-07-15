@@ -3,7 +3,7 @@ import { test, expect, expectNoRuntimeErrors } from '../fixtures/app.js';
 const pricingRows = (monthly, yearly) => ({
   data: [
     { tier: 'free', price_monthly_pence: 0, price_annual_pence: 0, capability_matrix: {}, count_caps: {} },
-    { tier: 'tier1', price_monthly_pence: monthly, price_annual_pence: yearly, capability_matrix: {}, count_caps: {} },
+    { tier: 'premium', price_monthly_pence: monthly, price_annual_pence: yearly, capability_matrix: {}, count_caps: {} },
   ],
 });
 
@@ -189,7 +189,7 @@ test('pricing shows only the saving percentage supported by live configuration',
     { monthly: 499, yearly: 4990, expected: 'Save 17%' },
     { monthly: 1000, yearly: 9000, expected: 'Save 25%' },
     { monthly: 499, yearly: 5988, expected: null },
-    { monthly: 0, yearly: 1000, expected: null },
+    { monthly: 1000, yearly: 0, expected: null },
   ];
 
   for (const scenario of cases) {
@@ -212,7 +212,7 @@ test('pricing shows only the saving percentage supported by live configuration',
       await expect(label).toHaveText('');
       if (scenario.yearly === 0) {
         await expect(page.locator('#btn-yearly')).toBeDisabled();
-        await expect(page.locator('#cta-tier1')).toHaveAttribute('href', /billing=monthly/);
+        await expect(page.locator('#cta-premium')).toHaveAttribute('href', /billing=monthly/);
       }
     }
   }

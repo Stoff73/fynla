@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
  * already holds its billed amount in Subscription.amount, written once at
  * payment confirmation (PaymentController::confirmPayment). Renewals that
  * re-derive from SubscriptionPlan (SubscriptionRenewalService) are the
- * legacy billing path; tier-based subscriptions (free/tier1/tier2/tier3)
+ * legacy billing path; tier-based subscriptions (Free and Premium)
  * will derive renewal amounts from the Subscription row's locked amount,
  * not from a live tier read — see SubscriptionRenewalService::handleRenewalPayment.
  *

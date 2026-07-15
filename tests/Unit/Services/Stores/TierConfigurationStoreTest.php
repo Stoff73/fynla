@@ -23,13 +23,13 @@ it('reads the active config for a tier', function () {
 
 it('returns the count cap for an entity/tier pair', function () {
     expect($this->store->capFor('free', 'savings_account'))->toBe(3)
-        ->and($this->store->capFor('tier1', 'savings_account'))->toBeNull()
+        ->and($this->store->capFor('premium', 'savings_account'))->toBeNull()
         ->and($this->store->capFor('free', 'unknown_entity'))->toBeNull();
 });
 
 it('returns the capability verb for an entity/tier pair', function () {
     expect($this->store->capabilityFor('free', 'estate'))->toBe('teaser')
-        ->and($this->store->capabilityFor('tier3', 'estate'))->toBe('full');
+        ->and($this->store->capabilityFor('premium', 'estate'))->toBe('full');
 });
 
 it('memoises reads within a request', function () {
@@ -62,29 +62,29 @@ it('rejects a non-admin/seeder ingest source', function () {
         ->toThrow(TierConfigValidationException::class);
 });
 
-it('allActiveOrdered returns only active tiers ordered free → tier1 → tier2 → tier3', function () {
-    TierConfiguration::where('tier', 'tier2')->update(['is_active' => false]);
+it('allActiveOrdered returns only active tiers in canonical order', function () {
+    TierConfiguration::where('tier', 'premium')->update(['is_active' => false]);
 
     $tiers = $this->store->allActiveOrdered();
 
-    expect($tiers->pluck('tier')->all())->toBe(['free', 'tier1', 'tier3'])
+    expect($tiers->pluck('tier')->all())->toBe(['free'])
         ->and($tiers->every(fn ($t) => $t->is_active))->toBeTrue();
 });
 
 it('allOrdered returns every tier (active and inactive) in canonical order', function () {
-    TierConfiguration::where('tier', 'tier2')->update(['is_active' => false]);
+    TierConfiguration::where('tier', 'premium')->update(['is_active' => false]);
 
     $tiers = $this->store->allOrdered();
 
-    expect($tiers->pluck('tier')->all())->toBe(['free', 'tier1', 'tier2', 'tier3'])
-        ->and($tiers->firstWhere('tier', 'tier2')->is_active)->toBeFalse();
+    expect($tiers->pluck('tier')->all())->toBe(['free', 'premium'])
+        ->and($tiers->firstWhere('tier', 'premium')->is_active)->toBeFalse();
 });
 
 it('lowestTierWithCapability returns the first tier whose estate capability is full', function () {
     $result = $this->store->lowestTierWithCapability('estate', 'full');
 
     expect($result)->toBeArray()
-        ->and($result['tier'])->toBe('tier2')
+        ->and($result['tier'])->toBe('premium')
         ->and($result)->toHaveKeys(['tier', 'display_name']);
 });
 

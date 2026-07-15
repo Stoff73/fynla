@@ -92,48 +92,28 @@
               <thead>
                 <tr class="border-b-2 border-light-gray">
                   <th class="text-left py-3 pr-4 font-semibold text-horizon-500">Plan</th>
-                  <th class="text-left py-3 pr-4 font-semibold text-horizon-500">Launch Monthly</th>
-                  <th class="text-left py-3 pr-4 font-semibold text-horizon-500">Launch Yearly</th>
-                  <th class="text-left py-3 pr-4 font-semibold text-horizon-500">Regular Monthly</th>
-                  <th class="text-left py-3 font-semibold text-horizon-500">Regular Yearly</th>
+                  <th class="text-left py-3 pr-4 font-semibold text-horizon-500">Monthly</th>
+                  <th class="text-left py-3 font-semibold text-horizon-500">Yearly</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-savannah-100">
                 <tr>
-                  <td class="py-3 pr-4 text-neutral-500">Student</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;3.99</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;30.00</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;4.99</td>
-                  <td class="py-3 text-neutral-500">&pound;45.00</td>
+                  <td class="py-3 pr-4 text-neutral-500">Free</td>
+                  <td class="py-3 pr-4 text-neutral-500">&pound;0.00</td>
+                  <td class="py-3 text-neutral-500">&pound;0.00</td>
                 </tr>
                 <tr>
-                  <td class="py-3 pr-4 text-neutral-500">Standard</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;10.99</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;100.00</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;14.99</td>
-                  <td class="py-3 text-neutral-500">&pound;135.00</td>
-                </tr>
-                <tr>
-                  <td class="py-3 pr-4 text-neutral-500">Family</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;14.99</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;150.00</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;21.99</td>
-                  <td class="py-3 text-neutral-500">&pound;199.00</td>
-                </tr>
-                <tr>
-                  <td class="py-3 pr-4 text-neutral-500">Pro</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;19.99</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;200.00</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;29.99</td>
-                  <td class="py-3 text-neutral-500">&pound;269.99</td>
+                  <td class="py-3 pr-4 text-neutral-500">Premium</td>
+                  <td class="py-3 pr-4 text-neutral-500">&pound;6.99</td>
+                  <td class="py-3 text-neutral-500">&pound;59.99</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p class="text-neutral-500 leading-relaxed mb-5">All prices are in pounds sterling (GBP) and are inclusive of VAT where applicable. Once the launch special allocation has been filled, new subscribers will be charged at the regular price.</p>
+          <p class="text-neutral-500 leading-relaxed mb-5">All prices are in pounds sterling and are inclusive of Value Added Tax where applicable.</p>
 
-          <h3 class="text-base font-semibold text-horizon-500 mb-2">Free Trial</h3>
-          <p class="text-neutral-500 leading-relaxed mb-5">New accounts receive a 7-day free trial with full access to the Service. No payment information is required to start a trial. When the trial expires, your account is downgraded to a free tier with limited access and you will not be able to access planning tools, dashboards, or document uploads until you subscribe. If you do not subscribe within 30 days of your trial ending, your account and all associated data will be permanently deleted.</p>
+          <h3 class="text-base font-semibold text-horizon-500 mb-2">Free Access</h3>
+          <p class="text-neutral-500 leading-relaxed mb-5">New accounts begin on Free access with no time limit and no payment information required. You can continue using the capabilities and limits included in Free, or choose Premium at any time.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Payment Processing</h3>
           <p class="text-neutral-500 leading-relaxed mb-5">We do not receive, process, or store your payment card details. Our payment processor's terms of service apply to all payment transactions. We are not responsible for payment processing errors or interruptions caused by third-party payment providers.</p>
@@ -173,12 +153,10 @@
           <p class="text-neutral-500 leading-relaxed mb-5">The Service allows you to upload financial documents (pension statements, insurance policies, investment statements, mortgage statements, and savings statements) for automated data extraction. Uploaded documents are processed using artificial intelligence provided by Anthropic to extract relevant financial data.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Upload Limits</h3>
-          <p class="text-neutral-500 leading-relaxed mb-4">Document upload limits vary by plan:</p>
+          <p class="text-neutral-500 leading-relaxed mb-4">Document upload and storage limits vary between Free and Premium and are shown in the Service. Reaching a limit blocks new uploads but does not delete documents you have already retained.</p>
           <ul class="list-disc pl-6 mb-5 space-y-2">
-            <li class="text-neutral-500 leading-relaxed"><strong>Student plan:</strong> 1 upload per day, 3 uploads per month.</li>
-            <li class="text-neutral-500 leading-relaxed"><strong>Standard plan:</strong> 1 upload per day, 5 uploads per month.</li>
-            <li class="text-neutral-500 leading-relaxed"><strong>Family plan:</strong> 2 uploads per day, 10 uploads per month.</li>
-            <li class="text-neutral-500 leading-relaxed"><strong>Pro plan:</strong> Unlimited uploads.</li>
+            <li class="text-neutral-500 leading-relaxed"><strong>Free:</strong> A lower retained-document allowance.</li>
+            <li class="text-neutral-500 leading-relaxed"><strong>Premium:</strong> A higher retained-document allowance and storage allocation.</li>
           </ul>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">AI Processing Disclaimers</h3>

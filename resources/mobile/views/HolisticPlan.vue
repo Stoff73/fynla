@@ -5,10 +5,10 @@
     :loading="loading"
     loading-label="your holistic plan"
   >
-    <!-- Premium gate (/m freemium 5.3) — Holistic Plan is Tier 2+ -->
+    <!-- Premium gate (/m freemium 5.3) -->
     <div v-if="upgradeLocked" class="m-card m-state">
       <p class="m-section-label" style="margin-top:0">A premium feature</p>
-      <p class="m-sub">Your Holistic Plan brings every module together into one plan, ranked against what you can afford. It's part of Tier 2 and above.</p>
+      <p class="m-sub">Your Holistic Plan brings every module together into one plan, ranked against what you can afford. It's part of Premium.</p>
       <button class="m-btn" @click="goUpgrade">Upgrade your plan</button>
     </div>
 

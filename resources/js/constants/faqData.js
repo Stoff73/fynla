@@ -249,12 +249,12 @@ export const FAQ_CATEGORIES = [
       {
         id: 'how-much',
         q: 'How much does Fynla cost?',
-        a: 'Student tier from approximately \u00A33/month, Standard at \u00A38.50/month, and Premium at \u00A320/month. Annual billing gives you a discount. No hidden fees, no commission, no lock-in. See our pricing page for full details.',
+        a: 'Free costs nothing and requires no credit card. Premium costs \u00A36.99 per month or \u00A359.99 per year. There are no hidden fees, commissions, or lock-in contracts.',
       },
       {
         id: 'plan-differences',
         q: 'What is the difference between the tiers?',
-        a: 'Each tier adds more depth. The Free tier covers your dashboard, income and expenditure, property, protection, savings, investments and pensions. Tier 1 unlocks unlimited savings, investment and pension accounts plus the Letter to Spouse. Tier 2 adds Estate Planning — Wills, Trusts, Powers of Attorney and Inheritance Tax — along with What If Scenarios and the Holistic Plan. Tier 3 adds higher document, storage and Fyn allowances.',
+        a: 'Free covers your dashboard, income and expenditure, property, protection, savings, investments and pensions. Premium adds unlimited account counts, the Letter to Spouse, full Estate Planning, What If Scenarios, the Holistic Plan, and higher document, storage and Fyn allowances.',
       },
       {
         id: 'free-trial',

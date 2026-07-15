@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tiers;
 
 use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
 
 class TierResolver
 {
@@ -19,7 +20,7 @@ class TierResolver
      */
     public function resolve(User $user): string
     {
-        if (in_array($user->tier, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+        if (in_array($user->tier, TierConfigurationStore::TIERS, true)) {
             return $user->tier;
         }
 
@@ -33,7 +34,7 @@ class TierResolver
      */
     public function isGrandfatheredLegacyPaid(User $user): bool
     {
-        if (in_array($user->tier, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+        if (in_array($user->tier, TierConfigurationStore::TIERS, true)) {
             return false;
         }
         if ($user->is_preview_user) {

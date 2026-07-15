@@ -9,6 +9,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -16,71 +17,85 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(SubscriptionPlanSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 // ─── get_subscription_status ─────────────────────────────────────────
 
 it('get_subscription_status returns active subscription shape', function (): void {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
     Subscription::factory()->create([
         'user_id' => $user->id,
-        'plan' => 'standard',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
         'status' => 'active',
-        'amount' => 10.99,
+        'amount' => 699,
         'current_period_start' => now()->subDays(5),
         'current_period_end' => now()->addDays(25),
     ]);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user->fresh());
 
-    expect($result)->toHaveKeys([
-        'status', 'plan_name', 'billing_cycle', 'trial_ends_at', 'current_period_end',
-        'next_charge_amount', 'is_cancelled',
-    ]);
-    expect($result['status'])->toBe('active');
-    expect($result['is_cancelled'])->toBeFalse();
-    expect($result['next_charge_amount'])->toBe(10.99);
-    expect($result['billing_cycle'])->toBe('monthly');
+    expect($result)->toMatchArray([
+        'status' => 'active',
+        'subscription_status' => 'active',
+        'tier' => 'premium',
+        'tier_display_name' => 'Premium',
+        'billing_cycle' => 'monthly',
+        'action' => 'navigate',
+        'route_path' => '/settings/subscription',
+    ])->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
-it('get_subscription_status returns status none when user has no subscription', function (): void {
-    $user = User::factory()->create();
+it('get_subscription_status returns the Free state when user has no subscription', function (): void {
+    $user = User::factory()->create(['tier' => 'free', 'plan' => 'free']);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user);
 
-    expect($result)->toHaveKey('status');
-    expect($result['status'])->toBe('none');
+    expect($result)->toMatchArray([
+        'has_subscription' => false,
+        'status' => 'free',
+        'subscription_status' => null,
+        'tier' => 'free',
+        'tier_display_name' => 'Free',
+        'action' => 'navigate',
+        'route_path' => '/settings/subscription',
+    ]);
 });
 
 it('get_subscription_status flags cancelled subscriptions', function (): void {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
     Subscription::factory()->cancelled()->create([
         'user_id' => $user->id,
-        'plan' => 'standard',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
-        'amount' => 10.99,
+        'amount' => 699,
         'current_period_end' => now()->addDays(10),
     ]);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user->fresh());
 
-    expect($result['is_cancelled'])->toBeTrue();
+    expect($result['status'])->toBe('cancelled')
+        ->and($result['tier_display_name'])->toBe('Premium');
 });
 
-it('get_subscription_status returns trial dates when trialing', function (): void {
-    $user = User::factory()->create();
+it('get_subscription_status maps provisional trialing rows to pending without trial fields', function (): void {
+    $user = User::factory()->create(['tier' => 'free', 'plan' => 'free']);
     Subscription::factory()->trialing()->create([
         'user_id' => $user->id,
-        'plan' => 'standard',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
-        'amount' => 10.99,
+        'amount' => 699,
     ]);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user->fresh());
 
-    expect($result['status'])->toBe('trialing');
-    expect($result['trial_ends_at'])->not->toBeNull();
+    expect($result)->toMatchArray([
+        'status' => 'pending',
+        'subscription_status' => 'pending',
+        'tier' => 'free',
+        'tier_display_name' => 'Free',
+    ])->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
 // ─── list_invoices ───────────────────────────────────────────────────

@@ -123,12 +123,11 @@ function canonicalDcPensionSnapshot(DCPension $p): array
 }
 
 it('persists field-identical canonical rows for the same DC pension via form, fyn and upload', function () {
-    // tier1: the test creates 3 DC pensions and the free-tier cap is 5
+    // Premium keeps this parity test independent from Free caps.
     // (pension_account, DC + DB combined) — so a free user would also pass.
-    // Using tier1 keeps the test independent of future cap changes.
     $user = User::factory()->create([
         'is_preview_user' => false,
-        'tier' => 'tier1',
+        'tier' => 'premium',
         // years_to_drawdown calculator requires user.date_of_birth — pin it
         // so the derived column is deterministic across all three rows.
         'date_of_birth' => '1985-01-15',
@@ -235,7 +234,7 @@ it('persists field-identical canonical rows for the same DB pension via form and
     // story for DB is form + fyn today.
     $user = User::factory()->create([
         'is_preview_user' => false,
-        'tier' => 'tier1',
+        'tier' => 'premium',
         'date_of_birth' => '1985-01-15',
     ]);
     $normaliser = new PensionNormaliser;

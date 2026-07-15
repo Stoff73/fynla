@@ -65,6 +65,14 @@
       :highlighted-cell="highlightedCell"
     />
 
+    <div class="history-entry card-lg">
+      <div>
+        <h2>Balance history</h2>
+        <p>Track how your recorded assets, liabilities and net worth change over time.</p>
+      </div>
+      <router-link :to="balanceHistoryPath" class="history-link">View balance history</router-link>
+    </div>
+
     <div v-if="asOfDate" class="last-updated">
       <p>Last updated: {{ formatDate(asOfDate) }}</p>
     </div>
@@ -106,6 +114,12 @@ export default {
 
     asOfDate() {
       return this.overview.asOfDate;
+    },
+
+    balanceHistoryPath() {
+      return this.$route.path.startsWith('/preview/')
+        ? '/preview/net-worth/history'
+        : '/net-worth/history';
     },
 
     /**
@@ -263,6 +277,25 @@ export default {
   border-radius: 8px;
 }
 
+.history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.history-entry h2 {
+  @apply text-xl font-bold text-horizon-500;
+}
+
+.history-entry p {
+  @apply mt-1 text-neutral-500;
+}
+
+.history-link {
+  @apply inline-flex justify-center rounded-button px-4 py-2 text-sm font-bold text-white bg-raspberry-600 hover:bg-raspberry-700 whitespace-nowrap;
+}
+
 .last-updated p {
   margin: 0;
   font-size: 14px;
@@ -272,6 +305,11 @@ export default {
 @media (max-width: 640px) {
   .charts-row {
     grid-template-columns: 1fr;
+  }
+
+  .history-entry {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

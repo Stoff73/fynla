@@ -10,9 +10,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Route-level guard making the Holistic Plan a premium (Tier 2+) capability
+ * Route-level guard making the Holistic Plan a Premium capability
  * (/m freemium 5.3). Mirrors EnsureFullEstateAccess: it consults the canonical
- * SP2 TeaserGate (holistic_plan capability = 'full' only on tier2/tier3),
+ * SP2 TeaserGate (holistic_plan capability = 'full' only on Premium),
  * independent of the legacy `feature:pro` plan gate that already sits on the
  * route group. Returns a structured 403 so both the /m and web SPAs can render
  * an Upgrade prompt instead of a generic error.
@@ -27,9 +27,10 @@ class EnsureFullHolisticAccess
 
         if ($user && ! $this->teaserGate->isFull($user, 'holistic_plan')) {
             return response()->json([
-                'error' => 'upgrade_required',
-                'message' => 'The Holistic Plan is part of Tier 2 and above.',
-                'required_tier' => 'tier2',
+                'error' => 'capability_denied',
+                'capability' => 'holistic_plan',
+                'message' => 'The Holistic Plan is part of Premium.',
+                'required_tier' => 'premium',
             ], 403);
         }
 

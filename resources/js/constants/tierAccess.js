@@ -3,7 +3,7 @@
  *
  * Replaces the legacy plan-tier model (`featureGating.js`, student/standard/
  * family/pro). Access is read from `tier_configurations.capability_matrix`
- * (delivered to the frontend via `/payment/trial-status` → auth.subscriptionData)
+ * (delivered to the frontend via `/payment/subscription-status` → auth.subscriptionData)
  * keyed by capability verb:
  *   full    → fully usable
  *   limited → usable, but count-capped (the cap is surfaced separately by the
@@ -23,6 +23,7 @@
 export const ROUTE_CAPABILITY = {
     '/net-worth/cash': 'savings_account',
     '/net-worth/investments': 'investment',
+    '/net-worth/fees-detail': 'investment_cost_analysis',
     '/net-worth/retirement': 'pension_account',
     '/net-worth/property': 'property',
     '/net-worth/liabilities': 'liabilities',

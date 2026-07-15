@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
@@ -38,18 +39,18 @@ class CheckSubscription
     ];
 
     /**
-     * Route-prefix → capability-key mapping for tier-gated module routes.
-     * PR 7 adds estate entries here. Until then this map is empty and the
-     * capability check below is a no-op.
-     *
-     * Shape: [ 'api/estate/' => 'estate', ... ]
+     * Route prefixes whose endpoints require a full capability grant.
+     * Longer document paths must remain before their shared prefix.
      */
     private const CAPABILITY_ROUTE_MAP = [
-        // PR 7: 'teaser' capability means the GET index is allowed (controller
-        // returns the teaser payload); 'none' would hard-deny even teaser access.
-        // 'full' allows the complete module. The controller gates full-only
-        // sub-routes internally for defence-in-depth.
-        'api/estate' => 'estate',
+        'api/plans/adviser-export-pack' => 'advisor_export',
+        'api/documents/upload-only' => 'document_upload',
+        'api/documents/upload' => 'statement_upload',
+        'api/investment/fees' => 'investment_cost_analysis',
+        'api/what-if-scenarios' => 'what_if',
+        'api/holistic' => 'holistic_plan',
+        'api/household' => 'joint_household_view',
+        'api/user/letter-to-spouse' => 'letter_to_spouse',
     ];
 
     public function __construct(
@@ -85,11 +86,7 @@ class CheckSubscription
             return $next($request);
         }
 
-        // Tier capability check — consults the store for routes in CAPABILITY_ROUTE_MAP.
-        // 'none' = denied regardless of subscription status.
-        // 'teaser' / 'limited' / 'full' = allow through (gating is handled at the
-        // feature level; CheckSubscription only enforces hard 'none' denials here).
-        // PR 7 populates CAPABILITY_ROUTE_MAP with estate entries.
+        // Tier capability check for endpoints that require a full grant.
         $capabilityDenial = $this->checkCapability($request, $user);
         if ($capabilityDenial !== null) {
             return $capabilityDenial;
@@ -99,16 +96,13 @@ class CheckSubscription
             ? $user->subscription
             : $user->subscription()->first();
 
-        // Pure freemium: a Free user has NO subscription row and may write —
-        // per-tier creation caps are enforced downstream by DbTierGate at the
-        // store boundary. A user on a trial, or with an active (paid)
-        // subscription, may also write. A trial is a live grant of access:
-        // 'trialing' is the source of truth (the lifecycle — webhooks /
-        // ConvertTrialUsersToFree — transitions the status away when the trial
-        // actually ends), so we do NOT gate it on trial_ends_at, which the
-        // PaymentController leaves null on a freshly-created trial row.
+        // Pure freemium: a Free user may write while no subscription exists or
+        // checkout is provisional. TierResolver and DbTierGate still resolve
+        // and enforce Free access until verified payment activates Premium.
+        // Historical trialing rows remain provisional only for the one-release
+        // compatibility window and are audited before Task 12 removes them.
         if ($subscription === null
-            || $subscription->status === 'trialing'
+            || in_array($subscription->status, Subscription::PROVISIONAL_STATUSES, true)
             || $subscription->isActive()) {
             return $next($request);
         }
@@ -133,18 +127,11 @@ class CheckSubscription
     }
 
     /**
-     * Resolve capability for a tier-mapped route. Returns a 403 response when
-     * the user's tier has 'none' capability for the requested module, or null
-     * when the route is not in CAPABILITY_ROUTE_MAP or access is allowed.
-     *
-     * Called by PR 7 once the estate entry is added to CAPABILITY_ROUTE_MAP.
+     * Resolve capability for a mapped route. Returns a structured 403 unless
+     * the resolved tier has a full grant.
      */
     private function checkCapability(Request $request, User $user): ?Response
     {
-        if (empty(self::CAPABILITY_ROUTE_MAP)) {
-            return null;
-        }
-
         $path = $request->path();
 
         foreach (self::CAPABILITY_ROUTE_MAP as $routePrefix => $entityKey) {
@@ -155,10 +142,14 @@ class CheckSubscription
             $tier = $this->tierResolver->resolve($user);
             $capability = $this->tierStore->capabilityFor($tier, $entityKey);
 
-            if ($capability === 'none') {
+            if ($capability !== 'full') {
+                $targetTier = $this->tierStore->lowestTierWithCapability($entityKey, 'full');
+
                 return response()->json([
                     'error' => 'capability_denied',
-                    'message' => 'Your plan does not include access to this module.',
+                    'capability' => $entityKey,
+                    'required_tier' => $targetTier['tier'] ?? null,
+                    'message' => 'Your plan does not include this feature.',
                 ], 403);
             }
 

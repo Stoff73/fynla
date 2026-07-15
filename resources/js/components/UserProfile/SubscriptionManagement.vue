@@ -122,7 +122,7 @@
         </div>
 
         <button
-          v-if="subscriptionData.plan !== 'pro'"
+          v-if="subscriptionData.tier !== 'premium'"
           @click="showPlanModal = true"
           class="btn-primary w-full text-center block mb-3"
         >
@@ -470,7 +470,7 @@ export default {
       loading.value = true;
       error.value = null;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
         // Fetch billing history if user has a subscription
         if (response.data.has_subscription) {
@@ -499,8 +499,9 @@ export default {
     });
 
     const planDisplayName = computed(() => {
-      if (!subscriptionData.value?.plan) return '';
-      return subscriptionData.value.plan.charAt(0).toUpperCase() + subscriptionData.value.plan.slice(1);
+      const tier = subscriptionData.value?.tier;
+      if (!tier) return '';
+      return tier.charAt(0).toUpperCase() + tier.slice(1);
     });
 
     // Live countdown calculation

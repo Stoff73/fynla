@@ -9,7 +9,7 @@
       <button class="m-btn" @click="load">Try again</button>
     </div>
 
-    <!-- Teaser mode (free / Tier 1) — informational, no upgrade CTA on /m. -->
+    <!-- Teaser mode (Free) — informational, no upgrade CTA on /m. -->
     <template v-else-if="mode === 'teaser'">
       <div class="m-card m-hero">
         <p class="m-sub m-label">Estimated Inheritance Tax liability</p>
@@ -17,11 +17,11 @@
       </div>
       <div class="m-card">
         <p v-if="teaser.headline" class="m-sub" style="margin:0 0 12px">{{ teaser.headline }}</p>
-        <p class="me-note">Full estate planning — assets, gifts, trusts, will and personalised Inheritance Tax planning — is part of Tier 2.</p>
+        <p class="me-note">Full estate planning — assets, gifts, trusts, will and personalised Inheritance Tax planning — is part of Premium.</p>
       </div>
     </template>
 
-    <!-- Full mode (Tier 2+) -->
+    <!-- Full mode (Premium) -->
     <template v-else>
       <div class="m-card m-hero">
         <p class="m-sub m-label">Estimated estate value</p>

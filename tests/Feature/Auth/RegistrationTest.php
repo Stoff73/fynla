@@ -170,6 +170,37 @@ it('requires minimum password length for registration', function () {
         ->assertJsonValidationErrors(['password']);
 });
 
+it('rejects non-canonical plan identities during registration', function (string $plan) {
+    $this->postJson('/api/auth/register', [
+        'first_name' => 'Plan',
+        'surname' => 'Validation',
+        'email' => "registration.{$plan}@example.com",
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+        'plan' => $plan,
+        'billing_cycle' => 'monthly',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('plan');
+})->with(['student', 'standard', 'family', 'pro', 'tier1', 'tier2', 'tier3', 'arbitrary']);
+
+it('accepts the Premium registration intent only with a canonical billing cycle', function () {
+    $this->postJson('/api/auth/register', [
+        'first_name' => 'Premium',
+        'surname' => 'Registration',
+        'email' => 'premium.registration@example.com',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+        'plan' => 'premium',
+        'billing_cycle' => 'yearly',
+    ])->assertCreated();
+
+    $this->assertDatabaseHas('pending_registrations', [
+        'email' => 'premium.registration@example.com',
+        'plan' => 'premium',
+        'billing_cycle' => 'yearly',
+    ]);
+});
+
 it('creates a free-tier user with no trial on verified registration', function () {
     $pending = PendingRegistration::create([
         'first_name' => 'Free',

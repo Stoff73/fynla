@@ -21,6 +21,14 @@
         Defined Benefit pensions are excluded from net worth — they provide a guaranteed income rather than accessible capital.
       </p>
 
+      <div class="m-card mnw-history">
+        <div>
+          <p class="mnw-history__title">Balance history</p>
+          <p class="mnw-history__meta">Track how your recorded balances change over time.</p>
+        </div>
+        <button type="button" class="mnw-history__button" @click="openHistory">View balance history</button>
+      </div>
+
       <!-- Assets -->
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">Assets</p>
@@ -111,6 +119,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     openCategory(key) { this.$router.push(`/net-worth/${key}`); },
+    openHistory() { this.$router.push('/net-worth/history'); },
     async load() {
       this.loading = true;
       this.error = '';
@@ -136,6 +145,10 @@ export default {
 
 <style scoped>
 .mnw-note { margin: -4px 4px 14px; font-size: 13px; line-height: 1.5; color: var(--neutral-600); }
+.mnw-history { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mnw-history__title { color: var(--horizon-500); font-size: 15px; font-weight: 700; }
+.mnw-history__meta { color: var(--neutral-500); font-size: 12px; margin-top: 2px; }
+.mnw-history__button { background: transparent; border: 0; color: var(--raspberry-500); cursor: pointer; flex-shrink: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .mnw-cat {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer;

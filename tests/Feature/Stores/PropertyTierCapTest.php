@@ -18,8 +18,8 @@ uses(RefreshDatabase::class);
 /**
  * Store-side tier-cap integration for properties.
  *
- * Spec §13 + TierConfigurationSeeder: free tier `count_caps['property'] = 3`.
- * tier1+ is unlimited (`null`). Enforcement seam was wired in PR 1 of Pass 4
+ * The approved matrix caps Free at one property.
+ * Premium is unlimited (`null`). Enforcement seam was wired in PR 1 of Pass 4
  * (`PropertyStore::enforceTierCap` invoked from `create()`); this test pins
  * the contract.
  */
@@ -28,11 +28,11 @@ beforeEach(function () {
     $this->seed(TierConfigurationSeeder::class);
 });
 
-it('refuses to create a 4th property for a free-tier user', function () {
+it('refuses to create a second property for a free-tier user', function () {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
 
-    Property::factory(3)->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     expect(fn () => $store->create([
         'property_type' => 'main_residence',
@@ -45,7 +45,7 @@ it('carries the entity key, current count and hard limit on the thrown exception
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
 
-    Property::factory(3)->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     try {
         $store->create([
@@ -56,29 +56,27 @@ it('carries the entity key, current count and hard limit on the thrown exception
         $this->fail('Expected TierLimitExceededException was not thrown');
     } catch (TierLimitExceededException $e) {
         expect($e->entityKey)->toBe(PropertyStore::ENTITY_KEY);
-        expect($e->currentCount)->toBe(3);
-        expect($e->hardLimit)->toBe(3);
+        expect($e->currentCount)->toBe(1);
+        expect($e->hardLimit)->toBe(1);
     }
 });
 
-it('allows the first three properties for a free-tier user', function () {
+it('allows the first property for a free-tier user', function () {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
 
-    foreach (range(1, 3) as $i) {
-        $store->create([
-            'property_type' => 'main_residence',
-            'ownership_type' => 'individual',
-            'current_value' => 100000 + ($i * 10000),
-            'address_line_1' => "{$i} Test Street",
-        ], $user, IngestSource::FORM);
-    }
+    $store->create([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+        'current_value' => 110000,
+        'address_line_1' => '1 Test Street',
+    ], $user, IngestSource::FORM);
 
-    expect(Property::where('user_id', $user->id)->count())->toBe(3);
+    expect(Property::where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('does NOT enforce the cap for a tier1 user (unlimited)', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+it('does NOT enforce the cap for a Premium user (unlimited)', function () {
+    $user = User::factory()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     Property::factory(3)->create(['user_id' => $user->id]);
@@ -98,7 +96,7 @@ it('enforces the cap under the global DbTierGate binding', function () {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
 
-    Property::factory(3)->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     expect(fn () => $store->create([
         'property_type' => 'main_residence',

@@ -6,6 +6,7 @@ namespace App\Services\Admin;
 
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -58,7 +59,7 @@ class UserMetricsService
      */
     public function getPlanBreakdown(): array
     {
-        $plans = ['student', 'standard', 'family', 'pro'];
+        $plans = TierConfigurationStore::paidTiers();
         $result = [];
 
         foreach ($plans as $plan) {

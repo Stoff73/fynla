@@ -18,7 +18,7 @@ beforeEach(function () {
     // LPA is a full-Estate sub-route (spec §10.2): the acting user must be on
     // a full-Estate tier. Tier config seeded so TeaserGate resolves.
     $this->seed(TierConfigurationSeeder::class);
-    $this->user = User::factory()->create(['tier' => 'tier2']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 

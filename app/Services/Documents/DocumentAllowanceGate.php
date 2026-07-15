@@ -16,7 +16,7 @@ use App\Services\Tiers\TierResolver;
  * document count ≥ document_upload_allowance for their resolved tier.
  * Grandfather rule: never deletes existing documents, only blocks NEW ones.
  *
- * Storage ceiling (tier2/tier3 only): blocks a new upload when total retained
+ * Storage ceiling (Premium only): blocks a new upload when total retained
  * storage would exceed document_storage_gb.
  *
  * Preview users and admins are fully exempt (Rule #2, SP1 §14.2).
@@ -53,14 +53,17 @@ class DocumentAllowanceGate
 
         $allowance = $config->document_upload_allowance;
 
-        if ($retainedCount >= $allowance) {
+        if ($allowance !== null && $retainedCount >= $allowance) {
             return [
                 'allowed' => false,
-                'reason' => "Document allowance reached ({$retainedCount}/{$allowance}). Upgrade to store more documents.",
+                'reason' => $allowance === 0
+                    ? 'Document uploads are available with Premium.'
+                    : "Document allowance reached ({$retainedCount}/{$allowance}). Upgrade to store more documents.",
                 'entity_key' => 'document_upload',
                 'limit' => $allowance,
                 'target_tier' => $this->findUpgradeTier(
-                    fn ($cand) => $cand->document_upload_allowance > $allowance
+                    fn ($cand) => $cand->document_upload_allowance === null
+                        || $cand->document_upload_allowance > $allowance
                 ),
             ];
         }
@@ -76,16 +79,19 @@ class DocumentAllowanceGate
             if (($usedBytes + $newFileSizeBytes) > $storageCeilingBytes) {
                 $gbUsed = number_format($usedBytes / (1024 * 1024 * 1024), 2);
                 $gbLimit = number_format((float) $config->document_storage_gb, 2);
+                $targetTier = $this->findUpgradeTier(
+                    fn ($cand) => $cand->document_storage_gb !== null
+                        && (float) $cand->document_storage_gb > (float) $config->document_storage_gb
+                );
 
                 return [
                     'allowed' => false,
-                    'reason' => "Document storage limit reached ({$gbUsed} GB / {$gbLimit} GB). Upgrade for more storage.",
+                    'reason' => $targetTier === null
+                        ? "Document storage limit reached ({$gbUsed} GB / {$gbLimit} GB). Remove documents before uploading another."
+                        : "Document storage limit reached ({$gbUsed} GB / {$gbLimit} GB). Upgrade for more storage.",
                     'entity_key' => 'document_storage',
                     'limit' => null,
-                    'target_tier' => $this->findUpgradeTier(
-                        fn ($cand) => $cand->document_storage_gb !== null
-                            && (float) $cand->document_storage_gb > (float) $config->document_storage_gb
-                    ),
+                    'target_tier' => $targetTier,
                 ];
             }
         }

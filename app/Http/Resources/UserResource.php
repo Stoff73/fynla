@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Services\Tiers\TeaserGate;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,6 +12,8 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $canViewDetailedExpenditure = $this->canViewDetailedExpenditure($request);
+
         return [
             'id' => $this->id,
             'first_name' => $this->first_name,
@@ -48,26 +51,26 @@ class UserResource extends JsonResource
             'expenditure_entry_mode' => $this->expenditure_entry_mode,
             'expenditure_sharing_mode' => $this->expenditure_sharing_mode,
             // Expenditure categories
-            'food_groceries' => $this->food_groceries,
-            'transport_fuel' => $this->transport_fuel,
-            'healthcare_medical' => $this->healthcare_medical,
-            'insurance' => $this->insurance,
-            'mobile_phones' => $this->mobile_phones,
-            'internet_tv' => $this->internet_tv,
-            'subscriptions' => $this->subscriptions,
-            'clothing_personal_care' => $this->clothing_personal_care,
-            'entertainment_dining' => $this->entertainment_dining,
-            'holidays_travel' => $this->holidays_travel,
-            'pets' => $this->pets,
-            'childcare' => $this->childcare,
-            'school_fees' => $this->school_fees,
-            'school_lunches' => $this->school_lunches,
-            'school_extras' => $this->school_extras,
-            'university_fees' => $this->university_fees,
-            'children_activities' => $this->children_activities,
-            'gifts_charity' => $this->gifts_charity,
-            'regular_savings' => $this->regular_savings,
-            'other_expenditure' => $this->other_expenditure,
+            'food_groceries' => $this->when($canViewDetailedExpenditure, $this->food_groceries),
+            'transport_fuel' => $this->when($canViewDetailedExpenditure, $this->transport_fuel),
+            'healthcare_medical' => $this->when($canViewDetailedExpenditure, $this->healthcare_medical),
+            'insurance' => $this->when($canViewDetailedExpenditure, $this->insurance),
+            'mobile_phones' => $this->when($canViewDetailedExpenditure, $this->mobile_phones),
+            'internet_tv' => $this->when($canViewDetailedExpenditure, $this->internet_tv),
+            'subscriptions' => $this->when($canViewDetailedExpenditure, $this->subscriptions),
+            'clothing_personal_care' => $this->when($canViewDetailedExpenditure, $this->clothing_personal_care),
+            'entertainment_dining' => $this->when($canViewDetailedExpenditure, $this->entertainment_dining),
+            'holidays_travel' => $this->when($canViewDetailedExpenditure, $this->holidays_travel),
+            'pets' => $this->when($canViewDetailedExpenditure, $this->pets),
+            'childcare' => $this->when($canViewDetailedExpenditure, $this->childcare),
+            'school_fees' => $this->when($canViewDetailedExpenditure, $this->school_fees),
+            'school_lunches' => $this->when($canViewDetailedExpenditure, $this->school_lunches),
+            'school_extras' => $this->when($canViewDetailedExpenditure, $this->school_extras),
+            'university_fees' => $this->when($canViewDetailedExpenditure, $this->university_fees),
+            'children_activities' => $this->when($canViewDetailedExpenditure, $this->children_activities),
+            'gifts_charity' => $this->when($canViewDetailedExpenditure, $this->gifts_charity),
+            'regular_savings' => $this->when($canViewDetailedExpenditure, $this->regular_savings),
+            'other_expenditure' => $this->when($canViewDetailedExpenditure, $this->other_expenditure),
             // Income fields (needed by IncomeOccupation and tax calculations)
             'annual_employment_income' => $this->annual_employment_income,
             'annual_self_employment_income' => $this->annual_self_employment_income,
@@ -97,5 +100,15 @@ class UserResource extends JsonResource
             'role' => $this->when($this->relationLoaded('role'), $this->role),
             'subscription' => $this->when($this->relationLoaded('subscription'), $this->subscription),
         ];
+    }
+
+    private function canViewDetailedExpenditure(Request $request): bool
+    {
+        $user = $request->user();
+
+        return $user === null
+            || $user->is_admin
+            || $user->is_preview_user
+            || app(TeaserGate::class)->isFull($user, 'expenditure_detailed');
     }
 }

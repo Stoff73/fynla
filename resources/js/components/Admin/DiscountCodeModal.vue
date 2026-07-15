@@ -202,7 +202,7 @@ export default {
         { value: 'fixed_amount', label: 'Fixed Amount' },
         { value: 'trial_extension', label: 'Trial Extension' },
       ],
-      plans: ['student', 'standard', 'family', 'pro'],
+      plans: ['premium'],
     };
   },
 

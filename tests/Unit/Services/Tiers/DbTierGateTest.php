@@ -23,8 +23,8 @@ it('enforces the free savings cap of 3', function () {
         ->and($this->gate->hardLimit($u, 'savings_account'))->toBe(3);
 });
 
-it('treats tier1+ as unlimited', function () {
-    $u = User::factory()->create(['tier' => 'tier1']);
+it('treats Premium as unlimited', function () {
+    $u = User::factory()->create(['tier' => 'premium']);
     expect($this->gate->canCreate($u, 'savings_account', 9999))->toBeTrue()
         ->and($this->gate->hardLimit($u, 'savings_account'))->toBeNull();
 });

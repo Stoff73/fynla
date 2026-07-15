@@ -35,39 +35,34 @@ it('allows a free user (no subscription) to perform writes', function () {
     expect($response->status())->not->toBe(403);
 });
 
-it('allows writes for a user on an active trial', function () {
+it('allows Free writes while checkout is pending without granting Premium', function () {
     $user = User::factory()->create(['tier' => 'free']);
-    Subscription::factory()->trialing()->create([
+    Subscription::factory()->pending()->create([
         'user_id' => $user->id,
     ]);
     Sanctum::actingAs($user);
 
     $response = $this->postJson('/api/savings/accounts', [
-        'account_name' => 'Trial Tier Savings',
+        'account_name' => 'Pending Checkout Savings',
         'account_type' => 'easy_access',
         'current_balance' => 100,
         'ownership_type' => 'individual',
     ]);
 
-    // A trial is a live grant of access — must NOT hit the subscription lockout.
     expect($response->json('error') ?? '')->not->toBe('subscription_required');
-    expect($response->status())->not->toBe(403);
+    expect($response->status())->not->toBe(403)
+        ->and($user->fresh()->tier)->toBe('free');
 });
 
-it('allows writes for a freshly-created trial with the PaymentController shape (no trial_ends_at, period end now)', function () {
-    // PaymentController creates trial rows with trial_ends_at = null and
-    // current_period_end = now(). A date-based access check would wrongly
-    // block these; status === 'trialing' is the source of truth.
+it('temporarily preserves Free writes for a historical trialing row until compatibility removal', function () {
     $user = User::factory()->create(['tier' => 'free']);
     Subscription::factory()->trialing()->create([
         'user_id' => $user->id,
-        'trial_ends_at' => null,
-        'current_period_end' => now(),
     ]);
     Sanctum::actingAs($user);
 
     $response = $this->postJson('/api/savings/accounts', [
-        'account_name' => 'Fresh Trial Savings',
+        'account_name' => 'Historical Compatibility Savings',
         'account_type' => 'easy_access',
         'current_balance' => 100,
         'ownership_type' => 'individual',

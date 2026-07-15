@@ -53,8 +53,8 @@ it('returns the REST-equivalent upgrade payload for a free user', function (): v
 
     expect($result)->toBe([
         'error' => 'upgrade_required',
-        'message' => 'The Holistic Plan is part of Tier 2 and above.',
-        'required_tier' => 'tier2',
+        'message' => 'The Holistic Plan is part of Premium.',
+        'required_tier' => 'premium',
     ])->and(
         AiAuditEvent::query()
             ->where('user_id', $user->id)
@@ -65,9 +65,9 @@ it('returns the REST-equivalent upgrade payload for a free user', function (): v
     )->toBe(['dispatched', 'failed']);
 });
 
-it('allows an entitled Tier 2 user to generate a financial plan', function (): void {
+it('allows an entitled Premium user to generate a financial plan', function (): void {
     $user = User::factory()->create([
-        'tier' => 'tier2',
+        'tier' => 'premium',
         'date_of_birth' => '1985-01-01',
         'annual_employment_income' => 75000,
         'monthly_expenditure' => 2500,
@@ -98,7 +98,7 @@ it('allows an entitled Tier 2 user to generate a financial plan', function (): v
 
 it('allows holistic recommendations when the exact primary matrix passes', function (): void {
     $user = User::factory()->create([
-        'tier' => 'tier2',
+        'tier' => 'premium',
         'date_of_birth' => '1985-01-01',
         'annual_employment_income' => 75000,
         'monthly_expenditure' => 2500,
@@ -128,7 +128,7 @@ it('treats a preview user without an entitled tier as free', function (): void {
 
     expect($result)->toBe([
         'error' => 'upgrade_required',
-        'message' => 'The Holistic Plan is part of Tier 2 and above.',
-        'required_tier' => 'tier2',
+        'message' => 'The Holistic Plan is part of Premium.',
+        'required_tier' => 'premium',
     ]);
 });

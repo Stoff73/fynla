@@ -16,6 +16,15 @@ class Subscription extends Model
 {
     use Auditable, HasFactory, SoftDeletes;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_TRIALING = 'trialing';
+
+    public const PROVISIONAL_STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_TRIALING,
+    ];
+
     protected $fillable = [
         'user_id',
         'plan',

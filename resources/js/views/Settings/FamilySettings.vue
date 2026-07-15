@@ -29,43 +29,20 @@
 </template>
 
 <script>
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
-import { hasFeatureAccess } from '@/constants/featureGating';
 
 export default {
   name: 'FamilySettings',
   components: { AppLayout, SettingsTabBar, FamilyMembers },
   setup() {
     const store = useStore();
-    const router = useRouter();
     const loading = computed(() => store.getters['userProfile/loading']);
     const error = computed(() => store.getters['userProfile/error']);
     const loadProfile = () => store.dispatch('userProfile/fetchProfile');
-
-    // Plan gating — backstop for the router guard, which runs before
-    // AppLayout has fetched subscriptionData on URL-direct hits.
-    const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
-    const subscriptionData = computed(() => store.state.auth.subscriptionData);
-    const effectivePlan = computed(() => {
-      if (isPreviewMode.value) return 'pro';
-      if (!subscriptionData.value) return null;
-      if (subscriptionData.value.status === 'trialing') return 'pro';
-      return subscriptionData.value.plan || 'student';
-    });
-    watch(
-      effectivePlan,
-      (plan) => {
-        if (plan && !hasFeatureAccess(plan, 'family')) {
-          router.replace({ name: 'Dashboard' });
-        }
-      },
-      { immediate: true },
-    );
 
     onMounted(loadProfile);
     return { loading, error, loadProfile };

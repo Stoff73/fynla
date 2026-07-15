@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -117,6 +118,8 @@ class RegisterRequest extends FormRequest
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
+            'plan' => ['nullable', 'string', Rule::in(TierConfigurationStore::TIERS)],
+            'billing_cycle' => ['nullable', 'required_with:plan', 'string', Rule::in(['monthly', 'yearly'])],
             'signup_source' => ['nullable', 'string', Rule::in(self::ALLOWED_SIGNUP_SOURCES)],
             // /savetax acquisition-funnel answers (coarse hints carried from the
             // public funnel via localStorage). Validated loosely at the boundary.

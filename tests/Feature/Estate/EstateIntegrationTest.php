@@ -21,13 +21,13 @@ beforeEach(function () {
 
 describe('Complete estate planning workflow', function () {
     it('completes full estate planning analysis from setup to recommendations', function () {
-        // 1. Create user and authenticate (tier2 = full Estate module access)
+        // 1. Create user and authenticate (Premium = full Estate module access)
         $user = User::factory()->create([
             'first_name' => 'John',
             'surname' => 'Doe',
             'email' => 'john@example.com',
             'date_of_birth' => Carbon::now()->subYears(50),
-            'tier' => 'tier2',
+            'tier' => 'premium',
         ]);
         Sanctum::actingAs($user);
 
@@ -144,7 +144,7 @@ describe('IHT calculation with multiple scenarios', function () {
     it('shows IHT reduction through gifting strategy', function () {
         $user = User::factory()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
-            'tier' => 'tier2',
+            'tier' => 'premium',
         ]);
         Sanctum::actingAs($user);
 
@@ -185,7 +185,7 @@ describe('IHT calculation with multiple scenarios', function () {
     it('shows IHT reduction through charitable giving', function () {
         $user = User::factory()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
-            'tier' => 'tier2',
+            'tier' => 'premium',
         ]);
         Sanctum::actingAs($user);
 
@@ -219,7 +219,7 @@ describe('Cache behavior', function () {
     it('caches estate analysis results', function () {
         $user = User::factory()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
-            'tier' => 'tier2',
+            'tier' => 'premium',
         ]);
         Sanctum::actingAs($user);
 
@@ -252,7 +252,7 @@ describe('Cache behavior', function () {
     it('invalidates cache when asset is updated', function () {
         $user = User::factory()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
-            'tier' => 'tier2',
+            'tier' => 'premium',
         ]);
         Sanctum::actingAs($user);
 

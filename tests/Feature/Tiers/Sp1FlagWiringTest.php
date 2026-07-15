@@ -2,25 +2,24 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
 use App\Services\Stores\TierConfigurationStore;
-use App\Services\Tiers\TierResolver;
+use Database\Seeders\TierConfigurationSeeder;
 
-beforeEach(fn () => $this->seed(\Database\Seeders\TierConfigurationSeeder::class));
+beforeEach(fn () => $this->seed(TierConfigurationSeeder::class));
 
 it('exposes the per-tier doc upload allowance + storage quota', function () {
     $s = app(TierConfigurationStore::class);
-    expect($s->forTier('free')->document_upload_allowance)->toBe(3)
+    expect($s->forTier('free')->document_upload_allowance)->toBe(0)
         ->and($s->forTier('free')->document_storage_gb)->toBeNull()
-        ->and((float) $s->forTier('tier2')->document_storage_gb)->toBe(5.00)
-        ->and($s->forTier('tier3')->document_upload_allowance)->toBe(6);
+        ->and((float) $s->forTier('premium')->document_storage_gb)->toBe(1.00)
+        ->and($s->forTier('premium')->document_upload_allowance)->toBeNull();
 });
 
 it('exposes currency-display mode and snapshot window per tier', function () {
     $s = app(TierConfigurationStore::class);
     expect($s->forTier('free')->currency_display_mode)->toBe('gbp_only')
-        ->and($s->forTier('tier2')->currency_display_mode)->toBe('user_choice')
+        ->and($s->forTier('premium')->currency_display_mode)->toBe('user_choice')
         ->and($s->forTier('free')->snapshot_surfacing_window_days)->toBe(90)
-        ->and($s->forTier('tier3')->snapshot_surfacing_window_days)->toBe(2555)
-        ->and($s->forTier('tier2')->open_api_affordance)->toBeTrue();
+        ->and($s->forTier('premium')->snapshot_surfacing_window_days)->toBeNull()
+        ->and($s->forTier('premium')->open_api_affordance)->toBeTrue();
 });

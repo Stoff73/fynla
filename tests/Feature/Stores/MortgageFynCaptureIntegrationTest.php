@@ -14,7 +14,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'tier1']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
     $this->property = Property::factory()->create([
         'user_id' => $this->user->id,
         'address_line_1' => '123 Test Street',

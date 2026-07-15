@@ -6,7 +6,6 @@ namespace App\Services\Onboarding;
 
 use App\Exceptions\FinancialCalculationException;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\Estate\Liability;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
@@ -18,6 +17,7 @@ use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\LiabilityStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
@@ -35,6 +35,7 @@ class OnboardingService
         private TaxConfigService $taxConfig,
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly MortgageStore $mortgageStore,
+        private readonly LiabilityStore $liabilityStore,
     ) {}
 
     /**
@@ -815,6 +816,8 @@ class OnboardingService
             return;
         }
 
+        $user = User::findOrFail($userId);
+
         foreach ($data['liabilities'] as $liabilityData) {
             // Skip mortgages - they should be linked to properties and created in processAssets
             if ($liabilityData['type'] === 'mortgage') {
@@ -827,8 +830,7 @@ class OnboardingService
                 : null;
 
             // Create liability record
-            Liability::create([
-                'user_id' => $userId,
+            $this->liabilityStore->create([
                 'liability_type' => $liabilityData['type'],
                 'liability_name' => $liabilityData['lender'],
                 'country' => $liabilityData['country'] ?? 'United Kingdom',
@@ -836,7 +838,7 @@ class OnboardingService
                 'monthly_payment' => $liabilityData['monthly_payment'] ?? null,
                 'interest_rate' => $interestRate,
                 'notes' => $liabilityData['purpose'] ?? null,
-            ]);
+            ], $user, IngestSource::FORM);
         }
     }
 

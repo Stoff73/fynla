@@ -14,10 +14,25 @@ use Illuminate\Support\Facades\DB;
 
 class TierConfigurationStore
 {
-    public const TIERS = ['free', 'tier1', 'tier2', 'tier3'];
+    public const TIERS = ['free', 'premium'];
+
+    public const RETIRED_TIERS = ['tier1', 'tier2', 'tier3'];
+
+    /**
+     * @return list<string>
+     */
+    public static function paidTiers(): array
+    {
+        return array_values(array_diff(self::TIERS, ['free']));
+    }
 
     /** Per-request memoisation: tier => TierConfiguration */
     private array $cache = [];
+
+    public static function canonicalPlanForEntitlement(string $plan): string
+    {
+        return in_array($plan, self::RETIRED_TIERS, true) ? 'premium' : $plan;
+    }
 
     public function forTier(string $tier): TierConfiguration
     {
@@ -44,8 +59,17 @@ class TierConfigurationStore
         return $caps[$entityKey] ?? null;
     }
 
+    public function priceForCycle(string $tier, string $billingCycle): int
+    {
+        $configuration = $this->forTier($tier);
+
+        return $billingCycle === 'monthly'
+            ? $configuration->price_monthly_pence
+            : $configuration->price_annual_pence;
+    }
+
     /**
-     * All active tier configurations ordered free → tier1 → tier2 → tier3.
+     * All active tier configurations ordered Free, then Premium.
      * Read-only consumer entry point so HTTP controllers never touch the
      * TierConfiguration model directly (SP1 §12 single-source-of-truth moat).
      *
@@ -54,27 +78,29 @@ class TierConfigurationStore
     public function allActiveOrdered(): Collection
     {
         return TierConfiguration::where('is_active', true)
-            ->orderByRaw("FIELD(tier,'free','tier1','tier2','tier3')")
+            ->whereIn('tier', self::TIERS)
+            ->orderByRaw('FIELD(tier, ?, ?)', self::TIERS)
             ->get();
     }
 
     /**
-     * Every tier configuration (active and inactive) ordered free → tier1 →
-     * tier2 → tier3. Admin-screen read entry point so the admin controller
+     * Every tier configuration (active and inactive) ordered Free, then
+     * Premium. Admin-screen read entry point so the admin controller
      * never touches the TierConfiguration model directly (SP1 §12 moat).
      *
      * @return Collection<int, TierConfiguration>
      */
     public function allOrdered(): Collection
     {
-        return TierConfiguration::orderByRaw("FIELD(tier,'free','tier1','tier2','tier3')")
+        return TierConfiguration::whereIn('tier', self::TIERS)
+            ->orderByRaw('FIELD(tier, ?, ?)', self::TIERS)
             ->get();
     }
 
     /**
      * Return the lowest active tier whose capability for $capabilityKey equals $verb,
      * or null if no such tier exists. Tiers are evaluated in canonical ascending order
-     * (free → tier1 → tier2 → tier3). Used to derive accurate CTA targets from the
+     * (Free, then Premium). Used to derive accurate CTA targets from the
      * store rather than hardcoding (SP2 PR7 plan §7.3).
      *
      * @return array{tier: string, display_name: string}|null

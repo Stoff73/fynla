@@ -142,13 +142,13 @@ class InvoiceService
 
     /**
      * Resolve a human-readable plan name for invoice line items.
-     * For tier-based plans (free/tier1/tier2/tier3) the display_name comes from
+     * For canonical tier-based plans the display name comes from
      * TierConfigurationStore so a single admin edit propagates to all new invoices.
      * Legacy plan slugs (student/standard/family/pro) fall back to ucfirst.
      */
     private function resolvePlanName(?string $planSlug): string
     {
-        if ($planSlug && in_array($planSlug, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+        if ($planSlug && in_array($planSlug, TierConfigurationStore::TIERS, true)) {
             try {
                 return $this->tierStore->forTier($planSlug)->display_name;
             } catch (\Throwable) {

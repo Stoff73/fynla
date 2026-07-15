@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Subscription;
 use App\Models\User;
 use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -15,135 +16,100 @@ beforeEach(function () {
     $this->seed(RolesPermissionsSeeder::class);
 });
 
-/**
- * SP2 PR5 — Folded-in payment-backend tier-key acceptance tests.
- *
- * Verifies that PaymentController methods accept tier keys (free, tier1,
- * tier2, tier3) in their validation rather than 422-ing with "The selected
- * plan is invalid."
- */
-describe('POST /api/payment/create-order — tier-key validation', function () {
+describe('paid plan validation', function () {
+    it('accepts Premium for a new payment order', function () {
+        $user = User::factory()->create([
+            'tier' => 'free',
+            'revolut_customer_id' => 'cust_premium_validation',
+        ]);
 
-    it('rejects old legacy slugs that were never valid — sanity check', function () {
+        Http::fake([
+            '*' => Http::response([
+                'id' => 'order_premium_validation',
+                'token' => 'token_premium_validation',
+                'state' => 'pending',
+                'created_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/create-order', [
+                'plan' => 'premium',
+                'billing_cycle' => 'monthly',
+            ])
+            ->assertOk();
+
+        $provisional = Subscription::where('user_id', $user->id)->sole();
+
+        expect($provisional->status)->toBe('pending')
+            ->and($provisional->trial_started_at)->toBeNull()
+            ->and($provisional->trial_ends_at)->toBeNull()
+            ->and($provisional->current_period_start)->toBeNull()
+            ->and($provisional->current_period_end)->toBeNull()
+            ->and($user->fresh()->tier)->toBe('free');
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/payment/subscription-status')
+            ->assertOk()
+            ->assertJsonPath('tier', 'free')
+            ->assertJsonPath('subscription_status', 'pending');
+    });
+
+    it('rejects non-Premium keys for a new payment order', function (string $plan) {
         $user = User::factory()->create();
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-            'plan' => 'enterprise',
-            'billing_cycle' => 'monthly',
-        ]);
-        $response->assertStatus(422);
-    });
 
-    it('accepts free tier and returns 422 with no-order message (not a plan validation failure)', function () {
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/create-order', [
+                'plan' => $plan,
+                'billing_cycle' => 'monthly',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('plan');
+    })->with(['free', 'trial', 'student', 'standard', 'family', 'pro', 'tier1', 'tier2', 'tier3']);
+
+    it('accepts Premium at the upgrade validation boundary', function () {
         $user = User::factory()->create();
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-            'plan' => 'free',
-            'billing_cycle' => 'monthly',
-        ]);
-        // Free tier is accepted by validation but short-circuited — no Revolut order.
-        // We get a 422 with our domain message, not the generic "The selected plan is invalid".
-        $response->assertStatus(422)
-            ->assertJsonPath('message', 'The Free tier has no payment. No order created.');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/upgrade', ['plan' => 'premium'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'You must have an active subscription to upgrade');
     });
 
-    it('passes validation for tier1 and reaches Revolut (resolves price from store)', function () {
-        $user = User::factory()->create(['revolut_customer_id' => 'cust_test_123']);
+    it('rejects non-Premium keys at the upgrade validation boundary', function (string $plan) {
+        $user = User::factory()->create();
 
-        Http::fake([
-            '*' => Http::response([
-                'id' => 'order_abc',
-                'token' => 'tok_abc',
-                'state' => 'pending',
-                'created_at' => now()->toIso8601String(),
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-            'plan' => 'tier1',
-            'billing_cycle' => 'monthly',
-        ]);
-
-        // Should not 422 on validation — plan is accepted.
-        // (May succeed with 200 or fail with 500 if env not configured — we
-        // test that it is NOT a 422 validation error on 'plan'.)
-        $response->assertSuccessful();
-    });
-
-    it('passes validation for tier2 and reaches Revolut', function () {
-        $user = User::factory()->create(['revolut_customer_id' => 'cust_test_456']);
-
-        Http::fake([
-            '*' => Http::response([
-                'id' => 'order_def',
-                'token' => 'tok_def',
-                'state' => 'pending',
-                'created_at' => now()->toIso8601String(),
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-            'plan' => 'tier2',
-            'billing_cycle' => 'monthly',
-        ]);
-
-        $response->assertSuccessful();
-    });
-
-    it('passes validation for tier3 and reaches Revolut', function () {
-        $user = User::factory()->create(['revolut_customer_id' => 'cust_test_789']);
-
-        Http::fake([
-            '*' => Http::response([
-                'id' => 'order_ghi',
-                'token' => 'tok_ghi',
-                'state' => 'pending',
-                'created_at' => now()->toIso8601String(),
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-            'plan' => 'tier3',
-            'billing_cycle' => 'monthly',
-        ]);
-
-        $response->assertSuccessful();
-    });
-
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/upgrade', ['plan' => $plan])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('plan');
+    })->with(['free', 'trial', 'student', 'standard', 'family', 'pro', 'tier1', 'tier2', 'tier3']);
 });
 
-describe('POST /api/payment/validate-discount — tier-key validation', function () {
-
-    it('accepts free tier key without plan validation error', function () {
+describe('discount validation', function () {
+    it('accepts Premium and resolves its price from the tier store', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/validate-discount', [
-            'code' => 'TESTCODE',
-            'plan' => 'free',
-            'billing_cycle' => 'monthly',
-        ]);
-
-        // Should not fail with "The selected plan is invalid" (422 from plan rule).
-        // It will return success:false because TESTCODE does not exist, but plan is accepted.
-        $response->assertStatus(200)
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/validate-discount', [
+                'code' => 'NOTEXIST',
+                'plan' => 'premium',
+                'billing_cycle' => 'monthly',
+            ])
+            ->assertOk()
             ->assertJsonPath('success', false);
-
-        // The response message should be about the code, not the plan.
-        $message = $response->json('message');
-        expect($message)->not->toContain('plan');
     });
 
-    it('accepts tier1 key and resolves price from the tier store', function () {
+    it('rejects non-Premium keys', function (string $plan) {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/validate-discount', [
-            'code' => 'NOTEXIST',
-            'plan' => 'tier1',
-            'billing_cycle' => 'monthly',
-        ]);
-
-        // Plan validation passes; code validation may fail — that is expected.
-        $response->assertStatus(200);
-        $message = $response->json('message');
-        expect($message)->not->toContain('selected plan is invalid');
-    });
-
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/payment/validate-discount', [
+                'code' => 'NOTEXIST',
+                'plan' => $plan,
+                'billing_cycle' => 'monthly',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('plan');
+    })->with(['free', 'trial', 'student', 'standard', 'family', 'pro', 'tier1', 'tier2', 'tier3']);
 });

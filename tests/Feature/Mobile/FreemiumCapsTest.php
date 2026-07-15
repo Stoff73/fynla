@@ -40,7 +40,7 @@ describe('/m freemium 5.1 — module payloads surface the free-tier cap', functi
     });
 
     it('reports an unlimited tier as null (no nudge) on GET /api/savings', function () {
-        $user = User::factory()->create(['tier' => 'tier2']);
+        $user = User::factory()->create(['tier' => 'premium']);
 
         $this->actingAs($user, 'sanctum')->getJson('/api/savings')
             ->assertOk()
@@ -48,7 +48,7 @@ describe('/m freemium 5.1 — module payloads surface the free-tier cap', functi
     });
 });
 
-describe('/m freemium 5.3 — Holistic Plan is gated to Tier 2+', function () {
+describe('/m freemium 5.3 — Holistic Plan is gated to Premium', function () {
     it('returns a structured upgrade_required 403 for a free user', function () {
         $user = User::factory()->create(['tier' => 'free']);
 
@@ -57,10 +57,10 @@ describe('/m freemium 5.3 — Holistic Plan is gated to Tier 2+', function () {
             ->assertJsonPath('error', 'upgrade_required');
     });
 
-    it('does not hit the upgrade gate for a Tier 2 user', function () {
-        $user = User::factory()->create(['tier' => 'tier2']);
+    it('does not hit the upgrade gate for a Premium user', function () {
+        $user = User::factory()->create(['tier' => 'premium']);
 
-        // Tier 2 passes the gate (no 403). We assert "not 403" rather than 200 so the
+        // Premium passes the gate (no 403). We assert "not 403" rather than 200 so the
         // check is about the gate, not the composite-plan engine's downstream output.
         $status = $this->actingAs($user, 'sanctum')->getJson('/api/holistic/composite-plan')->status();
         expect($status)->not->toBe(403);

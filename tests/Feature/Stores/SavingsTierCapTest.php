@@ -21,11 +21,11 @@ uses(RefreshDatabase::class);
  * SCOPE: PR 3 (SP2) activates enforcement globally by binding DbTierGate.
  * These tests exercise the SavingsStore enforcement seam via the live global
  * binding and cover:
- *  - a true free user is blocked at cap 3 (4th create throws);
+ *  - a true free user is blocked at cap 2 (third create throws);
  *  - the thrown TierLimitExceededException carries entity key / count / limit;
- *  - the first three free-tier creates succeed;
+ *  - the first two free-tier creates succeed;
  *  - the global binding really is DbTierGate (caps live);
- *  - a tier1 user is unlimited (cap not enforced).
+ *  - a Premium user is unlimited (cap not enforced).
  *
  * The grandfathered-legacy-paid bypass is NOT proven here — that invariant is
  * a gate-level concern owned by tests/Unit/Services/Tiers/DbTierGateTest.php
@@ -47,63 +47,62 @@ $payload = fn (string $name) => [
     'country' => 'UK',
 ];
 
-it('refuses to create a 4th savings account for a free-tier user (DbTierGate global binding)', function () use ($payload) {
+it('refuses to create a third savings account for a free-tier user (DbTierGate global binding)', function () use ($payload) {
     $user = User::factory()->create(['tier' => 'free']); // explicit free tier
     $store = app(SavingsStore::class);
 
-    SavingsAccount::factory(3)->create(['user_id' => $user->id]);
+    SavingsAccount::factory(2)->create(['user_id' => $user->id]);
 
-    expect(fn () => $store->create($payload('Fourth'), $user, IngestSource::FORM))
+    expect(fn () => $store->create($payload('Third'), $user, IngestSource::FORM))
         ->toThrow(TierLimitExceededException::class);
 
-    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(3);
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
 });
 
 it('carries the entity key, current count and hard limit on the thrown exception', function () use ($payload) {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(SavingsStore::class);
 
-    SavingsAccount::factory(3)->create(['user_id' => $user->id]);
+    SavingsAccount::factory(2)->create(['user_id' => $user->id]);
 
     try {
-        $store->create($payload('Fourth'), $user, IngestSource::FORM);
+        $store->create($payload('Third'), $user, IngestSource::FORM);
         $this->fail('Expected TierLimitExceededException was not thrown');
     } catch (TierLimitExceededException $e) {
         expect($e->entityKey)->toBe(SavingsStore::ENTITY_KEY);
-        expect($e->currentCount)->toBe(3);
-        expect($e->hardLimit)->toBe(3);
+        expect($e->currentCount)->toBe(2);
+        expect($e->hardLimit)->toBe(2);
     }
 });
 
-it('allows the first three savings accounts for a free-tier user', function () use ($payload) {
+it('allows the first two savings accounts for a free-tier user', function () use ($payload) {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(SavingsStore::class);
 
     $store->create($payload('One'), $user, IngestSource::FORM);
     $store->create($payload('Two'), $user, IngestSource::FORM);
-    $store->create($payload('Three'), $user, IngestSource::FORM);
 
-    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(3);
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
 });
 
 it('enforces the cap under the global DbTierGate binding (PR 3: caps live)', function () use ($payload) {
     // PR 3 replaces PermissiveTierGate with DbTierGate globally. Enforcement
-    // is now always on; true free users are blocked beyond cap 3.
+    // is now always on; true free users are blocked beyond cap 2.
     expect(app(TierGate::class))->toBeInstanceOf(DbTierGate::class);
 
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(SavingsStore::class);
 
-    SavingsAccount::factory(3)->create(['user_id' => $user->id]);
+    SavingsAccount::factory(2)->create(['user_id' => $user->id]);
 
-    expect(fn () => $store->create($payload('Fourth'), $user, IngestSource::FORM))
+    expect(fn () => $store->create($payload('Third'), $user, IngestSource::FORM))
         ->toThrow(TierLimitExceededException::class);
 
-    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(3);
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
 });
 
-it('does NOT enforce the cap for a tier1 user (unlimited)', function () use ($payload) {
-    $user = User::factory()->create(['tier' => 'tier1']);
+it('does NOT enforce the cap for a Premium user (unlimited)', function () use ($payload) {
+    $user = User::factory()->create(['tier' => 'premium']);
     $store = app(SavingsStore::class);
 
     SavingsAccount::factory(3)->create(['user_id' => $user->id]);

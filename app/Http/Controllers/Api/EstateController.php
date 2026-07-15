@@ -31,6 +31,9 @@ use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\LiabilityStore;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
@@ -54,6 +57,7 @@ class EstateController extends Controller
         private readonly TeaserGate $teaserGate,
         private readonly EstateIhtExposureDetector $ihtExposureDetector,
         private readonly TierConfigurationStore $tierStore,
+        private readonly LiabilityStore $liabilityStore,
     ) {}
 
     /**
@@ -363,8 +367,7 @@ class EstateController extends Controller
         $validated = $request->validated();
 
         try {
-            $validated['user_id'] = $user->id;
-            $liability = Liability::create($validated);
+            $liability = $this->liabilityStore->create($validated, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -378,6 +381,8 @@ class EstateController extends Controller
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Liability creation');
         }
@@ -392,11 +397,7 @@ class EstateController extends Controller
         $validated = $request->validated();
 
         try {
-            $liability = Liability::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $liability->update($validated);
+            $liability = $this->liabilityStore->update($id, $validated, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -404,7 +405,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Liability updated successfully',
-                'data' => new LiabilityResource($liability->fresh()),
+                'data' => new LiabilityResource($liability),
             ]);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -424,11 +425,7 @@ class EstateController extends Controller
         $user = $request->user();
 
         try {
-            $liability = Liability::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $liability->delete();
+            $this->liabilityStore->delete($id, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);

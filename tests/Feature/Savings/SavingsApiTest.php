@@ -170,7 +170,7 @@ describe('Savings API', function () {
         });
 
         it('returns 403 with structured payload when a free-tier user exceeds the savings cap', function () {
-            // Default factory creates tier1 (unlimited); recreate as free-tier for this cap test.
+            // Default factory creates Premium (unlimited); recreate as Free for this cap test.
             $freeUser = User::factory()->create(['tier' => 'free']);
             Sanctum::actingAs($freeUser);
 

@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <!-- Teaser Gate: Free / Tier 1 users (SP2 PR7) -->
+      <!-- Teaser Gate: Free users (SP2 PR7) -->
       <!-- Rule #16: detail views are a banned surface for icons/emoji. Plain text + design tokens only. -->
       <div v-else-if="mode === 'teaser'" class="max-w-2xl mx-auto px-4 py-10">
         <h2 class="text-xl font-bold text-horizon-500 mb-2">Estate Planning</h2>
@@ -64,7 +64,7 @@
         </div>
       </div>
 
-      <!-- Full Module: Tier 2 / Tier 3 users -->
+      <!-- Full Module: Premium users -->
       <div v-else>
         <!-- Will Builder Banner (only show when no will exists) -->
         <div v-if="!hasWillDocument" class="mb-6">
@@ -171,4 +171,3 @@ export default {
   },
 };
 </script>
-

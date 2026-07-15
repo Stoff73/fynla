@@ -359,7 +359,7 @@ export default {
   methods: {
     async fetchPlanData() {
       try {
-        const TIER_KEYS = ['free', 'tier1', 'tier2', 'tier3'];
+        const TIER_KEYS = ['free', 'premium'];
         if (TIER_KEYS.includes(this.plan)) {
           // Tier-based plan: resolve display name + price from the tier store.
           const response = await api.get('/pricing-config');

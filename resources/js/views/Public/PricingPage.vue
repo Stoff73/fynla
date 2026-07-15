@@ -38,20 +38,12 @@
               ]"
             >
               Yearly
-              <span class="ml-1 text-xs text-spring-500 font-semibold" v-if="isYearly">Save up to 33%</span>
+              <span v-if="isYearly && annualSavingLabel" class="ml-1 text-xs text-spring-500 font-semibold">{{ annualSavingLabel }}</span>
             </button>
           </div>
         </div>
 
-        <!-- Launch Offer Banner -->
-        <div class="flex justify-center mb-10">
-          <div class="bg-gradient-to-r from-raspberry-500 to-violet-500 rounded-xl px-8 py-4 text-center shadow-lg">
-            <p class="text-xl sm:text-2xl font-bold text-white mb-1">Limited Time Offer</p>
-            <p class="text-sm text-white/80">Lock in discounted pricing today for your first 12 months</p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
 
           <!-- Tier cards — identity, pricing and features driven entirely by /api/pricing-config -->
           <div
@@ -241,9 +233,15 @@ export default {
       return this.isAuthenticated ? 'Upgrade now' : 'Get started free';
     },
 
-    // Feature the most-popular badge: second-from-top tier when present.
     featuredIndex() {
-      return this.tiers.length >= 2 ? this.tiers.length - 2 : -1;
+      return this.tiers.findIndex(tier => tier.tier === 'premium');
+    },
+
+    annualSavingLabel() {
+      const premium = this.tiers.find(tier => tier.tier === 'premium');
+      if (!premium?.price_monthly_pence || !premium?.price_annual_pence) return '';
+      const saving = Math.round((1 - premium.price_annual_pence / (premium.price_monthly_pence * 12)) * 100);
+      return saving > 0 ? `Save ${saving}%` : '';
     },
   },
 
@@ -259,7 +257,7 @@ export default {
   mounted() {
     document.title = 'Pricing — Simple, Transparent Plans | Fynla';
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Choose the Fynla tier that fits — from the Free tier to higher tiers with full estate planning and unlimited accounts. Start free, no credit card required.');
+    if (meta) meta.setAttribute('content', 'Choose Free or Premium Fynla access. Start free with no credit card required, then upgrade to Premium for full planning capabilities and higher limits.');
     this.fetchTiers();
   },
 
@@ -337,7 +335,7 @@ export default {
     },
 
     selectTier(tierKey) {
-      // Pass the tier KEY (free/tier1/tier2/tier3), never a legacy slug (§5.2).
+      // Pass the Premium tier key, never a legacy slug (§5.2).
       if (this.isAuthenticated) {
         this.$router.push({
           path: '/checkout',

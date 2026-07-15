@@ -21,7 +21,7 @@ beforeEach(function () {
 
 it('create emits PropertyCreated with source', function () {
     Event::fake();
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
 
     app(PropertyStore::class)->create([
         'property_type' => 'main_residence',
@@ -36,7 +36,7 @@ it('create emits PropertyCreated with source', function () {
 
 it('update emits PropertyUpdated with changes diff', function () {
     Event::fake();
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id, 'current_value' => 350000]);
 
     app(PropertyStore::class)->update($property->id, ['current_value' => 425000], $user, IngestSource::FORM);
@@ -47,7 +47,7 @@ it('update emits PropertyUpdated with changes diff', function () {
 
 it('delete emits PropertyDeleted with reason', function () {
     Event::fake();
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
 
     app(PropertyStore::class)->delete($property->id, $user, 'sold');
@@ -57,7 +57,7 @@ it('delete emits PropertyDeleted with reason', function () {
 
 it('restore emits PropertyRestored', function () {
     Event::fake();
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $property->delete();
 

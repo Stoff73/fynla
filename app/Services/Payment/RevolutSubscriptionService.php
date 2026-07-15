@@ -444,7 +444,7 @@ class RevolutSubscriptionService
      * the caller must create a new plan and re-subscribe affected customers.
      * Since there are no existing paid subscribers (A9), create is safe.
      *
-     * @param  string  $displayName  Human-readable tier name, e.g. "Tier 2"
+     * @param  string  $displayName  Human-readable tier name, e.g. "Premium"
      * @param  int  $monthlyPricePence  Monthly price in pence
      * @return array{id: string|null, plan_id: string} Variation id (null if
      *                                                 Revolut returned no
@@ -454,7 +454,6 @@ class RevolutSubscriptionService
     {
         $body = [
             'name' => "Fynla {$displayName} Tier",
-            'trial_duration' => 'P7D',
             'variations' => [
                 [
                     'phases' => [

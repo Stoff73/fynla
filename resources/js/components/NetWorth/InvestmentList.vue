@@ -254,7 +254,7 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Open Banking Affordance — SP2 PR8 §14: shown only when open_api_affordance flag is true (Tier 2/3) -->
+    <!-- Open Banking Affordance — shown only when the Premium affordance flag is true. -->
     <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
       <div class="flex items-center justify-between">
         <div>
