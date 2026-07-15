@@ -114,6 +114,106 @@ class GoogleDriveService
         }
     }
 
+    /**
+     * List files matching the given mime type inside a folder. Used by
+     * pipeline:detect-new-videos.
+     *
+     * @return list<array{id:string,name:string,mimeType:string,webViewLink?:string,size?:int}>
+     */
+    public function listFiles(string $folderId, ?string $mimeType = null, int $pageSize = 100): array
+    {
+        $token = $this->oauth->accessToken();
+
+        $query = "'{$folderId}' in parents and trashed=false";
+        if ($mimeType !== null) {
+            $query .= " and mimeType='{$mimeType}'";
+        }
+
+        $response = Http::withToken($token)
+            ->timeout(30)
+            ->get(self::API_ROOT.'/files', [
+                'q' => $query,
+                'fields' => 'files(id,name,mimeType,webViewLink,size,modifiedTime)',
+                'pageSize' => $pageSize,
+                'orderBy' => 'modifiedTime desc',
+                'supportsAllDrives' => 'true',
+                'includeItemsFromAllDrives' => 'true',
+            ]);
+
+        if (! $response->successful()) {
+            Log::channel('pipeline')->error('Drive listFiles failed.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'folder_id' => $folderId,
+            ]);
+            throw new RuntimeException('Google Drive list failed: HTTP '.$response->status());
+        }
+
+        return array_values($response->json('files', []));
+    }
+
+    /**
+     * Find the first sub-folder with the given name inside a parent folder.
+     * Returns null if not found. Used to auto-discover the "Videos" folder
+     * under Marketing Automation without hard-coding another env var.
+     */
+    public function findSubfolder(string $parentFolderId, string $name): ?string
+    {
+        $token = $this->oauth->accessToken();
+
+        $q = "'{$parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' "
+            ."and name='".addslashes($name)."' and trashed=false";
+
+        $response = Http::withToken($token)
+            ->timeout(30)
+            ->get(self::API_ROOT.'/files', [
+                'q' => $q,
+                'fields' => 'files(id,name)',
+                'pageSize' => 5,
+                'supportsAllDrives' => 'true',
+                'includeItemsFromAllDrives' => 'true',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Drive findSubfolder failed: HTTP '.$response->status());
+        }
+
+        $files = $response->json('files', []);
+
+        return $files[0]['id'] ?? null;
+    }
+
+    /**
+     * Download a Drive file's binary content to a local path. Streams to
+     * avoid loading multi-GB videos into memory.
+     */
+    public function downloadFile(string $fileId, string $localPath): void
+    {
+        $token = $this->oauth->accessToken();
+
+        $dir = dirname($localPath);
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            throw new RuntimeException("Failed to create directory for download: {$dir}");
+        }
+
+        $response = Http::withToken($token)
+            ->timeout(600)
+            ->withOptions([
+                'sink' => $localPath,
+            ])
+            ->get(self::API_ROOT.'/files/'.$fileId.'?alt=media&supportsAllDrives=true');
+
+        if (! $response->successful()) {
+            @unlink($localPath);
+            Log::channel('pipeline')->error('Drive download failed.', [
+                'status' => $response->status(),
+                'file_id' => $fileId,
+                'local_path' => $localPath,
+            ]);
+            throw new RuntimeException('Google Drive download failed: HTTP '.$response->status());
+        }
+    }
+
     private function multipartBody(array $metadata, string $content, string $contentType, string $boundary): string
     {
         return

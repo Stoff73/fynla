@@ -35,6 +35,13 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('pipeline:detect-new-articles')
             ->dailyAt(config('pipeline.detect_schedule', '07:00'));
+
+        $schedule->command('pipeline:detect-new-videos')
+            ->dailyAt(config('pipeline.video.detect_schedule', '07:30'));
+
+        // Quarterly (1 Jan / 1 Apr / 1 Jul / 1 Oct) housekeeping reminder.
+        $schedule->command('pipeline:audit-social-videos')
+            ->cron('0 8 1 1,4,7,10 *');
     }
 
     /**

@@ -62,6 +62,13 @@ Route::get('/unsubscribe/news/{token}', [\App\Http\Controllers\NewsletterActionC
 Route::get('/pipeline/oauth/google/callback', [\App\Http\Controllers\Pipeline\GoogleOAuthController::class, 'callback'])
     ->name('pipeline.oauth.google.callback');
 
+// Marketing pipeline — signed clip download for the tracker sheet review link.
+// Signature enforces 30-day expiry (see PIPELINE_SIGNED_URL_TTL_DAYS).
+Route::get('/pipeline/clips/{slug}/{filename}', [\App\Http\Controllers\Pipeline\SignedClipDownloadController::class, 'download'])
+    ->name('pipeline.clip.download')
+    ->where('slug', '[a-z0-9-]{1,80}')
+    ->where('filename', 'clip-[0-9]{1,3}\.mp4');
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');

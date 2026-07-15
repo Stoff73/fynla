@@ -22,6 +22,11 @@ class PipelineArticle extends Model
         'retry_count' => 'integer',
         'script_cost_gbp' => 'float',
         'script_generated_at' => 'datetime',
+        'clip_paths' => 'array',
+        'captions_burned' => 'boolean',
+        'clips_generated_at' => 'datetime',
+        'source_video_duration_s' => 'integer',
+        'video_cost_gbp' => 'float',
         'published_at' => 'datetime',
     ];
 
