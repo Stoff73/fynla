@@ -53,7 +53,8 @@ it('renders the SaveTax estimate as an average rather than a personal promise', 
         ->assertSee('This is an illustrative estimate, not personal financial advice.', false)
         ->assertSee('Tax year', false);
 
-    expect(substr_count($response->getContent(), 'href="#hero"'))->toBe(1);
+    expect(substr_count($response->getContent(), 'href="#register-form"'))->toBe(2)
+        ->and($response->getContent())->not->toContain('href="#hero"');
 });
 
 it('renders a neutral state when the estimate service is unavailable', function (): void {

@@ -54,8 +54,30 @@ test('SaveTax claim, allowance states and action hierarchy remain clear at suppo
   await expect(page.getByText('Available to you', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Not applicable', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/open or contribute to a pension/i)).toBeVisible();
-  await expect(page.locator('a[href="#hero"]')).toHaveCount(1);
+  const registrationLinks = page.locator('#allowances .sp4-combined__cta-btn');
+  await expect(registrationLinks).toHaveCount(2);
+  await expect(registrationLinks.nth(0)).toHaveAttribute('href', '#register-form');
+  await expect(registrationLinks.nth(1)).toHaveAttribute('href', '#register-form');
+  await expect(page.getByRole('link', { name: 'Register for free' })).toHaveCount(2);
   await expect(page.getByRole('button', { name: 'Register for free' })).toHaveCount(1);
+
+  const allowanceActionOrder = await page.locator('#allowances').evaluate((section) => (
+    [...section.querySelectorAll('.sp4-combined__cta-btn, #allowances-render')]
+      .map((element) => element.id === 'allowances-render' ? 'allowances' : 'register')
+  ));
+  expect(allowanceActionOrder).toEqual(['register', 'allowances', 'register']);
+
+  for (let index = 0; index < 2; index += 1) {
+    await page.evaluate(() => history.replaceState(null, '', `${location.pathname}${location.search}`));
+    await registrationLinks.nth(index).scrollIntoViewIfNeeded();
+    await registrationLinks.nth(index).click();
+    await expect(page).toHaveURL(/#register-form$/);
+    await expect.poll(() => page.locator('#register-form').evaluate((form) => {
+      const bounds = form.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.top < window.innerHeight;
+    })).toBe(true);
+  }
+
   expect(await page.evaluate(() => window.__fynlaCls)).toBeLessThanOrEqual(0.01);
   expectNoRuntimeErrors(runtimeErrors);
 });

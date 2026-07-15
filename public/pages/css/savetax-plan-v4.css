@@ -94,7 +94,12 @@
 .sp4-savings__label { font-size: 0.875rem; color: var(--white-70); line-height: 1.4; }
 
 /* Compact register form */
-.sp4-register { display: flex; flex-direction: column; gap: 0.625rem; }
+.sp4-register {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  scroll-margin-top: 5rem;
+}
 .sp4-register__heading {
   /* Larger per request */
   font-size: 1.25rem;
@@ -229,19 +234,41 @@
 .sp4-combined__meaning-summary:hover { text-decoration: underline; }
 .sp4-combined__meaning-detail[open] .sp4-combined__meaning-summary { margin-bottom: 0.5rem; }
 
-/* Subordinate return link after the allowance explanation and rows. */
-.sp4-combined__return {
+/* Registration actions above and below the personalised allowance rows. */
+.sp4-combined__cta {
   margin-top: 2.5rem;
   text-align: center;
 }
-.sp4-combined__return-link {
-  color: var(--raspberry-600);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.2rem;
+.sp4-combined__cta--top {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
 }
-.sp4-combined__return-link:hover { color: var(--raspberry-500); }
+.sp4-combined__cta-text {
+  margin-bottom: 0.75rem;
+  color: var(--horizon-500);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.sp4-combined__cta-btn {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.75rem;
+  border-radius: var(--radius-button);
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.sp4-combined__cta-btn:hover { background: var(--spring-600); }
+.sp4-combined__cta-btn:focus-visible {
+  outline: 3px solid var(--horizon-500);
+  outline-offset: 3px;
+}
 
 /* ===================================================================
    ALLOWANCES — personalised grid, mobile-optimised
