@@ -249,26 +249,6 @@ class PaymentController extends Controller
 
             $discountCode = $discountResult['discount'];
 
-            // Handle trial extension separately — no payment needed
-            if ($discountCode->type === 'trial_extension') {
-                $subscription = $user->subscription;
-                if ($subscription && $subscription->trial_ends_at) {
-                    $subscription->update([
-                        'trial_ends_at' => $subscription->trial_ends_at->addDays($discountCode->value),
-                    ]);
-                    $user->update([
-                        'trial_ends_at' => $subscription->trial_ends_at,
-                    ]);
-                    $this->discountCodeService->apply($discountCode, $user->id, null, 0);
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => "Trial extended by {$discountCode->value} days.",
-                    'trial_extension' => true,
-                ]);
-            }
-
             $discountAmount = $discountResult['discount_amount'];
             $finalAmount = $discountResult['final_amount'];
         }
@@ -479,11 +459,9 @@ class PaymentController extends Controller
                         $amount,
                     );
 
-                    if (! $discountResult['valid'] || $discountResult['discount']?->type === 'trial_extension') {
+                    if (! $discountResult['valid']) {
                         return [
-                            'error' => $discountResult['valid']
-                                ? 'Trial extension codes are not valid for Premium.'
-                                : $discountResult['message'],
+                            'error' => $discountResult['message'],
                         ];
                     }
 

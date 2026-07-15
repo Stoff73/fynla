@@ -23,12 +23,7 @@ class ChurnedSubscriberCampaign implements LifecycleCampaign
         return 2;
     }
 
-    /**
-     * Users who cancelled AFTER trial ended (cancelled_at >= trial_ends_at),
-     * exactly N days ago. This is the paid-churn path — they tried the
-     * product, paid at least one cycle, then cancelled. Different messaging
-     * than Campaign 3 (cancelled mid-trial), hence the separate query.
-     */
+    /** Users who cancelled exactly N days ago after a completed payment. */
     public function eligibleUsers(): Collection
     {
         $delay = (int) config('lifecycle.cancellation_feedback_delay_days', 3);
@@ -37,8 +32,8 @@ class ChurnedSubscriberCampaign implements LifecycleCampaign
             ->whereHas('subscriptions', fn ($q) => $q
                 ->where('status', 'cancelled')
                 ->whereNotNull('cancelled_at')
-                ->whereColumn('cancelled_at', '>=', 'trial_ends_at')
                 ->whereDate('cancelled_at', now()->subDays($delay)->toDateString())
+                ->whereHas('payments', fn ($paymentQuery) => $paymentQuery->where('status', 'completed'))
             )
             ->whereDoesntHave('subscriptions', fn ($q) => $q->whereIn('status', ['active', 'trialing']))
             ->get();
