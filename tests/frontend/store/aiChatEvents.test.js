@@ -102,4 +102,48 @@ describe('desktop Fyn stream event parity', () => {
       next_actions: [],
     }, { root: true });
   });
+
+  it('renders a subscription action after the accurate at-cap reply', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      { type: 'content', text: "You've reached your plan's limit of 2 goals. To add more, upgrade your plan." },
+      {
+        type: 'action',
+        action: 'subscription_options',
+        reason: 'tier_limit_reached',
+        entity_key: 'goal',
+        current_count: 2,
+        limit: 2,
+        tier: 'free',
+      },
+      { type: 'done', message_id: 45 },
+    ]));
+
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [],
+      conversations: [],
+      streamingText: '',
+      error: null,
+    };
+    const commit = (name, payload) => aiChat.mutations[name](localState, payload);
+
+    await aiChat.actions.sendMessage({
+      commit,
+      dispatch: vi.fn().mockResolvedValue(undefined),
+      state: localState,
+      rootState: { route: { path: '/goals' } },
+    }, 'Add a third goal');
+
+    const assistantIndex = localState.messages.findIndex(message => message.role === 'assistant');
+    const actionIndex = localState.messages.findIndex(message => message.role === 'action');
+    expect(localState.messages[assistantIndex].content).toContain('upgrade your plan');
+    expect(localState.messages[actionIndex].metadata).toMatchObject({
+      action: 'subscription_options',
+      entity_key: 'goal',
+      limit: 2,
+      tier: 'free',
+    });
+    expect(actionIndex).toBeGreaterThan(assistantIndex);
+  });
 });

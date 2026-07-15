@@ -23,7 +23,7 @@
           <p class="m-section-label">Bank accounts</p>
           <div v-if="accountLimit" class="m-cap">
             <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} accounts used</span>
-            <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
+            <button v-if="paidUpgradeAvailable" type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
           </div>
         </div>
         <p v-if="!bankAccounts.length" class="m-sub" style="margin-bottom:0">

@@ -227,6 +227,35 @@ const mutations = {
     },
 };
 
+function addPresentationAction(commit, state, event) {
+    if (event.action !== 'subscription_options') return;
+
+    if (state.streamingText) {
+        commit('ADD_MESSAGE', {
+            id: 'action_text_' + Date.now(),
+            role: 'assistant',
+            content: state.streamingText,
+            created_at: new Date().toISOString(),
+        });
+        commit('SET_STREAMING_TEXT', '');
+    }
+
+    commit('ADD_MESSAGE', {
+        id: 'action_' + Date.now(),
+        role: 'action',
+        content: '',
+        metadata: {
+            action: event.action,
+            reason: event.reason,
+            entity_key: event.entity_key,
+            current_count: event.current_count,
+            limit: event.limit,
+            tier: event.tier,
+        },
+        created_at: new Date().toISOString(),
+    });
+}
+
 const actions = {
     /**
      * Toggle the chat panel open/closed.
@@ -338,6 +367,7 @@ const actions = {
                 const bubbles = m?.metadata?.bubbles;
                 const skipLink = m?.metadata?.skip_link || null;
                 const actionBubbles = Boolean(m?.metadata?.action_bubbles);
+                const presentationActions = Array.isArray(m?.metadata?.actions) ? m.metadata.actions : [];
                 const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
 
                 if (m.role === 'assistant' && hasBubbles) {
@@ -355,6 +385,16 @@ const actions = {
                 } else {
                     normalised.push(m);
                 }
+
+                presentationActions
+                    .filter(action => action?.action === 'subscription_options')
+                    .forEach((action, index) => normalised.push({
+                        id: `action_${m.id}_${index}`,
+                        role: 'action',
+                        content: '',
+                        metadata: action,
+                        created_at: m.created_at,
+                    }));
             }
             commit('SET_MESSAGES', normalised);
         } catch (error) {
@@ -529,6 +569,10 @@ const actions = {
                                     },
                                     created_at: new Date().toISOString(),
                                 });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'quick_replies':
@@ -888,6 +932,9 @@ const actions = {
                                     created_at: new Date().toISOString(),
                                 });
                                 break;
+                            case 'action':
+                                addPresentationAction(commit, state, event);
+                                break;
                             case 'capture_complete':
                                 if (state.streamingText) {
                                     commit('ADD_MESSAGE', {
@@ -934,6 +981,7 @@ const actions = {
                                     next_actions: event.next_actions || [],
                                 }, { root: true });
                                 break;
+
                             case 'error':
                                 commit('SET_ERROR', event.message);
                                 break;
@@ -1157,6 +1205,10 @@ const actions = {
                                     level_name: event.level_name,
                                     next_actions: event.next_actions || [],
                                 }, { root: true });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'done':
@@ -1396,6 +1448,10 @@ const actions = {
                                     level_name: event.level_name,
                                     next_actions: event.next_actions || [],
                                 }, { root: true });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'done':

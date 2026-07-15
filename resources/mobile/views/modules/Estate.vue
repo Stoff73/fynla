@@ -9,7 +9,7 @@
       <button class="m-btn" @click="load">Try again</button>
     </div>
 
-    <!-- Teaser mode (Free) — informational, no upgrade CTA on /m. -->
+    <!-- Teaser mode (Free) -->
     <template v-else-if="mode === 'teaser'">
       <div class="m-card m-hero">
         <p class="m-sub m-label">Estimated Inheritance Tax liability</p>
@@ -18,6 +18,7 @@
       <div class="m-card">
         <p v-if="teaser.headline" class="m-sub" style="margin:0 0 12px">{{ teaser.headline }}</p>
         <p class="me-note">Full estate planning — assets, gifts, trusts, will and personalised Inheritance Tax planning — is part of Premium.</p>
+        <button v-if="paidUpgradeAvailable" type="button" class="m-btn" style="margin-top:16px" @click="goUpgrade">Compare plans</button>
       </div>
     </template>
 
@@ -68,6 +69,7 @@
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { upgradeMixin } from '../../mixins/upgrade.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -79,6 +81,7 @@ const COMP_LABELS = { property: 'Property', investment: 'Investments', cash: 'Ca
 export default {
   name: 'MobileEstate',
   components: { MobileChrome },
+  mixins: [upgradeMixin],
   data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null }),
   computed: {
     gifts() { return this.payload?.gifts || []; },

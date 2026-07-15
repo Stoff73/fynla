@@ -41,6 +41,18 @@ it('returns the exact Free entitlement contract without trial fields', function 
         ->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
+it('reports payments unavailable for preview users', function (): void {
+    $user = User::factory()->create([
+        'tier' => 'free',
+        'plan' => 'free',
+        'is_preview_user' => true,
+    ]);
+
+    $status = app(SubscriptionStatusService::class)->forUser($user);
+
+    expect($status['payment_enabled'])->toBeFalse();
+});
+
 it('maps an internal provisional trialing row to a non-entitling pending state', function (): void {
     $user = User::factory()->create(['tier' => 'free', 'plan' => 'free']);
     Subscription::factory()->trialing()->create([

@@ -163,6 +163,25 @@ describe('/m Fyn stream event parity', () => {
     expect(harness.cursor.got).toBe(true);
   });
 
+  it('renders the subscription action as a plain-text Compare plans bubble', () => {
+    const harness = makeHarness();
+
+    harness.handle({
+      type: 'action',
+      action: 'subscription_options',
+      reason: 'tier_limit_reached',
+      entity_key: 'goal',
+      current_count: 2,
+      limit: 2,
+      tier: 'free',
+    });
+
+    expect(harness.cursor.reply.bubbles).toEqual([
+      { id: 'subscription_options', label: 'Compare plans' },
+    ]);
+    expect(harness.cursor.got).toBe(true);
+  });
+
   it('keeps the mobile user step active across campaign verification navigation', () => {
     store.user = {
       onboarding_completed: false,

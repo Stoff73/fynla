@@ -63,7 +63,7 @@ class SubscriptionStatusService
             'currency_display_mode' => $tierConfig->currency_display_mode,
             'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
             'open_api_affordance' => $tierConfig->open_api_affordance,
-            'payment_enabled' => $paymentEnabled,
+            'payment_enabled' => $paymentEnabled && ! $user->is_preview_user,
         ];
     }
 }

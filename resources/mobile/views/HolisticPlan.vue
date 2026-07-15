@@ -9,7 +9,7 @@
     <div v-if="upgradeLocked" class="m-card m-state">
       <p class="m-section-label" style="margin-top:0">A premium feature</p>
       <p class="m-sub">Your Holistic Plan brings every module together into one plan, ranked against what you can afford. It's part of Premium.</p>
-      <button class="m-btn" @click="goUpgrade">Upgrade your plan</button>
+      <button v-if="paidUpgradeAvailable" class="m-btn" @click="goUpgrade">Upgrade your plan</button>
     </div>
 
     <div v-else-if="error" class="m-card m-state">
@@ -159,7 +159,7 @@ export default {
         const { ok, status, data } = await apiGet('/api/holistic/composite-plan', store.token);
         if (ok) {
           this.plan = data?.data || {};
-        } else if (status === 403 && data?.error === 'upgrade_required') {
+        } else if (status === 403 && ['capability_denied', 'upgrade_required'].includes(data?.error)) {
           this.upgradeLocked = true;
         } else {
           this.error = data?.message || 'We could not load your holistic plan.';

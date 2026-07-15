@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BalanceHistory from '../../../resources/mobile/views/BalanceHistory.vue';
 import { apiGet } from '../../../resources/mobile/api.js';
+import { store } from '../../../resources/mobile/store.js';
 
 vi.mock('../../../resources/mobile/api.js', () => ({
   apiGet: vi.fn(),
@@ -9,7 +10,7 @@ vi.mock('../../../resources/mobile/api.js', () => ({
 }));
 
 vi.mock('../../../resources/mobile/store.js', () => ({
-  store: { token: 'test-token' },
+  store: { token: 'test-token', subscriptionStatus: null },
 }));
 
 vi.mock('../../../resources/mobile/components/MobileChrome.vue', () => ({
@@ -20,18 +21,26 @@ vi.mock('../../../resources/mobile/components/MobileChrome.vue', () => ({
 }));
 
 describe('mobile BalanceHistory', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.subscriptionStatus = null;
+  });
 
   it('uses the shared endpoint and presents the Free visibility window', async () => {
-    apiGet.mockResolvedValue({
-      ok: true,
-      data: {
+    apiGet.mockImplementation(async (path) => {
+      if (path === '/api/payment/subscription-status') {
+        return { ok: true, data: { tier: 'free', payment_enabled: true } };
+      }
+      return {
+        ok: true,
         data: {
-          visibility: { window_days: 90, label: '90 days of history' },
-          totals: [{ date: '2026-07-15', assets: 12000, liabilities: 2000, net_worth: 10000 }],
-          year_on_year: null,
+          data: {
+            visibility: { window_days: 90, label: '90 days of history' },
+            totals: [{ date: '2026-07-15', assets: 12000, liabilities: 2000, net_worth: 10000 }],
+            year_on_year: null,
+          },
         },
-      },
+      };
     });
     const wrapper = mount(BalanceHistory, {
       global: { stubs: { apexchart: true } },

@@ -30,7 +30,7 @@
               </p>
             </div>
             <button
-              v-if="!subscriptionLoading && activePlanSlug !== 'premium'"
+              v-if="!subscriptionLoading && showUpgradeEntry"
               @click="showPlanModal = true"
               class="btn-primary"
             >
@@ -66,10 +66,12 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
+import { shouldShowUpgradeEntry } from '@/utils/subscriptionNavigation';
 
 const PLAN_NAMES = {
   free: 'Free',
@@ -87,6 +89,7 @@ export default {
 
   setup() {
     const router = useRouter();
+    const store = useStore();
     const showPlanModal = ref(false);
     const subscriptionData = ref(null);
     const subscriptionLoading = ref(true);
@@ -101,6 +104,11 @@ export default {
       return PLAN_NAMES[tier] || tier;
     });
 
+    const showUpgradeEntry = computed(() => shouldShowUpgradeEntry(
+      subscriptionData.value,
+      store.getters['preview/isPreviewMode']
+    ));
+
     const fetchSubscription = async () => {
       subscriptionLoading.value = true;
       try {
@@ -113,10 +121,12 @@ export default {
       }
     };
 
-    const handlePlanSelect = ({ plan, billingCycle, isUpgrade }) => {
+    const handlePlanSelect = ({ plan, billingCycle }) => {
       showPlanModal.value = false;
-      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      router.push(`/payment/checkout?plan=${plan}&billing=${billingCycle}${upgradeParam}`);
+      router.push({
+        path: '/checkout',
+        query: { plan, cycle: billingCycle },
+      });
     };
 
     onMounted(() => {
@@ -128,6 +138,7 @@ export default {
       subscriptionLoading,
       activePlanSlug,
       planDisplayName,
+      showUpgradeEntry,
       handlePlanSelect,
     };
   },

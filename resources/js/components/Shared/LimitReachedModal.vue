@@ -25,7 +25,7 @@
             Maybe later
           </button>
           <router-link
-            to="/settings?tab=subscription"
+            :to="subscriptionOptionsLocation"
             class="inline-flex justify-center rounded-button px-4 py-2 text-sm font-medium text-white bg-raspberry-600 hover:bg-raspberry-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
             @click="$emit('close')"
           >
@@ -38,6 +38,8 @@
 </template>
 
 <script>
+import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
+
 export default {
   name: 'LimitReachedModal',
 
@@ -64,5 +66,9 @@ export default {
   },
 
   emits: ['close'],
+
+  computed: {
+    subscriptionOptionsLocation,
+  },
 };
 </script>

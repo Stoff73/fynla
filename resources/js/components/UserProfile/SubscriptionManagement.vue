@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
+        <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Choose a Plan
         </button>
       </div>
@@ -122,7 +122,7 @@
         </div>
 
         <button
-          v-if="subscriptionData.tier !== 'premium'"
+          v-if="showUpgradeEntry"
           @click="showPlanModal = true"
           class="btn-primary w-full text-center block mb-3"
         >
@@ -191,7 +191,7 @@
           </div>
         </div>
 
-        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
+        <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Renew
         </button>
       </div>
@@ -241,9 +241,17 @@
           </div>
         </div>
 
-        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
+        <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Update Payment Method
         </button>
+      </div>
+
+      <div
+        v-else-if="subscriptionData?.tier === 'premium'"
+        class="bg-white rounded-lg border border-light-gray p-6"
+      >
+        <h3 class="text-h4 font-semibold text-horizon-500">You are on Premium</h3>
+        <p class="mt-1 text-body-sm text-neutral-500">Your current plan already includes all Premium features.</p>
       </div>
 
       <!-- EXPIRED / NO SUBSCRIPTION State -->
@@ -295,7 +303,7 @@
           </p>
         </div>
 
-        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
+        <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Subscribe Now
         </button>
       </div>
@@ -437,10 +445,12 @@
 
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
+import { shouldShowUpgradeEntry } from '@/utils/subscriptionNavigation';
 import logger from '@/utils/logger';
 
 export default {
@@ -453,7 +463,9 @@ export default {
   mixins: [currencyMixin],
 
   setup() {
+    const route = useRoute();
     const router = useRouter();
+    const store = useStore();
     const loading = ref(true);
     const error = ref(null);
     const subscriptionData = ref(null);
@@ -467,12 +479,26 @@ export default {
     const billingHistory = ref([]);
     let countdownInterval = null;
 
+    const showUpgradeEntry = computed(() => shouldShowUpgradeEntry(
+      subscriptionData.value,
+      store.getters['preview/isPreviewMode'],
+    ));
+
+    const openPricingFromQuery = () => {
+      if (!route.query.openPricing) return;
+      if (showUpgradeEntry.value) showPlanModal.value = true;
+      const query = { ...route.query };
+      delete query.openPricing;
+      router.replace({ path: route.path, query }).catch(() => {});
+    };
+
     const fetchSubscriptionData = async () => {
       loading.value = true;
       error.value = null;
       try {
         const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
+        openPricingFromQuery();
         // Fetch billing history if user has a subscription
         if (response.data.has_subscription) {
           fetchBillingHistory();
@@ -539,10 +565,7 @@ export default {
     });
 
     const currentPlanForModal = computed(() => {
-      if (subscriptionState.value === 'active' && subscriptionData.value?.plan) {
-        return subscriptionData.value.plan;
-      }
-      return null;
+      return subscriptionData.value?.tier || 'free';
     });
 
     const formatDate = (dateStr) => {
@@ -555,11 +578,12 @@ export default {
       });
     };
 
-    const handlePlanSelect = ({ plan, billingCycle, isUpgrade, discountCode }) => {
+    const handlePlanSelect = ({ plan, billingCycle }) => {
       showPlanModal.value = false;
-      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      const discountParam = discountCode ? `&discount=${encodeURIComponent(discountCode)}` : '';
-      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}${discountParam}`);
+      router.push({
+        path: '/checkout',
+        query: { plan, cycle: billingCycle },
+      });
     };
 
     const confirmCancel = async () => {
@@ -627,6 +651,7 @@ export default {
       gracePeriodCountdown,
       isInGracePeriod,
       currentPlanForModal,
+      showUpgradeEntry,
       billingHistory,
       showPlanModal,
       handlePlanSelect,
