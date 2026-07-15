@@ -251,6 +251,7 @@ export default {
 
     headerTitle() {
       if (this.isPremiumCurrent) return 'You are on Premium';
+      if (!this.dismissable) return 'Your subscription has ended';
       if (this.showAllPlans) return 'Choose Your Plan';
       if (this.currentPlan) return 'Upgrade Your Plan';
       return 'Choose Your Plan';
@@ -258,7 +259,7 @@ export default {
 
     headerSubtitle() {
       if (this.isPremiumCurrent) return 'There are no further plans to choose.';
-      if (!this.dismissable) return 'Choose a plan to continue using Fynla';
+      if (!this.dismissable) return 'Choose Premium to restore full access to Fynla.';
       if (this.showAllPlans && this.currentPlan) return 'Your current plan is highlighted below';
       if (this.currentPlan) return 'Select a plan to upgrade to';
       return 'Select a plan that works for you';

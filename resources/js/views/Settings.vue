@@ -71,12 +71,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
-import { shouldShowUpgradeEntry } from '@/utils/subscriptionNavigation';
-
-const PLAN_NAMES = {
-  free: 'Free',
-  premium: 'Premium',
-};
+import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 
 export default {
   name: 'Settings',
@@ -94,20 +89,16 @@ export default {
     const subscriptionData = ref(null);
     const subscriptionLoading = ref(true);
 
-    const activePlanSlug = computed(() => {
-      if (!subscriptionData.value) return null;
-      return subscriptionData.value.tier || 'free';
-    });
+    const presentation = computed(() => getSubscriptionPresentation(subscriptionData.value));
 
-    const planDisplayName = computed(() => {
-      const tier = subscriptionData.value?.tier || 'free';
-      return PLAN_NAMES[tier] || tier;
-    });
+    const activePlanSlug = computed(() => presentation.value.showUpgrade
+      ? 'free'
+      : subscriptionData.value?.tier || 'free');
 
-    const showUpgradeEntry = computed(() => shouldShowUpgradeEntry(
-      subscriptionData.value,
-      store.getters['preview/isPreviewMode']
-    ));
+    const planDisplayName = computed(() => presentation.value.label);
+
+    const showUpgradeEntry = computed(() => presentation.value.showUpgrade
+      && !store.getters['preview/isPreviewMode']);
 
     const fetchSubscription = async () => {
       subscriptionLoading.value = true;

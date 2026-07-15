@@ -25,61 +25,46 @@
 
     <!-- Content -->
     <template v-else>
-      <!-- FREE TRIAL State -->
-      <div v-if="subscriptionState === 'trialing'" class="bg-white rounded-lg border border-light-gray p-6">
+      <!-- FREE State -->
+      <div v-if="presentation.state === 'free'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-horizon-500">Free Trial</h3>
+            <h3 class="text-h4 font-semibold text-horizon-500">Free</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
-              You have full access to all features during your 7-day free trial
+              Your Free plan includes Fynla's core financial planning features.
             </p>
           </div>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800">
-            Free Trial
+            Free
           </span>
         </div>
 
-        <!-- Live Countdown -->
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
-          <div class="flex items-center gap-3 mb-3">
-            <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span class="text-body-sm font-medium text-violet-800">Your free trial ends in</span>
-          </div>
-          <div class="flex gap-4">
-            <div class="text-center">
-              <span class="block text-2xl font-bold text-violet-900">{{ trialCountdown.days }}</span>
-              <span class="text-caption text-violet-600">{{ trialCountdown.days === 1 ? 'day' : 'days' }}</span>
-            </div>
-            <div class="text-center">
-              <span class="block text-2xl font-bold text-violet-900">{{ trialCountdown.hours }}</span>
-              <span class="text-caption text-violet-600">{{ trialCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
-            </div>
-            <div class="text-center">
-              <span class="block text-2xl font-bold text-violet-900">{{ trialCountdown.minutes }}</span>
-              <span class="text-caption text-violet-600">{{ trialCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
-            </div>
-          </div>
+        <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
+          Compare plans
+        </button>
+      </div>
 
-          <!-- Progress bar -->
-          <div class="mt-4">
-            <div class="bg-violet-200 rounded-full h-1.5">
-              <div
-                class="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
-                :style="{ width: subscriptionData.progress + '%' }"
-              ></div>
-            </div>
+      <!-- PENDING Premium checkout State -->
+      <div v-else-if="presentation.state === 'pending'" class="bg-white rounded-lg border border-light-gray p-6">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h3 class="text-h4 font-semibold text-horizon-500">Payment pending</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
+              Premium will activate only after payment is verified. Free access remains available now.
+            </p>
           </div>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800">
+            {{ presentation.label }}
+          </span>
         </div>
 
         <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
-          Choose a Plan
+          Continue to Premium
         </button>
       </div>
 
       <!-- ACTIVE (Subscribed) State -->
-      <div v-else-if="subscriptionState === 'active'" class="bg-white rounded-lg border border-light-gray p-6">
+      <div v-else-if="presentation.state === 'active'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Your Subscription</h3>
@@ -122,14 +107,6 @@
         </div>
 
         <button
-          v-if="showUpgradeEntry"
-          @click="showPlanModal = true"
-          class="btn-primary w-full text-center block mb-3"
-        >
-          Upgrade
-        </button>
-
-        <button
           v-if="subscriptionData.auto_renew"
           @click="showCancelModal = true"
           class="text-body-sm text-raspberry-600 hover:text-raspberry-700 transition-colors"
@@ -139,13 +116,14 @@
       </div>
 
       <!-- CANCELLED State (access until period end) -->
-      <div v-else-if="subscriptionState === 'cancelled'" class="bg-white rounded-lg border border-light-gray p-6">
+      <div v-else-if="presentation.state === 'cancelled'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Subscription Cancelled</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
               Auto-renewal has been cancelled. You retain access until the end of your current billing period.
             </p>
+            <p class="mt-1 text-body-sm font-medium text-horizon-500">{{ presentation.label }}</p>
           </div>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-savannah-100 text-neutral-500">
             Cancelled
@@ -191,19 +169,17 @@
           </div>
         </div>
 
-        <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
-          Renew
-        </button>
       </div>
 
       <!-- PAST DUE (Overdue) State -->
-      <div v-else-if="subscriptionState === 'past_due'" class="bg-white rounded-lg border border-raspberry-600/20 p-6">
+      <div v-else-if="presentation.state === 'past_due'" class="bg-white rounded-lg border border-raspberry-600/20 p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Payment Issue</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
               We were unable to process your automatic renewal payment
             </p>
+            <p class="mt-1 text-body-sm font-medium text-horizon-500">{{ presentation.label }}</p>
           </div>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-raspberry-100 text-raspberry-600">
             Payment Failed
@@ -242,42 +218,28 @@
         </div>
 
         <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
-          Update Payment Method
+          Resolve payment
         </button>
       </div>
 
-      <div
-        v-else-if="subscriptionData?.tier === 'premium'"
-        class="bg-white rounded-lg border border-light-gray p-6"
-      >
-        <h3 class="text-h4 font-semibold text-horizon-500">You are on Premium</h3>
-        <p class="mt-1 text-body-sm text-neutral-500">Your current plan already includes all Premium features.</p>
-      </div>
-
-      <!-- EXPIRED / NO SUBSCRIPTION State -->
-      <div v-else-if="subscriptionState === 'expired' || subscriptionState === 'none'" class="bg-white rounded-lg border border-light-gray p-6">
+      <!-- ENDED / GRACE State -->
+      <div v-else-if="['grace', 'expired'].includes(presentation.state)" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-horizon-500">
-              {{ subscriptionState === 'expired' ? 'Subscription Expired' : 'No Subscription' }}
-            </h3>
+            <h3 class="text-h4 font-semibold text-horizon-500">{{ presentation.label }}</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
-              {{ subscriptionState === 'expired'
-                ? 'Your subscription has expired. Subscribe to regain full access to all features.'
-                : 'Subscribe to access all Fynla financial planning features.'
-              }}
+              Choose Premium to restore full access to your financial planning features.
             </p>
           </div>
           <span
-            v-if="subscriptionState === 'expired'"
             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-savannah-100 text-neutral-500"
           >
-            Expired
+            Ended
           </span>
         </div>
 
-        <!-- Grace period countdown (simplified — full overlay in Task 8) -->
-        <div v-if="subscriptionState === 'expired' && isInGracePeriod && gracePeriodCountdown" class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
+        <!-- Grace period countdown (the full retention controls remain in DataRetentionOverlay) -->
+        <div v-if="presentation.state === 'grace' && gracePeriodCountdown" class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-center gap-3 mb-3">
             <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -304,7 +266,7 @@
         </div>
 
         <button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
-          Subscribe Now
+          Subscribe to Premium
         </button>
       </div>
       <!-- Billing History (visible for active, cancelled, past_due, expired states) -->
@@ -450,7 +412,7 @@ import { useStore } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
-import { shouldShowUpgradeEntry } from '@/utils/subscriptionNavigation';
+import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 import logger from '@/utils/logger';
 
 export default {
@@ -479,10 +441,10 @@ export default {
     const billingHistory = ref([]);
     let countdownInterval = null;
 
-    const showUpgradeEntry = computed(() => shouldShowUpgradeEntry(
-      subscriptionData.value,
-      store.getters['preview/isPreviewMode'],
-    ));
+    const presentation = computed(() => getSubscriptionPresentation(subscriptionData.value, now.value));
+
+    const showUpgradeEntry = computed(() => presentation.value.showUpgrade
+      && !store.getters['preview/isPreviewMode']);
 
     const openPricingFromQuery = () => {
       if (!route.query.openPricing) return;
@@ -520,15 +482,9 @@ export default {
       }
     };
 
-    const subscriptionState = computed(() => {
-      if (!subscriptionData.value || !subscriptionData.value.has_subscription) return 'none';
-      return subscriptionData.value.status || 'none';
-    });
-
     const planDisplayName = computed(() => {
-      const tier = subscriptionData.value?.tier;
-      if (!tier) return '';
-      return tier.charAt(0).toUpperCase() + tier.slice(1);
+      if (!['active', 'cancelled', 'past_due'].includes(presentation.value.state)) return 'Free';
+      return subscriptionData.value?.tier_display_name || 'Premium';
     });
 
     // Live countdown calculation
@@ -544,14 +500,6 @@ export default {
       };
     };
 
-    const trialCountdown = computed(() => {
-      return calculateCountdown(subscriptionData.value?.trial_ends_at) || { days: 0, hours: 0, minutes: 0 };
-    });
-
-    const renewalCountdown = computed(() => {
-      return calculateCountdown(subscriptionData.value?.current_period_end);
-    });
-
     const accessCountdown = computed(() => {
       return calculateCountdown(subscriptionData.value?.current_period_end);
     });
@@ -560,12 +508,8 @@ export default {
       return calculateCountdown(subscriptionData.value?.grace_period_ends_at);
     });
 
-    const isInGracePeriod = computed(() => {
-      return subscriptionData.value?.is_in_grace_period || false;
-    });
-
     const currentPlanForModal = computed(() => {
-      return subscriptionData.value?.tier || 'free';
+      return presentation.value.showUpgrade ? 'free' : subscriptionData.value?.tier || 'free';
     });
 
     const formatDate = (dateStr) => {
@@ -608,18 +552,10 @@ export default {
       }
     };
 
-    // Refresh data once when a countdown reaches zero (status may have changed server-side)
-    let trialExpiredFetched = false;
-    watch(trialCountdown, (val) => {
-      if (!trialExpiredFetched && subscriptionState.value === 'trialing' && val.days === 0 && val.hours === 0 && val.minutes === 0) {
-        trialExpiredFetched = true;
-        fetchSubscriptionData();
-      }
-    });
-
+    // Refresh data once when retained access reaches zero (status may have changed server-side).
     let accessExpiredFetched = false;
     watch(accessCountdown, (val) => {
-      if (!accessExpiredFetched && subscriptionState.value === 'cancelled' && val && val.days === 0 && val.hours === 0 && val.minutes === 0) {
+      if (!accessExpiredFetched && presentation.value.state === 'cancelled' && val && val.days === 0 && val.hours === 0 && val.minutes === 0) {
         accessExpiredFetched = true;
         fetchSubscriptionData();
       }
@@ -643,13 +579,10 @@ export default {
       loading,
       error,
       subscriptionData,
-      subscriptionState,
+      presentation,
       planDisplayName,
-      trialCountdown,
-      renewalCountdown,
       accessCountdown,
       gracePeriodCountdown,
-      isInGracePeriod,
       currentPlanForModal,
       showUpgradeEntry,
       billingHistory,
