@@ -1135,6 +1135,18 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('news-subscribers/export', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
 });
 
+// Marketing Pipeline — Stage 4 admin (campaigns + post approval queue)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pipeline')->group(function () {
+    Route::apiResource('campaigns', \App\Http\Controllers\Api\Admin\Pipeline\PipelineCampaignsController::class)
+        ->parameters(['campaigns' => 'campaign']);
+
+    Route::get('posts', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'index']);
+    Route::get('posts/{post}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'show']);
+    Route::patch('posts/{post}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'update']);
+    Route::post('posts/{post}/approve', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'approve']);
+    Route::post('posts/{post}/reject', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'reject']);
+});
+
 // Retirement Action Definitions (admin-configurable plan actions)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/retirement-actions')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'index']);

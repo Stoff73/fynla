@@ -175,6 +175,12 @@ class ProcessVideoJob implements ShouldQueue
                 'pipeline_article_id' => $article->id,
                 'clip_count' => count($clipPaths),
             ]);
+
+            // Stage 4 handoff — compose social posts if the pipeline is configured
+            // to auto-compose after clips render.
+            if (config('pipeline.social.compose_after_render')) {
+                \App\Jobs\Pipeline\ComposePostsJob::dispatch($article->fresh());
+            }
         } catch (Throwable $e) {
             $run->update([
                 'status' => 'error',

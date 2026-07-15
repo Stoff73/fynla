@@ -156,4 +156,103 @@ return [
         'signed_url_ttl_days' => env('PIPELINE_SIGNED_URL_TTL_DAYS', 30),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Social (Stage 4 — posting + reporting)
+    |--------------------------------------------------------------------------
+    |
+    | Static industry-benchmark posting windows per platform, GMT. Overridden
+    | weekly by WeeklyOptimalTimeRecalculator once we have enough GA data.
+    |
+    | Governed by the `social-media-posts` skill — read it before changing
+    | anything under `social.*`.
+    |
+    */
+
+    'social' => [
+
+        'best_times' => [
+            'instagram' => [
+                ['day' => 'Tuesday',  'time' => '12:00'],
+                ['day' => 'Thursday', 'time' => '12:00'],
+                ['day' => 'Saturday', 'time' => '09:30'],
+            ],
+            'facebook' => [
+                ['day' => 'Wednesday', 'time' => '13:00'],
+                ['day' => 'Friday',    'time' => '13:00'],
+            ],
+            'tiktok' => [
+                ['day' => 'Tuesday',   'time' => '06:00'],
+                ['day' => 'Wednesday', 'time' => '07:00'],
+                ['day' => 'Friday',    'time' => '19:30'],
+            ],
+        ],
+
+        'default_hashtag_count' => (int) env('PIPELINE_HASHTAG_COUNT', 3),
+        'hashtag_min' => 2,
+        'hashtag_max' => 5,
+
+        // Tags never picked by HashtagPicker — too generic or against
+        // platform norms. Extend liberally.
+        'banned_hashtags' => [
+            '#finance', '#money', '#uk', '#saving', '#investing',
+            '#fyp', '#foryou', '#foryoupage', '#viral', '#trending',
+            '#followme', '#like4like',
+        ],
+
+        'variant_count' => 2,
+
+        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', true),
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Buffer (Stage 4 — the posting mechanism)
+    |--------------------------------------------------------------------------
+    |
+    | Buffer Publishing API v1. Access token from https://publish.buffer.com/
+    | → Settings → Integrations → API. Profiles map platform → profile ID
+    | (find via `curl -H "Authorization: Bearer $TOKEN" https://api.bufferapp.com/1/profiles.json`).
+    |
+    */
+
+    'buffer' => [
+        'access_token' => env('BUFFER_ACCESS_TOKEN'),
+        'profiles' => [
+            'instagram' => env('BUFFER_PROFILE_INSTAGRAM'),
+            'facebook' => env('BUFFER_PROFILE_FACEBOOK'),
+            'tiktok' => env('BUFFER_PROFILE_TIKTOK'),
+        ],
+        'timeout_seconds' => (int) env('BUFFER_TIMEOUT', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Analytics (Stage 4 — weekly report + optimal-time recalculator)
+    |--------------------------------------------------------------------------
+    |
+    | Reuses the existing Google OAuth grant with the analytics.readonly
+    | scope added. After changing scopes, users must re-run
+    | pipeline:authorise-google to re-consent.
+    |
+    */
+
+    'google_analytics' => [
+        'property_id' => env('PIPELINE_GA_PROPERTY_ID'),
+        'default_lookback_days' => (int) env('PIPELINE_GA_LOOKBACK_DAYS', 56),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reports (Stage 4)
+    |--------------------------------------------------------------------------
+    */
+
+    'reports' => [
+        'weekly_social_recipient' => env('PIPELINE_WEEKLY_REPORT_TO', 'marketing@fynla.org'),
+        'weekly_social_schedule_day' => (int) env('PIPELINE_WEEKLY_REPORT_DAY', 1),
+        'weekly_social_schedule_time' => env('PIPELINE_WEEKLY_REPORT_TIME', '09:00'),
+    ],
+
 ];

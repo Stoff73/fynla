@@ -42,6 +42,14 @@ class Kernel extends ConsoleKernel
         // Quarterly (1 Jan / 1 Apr / 1 Jul / 1 Oct) housekeeping reminder.
         $schedule->command('pipeline:audit-social-videos')
             ->cron('0 8 1 1,4,7,10 *');
+
+        // Stage 4 — social scheduling + reporting.
+        $schedule->command('pipeline:schedule-ready-posts')->hourly();
+        $schedule->command('pipeline:recalculate-optimal-times')->weeklyOn(1, '06:00');
+        $schedule->command('pipeline:weekly-social-report')->weeklyOn(
+            (int) config('pipeline.reports.weekly_social_schedule_day', 1),
+            (string) config('pipeline.reports.weekly_social_schedule_time', '09:00'),
+        );
     }
 
     /**
