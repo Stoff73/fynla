@@ -103,7 +103,7 @@ class DatabaseSeeder extends Seeder
         // PHASE 2: Optional Data (for development/testing only)
         // These create additional test accounts beyond the required ones
         // ============================================================
-        if (app()->environment(['local', 'development', 'staging'])) {
+        if (app()->environment(['local', 'development'])) {
             $this->call([
                 // Households for multi-user testing
                 HouseholdSeeder::class,

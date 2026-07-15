@@ -17,6 +17,7 @@ class Payment extends Model
     protected $fillable = [
         'subscription_id',
         'user_id',
+        'active_checkout_user_id',
         'revolut_order_id',
         'amount',
         'currency',
@@ -29,10 +30,16 @@ class Payment extends Model
         'discount_code_id',
         'discount_amount',
         'invoice_id',
+        'financial_finalized_at',
+        'confirmation_email_claimed_at',
+        'confirmation_email_sent_at',
+        'reconciliation_misses',
+        'last_reconciled_at',
         'revolut_subscription_payment',
         'awin_order_ref',
         'awin_cks',
         'awin_customer_acquisition',
+        'awin_claimed_at',
         'awin_fired_at',
     ];
 
@@ -41,8 +48,32 @@ class Payment extends Model
         'revolut_payment_data' => 'array',
         'discount_amount' => 'integer',
         'revolut_subscription_payment' => 'boolean',
+        'financial_finalized_at' => 'datetime',
+        'confirmation_email_claimed_at' => 'datetime',
+        'confirmation_email_sent_at' => 'datetime',
+        'reconciliation_misses' => 'integer',
+        'last_reconciled_at' => 'datetime',
+        'awin_claimed_at' => 'datetime',
         'awin_fired_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Payment $payment): void {
+            $payment->active_checkout_user_id = $payment->status === 'pending'
+                ? $payment->user_id
+                : null;
+        });
+
+        static::deleting(function (Payment $payment): void {
+            if (! $payment->isForceDeleting() && $payment->status === 'pending') {
+                $payment->forceFill([
+                    'status' => 'failed',
+                    'active_checkout_user_id' => null,
+                ])->saveQuietly();
+            }
+        });
+    }
 
     public function subscription(): BelongsTo
     {

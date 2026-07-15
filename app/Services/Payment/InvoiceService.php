@@ -24,6 +24,21 @@ class InvoiceService
      */
     public function generateInvoice(Payment $payment, ?DiscountCode $discount = null): Invoice
     {
+        $payment->refresh();
+        if ($payment->invoice_id !== null) {
+            return Invoice::findOrFail($payment->invoice_id);
+        }
+
+        $existingInvoice = Invoice::where('payment_id', $payment->id)->first();
+        if ($existingInvoice !== null) {
+            if ($existingInvoice->pdf_path === null || ! Storage::exists($existingInvoice->pdf_path)) {
+                $existingInvoice->update(['pdf_path' => $this->generatePdf($existingInvoice)]);
+            }
+            $payment->update(['invoice_id' => $existingInvoice->id]);
+
+            return $existingInvoice;
+        }
+
         $subscription = $payment->subscription;
         $user = $payment->user;
 

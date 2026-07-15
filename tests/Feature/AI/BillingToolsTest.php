@@ -5,9 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\Invoice;
 use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use App\Models\User;
-use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,14 +14,13 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->seed(SubscriptionPlanSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
 });
 
 // ─── get_subscription_status ─────────────────────────────────────────
 
 it('get_subscription_status returns active subscription shape', function (): void {
-    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'free']);
     Subscription::factory()->create([
         'user_id' => $user->id,
         'plan' => 'premium',
@@ -145,48 +142,50 @@ it('list_invoices orders most recent first', function (): void {
 
 // ─── get_current_plan ────────────────────────────────────────────────
 
-it('get_current_plan returns plan shape', function (): void {
-    $user = User::factory()->create();
+it('get_current_plan returns canonical Premium details with pence converted to pounds', function (): void {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
     Subscription::factory()->create([
         'user_id' => $user->id,
-        'plan' => 'standard',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
         'status' => 'active',
-        'amount' => 10.99,
+        'amount' => 699,
     ]);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_current_plan', [], $user->fresh());
 
     expect($result)->toHaveKeys(['plan_name', 'tier', 'billing_cycle', 'price_gbp', 'features']);
-    expect($result['tier'])->toBe('standard');
-    expect($result['billing_cycle'])->toBe('monthly');
-    expect($result['features'])->toBeArray();
+    expect($result['plan_name'])->toBe('Premium')
+        ->and($result['tier'])->toBe('premium')
+        ->and($result['billing_cycle'])->toBe('monthly')
+        ->and($result['price_gbp'])->toBe(6.99)
+        ->and($result['features'])->toContain('dashboard', 'holistic_plan');
 });
 
-it('get_current_plan returns none shape when user has no subscription', function (): void {
-    $user = User::factory()->create();
+it('get_current_plan returns canonical Free details when user has no subscription', function (): void {
+    $user = User::factory()->create(['tier' => 'free', 'plan' => 'free']);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_current_plan', [], $user);
 
-    expect($result['tier'])->toBe('none');
-    expect($result['plan_name'])->toBe('none');
-    expect($result['price_gbp'])->toBe(0.0);
-    expect($result['features'])->toBe([]);
+    expect($result['tier'])->toBe('free')
+        ->and($result['plan_name'])->toBe('Free')
+        ->and($result['billing_cycle'])->toBeNull()
+        ->and($result['price_gbp'])->toBe(0.0)
+        ->and($result['features'])->toContain('dashboard', 'tax_strategy')
+        ->and($result['features'])->not->toContain('holistic_plan');
 });
 
-it('get_current_plan resolves yearly price for yearly cycle', function (): void {
-    $user = User::factory()->create();
+it('get_current_plan converts the canonical Premium yearly price from pence', function (): void {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
     Subscription::factory()->create([
         'user_id' => $user->id,
-        'plan' => 'standard',
+        'plan' => 'premium',
         'billing_cycle' => 'yearly',
         'status' => 'active',
-        'amount' => 100.00,
+        'amount' => 5999,
     ]);
 
     $result = app(CoordinatingAgent::class)->executeTool('get_current_plan', [], $user->fresh());
 
-    $plan = SubscriptionPlan::findBySlug('standard');
-    $expected = $plan->getLaunchPriceForCycle('yearly') ?? $plan->getPriceForCycle('yearly');
-    expect($result['price_gbp'])->toBe(round($expected / 100, 2));
+    expect($result['price_gbp'])->toBe(59.99);
 });

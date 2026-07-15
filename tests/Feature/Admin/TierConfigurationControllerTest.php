@@ -42,5 +42,5 @@ it('exposes a public pricing endpoint reading the same store', function () {
         ->assertOk()
         ->assertJsonPath('data.0.tier', 'free')
         ->assertJsonPath('data.1.tier', 'premium')
-        ->assertJsonPath('data.1.price_monthly_pence', 1499);
+        ->assertJsonPath('data.1.price_monthly_pence', 699);
 });

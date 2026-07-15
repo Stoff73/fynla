@@ -204,7 +204,7 @@ class User extends Authenticatable
      */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
     public function deletionReminderLog()

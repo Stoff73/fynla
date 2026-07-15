@@ -86,9 +86,10 @@
 
             <button
               @click="selectTier(tier.tier)"
-              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
+              :disabled="isCurrentPremium(tier)"
+              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {{ ctaLabel }}
+              {{ ctaLabel(tier) }}
             </button>
           </div>
         </div>
@@ -124,8 +125,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-horizon-500 mb-1">Cancel Anytime</h3>
-            <p class="text-sm text-neutral-500">No lock-in contracts. Downgrade or cancel whenever you like.</p>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">One-Time Premium</h3>
+            <p class="text-sm text-neutral-500">Premium access is sold for the period shown at checkout and does not renew automatically.</p>
           </div>
         </div>
         <p class="text-center text-sm text-neutral-500 mt-8">
@@ -229,10 +230,6 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAuthenticated']),
 
-    ctaLabel() {
-      return this.isAuthenticated ? 'Upgrade now' : 'Get started free';
-    },
-
     featuredIndex() {
       return this.tiers.findIndex(tier => tier.tier === 'premium');
     },
@@ -250,6 +247,7 @@ export default {
       isYearly: true,
       openFaq: null,
       faqs: getPricingFaqs().map(item => ({ question: item.q, answer: item.a })),
+      subscriptionData: null,
       tiers: [],
     };
   },
@@ -259,6 +257,7 @@ export default {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', 'Choose Free or Premium Fynla access. Start free with no credit card required, then upgrade to Premium for full planning capabilities and higher limits.');
     this.fetchTiers();
+    if (this.isAuthenticated) this.fetchSubscriptionStatus();
   },
 
   methods: {
@@ -269,6 +268,15 @@ export default {
         this.tiers = response.data.data || [];
       } catch {
         // Cards render their fallback ('...') price until the store responds.
+      }
+    },
+
+    async fetchSubscriptionStatus() {
+      try {
+        const response = await api.get('/payment/subscription-status');
+        this.subscriptionData = response.data;
+      } catch {
+        this.subscriptionData = null;
       }
     },
 
@@ -305,6 +313,20 @@ export default {
       return `£${monthlyEq}/mo — save ${saving}%`;
     },
 
+    isCurrentPremium(tier) {
+      return this.isAuthenticated
+        && tier.tier === 'premium'
+        && this.subscriptionData?.tier === 'premium'
+        && this.subscriptionData?.is_terminal_paid !== true
+        && ['active', 'cancelled', 'past_due'].includes(this.subscriptionData?.subscription_status);
+    },
+
+    ctaLabel(tier) {
+      if (this.isCurrentPremium(tier)) return 'Premium active';
+      if (tier.tier === 'free') return this.isAuthenticated ? 'Go to dashboard' : 'Get started free';
+      return this.isAuthenticated ? 'Upgrade now' : 'Choose Premium';
+    },
+
     // Build the feature list from the tier's own capability_matrix +
     // count_caps. full → included; teaser → preview only; limited → "Up to N"
     // (or "Unlimited" when cap is null); none → shown as not included.
@@ -335,6 +357,13 @@ export default {
     },
 
     selectTier(tierKey) {
+      if (tierKey === 'free') {
+        this.$router.push(this.isAuthenticated ? '/dashboard' : '/register');
+        return;
+      }
+
+      if (this.isCurrentPremium({ tier: tierKey })) return;
+
       // Pass the Premium tier key, never a legacy slug (§5.2).
       if (this.isAuthenticated) {
         this.$router.push({

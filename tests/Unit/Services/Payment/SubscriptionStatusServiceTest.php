@@ -64,6 +64,34 @@ it('maps an internal provisional trialing row to a non-entitling pending state',
         ->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
+it('reports Free while a stale paid tier has only ended and provisional rows', function (): void {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->subMinute(),
+    ]);
+    Subscription::factory()->pending()->plan('premium')->create(['user_id' => $user->id]);
+
+    $status = app(SubscriptionStatusService::class)->forUser($user->fresh());
+
+    expect($status)->toMatchArray([
+        'tier' => 'free',
+        'tier_display_name' => 'Free',
+        'subscription_status' => 'pending',
+        'count_caps' => [
+            'savings_account' => 2,
+            'investment' => 2,
+            'pension_account' => 2,
+            'property' => 1,
+            'mortgage' => 10,
+            'goal' => 2,
+            'life_event' => 1,
+        ],
+    ]);
+});
+
 it('returns the complete Premium contract from the latest active subscription', function (): void {
     $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
     Subscription::factory()->expired()->create([
@@ -114,6 +142,26 @@ it('returns the complete Premium contract from the latest active subscription', 
     expect($status['capability_matrix']['holistic_plan'])->toBe('full')
         ->and($status['next_renewal_date'])->not->toBeNull()
         ->and($status['tier'])->not->toBeIn(['tier1', 'tier2', 'tier3']);
+});
+
+it('prefers an older active entitlement over a newer provisional row', function (): void {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    $active = Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->addMonth(),
+    ]);
+    Subscription::factory()->pending()->plan('premium')->create(['user_id' => $user->id]);
+
+    $status = app(SubscriptionStatusService::class)->forUser($user->fresh());
+
+    expect($status)->toMatchArray([
+        'tier' => 'premium',
+        'subscription_status' => 'active',
+        'plan' => 'premium',
+        'current_period_end' => $active->current_period_end->toISOString(),
+    ]);
 });
 
 it('keeps a cancelled subscription inside its paid period non-terminal', function (): void {

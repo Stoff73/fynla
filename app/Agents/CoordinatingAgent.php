@@ -40,8 +40,6 @@ use App\Models\Property;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\StatePension;
-use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
@@ -2449,15 +2447,6 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    /**
-     * Resolve the user's current subscription. Read-only — returns null if absent.
-     * Mirrors the controller-side resolution so chat-tool callers see the same row.
-     */
-    private function resolveSubscription(User $user): ?Subscription
-    {
-        return $user->subscription()->latest('id')->first();
-    }
-
     private function handleGetSubscriptionStatus(User $user): array
     {
         $status = $this->subscriptionStatusService->forUser($user);
@@ -2494,30 +2483,19 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleGetCurrentPlan(User $user): array
     {
-        $sub = $this->resolveSubscription($user);
-
-        if (! $sub) {
-            return [
-                'plan_name' => 'none',
-                'tier' => 'none',
-                'billing_cycle' => null,
-                'price_gbp' => 0.0,
-                'features' => [],
-            ];
-        }
-
-        $plan = SubscriptionPlan::findBySlug($sub->plan);
-
-        $pricePence = $plan
-            ? ($plan->getLaunchPriceForCycle($sub->billing_cycle) ?? $plan->getPriceForCycle($sub->billing_cycle))
-            : (int) round(((float) $sub->amount) * 100);
+        $status = $this->subscriptionStatusService->forUser($user);
+        $features = collect($status['capability_matrix'] ?? [])
+            ->filter(static fn (string $access): bool => $access !== 'none')
+            ->keys()
+            ->values()
+            ->all();
 
         return [
-            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
-            'tier' => $sub->plan,
-            'billing_cycle' => $sub->billing_cycle,
-            'price_gbp' => round($pricePence / 100, 2),
-            'features' => $plan?->features ?? [],
+            'plan_name' => $status['tier_display_name'],
+            'tier' => $status['tier'],
+            'billing_cycle' => $status['billing_cycle'],
+            'price_gbp' => round(((int) ($status['amount'] ?? 0)) / 100, 2),
+            'features' => $features,
         ];
     }
 

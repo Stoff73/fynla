@@ -11,12 +11,12 @@ class ExpireTrials extends Command
 {
     protected $signature = 'trials:expire';
 
-    protected $description = 'Expire cancelled subscriptions that have passed their current period end date';
+    protected $description = 'Expire ended cancelled or one-time subscription access';
 
     public function handle(TrialService $trialService): int
     {
-        $cancelledCount = $trialService->expireCancelledSubscriptions();
-        $this->info("Expired {$cancelledCount} cancelled subscription(s).");
+        $expiredCount = $trialService->expireCancelledSubscriptions();
+        $this->info("Expired {$expiredCount} ended subscription(s).");
 
         return Command::SUCCESS;
     }

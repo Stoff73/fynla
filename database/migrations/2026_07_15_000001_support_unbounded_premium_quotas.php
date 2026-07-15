@@ -15,6 +15,11 @@ return new class extends Migration
             $table->unsignedInteger('document_upload_allowance')->nullable()->default(null)->change();
             $table->unsignedInteger('snapshot_surfacing_window_days')->nullable()->default(null)->change();
         });
+
+        DB::table('tier_configurations')->where('tier', 'premium')->update([
+            'document_upload_allowance' => null,
+            'snapshot_surfacing_window_days' => null,
+        ]);
     }
 
     public function down(): void

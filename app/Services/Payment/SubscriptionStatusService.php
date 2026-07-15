@@ -13,12 +13,14 @@ class SubscriptionStatusService
     public function __construct(
         private readonly TierResolver $tierResolver,
         private readonly TierConfigurationStore $tierConfigurations,
+        private readonly SubscriptionEntitlementService $entitlements,
     ) {}
 
     /** @return array<string, mixed> */
     public function forUser(User $user): array
     {
-        $subscription = $user->subscriptions()->latest('id')->first();
+        $subscription = $this->entitlements->activePremiumFor($user)
+            ?? $user->subscriptions()->latest('id')->first();
         $tier = $this->tierResolver->resolve($user);
         $tierConfig = $this->tierConfigurations->forTier($tier);
         $paymentEnabled = (bool) config('app.payment_enabled', false);

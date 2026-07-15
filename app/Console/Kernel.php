@@ -39,7 +39,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
-        $schedule->command('tier:sync-revolut')->weeklyOn(1, '02:00'); // SP2 PR5: Mon 02:00, alongside billing cadence
+        $schedule->command('payments:reconcile-pending --older-than=15')->everyTenMinutes()->withoutOverlapping();
 
         $schedule->job(new PublishScheduledInsightsJob)->everyFiveMinutes();
 

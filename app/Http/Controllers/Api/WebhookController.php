@@ -8,15 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Jobs\FireAwinConversionJob;
 use App\Models\Payment;
-use App\Models\SubscriptionPlan;
+use App\Services\Payment\PaymentFinalizationService;
+use App\Services\Payment\PaymentSettlementService;
 use App\Services\Payment\RevolutOrderVerifier;
 use App\Services\Payment\RevolutService;
 use App\Services\Payment\SubscriptionRenewalService;
-use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierCollapseLock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
@@ -28,7 +27,8 @@ class WebhookController extends Controller
         private readonly SubscriptionRenewalService $renewalService,
         private readonly RevolutOrderVerifier $orderVerifier,
         private readonly TierCollapseLock $tierCollapseLock,
-        private readonly TierConfigurationStore $tierStore,
+        private readonly PaymentSettlementService $paymentSettlementService,
+        private readonly PaymentFinalizationService $paymentFinalizationService,
     ) {}
 
     /**
@@ -66,14 +66,18 @@ class WebhookController extends Controller
         ]);
 
         try {
-            $this->tierCollapseLock->run(fn () => match ($event) {
-                'ORDER_COMPLETED' => $orderId ? $this->handleOrderCompleted($orderId, $merchantRef) : null,
-                'SUBSCRIPTION_INITIATED' => $this->handleSubscriptionInitiated($payload),
-                'SUBSCRIPTION_OVERDUE' => $this->handleSubscriptionOverdue($payload),
-                'SUBSCRIPTION_CANCELLED' => $this->handleSubscriptionCancelled($payload),
-                'SUBSCRIPTION_FINISHED' => $this->handleSubscriptionFinished($payload),
-                default => Log::info('Revolut webhook: unhandled event', ['event' => $event]),
-            });
+            if ($event === 'ORDER_COMPLETED' && $orderId) {
+                $this->handleOrderCompleted($orderId, $merchantRef);
+            } else {
+                $lockScope = 'webhook:'.hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
+                $this->tierCollapseLock->run(fn () => match ($event) {
+                    'SUBSCRIPTION_INITIATED' => $this->handleSubscriptionInitiated($payload),
+                    'SUBSCRIPTION_OVERDUE' => $this->handleSubscriptionOverdue($payload),
+                    'SUBSCRIPTION_CANCELLED' => $this->handleSubscriptionCancelled($payload),
+                    'SUBSCRIPTION_FINISHED' => $this->handleSubscriptionFinished($payload),
+                    default => Log::info('Revolut webhook: unhandled event', ['event' => $event]),
+                }, $lockScope);
+            }
         } catch (\Throwable $e) {
             Log::error('Revolut webhook processing failed', [
                 'event' => $event,
@@ -89,116 +93,48 @@ class WebhookController extends Controller
 
     private function handleOrderCompleted(string $orderId, ?string $merchantRef): void
     {
-        DB::transaction(function () use ($orderId, $merchantRef) {
-            $payment = Payment::where('revolut_order_id', $orderId)
-                ->lockForUpdate()
-                ->first();
+        $payment = Payment::where('revolut_order_id', $orderId)->first();
 
-            if (! $payment) {
-                Log::warning('Revolut webhook: payment not found', [
-                    'order_id' => $orderId,
-                    'merchant_ref' => $merchantRef,
-                ]);
-
-                throw new \RuntimeException('Revolut completion webhook does not match a payment.');
-            }
-
-            // Cross-reference check
-            if ($merchantRef && $merchantRef !== "payment_{$payment->id}") {
-                throw new \RuntimeException('Revolut webhook merchant reference does not match the payment.');
-            }
-
-            // Idempotent: skip if already completed
-            if ($payment->status === 'completed') {
-                Log::info('Revolut webhook: payment already completed', ['order_id' => $orderId]);
-
-                return;
-            }
-
-            if ($payment->status !== 'pending') {
-                throw new \RuntimeException('Only a pending payment can be completed.');
-            }
-
-            // Verify with Revolut API
-            $revolutOrder = $this->revolutService->getOrder($orderId);
-            $verificationFailure = $this->orderVerifier->completedOrderFailure($payment, $revolutOrder);
-
-            if ($verificationFailure !== null) {
-                throw new \RuntimeException($verificationFailure);
-            }
-
-            // Read plan and billing cycle from the Payment record (source of truth)
-            $planSlug = TierConfigurationStore::canonicalPlanForEntitlement($payment->plan_slug);
-            $billingCycle = $payment->billing_cycle;
-            $isUpgrade = ! empty($payment->upgrade_from_plan);
-
-            $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
-            $renewalAmount = $isUpgrade && in_array($planSlug, TierConfigurationStore::TIERS, true)
-                ? $this->tierStore->priceForCycle($planSlug, $billingCycle)
-                : ($subscriptionPlan ? $subscriptionPlan->getPriceForCycle($billingCycle) : $payment->amount);
-
-            // Activate payment
-            $payment->update([
-                'status' => 'completed',
-                'revolut_payment_data' => $revolutOrder,
-            ]);
-
-            // Update subscription from payment data
-            $subscription = $payment->subscription;
-            $subscriptionUpdate = [
-                'status' => 'active',
-                'plan' => $planSlug,
-                'billing_cycle' => $billingCycle,
-                'amount' => $renewalAmount,
-                'auto_renew' => true,
-                'payment_method_saved' => true,
-                'revolut_order_id' => $orderId,
-                'cancelled_at' => null,
-                'cancellation_reason' => null,
-            ];
-            if (! $isUpgrade) {
-                $subscriptionUpdate['current_period_start'] = now();
-                $subscriptionUpdate['current_period_end'] = $billingCycle === 'monthly'
-                    ? now()->addMonth()
-                    : now()->addYear();
-            }
-            $subscription->update($subscriptionUpdate);
-
-            // `plan` is the legacy billing-compat column (§5.2). For a
-            // tier-key purchase ALSO set the canonical `tier` column —
-            // TierResolver/DbTierGate key off `tier`, so a paying
-            // customer must have it set or they resolve as Free.
-            // Legacy slugs (student/standard/family/pro) leave `tier`
-            // null: A9/§5.2 grandfather logic owns those.
-            $user = $payment->user;
-            $userUpdate = [
-                'plan' => $planSlug,
-                'trial_ends_at' => null,
-            ];
-            if (in_array($planSlug, TierConfigurationStore::TIERS, true)) {
-                $userUpdate['tier'] = $planSlug;
-            }
-            $user->update($userUpdate);
-
-            // Confirmation email is sent from confirmPayment() after invoice
-            // generation so the PDF can be attached. Not sent here because
-            // the invoice doesn't exist yet at webhook time.
-
-            Log::info('Revolut webhook: subscription activated', [
-                'user_id' => $user->id,
+        if (! $payment) {
+            Log::warning('Revolut webhook: payment not found', [
                 'order_id' => $orderId,
-                'plan' => $planSlug,
-                'billing_cycle' => $billingCycle,
+                'merchant_ref' => $merchantRef,
             ]);
 
-            // Fire Awin conversion (idempotent — job short-circuits if
-            // awin_fired_at is already set). Dispatched from both webhook
-            // and confirmPayment paths; whichever arrives second is a
-            // no-op. Admin accounts are excluded.
-            if (config('awin.enabled') && ! $user->is_admin) {
-                FireAwinConversionJob::dispatch($payment->id);
-            }
-        });
+            throw new \RuntimeException('Revolut completion webhook does not match a payment.');
+        }
+
+        if ($merchantRef && $merchantRef !== "payment_{$payment->id}") {
+            throw new \RuntimeException('Revolut webhook merchant reference does not match the payment.');
+        }
+
+        if (! in_array($payment->status, ['pending', 'completed'], true)) {
+            throw new \RuntimeException('Only a pending payment can be completed.');
+        }
+
+        $revolutOrder = $this->revolutService->getOrder($orderId);
+        $verificationFailure = $this->orderVerifier->completedOrderFailure($payment, $revolutOrder);
+        if ($verificationFailure !== null) {
+            throw new \RuntimeException($verificationFailure);
+        }
+
+        $payment = $this->tierCollapseLock->run(function () use ($payment, $revolutOrder): Payment {
+            $settledPayment = $this->paymentSettlementService->settle($payment, $revolutOrder);
+
+            return $this->paymentFinalizationService->finalize($settledPayment);
+        }, "user:{$payment->user_id}");
+
+        $user = $payment->user;
+        Log::info('Revolut webhook: subscription activated', [
+            'user_id' => $user->id,
+            'order_id' => $orderId,
+            'plan' => $payment->subscription->plan,
+            'billing_cycle' => $payment->billing_cycle,
+        ]);
+
+        if (config('awin.enabled') && ! $user->is_admin) {
+            FireAwinConversionJob::dispatch($payment->id);
+        }
     }
 
     private function handleSubscriptionInitiated(array $payload): void
@@ -209,9 +145,8 @@ class WebhookController extends Controller
             'subscription_id' => $payload['subscription_id'] ?? null,
         ]);
 
-        // The subscription is now active — Revolut will handle recurring billing.
-        // The initial payment is handled via ORDER_COMPLETED for the setup order.
-        // Future renewal payments also come via ORDER_COMPLETED for each cycle's order.
+        // Retained for compatibility with historical Revolut subscription rows.
+        // Canonical Premium checkout uses one-time orders and never reaches this event.
     }
 
     private function handleSubscriptionOverdue(array $payload): void

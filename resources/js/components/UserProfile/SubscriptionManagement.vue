@@ -106,7 +106,7 @@
             <span class="text-body-sm text-horizon-500">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-neutral-500">Next Renewal:</span>
+            <span class="text-body-sm text-neutral-500">{{ subscriptionData.auto_renew ? 'Next Renewal:' : 'Access Ends:' }}</span>
             <span class="text-body-sm text-horizon-500">{{ formatDate(subscriptionData.current_period_end) }}</span>
           </div>
           <div v-if="subscriptionData.auto_renew" class="flex justify-between">
@@ -130,6 +130,7 @@
         </button>
 
         <button
+          v-if="subscriptionData.auto_renew"
           @click="showCancelModal = true"
           class="text-body-sm text-raspberry-600 hover:text-raspberry-700 transition-colors"
         >

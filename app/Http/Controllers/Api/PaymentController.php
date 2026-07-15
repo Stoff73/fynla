@@ -7,8 +7,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Jobs\FireAwinConversionJob;
-use App\Mail\PaymentConfirmation;
 use App\Mail\SubscriptionCancellation;
+use App\Models\DiscountCode;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Subscription;
@@ -19,10 +19,12 @@ use App\Services\Account\AccountDeletionService;
 use App\Services\Marketing\AwinTrackingService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\InvoiceService;
-use App\Services\Payment\ReferralService;
+use App\Services\Payment\PaymentFinalizationService;
+use App\Services\Payment\PaymentSettlementService;
 use App\Services\Payment\RevolutOrderVerifier;
 use App\Services\Payment\RevolutService;
 use App\Services\Payment\RevolutSubscriptionService;
+use App\Services\Payment\SubscriptionEntitlementService;
 use App\Services\Payment\SubscriptionStatusService;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierCollapseLock;
@@ -33,6 +35,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -48,12 +51,14 @@ class PaymentController extends Controller
         private readonly DiscountCodeService $discountCodeService,
         private readonly InvoiceService $invoiceService,
         private readonly AccountDeletionService $deletionService,
-        private readonly ReferralService $referralService,
+        private readonly PaymentSettlementService $paymentSettlementService,
+        private readonly PaymentFinalizationService $paymentFinalizationService,
         private readonly AwinTrackingService $awinTracking,
         private readonly TierConfigurationStore $tierStore,
         private readonly RevolutOrderVerifier $orderVerifier,
         private readonly TierCollapseLock $tierCollapseLock,
         private readonly SubscriptionStatusService $subscriptionStatusService,
+        private readonly SubscriptionEntitlementService $entitlements,
     ) {}
 
     /**
@@ -159,6 +164,13 @@ class PaymentController extends Controller
             'discount_code' => 'nullable|string|max:50',
         ]);
 
+        if ($this->entitlements->activePremiumFor($user) !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Premium is already active until the end of your current access period.',
+            ], Response::HTTP_CONFLICT);
+        }
+
         $planSlugInput = $request->input('plan');
         $billingCycle = $request->input('billing_cycle');
 
@@ -186,7 +198,8 @@ class PaymentController extends Controller
                         $amount,
                         $description,
                         $tierConfig->display_name,
-                    )
+                    ),
+                    "user:{$user->id}",
                 );
             } catch (\Throwable $e) {
                 return $this->errorResponse($e, 'Creating tier payment order');
@@ -246,7 +259,7 @@ class PaymentController extends Controller
                     $user->update([
                         'trial_ends_at' => $subscription->trial_ends_at,
                     ]);
-                    $this->discountCodeService->apply($discountCode, $user->id, 0, 0);
+                    $this->discountCodeService->apply($discountCode, $user->id, null, 0);
                 }
 
                 return response()->json([
@@ -271,6 +284,8 @@ class PaymentController extends Controller
                 'trial_ends_at' => null,
                 'current_period_start' => null,
                 'current_period_end' => null,
+                'auto_renew' => false,
+                'payment_method_saved' => false,
             ]);
 
             // Ensure Revolut customer exists
@@ -394,36 +409,21 @@ class PaymentController extends Controller
         string $description,
         string $displayName,
     ): JsonResponse {
-        $discountCode = null;
-        $discountAmount = 0;
-        $finalAmount = $amount;
-
-        if ($request->filled('discount_code')) {
-            $discountResult = $this->discountCodeService->validate(
-                $request->input('discount_code'),
-                $user->id,
-                $tierKey,
-                $billingCycle,
-                $amount,
-            );
-
-            if (! $discountResult['valid'] || $discountResult['discount']?->type === 'trial_extension') {
-                return response()->json([
-                    'success' => false,
-                    'message' => $discountResult['valid']
-                        ? 'Trial extension codes are not valid for Premium.'
-                        : $discountResult['message'],
-                ], 422);
-            }
-
-            $discountCode = $discountResult['discount'];
-            $discountAmount = $discountResult['discount_amount'];
-            $finalAmount = $discountResult['final_amount'];
-        }
+        $payment = null;
 
         try {
-            // Ensure subscription record exists
-            $subscription = $user->subscription ?? $user->subscription()->create([
+            $currentSubscription = Subscription::query()
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->first();
+            if ($this->entitlements->activePremiumFor($user) !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Premium is already active until the end of your current access period.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            $subscription = $currentSubscription ?? $user->subscription()->create([
                 'plan' => $tierKey,
                 'billing_cycle' => $billingCycle,
                 'status' => Subscription::STATUS_PENDING,
@@ -432,9 +432,20 @@ class PaymentController extends Controller
                 'trial_ends_at' => null,
                 'current_period_start' => null,
                 'current_period_end' => null,
+                'auto_renew' => false,
+                'payment_method_saved' => false,
             ]);
 
-            // Ensure Revolut customer exists
+            $replacementConflict = $this->cancelPendingTierOrders(
+                $user,
+                $tierKey,
+                $billingCycle,
+                $request->input('discount_code'),
+            );
+            if ($replacementConflict !== null) {
+                return $replacementConflict;
+            }
+
             if (! $user->revolut_customer_id) {
                 $this->subscriptionService->createCustomer($user);
                 $user->refresh();
@@ -446,50 +457,74 @@ class PaymentController extends Controller
             $redirectUrl = $baseUrl.'/checkout?plan='.$tierKey
                 .'&cycle='.$billingCycle.'&status=complete';
 
+            $draft = DB::transaction(function () use (
+                $request,
+                $user,
+                $subscription,
+                $tierKey,
+                $billingCycle,
+                $amount,
+                $description,
+            ): array {
+                $discountCode = null;
+                $discountAmount = 0;
+                $finalAmount = $amount;
+
+                if ($request->filled('discount_code')) {
+                    $discountResult = $this->discountCodeService->validateForReservation(
+                        $request->input('discount_code'),
+                        $user->id,
+                        $tierKey,
+                        $billingCycle,
+                        $amount,
+                    );
+
+                    if (! $discountResult['valid'] || $discountResult['discount']?->type === 'trial_extension') {
+                        return [
+                            'error' => $discountResult['valid']
+                                ? 'Trial extension codes are not valid for Premium.'
+                                : $discountResult['message'],
+                        ];
+                    }
+
+                    $discountCode = $discountResult['discount'];
+                    $discountAmount = $discountResult['discount_amount'];
+                    $finalAmount = $discountResult['final_amount'];
+                }
+
+                $payment = Payment::create([
+                    'subscription_id' => $subscription->id,
+                    'user_id' => $user->id,
+                    'revolut_order_id' => 'pending_'.Str::uuid(),
+                    'amount' => $finalAmount,
+                    'currency' => 'GBP',
+                    'status' => 'pending',
+                    'description' => $description,
+                    'plan_slug' => $tierKey,
+                    'billing_cycle' => $billingCycle,
+                    'discount_code_id' => $discountCode?->id,
+                    'discount_amount' => $discountAmount,
+                ]);
+
+                return [
+                    'payment' => $payment,
+                    'discount_code' => $discountCode,
+                    'discount_amount' => $discountAmount,
+                    'final_amount' => $finalAmount,
+                ];
+            });
+
+            if (isset($draft['error'])) {
+                return response()->json(['success' => false, 'message' => $draft['error']], 422);
+            }
+
+            $payment = $draft['payment'];
+            $discountCode = $draft['discount_code'];
+            $discountAmount = $draft['discount_amount'];
+            $finalAmount = $draft['final_amount'];
             $orderDescription = $discountCode
                 ? "{$description} (Code: {$discountCode->code})"
                 : $description;
-
-            Payment::where('user_id', $user->id)
-                ->where('plan_slug', $tierKey)
-                ->where('billing_cycle', $billingCycle)
-                ->where('status', 'pending')
-                ->delete();
-
-            $payment = Payment::create([
-                'subscription_id' => $subscription->id,
-                'user_id' => $user->id,
-                'revolut_order_id' => 'pending',
-                'amount' => $finalAmount,
-                'currency' => 'GBP',
-                'status' => 'pending',
-                'description' => $description,
-                'plan_slug' => $tierKey,
-                'billing_cycle' => $billingCycle,
-                'discount_code_id' => $discountCode?->id,
-                'discount_amount' => $discountAmount,
-            ]);
-
-            $revolutOrder = $this->revolutService->createOrderWithCustomer(
-                $finalAmount,
-                'GBP',
-                $orderDescription,
-                $redirectUrl,
-                $user->revolut_customer_id,
-                "payment_{$payment->id}",
-                $user->email,
-                true
-            );
-
-            $payment->update([
-                'revolut_order_id' => $revolutOrder['id'],
-                'revolut_payment_data' => [
-                    'order_id' => $revolutOrder['id'],
-                    'token' => $revolutOrder['token'],
-                    'state' => $revolutOrder['state'],
-                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
-                ],
-            ]);
 
             if (config('awin.enabled') && ! $user->is_admin) {
                 $payment->forceFill([
@@ -500,6 +535,45 @@ class PaymentController extends Controller
                         : 'existing',
                 ])->save();
             }
+
+            $merchantReference = "payment_{$payment->id}";
+            try {
+                $revolutOrder = $this->revolutService->createOrderWithCustomer(
+                    $finalAmount,
+                    'GBP',
+                    $orderDescription,
+                    $redirectUrl,
+                    $user->revolut_customer_id,
+                    $merchantReference,
+                    $user->email,
+                    false
+                );
+            } catch (\Throwable $creationFailure) {
+                try {
+                    $revolutOrder = $this->revolutService->findOrderByMerchantReference($merchantReference);
+                } catch (\Throwable $reconciliationFailure) {
+                    Log::warning('Revolut tier order outcome remains uncertain', [
+                        'payment_id' => $payment->id,
+                        'create_error' => $creationFailure->getMessage(),
+                        'reconciliation_error' => $reconciliationFailure->getMessage(),
+                    ]);
+                    throw $creationFailure;
+                }
+
+                if ($revolutOrder === null) {
+                    throw $creationFailure;
+                }
+            }
+
+            $payment->update([
+                'revolut_order_id' => $revolutOrder['id'],
+                'revolut_payment_data' => [
+                    'order_id' => $revolutOrder['id'],
+                    'token' => $revolutOrder['token'],
+                    'state' => $revolutOrder['state'],
+                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
+                ],
+            ]);
 
             Log::info('Revolut tier order created', [
                 'user_id' => $user->id,
@@ -518,6 +592,107 @@ class PaymentController extends Controller
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Creating tier payment order');
         }
+    }
+
+    private function cancelPendingTierOrders(
+        User $user,
+        string $tierKey,
+        string $billingCycle,
+        ?string $requestedDiscountCode,
+    ): ?JsonResponse {
+        $pendingPayments = Payment::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($pendingPayments as $pendingPayment) {
+            $reconciledOrder = null;
+
+            if (str_starts_with($pendingPayment->revolut_order_id, 'pending_')) {
+                try {
+                    $reconciledOrder = $this->revolutService->findOrderByMerchantReference(
+                        "payment_{$pendingPayment->id}"
+                    );
+                } catch (\Throwable) {
+                    $reconciledOrder = null;
+                }
+
+                if ($reconciledOrder === null) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your previous checkout is still being reconciled. Please try again shortly.',
+                    ], Response::HTTP_CONFLICT);
+                }
+
+                $pendingPayment->update([
+                    'revolut_order_id' => $reconciledOrder['id'],
+                    'revolut_payment_data' => $reconciledOrder,
+                ]);
+            }
+
+            $remoteOrder = $reconciledOrder ?? $this->revolutService->getOrder($pendingPayment->revolut_order_id);
+            $remoteState = strtolower((string) ($remoteOrder['state'] ?? 'unknown'));
+            $existingDiscountCode = strtoupper((string) ($pendingPayment->discountCode?->code ?? ''));
+            $requestedCode = strtoupper(trim((string) $requestedDiscountCode));
+            $sameTerms = $pendingPayment->plan_slug === $tierKey
+                && $pendingPayment->billing_cycle === $billingCycle
+                && $existingDiscountCode === $requestedCode;
+
+            if ($remoteState === 'pending' && $sameTerms && isset($remoteOrder['token'])) {
+                return response()->json([
+                    'token' => $remoteOrder['token'],
+                    'order_id' => $remoteOrder['id'],
+                ]);
+            }
+
+            if (! $sameTerms && $requestedCode !== '' && ! DiscountCode::where('code', $requestedCode)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The requested checkout terms are not valid.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            if (in_array($remoteState, ['completed', 'processing'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your previous payment is already being processed. Please wait for it to complete.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            if ($remoteState === 'pending' || ($remoteState === 'authorised' && ! $sameTerms)) {
+                try {
+                    $remoteOrder = $this->revolutService->cancelOrder($pendingPayment->revolut_order_id);
+                    $remoteState = strtolower((string) ($remoteOrder['state'] ?? 'unknown'));
+                } catch (\Throwable $e) {
+                    $latestOrder = $this->revolutService->getOrder($pendingPayment->revolut_order_id);
+                    $latestState = strtolower((string) ($latestOrder['state'] ?? 'unknown'));
+
+                    if (in_array($latestState, ['completed', 'processing'], true)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Your previous payment is already being processed. Please wait for it to complete.',
+                        ], Response::HTTP_CONFLICT);
+                    }
+
+                    throw $e;
+                }
+            }
+
+            if (! in_array($remoteState, ['cancelled', 'failed'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your previous checkout cannot be replaced yet. Please try again shortly.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            $pendingPayment->update([
+                'status' => 'failed',
+                'revolut_payment_data' => $remoteOrder,
+            ]);
+        }
+
+        return null;
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -579,157 +754,11 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            // Activate subscription in DB transaction
-            $result = $this->tierCollapseLock->run(fn () => DB::transaction(function () use ($user, $orderId, $revolutOrder) {
-                $payment = Payment::where('revolut_order_id', $orderId)
-                    ->where('user_id', $user->id)
-                    ->lockForUpdate()
-                    ->first();
+            $payment = $this->tierCollapseLock->run(function () use ($payment, $revolutOrder): Payment {
+                $settledPayment = $this->paymentSettlementService->settle($payment, $revolutOrder);
 
-                if (! $payment) {
-                    throw new \RuntimeException("Payment not found for order: {$orderId}");
-                }
-
-                // Idempotent: if already completed, return early
-                if ($payment->status === 'completed') {
-                    return ['already_completed' => true, 'payment' => $payment];
-                }
-
-                if ($payment->status !== 'pending') {
-                    throw new \RuntimeException('Only a pending payment can be completed.');
-                }
-
-                // Read plan and billing cycle from the Payment record (source of truth)
-                $planSlug = TierConfigurationStore::canonicalPlanForEntitlement($payment->plan_slug);
-                $billingCycle = $payment->billing_cycle;
-                $isUpgrade = ! empty($payment->upgrade_from_plan);
-
-                if ($isUpgrade && in_array($planSlug, TierConfigurationStore::TIERS, true)) {
-                    $fullPrice = $this->tierStore->priceForCycle($planSlug, $billingCycle);
-                } else {
-                    $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
-                    $fullPrice = $subscriptionPlan
-                        ? $subscriptionPlan->getPriceForCycle($billingCycle)
-                        : $payment->amount;
-                }
-
-                // Update Payment
-                $payment->update([
-                    'status' => 'completed',
-                    'revolut_payment_data' => $revolutOrder,
-                ]);
-
-                // Update Subscription
-                $subscription = $payment->subscription;
-                $subscriptionUpdate = [
-                    'status' => 'active',
-                    'plan' => $planSlug,
-                    'billing_cycle' => $billingCycle,
-                    'amount' => $fullPrice,
-                    'revolut_order_id' => $orderId,
-                    'cancelled_at' => null,
-                    'cancellation_reason' => null,
-                ];
-
-                // Upgrades keep existing period dates; new subscriptions set fresh dates
-                if (! $isUpgrade) {
-                    $subscriptionUpdate['current_period_start'] = now();
-                    $subscriptionUpdate['current_period_end'] = $billingCycle === 'monthly'
-                        ? now()->addMonth()
-                        : now()->addYear();
-                }
-
-                $subscription->update($subscriptionUpdate);
-
-                // Update User denormalised fields.
-                // `plan` is the legacy billing-compat column (§5.2). For a
-                // tier-key purchase ALSO set the canonical `tier` column —
-                // TierResolver/DbTierGate key off `tier`, so a paying
-                // customer must have it set or they resolve as Free.
-                // Legacy slugs (student/standard/family/pro) leave `tier`
-                // null: A9/§5.2 grandfather logic owns those.
-                $userUpdate = [
-                    'plan' => $planSlug,
-                    'trial_ends_at' => null,
-                ];
-                if (in_array($planSlug, TierConfigurationStore::TIERS, true)) {
-                    $userUpdate['tier'] = $planSlug;
-                }
-                $user->update($userUpdate);
-
-                return ['already_completed' => false, 'payment' => $payment, 'subscription' => $subscription];
-            }));
-
-            // Post-transaction: emails, invoice, discount usage
-            // Run if this call activated the payment, OR if webhook beat us but
-            // post-transaction work (invoice, discount) hasn't been done yet.
-            $payment = $result['payment'];
-            $needsPostTransaction = ! $result['already_completed'] || $payment->invoice_id === null;
-            if ($needsPostTransaction) {
-
-                // Apply discount code usage
-                if ($payment->discount_code_id && $payment->discountCode) {
-                    try {
-                        $this->discountCodeService->apply(
-                            $payment->discountCode,
-                            $user->id,
-                            $payment->id,
-                            (int) ($payment->amount + $payment->discount_amount)
-                        );
-                    } catch (\Exception $e) {
-                        Log::error('Failed to apply discount code usage', [
-                            'payment_id' => $payment->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-
-                // Set auto-renew flags on every completed payment — discount
-                // code payments bypass Revolut subscriptions but still renew.
-                $subscription = $result['subscription'] ?? $payment->subscription;
-                if (! $subscription->auto_renew) {
-                    $subscription->update([
-                        'auto_renew' => true,
-                        'payment_method_saved' => true,
-                    ]);
-                }
-
-                // Generate invoice then send confirmation email with PDF attached.
-                // Invoice is a legal requirement — if generation fails, log the
-                // error but still attempt the email (without attachment) so the
-                // user is notified. The invoice can be regenerated manually.
-                try {
-                    $this->invoiceService->generateInvoice($payment, $payment->discountCode);
-                } catch (\Exception $e) {
-                    Log::error('CRITICAL: Failed to generate invoice — legal requirement', [
-                        'payment_id' => $payment->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-
-                try {
-                    $payment->refresh();
-                    Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
-                } catch (\Exception $e) {
-                    Log::error('Failed to send payment confirmation email', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Apply referral bonus if user was referred
-                if ($user->referred_by_code) {
-                    try {
-                        $this->referralService->applyReferralBonus($user, $payment->billing_cycle);
-                    } catch (\Throwable $e) {
-                        Log::error('Failed to apply referral bonus', [
-                            'user_id' => $user->id,
-                            'referred_by_code' => $user->referred_by_code,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
+                return $this->paymentFinalizationService->finalize($settledPayment);
+            }, "user:{$user->id}");
 
             // Fire Awin conversion (idempotent — job short-circuits if
             // awin_fired_at is already set). Dispatched from both confirm and
@@ -878,10 +907,15 @@ class PaymentController extends Controller
                 $currentPlanSlug,
                 $monthsRemaining,
             ): JsonResponse {
+                $existingCheckout = $this->cancelPendingTierOrders($user, $newPlanSlug, $billingCycle, null);
+                if ($existingCheckout !== null) {
+                    return $existingCheckout;
+                }
+
                 $payment = Payment::create([
                     'subscription_id' => $subscription->id,
                     'user_id' => $user->id,
-                    'revolut_order_id' => 'pending',
+                    'revolut_order_id' => 'pending_'.Str::uuid(),
                     'amount' => $upgradeAmount,
                     'currency' => 'GBP',
                     'status' => 'pending',
@@ -897,14 +931,32 @@ class PaymentController extends Controller
                 $redirectUrl = $baseUrl.'/checkout?plan='.$newPlanSlug
                     .'&cycle='.$billingCycle.'&upgrade=true&status=complete';
 
-                $revolutOrder = $this->revolutService->createOrder(
-                    $upgradeAmount,
-                    'GBP',
-                    $description,
-                    $redirectUrl,
-                    "payment_{$payment->id}",
-                    $user->email
-                );
+                $merchantReference = "payment_{$payment->id}";
+                try {
+                    $revolutOrder = $this->revolutService->createOrder(
+                        $upgradeAmount,
+                        'GBP',
+                        $description,
+                        $redirectUrl,
+                        $merchantReference,
+                        $user->email
+                    );
+                } catch (\Throwable $creationFailure) {
+                    try {
+                        $revolutOrder = $this->revolutService->findOrderByMerchantReference($merchantReference);
+                    } catch (\Throwable $reconciliationFailure) {
+                        Log::warning('Revolut upgrade order outcome remains uncertain', [
+                            'payment_id' => $payment->id,
+                            'create_error' => $creationFailure->getMessage(),
+                            'reconciliation_error' => $reconciliationFailure->getMessage(),
+                        ]);
+                        throw $creationFailure;
+                    }
+
+                    if ($revolutOrder === null) {
+                        throw $creationFailure;
+                    }
+                }
 
                 $payment->update([
                     'revolut_order_id' => $revolutOrder['id'],
@@ -923,7 +975,7 @@ class PaymentController extends Controller
                     'new_plan' => $newPlanSlug,
                     'months_remaining' => $monthsRemaining,
                 ]);
-            });
+            }, "user:{$user->id}");
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Creating upgrade order');
         }
@@ -983,6 +1035,13 @@ class PaymentController extends Controller
 
         if (! $subscription) {
             return response()->json(['success' => false, 'message' => 'No subscription found'], 404);
+        }
+
+        if (! $subscription->auto_renew) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This Premium access period does not renew automatically.',
+            ], Response::HTTP_CONFLICT);
         }
 
         try {

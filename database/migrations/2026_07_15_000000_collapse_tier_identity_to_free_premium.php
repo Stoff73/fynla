@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\TierConfiguration;
 use App\Services\Tiers\TierCollapseLock;
+use App\Services\Tiers\TierCollapsePreflight;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,67 +21,27 @@ return new class extends Migration
 
     public function up(): void
     {
-        app(TierCollapseLock::class)->run(function (): void {
+        app(TierCollapseLock::class)->runExclusive(function (): void {
             $this->collapse();
         }, 60);
     }
 
     private function collapse(): void
     {
-        $entitledPaidSubscriptions = DB::table('subscriptions')
-            ->join('users', 'users.id', '=', 'subscriptions.user_id')
-            ->where('subscriptions.plan', '!=', 'free')
-            ->where('users.is_preview_user', false)
-            ->where('users.is_lifecycle_test_user', false)
-            ->where(function (Builder $query) {
-                $query->where('subscriptions.status', 'active')
-                    ->orWhere(function (Builder $query) {
-                        $query->whereIn('subscriptions.status', ['cancelled', 'past_due'])
-                            ->where('subscriptions.current_period_end', '>', now());
-                    });
-            })
-            ->count('subscriptions.id');
-
-        if ($entitledPaidSubscriptions > 0) {
-            throw new RuntimeException(
-                "Tier collapse blocked: {$entitledPaidSubscriptions} real paid subscription(s) remain entitled."
-            );
-        }
-
-        $configurationCount = DB::table('tier_configurations')->count();
-        $hasFree = DB::table('tier_configurations')->where('tier', 'free')->exists();
-        $hasPremium = DB::table('tier_configurations')->where('tier', 'premium')->exists();
-        $hasTier2 = DB::table('tier_configurations')->where('tier', 'tier2')->exists();
-
-        if ($configurationCount > 0 && (! $hasFree || (! $hasPremium && ! $hasTier2))) {
-            throw new RuntimeException(
-                'Tier collapse blocked: a populated configuration table requires Free and either Premium or a Tier 2 source row.'
-            );
-        }
+        app(TierCollapsePreflight::class)->assertSafe();
 
         DB::statement("ALTER TABLE users MODIFY COLUMN tier ENUM('free','tier1','tier2','tier3','premium') NULL");
         DB::statement("ALTER TABLE users MODIFY COLUMN plan ENUM('free','student','standard','family','pro','tier1','tier2','tier3','premium') NOT NULL DEFAULT 'free'");
         DB::statement("ALTER TABLE subscriptions MODIFY COLUMN plan ENUM('student','standard','family','pro','free','tier1','tier2','tier3','premium') NOT NULL");
         DB::statement("ALTER TABLE tier_configurations MODIFY COLUMN tier ENUM('free','tier1','tier2','tier3','premium') NOT NULL");
 
-        if (! DB::table('tier_configurations')->where('tier', 'premium')->exists()) {
-            $tier2 = DB::table('tier_configurations')->where('tier', 'tier2')->first();
-
-            if ($tier2 !== null) {
-                $premium = (array) $tier2;
-                unset($premium['id']);
-                $premium['tier'] = 'premium';
-                $premium['display_name'] = 'Premium';
-                $premium['created_at'] = now();
-                $premium['updated_at'] = now();
-                DB::table('tier_configurations')->insert($premium);
+        foreach (TierConfigurationSeeder::rows() as $row) {
+            if ($row['tier'] === 'premium') {
+                $row['document_upload_allowance'] = 0;
+                $row['snapshot_surfacing_window_days'] = 90;
             }
-        }
 
-        if ($configurationCount > 0
-            && (! DB::table('tier_configurations')->where('tier', 'free')->exists()
-                || ! DB::table('tier_configurations')->where('tier', 'premium')->exists())) {
-            throw new RuntimeException('Tier collapse blocked: canonical Free and Premium configuration rows are required.');
+            TierConfiguration::updateOrCreate(['tier' => $row['tier']], $row);
         }
 
         DB::transaction(function () {
@@ -95,7 +57,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        app(TierCollapseLock::class)->run(function (): void {
+        app(TierCollapseLock::class)->runExclusive(function (): void {
             $this->expand();
         }, 60);
     }

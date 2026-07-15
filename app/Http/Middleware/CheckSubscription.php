@@ -86,12 +86,6 @@ class CheckSubscription
             return $next($request);
         }
 
-        // Tier capability check for endpoints that require a full grant.
-        $capabilityDenial = $this->checkCapability($request, $user);
-        if ($capabilityDenial !== null) {
-            return $capabilityDenial;
-        }
-
         $subscription = $user->relationLoaded('subscription')
             ? $user->subscription
             : $user->subscription()->first();
@@ -101,9 +95,16 @@ class CheckSubscription
         // and enforce Free access until verified payment activates Premium.
         // Historical trialing rows remain provisional only for the one-release
         // compatibility window and are audited before Task 12 removes them.
-        if ($subscription === null
+        $hasWriteAccess = $subscription === null
             || in_array($subscription->status, Subscription::PROVISIONAL_STATUSES, true)
-            || $subscription->isActive()) {
+            || $subscription->isActive();
+
+        if ($hasWriteAccess) {
+            $capabilityDenial = $this->checkCapability($request, $user);
+            if ($capabilityDenial !== null) {
+                return $capabilityDenial;
+            }
+
             return $next($request);
         }
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\TierConfiguration;
-use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Database\Seeder;
 
 class TierConfigurationSeeder extends Seeder
@@ -17,16 +16,13 @@ class TierConfigurationSeeder extends Seeder
      */
     public function run(): void
     {
-        foreach ($this->rows() as $row) {
-            TierConfiguration::updateOrCreate(['tier' => $row['tier']], $row);
+        foreach (self::rows() as $row) {
+            TierConfiguration::firstOrCreate(['tier' => $row['tier']], $row);
         }
-
-        TierConfiguration::query()
-            ->whereNotIn('tier', TierConfigurationStore::TIERS)
-            ->delete();
     }
 
-    private function rows(): array
+    /** @return list<array<string, mixed>> */
+    public static function rows(): array
     {
         return [
             [

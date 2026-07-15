@@ -99,6 +99,49 @@ it('does NOT revoke an active premium subscriber during the cancelled-expiry swe
         ->and(app(TierResolver::class)->resolve($cancelledNotExpired->fresh()))->toBe('premium');
 });
 
+it('expires ended one-time Premium access and revokes its entitlement', function () {
+    $user = User::factory()->create(['plan' => 'premium', 'tier' => 'premium']);
+    $subscription = Subscription::factory()->plan('premium')->billingCycle('monthly')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->subMinute(),
+        'data_retention_starts_at' => null,
+    ]);
+
+    expect($subscription->isActive())->toBeFalse()
+        ->and(app(TrialService::class)->expireCancelledSubscriptions())->toBe(1)
+        ->and($subscription->fresh()->status)->toBe('expired')
+        ->and($subscription->fresh()->data_retention_starts_at)->not->toBeNull()
+        ->and($user->fresh()->plan)->toBe('free')
+        ->and($user->fresh()->tier)->toBeNull()
+        ->and(app(TierResolver::class)->resolve($user->fresh()))->toBe('free');
+});
+
+it('does not revoke a user when another paid period is still active', function () {
+    $user = User::factory()->create(['plan' => 'premium', 'tier' => 'premium']);
+    $ended = Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->subMinute(),
+        'data_retention_starts_at' => null,
+    ]);
+    $active = Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->addMonth(),
+        'data_retention_starts_at' => null,
+    ]);
+
+    expect(app(TrialService::class)->expireCancelledSubscriptions())->toBe(1)
+        ->and($ended->fresh()->status)->toBe('expired')
+        ->and($active->fresh()->status)->toBe('active')
+        ->and($user->fresh()->subscription->id)->toBe($active->id)
+        ->and($user->fresh()->tier)->toBe('premium');
+});
+
 // ── RetentionPurgeService clears tier on full account wipe ─────────────────
 
 it('clears users.tier when an account is purged after retention', function () {
@@ -135,6 +178,7 @@ it('revokes tier access when a premium fixed-term subscription FINISHES via the 
     $subscription = Subscription::factory()->plan('premium')->billingCycle('monthly')->create([
         'user_id' => $user->id,
         'status' => 'active',
+        'auto_renew' => true,
         'current_period_end' => now()->subDay(), // final cycle elapsed
         'data_retention_starts_at' => null,
         'amount' => 1499,

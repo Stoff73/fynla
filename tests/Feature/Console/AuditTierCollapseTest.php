@@ -6,6 +6,7 @@ use App\Console\Commands\AuditTierCollapse;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @return array{exit_code: int, payload: array<string, int|bool>}
@@ -33,9 +34,15 @@ it('prints the stable safe JSON object and exits zero when there are no paid row
         'payload' => [
             'active_paid_subscriptions' => 0,
             'active_paid_users' => 0,
+            'live_provider_agreements' => 0,
             'completed_payments' => 0,
             'retired_tier_user_rows' => 0,
             'retired_tier_subscription_rows' => 0,
+            'duplicate_provider_order_ids' => 0,
+            'duplicate_invoice_payments' => 0,
+            'duplicate_discount_usage_payments' => 0,
+            'duplicate_referral_referees' => 0,
+            'multiple_pending_checkout_users' => 0,
             'safe_to_collapse' => true,
         ],
     ]);
@@ -65,9 +72,15 @@ it('blocks collapse for each currently entitled real paid subscription', functio
         ->and($result['payload'])->toBe([
             'active_paid_subscriptions' => 1,
             'active_paid_users' => 1,
+            'live_provider_agreements' => 0,
             'completed_payments' => 0,
             'retired_tier_user_rows' => 1,
             'retired_tier_subscription_rows' => 1,
+            'duplicate_provider_order_ids' => 0,
+            'duplicate_invoice_payments' => 0,
+            'duplicate_discount_usage_payments' => 0,
+            'duplicate_referral_referees' => 0,
+            'multiple_pending_checkout_users' => 0,
             'safe_to_collapse' => false,
         ]);
 })->with(['active', 'cancelled', 'past_due']);
@@ -93,9 +106,15 @@ it('excludes flagged non-real accounts from safety counts but still reports reti
         ->and($result['payload'])->toBe([
             'active_paid_subscriptions' => 0,
             'active_paid_users' => 0,
+            'live_provider_agreements' => 0,
             'completed_payments' => 0,
             'retired_tier_user_rows' => 1,
             'retired_tier_subscription_rows' => 1,
+            'duplicate_provider_order_ids' => 0,
+            'duplicate_invoice_payments' => 0,
+            'duplicate_discount_usage_payments' => 0,
+            'duplicate_referral_referees' => 0,
+            'multiple_pending_checkout_users' => 0,
             'safe_to_collapse' => true,
         ]);
 })->with([
@@ -133,12 +152,65 @@ it('reports historical completed payments without blocking collapse or changing 
         ->and($result['payload'])->toBe([
             'active_paid_subscriptions' => 0,
             'active_paid_users' => 0,
+            'live_provider_agreements' => 0,
             'completed_payments' => 1,
             'retired_tier_user_rows' => 1,
             'retired_tier_subscription_rows' => 1,
+            'duplicate_provider_order_ids' => 0,
+            'duplicate_invoice_payments' => 0,
+            'duplicate_discount_usage_payments' => 0,
+            'duplicate_referral_referees' => 0,
+            'multiple_pending_checkout_users' => 0,
             'safe_to_collapse' => true,
         ])
         ->and($user->fresh()->getAttributes())->toBe($before['user'])
         ->and($subscription->fresh()->getAttributes())->toBe($before['subscription'])
         ->and($payment->fresh()->getAttributes())->toBe($before['payment']);
+});
+
+it('blocks collapse while a real account retains a provider subscription agreement', function () {
+    $user = User::factory()->create([
+        'plan' => 'free',
+        'tier' => 'free',
+        'is_preview_user' => false,
+        'is_lifecycle_test_user' => false,
+    ]);
+    Subscription::factory()->expired()->create([
+        'user_id' => $user->id,
+        'plan' => 'premium',
+        'auto_renew' => false,
+        'revolut_subscription_id' => 'provider_agreement_still_attached',
+    ]);
+
+    $result = runTierCollapseAudit();
+
+    expect($result['exit_code'])->toBe(1)
+        ->and($result['payload']['live_provider_agreements'])->toBe(1)
+        ->and($result['payload']['safe_to_collapse'])->toBeFalse();
+});
+
+it('blocks collapse when financial uniqueness preconditions are not met', function () {
+    $user = User::factory()->create();
+    $subscription = Subscription::factory()->pending()->plan('premium')->create([
+        'user_id' => $user->id,
+    ]);
+    Payment::factory()->pending()->create([
+        'user_id' => $user->id,
+        'subscription_id' => $subscription->id,
+        'revolut_order_id' => fake()->uuid(),
+    ]);
+    DB::table('payments')->where('user_id', $user->id)->update([
+        'active_checkout_user_id' => null,
+    ]);
+    Payment::factory()->pending()->create([
+        'user_id' => $user->id,
+        'subscription_id' => $subscription->id,
+        'revolut_order_id' => fake()->uuid(),
+    ]);
+
+    $result = runTierCollapseAudit();
+
+    expect($result['exit_code'])->toBe(1)
+        ->and($result['payload']['multiple_pending_checkout_users'])->toBe(1)
+        ->and($result['payload']['safe_to_collapse'])->toBeFalse();
 });

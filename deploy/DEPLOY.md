@@ -34,16 +34,35 @@ The csjones server is a real git checkout tracking `origin/dev` — every deploy
 1. Work on a feature branch off `dev`, open PR → `dev`
 2. After merge, locally: `git checkout dev && git pull`
 3. Build the SPA bundle locally: `./deploy/csjones-fynla/build.sh`
-4. Upload `public/build/` to `~/www/csjones.co/fynla-app/public/build/` (SiteGround File Manager or `scp -r`). `public/build/` is gitignored so `git pull` won't manage it.
-5. SSH in and pull source + finalise:
+4. SSH in, enter maintenance mode and drain the old queue worker:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
 cd ~/www/csjones.co/fynla-app
-git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
-php artisan migrate --force
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan config:cache
+php artisan down
+php artisan queue:restart                       # old workers exit after their current job
+# Confirm no pre-deploy queue job is still running before continuing.
 ```
+
+5. With maintenance mode still active, upload `public/build/` to `~/www/csjones.co/fynla-app/public/build/` (SiteGround File Manager or `scp -r`). `public/build/` is gitignored so `git pull` won't manage it.
+6. Pull source and finalise:
+
+```bash
+set -euo pipefail
+git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
+php artisan subscriptions:audit-tier-collapse --json  # required only for the Free/Premium collapse release; must report safe_to_collapse=true
+php artisan migrate --force
+php artisan db:seed --force
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan config:cache
+php artisan up
+```
+
+For the Free/Premium identity-collapse release, do not run the migration until
+the audit reports zero current paid entitlements and `safe_to_collapse=true`.
+Maintenance mode must remain active from before `git pull` until migrations,
+seeding where required, and cache rebuilds finish. Queue workers started by a
+supervisor remain paused by Laravel maintenance mode; verify the old worker has
+finished its current job before the migration acquires the exclusive cutover lock.
 
 **NEVER `php artisan optimize` or `route:cache` on this app.** The compiled route
 matcher lets the SPA catch-all shadow the server-rendered `/` homepage (despite the
@@ -53,8 +72,8 @@ landing "regressed" to the old SPA `LandingPage.vue` design. Config caching is
 still required (SiteGround .env re-parse races — see prod notes) which is why the
 chain ends with an explicit `config:cache`, never `optimize`.
 
-6. Smoke test `https://csjones.co/fynla` — **check content, not just 200**: `curl -s https://csjones.co/fynla/ | grep -c "Get started for free"` must be ≥1 (server-rendered homepage, not the SPA shell).
-7. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh`)
+7. Smoke test `https://csjones.co/fynla` — **check content, not just 200**: `curl -s https://csjones.co/fynla/ | grep -c "Get started for free"` must be ≥1 (server-rendered homepage, not the SPA shell).
+8. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh`)
 
 **Why this works without clobbering env config:**
 - `.env` is gitignored — never touched.
@@ -71,18 +90,35 @@ Only after dev is tested and green:
 2. Merge
 3. `git checkout main && git pull`
 4. Build: `./deploy/fynla-org/build.sh`
-5. Upload `public/build/` + changed PHP files to `~/www/fynla.org/public_html/`
-6. SSH in and finalise:
+5. SSH in, enter maintenance mode and drain the old queue worker:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan migrate --force
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan config:cache
+php artisan down
+php artisan queue:restart                       # old workers exit after their current job
+# Confirm no pre-deploy queue job is still running before continuing.
 ```
 
-7. Smoke test `https://fynla.org`
-8. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
+6. With maintenance mode still active, upload `public/build/` + changed PHP files to `~/www/fynla.org/public_html/`.
+7. Finalise over SSH:
+
+```bash
+set -euo pipefail
+php artisan subscriptions:audit-tier-collapse --json  # Free/Premium collapse release only; must report safe_to_collapse=true
+php artisan migrate --force
+php artisan db:seed --force
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan config:cache
+php artisan up
+```
+
+When PHP files are uploaded rather than pulled atomically, enter maintenance
+mode before replacing the first file. For the Free/Premium collapse release,
+the same worker-drain and zero-entitlement audit gate used on dev is mandatory.
+If either check fails, keep the site down and do not run the migration.
+
+8. Smoke test `https://fynla.org`
+9. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
 
 ## CoALA memory subsystem — post-deploy (coala branch and later)
 

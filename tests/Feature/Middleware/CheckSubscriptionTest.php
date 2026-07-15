@@ -54,6 +54,22 @@ it('allows Free writes while checkout is pending without granting Premium', func
         ->and($user->fresh()->tier)->toBe('free');
 });
 
+it('does not inherit stale Premium capabilities through a newer pending checkout', function () {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->subMinute(),
+    ]);
+    Subscription::factory()->pending()->plan('premium')->create(['user_id' => $user->id]);
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/holistic/analyze')
+        ->assertForbidden()
+        ->assertJsonPath('error', 'capability_denied');
+});
+
 it('temporarily preserves Free writes for a historical trialing row until compatibility removal', function () {
     $user = User::factory()->create(['tier' => 'free']);
     Subscription::factory()->trialing()->create([

@@ -20,10 +20,7 @@ class PlanConfigurationSeeder extends Seeder
 {
     public function run(): void
     {
-        // Deactivate any existing configs
-        PlanConfiguration::where('is_active', true)->update(['is_active' => false]);
-
-        PlanConfiguration::updateOrCreate(
+        PlanConfiguration::firstOrCreate(
             ['version' => '1.0'],
             [
                 'config_data' => [
@@ -73,7 +70,7 @@ class PlanConfigurationSeeder extends Seeder
                         'savings_ttl' => 1800,
                     ],
                 ],
-                'is_active' => true,
+                'is_active' => ! PlanConfiguration::where('is_active', true)->exists(),
                 'notes' => 'Default plan configuration v1.0 - migrated from hardcoded values',
             ]
         );

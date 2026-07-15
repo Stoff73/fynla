@@ -20,7 +20,7 @@ describe('/m freemium 5.1 — module payloads surface the free-tier cap', functi
         $this->actingAs($user, 'sanctum')->getJson('/api/savings')
             ->assertOk()
             ->assertJsonPath('data.account_count', 2)
-            ->assertJsonPath('data.account_limit', 3);
+            ->assertJsonPath('data.account_limit', 2);
     });
 
     it('exposes the investment cap (2) on GET /api/investment', function () {
@@ -36,7 +36,7 @@ describe('/m freemium 5.1 — module payloads surface the free-tier cap', functi
 
         $this->actingAs($user, 'sanctum')->getJson('/api/retirement')
             ->assertOk()
-            ->assertJsonPath('data.account_limit', 5);
+            ->assertJsonPath('data.account_limit', 2);
     });
 
     it('reports an unlimited tier as null (no nudge) on GET /api/savings', function () {
@@ -54,7 +54,7 @@ describe('/m freemium 5.3 — Holistic Plan is gated to Premium', function () {
 
         $this->actingAs($user, 'sanctum')->getJson('/api/holistic/composite-plan')
             ->assertStatus(403)
-            ->assertJsonPath('error', 'upgrade_required');
+            ->assertJsonPath('error', 'capability_denied');
     });
 
     it('does not hit the upgrade gate for a Premium user', function () {

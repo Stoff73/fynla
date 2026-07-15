@@ -41,7 +41,7 @@ it('seeds the approved Premium economics and unlimited quotas', function () {
         ->and($premium->open_api_affordance)->toBeTrue();
 });
 
-it('is idempotent (updateOrCreate)', function () {
+it('is idempotent without overwriting existing rows', function () {
     $this->seed(TierConfigurationSeeder::class);
     expect(TierConfiguration::count())->toBe(2);
 });

@@ -55,6 +55,22 @@ it('is idempotent — does not fire when awin_fired_at is already set', function
     Http::assertNothingSent();
 });
 
+it('does not fire while another worker owns a fresh delivery claim', function () {
+    Http::fake(['www.awin1.com/*' => Http::response('OK', 200)]);
+
+    $payment = Payment::factory()->create([
+        'status' => 'completed',
+        'awin_order_ref' => 'FYN-PAY-CLAIMED',
+        'awin_claimed_at' => now(),
+        'awin_fired_at' => null,
+    ]);
+
+    (new FireAwinConversionJob($payment->id))->handle(app(AwinTrackingService::class));
+
+    Http::assertNothingSent();
+    expect($payment->fresh()->awin_fired_at)->toBeNull();
+});
+
 it('throws to trigger retry when the S2S call returns non-2xx', function () {
     Http::fake(['www.awin1.com/*' => Http::response('boom', 500)]);
 
@@ -73,6 +89,7 @@ it('throws to trigger retry when the S2S call returns non-2xx', function () {
         ->toThrow(RuntimeException::class);
 
     expect($payment->fresh()->awin_fired_at)->toBeNull();
+    expect($payment->fresh()->awin_claimed_at)->toBeNull();
 });
 
 it('short-circuits when AWIN_ENABLED is false', function () {

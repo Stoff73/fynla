@@ -86,7 +86,7 @@
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">5. Subscription Plans and Pricing</h2>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Plans</h3>
-          <p class="text-neutral-500 leading-relaxed mb-4">The Service offers the following subscription plans. Launch special pricing is available to the first 500 subscribers and will apply for the duration of your subscription, including renewals, for as long as it remains active.</p>
+          <p class="text-neutral-500 leading-relaxed mb-4">The Service offers the following plans. Any promotional price applies only to the Premium access period shown at checkout.</p>
           <div class="overflow-x-auto mb-6">
             <table class="w-full text-sm">
               <thead>
@@ -104,8 +104,8 @@
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Premium</td>
-                  <td class="py-3 pr-4 text-neutral-500">&pound;6.99</td>
-                  <td class="py-3 text-neutral-500">&pound;59.99</td>
+                  <td class="py-3 pr-4 text-neutral-500">Shown at checkout</td>
+                  <td class="py-3 text-neutral-500">Shown at checkout</td>
                 </tr>
               </tbody>
             </table>
@@ -118,14 +118,14 @@
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Payment Processing</h3>
           <p class="text-neutral-500 leading-relaxed mb-5">We do not receive, process, or store your payment card details. Our payment processor's terms of service apply to all payment transactions. We are not responsible for payment processing errors or interruptions caused by third-party payment providers.</p>
 
-          <h3 class="text-base font-semibold text-horizon-500 mb-2">Auto-Renewal</h3>
-          <p class="text-neutral-500 leading-relaxed mb-5">Subscriptions renew automatically at the end of each billing period (monthly or yearly) at the then-current price. We will send you a reminder before your subscription renews. You may cancel auto-renewal at any time before the next billing date.</p>
+          <h3 class="text-base font-semibold text-horizon-500 mb-2">Premium Access Periods</h3>
+          <p class="text-neutral-500 leading-relaxed mb-5">Premium is currently sold as a one-time monthly or yearly access period and does not renew automatically. To continue Premium after that period, you must make a new purchase.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Price Changes</h3>
-          <p class="text-neutral-500 leading-relaxed mb-5">We may change our subscription prices from time to time. We will give you at least 30 days' notice of any price increase. You may cancel your subscription before the new price takes effect, and the current price will apply for the remainder of your existing billing period.</p>
+          <p class="text-neutral-500 leading-relaxed mb-5">We may change Premium prices from time to time. A price change does not alter an access period you have already purchased and applies only to a later purchase.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Failed Payments</h3>
-          <p class="text-neutral-500 leading-relaxed">If a payment fails, we will notify you and may retry the payment. If payment is not received within a reasonable period, we may suspend your access to paid features until payment is made.</p>
+          <p class="text-neutral-500 leading-relaxed">If a payment is not completed and verified, Premium access is not activated. Your account remains on Free and you may start a new checkout after the earlier attempt has safely ended.</p>
         </section>
 
         <!-- 6. Your Right to Cancel -->
@@ -139,10 +139,10 @@
           <p class="text-neutral-500 leading-relaxed mb-5">If you requested that the Service begin during the cooling-off period (which you do by using the Service after subscribing), you acknowledge that you will lose your right to cancel once the service has been fully performed during that period. If you cancel before the period has fully elapsed, you may be charged a proportionate amount for the service provided up to the point of cancellation.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Cancellation After the Cooling-Off Period</h3>
-          <p class="text-neutral-500 leading-relaxed mb-5">You may cancel your subscription at any time after the 14-day cooling-off period. Cancellation takes effect at the end of your current billing period. You will continue to have access to paid features until the end of the period you have already paid for. We do not offer partial refunds for unused portions of a billing period after the cooling-off period has expired. If you do not resubscribe within 30 days of your subscription ending, your account and all associated data will be permanently deleted.</p>
+          <p class="text-neutral-500 leading-relaxed mb-5">Premium does not renew automatically. After the cooling-off period, your purchased access continues until its stated end date and no further payment is taken. We do not offer partial refunds for an unused portion of that period. If you do not purchase another Premium period, the retention terms described below apply when paid access ends.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">How to Cancel</h3>
-          <p class="text-neutral-500 leading-relaxed">You may cancel your subscription through your account settings or by emailing <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>. We will process cancellation requests promptly and confirm your cancellation by email.</p>
+          <p class="text-neutral-500 leading-relaxed">To exercise a cancellation right or ask a question about a payment, email <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>. We will process eligible requests promptly and confirm the outcome by email.</p>
         </section>
 
         <!-- 7. Document Upload and AI Processing -->

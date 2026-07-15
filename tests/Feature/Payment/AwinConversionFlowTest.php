@@ -194,7 +194,7 @@ describe('confirmPayment dispatches the conversion job', function () {
             'awin_customer_acquisition' => 'new',
         ]);
 
-        mockRevolutForConfirm($orderId);
+        mockRevolutForConfirm($orderId, (int) $payment->amount);
 
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/confirm', ['order_id' => $orderId])
@@ -309,7 +309,7 @@ describe('end-to-end: createOrder → confirmPayment → Awin S2S', function () 
         expect($payment->awin_customer_acquisition)->toBe('new');
 
         // Step 2: confirmPayment — fires the job (sync) → hits Http fake
-        mockRevolutForConfirm($orderId);
+        mockRevolutForConfirm($orderId, (int) $payment->amount);
 
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/confirm', ['order_id' => $orderId])
@@ -321,9 +321,9 @@ describe('end-to-end: createOrder → confirmPayment → Awin S2S', function () 
 
             return str_starts_with($request->url(), 'https://www.awin1.com/sread.php')
                 && $data['merchant'] === '126105'
-                && $data['amount'] === '14.99'
+                && $data['amount'] === '6.99'
                 && $data['ref'] === "FYN-PAY-{$payment->id}"
-                && $data['parts'] === 'SUB:14.99'
+                && $data['parts'] === 'SUB:6.99'
                 && $data['customeracquisition'] === 'new'
                 && $data['cks'] === 'e2e-test-click';
         });

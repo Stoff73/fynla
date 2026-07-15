@@ -7,6 +7,7 @@ use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -157,5 +158,48 @@ describe('Admin Seeder', function () {
         ]);
 
         $response->assertStatus(200);
+    });
+
+    it('preserves an existing admin password and profile when reseeded', function () {
+        $adminRole = Role::findByName(Role::ROLE_ADMIN);
+        $existing = User::factory()->create([
+            'email' => 'admin@fps.com',
+            'first_name' => 'Existing',
+            'surname' => 'Administrator',
+            'password' => Hash::make('ExistingPassword1!'),
+            'role_id' => $adminRole->id,
+            'is_admin' => true,
+        ]);
+
+        $this->seed(AdminUserSeeder::class);
+
+        $existing->refresh();
+
+        expect($existing->first_name)->toBe('Existing')
+            ->and($existing->surname)->toBe('Administrator')
+            ->and(Hash::check('ExistingPassword1!', $existing->password))->toBeTrue();
+    });
+
+    it('does not create the demo admin with a fallback password outside development', function (string $environment) {
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => $environment);
+
+        try {
+            app(AdminUserSeeder::class)->run();
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
+
+        expect(User::where('email', 'admin@fps.com')->exists())->toBeFalse();
+    })->with(['staging', 'production']);
+
+    it('does not recreate a soft-deleted demo admin', function () {
+        $deleted = User::factory()->create(['email' => 'admin@fps.com']);
+        $deleted->delete();
+
+        $this->seed(AdminUserSeeder::class);
+
+        expect(User::withTrashed()->where('email', 'admin@fps.com')->count())->toBe(1)
+            ->and(User::withTrashed()->where('email', 'admin@fps.com')->firstOrFail()->trashed())->toBeTrue();
     });
 });

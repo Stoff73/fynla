@@ -27,6 +27,7 @@ describe('subscriptions:send-renewal-reminders SMTP throttle', function () {
             Subscription::factory()->create([
                 'user_id' => $user->id,
                 'status' => 'active',
+                'auto_renew' => true,
                 'current_period_end' => $renewalDate,
             ]);
         }
@@ -44,6 +45,14 @@ describe('subscriptions:send-renewal-reminders SMTP throttle', function () {
     });
 
     it('does not sleep when there are no eligible subscriptions', function () {
+        $user = User::factory()->create();
+        Subscription::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'active',
+            'auto_renew' => false,
+            'current_period_end' => Carbon::now()->addDays(7)->startOfDay(),
+        ]);
+
         $this->artisan('subscriptions:send-renewal-reminders')->assertExitCode(0);
 
         Mail::assertNothingSent();

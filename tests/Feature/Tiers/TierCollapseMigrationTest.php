@@ -98,13 +98,14 @@ it('blocks active entitlement then maps historical identity without rewriting fi
             ->and((int) $payment->fresh()->amount)->toBe(1234)
             ->and((int) $invoice->fresh()->total_amount)->toBe(1234)
             ->and(TierConfiguration::pluck('tier')->sort()->values()->all())->toBe(['free', 'premium'])
-            ->and(TierConfiguration::where('tier', 'premium')->value('price_monthly_pence'))->toBe(1499);
+            ->and(TierConfiguration::where('tier', 'premium')->value('price_monthly_pence'))->toBe(699)
+            ->and(TierConfiguration::where('tier', 'premium')->value('price_annual_pence'))->toBe(5999);
     } finally {
         restoreCanonicalTierSchema($migration);
     }
 });
 
-it('refuses a populated configuration table without a Premium or Tier 2 bridge row', function () {
+it('writes the approved Free and Premium contract without relying on a retired bridge row', function () {
     $migration = tierCollapseMigration();
     $migration->down();
 
@@ -113,8 +114,11 @@ it('refuses a populated configuration table without a Premium or Tier 2 bridge r
         TierConfiguration::create(array_replace(tierConfigFixture('free'), ['display_name' => 'Free']));
         TierConfiguration::create(array_replace(tierConfigFixture('tier1'), ['display_name' => 'Tier 1']));
 
-        expect(fn () => $migration->up())
-            ->toThrow(RuntimeException::class, 'requires Free and either Premium or a Tier 2 source row');
+        $migration->up();
+
+        expect(TierConfiguration::pluck('tier')->sort()->values()->all())->toBe(['free', 'premium'])
+            ->and(TierConfiguration::where('tier', 'premium')->value('price_monthly_pence'))->toBe(699)
+            ->and(TierConfiguration::where('tier', 'premium')->value('price_annual_pence'))->toBe(5999);
     } finally {
         restoreCanonicalTierSchema($migration);
     }

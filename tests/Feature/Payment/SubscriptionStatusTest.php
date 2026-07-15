@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Payment\RevolutService;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -43,6 +44,30 @@ it('returns count caps and capability matrix for the resolved tier', function ()
     // Free tier is count-capped on savings; the frontend reads these to gate "Add".
     expect($response->json('count_caps.savings_account'))->toBe(2);
     expect($response->json('capability_matrix.property'))->toBe('limited');
+});
+
+it('reports a pending one-time checkout without renewal claims', function () {
+    $user = User::factory()->create(['tier' => 'free', 'revolut_customer_id' => 'pending_status_customer']);
+    Sanctum::actingAs($user);
+
+    $revolut = Mockery::mock(RevolutService::class);
+    $revolut->shouldReceive('createOrderWithCustomer')->once()->andReturn([
+        'id' => 'pending_status_order',
+        'token' => 'pending_status_token',
+        'state' => 'pending',
+    ]);
+    app()->instance(RevolutService::class, $revolut);
+
+    $this->postJson('/api/payment/create-order', [
+        'plan' => 'premium',
+        'billing_cycle' => 'monthly',
+    ])->assertOk();
+
+    $this->getJson('/api/payment/subscription-status')
+        ->assertOk()
+        ->assertJsonPath('subscription_status', 'pending')
+        ->assertJsonPath('auto_renew', false)
+        ->assertJsonPath('next_renewal_date', null);
 });
 
 it('returns active paid state for a subscriber', function () {
