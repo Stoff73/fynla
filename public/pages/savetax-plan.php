@@ -68,7 +68,7 @@ try {
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
-  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=10" />
+  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=11" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -155,8 +155,8 @@ try {
 
     <!-- ================================================================
          YOUR ALLOWANCES + WHAT DOES THIS MEAN — combined into one section.
-         Meaning intro + total at the top, then the personalised allowances
-         grid, then a "Find out how" register CTA.
+         Meaning intro + total at the top, with "Find out how" registration
+         actions immediately before and after the personalised allowances.
          ================================================================ -->
     <section id="allowances" class="sp4-combined" aria-labelledby="allowances-heading">
       <div class="campaign-inner">
@@ -179,14 +179,20 @@ try {
           </div>
         </div>
 
+        <div class="sp4-combined__cta sp4-combined__cta--top">
+          <p class="sp4-combined__cta-text">Find out how</p>
+          <a href="#register-form" class="sp4-combined__cta-btn">Register for free</a>
+        </div>
+
         <!-- Personalised allowances grid -->
         <div class="sp4-allowances__grid" id="allowances-render" aria-live="polite">
           <!-- JS renders two columns of allowance items here -->
         </div>
 
-        <p class="sp4-combined__return">
-          <a href="#hero" class="sp4-combined__return-link">Return to the registration form</a>
-        </p>
+        <div class="sp4-combined__cta">
+          <p class="sp4-combined__cta-text">Find out how</p>
+          <a href="#register-form" class="sp4-combined__cta-btn">Register for free</a>
+        </div>
       </div>
     </section>
 
