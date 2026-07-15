@@ -365,7 +365,7 @@
           to="/register"
           class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
         >
-          Start your free trial
+          Create your free account
         </router-link>
       </div>
     </section>

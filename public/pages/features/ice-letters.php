@@ -86,7 +86,7 @@
           Where are the pensions? Which provider is the life insurance with? What&rsquo;s the mortgage account number? Fynla&rsquo;s In Case of Emergency letter puts everything your family needs in one document &mdash; automatically populated from your financial plan.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -239,7 +239,7 @@
       'heading' => '15 Minutes Now Could Save Your Family Months of Stress',
       'subtext' => 'The demo includes a sample In Case of Emergency letter so you can see exactly what it looks like. It\'s the feature people didn\'t know they needed — until they see it.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

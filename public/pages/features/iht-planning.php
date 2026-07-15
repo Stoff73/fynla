@@ -86,7 +86,7 @@
           Fynla maps your full estate &mdash; property, pensions, investments, life insurance &mdash; and shows your Inheritance Tax exposure in real time. Then helps you model strategies to reduce it.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -306,7 +306,7 @@
       'heading' => 'Don\'t Leave Your Family a Tax Bill They Didn\'t Expect',
       'subtext' => 'It takes 10 minutes to see your Inheritance Tax exposure. The demo lets you explore with sample data — no sign-up needed.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

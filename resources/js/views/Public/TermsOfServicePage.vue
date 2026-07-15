@@ -121,6 +121,9 @@
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Premium Access Periods</h3>
           <p class="text-neutral-500 leading-relaxed mb-5">Premium is currently sold as a one-time monthly or yearly access period and does not renew automatically. To continue Premium after that period, you must make a new purchase.</p>
 
+          <h3 class="text-base font-semibold text-horizon-500 mb-2">When Paid Access Ends</h3>
+          <p class="text-neutral-500 leading-relaxed mb-5">If Premium is cancelled, access continues until the end of the purchased period. When paid access ends, the account enters a 30-day read-only grace period so you can export your data or purchase Premium again. If you take neither action, account access is disabled after that grace period and the account enters the regulatory retention process described in our Privacy Policy. A permanent Free account that has not entered paid churn remains writable within the Free capabilities and limits.</p>
+
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Price Changes</h3>
           <p class="text-neutral-500 leading-relaxed mb-5">We may change Premium prices from time to time. A price change does not alter an access period you have already purchased and applies only to a later purchase.</p>
 
@@ -215,7 +218,7 @@
           <p class="text-neutral-500 leading-relaxed mb-4">Subject to the paragraph above:</p>
           <ul class="list-disc pl-6 mb-5 space-y-3">
             <li class="text-neutral-500 leading-relaxed">We are not liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, loss of business, loss of data, loss of opportunity, or financial losses arising from any investment, tax, or other financial decisions you make based on the Service's outputs.</li>
-            <li class="text-neutral-500 leading-relaxed">Our total aggregate liability to you for any claims arising out of or relating to the Service is limited to the total amount you have paid us for the Service in the 12 months preceding the claim. If you are using the free tier or trial, our total liability is limited to &pound;50.</li>
+            <li class="text-neutral-500 leading-relaxed">Our total aggregate liability to you for any claims arising out of or relating to the Service is limited to the total amount you have paid us for the Service in the 12 months preceding the claim. If you are using Free, our total liability is limited to &pound;50.</li>
             <li class="text-neutral-500 leading-relaxed">We are not liable for any loss or damage arising from the accuracy, completeness, or timeliness of the Service's calculations, projections, or outputs, except where caused by our failure to exercise reasonable care and skill.</li>
             <li class="text-neutral-500 leading-relaxed">We are not liable for any loss or damage arising from the actions or omissions of third-party service providers, including Anthropic, GetAddress.io, and SiteGround.</li>
           </ul>
@@ -254,8 +257,8 @@
           <p class="text-neutral-500 leading-relaxed mb-4">You may close your account at any time through your account settings or by emailing <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>. Upon account closure:</p>
           <ul class="list-disc pl-6 mb-5 space-y-2">
             <li class="text-neutral-500 leading-relaxed">Your subscription (if any) will be cancelled.</li>
-            <li class="text-neutral-500 leading-relaxed">Your financial planning data will be deleted immediately.</li>
-            <li class="text-neutral-500 leading-relaxed">Your account and profile data will be retained for 30 days and then permanently deleted.</li>
+            <li class="text-neutral-500 leading-relaxed">Your sessions and access tokens will be revoked and your account will be disabled.</li>
+            <li class="text-neutral-500 leading-relaxed">Account and financial-planning records are retained for the period required by our regulatory record-keeping policy, currently seven years, and are then permanently purged.</li>
             <li class="text-neutral-500 leading-relaxed">You may request an export of your data before closing your account.</li>
           </ul>
 

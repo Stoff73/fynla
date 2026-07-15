@@ -10,7 +10,7 @@
  *   'heading_tag' => 'h2',                          // h2 by default (optional)
  *   'subtext'     => 'Start with the demo...',     // supporting copy (optional)
  *   'actions'     => [                             // one or more buttons (required)
- *     ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+ *     ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
  *     ['text' => 'View pricing',           'href' => '/pricing',  'primary' => false],
  *   ],
  * ];

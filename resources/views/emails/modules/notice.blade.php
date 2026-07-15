@@ -2,7 +2,7 @@
   Notification / notice pill — coloured rounded box with a short message.
 
   Variables:
-    $message  string   HTML allowed (bold, code). e.g. "Your trial expires in 3 days."
+    $message  string   HTML allowed (bold, code). e.g. "Your Premium access ends in 3 days."
     $variant  string   'info' | 'solid-blue' | 'pink' | 'violet' | 'neutral'. Default 'info'.
     $icon     string|null  Optional HTML entity/unicode prefix. e.g. "&#9432;"
     $outerBg  string   Outer <td> bg. Default #ffffff.
