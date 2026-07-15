@@ -454,7 +454,6 @@ import { mapState, mapActions, mapGetters } from 'vuex';
 import PensionDetailInline from './PensionDetailInline.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
@@ -475,7 +474,6 @@ export default {
     PensionDetailInline,
     UnifiedPensionForm,
     DocumentUploadModal,
-    RiskBadge,
     PensionPotProjectionChart,
     FutureValueTab,
     RetirementIncomeTab,

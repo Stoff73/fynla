@@ -250,7 +250,7 @@ export default {
         const { ok, data } = await apiGet('/api/savings', store.token);
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your bank accounts.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

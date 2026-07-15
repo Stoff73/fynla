@@ -80,11 +80,11 @@ export default {
             text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
 
             // Convert leaked route paths to clickable links (e.g. "/estate" or "/valuable-info?section=expenditure")
-            text = text.replace(/(?:\()(\/[a-z][a-z0-9\-\/]*(?:\?[a-z0-9_=&]+)?)(?:\))/gi, (match, path) => {
+            text = text.replace(/(?:\()(\/[a-z][-a-z0-9/]*(?:\?[a-z0-9_=&]+)?)(?:\))/gi, (match, path) => {
                 const label = this.routeLabel(path);
                 return `(<a href="${path}" class="text-raspberry-500 hover:underline cursor-pointer" data-route="${path}">${label}</a>)`;
             });
-            text = text.replace(/(?<![("\/a-z])(\/(?:dashboard|net-worth|estate|protection|retirement|goals|plans|holistic-plan|trusts|risk-profile|settings|valuable-info|onboarding|actions|planning)[a-z0-9\-\/]*(?:\?[a-z0-9_=&]+)?)(?!["\/a-z])/gi, (match, path) => {
+            text = text.replace(/(?<![("/a-z])(\/(?:dashboard|net-worth|estate|protection|retirement|goals|plans|holistic-plan|trusts|risk-profile|settings|valuable-info|onboarding|actions|planning)[-a-z0-9/]*(?:\?[a-z0-9_=&]+)?)(?!["/a-z])/gi, (match, path) => {
                 const label = this.routeLabel(path);
                 return `<a href="${path}" class="text-raspberry-500 hover:underline cursor-pointer" data-route="${path}">${label}</a>`;
             });

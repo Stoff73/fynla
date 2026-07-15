@@ -41,7 +41,7 @@ async function exerciseCap(page, route, trigger, entityLabel) {
 }
 
 test.describe('desktop upgrade entry points', () => {
-  test.beforeEach(({}, testInfo) => {
+  test.beforeEach((_, testInfo) => {
     test.skip(testInfo.project.name === 'mobile-webkit');
   });
 

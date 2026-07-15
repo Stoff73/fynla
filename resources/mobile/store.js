@@ -70,7 +70,7 @@ export const store = reactive({
           next_actions: d.pending_celebration.next_actions || [],
         };
       }
-    } catch (e) {
+    } catch {
       /* non-fatal — gamification must never break the dashboard */
     }
   },
@@ -88,7 +88,7 @@ export const store = reactive({
     this.pendingCelebration = null;
     try {
       if (this.token) await apiPost('/api/gamification/celebration/ack', {}, this.token);
-    } catch (e) {
+    } catch {
       /* non-fatal */
     }
   },
