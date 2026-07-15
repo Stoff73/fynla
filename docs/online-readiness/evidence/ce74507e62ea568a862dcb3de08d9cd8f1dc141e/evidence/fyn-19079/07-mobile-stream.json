@@ -1,0 +1,23 @@
+{
+  "conversation_id": 151,
+  "persisted_message_count": 2,
+  "roles": [
+    "user",
+    "assistant"
+  ],
+  "answer_characters": 815,
+  "repeated_paragraph_count": 0,
+  "dispatched_tools": [
+    "get_tax_information",
+    "get_module_analysis"
+  ],
+  "identical_dispatch_group_count": 0,
+  "assertions": {
+    "exactly_one_user_and_assistant": true,
+    "assistant_length_sane": true,
+    "retirement_answer": true,
+    "no_goals_gate": true,
+    "no_repeated_paragraph": true,
+    "no_duplicate_tool_dispatch": true
+  }
+}

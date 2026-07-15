@@ -1,0 +1,100 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/dangerous-command-guard.sh'",
+            "timeout": 10,
+            "statusMessage": "Checking command against Fynla NEVER rules..."
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__ssh-fynla__ssh_exec",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/prod-guard.sh'",
+            "timeout": 10,
+            "statusMessage": "Checking prod command against Fynla NEVER rules..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/env-guard.sh'",
+            "timeout": 10,
+            "statusMessage": "Checking for .env edits..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/pint-format.sh'",
+            "timeout": 30,
+            "statusMessage": "Pint: formatting PHP (PSR-12)..."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/precompact-handover.sh'",
+            "timeout": 30,
+            "statusMessage": "Writing safety-net handover before compaction..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/postcompact-vaultsync.sh'",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/tax-hardcode-check.sh'",
+            "timeout": 15,
+            "statusMessage": "Checking for hardcoded tax values..."
+          },
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/design-lint.sh'",
+            "timeout": 20,
+            "statusMessage": "Design-system lint (Rules 8/11/15)..."
+          },
+          {
+            "type": "command",
+            "command": "bash '/Users/CSJ/Desktop/fynla/.codex/hooks/m-parity-check.sh'",
+            "timeout": 10,
+            "statusMessage": "Checking /m parity (Rule 19)..."
+          }
+        ]
+      }
+    ]
+  }
+}

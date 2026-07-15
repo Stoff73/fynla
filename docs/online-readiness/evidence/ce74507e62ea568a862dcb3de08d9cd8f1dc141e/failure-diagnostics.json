@@ -1,0 +1,13 @@
+{
+  "release_sha": "ce74507e62ea568a862dcb3de08d9cd8f1dc141e",
+  "browser": {
+    "name": "WebKit",
+    "version": "26.0"
+  },
+  "error": "Timed out waiting for the complete desktop Fyn response.",
+  "diagnostics": {
+    "consoleErrors": [],
+    "apiFailures": []
+  },
+  "recorded_at": "2026-07-13T15:59:56.705Z"
+}
