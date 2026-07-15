@@ -113,7 +113,7 @@
               <p class="plan-card__equiv">No credit card required</p>
             </div>
 
-            <a href="/register?plan=free" class="plan-card__cta plan-card__cta--spring" id="cta-free">
+            <a href="/register" class="plan-card__cta plan-card__cta--spring" id="cta-free">
               Start with Free
             </a>
 
@@ -275,7 +275,7 @@
         'heading' => 'Ready to take control of your finances?',
         'subtext' => 'Start with Free and upgrade only when you need more.',
         'actions' => [
-            ['text' => 'Start with Free', 'href' => '/register?plan=free', 'primary' => true],
+            ['text' => 'Start with Free', 'href' => '/register', 'primary' => true],
             ['text' => 'See how it works', 'href' => '/how-it-works', 'primary' => false],
         ],
     ];

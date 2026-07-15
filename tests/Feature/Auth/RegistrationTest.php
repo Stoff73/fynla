@@ -170,7 +170,7 @@ it('requires minimum password length for registration', function () {
         ->assertJsonValidationErrors(['password']);
 });
 
-it('rejects non-canonical plan identities during registration', function (string $plan) {
+it('rejects registration intents that are not Premium checkout intents', function (string $plan) {
     $this->postJson('/api/auth/register', [
         'first_name' => 'Plan',
         'surname' => 'Validation',
@@ -181,7 +181,23 @@ it('rejects non-canonical plan identities during registration', function (string
         'billing_cycle' => 'monthly',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors('plan');
-})->with(['student', 'standard', 'family', 'pro', 'tier1', 'tier2', 'tier3', 'arbitrary']);
+})->with(['free', 'student', 'standard', 'family', 'pro', 'tier1', 'tier2', 'tier3', 'arbitrary']);
+
+it('requires a canonical billing cycle exactly when a Premium checkout intent is present', function (array $checkoutIntent, string $invalidField) {
+    $this->postJson('/api/auth/register', [
+        'first_name' => 'Checkout',
+        'surname' => 'Validation',
+        'email' => 'checkout.'.md5(json_encode($checkoutIntent)).'@example.com',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+        ...$checkoutIntent,
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors($invalidField);
+})->with([
+    'Premium without billing cycle' => [['plan' => 'premium'], 'billing_cycle'],
+    'billing cycle without Premium' => [['billing_cycle' => 'monthly'], 'billing_cycle'],
+    'unknown billing cycle' => [['plan' => 'premium', 'billing_cycle' => 'weekly'], 'billing_cycle'],
+]);
 
 it('accepts the Premium registration intent only with a canonical billing cycle', function () {
     $this->postJson('/api/auth/register', [
@@ -219,10 +235,79 @@ it('creates a free-tier user with no trial on verified registration', function (
     ]);
 
     $response->assertStatus(200)
-        ->assertJson(['success' => true]);
+        ->assertJson([
+            'success' => true,
+            'data' => [
+                'checkout_intent' => null,
+            ],
+        ]);
 
     $user = User::where('email', 'free.signup@example.com')->firstOrFail();
     expect($user->tier)->toBe('free');
     expect($user->trial_ends_at)->toBeNull();
     expect(Subscription::where('user_id', $user->id)->exists())->toBeFalse();
+});
+
+it('returns only the persisted Premium checkout intent after verified registration', function (string $billingCycle) {
+    $pending = PendingRegistration::create([
+        'first_name' => 'Premium',
+        'surname' => 'Signup',
+        'email' => "premium.{$billingCycle}@example.com",
+        'password' => Hash::make('Password1!'),
+        'verification_code' => '123456',
+        'verification_attempts' => 0,
+        'signup_source' => 'web',
+        'plan' => 'premium',
+        'billing_cycle' => $billingCycle,
+    ]);
+
+    $response = $this->postJson('/api/auth/verify-code?plan=free&billing_cycle=yearly', [
+        'type' => 'registration',
+        'pending_id' => $pending->id,
+        'code' => '123456',
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'success' => true,
+            'data' => [
+                'checkout_intent' => [
+                    'tier' => 'premium',
+                    'billing_cycle' => $billingCycle,
+                ],
+            ],
+        ]);
+
+    $user = User::where('email', "premium.{$billingCycle}@example.com")->firstOrFail();
+    expect($user->tier)->toBe('free');
+    expect($user->trial_ends_at)->toBeNull();
+    expect(Subscription::where('user_id', $user->id)->exists())->toBeFalse();
+    expect(PendingRegistration::find($pending->id))->toBeNull();
+})->with(['monthly', 'yearly']);
+
+it('does not add a Premium checkout intent while verifying a Free pending registration', function () {
+    $pending = PendingRegistration::create([
+        'first_name' => 'Free',
+        'surname' => 'Tamper Check',
+        'email' => 'free.tamper@example.com',
+        'password' => Hash::make('Password1!'),
+        'verification_code' => '123456',
+        'verification_attempts' => 0,
+        'signup_source' => 'web',
+    ]);
+
+    $response = $this->postJson('/api/auth/verify-code?plan=premium&billing_cycle=yearly', [
+        'type' => 'registration',
+        'pending_id' => $pending->id,
+        'code' => '123456',
+        'plan' => 'premium',
+        'billing_cycle' => 'yearly',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('data.checkout_intent', null);
+
+    $user = User::where('email', 'free.tamper@example.com')->firstOrFail();
+    expect($user->tier)->toBe('free')
+        ->and(Subscription::where('user_id', $user->id)->exists())->toBeFalse();
 });

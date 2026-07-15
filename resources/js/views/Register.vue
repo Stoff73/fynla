@@ -492,7 +492,9 @@ export default {
       const fromParam = handoffSource.value || route.query.from;
       const stageParam = route.query.stage;
 
-      if (fromParam) {
+      if (data.checkout_intent) {
+        router.push(`/checkout?plan=${encodeURIComponent(data.checkout_intent.tier)}&cycle=${encodeURIComponent(data.checkout_intent.billing_cycle)}`);
+      } else if (fromParam) {
         router.push({
           name: 'Dashboard',
           query: { openFyn: 'journey', newUser: '1', from: fromParam },

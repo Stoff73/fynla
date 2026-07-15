@@ -666,6 +666,8 @@ class AuthController extends Controller
                 'method' => 'registration',
             ]);
 
+            $checkoutIntent = $pending->checkoutIntent();
+
             // Delete the pending registration
             $pending->delete();
 
@@ -675,7 +677,12 @@ class AuthController extends Controller
             // never throws — a failure must not break account creation.
             app(PointsService::class)->recordLogin($user);
 
-            return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
+            return $this->buildAuthSuccessResponse(
+                $user,
+                $authResult['token'],
+                'Registration complete',
+                ['checkout_intent' => $checkoutIntent]
+            );
         }
 
         // Handle login verification (existing flow)

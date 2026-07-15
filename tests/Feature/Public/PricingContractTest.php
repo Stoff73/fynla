@@ -35,7 +35,9 @@ it('server-renders the canonical Free and Premium pricing contract', function ()
 
     $html = $response->getContent();
 
-    expect(substr_count($html, 'id="plan-free"'))->toBe(1)
+    expect($html)->toMatch('/<a href="\\/register"[^>]*id="cta-free"/')
+        ->not->toContain('/register?plan=free')
+        ->and(substr_count($html, 'id="plan-free"'))->toBe(1)
         ->and(substr_count($html, 'id="plan-premium"'))->toBe(1)
         ->and(substr_count($html, '<article id="plan-'))->toBe(2);
 });
