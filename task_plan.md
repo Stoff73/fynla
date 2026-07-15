@@ -4,7 +4,18 @@
 > Authoritative SP1 Pass 2 plan: `docs/superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md` (active).
 
 ## Current phase
-SP1 Pass 2 (reference-data canonical stores) — R4 / R3 / R2 / R1 all SHIPPED. R1.0 audit (browser-blocked) + R1.5 (depends on R1.0) + final review + finishing-a-development-branch remain. **22 of 26 PRs done.**
+Native Swift programme, Package 1 economic/API readiness. Tasks 1–6 are complete and checkpointed at `5a35bd5`; Task 7 is next. Package 2/Xcode work remains blocked until Package 1 is fully green.
+
+## Phases — Native Swift programme (active)
+- [x] Package 1 Task 1 — two-tier identity and payment cutover
+- [x] Package 1 Task 2 — approved Free/Premium economic matrix
+- [x] Package 1 Task 3 — Premium balance history and adviser export on web and `/m`
+- [x] Package 1 Task 4 — canonical subscription and entitlement contract
+- [x] Package 1 Task 5 — non-entitling pending checkout state and trial-remnant audit
+- [x] Package 1 Task 6 — approved Free/Premium public pricing contract
+- [ ] Package 1 Task 7 — preserve Premium checkout intent through registration
+- [ ] Package 1 Task 8 and final Package 1 verification gates
+- [ ] Package 2 — native SwiftUI foundation; blocked on Package 1 completion
 
 ## Phases — SP3 (DONE)
 - [x] Brainstorm → spec → implementation plan (committed)

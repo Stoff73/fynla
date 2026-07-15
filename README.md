@@ -14,10 +14,10 @@ A comprehensive financial planning web application designed for UK individuals a
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 670 |
-| PHP Services | 358 |
-| PHP Controllers | 120 |
-| Eloquent Models | 127 |
+| Vue Components | 675 |
+| PHP Services | 443 |
+| PHP Controllers | 127 |
+| Eloquent Models | 132 |
 | API Endpoints | 600+ |
 | Vuex Store Modules | 35 |
 | Agents | 9 |
@@ -296,15 +296,15 @@ Try the full application with realistic financial data:
                   ↓
 ┌─────────────────────────────────────┐
 │ Application Layer                   │
-│ 120 Controllers + 9 Agents          │
-│ 358 Services + Business Logic       │
+│ 127 Controllers + 9 Agents          │
+│ 443 Services + Business Logic       │
 │ Fyn AI Chat + Document Extraction   │
 └─────────────────┬───────────────────┘
                   │ Eloquent ORM
                   ↓
 ┌─────────────────────────────────────┐
 │ Data Layer                          │
-│ MySQL 8.0+ (127 Models)            │
+│ MySQL 8.0+ (132 Models)            │
 │ Memcached (calculation caching)    │
 └─────────────────────────────────────┘
 ```
