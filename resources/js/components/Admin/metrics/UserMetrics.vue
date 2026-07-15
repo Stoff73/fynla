@@ -157,7 +157,7 @@ export default {
       try {
         const response = await adminService.getUserMetricsActivity(period, DEFAULT_RANGES[period]);
         this.activity = Array.isArray(response.data) ? response.data : [];
-      } catch (err) {
+      } catch {
         // Keep existing data on period change failure
       } finally {
         this.activityLoading = false;
