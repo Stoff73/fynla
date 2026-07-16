@@ -11,7 +11,7 @@ it('prints stable safe JSON and exits zero when no trial remnants exist', functi
         'provisional_shape' => 0,
         'historical_trial_shape' => 0,
         'paid_shape' => 0,
-        'safe_to_remove_trial' => true,
+        'safe_to_remove' => true,
     ];
 
     $this->artisan('subscriptions:audit-trial-remnants --json')
@@ -35,7 +35,7 @@ it('reports a provisional trial row separately and exits non-zero without changi
         'provisional_shape' => 1,
         'historical_trial_shape' => 1,
         'paid_shape' => 0,
-        'safe_to_remove_trial' => false,
+        'safe_to_remove' => false,
     ];
 
     $this->artisan('subscriptions:audit-trial-remnants --json')
@@ -61,7 +61,7 @@ it('reports trial dates as historical even when the status is no longer trialing
         'provisional_shape' => 0,
         'historical_trial_shape' => 1,
         'paid_shape' => 0,
-        'safe_to_remove_trial' => false,
+        'safe_to_remove' => false,
     ];
 
     $this->artisan('subscriptions:audit-trial-remnants --json')
@@ -69,7 +69,7 @@ it('reports trial dates as historical even when the status is no longer trialing
         ->assertExitCode(1);
 });
 
-it('reports a completed payer without treating an ordinary paid row as a trial remnant', function () {
+it('does not count an ordinary paid row as a paid trial remnant', function () {
     $user = User::factory()->create(['tier' => 'premium']);
     $subscription = Subscription::factory()->create([
         'user_id' => $user->id,
@@ -87,11 +87,38 @@ it('reports a completed payer without treating an ordinary paid row as a trial r
     $expected = [
         'provisional_shape' => 0,
         'historical_trial_shape' => 0,
-        'paid_shape' => 1,
-        'safe_to_remove_trial' => true,
+        'paid_shape' => 0,
+        'safe_to_remove' => true,
     ];
 
     $this->artisan('subscriptions:audit-trial-remnants --json')
         ->expectsOutput(json_encode($expected, JSON_THROW_ON_ERROR))
         ->assertExitCode(0);
+});
+
+it('blocks removal when a completed payer still carries trial-only data', function () {
+    $user = User::factory()->create(['tier' => 'premium']);
+    $subscription = Subscription::factory()->create([
+        'user_id' => $user->id,
+        'plan' => 'premium',
+        'status' => 'active',
+        'trial_started_at' => now()->subDays(8),
+        'trial_ends_at' => now()->subDay(),
+    ]);
+    Payment::factory()->create([
+        'user_id' => $user->id,
+        'subscription_id' => $subscription->id,
+        'status' => 'completed',
+    ]);
+
+    $expected = [
+        'provisional_shape' => 0,
+        'historical_trial_shape' => 1,
+        'paid_shape' => 1,
+        'safe_to_remove' => false,
+    ];
+
+    $this->artisan('subscriptions:audit-trial-remnants --json')
+        ->expectsOutput(json_encode($expected, JSON_THROW_ON_ERROR))
+        ->assertExitCode(1);
 });

@@ -30,18 +30,18 @@ class AuditTrialSubscriptionRemnants extends Command
                 ],
             );
 
-            if ($result['safe_to_remove_trial']) {
+            if ($result['safe_to_remove']) {
                 $this->info('No trial remnants remain.');
             } else {
                 $this->error('Trial compatibility removal is blocked by historical trial-shaped rows.');
             }
         }
 
-        return $result['safe_to_remove_trial'] ? self::SUCCESS : self::FAILURE;
+        return $result['safe_to_remove'] ? self::SUCCESS : self::FAILURE;
     }
 
     /**
-     * @return array{provisional_shape:int, historical_trial_shape:int, paid_shape:int, safe_to_remove_trial:bool}
+     * @return array{provisional_shape:int, historical_trial_shape:int, paid_shape:int, safe_to_remove:bool}
      */
     public function audit(): array
     {
@@ -68,6 +68,11 @@ class AuditTrialSubscriptionRemnants extends Command
             ->count();
 
         $paidShape = DB::table('subscriptions')
+            ->where(function (Builder $query): void {
+                $query->where('status', 'trialing')
+                    ->orWhereNotNull('trial_started_at')
+                    ->orWhereNotNull('trial_ends_at');
+            })
             ->whereExists(function (Builder $query): void {
                 $query->selectRaw('1')
                     ->from('payments')
@@ -80,7 +85,7 @@ class AuditTrialSubscriptionRemnants extends Command
             'provisional_shape' => $provisionalShape,
             'historical_trial_shape' => $historicalTrialShape,
             'paid_shape' => $paidShape,
-            'safe_to_remove_trial' => $historicalTrialShape === 0,
+            'safe_to_remove' => $historicalTrialShape === 0 && $paidShape === 0,
         ];
     }
 }
