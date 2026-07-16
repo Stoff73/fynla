@@ -41,14 +41,14 @@
 
 **Files:** Create `ios-native/Fynla.xcodeproj`, `ios-native/Fynla/`, `ios-native/FynlaTests/`, `ios-native/FynlaUITests/`, `ios-native/Configurations/`, shared schemes `Fynla-Staging` and `Fynla-Production`.
 
-- [ ] In Xcode, create an iOS App project named `Fynla` at `ios-native/`, interface SwiftUI, language Swift, tests enabled, Core Data and CloudKit disabled.
-- [ ] Set Swift language mode to Swift 6 and strict concurrency to Complete for app and test targets.
-- [ ] Set `IPHONEOS_DEPLOYMENT_TARGET = 17.0`, `TARGETED_DEVICE_FAMILY = 1`, and portrait iPhone orientations only.
-- [ ] Set staging product bundle identifier to `org.fynla.app.dev` and production to `org.fynla.app` through `.xcconfig` files, not user-specific project settings.
-- [ ] Share both schemes. `Fynla-Staging` uses Debug/Staging; `Fynla-Production` uses Release/Production.
-- [ ] Keep signing automatic but do not hardcode a personal development-team identifier in source.
-- [ ] Copy the existing approved app icon source images from `ios/App/App/Assets.xcassets/AppIcon.appiconset/` into the new asset catalogue; do not alter the preserved source files.
-- [ ] Add `SUPPORTED_PLATFORMS = iphoneos iphonesimulator` and exclude Mac Catalyst, visionOS and iPad destinations.
+- [x] In Xcode, create an iOS App project named `Fynla` at `ios-native/`, interface SwiftUI, language Swift, tests enabled, Core Data and CloudKit disabled.
+- [x] Set Swift language mode to Swift 6 and strict concurrency to Complete for app and test targets.
+- [x] Set `IPHONEOS_DEPLOYMENT_TARGET = 17.0`, `TARGETED_DEVICE_FAMILY = 1`, and portrait iPhone orientations only.
+- [x] Set staging product bundle identifier to `org.fynla.app.dev` and production to `org.fynla.app` through `.xcconfig` files, not user-specific project settings.
+- [x] Share both schemes. `Fynla-Staging` uses Debug/Staging; `Fynla-Production` uses Release/Production.
+- [x] Keep signing automatic but do not hardcode a personal development-team identifier in source.
+- [x] Copy the existing approved app icon source images from `ios/App/App/Assets.xcassets/AppIcon.appiconset/` into the new asset catalogue; do not alter the preserved source files.
+- [x] Add `SUPPORTED_PLATFORMS = iphoneos iphonesimulator` and exclude Mac Catalyst, visionOS and iPad destinations.
 
 `Base.xcconfig`:
 
@@ -85,8 +85,8 @@ FYNLA_ENVIRONMENT = production
 
 The `$()` split prevents xcconfig from treating `//` as a comment.
 
-- [ ] Add generated Info.plist keys mapping the three `FYNLA_*` variables into the app bundle.
-- [ ] Build both schemes with code signing disabled.
+- [x] Add Info.plist keys mapping the three `FYNLA_*` variables into the app bundle. Xcode 26.3 ignores unknown `INFOPLIST_KEY_*` values during automatic generation, so the app target uses a checked-in minimal plist template while test targets remain generated.
+- [x] Build both schemes with code signing disabled.
 
 ```bash
 xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO
@@ -94,6 +94,8 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Production -destina
 ```
 
 Expected: both exit 0; build settings show device family `1`, deployment target `17.0`, and distinct bundle identifiers.
+
+Recorded 2026-07-16 on Xcode 26.3: both unsigned simulator builds and the staging `build-for-testing` action exited 0. Built plists contain device family `[1]`, deployment target `17.0`, portrait-only orientation, light appearance, and the expected distinct bundle/environment values.
 
 **Intended review boundary:** `build: create native swiftui iphone project`
 
