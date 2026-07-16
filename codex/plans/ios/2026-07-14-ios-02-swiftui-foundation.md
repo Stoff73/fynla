@@ -276,13 +276,15 @@ Recorded 2026-07-16: the TDD red run failed on the deliberately missing SSE boun
 
 **Files:** Create `Core/DesignSystem/FynlaColor.swift`, `FynlaTypography.swift`, `FynlaSpacing.swift`, `FynlaButton.swift`, `LoadingView.swift`, `ErrorView.swift`; tests/previews as appropriate.
 
-- [ ] Read `fynlaDesignGuide.md` immediately before this UI task.
-- [ ] Map only approved palette tokens into the asset catalogue with named light-mode colours; no hardcoded feature-level colours.
-- [ ] Use system font metrics and Dynamic Type. Do not force Segoe UI, which is not an iOS system font.
-- [ ] Provide primary, secondary and destructive text buttons without decorative icons.
-- [ ] Ensure a 44-point minimum interactive target and VoiceOver label for every control.
-- [ ] Honour Reduce Motion in loading/transition primitives.
-- [ ] Add an XXL Dynamic Type shell UI test proving primary controls remain reachable without clipped text on iPhone 11.
+- [x] Read `fynlaDesignGuide.md` immediately before this UI task.
+- [x] Map only approved palette tokens into the asset catalogue with named light-mode colours; no hardcoded feature-level colours.
+- [x] Use system font metrics and Dynamic Type. Do not force Segoe UI, which is not an iOS system font.
+- [x] Provide primary, secondary and destructive text buttons without decorative icons.
+- [x] Ensure a 44-point minimum interactive target and VoiceOver label for every control.
+- [x] Honour Reduce Motion in loading/transition primitives.
+- [x] Add an XXL Dynamic Type shell UI test proving primary controls remain reachable without clipped text on iPhone 11.
+
+Recorded 2026-07-16: the design guide was reread immediately before implementation. Twelve named light-only palette assets map only approved eggshell, horizon, neutral, raspberry, savannah and violet values; the isolated colour catalogue compiled successfully with `actool`. Typography uses Dynamic Type system text styles rather than Segoe UI. Text-only primary, secondary and destructive buttons enforce a 44-by-44-point minimum target and explicit accessibility labels, while loading and pressed transitions stop under Reduce Motion. The reviewed XXL test enforces the iPhone 11 logical window size, uses a deliberately wrapping primary label, compares it with a short same-font button, asserts expansion and non-overlap with adjacent content, and scrolls to prove all three controls remain reachable. All 62 exact-source Swift 6 host tests across nine suites passed without Swift source warnings, and Xcode `build-for-testing` compiled app, unit-test and UI-test targets with asset catalogues excluded from that integration build. Source-level tests require exactly one universal sRGB entry and no appearance override per colorset; resolved UIKit tests assert every RGB value is identical under light and dark traits. UI execution remains delegated to CI or a healthy iPhone 11 simulator because the local CoreSimulator cannot create the app process.
 
 **Intended review boundary:** `feat: add accessible native design system`
 

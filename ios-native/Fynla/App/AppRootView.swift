@@ -27,15 +27,8 @@ struct AppRootView: View {
 
 private struct LaunchingView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Fynla")
-                .font(.largeTitle.bold())
-            ProgressView()
-                .accessibilityHidden(true)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Fynla is starting")
-        .accessibilityIdentifier("app.launching")
+        LoadingView(message: "Fynla is starting")
+            .accessibilityIdentifier("app.launching")
     }
 }
 
