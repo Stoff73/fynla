@@ -94,6 +94,16 @@ struct DesignSystemTests {
         #expect(LoadingView.showsAnimatedIndicator(reduceMotion: false))
         #expect(!LoadingView.showsAnimatedIndicator(reduceMotion: true))
     }
+
+    #if FYNLA_UI_TESTING
+    @Test
+    @MainActor
+    func acceptanceShowcaseForcesAccessibilityXXL() {
+        #expect(
+            DesignSystemTestView.acceptanceDynamicTypeSize == .accessibility4
+        )
+    }
+    #endif
 }
 
 #if canImport(UIKit)

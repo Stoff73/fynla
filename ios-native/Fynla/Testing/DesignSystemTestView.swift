@@ -2,6 +2,8 @@
 import SwiftUI
 
 struct DesignSystemTestView: View {
+    static let acceptanceDynamicTypeSize: DynamicTypeSize = .accessibility4
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FynlaSpacing.large) {
@@ -30,6 +32,7 @@ struct DesignSystemTestView: View {
         }
         .background(FynlaColor.pageBackground)
         .accessibilityIdentifier("design-system.showcase")
+        .dynamicTypeSize(Self.acceptanceDynamicTypeSize)
         .preferredColorScheme(.light)
     }
 }

@@ -10,7 +10,9 @@ final class FynlaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.otherElements["app.launching"].waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            element("app.launching", in: app).waitForExistence(timeout: 3)
+        )
     }
 
     @MainActor
@@ -18,7 +20,7 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "signed-out")
         app.launch()
 
-        let shell = app.otherElements["auth.signedOut"]
+        let shell = element("auth.signedOut", in: app)
         XCTAssertTrue(shell.waitForExistence(timeout: 3))
         XCTAssertTrue(shell.label.contains("Sign in to continue."))
     }
@@ -28,17 +30,14 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "unlocked")
         app.launch()
 
-        let shell = app.otherElements["app.unlocked"]
+        let shell = element("app.unlocked", in: app)
         XCTAssertTrue(shell.waitForExistence(timeout: 3))
         XCTAssertTrue(shell.label.contains("Your secure workspace is ready."))
     }
 
     @MainActor
     func testPrimaryControlRemainsReachableAtXXLDynamicType() throws {
-        let app = app(mode: "design-system", additionalArguments: [
-            "-UIPreferredContentSizeCategoryName",
-            "UICTContentSizeCategoryAccessibilityExtraExtraLarge",
-        ])
+        let app = app(mode: "design-system")
         app.launch()
 
         let window = app.windows.firstMatch
@@ -76,6 +75,14 @@ final class FynlaUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func element(
+        _ identifier: String,
+        in app: XCUIApplication
+    ) -> XCUIElement {
+        app.descendants(matching: .any)[identifier]
     }
 
     @MainActor

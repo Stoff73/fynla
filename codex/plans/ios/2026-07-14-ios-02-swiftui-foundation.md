@@ -292,11 +292,11 @@ Recorded 2026-07-16: the design guide was reread immediately before implementati
 
 **Files:** Create `AppDependencies.swift`, `Testing/TestAppDependencies.swift`; modify app entry; create `.github/workflows/ios-native.yml` and shell UI smoke test.
 
-- [ ] Inject environment, HTTP transport, diagnostics, token provider, clock and later feature clients through one `AppDependencies` value.
-- [ ] Add launch argument `-fynla-ui-test-mode` that selects only compiled test doubles in UI-test builds; production must not accept a URL override or arbitrary fixture path.
-- [ ] UI test signed-out and unlocked shell states without network.
-- [ ] Add CI on pull requests affecting `ios-native/**`, shared API files or the workflow.
-- [ ] CI selects an installed iPhone 11 simulator runtime dynamically, boots it, runs tests with signing disabled and stores `.xcresult` on failure.
+- [x] Inject environment, HTTP transport, diagnostics, token provider, clock and later feature clients through one `AppDependencies` value.
+- [x] Add launch argument `-fynla-ui-test-mode` that selects only compiled test doubles in UI-test builds; production must not accept a URL override or arbitrary fixture path.
+- [x] UI test signed-out and unlocked shell states without network.
+- [x] Add CI on pull requests affecting `ios-native/**`, shared API files or the workflow.
+- [x] CI selects an installed iPhone 11 simulator runtime dynamically, boots it, runs tests with signing disabled and stores `.xcresult` on failure.
 
 Workflow command:
 
@@ -309,17 +309,25 @@ xcodebuild -project ios-native/Fynla.xcodeproj \
 ```
 
 - [ ] Run the command locally; expect `** TEST SUCCEEDED **`.
-- [ ] Build production scheme unsigned; expect `** BUILD SUCCEEDED **`.
-- [ ] Call `/api/v1/native/health` from a small integration test using staging credentials supplied at runtime; never put credentials in source or CI logs.
-- [ ] Update `docs/architecture/client-parity-ledger.md` with foundation evidence.
+- [x] Build production scheme unsigned; expect `** BUILD SUCCEEDED **`.
+- [x] Call `/api/v1/native/health` from a small integration test using staging credentials supplied at runtime; never put credentials in source or CI logs.
+- [x] Update `docs/architecture/client-parity-ledger.md` with foundation evidence.
+
+Recorded 2026-07-16: one explicit `AppDependencies` value now owns environment, transport, redacting diagnostics, token provider, clock, request-ID generation and a typed later-client factory. The staging scheme uses a dedicated `UITesting` TestAction and compilation condition; ordinary Debug/Staging launches and all Release/Production builds do not compile or parse the closed `signed-out`, `unlocked` and `design-system` modes. Those modes use a transport that fails every request, and UI coverage asserts the combined accessible shell labels while retaining the iPhone 11 XXL design-system checks. CI dynamically creates and boots an installed iPhone 11, disables signing, publishes failure result bundles, builds Production unsigned and exposes only a runtime bearer token to the fixed dev-staging native-health test. The final two-pass review reported no remaining Critical, Important or Minor findings.
+
+The final exact-source Swift 6 host suite passed 67 tests across 10 suites; the authenticated health test compiled and skipped honestly because no runtime token was present. An unrestricted, unsigned Xcode `build-for-testing` compiled the app, unit-test and UI-test targets under `UITesting`, and the unsigned Production-scheme Release build also exited 0; both builds excluded asset catalogues to isolate the unrelated quarantined asset-service work. The exact local iPhone 11 `test` command remains unchecked because the local CoreSimulator cannot reliably create the application process.
+
+Clean `macos-26` CI run `29535226609` supplied the missing runtime authority: the full asset-enabled build passed 69 Swift tests across 11 suites, honestly skipped the one credential-gated health test, passed all four iPhone 11 UI tests, emitted `** TEST SUCCEEDED **`, then completed the unsigned Production-scheme build with `** BUILD SUCCEEDED **`. The CI-derived accessibility hierarchy also drove a focused correction: shell tests now query stable identifiers independently of SwiftUI's runtime element type, and the compiled design-system mode fixes the acceptance view at Accessibility XXL instead of relying on an ignored simulator launch preference. No staging health request, production request, browser action or deployment was made.
+
+**Intended review boundary:** `build: add deterministic native composition and ci`
 
 ### Package 2 exit criteria
 
-- [ ] Both schemes build and use the correct base URL and bundle identifier.
-- [ ] The application is iPhone-only, iOS 17 minimum and portrait-only.
-- [ ] iPhone 11 simulator unit/UI tests pass.
-- [ ] API and SSE transports pass fixture, error and byte-boundary tests.
-- [ ] No private response caching or body logging exists.
-- [ ] The new target contains no Capacitor, CocoaPods or `WKWebView` dependency.
-- [ ] Existing Capacitor and `/m` files are unchanged.
+- [x] Both schemes build and use the correct base URL and bundle identifier.
+- [x] The application is iPhone-only, iOS 17 minimum and portrait-only.
+- [x] iPhone 11 simulator unit/UI tests pass.
+- [x] API and SSE transports pass fixture, error and byte-boundary tests.
+- [x] No private response caching or body logging exists.
+- [x] The new target contains no Capacitor, CocoaPods or `WKWebView` dependency.
+- [x] Existing Capacitor and `/m` files are unchanged.
 - [ ] CSJ approves the native shell before Package 3 account UI expands it.
