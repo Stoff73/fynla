@@ -14,13 +14,32 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testSignedOutShellUsesTheOfflineUITestComposition() throws {
+        let app = app(mode: "signed-out")
+        app.launch()
+
+        XCTAssertTrue(app.otherElements["auth.signedOut"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["Sign in to continue."].label, "Sign in to continue.")
+    }
+
+    @MainActor
+    func testUnlockedShellUsesTheOfflineUITestComposition() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        XCTAssertTrue(app.otherElements["app.unlocked"].waitForExistence(timeout: 3))
+        XCTAssertEqual(
+            app.staticTexts["Your secure workspace is ready."].label,
+            "Your secure workspace is ready."
+        )
+    }
+
+    @MainActor
     func testPrimaryControlRemainsReachableAtXXLDynamicType() throws {
-        let app = XCUIApplication()
-        app.launchArguments = [
-            "-fynla-design-system-ui-test",
+        let app = app(mode: "design-system", additionalArguments: [
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityExtraExtraLarge",
-        ]
+        ])
         app.launch()
 
         let window = app.windows.firstMatch
@@ -58,5 +77,15 @@ final class FynlaUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func app(
+        mode: String,
+        additionalArguments: [String] = []
+    ) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-fynla-ui-test-mode", mode] + additionalArguments
+        return app
     }
 }

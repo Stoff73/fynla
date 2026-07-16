@@ -4,9 +4,27 @@ import SwiftUI
 struct FynlaApp: App {
     @State private var session: AppSession
     @State private var router: AppRouter
+    private let dependencies: AppDependencies
+
+    #if DEBUG
+    private let uiTestMode: UITestMode?
+    #endif
 
     init() {
-        let session = AppSession()
+        #if DEBUG
+        let uiTestMode = UITestMode(arguments: ProcessInfo.processInfo.arguments)
+        self.uiTestMode = uiTestMode
+        let dependencies = uiTestMode == nil
+            ? Self.makeLiveDependencies()
+            : TestAppDependencies.make()
+        let initialState = uiTestMode?.initialSessionState ?? .launching
+        #else
+        let dependencies = Self.makeLiveDependencies()
+        let initialState = AppSession.State.launching
+        #endif
+
+        self.dependencies = dependencies
+        let session = AppSession(state: initialState)
         _session = State(initialValue: session)
         _router = State(initialValue: AppRouter(session: session))
     }
@@ -14,13 +32,14 @@ struct FynlaApp: App {
     var body: some Scene {
         WindowGroup {
             rootView
+                .environment(\.appDependencies, dependencies)
         }
     }
 
     @ViewBuilder
     private var rootView: some View {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-fynla-design-system-ui-test") {
+        if uiTestMode?.showsDesignSystem == true {
             DesignSystemTestView()
         } else {
             appRootView
@@ -34,5 +53,13 @@ struct FynlaApp: App {
         AppRootView(session: session)
             .environment(session)
             .environment(router)
+    }
+
+    private static func makeLiveDependencies() -> AppDependencies {
+        do {
+            return try AppDependencies.live()
+        } catch {
+            fatalError("Invalid application configuration: \(error)")
+        }
     }
 }

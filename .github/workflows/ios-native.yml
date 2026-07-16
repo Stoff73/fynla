@@ -1,0 +1,157 @@
+name: iOS Native
+
+on:
+  pull_request:
+    paths:
+      - "ios-native/**"
+      - "app/Http/Controllers/Api/AuthController.php"
+      - "app/Http/Controllers/Api/V1/Auth/**"
+      - "app/Http/Controllers/Api/V1/Mobile/**"
+      - "app/Http/Kernel.php"
+      - "app/Http/Middleware/IdentifyNativeClient.php"
+      - "app/Http/Resources/**"
+      - "app/Providers/RouteServiceProvider.php"
+      - "app/Services/Mobile/**"
+      - "routes/api.php"
+      - "routes/api_v1.php"
+      - "tests/Feature/Contracts/**"
+      - "tests/Feature/Native/**"
+      - ".github/workflows/ios-native.yml"
+  workflow_dispatch:
+    inputs:
+      run_staging_health:
+        description: "Run the authenticated native health check against staging"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Record Xcode version
+        run: xcodebuild -version
+
+      - name: Create and boot an iPhone 11 simulator
+        id: simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          runtime_id="$(
+            xcrun simctl list runtimes --json |
+              /usr/bin/ruby -rjson -e '
+                runtimes = JSON.parse($stdin.read).fetch("runtimes").select do |runtime|
+                  runtime["isAvailable"] && runtime.fetch("identifier").start_with?("com.apple.CoreSimulator.SimRuntime.iOS-")
+                end
+                runtime = runtimes.max_by do |candidate|
+                  candidate.fetch("version").split(".").map(&:to_i)
+                end
+                abort "No available iOS simulator runtime is installed" unless runtime
+                print runtime.fetch("identifier")
+              '
+          )"
+          device_type_id="$(
+            xcrun simctl list devicetypes --json |
+              /usr/bin/ruby -rjson -e '
+                device = JSON.parse($stdin.read).fetch("devicetypes").find do |candidate|
+                  candidate["name"] == "iPhone 11"
+                end
+                abort "The iPhone 11 simulator device type is not installed" unless device
+                print device.fetch("identifier")
+              '
+          )"
+          udid="$(xcrun simctl create "Fynla CI iPhone 11 ${GITHUB_RUN_ID}" "$device_type_id" "$runtime_id")"
+
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "destination=platform=iOS Simulator,id=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Run unsigned unit and UI tests
+        id: native_tests
+        run: |
+          xcodebuild \
+            -project ios-native/Fynla.xcodeproj \
+            -scheme Fynla-Staging \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            -resultBundlePath '${{ runner.temp }}/FynlaTests.xcresult' \
+            test \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Build the production scheme unsigned
+        run: |
+          xcodebuild \
+            -project ios-native/Fynla.xcodeproj \
+            -scheme Fynla-Production \
+            -destination 'generic/platform=iOS Simulator' \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Supply staging health credentials to the simulator
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_staging_health }}
+        env:
+          FYNLA_STAGING_BEARER_TOKEN: ${{ secrets.FYNLA_STAGING_BEARER_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$FYNLA_STAGING_BEARER_TOKEN" ]]; then
+            echo "Staging native-health secrets are not configured" >&2
+            exit 1
+          fi
+
+          xcrun simctl spawn '${{ steps.simulator.outputs.udid }}' \
+            launchctl setenv FYNLA_STAGING_BEARER_TOKEN "$FYNLA_STAGING_BEARER_TOKEN"
+
+      - name: Run opt-in staging native health
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_staging_health }}
+        run: |
+          xcodebuild \
+            -project ios-native/Fynla.xcodeproj \
+            -scheme Fynla-Staging \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            -resultBundlePath '${{ runner.temp }}/FynlaHealth.xcresult' \
+            -only-testing:FynlaTests/StagingHealthIntegrationTests \
+            test \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Remove staging health credentials from the simulator
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.run_staging_health }}
+        run: |
+          xcrun simctl spawn '${{ steps.simulator.outputs.udid }}' \
+            launchctl unsetenv FYNLA_STAGING_BEARER_TOKEN || true
+
+      - name: Upload failed test results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-native-xcresults-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/FynlaTests.xcresult
+            ${{ runner.temp }}/FynlaHealth.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Delete the CI simulator
+        if: ${{ always() && steps.simulator.outputs.udid != '' }}
+        run: |
+          xcrun simctl shutdown '${{ steps.simulator.outputs.udid }}' || true
+          xcrun simctl delete '${{ steps.simulator.outputs.udid }}'

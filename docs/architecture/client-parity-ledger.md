@@ -29,6 +29,17 @@ A row must not use `green` while either evidence cell is blank. User journeys re
 | StoreKit purchase | not-applicable | not-applicable | not-landed | Package 4 | Apple billing adapter |  |  |  |  |
 | Account deletion outcome | required | required | not-landed | Package 7 | GDPRController |  |  |  |  |
 
+## Current Package 2 foundation evidence
+
+- Foundation boundary: native SwiftUI environment, session/router shell, typed API and server-sent events transports, privacy-safe diagnostics, accessible design primitives, deterministic app composition and iOS CI through Task 8.
+- Composition evidence: one `AppDependencies` value owns the validated environment, ephemeral HTTP transport, redacting diagnostics, access-token provider, clock, request-ID factory and typed `FeatureClients` extension point.
+- Deterministic shell evidence: Debug-only `-fynla-ui-test-mode` accepts only the compiled `signed-out`, `unlocked` and `design-system` modes. Those modes use a fixed dependency graph whose transport fails every data or byte-stream request; Release and Production builds do not compile or inspect the test-mode parser.
+- CI evidence: `.github/workflows/ios-native.yml` uses the public `macos-26` runner, selects an installed available iOS runtime, creates and boots an iPhone 11, runs signing-disabled tests by simulator UDID, and uploads the result bundle only when the job fails.
+- Authenticated staging evidence: `StagingHealthIntegrationTests` calls the compiled `https://csjones.co/fynla/api/v1/native/health` endpoint only when `FYNLA_STAGING_BEARER_TOKEN` is supplied at runtime. It accepts no base-URL override, does not log the credential, and reports an honest skip while the token is absent.
+- Automated evidence: the exact-source Swift 6 host suite passed 66 tests across 10 suites; the authenticated staging health test compiled and skipped honestly because its runtime token was absent. The UI-smoke shell helper parses and the workflow YAML is syntactically valid.
+- Evidence status: independent unsigned target compilation and clean-runner UI execution remain required because local Xcode/CoreSimulator wrapper operations are known to stall. No user-capability row is promoted to `green` without the required simulator and manual evidence.
+- Exclusions: no production deployment, production host request, production smoke check, legacy Capacitor surface, `/m` client or existing `ios/App/` project was changed or exercised.
+
 ## Current Package 1 handoff
 
 - Package: iOS Package 1, Economic Contract and API Readiness
