@@ -42,11 +42,11 @@
 
 **Files:** Every file explicitly named by `codex/plans/programme/2026-07-14-freemium-economic-contract-remediation.md`.
 
-- [ ] Re-read the approved pricing HTML and the economic remediation plan before changing code.
-- [ ] Execute every unchecked task in the economic remediation plan in order, using its exact tests and desktop/`/m` checkpoints.
-- [ ] Keep the current no-paid-account fact as a migration simplifier, not as permission to omit churn, grace or future-provider tests.
-- [ ] Confirm `rg -n "trial|tier1|tier2|tier3|student|standard|pro|family"` produces only explicitly documented historical, migration or unrelated-domain occurrences.
-- [ ] Run the economic plan's full gate and record its evidence before Task 2.
+- [x] Re-read the approved pricing HTML and the economic remediation plan before changing code.
+- [x] Execute every unchecked task in the economic remediation plan in order, using its exact tests and desktop/`/m` checkpoints.
+- [x] Keep the current no-paid-account fact as a migration simplifier, not as permission to omit churn, grace or future-provider tests.
+- [x] Confirm `rg -n "trial|tier1|tier2|tier3|student|standard|pro|family"` produces only explicitly documented historical, migration or unrelated-domain occurrences.
+- [x] Run the economic plan's full gate and record its evidence before Task 2.
 
 Expected economic invariants:
 
@@ -205,6 +205,14 @@ npm run build:mobile
 ```
 
 Expected: all exit 0, the economic plan is fully checked, `/m` remains deployable, and no native implementation has yet modified the Capacitor project.
+
+Automated gate recorded 2026-07-16 on Package 1 head `6a2a213c`:
+
+- PHP package gate: 333 passed, 1,410 assertions.
+- JavaScript package gate: 54 files and 727 tests passed.
+- Desktop Vite build: exit 0.
+- `/m` Vite build: exit 0.
+- Native boundary audit: no changes under `ios/App/`, `resources/mobile/` or `deploy/mobile/build-ios.sh`.
 
 ### Package 1 exit criteria
 
