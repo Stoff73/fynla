@@ -5,16 +5,28 @@ protocol HTTPTransport: Sendable {
     func byteStream(for request: URLRequest) async throws -> HTTPByteStream
 }
 
+enum HTTPTransportError: Error, Sendable, Equatable {
+    case byteBufferOverflow(maximumBytes: Int)
+}
+
 struct HTTPByteStream: Sendable {
     let response: HTTPURLResponse
     let bytes: AsyncThrowingStream<UInt8, Error>
 }
 
 actor URLSessionHTTPTransport: HTTPTransport {
-    private let session: URLSession
+    static let defaultMaximumBufferedBytes = 65_536
 
-    init(session: URLSession) {
+    private let session: URLSession
+    private let maximumBufferedBytes: Int
+
+    init(
+        session: URLSession,
+        maximumBufferedBytes: Int = URLSessionHTTPTransport.defaultMaximumBufferedBytes
+    ) {
+        precondition(maximumBufferedBytes > 0)
         self.session = session
+        self.maximumBufferedBytes = maximumBufferedBytes
     }
 
     static func ephemeral() -> URLSessionHTTPTransport {
@@ -39,12 +51,52 @@ actor URLSessionHTTPTransport: HTTPTransport {
             throw URLError(.badServerResponse)
         }
 
-        let stream = AsyncThrowingStream<UInt8, Error> { continuation in
+        let producer = bytes.task
+        let stream = Self.boundedByteStream(
+            from: bytes,
+            maximumBufferedBytes: maximumBufferedBytes,
+            cancelProducer: {
+                producer.cancel()
+            }
+        )
+
+        return HTTPByteStream(response: response, bytes: stream)
+    }
+
+    nonisolated static func boundedByteStream<Source>(
+        from source: Source,
+        maximumBufferedBytes: Int,
+        cancelProducer: @escaping @Sendable () -> Void
+    ) -> AsyncThrowingStream<UInt8, Error>
+    where Source: AsyncSequence & Sendable, Source.Element == UInt8 {
+        precondition(maximumBufferedBytes > 0)
+
+        return AsyncThrowingStream<UInt8, Error>(
+            bufferingPolicy: .bufferingOldest(maximumBufferedBytes)
+        ) { continuation in
             let task = Task {
                 do {
-                    for try await byte in bytes {
+                    for try await byte in source {
                         try Task.checkCancellation()
-                        continuation.yield(byte)
+
+                        switch continuation.yield(byte) {
+                        case .enqueued:
+                            continue
+                        case .dropped:
+                            cancelProducer()
+                            continuation.finish(
+                                throwing: HTTPTransportError.byteBufferOverflow(
+                                    maximumBytes: maximumBufferedBytes
+                                )
+                            )
+                            return
+                        case .terminated:
+                            cancelProducer()
+                            return
+                        @unknown default:
+                            cancelProducer()
+                            return
+                        }
                     }
                     continuation.finish()
                 } catch {
@@ -52,11 +104,12 @@ actor URLSessionHTTPTransport: HTTPTransport {
                 }
             }
 
-            continuation.onTermination = { _ in
+            continuation.onTermination = { termination in
                 task.cancel()
+                if case .cancelled = termination {
+                    cancelProducer()
+                }
             }
         }
-
-        return HTTPByteStream(response: response, bytes: stream)
     }
 }

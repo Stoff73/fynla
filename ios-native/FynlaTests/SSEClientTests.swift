@@ -237,6 +237,73 @@ struct SSEClientTests {
     }
 }
 
+@Suite("HTTP byte stream")
+struct HTTPByteStreamTests {
+    @Test
+    func boundedHandoffPreservesOrderAndBytesAtCapacity() async throws {
+        let producerCancellation = ProducerCancellationProbe()
+        let upstream = AsyncThrowingStream<UInt8, Error> { continuation in
+            continuation.yield(0x01)
+            continuation.yield(0x02)
+            continuation.yield(0x03)
+            continuation.finish()
+        }
+        let stream = URLSessionHTTPTransport.boundedByteStream(
+            from: upstream,
+            maximumBufferedBytes: 3,
+            cancelProducer: {
+                producerCancellation.cancel()
+            }
+        )
+
+        for _ in 0..<100 {
+            await Task.yield()
+        }
+
+        var received: [UInt8] = []
+        for try await byte in stream {
+            received.append(byte)
+        }
+
+        #expect(received == [0x01, 0x02, 0x03])
+        #expect(!producerCancellation.wasCancelled())
+    }
+
+    @Test
+    func boundedHandoffFailsAndCancelsProducerWhenProducerOutrunsConsumer() async throws {
+        let producerCancellation = ProducerCancellationProbe()
+        let upstream = AsyncThrowingStream<UInt8, Error> { continuation in
+            continuation.yield(0x01)
+            continuation.yield(0x02)
+        }
+        let stream = URLSessionHTTPTransport.boundedByteStream(
+            from: upstream,
+            maximumBufferedBytes: 1,
+            cancelProducer: {
+                producerCancellation.cancel()
+            }
+        )
+
+        for _ in 0..<100 where !producerCancellation.wasCancelled() {
+            await Task.yield()
+        }
+
+        var iterator = stream.makeAsyncIterator()
+        #expect(try await iterator.next() == 0x01)
+
+        do {
+            _ = try await iterator.next()
+            Issue.record("Expected bounded byte-buffer overflow")
+        } catch let error as HTTPTransportError {
+            #expect(error == .byteBufferOverflow(maximumBytes: 1))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(producerCancellation.wasCancelled())
+    }
+}
+
 private actor TestSSETransport: HTTPTransport {
     private let status: Int
     private let headers: [String: String]
@@ -310,5 +377,22 @@ private actor CancellationProbe {
 
     func wasCancelled() -> Bool {
         cancelled
+    }
+}
+
+private final class ProducerCancellationProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        lock.unlock()
+    }
+
+    func wasCancelled() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
     }
 }

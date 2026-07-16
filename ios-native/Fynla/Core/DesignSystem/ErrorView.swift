@@ -20,11 +20,6 @@ struct ErrorView: View {
 
     var body: some View {
         VStack(spacing: FynlaSpacing.standard) {
-            Image(systemName: "exclamationmark.circle.fill")
-                .font(.largeTitle)
-                .foregroundStyle(FynlaColor.Token.raspberry500.color)
-                .accessibilityHidden(true)
-
             Text(title)
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)

@@ -37,9 +37,6 @@ private struct SignedOutView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "lock.shield")
-                .font(.largeTitle)
-                .accessibilityHidden(true)
             Text("Fynla")
                 .font(.title.bold())
             Text(message)
@@ -75,9 +72,6 @@ private struct LockedView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "lock.fill")
-                .font(.largeTitle)
-                .accessibilityHidden(true)
             Text("Fynla is locked")
                 .font(.title.bold())
             Text(message)
@@ -93,9 +87,6 @@ private struct LockedView: View {
 private struct UnlockedView: View {
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "checkmark.shield")
-                .font(.largeTitle)
-                .accessibilityHidden(true)
             Text("Fynla")
                 .font(.title.bold())
             Text("Your secure workspace is ready.")

@@ -107,8 +107,8 @@ struct SSEParserTests {
 
     @Test
     func decodesAMultiByteScalarSplitAcrossEveryByteBoundary() throws {
-        let bytes = [UInt8]("data: Pension ✅ £25,000\n\n".utf8)
-        let expected = [SSEEvent(id: nil, event: nil, data: "Pension ✅ £25,000")]
+        let bytes = [UInt8]("data: Pension £25,000, café 年\n\n".utf8)
+        let expected = [SSEEvent(id: nil, event: nil, data: "Pension £25,000, café 年")]
 
         for split in 0...bytes.count {
             #expect(try parse([

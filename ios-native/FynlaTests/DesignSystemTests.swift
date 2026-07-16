@@ -95,6 +95,29 @@ struct DesignSystemTests {
         #expect(!LoadingView.showsAnimatedIndicator(reduceMotion: true))
     }
 
+    @Test
+    func shellAndErrorViewsContainNoDecorativeSystemSymbols() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .resolvingSymlinksInPath()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourcePaths = [
+            "Fynla/App/AppRootView.swift",
+            "Fynla/Core/DesignSystem/ErrorView.swift",
+        ]
+
+        for sourcePath in sourcePaths {
+            let source = try String(
+                contentsOf: nativeRoot.appending(path: sourcePath),
+                encoding: .utf8
+            )
+            #expect(
+                !source.contains("Image(systemName:"),
+                "Decorative SF Symbol found in \(sourcePath)"
+            )
+        }
+    }
+
     #if FYNLA_UI_TESTING
     @Test
     @MainActor
