@@ -1,0 +1,8 @@
+: keep-alive
+id: first
+event: fyn
+data: alpha
+data: beta
+
+id: second
+data: omega

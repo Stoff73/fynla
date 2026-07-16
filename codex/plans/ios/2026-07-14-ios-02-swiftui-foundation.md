@@ -245,9 +245,9 @@ Recorded 2026-07-16: the TDD red run failed because the diagnostics boundary did
 
 **Files:** Create `Core/Streaming/SSEParser.swift`, `SSEEvent.swift`, `SSEClient.swift`; create `SSEParserTests.swift`, `SSEClientTests.swift`, fixtures.
 
-- [ ] Write parser tests before implementation for CRLF/LF framing, multiple `data:` lines, comments, event IDs, UTF-8 split across byte chunks, multiple frames per chunk and a final frame without trailing blank line.
-- [ ] For every fixture byte array, feed the parser at every possible single split point and assert identical events.
-- [ ] Define:
+- [x] Write parser tests before implementation for CRLF/LF framing, multiple `data:` lines, comments, event IDs, UTF-8 split across byte chunks, multiple frames per chunk and a final frame without trailing blank line.
+- [x] For every fixture byte array, feed the parser at every possible single split point and assert identical events.
+- [x] Define:
 
 ```swift
 struct SSEEvent: Sendable, Equatable {
@@ -262,11 +262,13 @@ struct SSEParser: Sendable {
 }
 ```
 
-- [ ] Keep event decoding separate from transport parsing; unknown typed Fyn frames must remain decodable as raw JSON in Package 5.
-- [ ] Define `SSEClient.stream(_:) -> AsyncThrowingStream<SSEEvent, Error>` using URLSession bytes and cooperative cancellation.
-- [ ] Branch on status 202 before reading a stream and return a typed queued result containing the server message identifier.
-- [ ] Do not stop at a Fyn `done` event; only end when the HTTP body ends or a terminal transport error occurs.
-- [ ] Run all SSE tests; expect PASS.
+- [x] Keep event decoding separate from transport parsing; unknown typed Fyn frames remain raw `SSEEvent.data` for Package 5.
+- [x] Define `SSEClient.stream(_:) -> SSEStreamResult`, whose stream branch is `AsyncThrowingStream<SSEEvent, Error>`, using URLSession bytes and cooperative cancellation.
+- [x] Branch on status 202 before SSE parsing and return a typed queued result containing the server message identifier.
+- [x] Do not stop at a Fyn `done` event; only end when the HTTP body ends or a terminal transport error occurs.
+- [x] Run all SSE tests; expect PASS.
+
+Recorded 2026-07-16: the TDD red run failed on the deliberately missing SSE boundary. The byte parser now handles LF, CRLF, a split CRLF boundary, one leading UTF-8 BOM, comments, persistent event IDs, joined data fields, strict UTF-8 and final EOF dispatch; all three fixtures produce identical events at every possible byte split. Bounded line, event and decoded-event buffers fail with typed errors instead of growing or dropping frames silently. The transport handles HTTP 202 as a size-limited typed queued result before parsing, preserves cancellation, propagates terminal transport failures and continues beyond a typed `done` frame until HTTP EOF. All 56 exact-source Swift 6 host tests across eight suites passed. An unsigned Xcode `build-for-testing` pass under warnings-as-errors followed, with asset catalogues excluded to isolate the known local asset-service fault; all three SSE fixtures were verified in `FynlaTests.xctest`.
 
 **Intended review boundary:** `feat: add byte-safe server sent events client`
 
