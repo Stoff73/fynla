@@ -63,12 +63,12 @@ expect($tierStore->forTier('premium')->price_annual_pence)->toBe(5999);
 
 **Files:** Create `docs/architecture/client-parity-ledger.md`.
 
-- [ ] Write a failing documentation check in `tests/Architecture/ClientParityLedgerTest.php` asserting the ledger exists and includes every required capability row.
-- [ ] Run `./vendor/bin/pest tests/Architecture/ClientParityLedgerTest.php`; expect failure because the ledger is absent.
-- [ ] Create the ledger with the exact status vocabulary from the programme index: `required`, `not-landed`, `not-applicable`, `green`.
-- [ ] Populate the initial rows listed in `2026-07-14-native-ios-swift-migration-programme.md`.
-- [ ] Add columns for automated evidence, manual evidence, last verified date and approving person.
-- [ ] Make the architecture test reject `green` rows with blank evidence cells.
+- [x] Write a failing documentation check in `tests/Architecture/ClientParityLedgerTest.php` asserting the ledger exists and includes every required capability row.
+- [x] Run `./vendor/bin/pest tests/Architecture/ClientParityLedgerTest.php`; expect failure because the ledger is absent.
+- [x] Create the ledger with the exact status vocabulary from the programme index: `required`, `not-landed`, `not-applicable`, `green`.
+- [x] Populate the initial rows listed in `2026-07-14-native-ios-swift-migration-programme.md`.
+- [x] Add columns for automated evidence, manual evidence, last verified date and approving person.
+- [x] Make the architecture test reject `green` rows with blank evidence cells.
 
 Core architecture test:
 
@@ -90,7 +90,7 @@ it('tracks every native migration capability', function () {
 });
 ```
 
-- [ ] Run the test again; expect PASS.
+- [x] Run the test again; expect PASS.
 
 **Intended review boundary:** `docs: add native client parity ledger`
 
