@@ -187,13 +187,13 @@ Expected: native route requires valid native headers; all existing mobile tests 
 
 **Files:** Update evidence only in `docs/architecture/client-parity-ledger.md` after verification.
 
-- [ ] Start or use the correct dev environment; do not use production credentials or the production SSH connector for csjones.
-- [ ] Verify new registration creates a Free user and reaches the desktop application with no trial screen.
-- [ ] Verify the same verified account can authenticate through `/m` and load dashboard, module detail and Fyn.
-- [ ] Verify a Free count-cap rejection is explanatory on both clients and does not hide existing records.
-- [ ] Verify a Premium fixture exposes the same capabilities on desktop and `/m`.
-- [ ] Follow the `verify-m` skill's authenticated path; do not treat a cold unauthenticated `/m` navigation as a product failure.
-- [ ] Record browser URLs, test identity type (never credentials), build/commit and screenshots in the ledger.
+- [x] Start or use the correct dev environment; do not use production credentials or the production SSH connector for csjones.
+- [x] Verify new registration creates a Free user and reaches the desktop application with no trial screen.
+- [x] Verify the same verified account can authenticate through `/m` and load dashboard, module detail and Fyn.
+- [x] Verify a Free count-cap rejection is explanatory on both clients and does not hide existing records.
+- [x] Verify a Premium fixture exposes the same capabilities on desktop and `/m`.
+- [x] Follow the `verify-m` skill's authenticated path; do not treat a cold unauthenticated `/m` navigation as a product failure.
+- [x] Record browser URLs, test identity type (never credentials), build/commit and screenshots in the ledger.
 
 Package gate:
 
@@ -216,10 +216,10 @@ Automated gate recorded 2026-07-16 on Package 1 head `6a2a213c`:
 
 ### Package 1 exit criteria
 
-- [ ] Free and Premium are the only live tier identities.
-- [ ] No trial is created or advertised.
-- [ ] New registrations are writable Free accounts.
-- [ ] Auth, entitlement, dashboard, module and Fyn response shapes are frozen by contract tests.
-- [ ] Native client headers are additive and isolated to `/api/v1/native`.
-- [ ] Desktop and `/m` evidence is green in the ledger.
+- [x] Free and Premium are the only live tier identities.
+- [x] No trial is created or advertised.
+- [x] New registrations are writable Free accounts.
+- [x] Auth, entitlement, dashboard, module and Fyn response shapes are frozen by contract tests.
+- [x] Native client headers are additive and isolated to `/api/v1/native`.
+- [x] Desktop and `/m` evidence is green in the ledger.
 - [ ] CSJ approves the Package 1 evidence before StoreKit production work begins.
