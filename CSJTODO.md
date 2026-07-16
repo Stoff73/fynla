@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-16 — Native Swift programme Package 1 Tasks 1–12 are checkpointed in PRs #622–#627. Task 12 is migrated, reseeded and green locally; PR #627 remains draft and remote deployment remains blocked by the required csjones and production read-only audits.*
+*Last updated: 2026-07-16 — Native Swift programme Package 1 Tasks 1–12 are checkpointed in PRs #622–#627. Task 13's canonical repository contract is ready on its isolated branch; vault publication and remote schema removal remain blocked by the required csjones and production read-only audits.*
 
 ## 2026-07-15 — Native Swift programme Package 1
 
@@ -12,10 +12,10 @@
 - [x] Task 11 — obsolete trial-copy removal, PR #626.
 - [x] Task 12 — guarded trial-schema removal is migrated, fully reseeded and verified locally in draft PR #627. Exact saved local audit is `{"provisional_shape":0,"historical_trial_shape":0,"paid_shape":0,"safe_to_remove":true}`.
 - [ ] Task 12 external gate — merge/deploy the audit command through PR #625, then save exact exit-0 evidence from csjones and production before merging or remotely deploying PR #627.
-- [ ] Task 13 — repository canonical-contract documentation next; vault publication waits for the Task 12 external gate.
+- [ ] Task 13 — canonical repository contract, implemented signup state and design-system subscription presentation are ready; publish the matching vault updates only after the Task 12 external gate.
 - [ ] Package 2 SwiftUI — blocked until Package 1 is fully green.
 - [ ] Deferred tech debt — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
-- Worktree boundary — all programme work stays in `/private/tmp/fynla-freemium-economic-api-readiness`; `/Users/CSJ/Desktop/fynla` remains on the Save Tax branch.
+- Worktree boundary — programme tasks use isolated `/private/tmp/fynla-freemium-*` worktrees; `/Users/CSJ/Desktop/fynla` remains on the Save Tax branch.
 
 ## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
 

@@ -1,7 +1,9 @@
 # Fynla Design System
 
-**Version:** 1.3.0  
-**Last Updated:** 02 April 2026  
+**Version:** 1.3.1
+
+**Last Updated:** 16 July 2026
+
 **Framework:** Vue.js 3 + Tailwind CSS
 
 This document is the single source of truth for all design decisions in the Fynla financial planning application. Every component must adhere to these specifications to ensure visual consistency, professional quality, and user trust.
@@ -53,7 +55,7 @@ This document is the single source of truth for all design decisions in the Fynl
 41. [Floating Action Buttons (FABs)](#floating-action-buttons-fabs)
 42. [Slide-in Panels (Drawers)](#slide-in-panels-drawers)
 43. [Preview Mode Banner](#preview-mode-banner)
-44. [Trial Countdown Banner](#trial-countdown-banner)
+44. [Subscription State Presentation](#subscription-state-presentation)
 45. [Toast / Notification System](#toast--notification-system)
 46. [Confirm Dialog](#confirm-dialog)
 47. [Guidance Tooltip (Walkthrough)](#guidance-tooltip-walkthrough)
@@ -1998,30 +2000,28 @@ Per-persona gradient banner shown in preview/demo mode.
 
 ---
 
-## Trial Countdown Banner
+## Subscription State Presentation
 
-Shown for users with `status === 'trialing'`.
+Subscription state comes only from `GET /api/payment/subscription-status` and the shared presentation helper. Never infer entitlement from a checkout query, cached client selection, or the presence of an upgrade control. Desktop and `/m` must present the same state semantics.
 
-```html
-<div class="bg-violet-50 border-b border-violet-200 px-4 py-2">
-  <div class="flex items-center justify-between">
-    <div>
-      <span class="text-sm font-medium text-violet-800">X days remaining</span>
-      <div class="w-full bg-violet-200 rounded-full h-1.5 mt-1">
-        <div class="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
-             :style="{ width: progress + '%' }"></div>
-      </div>
-    </div>
-    <button class="bg-violet-500 text-white rounded-lg px-3 py-1 text-sm hover:bg-violet-600">
-      Upgrade Now
-    </button>
-    <button v-if="daysRemaining > 2" class="text-violet-400 hover:text-violet-600">✕</button>
-  </div>
-</div>
-```
+| State | Presentation | Access and action |
+|-------|--------------|-------------------|
+| Free | Standard white card with `border-light-gray`; `bg-violet-100 text-violet-800` badge | Explain that core planning remains writable within Free limits. Use a plain "Compare plans" action when payment is available. |
+| Payment pending | Standard card with violet informational treatment | State that Free remains active and Premium begins only after verified payment. A continuation action may return to the shared Premium checkout. |
+| Active paid | Standard card with `bg-spring-100 text-spring-800` badge and spring renewal notice | Show plan, billing cycle, amount, and exact renewal or access-end date. Cancellation is a text action, not a danger banner. |
+| Cancelled inside paid period | Standard card with `bg-savannah-100 text-neutral-500` badge; violet date/countdown panel | State that auto-renewal is cancelled and full access continues until the exact period end. Do not present this as expired. |
+| Payment issue inside paid period | Raspberry border and message treatment | Explain the payment issue without revoking access early. Offer the provider-appropriate resolution action. |
+| Paid grace | Non-dismissable data-retention overlay plus violet retention countdown | Label the account read-only, show the exact retention deadline, and offer Premium restoration and data controls. |
+| Terminal paid outside grace | Neutral ended state | Keep writes disabled and show only the provider-appropriate restoration and retention actions. |
 
-- Non-dismissable when ≤ 2 days remaining
-- "Upgrade Now" opens `PlanSelectionModal`
+Rules:
+
+- Use text labels and dates so colour is never the only status indicator.
+- Use the existing palette and card, badge, alert, button, and overlay patterns. Do not add state icons.
+- Permanent Free has no expiry, retention countdown, or blocking overlay.
+- A pending payment is not Premium and must not change the resolved tier.
+- Cancellation preserves paid access through `current_period_end`.
+- `/m` routes upgrade actions to the shared subscription surface; it does not implement a separate billing state machine.
 
 ---
 

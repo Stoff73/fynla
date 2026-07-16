@@ -211,4 +211,7 @@
 - Task 12 verification: core payment/tier/middleware/lifecycle run 255 tests/989 assertions; related account/authentication/AI/service run 90 tests/383 assertions; frontend 54 files/726 tests; production build, ESLint, policy lint, Pint and diff checks green.
 - Two baseline test-order defects found and fixed in the same loop: tier-collapse cleanup now restores both Task 1 migrations, and payment replay time is frozen at second precision.
 - PR #627 is explicitly blocked from merge or remote deployment until PR #625's exact audit command exits 0 on csjones and production and both evidence objects are saved.
-- Next: branch Task 13 from #627 for canonical repository documentation; do not publish vault changes until the external gate clears.
+- Task 13 repository documentation is prepared on `codex/freemium-task13-canonical-docs`: one concise canonical economic contract, the implemented pure-freemium signup state, and design-system rules for Free, pending, active, cancelled, payment-issue, grace and terminal presentation.
+- Historical design specifications with retired tier/trial economics are explicitly labelled superseded; current-document scans, policy lint and diff checks are green.
+- Vault payment, authentication, onboarding, public-page and architecture notes were inventoried but not changed. Publication remains gated on the exact csjones and production audits required by Task 12.
+- Next: publish the Task 13 repository documentation as a draft PR stacked on #627, then begin Task 14 static regression cleanup without claiming the external or vault gates complete.
