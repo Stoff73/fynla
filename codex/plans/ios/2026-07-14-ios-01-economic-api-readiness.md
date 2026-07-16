@@ -157,10 +157,10 @@ Expected: PASS. If this broad AI selection is slow, first run the named failing 
 
 **Files:** Create `app/Http/Middleware/IdentifyNativeClient.php`; modify `app/Http/Kernel.php`, `app/Providers/RouteServiceProvider.php`, `routes/api_v1.php`; create `tests/Feature/Native/NativeClientIdentificationTest.php`.
 
-- [ ] Write a failing test for headers `X-Fynla-Client: ios`, `X-Fynla-Version: 1.0.0` and `X-Fynla-Build: 1`.
-- [ ] Make the middleware validate these headers only on `/api/v1/native/*` routes and set normalised request attributes.
-- [ ] Reject missing/invalid native headers with status 400 and code `invalid_native_client`, but never apply this rule to `/api`, `/api/v1/mobile` or Apple webhooks.
-- [ ] Add a temporary authenticated native health route for foundation testing:
+- [x] Write a failing test for headers `X-Fynla-Client: ios`, `X-Fynla-Version: 1.0.0` and `X-Fynla-Build: 1`.
+- [x] Make the middleware validate these headers only on `/api/v1/native/*` routes and set normalised request attributes.
+- [x] Reject missing/invalid native headers with status 400 and code `invalid_native_client`, but never apply this rule to `/api`, `/api/v1/mobile` or Apple webhooks.
+- [x] Add a temporary authenticated native health route for foundation testing:
 
 ```php
 Route::middleware(['auth:sanctum', 'native.client'])
@@ -170,8 +170,8 @@ Route::middleware(['auth:sanctum', 'native.client'])
     ]));
 ```
 
-- [ ] Keep minimum-version enforcement out of this package; Package 7 adds it once a real release exists.
-- [ ] Add the route to `PreviewWriteInterceptor::EXCLUDED_ROUTES` only if its method is intercepted; a read-only GET should not need an exclusion.
+- [x] Keep minimum-version enforcement out of this package; Package 7 adds it once a real release exists.
+- [x] Add the route to `PreviewWriteInterceptor::EXCLUDED_ROUTES` only if its method is intercepted; a read-only GET should not need an exclusion.
 
 Run:
 

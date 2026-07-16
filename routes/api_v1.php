@@ -38,6 +38,15 @@ Route::get('/health', function () {
     ]);
 })->name('api.v1.health');
 
+Route::middleware(['auth:sanctum', 'native.client'])
+    ->prefix('native')
+    ->group(function () {
+        Route::get('/health', fn () => response()->json([
+            'success' => true,
+            'data' => ['api_version' => 'v1'],
+        ]))->name('api.v1.native.health');
+    });
+
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
     // Auth token refresh
