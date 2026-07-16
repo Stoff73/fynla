@@ -1,15 +1,21 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-15 — context-clear wrap, session 1. Native Swift programme Package 1 Tasks 1–6 are checkpointed at `5a35bd5` on `codex/freemium-economic-api-readiness`. Next: Task 7, Premium checkout intent through verified registration. Handover: `July/July15Updates/handover-2026-07-15-session-1-clear.md`.*
+*Last updated: 2026-07-16 — Native Swift programme Package 1 Tasks 1–12 are checkpointed in PRs #622–#627. Task 12 is migrated, reseeded and green locally; PR #627 remains draft and remote deployment remains blocked by the required csjones and production read-only audits.*
 
-## 2026-07-15 — Native Swift programme Package 1 (context clear)
+## 2026-07-15 — Native Swift programme Package 1
 
-- [x] Tasks 1–6 — Free/Premium contract, economic matrix, balance history and adviser export on web and `/m`, subscription-state hardening, pending checkout safety, trial audits, and two-tier public pricing.
-- [ ] Task 7 — preserve canonical Premium checkout intent through registration; verified account remains Free with no subscription.
-- [ ] Task 7 boundary — change Free pricing links from `/register?plan=free` to plain `/register` and lock with a contract assertion.
-- [ ] Task 8 and remaining Package 1 gates — finish before any Xcode or Package 2 SwiftUI work.
+- [x] Restore all ten approved programme and iOS implementation plans under `codex/plans/` (`15689c8`).
+- [x] Tasks 1–7 — consolidated readiness branch and PR #622; Task 7 preserves only canonical Premium checkout intent and keeps verified accounts Free until payment. Final GitHub run `29463239284` is fully green across lint, PHP, frontend, build, browser, logic and security checks.
+- [x] Task 8 — upgrade and limit guidance, PR #623.
+- [x] Task 9 — canonical subscription UI, PR #624.
+- [x] Task 10 — pure-freemium lifecycle semantics, corrected audit contract and converted-history normalisation, PR #625.
+- [x] Task 11 — obsolete trial-copy removal, PR #626.
+- [x] Task 12 — guarded trial-schema removal is migrated, fully reseeded and verified locally in draft PR #627. Exact saved local audit is `{"provisional_shape":0,"historical_trial_shape":0,"paid_shape":0,"safe_to_remove":true}`.
+- [ ] Task 12 external gate — merge/deploy the audit command through PR #625, then save exact exit-0 evidence from csjones and production before merging or remotely deploying PR #627.
+- [ ] Task 13 — repository canonical-contract documentation next; vault publication waits for the Task 12 external gate.
+- [ ] Package 2 SwiftUI — blocked until Package 1 is fully green.
 - [ ] Deferred tech debt — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
-- Deployment: none. The Package 1 branch is incomplete and not deployable.
+- Worktree boundary — all programme work stays in `/private/tmp/fynla-freemium-economic-api-readiness`; `/Users/CSJ/Desktop/fynla` remains on the Save Tax branch.
 
 ## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
 

@@ -36,9 +36,9 @@ describe('getSnapshot', function () {
             'status' => 'active',
         ]);
 
-        $trialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $trialUser->id,
+        $pendingUser = User::factory()->create(['is_preview_user' => false]);
+        Subscription::factory()->pending()->create([
+            'user_id' => $pendingUser->id,
         ]);
 
         // Preview user with active sub (should not count)
@@ -99,10 +99,10 @@ describe('getPlanBreakdown', function () {
             'amount' => 5999,
         ]);
 
-        // 1 trialing sub (should NOT count)
-        $trialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $trialUser->id,
+        // One pending checkout should not count as a paid subscription.
+        $pendingUser = User::factory()->create(['is_preview_user' => false]);
+        Subscription::factory()->pending()->create([
+            'user_id' => $pendingUser->id,
             'plan' => 'premium',
         ]);
 

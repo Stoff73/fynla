@@ -69,8 +69,8 @@ declare(strict_types=1);
  *     - tool_use: list_invoices (× 2)
  *     - navigation: route_path='/settings/subscription' (emitted by
  *       handleGetSubscriptionStatus result with `action: 'navigate'`)
- *     - content stream produces: "You're on the Fynla Standard monthly
- *       plan (trialing).  \nYou have 3 invoices.  \n- FYN-INV-000003 —
+ *     - content stream produces: "You're on the Fynla Premium monthly
+ *       plan (active).  \nYou have 3 invoices.  \n- FYN-INV-000003 —
  *       issued 25 April 2026, £10.99  \n- FYN-INV-000002 — issued 25
  *       April 2026, £10.99  \n- FYN-INV-000001 — issued 25 April 2026,
  *       £10.99  \n\nNeed help downloading one or with something else in
@@ -79,8 +79,7 @@ declare(strict_types=1);
  *
  *   Assertion check:
  *     ✅ tool_use events for get_subscription_status AND list_invoices
- *     ✅ Response mentions plan + status ("active" via SSE was actually
- *        "trialing" — see seed-status note below) + count "3 invoices"
+ *     ✅ Response mentions plan + active status + count "3 invoices"
  *        (matches /3 invoice/i regex)
  *     ✅ navigation event with route '/settings/subscription' (matches
  *        /\/settings\/(subscription|invoices)/ regex)
@@ -115,11 +114,10 @@ declare(strict_types=1);
  *                the spec asked for /settings/subscription but the
  *                existing UX is a tab inside /profile).
  *
- *   Seed-status note: the BS-16 spec docblock specifies status='active'
- *   in the seed. The first-pass run used john's seeded trial subscription
- *   (status='trialing') and the LLM correctly surfaced "trialing" in the
- *   response — the regex /3 invoice/i still matched. Updated john's
- *   subscription to status='active' for the destination-page render
+ *   Seed-status note: the BS-16 fixture creates an active Premium
+ *   subscription explicitly; permanent Free development users have no
+ *   subscription and must not be used as a shortcut for this scenario.
+ *   The active fixture is required for the destination-page render
  *   (Billing History block is `v-if="billingHistory.length > 0"` AND
  *   gated to active/cancelled/past_due/expired states inside
  *   SubscriptionManagement.vue line 303).

@@ -87,7 +87,6 @@ class PaymentSettlementService
 
             $userUpdate = [
                 'plan' => $planSlug,
-                'trial_ends_at' => null,
             ];
             if (in_array($planSlug, TierConfigurationStore::TIERS, true)) {
                 $userUpdate['tier'] = $planSlug;

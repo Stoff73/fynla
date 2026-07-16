@@ -42,8 +42,6 @@ describe('paid plan validation', function () {
         $provisional = Subscription::where('user_id', $user->id)->sole();
 
         expect($provisional->status)->toBe('pending')
-            ->and($provisional->trial_started_at)->toBeNull()
-            ->and($provisional->trial_ends_at)->toBeNull()
             ->and($provisional->current_period_start)->toBeNull()
             ->and($provisional->current_period_end)->toBeNull()
             ->and($user->fresh()->tier)->toBe('free');

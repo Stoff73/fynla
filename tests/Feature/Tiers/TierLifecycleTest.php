@@ -6,7 +6,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Account\RetentionPurgeService;
 use App\Services\Payment\RevolutService;
-use App\Services\Payment\TrialService;
+use App\Services\Payment\SubscriptionExpiryService;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Stores\TierGate;
 use App\Services\Tiers\TierResolver;
@@ -29,7 +29,7 @@ afterEach(function () {
 // ── PR5 review CRITICAL (symmetric REVOKE): subscription end clears tier ───
 //
 // Grant (confirmPayment/webhook) sets users.tier. The terminal "subscription
-// ended → plan reset to free" transitions (TrialService::expireCancelledSubscriptions,
+// ended → plan reset to free" transitions (SubscriptionExpiryService::expireCancelledSubscriptions,
 // RetentionPurgeService::purgeUser) must
 // also clear users.tier or a paying customer who cancels keeps tier access
 // forever after their access period expires — an entitlement/revenue leak.
@@ -51,7 +51,7 @@ it('revokes tier access when a cancelled premium subscription expires past its p
     // Sanity: BEFORE the sweep the customer still resolves as premium.
     expect(app(TierResolver::class)->resolve($user->fresh()))->toBe('premium');
 
-    $count = app(TrialService::class)->expireCancelledSubscriptions();
+    $count = app(SubscriptionExpiryService::class)->expireCancelledSubscriptions();
 
     expect($count)->toBe(1);
 
@@ -90,7 +90,7 @@ it('does NOT revoke an active premium subscriber during the cancelled-expiry swe
         'amount' => 1499,
     ]);
 
-    app(TrialService::class)->expireCancelledSubscriptions();
+    app(SubscriptionExpiryService::class)->expireCancelledSubscriptions();
 
     // Both keep premium — the reset only hits genuinely-ended subscriptions.
     expect($active->fresh()->tier)->toBe('premium')
@@ -110,7 +110,7 @@ it('expires ended one-time Premium access and revokes its entitlement', function
     ]);
 
     expect($subscription->isActive())->toBeFalse()
-        ->and(app(TrialService::class)->expireCancelledSubscriptions())->toBe(1)
+        ->and(app(SubscriptionExpiryService::class)->expireCancelledSubscriptions())->toBe(1)
         ->and($subscription->fresh()->status)->toBe('expired')
         ->and($subscription->fresh()->data_retention_starts_at)->not->toBeNull()
         ->and($user->fresh()->plan)->toBe('free')
@@ -135,7 +135,7 @@ it('does not revoke a user when another paid period is still active', function (
         'data_retention_starts_at' => null,
     ]);
 
-    expect(app(TrialService::class)->expireCancelledSubscriptions())->toBe(1)
+    expect(app(SubscriptionExpiryService::class)->expireCancelledSubscriptions())->toBe(1)
         ->and($ended->fresh()->status)->toBe('expired')
         ->and($active->fresh()->status)->toBe('active')
         ->and($user->fresh()->subscription->id)->toBe($active->id)
@@ -166,9 +166,8 @@ it('clears users.tier when an account is purged after retention', function () {
 // Before the fix this path set subscription.status='expired' and
 // data_retention_starts_at but never touched the user — AND because it sets
 // data_retention_starts_at + status='expired', the cancelled-expiry sweep
-// (status='cancelled' AND whereNull('data_retention_starts_at')) and the
-// trial sweep (status='trialing') BOTH permanently exclude it. So no sweep
-// could ever reclaim the user → tier access leaked forever. The handler now
+// (status='cancelled' AND whereNull('data_retention_starts_at')) permanently
+// excludes it. So no sweep could reclaim the user and tier access leaked forever. The handler now
 // revokes the user itself in the same transaction.
 
 it('revokes tier access when a premium fixed-term subscription FINISHES via the Revolut webhook', function () {

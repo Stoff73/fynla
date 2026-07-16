@@ -14,6 +14,11 @@ function tierCollapseMigration(): Migration
     return require database_path('migrations/2026_07_15_000000_collapse_tier_identity_to_free_premium.php');
 }
 
+function unboundedPremiumQuotasMigration(): Migration
+{
+    return require database_path('migrations/2026_07_15_000001_support_unbounded_premium_quotas.php');
+}
+
 function restoreCanonicalTierSchema(Migration $migration): void
 {
     Invoice::query()->delete();
@@ -30,7 +35,7 @@ function restoreCanonicalTierSchema(Migration $migration): void
         'price_annual_pence' => 14990,
     ]));
     $migration->up();
-    TierConfiguration::query()->delete();
+    unboundedPremiumQuotasMigration()->up();
 }
 
 it('blocks active entitlement then maps historical identity without rewriting financial history', function () {
@@ -103,6 +108,11 @@ it('blocks active entitlement then maps historical identity without rewriting fi
     } finally {
         restoreCanonicalTierSchema($migration);
     }
+
+    expect(TierConfiguration::pluck('tier')->sort()->values()->all())
+        ->toBe(['free', 'premium'])
+        ->and(TierConfiguration::where('tier', 'premium')->value('snapshot_surfacing_window_days'))
+        ->toBeNull();
 });
 
 it('writes the approved Free and Premium contract without relying on a retired bridge row', function () {

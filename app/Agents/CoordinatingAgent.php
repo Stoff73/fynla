@@ -2453,7 +2453,6 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             ...$status,
-            'status' => $status['subscription_status'] ?? 'free',
             'action' => 'navigate',
             'route_path' => '/settings/subscription',
             'description' => 'View your subscription and invoices',

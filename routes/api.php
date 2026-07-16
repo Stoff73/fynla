@@ -1126,7 +1126,7 @@ Route::get('/pricing-config', [PricingConfigController::class, 'index']);
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/subscription-status', [PaymentController::class, 'subscriptionStatus']);
-    Route::get('/trial-status', [PaymentController::class, 'subscriptionStatus']);
+    Route::get('/trial-status', fn () => abort(404));
     Route::get('/billing-history', [PaymentController::class, 'billingHistory']);
     Route::post('/create-order', [PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
     Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');

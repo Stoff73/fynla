@@ -24,16 +24,12 @@ class SubscriptionStatusService
         $tier = $this->tierResolver->resolve($user);
         $tierConfig = $this->tierConfigurations->forTier($tier);
         $paymentEnabled = (bool) config('app.payment_enabled', false);
-        $publicStatus = $subscription?->status === 'trialing'
-            ? 'pending'
-            : $subscription?->status;
 
         return [
             'has_subscription' => $subscription !== null,
             'tier' => $tier,
             'tier_display_name' => $tierConfig->display_name,
-            'subscription_status' => $publicStatus,
-            'status' => $publicStatus,
+            'subscription_status' => $subscription?->status,
             'plan' => $subscription?->plan,
             'billing_cycle' => $subscription?->billing_cycle,
             'amount' => $subscription?->amount,
@@ -49,7 +45,7 @@ class SubscriptionStatusService
             'is_in_grace_period' => $paymentEnabled && ($subscription?->isInGracePeriod() ?? false),
             'is_terminal_paid' => $subscription !== null
                 && ! $subscription->isActive()
-                && ! in_array($subscription->status, ['pending', 'trialing'], true),
+                && $subscription->status !== 'pending',
             'auto_renew' => $subscription?->auto_renew ?? false,
             'next_renewal_date' => $subscription?->status === 'active' && $subscription->auto_renew
                 ? $subscription->current_period_end?->toISOString()

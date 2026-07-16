@@ -28,7 +28,7 @@ class TierResolver
         if ($user->tier === 'premium') {
             $latest = $user->subscriptions()->latest('id')->first();
             if ($latest !== null
-                && in_array($latest->status, ['pending', 'trialing'], true)
+                && $latest->status === 'pending'
                 && $this->entitlements->activePremiumFor($user) === null) {
                 return 'free';
             }

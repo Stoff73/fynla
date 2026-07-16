@@ -93,8 +93,6 @@ class CheckSubscription
         // Pure freemium: a Free user may write while no subscription exists or
         // checkout is provisional. TierResolver and DbTierGate still resolve
         // and enforce Free access until verified payment activates Premium.
-        // Historical trialing rows remain provisional only for the one-release
-        // compatibility window and are audited before Task 12 removes them.
         $hasWriteAccess = $subscription === null
             || in_array($subscription->status, Subscription::PROVISIONAL_STATUSES, true)
             || $subscription->isActive();

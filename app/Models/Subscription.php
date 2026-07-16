@@ -18,11 +18,8 @@ class Subscription extends Model
 
     public const STATUS_PENDING = 'pending';
 
-    public const STATUS_TRIALING = 'trialing';
-
     public const PROVISIONAL_STATUSES = [
         self::STATUS_PENDING,
-        self::STATUS_TRIALING,
     ];
 
     protected $fillable = [
@@ -30,8 +27,6 @@ class Subscription extends Model
         'plan',
         'billing_cycle',
         'amount',
-        'trial_started_at',
-        'trial_ends_at',
         'current_period_start',
         'current_period_end',
         'cancelled_at',
@@ -47,8 +42,6 @@ class Subscription extends Model
     ];
 
     protected $casts = [
-        'trial_started_at' => 'datetime',
-        'trial_ends_at' => 'datetime',
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
         'cancelled_at' => 'datetime',

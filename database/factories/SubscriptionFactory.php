@@ -32,8 +32,6 @@ class SubscriptionFactory extends Factory
             'plan' => $plan,
             'billing_cycle' => $billingCycle,
             'status' => 'active',
-            'trial_started_at' => null,
-            'trial_ends_at' => null,
             'current_period_start' => now(),
             'current_period_end' => $billingCycle === 'monthly' ? now()->addMonth() : now()->addYear(),
             'revolut_order_id' => 'rev_'.fake()->uuid(),
@@ -48,23 +46,6 @@ class SubscriptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => Subscription::STATUS_PENDING,
-            'trial_started_at' => null,
-            'trial_ends_at' => null,
-            'current_period_start' => null,
-            'current_period_end' => null,
-            'revolut_order_id' => null,
-        ]);
-    }
-
-    /**
-     * A historical trialing subscription retained for compatibility audits.
-     */
-    public function trialing(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => Subscription::STATUS_TRIALING,
-            'trial_started_at' => now(),
-            'trial_ends_at' => now()->addDays(14),
             'current_period_start' => null,
             'current_period_end' => null,
             'revolut_order_id' => null,

@@ -35,7 +35,6 @@ it('accounts:execute-grace-deletions soft-deletes users whose 30-day grace ended
         'plan' => 'premium',
         'billing_cycle' => 'monthly',
         'status' => 'expired',
-        'trial_started_at' => now()->subYear(),
         'data_retention_starts_at' => now()->subDays(31),
         'amount' => 0,
         'created_at' => now(),

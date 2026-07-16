@@ -28,7 +28,10 @@ beforeEach(function () {
     Mail::fake();
 });
 
-afterEach(fn () => Mockery::close());
+afterEach(function () {
+    $this->travelBack();
+    Mockery::close();
+});
 
 /**
  * @return array{Subscription, Payment}
@@ -780,6 +783,8 @@ it('reserves the last discount use while its Premium order is pending', function
 });
 
 it('keeps payment finalisation effects idempotent when confirmation is replayed', function () {
+    $this->freezeSecond();
+
     $referrer = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
     $referrerSubscription = Subscription::factory()->plan('premium')->create([
         'user_id' => $referrer->id,

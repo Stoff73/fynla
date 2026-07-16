@@ -35,7 +35,7 @@ class ChurnedSubscriberCampaign implements LifecycleCampaign
                 ->whereDate('cancelled_at', now()->subDays($delay)->toDateString())
                 ->whereHas('payments', fn ($paymentQuery) => $paymentQuery->where('status', 'completed'))
             )
-            ->whereDoesntHave('subscriptions', fn ($q) => $q->whereIn('status', ['active', 'trialing']))
+            ->whereDoesntHave('subscriptions', fn ($q) => $q->where('status', 'active'))
             ->get();
     }
 
