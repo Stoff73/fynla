@@ -9,7 +9,10 @@ use Tests\TestCase;
 uses(TestCase::class, RefreshDatabase::class);
 
 it('casts JSON columns to arrays and booleans correctly', function () {
-    $row = TierConfiguration::create(tierConfigFixture('premium'));
+    $row = TierConfiguration::updateOrCreate(
+        ['tier' => 'premium'],
+        tierConfigFixture('premium')
+    );
     $fresh = $row->fresh();
 
     expect($fresh->capability_matrix)->toBeArray()

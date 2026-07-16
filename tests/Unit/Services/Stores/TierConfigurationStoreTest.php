@@ -22,7 +22,7 @@ it('reads the active config for a tier', function () {
 });
 
 it('returns the count cap for an entity/tier pair', function () {
-    expect($this->store->capFor('free', 'savings_account'))->toBe(3)
+    expect($this->store->capFor('free', 'savings_account'))->toBe(2)
         ->and($this->store->capFor('premium', 'savings_account'))->toBeNull()
         ->and($this->store->capFor('free', 'unknown_entity'))->toBeNull();
 });

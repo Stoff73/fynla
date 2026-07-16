@@ -14,7 +14,7 @@ use Tests\Support\Fyn\FynStreamHarness;
 beforeEach(function () {
     // The real chat loop reads the daily token backstop from the tier store
     // (HasAiGuardrails); a factory user resolves to the free tier.
-    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
 
     // The chat path resolves TaxConfigService, whose store memoises the active
     // config and can latch null before the row exists. Re-create + forget the

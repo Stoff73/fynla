@@ -254,7 +254,7 @@
             ],
             [
                 'q' => 'Is my financial data safe?',
-                'a' => "Yes. Your data is encrypted in transit and at rest using industry-standard encryption. We do not share your data with advertisers or earn commission from financial product providers.",
+                'a' => 'Yes. Your data is encrypted in transit and at rest using industry-standard encryption. We do not share your data with advertisers or earn commission from financial product providers.',
             ],
             [
                 'q' => 'What is the difference between Free and Premium?',
@@ -266,21 +266,21 @@
             ],
         ],
     ];
-    include __DIR__.'/partials/modules/faq.php';
-    ?>
+  include __DIR__.'/partials/modules/faq.php';
+  ?>
 
     <?php
-    $module = [
-        'id' => 'pricing-cta',
-        'heading' => 'Ready to take control of your finances?',
-        'subtext' => 'Start with Free and upgrade only when you need more.',
-        'actions' => [
-            ['text' => 'Start with Free', 'href' => '/register', 'primary' => true],
-            ['text' => 'See how it works', 'href' => '/how-it-works', 'primary' => false],
-        ],
-    ];
-    include __DIR__.'/partials/modules/cta-band.php';
-    ?>
+  $module = [
+      'id' => 'pricing-cta',
+      'heading' => 'Ready to take control of your finances?',
+      'subtext' => 'Start with Free and upgrade only when you need more.',
+      'actions' => [
+          ['text' => 'Start with Free', 'href' => '/register', 'primary' => true],
+          ['text' => 'See how it works', 'href' => '/how-it-works', 'primary' => false],
+      ],
+  ];
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
   </main>
 
   <?php include __DIR__.'/partials/footer.php'; ?>

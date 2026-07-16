@@ -14,7 +14,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->user = User::factory()->create();
+    $this->user = User::factory()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 
