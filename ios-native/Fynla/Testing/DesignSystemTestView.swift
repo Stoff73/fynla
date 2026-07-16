@@ -1,4 +1,4 @@
-#if DEBUG
+#if FYNLA_UI_TESTING
 import SwiftUI
 
 struct DesignSystemTestView: View {

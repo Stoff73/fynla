@@ -4,11 +4,10 @@ on:
   pull_request:
     paths:
       - "ios-native/**"
-      - "app/Http/Controllers/Api/AuthController.php"
-      - "app/Http/Controllers/Api/V1/Auth/**"
-      - "app/Http/Controllers/Api/V1/Mobile/**"
+      - "app/Http/Controllers/Api/**"
       - "app/Http/Kernel.php"
-      - "app/Http/Middleware/IdentifyNativeClient.php"
+      - "app/Http/Middleware/**"
+      - "app/Http/Requests/**"
       - "app/Http/Resources/**"
       - "app/Providers/RouteServiceProvider.php"
       - "app/Services/Mobile/**"
@@ -74,11 +73,11 @@ jobs:
               '
           )"
           udid="$(xcrun simctl create "Fynla CI iPhone 11 ${GITHUB_RUN_ID}" "$device_type_id" "$runtime_id")"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "destination=platform=iOS Simulator,id=$udid" >> "$GITHUB_OUTPUT"
 
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
-          echo "udid=$udid" >> "$GITHUB_OUTPUT"
-          echo "destination=platform=iOS Simulator,id=$udid" >> "$GITHUB_OUTPUT"
 
       - name: Run unsigned unit and UI tests
         id: native_tests

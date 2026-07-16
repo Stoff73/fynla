@@ -306,6 +306,28 @@
 			};
 			name = Debug;
 		};
+		A10000000000000000000065 /* UITesting */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG FYNLA_UI_TESTING $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = UITesting;
+		};
 		A10000000000000000000061 /* Staging */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -376,6 +398,31 @@
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
+		};
+		A10000000000000000000075 /* UITesting */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Configurations/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Fynla;
+				INFOPLIST_KEY_FYNLA_API_BASE_URL = "$(FYNLA_API_BASE_URL)";
+				INFOPLIST_KEY_FYNLA_ENVIRONMENT = "$(FYNLA_ENVIRONMENT)";
+				INFOPLIST_KEY_FYNLA_WEB_BASE_URL = "$(FYNLA_WEB_BASE_URL)";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+			};
+			name = UITesting;
 		};
 		A10000000000000000000071 /* Staging */ = {
 			isa = XCBuildConfiguration;
@@ -462,6 +509,18 @@
 			};
 			name = Debug;
 		};
+		A10000000000000000000085 /* UITesting */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fynla.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fynla";
+			};
+			name = UITesting;
+		};
 		A10000000000000000000081 /* Staging */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
@@ -510,6 +569,17 @@
 			};
 			name = Debug;
 		};
+		A10000000000000000000095 /* UITesting */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = Fynla;
+			};
+			name = UITesting;
+		};
 		A10000000000000000000091 /* Staging */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
@@ -550,6 +620,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A10000000000000000000060 /* Debug */,
+				A10000000000000000000065 /* UITesting */,
 				A10000000000000000000061 /* Staging */,
 				A10000000000000000000062 /* Release */,
 				A10000000000000000000063 /* Production */,
@@ -561,6 +632,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A10000000000000000000070 /* Debug */,
+				A10000000000000000000075 /* UITesting */,
 				A10000000000000000000071 /* Staging */,
 				A10000000000000000000072 /* Release */,
 				A10000000000000000000073 /* Production */,
@@ -572,6 +644,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A10000000000000000000080 /* Debug */,
+				A10000000000000000000085 /* UITesting */,
 				A10000000000000000000081 /* Staging */,
 				A10000000000000000000082 /* Release */,
 				A10000000000000000000083 /* Production */,
@@ -583,6 +656,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A10000000000000000000090 /* Debug */,
+				A10000000000000000000095 /* UITesting */,
 				A10000000000000000000091 /* Staging */,
 				A10000000000000000000092 /* Release */,
 				A10000000000000000000093 /* Production */,

@@ -38,7 +38,7 @@ struct AppDependenciesTests {
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer runtime-token")
     }
 
-    #if DEBUG
+    #if FYNLA_UI_TESTING
     @Test
     @MainActor
     func acceptsOnlyCompiledUITestModes() {
@@ -73,6 +73,17 @@ struct AppDependenciesTests {
                     "Fynla",
                     "-fynla-ui-test-mode",
                     "https://attacker.invalid/fixture.json",
+                ]
+            ) == nil
+        )
+        #expect(
+            UITestMode(
+                arguments: [
+                    "Fynla",
+                    "-fynla-ui-test-mode",
+                    "signed-out",
+                    "-fynla-ui-test-mode",
+                    "unlocked",
                 ]
             ) == nil
         )

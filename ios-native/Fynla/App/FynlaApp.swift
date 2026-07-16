@@ -6,12 +6,12 @@ struct FynlaApp: App {
     @State private var router: AppRouter
     private let dependencies: AppDependencies
 
-    #if DEBUG
+    #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
     #endif
 
     init() {
-        #if DEBUG
+        #if FYNLA_UI_TESTING
         let uiTestMode = UITestMode(arguments: ProcessInfo.processInfo.arguments)
         self.uiTestMode = uiTestMode
         let dependencies = uiTestMode == nil
@@ -38,7 +38,7 @@ struct FynlaApp: App {
 
     @ViewBuilder
     private var rootView: some View {
-        #if DEBUG
+        #if FYNLA_UI_TESTING
         if uiTestMode?.showsDesignSystem == true {
             DesignSystemTestView()
         } else {

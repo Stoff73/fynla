@@ -18,8 +18,9 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "signed-out")
         app.launch()
 
-        XCTAssertTrue(app.otherElements["auth.signedOut"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.staticTexts["Sign in to continue."].label, "Sign in to continue.")
+        let shell = app.otherElements["auth.signedOut"]
+        XCTAssertTrue(shell.waitForExistence(timeout: 3))
+        XCTAssertTrue(shell.label.contains("Sign in to continue."))
     }
 
     @MainActor
@@ -27,11 +28,9 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "unlocked")
         app.launch()
 
-        XCTAssertTrue(app.otherElements["app.unlocked"].waitForExistence(timeout: 3))
-        XCTAssertEqual(
-            app.staticTexts["Your secure workspace is ready."].label,
-            "Your secure workspace is ready."
-        )
+        let shell = app.otherElements["app.unlocked"]
+        XCTAssertTrue(shell.waitForExistence(timeout: 3))
+        XCTAssertTrue(shell.label.contains("Your secure workspace is ready."))
     }
 
     @MainActor

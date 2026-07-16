@@ -1,4 +1,4 @@
-#if DEBUG
+#if FYNLA_UI_TESTING
 import Foundation
 
 enum UITestMode: String, Sendable {
