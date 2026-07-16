@@ -42,11 +42,11 @@
 
 **Files:** Every file explicitly named by `codex/plans/programme/2026-07-14-freemium-economic-contract-remediation.md`.
 
-- [ ] Re-read the approved pricing HTML and the economic remediation plan before changing code.
-- [ ] Execute every unchecked task in the economic remediation plan in order, using its exact tests and desktop/`/m` checkpoints.
-- [ ] Keep the current no-paid-account fact as a migration simplifier, not as permission to omit churn, grace or future-provider tests.
-- [ ] Confirm `rg -n "trial|tier1|tier2|tier3|student|standard|pro|family"` produces only explicitly documented historical, migration or unrelated-domain occurrences.
-- [ ] Run the economic plan's full gate and record its evidence before Task 2.
+- [x] Re-read the approved pricing HTML and the economic remediation plan before changing code.
+- [x] Execute every unchecked task in the economic remediation plan in order, using its exact tests and desktop/`/m` checkpoints.
+- [x] Keep the current no-paid-account fact as a migration simplifier, not as permission to omit churn, grace or future-provider tests.
+- [x] Confirm `rg -n "trial|tier1|tier2|tier3|student|standard|pro|family"` produces only explicitly documented historical, migration or unrelated-domain occurrences.
+- [x] Run the economic plan's full gate and record its evidence before Task 2.
 
 Expected economic invariants:
 
@@ -63,12 +63,12 @@ expect($tierStore->forTier('premium')->price_annual_pence)->toBe(5999);
 
 **Files:** Create `docs/architecture/client-parity-ledger.md`.
 
-- [ ] Write a failing documentation check in `tests/Architecture/ClientParityLedgerTest.php` asserting the ledger exists and includes every required capability row.
-- [ ] Run `./vendor/bin/pest tests/Architecture/ClientParityLedgerTest.php`; expect failure because the ledger is absent.
-- [ ] Create the ledger with the exact status vocabulary from the programme index: `required`, `not-landed`, `not-applicable`, `green`.
-- [ ] Populate the initial rows listed in `2026-07-14-native-ios-swift-migration-programme.md`.
-- [ ] Add columns for automated evidence, manual evidence, last verified date and approving person.
-- [ ] Make the architecture test reject `green` rows with blank evidence cells.
+- [x] Write a failing documentation check in `tests/Architecture/ClientParityLedgerTest.php` asserting the ledger exists and includes every required capability row.
+- [x] Run `./vendor/bin/pest tests/Architecture/ClientParityLedgerTest.php`; expect failure because the ledger is absent.
+- [x] Create the ledger with the exact status vocabulary from the programme index: `required`, `not-landed`, `not-applicable`, `green`.
+- [x] Populate the initial rows listed in `2026-07-14-native-ios-swift-migration-programme.md`.
+- [x] Add columns for automated evidence, manual evidence, last verified date and approving person.
+- [x] Make the architecture test reject `green` rows with blank evidence cells.
 
 Core architecture test:
 
@@ -90,7 +90,7 @@ it('tracks every native migration capability', function () {
 });
 ```
 
-- [ ] Run the test again; expect PASS.
+- [x] Run the test again; expect PASS.
 
 **Intended review boundary:** `docs: add native client parity ledger`
 
@@ -98,10 +98,10 @@ it('tracks every native migration capability', function () {
 
 **Files:** Create `tests/Feature/Contracts/ClientCompatibilityContractTest.php`; modify only response builders required by the economic plan in `app/Http/Controllers/Api/AuthController.php` and the canonical subscription-status controller/service.
 
-- [ ] Write a failing Pest test that registers and verifies a new user through `POST /api/auth/register` and `POST /api/auth/verify-code`.
-- [ ] Assert the successful response still contains the current bearer key used by `/m`, the user object, and no `trial`, `trial_ends_at` or legacy-tier key.
-- [ ] Assert `GET /api/auth/user` returns `tier_flags.resolved_tier='free'` and the canonical capability data without removing existing fields.
-- [ ] Assert the canonical subscription-status response uses this stable shape:
+- [x] Write a failing Pest test that registers and verifies a new user through `POST /api/auth/register` and `POST /api/auth/verify-code`.
+- [x] Assert the successful response still contains the current bearer key used by `/m`, the user object, and no `trial`, `trial_ends_at` or legacy-tier key.
+- [x] Assert `GET /api/auth/user` returns `tier_flags.resolved_tier='free'` and the canonical capability data without removing existing fields.
+- [x] Assert the canonical subscription-status response uses this stable shape:
 
 ```json
 {
@@ -118,9 +118,9 @@ it('tracks every native migration capability', function () {
 }
 ```
 
-- [ ] Implement only the missing canonical response mapping identified by the failing tests.
-- [ ] Add a Premium fixture that proves the same keys and types with `provider='revolut'`.
-- [ ] Do not snapshot personal values; assert keys/types and canonical enum values.
+- [x] Implement only the missing canonical response mapping identified by the failing tests.
+- [x] Add a Premium fixture that proves the same keys and types with `provider='revolut'`.
+- [x] Do not snapshot personal values; assert keys/types and canonical enum values.
 
 Run:
 
@@ -136,12 +136,12 @@ Expected: PASS; no `/m` authentication test changes are needed to tolerate a ren
 
 **Files:** Modify `tests/Feature/Contracts/ClientCompatibilityContractTest.php`; use existing fixtures from `tests/Feature/Mobile/`; do not change production response code unless the test exposes an inconsistency.
 
-- [ ] Add a failing contract assertion for `GET /api/v1/mobile/dashboard` covering envelope, dashboard level/progress/percentile, module collection, next actions and Fyn insight keys.
-- [ ] Add a failing parameterised assertion for every slug accepted by `GET /api/v1/mobile/modules/{module}`.
-- [ ] Add contract assertions for conversation create, conversation load and message submission accepting `text/event-stream` or the documented `202` queued JSON envelope.
-- [ ] Assert `level_up` remains legal after the Fyn `done` frame in the existing streaming test suite.
-- [ ] Assert unknown additive JSON fields do not break `/m` decoding tests.
-- [ ] If any inconsistency appears, repair the server at the shared response boundary; do not add a native-specific copy of a financial endpoint.
+- [x] Add a failing contract assertion for `GET /api/v1/mobile/dashboard` covering envelope, dashboard level/progress/percentile, module collection, next actions and Fyn insight keys.
+- [x] Add a failing parameterised assertion for every slug accepted by `GET /api/v1/mobile/modules/{module}`.
+- [x] Add contract assertions for conversation create, conversation load and message submission accepting `text/event-stream` or the documented `202` queued JSON envelope.
+- [x] Assert `level_up` remains legal after the Fyn `done` frame in the existing streaming test suite.
+- [x] Assert unknown additive JSON fields do not break `/m` decoding tests.
+- [x] If any inconsistency appears, repair the server at the shared response boundary; do not add a native-specific copy of a financial endpoint.
 
 Run:
 
@@ -157,10 +157,10 @@ Expected: PASS. If this broad AI selection is slow, first run the named failing 
 
 **Files:** Create `app/Http/Middleware/IdentifyNativeClient.php`; modify `app/Http/Kernel.php`, `app/Providers/RouteServiceProvider.php`, `routes/api_v1.php`; create `tests/Feature/Native/NativeClientIdentificationTest.php`.
 
-- [ ] Write a failing test for headers `X-Fynla-Client: ios`, `X-Fynla-Version: 1.0.0` and `X-Fynla-Build: 1`.
-- [ ] Make the middleware validate these headers only on `/api/v1/native/*` routes and set normalised request attributes.
-- [ ] Reject missing/invalid native headers with status 400 and code `invalid_native_client`, but never apply this rule to `/api`, `/api/v1/mobile` or Apple webhooks.
-- [ ] Add a temporary authenticated native health route for foundation testing:
+- [x] Write a failing test for headers `X-Fynla-Client: ios`, `X-Fynla-Version: 1.0.0` and `X-Fynla-Build: 1`.
+- [x] Make the middleware validate these headers only on `/api/v1/native/*` routes and set normalised request attributes.
+- [x] Reject missing/invalid native headers with status 400 and code `invalid_native_client`, but never apply this rule to `/api`, `/api/v1/mobile` or Apple webhooks.
+- [x] Add a temporary authenticated native health route for foundation testing:
 
 ```php
 Route::middleware(['auth:sanctum', 'native.client'])
@@ -170,8 +170,8 @@ Route::middleware(['auth:sanctum', 'native.client'])
     ]));
 ```
 
-- [ ] Keep minimum-version enforcement out of this package; Package 7 adds it once a real release exists.
-- [ ] Add the route to `PreviewWriteInterceptor::EXCLUDED_ROUTES` only if its method is intercepted; a read-only GET should not need an exclusion.
+- [x] Keep minimum-version enforcement out of this package; Package 7 adds it once a real release exists.
+- [x] Add the route to `PreviewWriteInterceptor::EXCLUDED_ROUTES` only if its method is intercepted; a read-only GET should not need an exclusion.
 
 Run:
 
@@ -205,6 +205,14 @@ npm run build:mobile
 ```
 
 Expected: all exit 0, the economic plan is fully checked, `/m` remains deployable, and no native implementation has yet modified the Capacitor project.
+
+Automated gate recorded 2026-07-16 on Package 1 head `6a2a213c`:
+
+- PHP package gate: 333 passed, 1,410 assertions.
+- JavaScript package gate: 54 files and 727 tests passed.
+- Desktop Vite build: exit 0.
+- `/m` Vite build: exit 0.
+- Native boundary audit: no changes under `ios/App/`, `resources/mobile/` or `deploy/mobile/build-ios.sh`.
 
 ### Package 1 exit criteria
 

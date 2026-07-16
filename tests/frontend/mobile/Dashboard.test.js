@@ -66,4 +66,53 @@ describe('mobile Dashboard retirement summary', () => {
       caption: 'Towards your target',
     });
   });
+
+  it('ignores additive dashboard and module fields from the shared API', () => {
+    const finances = Dashboard.computed.finances.call({
+      data: {
+        future_dashboard_field: { enabled: true },
+        modules: {
+          savings: {
+            value: 12000,
+            emergency_fund_months: 4,
+            future_module_field: 'ignored',
+          },
+          retirement: {
+            pot_value: 50000,
+            projected_income: 20000,
+            target_income: 25000,
+            future_module_field: ['ignored'],
+          },
+          investment: {
+            portfolio_value: 8000,
+            accounts_count: 1,
+            holdings_count: 3,
+            future_module_field: 42,
+          },
+        },
+        net_worth: {
+          total: 70000,
+          breakdown: {
+            assets: { savings: 12000, pensions: 50000 },
+            total_assets: 70000,
+            total_liabilities: 0,
+          },
+        },
+      },
+      fmt: Dashboard.methods.fmt,
+    });
+
+    expect(finances.find(({ key }) => key === 'savings')).toMatchObject({
+      value: '£12,000',
+      caption: 'Building your fund',
+    });
+    expect(finances.find(({ key }) => key === 'retirement')).toMatchObject({
+      value: '£50,000',
+      barValue: '80%',
+    });
+    expect(finances.find(({ key }) => key === 'investment')).toMatchObject({
+      value: '£8,000',
+      caption: '3 holdings',
+    });
+  });
 });

@@ -24,8 +24,22 @@ class SubscriptionStatusService
         $tier = $this->tierResolver->resolve($user);
         $tierConfig = $this->tierConfigurations->forTier($tier);
         $paymentEnabled = (bool) config('app.payment_enabled', false);
+        $capabilities = $tierConfig->capability_matrix ?? [];
+        $limits = $tierConfig->count_caps ?? [];
+        $currentPeriodEnd = $subscription?->current_period_end?->toISOString();
+        $renews = $subscription?->status === 'active' && ($subscription->auto_renew ?? false);
 
         return [
+            'success' => true,
+            'data' => [
+                'tier' => $tier,
+                'provider' => $subscription === null ? null : 'revolut',
+                'status' => $subscription?->status ?? 'free',
+                'renews' => $renews,
+                'current_period_end' => $currentPeriodEnd,
+                'capabilities' => $capabilities,
+                'limits' => $limits,
+            ],
             'has_subscription' => $subscription !== null,
             'tier' => $tier,
             'tier_display_name' => $tierConfig->display_name,
@@ -34,7 +48,7 @@ class SubscriptionStatusService
             'billing_cycle' => $subscription?->billing_cycle,
             'amount' => $subscription?->amount,
             'current_period_start' => $subscription?->current_period_start?->toISOString(),
-            'current_period_end' => $subscription?->current_period_end?->toISOString(),
+            'current_period_end' => $currentPeriodEnd,
             'cancelled_at' => $subscription?->cancelled_at?->toISOString(),
             'data_retention_starts_at' => $paymentEnabled
                 ? $subscription?->data_retention_starts_at?->toISOString()
@@ -47,11 +61,9 @@ class SubscriptionStatusService
                 && ! $subscription->isActive()
                 && $subscription->status !== 'pending',
             'auto_renew' => $subscription?->auto_renew ?? false,
-            'next_renewal_date' => $subscription?->status === 'active' && $subscription->auto_renew
-                ? $subscription->current_period_end?->toISOString()
-                : null,
-            'count_caps' => $tierConfig->count_caps ?? [],
-            'capability_matrix' => $tierConfig->capability_matrix ?? [],
+            'next_renewal_date' => $renews ? $currentPeriodEnd : null,
+            'count_caps' => $limits,
+            'capability_matrix' => $capabilities,
             'document_upload_allowance' => $tierConfig->document_upload_allowance,
             'document_storage_gb' => $tierConfig->document_storage_gb,
             'fyn_weekly_token_budget' => $tierConfig->fyn_weekly_token_budget,
