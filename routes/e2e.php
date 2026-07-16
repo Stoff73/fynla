@@ -17,6 +17,9 @@ Route::post('/restorable-user', [E2EController::class, 'restorableUser'])
 Route::post('/active-user', [E2EController::class, 'activeUser'])
     ->name('e2e.active-user');
 
+Route::get('/freemium-counts', [E2EController::class, 'freemiumCounts'])
+    ->name('e2e.freemium-counts');
+
 Route::post('/onboarding-scenario-user', [E2EController::class, 'onboardingScenarioUser'])
     ->name('e2e.onboarding-scenario-user');
 Route::post('/registration-throttle/reset', [E2EController::class, 'resetRegistrationThrottle'])

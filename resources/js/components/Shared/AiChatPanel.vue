@@ -230,9 +230,10 @@
               ]"
             >
               <AiMessageContent
-                v-if="msg.role === 'assistant'"
+                v-if="msg.role === 'assistant' || msg.role === 'action'"
                 :message="msg"
                 @navigate="handleNavigation"
+                @subscription-options="handleSubscriptionOptions"
               />
               <span v-else>{{ msg.content }}</span>
             </div>
@@ -432,6 +433,7 @@ import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
 import { fynIconUrl } from '@/constants/fynIcon';
+import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
 export default {
     name: 'AiChatPanel',
@@ -1238,6 +1240,10 @@ export default {
             }
         },
 
+        handleSubscriptionOptions() {
+            this.$router.push(subscriptionOptionsLocation());
+        },
+
         scrollToBottom() {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (container) {
@@ -1302,7 +1308,7 @@ export default {
             if (msg.role === 'user') {
                 return 'bg-raspberry-500 text-white';
             }
-            if (msg.role === 'navigation' || msg.role === 'entity_created') {
+            if (msg.role === 'navigation' || msg.role === 'entity_created' || msg.role === 'action') {
                 return 'bg-transparent p-0';
             }
             // Pinned by tests/Feature/Fyn/CaptureCompleteStylingTest.php —

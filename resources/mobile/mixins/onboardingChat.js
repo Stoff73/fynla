@@ -17,6 +17,11 @@
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 import { renderFynText } from '../utils/fynText.js';
+import {
+  loadMobileSubscriptionStatus,
+  openSubscriptionOptions,
+  shouldShowMobileUpgrade,
+} from './upgrade.js';
 
 // The routes the onboarding chat may navigate the /m surface to: the per-section
 // verify destinations (campaign_verify_navigate → the section's screen) plus the
@@ -28,6 +33,9 @@ export const ONBOARDING_NAV_ROUTES = [
 ];
 
 export default {
+  created() {
+    loadMobileSubscriptionStatus();
+  },
   data() {
     return {
       conversationId: null,
@@ -171,12 +179,18 @@ export default {
     // metadata; only the latest turn keeps them tappable (earlier turns are
     // already answered).
     async loadTranscript(conversationId) {
+      await loadMobileSubscriptionStatus();
       const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
       const msgs = (res && res.ok && (res.data?.data?.messages || res.data?.messages)) || [];
       if (!msgs.length) return;
       const mapped = msgs.map((m) => {
         const metadata = m.metadata || {};
         const bubbles = Array.isArray(metadata.bubbles) ? metadata.bubbles.slice() : [];
+        const actions = Array.isArray(metadata.actions) ? metadata.actions : [];
+        if (shouldShowMobileUpgrade(store.subscriptionStatus)
+            && actions.some((action) => action?.action === 'subscription_options')) {
+          bubbles.push({ id: 'subscription_options', label: 'Compare plans' });
+        }
         if (metadata.skip_link?.label && !bubbles.some((bubble) => bubble.id === 'skip')) {
           bubbles.push({ id: 'skip', label: metadata.skip_link.label });
         }
@@ -380,6 +394,13 @@ export default {
         this.$nextTick(this.scrollFyn);
         return;
       }
+      if (ev.type === 'action' && ev.action === 'subscription_options') {
+        if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
+        cursor.got = true;
+        cursor.reply.bubbles = [{ id: 'subscription_options', label: 'Compare plans' }];
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
       if (ev.type === 'quick_replies') {
         // A bubbles turn. If the current bubble already carries streamed text
         // (an acknowledgement from the prior capture), open a fresh bubble for
@@ -404,6 +425,12 @@ export default {
 
     chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
+      if (bubble.id === 'subscription_options') {
+        if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
+        if (message && message.bubbles) message.bubbles = [];
+        openSubscriptionOptions();
+        return;
+      }
       // Navigation bubble (e.g. the terminal "Take me to my tax strategy") —
       // go straight to the route; never send the label as a message.
       if (bubble.route) {

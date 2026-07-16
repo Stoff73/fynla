@@ -5091,8 +5091,11 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        /** @var array<string, array{message: string, content_offset: int}> $pendingWriteFailures */
+        /** @var array<string, array{message: string, content_offset: int, tier_limit: bool}> $pendingWriteFailures */
         $pendingWriteFailures = [];
+
+        /** @var list<array<string, mixed>> $presentationActions */
+        $presentationActions = [];
 
         $writeResultSequence = 0;
 
@@ -5149,6 +5152,12 @@ PROMPT;
                 continue;
             }
 
+            if ($type === 'action') {
+                $presentationActions[] = $event;
+
+                continue;
+            }
+
             // Internal landed/failed telemetry is consumed at the director
             // boundary. It is not part of the public SSE contract. A failed
             // direct write must become deterministic user-facing text rather
@@ -5186,6 +5195,7 @@ PROMPT;
                             ? $messageText
                             : 'The information could not be saved.',
                         'content_offset' => $retryContentOffset ?? count($contentEvents),
+                        'tier_limit' => ($result['reason'] ?? null) === 'tier_limit_reached',
                     ];
                 }
 
@@ -5210,9 +5220,12 @@ PROMPT;
         }
 
         if ($pendingWriteFailures !== []) {
-            $messageText = array_values(array_unique(array_column($pendingWriteFailures, 'message')))[0];
-            $failureText = "I couldn't save that — ".rtrim($messageText, '.').'. '
-                .'Give me the missing detail and I will try again.';
+            $firstFailure = array_values($pendingWriteFailures)[0];
+            $messageText = $firstFailure['message'];
+            $failureText = $firstFailure['tier_limit']
+                ? $messageText
+                : "I couldn't save that — ".rtrim($messageText, '.').'. '
+                    .'Give me the missing detail and I will try again.';
             $safeContentEvents = array_slice(
                 $contentEvents,
                 0,
@@ -5257,6 +5270,10 @@ PROMPT;
             foreach ($contentEvents as $contentEvent) {
                 yield $contentEvent;
             }
+        }
+
+        foreach ($presentationActions as $presentationAction) {
+            yield $presentationAction;
         }
 
         // Gamification: the inline-capture path (advice-mode write handoff, incl.

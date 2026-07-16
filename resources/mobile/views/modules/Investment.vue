@@ -32,7 +32,7 @@
           <p class="m-section-label">Investment accounts</p>
           <div v-if="accountLimit" class="m-cap">
             <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} accounts used</span>
-            <button type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
+            <button v-if="paidUpgradeAvailable" type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
           </div>
         </div>
         <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
@@ -126,7 +126,7 @@ export default {
         const { ok, data } = await apiGet('/api/investment', store.token);
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your investments.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

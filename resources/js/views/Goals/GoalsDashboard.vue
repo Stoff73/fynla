@@ -112,6 +112,14 @@
       @save="handleSaveGoal"
     />
 
+    <LimitReachedModal
+      :show="showLimitModal"
+      entity-label="goals"
+      :cap="tierCountCap('goal') || 0"
+      :tier-label="tierLabel"
+      @close="showLimitModal = false"
+    />
+
     <!-- Contribution Modal -->
     <ContributionModal
       :is-open="showContributionModal"
@@ -174,10 +182,14 @@ import ContributionModal from '@/components/Goals/ContributionModal.vue';
 import EventsTab from '@/components/Goals/EventsTab.vue';
 import GoalDetailInline from '@/components/Goals/GoalDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'GoalsDashboard',
+
+  mixins: [tierLimitMixin],
 
   components: {
     AppLayout,
@@ -187,6 +199,7 @@ export default {
     EventsTab,
     GoalDetailInline,
     ModuleStatusBar,
+    LimitReachedModal,
   },
 
   data() {
@@ -198,6 +211,7 @@ export default {
       ],
       selectedGoal: null,
       showGoalModal: false,
+      showLimitModal: false,
       editingGoal: null,
       showContributionModal: false,
       contributionGoal: null,
@@ -265,8 +279,8 @@ export default {
     },
   },
 
-  mounted() {
-    this.loadGoalsData();
+  async mounted() {
+    await this.loadGoalsData();
 
     // Check for tab query parameter (e.g., from sidebar Life Events link)
     if (this.$route.query.tab === 'events') {
@@ -301,6 +315,10 @@ export default {
     },
 
     openCreateModal() {
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('goal', this.goals?.length || 0)) {
+        this.showLimitModal = true;
+        return;
+      }
       this.editingGoal = null;
       this.showGoalModal = true;
     },

@@ -36,7 +36,7 @@ export default defineConfig({
     },
     {
       name: 'mobile-webkit',
-      testMatch: /mobile\.spec\.js$/,
+      testMatch: [/mobile\.spec\.js$/, /freemium\/upgrade-entry-points\.spec\.js$/],
       use: { ...devices['iPhone 14'] },
     },
   ],

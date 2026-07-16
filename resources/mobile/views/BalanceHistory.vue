@@ -15,7 +15,7 @@
       <div v-if="isFreeWindow" class="m-card mbh-premium">
         <p class="mbh-title">90 days of history are included on Free.</p>
         <p class="m-sub">Premium includes your full available retained history and the financial adviser export pack.</p>
-        <button type="button" class="m-btn" @click="goUpgrade">See plans and upgrade</button>
+        <button v-if="paidUpgradeAvailable" type="button" class="m-btn" @click="goUpgrade">See plans and upgrade</button>
       </div>
 
       <template v-if="hasHistory">

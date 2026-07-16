@@ -2622,15 +2622,7 @@ class CoordinatingAgent extends BaseAgent
         try {
             $goal = app(GoalStore::class)->create($payload, $user, IngestSource::FYN_AI);
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_reached',
-                'entity_key' => $e->entityKey,
-                'current_count' => $e->currentCount,
-                'hard_limit' => $e->hardLimit,
-                'required_tier' => 'premium',
-                'message' => "You've reached your plan's limit of {$e->hardLimit} Goals. To add more, upgrade your plan.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} goals. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -2681,15 +2673,7 @@ class CoordinatingAgent extends BaseAgent
         try {
             $event = app(LifeEventStore::class)->create($payload, $user, IngestSource::FYN_AI);
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_reached',
-                'entity_key' => $e->entityKey,
-                'current_count' => $e->currentCount,
-                'hard_limit' => $e->hardLimit,
-                'required_tier' => 'premium',
-                'message' => "You've reached your plan's limit of {$e->hardLimit} Life Event. To add more, upgrade your plan.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} life events. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -2715,6 +2699,34 @@ class CoordinatingAgent extends BaseAgent
         $cap = app(TierGate::class)->hardLimit($user, $entityKey);
 
         return $cap === null ? '' : " That's {$used} of {$cap} on your plan.";
+    }
+
+    private function tierLimitResult(TierLimitExceededException $exception, User $user, string $message): array
+    {
+        $subscriptionStatus = $this->subscriptionStatusService->forUser($user);
+
+        $result = [
+            'error' => true,
+            'error_type' => 'tier_limit_reached',
+            'entity_key' => $exception->entityKey,
+            'current_count' => $exception->currentCount,
+            'hard_limit' => $exception->hardLimit,
+            'required_tier' => 'premium',
+            'message' => $subscriptionStatus['payment_enabled']
+                ? $message
+                : preg_replace('/ To add more, upgrade your plan\.$/', '', $message),
+        ];
+
+        if (! $subscriptionStatus['payment_enabled']) {
+            return $result;
+        }
+
+        return array_merge($result, [
+            'action' => 'subscription_options',
+            'reason' => 'tier_limit_reached',
+            'limit' => $exception->hardLimit,
+            'tier' => $subscriptionStatus['tier'],
+        ]);
     }
 
     private function handleCreateSavingsAccount(array $input, User $user, bool $isPreview): array
@@ -2831,15 +2843,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for savings account.',
             ];
         } catch (TierLimitExceededException $e) {
-            // Free-tier cap reached (/m freemium 5.2). Savings lacked this catch,
-            // so an at-cap Fyn add surfaced an ungraceful error. Tell the user
-            // plainly and point them to upgrade (the Upgrade control lives on the
-            // Savings screen — Fyn speaks plain text, no in-chat link).
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your plan's limit of {$e->hardLimit} savings accounts. To add more, upgrade your plan.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} savings accounts. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -2999,11 +3003,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for investment account.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your plan's limit of {$e->hardLimit} investment accounts. To add more, upgrade your plan.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} investment accounts. To add more, upgrade your plan.");
         }
 
         // Taxable dividend income feeds the user-level figure the tax-strategy
@@ -3169,11 +3169,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for pension.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your plan's limit of {$e->hardLimit} pensions. To add more, upgrade your plan.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} pensions. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -3318,11 +3314,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for property.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your tier's property limit. Upgrade to add more.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's property limit. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -3428,11 +3420,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for mortgage.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached the mortgage limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} mortgages. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);

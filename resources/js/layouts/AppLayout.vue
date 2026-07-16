@@ -163,6 +163,7 @@ import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import SubNavBar from '@/components/SubNavBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
+import { shouldShowUpgradeEntry } from '@/utils/subscriptionNavigation';
 import storage from '@/utils/storage';
 import { fynIconUrl } from '@/constants/fynIcon';
 
@@ -262,10 +263,8 @@ export default {
       return 'w-[356px]';
     },
 
-    // Only set for active paid subscribers — trial users see all plans
     activePlanSlug() {
-      if (!this.subscriptionData || this.subscriptionData.status !== 'active') return null;
-      return this.subscriptionData.plan;
+      return this.subscriptionData?.tier || 'free';
     },
 
     // True when the current route is /checkout. Used to suppress the expired-trial
@@ -285,6 +284,12 @@ export default {
   },
 
   watch: {
+    isAuthenticated(authenticated) {
+      if (authenticated && !this.isPreviewMode && !this.subscriptionData) {
+        this.checkTrialStatus();
+      }
+    },
+
     // Collapse side menu when docked chat becomes active and expanded
     showDockedChat(active) {
       if (active && !this.chatCollapsed && !this.sideMenuCollapsed) {
@@ -455,6 +460,7 @@ export default {
         const response = await api.get('/payment/subscription-status');
         this.subscriptionData = response.data;
         this.$store.commit('auth/setSubscriptionData', response.data);
+        this.maybeOpenPricingFromQuery();
         if (!response.data.has_subscription) return;
         const status = response.data.status;
         // For grace-period users, DataRetentionOverlay is the primary surface.
@@ -482,9 +488,13 @@ export default {
     // not re-pop the modal.
     maybeOpenPricingFromQuery() {
       if (!this.$route.query.openPricing) return;
+      if (this.$route.path === '/settings/subscription') return;
       if (!this.isAuthenticated || this.isPreviewMode) return;
+      if (!this.subscriptionData) return;
 
-      this.handleSubscribeFromOverlay();
+      if (shouldShowUpgradeEntry(this.subscriptionData, this.isPreviewMode)) {
+        this.showPlanModal = true;
+      }
 
       const rest = { ...this.$route.query };
       delete rest.openPricing;

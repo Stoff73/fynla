@@ -6,11 +6,17 @@ namespace App\Http\Controllers\TestSupport;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiConversation;
+use App\Models\DCPension;
 use App\Models\EmailVerificationCode;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
+use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentAccountValueSnapshot;
+use App\Models\LifeEvent;
 use App\Models\PendingRegistration;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
@@ -120,6 +126,7 @@ class E2EController extends Controller
             'password' => ['required', 'string', 'min:8'],
             'tier' => ['sometimes', 'string', 'in:free,premium'],
             'with_balance_history' => ['sometimes', 'boolean'],
+            'with_freemium_caps' => ['sometimes', 'boolean'],
         ]);
 
         $user = User::factory()->create([
@@ -154,6 +161,19 @@ class E2EController extends Controller
             );
         }
 
+        if ($validated['with_freemium_caps'] ?? false) {
+            SavingsAccount::factory()->count(2)->create(['user_id' => $user->id]);
+            InvestmentAccount::factory()->count(2)->create([
+                'user_id' => $user->id,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ]);
+            DCPension::factory()->count(2)->create(['user_id' => $user->id]);
+            Property::factory()->create(['user_id' => $user->id]);
+            Goal::factory()->count(2)->create(['user_id' => $user->id]);
+            LifeEvent::factory()->create(['user_id' => $user->id]);
+        }
+
         $token = $user->createToken('e2e-active-user', ['mfa_verified'])->plainTextToken;
 
         return response()->json([
@@ -162,6 +182,25 @@ class E2EController extends Controller
             'tier' => $user->tier,
             'token' => $token,
         ], 201);
+    }
+
+    public function freemiumCounts(Request $request): JsonResponse
+    {
+        $this->ensureE2EEnvironment();
+
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+        $user = User::query()->where('email', $validated['email'])->firstOrFail();
+
+        return response()->json([
+            'savings_account' => SavingsAccount::query()->where('user_id', $user->id)->count(),
+            'investment' => InvestmentAccount::query()->where('user_id', $user->id)->count(),
+            'pension_account' => DCPension::query()->where('user_id', $user->id)->count(),
+            'property' => Property::query()->where('user_id', $user->id)->count(),
+            'goal' => Goal::query()->where('user_id', $user->id)->count(),
+            'life_event' => LifeEvent::query()->where('user_id', $user->id)->count(),
+        ]);
     }
 
     public function onboardingScenarioUser(Request $request, ConsentService $consentService): JsonResponse
