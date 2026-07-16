@@ -103,8 +103,8 @@ Recorded 2026-07-16 on Xcode 26.3: both unsigned simulator builds and the stagin
 
 **Files:** Create `ios-native/Fynla/App/AppEnvironment.swift`; create `ios-native/FynlaTests/AppEnvironmentTests.swift`.
 
-- [ ] Write failing tests that load staging/production dictionaries and reject missing, non-HTTPS or user-info-bearing URLs.
-- [ ] Implement an immutable, sendable environment model:
+- [x] Write failing tests that load staging/production dictionaries and reject missing, non-HTTPS or user-info-bearing URLs.
+- [x] Implement an immutable, sendable environment model:
 
 ```swift
 struct AppEnvironment: Sendable, Equatable {
@@ -123,9 +123,11 @@ struct AppEnvironment: Sendable, Equatable {
 }
 ```
 
-- [ ] Make `bundle(_:)` throw `ConfigurationError` before the UI renders if values are absent or invalid.
-- [ ] Do not include tokens, Apple keys, Revolut data or secrets.
+- [x] Make `bundle(_:)` throw `ConfigurationError` before the UI renders if values are absent or invalid.
+- [x] Do not include tokens, Apple keys, Revolut data or secrets.
 - [ ] Run `xcodebuild ... -only-testing:FynlaTests/AppEnvironmentTests test`; expect PASS.
+
+Recorded 2026-07-16: TDD red failed to compile because `ConfigurationError` did not exist. The implementation then passed the staging `build-for-testing` action under Swift 6 strict concurrency and warnings-as-errors. A disposable host Swift 6 package symlinked the exact repository source and test files; all 8 `AppEnvironmentTests` passed in one suite. The local iOS 26.3 simulator completed a clean first boot and installed the ad-hoc app, but both normal app launch and the XCTest-host launch stalled before creating an app process. Keep the simulator checkbox open until this suite executes on the CI runner or a healthy local CoreSimulator runtime.
 
 **Intended review boundary:** `feat: add validated native environments`
 
