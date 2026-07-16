@@ -15,11 +15,11 @@ A row must not use `green` while either evidence cell is blank. User journeys re
 
 | Capability | Desktop | `/m` | Native | Native package | Backend owner | Automated evidence | Manual evidence | Last verified | Approving person |
 |---|---|---|---|---|---|---|---|---|---|
-| Register and verify | required | required | not-landed | Package 3 | AuthController |  |  |  |  |
+| Register and verify | green | green | not-landed | Package 3 | AuthController | ClientCompatibilityContractTest registration/verification contract; Quality Gate run 44 | csjones verified Free Chrome dashboard and `/m` journey; Package 1 screenshots | 2026-07-16 | Pending CSJ |
 | Login, verification and multi-factor authentication | required | required | not-landed | Package 3 | AuthController/MFAController |  |  |  |  |
-| Free/Premium entitlement | required | required | not-landed | Package 4 | TierResolver/entitlement resolver |  |  |  |  |
-| Dashboard and gamification | required | required | not-landed | Package 5 | MobileDashboardAggregator |  |  |  |  |
-| Fyn onboarding/advice/write handoff | required | required | not-landed | Package 5 | AiChatController |  |  |  |  |
+| Free/Premium entitlement | green | green | not-landed | Package 4 | TierResolver/entitlement resolver | ClientCompatibilityContractTest Free/Premium fixtures; freemium cap and presentation suites | Verified Free account returned no Subscription row/trial; local Premium fixture acceptance recorded in freemium evidence | 2026-07-16 | Pending CSJ |
+| Dashboard and gamification | green | green | not-landed | Package 5 | MobileDashboardAggregator | ClientCompatibilityContractTest dashboard contract; frontend additive-field test | Actual Chrome desktop dashboard and authenticated `/m` dashboard at 390×844 | 2026-07-16 | Pending CSJ |
+| Fyn onboarding/advice/write handoff | required | green | not-landed | Package 5 | AiChatController | ClientCompatibilityContractTest Fyn envelopes; ConcurrentTurnQueueGateTest | Same verified Free account opened Fyn onboarding in `/m` with no failed Fynla response | 2026-07-16 | Pending CSJ |
 | Income/expenditure/net worth | required | required | not-landed | Package 6 Wave A | existing module APIs |  |  |  |  |
 | Savings/investment | required | required | not-landed | Package 6 Wave B | existing module APIs |  |  |  |  |
 | Retirement/protection | required | required | not-landed | Package 6 Wave C | existing module APIs |  |  |  |  |
@@ -32,14 +32,17 @@ A row must not use `green` while either evidence cell is blank. User journeys re
 ## Current Package 1 handoff
 
 - Package: iOS Package 1, Economic Contract and API Readiness
-- Commit/PR: dev `aaf27c961d37c6d1897904bdcb29247d718638f8`; Package 1 head `6a2a213c`; PR #630 targets `dev`
+- Commit/PR: PR #630 merged to dev as `95d08410ca8c18b61cd72e820959c163f0a19180`; csjones runs that exact commit
 - Backend tests: freemium remediation full suite green before dev deployment; Package 1 Task 2 architecture test 1 passed with 72 assertions; Task 3 auth and entitlement suite 37 passed with 177 assertions; Task 4 Mobile, AI and client contracts 487 passed with 1851 assertions and 3 intentional capture-only skips; Task 5 Native and Mobile regression 94 passed with 337 assertions; consolidated Package 1 gate 333 passed with 1,410 assertions
 - Client JavaScript tests: 54 files and 727 tests passed; `tests/frontend/mobile/Dashboard.test.js` includes unknown additive response-field tolerance
 - Build evidence: desktop Vite build and `/m` Vite build both exited 0; no Package 1 changes under `ios/App/`, `resources/mobile/` or `deploy/mobile/build-ios.sh`
 - Swift tests: not applicable until Package 2
-- Desktop browser evidence: actual Google Chrome on csjones dev `aaf27c96`; `/fynla/pricing` exposes only Free/Premium with no obsolete copy, and the seeded `young_saver` preview reached `/fynla/dashboard`; screenshot `codex/evidence/ios-package1/csjones-pricing-chrome.png`
-- `/m` browser evidence: actual Google Chrome at 390×844 on csjones dev `aaf27c96`; seeded `young_saver` preview exercised the authenticated token bridge, dashboard, Fyn surface and Savings detail with zero application-console errors; screenshot `codex/evidence/ios-package1/csjones-mobile-savings-chrome.png`
+- Deployment evidence: tier-collapse audit returned `safe_to_collapse=true` with zero active paid subscriptions/users, live provider agreements, retired tier rows and duplicate financial identifiers; no migrations were pending; required reseed and cache/autoload rebuild completed
+- Native boundary evidence: authenticated valid native headers returned 200/v1, authenticated invalid client headers returned 400/`invalid_native_client`, and the unauthenticated request returned 401 before native-header validation
+- Desktop browser evidence: actual Google Chrome at 1280×900 on csjones dev `95d08410`; a disposable registration completed verification, resolved to permanent Free with no Subscription row or trial field, and reached `/fynla/dashboard` with no retired trial presentation, application-console error, page error or failed API response; screenshot `codex/evidence/ios-package1/csjones-package1-desktop-verified-free-chrome.png`
+- `/m` browser evidence: the same verified Free account used actual Google Chrome at 390×844 on csjones dev `95d08410`; `/fynla/m/app/dashboard`, Fyn onboarding and `/fynla/m/app/savings` were green with no Fynla console error, page error, failed resource or failed API response; screenshots `codex/evidence/ios-package1/csjones-package1-mobile-dashboard-chrome.png`, `codex/evidence/ios-package1/csjones-package1-mobile-fyn-chrome.png`, `codex/evidence/ios-package1/csjones-package1-mobile-savings-chrome.png`
+- Test-data restoration: the disposable verified account was force-deleted (`withTrashed` count 0), all seeders reran, the application cache was cleared and csjones returned live
 - Simulator evidence: not applicable until Package 2
 - Physical-device evidence: not applicable until Package 3
-- Known exclusions: production and App Store release work are deferred; no production checks are part of this ledger entry
-- CSJ approval: automated Package 1 gate green; csjones deployment and final browser closure pending
+- Known exclusions: production and App Store release work are deferred; no production checks are part of this ledger entry. The host-wide `https://csjones.co/favicon.ico` returns 404 outside the Fynla `/fynla` application and is not a Fynla console failure.
+- CSJ approval: Package 1 technical gate is green; explicit pre-StoreKit approval remains pending before Package 4
