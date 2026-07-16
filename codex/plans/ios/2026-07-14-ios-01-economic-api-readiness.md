@@ -98,10 +98,10 @@ it('tracks every native migration capability', function () {
 
 **Files:** Create `tests/Feature/Contracts/ClientCompatibilityContractTest.php`; modify only response builders required by the economic plan in `app/Http/Controllers/Api/AuthController.php` and the canonical subscription-status controller/service.
 
-- [ ] Write a failing Pest test that registers and verifies a new user through `POST /api/auth/register` and `POST /api/auth/verify-code`.
-- [ ] Assert the successful response still contains the current bearer key used by `/m`, the user object, and no `trial`, `trial_ends_at` or legacy-tier key.
-- [ ] Assert `GET /api/auth/user` returns `tier_flags.resolved_tier='free'` and the canonical capability data without removing existing fields.
-- [ ] Assert the canonical subscription-status response uses this stable shape:
+- [x] Write a failing Pest test that registers and verifies a new user through `POST /api/auth/register` and `POST /api/auth/verify-code`.
+- [x] Assert the successful response still contains the current bearer key used by `/m`, the user object, and no `trial`, `trial_ends_at` or legacy-tier key.
+- [x] Assert `GET /api/auth/user` returns `tier_flags.resolved_tier='free'` and the canonical capability data without removing existing fields.
+- [x] Assert the canonical subscription-status response uses this stable shape:
 
 ```json
 {
@@ -118,9 +118,9 @@ it('tracks every native migration capability', function () {
 }
 ```
 
-- [ ] Implement only the missing canonical response mapping identified by the failing tests.
-- [ ] Add a Premium fixture that proves the same keys and types with `provider='revolut'`.
-- [ ] Do not snapshot personal values; assert keys/types and canonical enum values.
+- [x] Implement only the missing canonical response mapping identified by the failing tests.
+- [x] Add a Premium fixture that proves the same keys and types with `provider='revolut'`.
+- [x] Do not snapshot personal values; assert keys/types and canonical enum values.
 
 Run:
 

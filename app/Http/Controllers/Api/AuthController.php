@@ -467,6 +467,8 @@ class AuthController extends Controller
             $tierConfig = $this->tierStore->forTier($resolvedTier);
             $tierFlags = [
                 'resolved_tier' => $resolvedTier,
+                'capabilities' => $tierConfig->capability_matrix ?? [],
+                'limits' => $tierConfig->count_caps ?? [],
                 'open_api_affordance' => $tierConfig->open_api_affordance,
                 'currency_display_mode' => $tierConfig->currency_display_mode,
                 'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
@@ -476,6 +478,8 @@ class AuthController extends Controller
             // open_api_affordance defaults false (capability-off, not a tier number).
             $tierFlags = [
                 'resolved_tier' => $resolvedTier,
+                'capabilities' => [],
+                'limits' => [],
                 'open_api_affordance' => false,
                 'currency_display_mode' => null,
                 'snapshot_surfacing_window_days' => null,

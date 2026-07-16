@@ -33,7 +33,7 @@ A row must not use `green` while either evidence cell is blank. User journeys re
 
 - Package: iOS Package 1, Economic Contract and API Readiness
 - Commit/PR: dev `aaf27c961d37c6d1897904bdcb29247d718638f8`; Package 1 PR pending
-- Backend tests: freemium remediation full suite green before dev deployment; Package 1 contract suites pending
+- Backend tests: freemium remediation full suite green before dev deployment; Package 1 Task 2 architecture test 1 passed with 72 assertions; Task 3 auth and entitlement suite 37 passed with 177 assertions
 - Swift tests: not applicable until Package 2
 - Desktop browser evidence: public pricing green on csjones at dev `aaf27c96`; authenticated parity gate pending
 - `/m` browser evidence: deployed bundle and route return HTTP 200 at dev `aaf27c96`; authenticated parity gate pending
