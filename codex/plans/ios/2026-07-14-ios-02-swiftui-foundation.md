@@ -172,8 +172,8 @@ Recorded 2026-07-16: the TDD red run failed because `AppSession`, `AppRoute` and
 
 **Files:** Create `Core/API/APIClient.swift`, `APIRequest.swift`, `APIEnvelope.swift`, `APIError.swift`, `HTTPTransport.swift`; create matching tests and JSON fixtures under `FynlaTests/Fixtures/API/`.
 
-- [ ] First write failing tests for a success envelope, 422 field errors, 401, 403, upgrade-required, 409, 429 with `Retry-After`, 500 and invalid JSON.
-- [ ] Define the request boundary:
+- [x] First write failing tests for a success envelope, 422 field errors, 401, 403, upgrade-required, 409, 429 with `Retry-After`, 500 and invalid JSON.
+- [x] Define the request boundary:
 
 ```swift
 protocol HTTPTransport: Sendable {
@@ -204,13 +204,15 @@ enum APIError: Error, Sendable, Equatable {
 }
 ```
 
-- [ ] Implement `actor APIClient` using an ephemeral `URLSessionConfiguration`; set `urlCache=nil`, `requestCachePolicy=.reloadIgnoringLocalCacheData`, `httpShouldSetCookies=false`.
-- [ ] Add headers `Accept`, `X-Fynla-Client`, `X-Fynla-Version`, `X-Fynla-Build`, `X-Request-ID`; add `Authorization` only through an injected access-token provider.
-- [ ] Permit exactly one refresh attempt for an idempotent request after 401. Do not replay POST/PATCH/PUT/DELETE automatically.
-- [ ] Decode field validation from the existing Laravel envelope and preserve server copy.
-- [ ] Treat decoding failure as visible error, never an empty object or zero.
-- [ ] Add fixture tests for `/api/v1/mobile/dashboard`, `/api/auth/user` and `/api/v1/mobile/modules/savings` using sanitised repository response shapes.
-- [ ] Run all API tests; expect PASS.
+- [x] Implement `actor APIClient` using an ephemeral `URLSessionConfiguration`; set `urlCache=nil`, `requestCachePolicy=.reloadIgnoringLocalCacheData`, `httpShouldSetCookies=false`.
+- [x] Add headers `Accept`, `X-Fynla-Client`, `X-Fynla-Version`, `X-Fynla-Build`, `X-Request-ID`; add `Authorization` only through an injected access-token provider.
+- [x] Permit exactly one refresh attempt for an idempotent request after 401. Do not replay POST/PATCH/PUT/DELETE automatically.
+- [x] Decode field validation from the existing Laravel envelope and preserve server copy.
+- [x] Treat decoding failure as visible error, never an empty object or zero.
+- [x] Add fixture tests for `/api/v1/mobile/dashboard`, `/api/auth/user` and `/api/v1/mobile/modules/savings` using sanitised repository response shapes.
+- [x] Run all API tests; expect PASS.
+
+Recorded 2026-07-16: the TDD red run failed because the API boundary types did not exist. The exact repository sources then passed 31 Swift 6 host tests across five suites, including status/error mapping, injected native headers, offline handling, numeric and HTTP-date `Retry-After`, a single GET refresh, no replay for POST/PATCH/PUT/DELETE, and all three sanitised contract fixtures. Xcode `build-for-testing` compiled the app, unit-test and UI-test targets with warnings-as-errors and asset catalogues excluded to isolate the known local asset-service fault; the fixture JSON files were present in the built iOS test bundle. No remote endpoint was called.
 
 **Intended review boundary:** `feat: add typed native api client`
 

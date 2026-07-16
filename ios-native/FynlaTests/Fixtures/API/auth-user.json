@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 101,
+      "name": "Example User",
+      "email": "user@example.test",
+      "email_verified_at": "2026-07-16T12:00:00Z",
+      "date_of_birth": "1990-01-01",
+      "gender": "prefer_not_to_say",
+      "marital_status": "single",
+      "created_at": "2026-07-16T12:00:00Z",
+      "updated_at": "2026-07-16T12:00:00Z"
+    },
+    "role": null,
+    "permissions": [],
+    "data_completed_steps": [],
+    "tier_flags": {
+      "resolved_tier": "free",
+      "capabilities": { "dashboard": "full" },
+      "limits": { "savings_account": 2 },
+      "open_api_affordance": false,
+      "currency_display_mode": "exact",
+      "snapshot_surfacing_window_days": 30
+    }
+  }
+}
