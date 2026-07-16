@@ -63,7 +63,7 @@ class EstateController extends Controller
     /**
      * Get all estate planning data for authenticated user.
      *
-     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free and Tier1 users
+     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free users
      * receive a cheap IHT-exposure signal rather than the full module.
      * The Vue view branches on `mode` for defence-in-depth, but this
      * response is authoritative.

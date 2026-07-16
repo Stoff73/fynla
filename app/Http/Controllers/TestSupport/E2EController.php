@@ -6,7 +6,6 @@ namespace App\Http\Controllers\TestSupport;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiConversation;
-use App\Models\DCPension;
 use App\Models\EmailVerificationCode;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
@@ -15,14 +14,15 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\LifeEvent;
 use App\Models\PendingRegistration;
-use App\Models\Property;
-use App\Models\SavingsAccount;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -117,8 +117,13 @@ class E2EController extends Controller
         ], 201);
     }
 
-    public function activeUser(Request $request, InvestmentAccountStore $investmentAccountStore): JsonResponse
-    {
+    public function activeUser(
+        Request $request,
+        InvestmentAccountStore $investmentAccountStore,
+        PensionStore $pensionStore,
+        PropertyStore $propertyStore,
+        SavingsStore $savingsStore,
+    ): JsonResponse {
         $this->ensureE2EEnvironment();
 
         $validated = $request->validate([
@@ -136,10 +141,24 @@ class E2EController extends Controller
             'password' => Hash::make($validated['password']),
             'email_verified_at' => now(),
             'is_preview_user' => false,
+            'plan' => $validated['tier'] ?? 'free',
             'tier' => $validated['tier'] ?? 'free',
             'onboarding_completed' => true,
             'onboarding_fyn_step' => null,
         ]);
+
+        if (($validated['tier'] ?? 'free') === 'premium') {
+            Subscription::query()->create([
+                'user_id' => $user->id,
+                'plan' => 'premium',
+                'billing_cycle' => 'monthly',
+                'amount' => 699,
+                'current_period_start' => now(),
+                'current_period_end' => now()->addMonth(),
+                'status' => 'active',
+                'auto_renew' => true,
+            ]);
+        }
 
         if ($validated['with_balance_history'] ?? false) {
             $account = $investmentAccountStore->create([
@@ -162,14 +181,36 @@ class E2EController extends Controller
         }
 
         if ($validated['with_freemium_caps'] ?? false) {
-            SavingsAccount::factory()->count(2)->create(['user_id' => $user->id]);
+            foreach (['Everyday savings', 'Emergency savings'] as $accountName) {
+                $savingsStore->create([
+                    'account_name' => $accountName,
+                    'account_type' => 'easy_access',
+                    'institution' => 'Test provider',
+                    'current_balance' => 1000,
+                    'is_isa' => false,
+                    'ownership_type' => 'individual',
+                    'ownership_percentage' => 100,
+                ], $user, IngestSource::FORM);
+            }
             InvestmentAccount::factory()->count(2)->create([
                 'user_id' => $user->id,
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100,
             ]);
-            DCPension::factory()->count(2)->create(['user_id' => $user->id]);
-            Property::factory()->create(['user_id' => $user->id]);
+            foreach (['Workplace pension', 'Personal pension'] as $schemeName) {
+                $pensionStore->createDc([
+                    'scheme_name' => $schemeName,
+                    'pension_type' => 'personal',
+                    'current_fund_value' => 1000,
+                ], $user, IngestSource::FORM);
+            }
+            $propertyStore->create([
+                'property_type' => 'main_residence',
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'address_line_1' => '1 Test Street',
+                'current_value' => 250000,
+            ], $user, IngestSource::FORM);
             Goal::factory()->count(2)->create(['user_id' => $user->id]);
             LifeEvent::factory()->create(['user_id' => $user->id]);
         }
@@ -184,20 +225,25 @@ class E2EController extends Controller
         ], 201);
     }
 
-    public function freemiumCounts(Request $request): JsonResponse
-    {
+    public function freemiumCounts(
+        Request $request,
+        PensionStore $pensionStore,
+        PropertyStore $propertyStore,
+        SavingsStore $savingsStore,
+    ): JsonResponse {
         $this->ensureE2EEnvironment();
 
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
         ]);
         $user = User::query()->where('email', $validated['email'])->firstOrFail();
+        $pensions = $pensionStore->forUser($user);
 
         return response()->json([
-            'savings_account' => SavingsAccount::query()->where('user_id', $user->id)->count(),
+            'savings_account' => $savingsStore->countForUser($user),
             'investment' => InvestmentAccount::query()->where('user_id', $user->id)->count(),
-            'pension_account' => DCPension::query()->where('user_id', $user->id)->count(),
-            'property' => Property::query()->where('user_id', $user->id)->count(),
+            'pension_account' => $pensions['dc']->count() + $pensions['db']->count(),
+            'property' => $propertyStore->forUser($user)->count(),
             'goal' => Goal::query()->where('user_id', $user->id)->count(),
             'life_event' => LifeEvent::query()->where('user_id', $user->id)->count(),
         ]);

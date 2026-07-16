@@ -926,7 +926,7 @@ Route::middleware(['auth:sanctum', 'estate.full'])->prefix('estate')->group(func
 
     // Will Builder + Will + Bequests + LPA are Estate-module sub-routes.
     // Spec §7 has no separate will/POA capability key — they fall under
-    // "Estate planning" (teaser for Free/Tier1). §10.2 requires them gated
+    // "Estate planning" (teaser for Free). §10.2 requires them gated
     // server-side, not just hidden. The legacy `feature:pro` above is NOT
     // sufficient: a grandfathered legacy-paid sub resolves to the `free`
     // tier under SP2 and must hit the Estate teaser, so the canonical
@@ -1123,10 +1123,11 @@ Route::prefix('payment')->group(function () {
 // Public pricing config — reads live tier store; no auth required
 Route::get('/pricing-config', [PricingConfigController::class, 'index']);
 
+Route::get('/payment/trial-status', fn () => abort(404));
+
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/subscription-status', [PaymentController::class, 'subscriptionStatus']);
-    Route::get('/trial-status', fn () => abort(404));
     Route::get('/billing-history', [PaymentController::class, 'billingHistory']);
     Route::post('/create-order', [PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
     Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');

@@ -10,10 +10,12 @@ use App\Models\Property;
 use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
     $this->user = User::factory()->create(['tier' => 'premium']);
     $this->household = Household::factory()->create();
     Sanctum::actingAs($this->user);

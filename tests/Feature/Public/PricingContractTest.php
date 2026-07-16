@@ -77,3 +77,18 @@ it('renders every approved comparison row in semantic table markup', function ()
         $response->assertSee('id="comparison-'.$row.'"', false);
     }
 });
+
+it('server-renders the canonical Free and Premium answers on the public FAQ', function () {
+    $response = $this->get('/faq');
+
+    $response->assertOk()
+        ->assertSee('Free costs &pound;0. Premium costs &pound;6.99 per month or &pound;59.99 per year for web billing.', false)
+        ->assertSee('Premium web payments are processed securely through Revolut.')
+        ->assertSee('Cancellation stops renewal, while Premium access continues until the end of the current billing period.')
+        ->assertSee('It then enters a 30-day read-only grace period')
+        ->assertDontSee('Student tier from approximately', false)
+        ->assertDontSee('Student covers budgeting', false)
+        ->assertDontSee('upgrade or downgrade at any time', false)
+        ->assertDontSee('processed securely through Stripe', false)
+        ->assertDontSee('then permanently deleted', false);
+});

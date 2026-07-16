@@ -151,7 +151,7 @@ const ValuableInfo = () => import('@/views/ValuableInfo.vue');
  *
  * Will Builder and Power of Attorney are Estate-module routes — there is no
  * separate will/POA capability key in the SP2 matrix, so they fall under
- * "Estate planning" (teaser for Free/Tier1). Teaser-tier users are redirected
+ * "Estate planning" (teaser for Free). Teaser-mode users are redirected
  * to the canonical Estate teaser (upgrade CTA) rather than the creation
  * wizard. The estate store `mode` is sourced from /api/estate via the same
  * canonical TeaserGate the backend enforces — NOT the legacy plan map, which

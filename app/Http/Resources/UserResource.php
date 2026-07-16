@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Services\Tiers\TeaserGate;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -106,9 +107,16 @@ class UserResource extends JsonResource
     {
         $user = $request->user();
 
-        return $user === null
-            || $user->is_admin
-            || $user->is_preview_user
-            || app(TeaserGate::class)->isFull($user, 'expenditure_detailed');
+        if ($user === null || $user->is_admin || $user->is_preview_user) {
+            return true;
+        }
+
+        try {
+            return app(TeaserGate::class)->isFull($user, 'expenditure_detailed');
+        } catch (ModelNotFoundException) {
+            // Match AuthController's pre-seed degradation contract: when the
+            // canonical tier rows are not installed yet, gated fields stay off.
+            return false;
+        }
     }
 }

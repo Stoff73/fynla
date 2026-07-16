@@ -119,7 +119,7 @@ Per spec §5.5, the store does **not** expose:
 
 1. **Pensions are individually owned. There is no joint ownership.** Unlike `SavingsAccount` / `Property` / `Investment`, the four pension tables have NO `joint_owner_id` column. UK pensions are registered to one person; benefits to a spouse flow through the scheme (DB spouse pension percentage) or beneficiary nomination (DC), not via dual ownership at the data layer. All reads filter on `user_id = $user->id` only.
 
-2. **Three pension types, one entity key, one tier cap.** `pension_account` covers DC + DB combined (spec §13). Free tier = 5 pension_account; tier1+ unlimited. State pension is NOT counted against the cap — `upsertState` skips `enforceTierCap` entirely because the one-per-user natural cap subsumes the tier-cap purpose. (Per `tests/Feature/Stores/PensionTierCapTest`.)
+2. **Three pension types, one entity key, one tier cap.** `pension_account` covers Defined Contribution and Defined Benefit pensions combined (spec §13). Free allows two pension accounts; Premium is unlimited. State pension is not counted against the cap — `upsertState` skips `enforceTierCap` because the one-per-user natural cap subsumes the tier-cap purpose. (Per `tests/Feature/Stores/PensionTierCapTest`.)
 
 3. **State pension uses `updateOrCreate`, not `create`+`update`.** `upsertState(array $data, User $user, IngestSource $source)` is the only State write entry point. `wasRecentlyCreated` on the emitted `StatePensionUpserted` event tells listeners whether this was an insert or update.
 

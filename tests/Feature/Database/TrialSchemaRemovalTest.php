@@ -26,6 +26,17 @@ it('removes the retired trial schema and narrows subscription status', function 
     }
 });
 
+it('keeps the checked-in schema snapshot aligned with the removed trial schema', function () {
+    $schema = (string) file_get_contents(database_path('schema/mysql-schema.sql'));
+
+    expect($schema)->not->toContain('CREATE TABLE `trial_reminder_log`')
+        ->not->toContain('`trial_started_at` timestamp')
+        ->not->toContain('`trial_ends_at` timestamp')
+        ->not->toContain("`status` enum('trialing','active','cancelled','expired','past_due')")
+        ->toContain("`status` enum('pending','active','cancelled','expired','past_due')")
+        ->toContain("`tier` enum('free','premium')");
+});
+
 it('aborts before destructive schema changes while a trialing row remains', function () {
     $path = database_path('migrations/2026_07_15_000005_remove_trial_subscription_schema.php');
     expect(is_file($path))->toBeTrue();

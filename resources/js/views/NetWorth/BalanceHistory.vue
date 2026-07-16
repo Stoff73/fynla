@@ -188,7 +188,7 @@ export default {
       this.$router.push(preview ? '/preview/net-worth/wealth-summary' : '/net-worth/wealth-summary');
     },
     goUpgrade() {
-      this.$router.push('/settings?tab=subscription');
+      this.$router.push('/settings/subscription?openPricing=1');
     },
     formatDate(value) {
       return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {

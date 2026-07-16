@@ -1375,11 +1375,13 @@ git commit -m "docs(freemium): publish the canonical economic contract"
 
 ### Task 14: Full Regression, Browser Acceptance and Swift Readiness Gate
 
+**Task 14 implementation commit:** `243c70c`. Local evidence is recorded in `codex/evidence/freemium-remediation-acceptance.md`. Remote acceptance and Swift readiness remain gated by the Task 12 target-environment audit.
+
 **Files:**
 - Create: `codex/evidence/freemium-remediation-acceptance.md`
 - Modify: this plan only to check completed steps and record commit identifiers
 
-- [ ] **Step 1: Run static sweeps**
+- [x] **Step 1: Run static sweeps**
 
 ```bash
 rg -n -i '\bfree trial\b|7-day trial|trial has ended|trial ends|trial expires|trialing|trial_started_at|trial_ends_at|trial_extension|/payment/trial-status|settings\?tab=subscription|/payment/checkout|processed securely through Stripe|downgrade at any time|tier1|tier2|tier3|Tier 1|Tier 2|Tier 3' app config database routes resources public/pages tests fynlaDesignGuide.md --glob '!*.bak'
@@ -1387,7 +1389,7 @@ rg -n -i '\bfree trial\b|7-day trial|trial has ended|trial ends|trial expires|tr
 
 Expected after Task 12: no active runtime matches. Applied historical migrations and deliberate migration/audit tests may retain old keys; each retained match must be listed with its reason in the acceptance evidence.
 
-- [ ] **Step 2: Run focused suites serially**
+- [x] **Step 2: Run focused suites serially**
 
 ```bash
 ./vendor/bin/pest tests/Feature/Auth/RegistrationTest.php
@@ -1405,7 +1407,7 @@ Expected after Task 12: no active runtime matches. Applied historical migrations
 
 Expected: all pass; do not parallelise database-refreshing files.
 
-- [ ] **Step 3: Run frontend tests and production builds**
+- [x] **Step 3: Run frontend tests and production builds**
 
 ```bash
 npm run test:frontend
@@ -1437,7 +1439,7 @@ Verify database rows, network payloads and UI, not UI alone.
 
 Follow `deploy/DEPLOY.md`, use the dev build only, run approved migrations, reseed, clear caches and use `verify-m`. Save screenshots, relevant JSON responses, subscription/payment row evidence and the deployed commit in `codex/evidence/freemium-remediation-acceptance.md`.
 
-- [ ] **Step 6: Run the complete test suite once**
+- [x] **Step 6: Run the complete test suite once**
 
 ```bash
 ./vendor/bin/pest
@@ -1465,7 +1467,7 @@ Paid-churn behaviour is documented and tested
 No unresolved pricing or payment-provider claim remains
 ```
 
-- [ ] **Step 9: Commit acceptance evidence**
+- [x] **Step 9: Commit local acceptance evidence**
 
 ```bash
 git add codex/evidence/freemium-remediation-acceptance.md codex/plans/programme/2026-07-14-freemium-economic-contract-remediation.md
