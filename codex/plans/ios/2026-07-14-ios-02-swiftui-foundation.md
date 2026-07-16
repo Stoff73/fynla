@@ -135,9 +135,9 @@ Recorded 2026-07-16: TDD red failed to compile because `ConfigurationError` did 
 
 **Files:** Create `ios-native/Fynla/App/FynlaApp.swift`, `AppRootView.swift`, `AppSession.swift`, `AppRouter.swift`; create `ios-native/FynlaTests/AppSessionTests.swift`, `AppRouterTests.swift`.
 
-- [ ] Write state-transition tests for `launching`, `signedOut`, `authenticating`, `verificationRequired`, `multiFactorRequired`, `authenticatedLocked`, `authenticatedUnlocked` and `deletingAccount`.
-- [ ] Assert financial routes are rejected unless the session is `authenticatedUnlocked`.
-- [ ] Define routes using identifiers rather than payloads:
+- [x] Write state-transition tests for `launching`, `signedOut`, `authenticating`, `verificationRequired`, `multiFactorRequired`, `authenticatedLocked`, `authenticatedUnlocked` and `deletingAccount`.
+- [x] Assert financial routes are rejected unless the session is `authenticatedUnlocked`.
+- [x] Define routes using identifiers rather than payloads:
 
 ```swift
 enum AppRoute: Hashable, Sendable {
@@ -159,10 +159,12 @@ enum AppRoute: Hashable, Sendable {
 }
 ```
 
-- [ ] Implement `@MainActor @Observable final class AppSession` and `@MainActor @Observable final class AppRouter`.
-- [ ] Root rendering must cover every session state with a privacy-safe launch, signed-out, locked or unlocked shell; no financial feature exists yet.
-- [ ] Add UI accessibility identifiers `app.launching`, `auth.signedOut`, `app.locked`, `app.unlocked`.
-- [ ] Run AppSession/AppRouter tests; expect PASS.
+- [x] Implement `@MainActor @Observable final class AppSession` and `@MainActor @Observable final class AppRouter`.
+- [x] Root rendering must cover every session state with a privacy-safe launch, signed-out, locked or unlocked shell; no financial feature exists yet.
+- [x] Add UI accessibility identifiers `app.launching`, `auth.signedOut`, `app.locked`, `app.unlocked`.
+- [x] Run AppSession/AppRouter tests; expect PASS.
+
+Recorded 2026-07-16: the TDD red run failed because `AppSession`, `AppRoute` and `AppRouter` did not exist. The exact repository environment, session and router sources then passed 17 Swift 6 host tests across three suites. A direct iOS Simulator SDK typecheck of all five app-composition source files passed with strict concurrency and warnings-as-errors. The generic Xcode integration build was stopped after macOS asset-catalog tooling stalled before Swift compilation, matching the separately recorded local CoreSimulator/asset-service fault; no simulator was launched.
 
 **Intended review boundary:** `feat: add native session and route shell`
 

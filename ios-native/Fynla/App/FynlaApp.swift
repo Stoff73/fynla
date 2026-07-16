@@ -2,28 +2,20 @@ import SwiftUI
 
 @main
 struct FynlaApp: App {
+    @State private var session: AppSession
+    @State private var router: AppRouter
+
+    init() {
+        let session = AppSession()
+        _session = State(initialValue: session)
+        _router = State(initialValue: AppRouter(session: session))
+    }
+
     var body: some Scene {
         WindowGroup {
-            FoundationPlaceholderView()
+            AppRootView(session: session)
+                .environment(session)
+                .environment(router)
         }
-    }
-}
-
-private struct FoundationPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.largeTitle)
-                .accessibilityHidden(true)
-
-            Text("Fynla")
-                .font(.title.bold())
-
-            Text("Native foundation")
-                .font(.body)
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("app.foundation")
     }
 }
