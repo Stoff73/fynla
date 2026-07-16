@@ -6,10 +6,10 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
-    func testAppLaunches() throws {
+    func testAppShowsThePrivacySafeLaunchingShell() throws {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.otherElements["app.foundation"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["app.launching"].waitForExistence(timeout: 3))
     }
 }

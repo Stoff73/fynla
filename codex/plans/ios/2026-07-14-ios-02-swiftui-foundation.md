@@ -164,7 +164,7 @@ enum AppRoute: Hashable, Sendable {
 - [x] Add UI accessibility identifiers `app.launching`, `auth.signedOut`, `app.locked`, `app.unlocked`.
 - [x] Run AppSession/AppRouter tests; expect PASS.
 
-Recorded 2026-07-16: the TDD red run failed because `AppSession`, `AppRoute` and `AppRouter` did not exist. The exact repository environment, session and router sources then passed 17 Swift 6 host tests across three suites. A direct iOS Simulator SDK typecheck of all five app-composition source files passed with strict concurrency and warnings-as-errors. The generic Xcode integration build was stopped after macOS asset-catalog tooling stalled before Swift compilation, matching the separately recorded local CoreSimulator/asset-service fault; no simulator was launched.
+Recorded 2026-07-16: the TDD red run failed because `AppSession`, `AppRoute` and `AppRouter` did not exist. The exact repository environment, session and router sources then passed 17 Swift 6 host tests across three suites. A direct iOS Simulator SDK typecheck of all five app-composition source files passed with strict concurrency and warnings-as-errors. An Xcode `build-for-testing` of the app, unit-test and corrected `app.launching` UI-test targets also passed with asset catalogues excluded to isolate the known local asset-service fault. The full generic integration build was stopped after macOS asset-catalog tooling stalled before Swift compilation, matching the separately recorded CoreSimulator issue; no simulator was launched.
 
 **Intended review boundary:** `feat: add native session and route shell`
 
