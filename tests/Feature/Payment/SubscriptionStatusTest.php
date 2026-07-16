@@ -91,7 +91,9 @@ it('returns active paid state for a subscriber', function () {
     expect($response->json())->not->toHaveKey('status');
 });
 
-it('returns not found for the retired trial-status alias', function () {
+it('returns not found for the retired trial-status path for guests and authenticated users', function () {
+    $this->getJson('/api/payment/trial-status')->assertNotFound();
+
     $user = User::factory()->create(['tier' => 'free']);
     Sanctum::actingAs($user);
 
