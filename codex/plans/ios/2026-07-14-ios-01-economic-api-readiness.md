@@ -136,12 +136,12 @@ Expected: PASS; no `/m` authentication test changes are needed to tolerate a ren
 
 **Files:** Modify `tests/Feature/Contracts/ClientCompatibilityContractTest.php`; use existing fixtures from `tests/Feature/Mobile/`; do not change production response code unless the test exposes an inconsistency.
 
-- [ ] Add a failing contract assertion for `GET /api/v1/mobile/dashboard` covering envelope, dashboard level/progress/percentile, module collection, next actions and Fyn insight keys.
-- [ ] Add a failing parameterised assertion for every slug accepted by `GET /api/v1/mobile/modules/{module}`.
-- [ ] Add contract assertions for conversation create, conversation load and message submission accepting `text/event-stream` or the documented `202` queued JSON envelope.
-- [ ] Assert `level_up` remains legal after the Fyn `done` frame in the existing streaming test suite.
-- [ ] Assert unknown additive JSON fields do not break `/m` decoding tests.
-- [ ] If any inconsistency appears, repair the server at the shared response boundary; do not add a native-specific copy of a financial endpoint.
+- [x] Add a failing contract assertion for `GET /api/v1/mobile/dashboard` covering envelope, dashboard level/progress/percentile, module collection, next actions and Fyn insight keys.
+- [x] Add a failing parameterised assertion for every slug accepted by `GET /api/v1/mobile/modules/{module}`.
+- [x] Add contract assertions for conversation create, conversation load and message submission accepting `text/event-stream` or the documented `202` queued JSON envelope.
+- [x] Assert `level_up` remains legal after the Fyn `done` frame in the existing streaming test suite.
+- [x] Assert unknown additive JSON fields do not break `/m` decoding tests.
+- [x] If any inconsistency appears, repair the server at the shared response boundary; do not add a native-specific copy of a financial endpoint.
 
 Run:
 
