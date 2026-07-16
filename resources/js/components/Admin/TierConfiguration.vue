@@ -253,7 +253,7 @@ export default {
       const errorKey = tierKey + '_capability';
       try {
         this.tierEdits[tierKey].capability_matrix = JSON.parse(this.capabilityJson[tierKey]);
-        this.$delete ? this.$delete(this.jsonErrors, errorKey) : delete this.jsonErrors[errorKey];
+        delete this.jsonErrors[errorKey];
       } catch (e) {
         this.jsonErrors = { ...this.jsonErrors, [errorKey]: e.message };
       }
@@ -263,7 +263,7 @@ export default {
       const errorKey = tierKey + '_caps';
       try {
         this.tierEdits[tierKey].count_caps = JSON.parse(this.countCapsJson[tierKey]);
-        this.$delete ? this.$delete(this.jsonErrors, errorKey) : delete this.jsonErrors[errorKey];
+        delete this.jsonErrors[errorKey];
       } catch (e) {
         this.jsonErrors = { ...this.jsonErrors, [errorKey]: e.message };
       }

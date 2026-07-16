@@ -3,7 +3,7 @@
  *
  * Replaces the legacy plan-tier model (`featureGating.js`, student/standard/
  * family/pro). Access is read from `tier_configurations.capability_matrix`
- * (delivered to the frontend via `/payment/subscription-status` → auth.subscriptionData)
+ * (delivered to the frontend via `/payment/subscription-status` as auth.subscriptionData)
  * keyed by capability verb:
  *   full    → fully usable
  *   limited → usable, but count-capped (the cap is surfaced separately by the

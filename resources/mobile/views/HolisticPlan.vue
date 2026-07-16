@@ -164,7 +164,7 @@ export default {
         } else {
           this.error = data?.message || 'We could not load your holistic plan.';
         }
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

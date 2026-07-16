@@ -119,7 +119,7 @@ export default {
           const nw = await apiGet('/api/estate/net-worth', store.token);
           if (nw.ok) this.netWorth = nw.data?.data?.net_worth || nw.data?.net_worth || nw.data?.data || null;
         }
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

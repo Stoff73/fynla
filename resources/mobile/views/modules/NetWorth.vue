@@ -133,7 +133,7 @@ export default {
         if (ov.ok) this.overview = ov.data?.data || ov.data || {};
         else this.error = ov.data?.message || 'We could not load your net worth.';
         if (det.ok) this.detailed = det.data?.data || det.data || {};
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

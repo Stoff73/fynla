@@ -274,13 +274,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjections from './InvestmentProjections.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import InvestmentHoldings from '@/components/Investment/InvestmentHoldings.vue';
 import InvestmentPerformance from '@/components/Investment/InvestmentPerformance.vue';
-import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
-import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
-import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
-import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
-import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
@@ -298,13 +292,7 @@ export default {
     InvestmentProjections,
     AccountForm,
     DocumentUploadModal,
-    InvestmentHoldings,
     InvestmentPerformance,
-    PortfolioOptimization,
-    AssetLocationOptimizer,
-    WrapperOptimizer,
-    FeeBreakdown,
-    TaxEfficiencyPanel,
     RiskMismatchWarning,
     ModuleStatusBar,
     LimitReachedModal,

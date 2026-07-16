@@ -27,12 +27,6 @@ import MobileBalanceHistory from './views/BalanceHistory.vue';
 // (the same var the parent SPA's router uses). Defaults to '/' for iOS / unset.
 const MOBILE_ROUTER_BASE = (import.meta.env.VITE_ROUTER_BASE || '/') + 'm/app/';
 
-// The CANONICAL login is the funnel login (main app /login), framed inside /m.
-// /m/app is post-auth only — it has no login screen of its own; unauthenticated
-// access (incl. after sign-out) goes here, where it loads in-frame via the
-// Sec-Fetch-Dest:iframe redirect-skip.
-const CANONICAL_LOGIN = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
-
 const router = createRouter({
   history: createWebHistory(MOBILE_ROUTER_BASE),
   routes: [
