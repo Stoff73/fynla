@@ -70,24 +70,6 @@ it('does not inherit stale Premium capabilities through a newer pending checkout
         ->assertJsonPath('error', 'capability_denied');
 });
 
-it('temporarily preserves Free writes for a historical trialing row until compatibility removal', function () {
-    $user = User::factory()->create(['tier' => 'free']);
-    Subscription::factory()->trialing()->create([
-        'user_id' => $user->id,
-    ]);
-    Sanctum::actingAs($user);
-
-    $response = $this->postJson('/api/savings/accounts', [
-        'account_name' => 'Historical Compatibility Savings',
-        'account_type' => 'easy_access',
-        'current_balance' => 100,
-        'ownership_type' => 'individual',
-    ]);
-
-    expect($response->json('error') ?? '')->not->toBe('subscription_required');
-    expect($response->status())->not->toBe(403);
-});
-
 it('blocks writes for a churned paid user with a terminal subscription past grace', function () {
     $user = User::factory()->create(['tier' => null, 'plan' => 'pro']);
     Subscription::factory()->expired()->create([

@@ -23,7 +23,7 @@ declare(strict_types=1);
  *   1. browser_navigate('http://localhost:8000/savetax?utm_source=linkedin')
  *      → page loads; sessionStorage('fynla.signup_source') === 'linkedin'.
  *
- *   2. browser_click on the "Start your free 7-day trial" CTA.
+ *   2. Complete the questionnaire and continue to registration.
  *      → URL becomes /register?from=savetax.
  *
  *   3. browser_fill_form: first_name=Verify, last_name=Single, email

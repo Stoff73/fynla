@@ -222,7 +222,7 @@ describe('POST /api/payment/upgrade', function () {
     it('rejects upgrade without active subscription', function () {
         $user = User::factory()->create();
         Subscription::factory()
-            ->trialing()
+            ->pending()
             ->create(['user_id' => $user->id]);
 
         $response = $this->actingAs($user, 'sanctum')
@@ -298,7 +298,7 @@ describe('confirmPayment keeps period dates for upgrades', function () {
     it('sets new period dates for non-upgrade payments', function () {
         $user = User::factory()->create();
         $subscription = Subscription::factory()
-            ->trialing()
+            ->pending()
             ->create([
                 'user_id' => $user->id,
             ]);

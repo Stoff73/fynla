@@ -16,19 +16,8 @@ return [
 
     // Timing knobs (all in days)
     'magic_link_ttl_days' => 7,
-    'discount_code_ttl_days' => 7,
     'cancellation_feedback_delay_days' => 3,
     'lapsed_recovery_threshold_days' => 5,
-
-    // Per-plan-per-cycle discount amounts in pence (Campaign 2)
-    'campaign2_discounts' => [
-        'student.monthly' => 100,    // £3.99 → £2.99 = £1.00 off
-        'student.yearly' => 801,     // £30.00 → £21.99 = £8.01 off
-        'standard.monthly' => 500,   // £10.99 → £5.99 = £5.00 off
-        'standard.yearly' => 4500,   // £100.00 → £55.00 = £45.00 off
-        'family.monthly' => 400,     // £14.99 → £10.99 = £4.00 off
-        'family.yearly' => 5000,     // £150.00 → £100.00 = £50.00 off
-    ],
 
     // Reason codes per feedback campaign
     'feedback_reasons' => [

@@ -288,12 +288,7 @@ export default {
     const userDropdownOpen = ref(false);
     const supportDropdownOpen = ref(false);
     const showBugReportModal = ref(false);
-    const trialData = computed(() => props.subscriptionData);
-
-    const trialPlanName = computed(() => {
-      if (!trialData.value) return '';
-      return trialData.value.plan;
-    });
+    const subscriptionState = computed(() => props.subscriptionData);
 
     // Countdown timer to 9 April 2026 12:00
     const countdown = ref(null);
@@ -355,16 +350,16 @@ export default {
       return store.getters['preview/isPreviewMode'];
     });
 
-    const showUpgradeButton = computed(() => shouldShowUpgradeEntry(trialData.value, isPreviewMode.value));
+    const showUpgradeButton = computed(() => shouldShowUpgradeEntry(subscriptionState.value, isPreviewMode.value));
 
     const openSubscriptionOptions = () => {
       router.push(subscriptionOptionsLocation());
     };
 
     const isPaidSubscriber = computed(() => {
-      if (!trialData.value) return false;
+      if (!subscriptionState.value) return false;
       if (isPreviewMode.value) return false;
-      return trialData.value.status === 'active';
+      return subscriptionState.value.subscription_status === 'active';
     });
 
     const showReferralModal = ref(false);
@@ -445,8 +440,6 @@ export default {
       openSubscriptionOptions,
       isPaidSubscriber,
       showReferralModal,
-      trialData,
-      trialPlanName,
       showMFAReminder,
       supportDropdownOpen,
       showBugReportModal,

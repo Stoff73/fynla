@@ -146,7 +146,6 @@ class RetentionPurgeService
                 // Subscription
                 'plan' => 'free',
                 'tier' => null,
-                'trial_ends_at' => null,
             ]);
         });
 
@@ -343,9 +342,6 @@ class RetentionPurgeService
 
             // ── Subscription / Billing ──
             // NB: data_retention_email_log and renewal_reminder_log are intentionally
-            // excluded — they have only subscription_id (no user_id) and cascade from
-            // the subscriptions delete below.
-            'trial_reminder_log',
             'payments',
             'subscriptions',
         ];

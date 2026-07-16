@@ -81,7 +81,7 @@ class DatabaseSeeder extends Seeder
             // Estate action definitions - configurable estate planning action triggers
             EstateActionDefinitionSeeder::class,
 
-            // Subscription plans (pricing, trial config)
+            // Subscription plans (pricing configuration)
             SubscriptionPlanSeeder::class,
 
             // Invoice sequence counter — schema:dump captures DDL only, so the

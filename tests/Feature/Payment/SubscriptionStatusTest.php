@@ -28,8 +28,8 @@ it('returns free state with no trial fields for a free user', function () {
             'tier' => 'free',
             'tier_display_name' => 'Free',
             'subscription_status' => null,
-            'status' => null,
         ]);
+    expect($response->json())->not->toHaveKey('status');
     expect($response->json())->not->toHaveKey('days_remaining');
     expect($response->json())->not->toHaveKey('trial_ends_at');
 });
@@ -87,24 +87,13 @@ it('returns active paid state for a subscriber', function () {
             'tier' => 'premium',
             'tier_display_name' => 'Premium',
             'subscription_status' => 'active',
-            'status' => 'active',
         ]);
+    expect($response->json())->not->toHaveKey('status');
 });
 
-it('keeps the trial-status compatibility alias byte-equivalent', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
-    Subscription::factory()->create([
-        'user_id' => $user->id,
-        'plan' => 'premium',
-        'status' => 'active',
-        'current_period_end' => now()->addYear(),
-    ]);
+it('returns not found for the retired trial-status alias', function () {
+    $user = User::factory()->create(['tier' => 'free']);
     Sanctum::actingAs($user);
 
-    $canonical = $this->getJson('/api/payment/subscription-status');
-    $compatibility = $this->getJson('/api/payment/trial-status');
-
-    $canonical->assertOk();
-    $compatibility->assertOk();
-    expect($compatibility->getContent())->toBe($canonical->getContent());
+    $this->getJson('/api/payment/trial-status')->assertNotFound();
 });

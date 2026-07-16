@@ -26,7 +26,6 @@ it('returns the exact Free entitlement contract without trial fields', function 
             'tier' => 'free',
             'tier_display_name' => 'Free',
             'subscription_status' => null,
-            'status' => null,
             'count_caps' => [
                 'savings_account' => 2,
                 'investment' => 2,
@@ -38,7 +37,7 @@ it('returns the exact Free entitlement contract without trial fields', function 
             ],
             'payment_enabled' => true,
         ])
-        ->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
+        ->not->toHaveKeys(['status', 'trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
 it('reports payments unavailable for preview users', function (): void {
@@ -53,9 +52,9 @@ it('reports payments unavailable for preview users', function (): void {
     expect($status['payment_enabled'])->toBeFalse();
 });
 
-it('maps an internal provisional trialing row to a non-entitling pending state', function (): void {
+it('returns a pending checkout as a non-entitling state', function (): void {
     $user = User::factory()->create(['tier' => 'free', 'plan' => 'free']);
-    Subscription::factory()->trialing()->create([
+    Subscription::factory()->pending()->create([
         'user_id' => $user->id,
         'plan' => 'premium',
         'billing_cycle' => 'monthly',
@@ -70,10 +69,9 @@ it('maps an internal provisional trialing row to a non-entitling pending state',
             'tier' => 'free',
             'tier_display_name' => 'Free',
             'subscription_status' => 'pending',
-            'status' => 'pending',
             'plan' => 'premium',
         ])
-        ->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
+        ->not->toHaveKeys(['status', 'trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
 it('reports Free while a stale paid tier has only ended and provisional rows', function (): void {
@@ -129,7 +127,6 @@ it('returns the complete Premium contract from the latest active subscription', 
         'tier' => 'premium',
         'tier_display_name' => 'Premium',
         'subscription_status' => 'active',
-        'status' => 'active',
         'plan' => 'premium',
         'billing_cycle' => 'yearly',
         'auto_renew' => true,
@@ -151,6 +148,7 @@ it('returns the complete Premium contract from the latest active subscription', 
         'open_api_affordance' => true,
         'payment_enabled' => true,
     ]);
+    expect($status)->not->toHaveKey('status');
     expect($status['capability_matrix']['holistic_plan'])->toBe('full')
         ->and($status['next_renewal_date'])->not->toBeNull()
         ->and($status['tier'])->not->toBeIn(['tier1', 'tier2', 'tier3']);

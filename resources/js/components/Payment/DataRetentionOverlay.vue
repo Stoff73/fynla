@@ -153,7 +153,7 @@ export default {
 
     const visible = computed(() => {
       if (!subscriptionData.value) return false;
-      return subscriptionData.value.status === 'expired'
+      return subscriptionData.value.subscription_status === 'expired'
         && subscriptionData.value.is_in_grace_period === true
         && subscriptionData.value.payment_enabled === true;
     });

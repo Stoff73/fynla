@@ -491,9 +491,9 @@ export default {
     };
 
     // Subscription data for upgrade button visibility (from AppLayout prop)
-    // Only filter plans for active paid subscribers — trial users see all plans
+    // Only filter plans for active paid subscribers.
     const currentPlanSlug = computed(() => {
-      if (!props.subscriptionData || props.subscriptionData.status !== 'active') return null;
+      if (!props.subscriptionData || props.subscriptionData.subscription_status !== 'active') return null;
       return props.subscriptionData.plan;
     });
 

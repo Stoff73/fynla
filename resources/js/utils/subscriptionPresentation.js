@@ -17,14 +17,14 @@ function formatEndDate(value) {
 
 export function getSubscriptionPresentation(subscriptionData, now = new Date()) {
   const paymentEnabled = subscriptionData?.payment_enabled === true;
-  const status = subscriptionData?.subscription_status ?? subscriptionData?.status ?? null;
+  const status = subscriptionData?.subscription_status ?? null;
   const isPremium = subscriptionData?.tier === 'premium';
   const tierLabel = isPremium && subscriptionData?.tier_display_name
     ? subscriptionData.tier_display_name
     : 'Premium';
   const periodActive = hasFuturePeriod(subscriptionData, now);
 
-  if (status === 'pending' || status === 'trialing') {
+  if (status === 'pending') {
     return {
       state: 'pending',
       label: 'Free — payment pending',

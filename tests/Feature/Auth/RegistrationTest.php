@@ -244,7 +244,6 @@ it('creates a free-tier user with no trial on verified registration', function (
 
     $user = User::where('email', 'free.signup@example.com')->firstOrFail();
     expect($user->tier)->toBe('free');
-    expect($user->trial_ends_at)->toBeNull();
     expect(Subscription::where('user_id', $user->id)->exists())->toBeFalse();
 });
 
@@ -280,7 +279,6 @@ it('returns only the persisted Premium checkout intent after verified registrati
 
     $user = User::where('email', "premium.{$billingCycle}@example.com")->firstOrFail();
     expect($user->tier)->toBe('free');
-    expect($user->trial_ends_at)->toBeNull();
     expect(Subscription::where('user_id', $user->id)->exists())->toBeFalse();
     expect(PendingRegistration::find($pending->id))->toBeNull();
 })->with(['monthly', 'yearly']);

@@ -34,14 +34,13 @@ it('get_subscription_status returns active subscription shape', function (): voi
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user->fresh());
 
     expect($result)->toMatchArray([
-        'status' => 'active',
         'subscription_status' => 'active',
         'tier' => 'premium',
         'tier_display_name' => 'Premium',
         'billing_cycle' => 'monthly',
         'action' => 'navigate',
         'route_path' => '/settings/subscription',
-    ])->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
+    ])->not->toHaveKeys(['status', 'trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
 it('get_subscription_status returns the Free state when user has no subscription', function (): void {
@@ -51,13 +50,12 @@ it('get_subscription_status returns the Free state when user has no subscription
 
     expect($result)->toMatchArray([
         'has_subscription' => false,
-        'status' => 'free',
         'subscription_status' => null,
         'tier' => 'free',
         'tier_display_name' => 'Free',
         'action' => 'navigate',
         'route_path' => '/settings/subscription',
-    ]);
+    ])->not->toHaveKey('status');
 });
 
 it('get_subscription_status flags cancelled subscriptions', function (): void {
@@ -72,13 +70,13 @@ it('get_subscription_status flags cancelled subscriptions', function (): void {
 
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user->fresh());
 
-    expect($result['status'])->toBe('cancelled')
+    expect($result['subscription_status'])->toBe('cancelled')
         ->and($result['tier_display_name'])->toBe('Premium');
 });
 
-it('get_subscription_status maps provisional trialing rows to pending without trial fields', function (): void {
+it('get_subscription_status returns pending checkout state without compatibility fields', function (): void {
     $user = User::factory()->create(['tier' => 'free', 'plan' => 'free']);
-    Subscription::factory()->trialing()->create([
+    Subscription::factory()->pending()->create([
         'user_id' => $user->id,
         'plan' => 'premium',
         'billing_cycle' => 'monthly',
@@ -88,11 +86,10 @@ it('get_subscription_status maps provisional trialing rows to pending without tr
     $result = app(CoordinatingAgent::class)->executeTool('get_subscription_status', [], $user->fresh());
 
     expect($result)->toMatchArray([
-        'status' => 'pending',
         'subscription_status' => 'pending',
         'tier' => 'free',
         'tier_display_name' => 'Free',
-    ])->not->toHaveKeys(['trial_started_at', 'trial_ends_at', 'days_remaining']);
+    ])->not->toHaveKeys(['status', 'trial_started_at', 'trial_ends_at', 'days_remaining']);
 });
 
 // ─── list_invoices ───────────────────────────────────────────────────

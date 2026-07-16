@@ -59,8 +59,8 @@ describe('sendInvitation', function () {
     it('rejects if user has no active subscription', function () {
         $user = User::factory()->create();
         $user->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'trialing',
-            'amount' => 0, 'current_period_start' => now(), 'current_period_end' => now()->addDays(7),
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'pending',
+            'amount' => 0, 'current_period_start' => null, 'current_period_end' => null,
         ]);
 
         $service = app(ReferralService::class);

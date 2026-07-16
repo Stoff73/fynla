@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Models\Household;
 use App\Models\Role;
-use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use Illuminate\Database\Seeder;
@@ -28,9 +27,6 @@ class TestUsersSeeder extends Seeder
 
             return;
         }
-
-        // Trial: 1 year from now so test users always have full access
-        $trialEnd = now()->addYear();
 
         // Create first spouse (primary account holder)
         $johnSmith = User::firstOrCreate(
@@ -55,10 +51,10 @@ class TestUsersSeeder extends Seeder
                 'industry' => 'Technology',
                 'employment_status' => 'employed',
                 'annual_employment_income' => 75000.00,
-                'trial_ends_at' => $trialEnd,
+                'plan' => 'free',
+                'tier' => 'free',
             ]
         );
-        $johnSmith->update(['trial_ends_at' => $trialEnd]);
 
         // Create second spouse
         $janeSmith = User::firstOrCreate(
@@ -83,10 +79,10 @@ class TestUsersSeeder extends Seeder
                 'industry' => 'Marketing',
                 'employment_status' => 'employed',
                 'annual_employment_income' => 55000.00,
-                'trial_ends_at' => $trialEnd,
+                'plan' => 'free',
+                'tier' => 'free',
             ]
         );
-        $janeSmith->update(['trial_ends_at' => $trialEnd]);
 
         // Link spouses to each other
         $johnSmith->update(['spouse_id' => $janeSmith->id]);
@@ -115,28 +111,16 @@ class TestUsersSeeder extends Seeder
                 'industry' => 'Education',
                 'employment_status' => 'employed',
                 'annual_employment_income' => 35000.00,
-                'trial_ends_at' => $trialEnd,
+                'plan' => 'free',
+                'tier' => 'free',
             ]
         );
         $sarahJones = User::where('email', 'sarah@example.com')->first();
-        $sarahJones?->update(['trial_ends_at' => $trialEnd]);
 
-        // Create trial subscriptions for all test users
+        // Keep the development fixtures aligned with permanent Free accounts.
         foreach ([$johnSmith, $janeSmith, $sarahJones] as $user) {
             if ($user) {
-                Subscription::updateOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'plan' => 'standard',
-                        'billing_cycle' => 'monthly',
-                        'status' => 'trialing',
-                        'amount' => 0,
-                        'trial_started_at' => now(),
-                        'trial_ends_at' => $trialEnd,
-                        'current_period_start' => now(),
-                        'current_period_end' => $trialEnd,
-                    ]
-                );
+                $user->update(['plan' => 'free', 'tier' => 'free']);
 
                 // Grant the same consents real users grant at registration
                 // (AuthController::register lines 506-511). Without this the

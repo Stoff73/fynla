@@ -21,7 +21,6 @@ use App\Models\OnboardingProgress;
 use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\Role;
-use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
@@ -55,7 +54,8 @@ class ChrisUserSeeder extends Seeder
                 'is_admin' => true,
                 'is_advisor' => false,
                 'is_preview_user' => false,
-                'plan' => 'standard',
+                'plan' => 'free',
+                'tier' => 'free',
                 'date_of_birth' => '1992-06-15',
                 'gender' => 'male',
                 'marital_status' => 'single',
@@ -103,20 +103,6 @@ class ChrisUserSeeder extends Seeder
         ] as $consentType) {
             UserConsent::recordConsent($userId, $consentType, true);
         }
-
-        // ── Subscription (Pro, yearly, active) ────────────────
-        Subscription::updateOrCreate(
-            ['user_id' => $userId, 'plan' => 'pro'],
-            [
-                'billing_cycle' => 'yearly',
-                'status' => 'active',
-                'trial_started_at' => $chris->created_at,
-                'trial_ends_at' => null,
-                'current_period_start' => now(),
-                'current_period_end' => now()->addYear(),
-                'amount' => 20000.00,
-            ]
-        );
 
         // ── Property 1: Main Residence ────────────────────────
         $mainResidence = app(PropertyStore::class)->updateOrCreate(

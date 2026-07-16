@@ -3,12 +3,12 @@ import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 
 const NOW = new Date('2026-07-15T12:00:00Z');
 
-function status(overrides = {}) {
+function subscriptionStatus(overrides = {}) {
   return {
     has_subscription: false,
     tier: 'free',
     tier_display_name: 'Free',
-    status: null,
+    subscription_status: null,
     current_period_end: null,
     is_in_grace_period: false,
     is_terminal_paid: false,
@@ -19,16 +19,16 @@ function status(overrides = {}) {
 
 describe('subscription presentation', () => {
   it('presents Free and provisional checkout as writable Free states', () => {
-    expect(getSubscriptionPresentation(status(), NOW)).toEqual({
+    expect(getSubscriptionPresentation(subscriptionStatus(), NOW)).toEqual({
       state: 'free',
       label: 'Free',
       canWrite: true,
       showUpgrade: true,
     });
 
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       has_subscription: true,
-      status: 'pending',
+      subscription_status: 'pending',
       plan: 'premium',
     }), NOW)).toEqual({
       state: 'pending',
@@ -39,11 +39,11 @@ describe('subscription presentation', () => {
   });
 
   it('presents active and cancelled-inside-period Premium without an upgrade', () => {
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       has_subscription: true,
       tier: 'premium',
       tier_display_name: 'Premium',
-      status: 'active',
+      subscription_status: 'active',
       current_period_end: '2027-01-31T23:59:59Z',
     }), NOW)).toEqual({
       state: 'active',
@@ -52,11 +52,11 @@ describe('subscription presentation', () => {
       showUpgrade: false,
     });
 
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       has_subscription: true,
       tier: 'premium',
       tier_display_name: 'Premium',
-      status: 'cancelled',
+      subscription_status: 'cancelled',
       current_period_end: '2027-01-31T23:59:59Z',
     }), NOW)).toEqual({
       state: 'cancelled',
@@ -67,11 +67,11 @@ describe('subscription presentation', () => {
   });
 
   it('uses the middleware period result for a payment issue', () => {
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       has_subscription: true,
       tier: 'premium',
       tier_display_name: 'Premium',
-      status: 'past_due',
+      subscription_status: 'past_due',
       current_period_end: '2027-01-31T23:59:59Z',
     }), NOW)).toEqual({
       state: 'past_due',
@@ -82,11 +82,11 @@ describe('subscription presentation', () => {
   });
 
   it('presents terminal paid states as read-only grace or ended access', () => {
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       has_subscription: true,
       tier: 'premium',
       tier_display_name: 'Premium',
-      status: 'expired',
+      subscription_status: 'expired',
       current_period_end: '2026-07-01T00:00:00Z',
       is_in_grace_period: true,
       is_terminal_paid: true,
@@ -97,11 +97,11 @@ describe('subscription presentation', () => {
       showUpgrade: true,
     });
 
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       has_subscription: true,
       tier: 'premium',
       tier_display_name: 'Premium',
-      status: 'expired',
+      subscription_status: 'expired',
       current_period_end: '2026-07-01T00:00:00Z',
       is_terminal_paid: true,
     }), NOW)).toEqual({
@@ -113,10 +113,10 @@ describe('subscription presentation', () => {
   });
 
   it('fails unknown states closed to Free presentation and hides paid actions when payments are unavailable', () => {
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       tier: 'premium',
       tier_display_name: 'Legacy Pro',
-      status: 'unexpected',
+      subscription_status: 'unexpected',
     }), NOW)).toEqual({
       state: 'free',
       label: 'Free',
@@ -124,10 +124,10 @@ describe('subscription presentation', () => {
       showUpgrade: true,
     });
 
-    expect(getSubscriptionPresentation(status({
+    expect(getSubscriptionPresentation(subscriptionStatus({
       tier: 'standard',
       tier_display_name: 'Standard',
-      status: 'cancelled',
+      subscription_status: 'cancelled',
       current_period_end: '2026-07-01T00:00:00Z',
     }), NOW)).toEqual({
       state: 'free',
@@ -136,7 +136,7 @@ describe('subscription presentation', () => {
       showUpgrade: true,
     });
 
-    expect(getSubscriptionPresentation(status({ payment_enabled: false }), NOW)).toEqual({
+    expect(getSubscriptionPresentation(subscriptionStatus({ payment_enabled: false }), NOW)).toEqual({
       state: 'free',
       label: 'Free',
       canWrite: true,

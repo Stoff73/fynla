@@ -105,7 +105,7 @@ class AccountDeletionService
             // Delete sessions
             DB::table('user_sessions')->where('user_id', $user->id)->delete();
 
-            // Cancel an active subscription only — leave others (expired/trialing/cancelled) alone
+            // Cancel an active subscription only — leave other terminal states alone.
             DB::table('subscriptions')
                 ->where('user_id', $user->id)
                 ->where('status', 'active')

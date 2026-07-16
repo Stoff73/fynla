@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\SubscriptionExpiryService;
-use App\Services\Payment\TrialService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 
@@ -27,7 +26,7 @@ it('expires ended paid access and revokes the user to Free', function () {
         ->and($user->fresh()->tier)->toBeNull();
 });
 
-it('runs the neutral command while retaining the deprecated aliases', function () {
+it('runs only the neutral subscription expiry command', function () {
     $user = User::factory()->create(['plan' => 'premium', 'tier' => 'premium']);
     $subscription = Subscription::factory()->plan('premium')->create([
         'user_id' => $user->id,
@@ -47,7 +46,8 @@ it('runs the neutral command while retaining the deprecated aliases', function (
         'data_retention_starts_at' => null,
     ]);
 
-    expect(app(TrialService::class)->expireCancelledSubscriptions())->toBe(1)
+    expect(app(SubscriptionExpiryService::class)->expireCancelledSubscriptions())->toBe(1)
         ->and($second->fresh()->status)->toBe('expired')
-        ->and(Artisan::all())->toHaveKeys(['subscriptions:expire', 'trials:expire']);
+        ->and(Artisan::all())->toHaveKey('subscriptions:expire')
+        ->and(Artisan::all())->not->toHaveKey('trials:expire');
 });

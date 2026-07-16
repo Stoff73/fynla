@@ -157,7 +157,7 @@ describe('UserProfile.vue', () => {
 
   it('keeps the Family tab available on the Free tier', async () => {
     store = createTestStore({
-      subscriptionData: { status: 'free', plan: 'free' },
+      subscriptionData: { subscription_status: null, plan: 'free' },
     });
     wrapper = mountComponent();
     await flushPromises();
@@ -168,7 +168,7 @@ describe('UserProfile.vue', () => {
 
   it('keeps the family tab available in preview mode', async () => {
     store = createTestStore({
-      subscriptionData: { status: 'free', plan: 'free' },
+      subscriptionData: { subscription_status: null, plan: 'free' },
       isPreviewMode: true,
     });
     wrapper = mountComponent();

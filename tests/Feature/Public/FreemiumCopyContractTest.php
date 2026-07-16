@@ -80,11 +80,7 @@ it('contains no obsolete trial claims in active source files', function () {
         resource_path('mobile'),
         resource_path('views/emails'),
     ];
-    $compatibilityMatches = [
-        'app/Services/Payment/RevolutSubscriptionService.php' => ['7-day trial'],
-        'app/Services/Payment/SubscriptionStatusService.php' => ["status === 'trialing'"],
-        'resources/js/utils/subscriptionPresentation.js' => ["status === 'trialing'"],
-    ];
+    $compatibilityMatches = [];
     $violations = [];
 
     foreach ($sourceRoots as $root) {

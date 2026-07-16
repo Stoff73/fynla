@@ -194,9 +194,11 @@
 ## 2026-07-15 — session 1 (context-clear)
 
 - Handover: [[handover-2026-07-15-session-1-clear]]
-- Branch: `codex/freemium-economic-api-readiness` (isolated worktree, pushed)
-- Commit: `5a35bd5` — Package 1 Tasks 1–6 consolidated
-- Status: Task 7 not started; no attempted Task 7 patch landed
-- Verification: Task 6 backend 9 tests/208 assertions; 2 pricing Playwright contracts; 1 Save Tax regression; responsive, accessibility, performance, and smoke checks green
-- Tech debt: 0 critical, 2 warnings, 1 suggestion in `tech-debt-report.md`
-- Next: execute Task 7 with TDD, including plain `/register` for Free pricing; do not begin Xcode until all Package 1 gates are green
+- Plans: all ten approved programme/iOS plans restored under `codex/plans/` at `15689c8`.
+- PR stack: Tasks 1–7 #622; Task 8 #623; Task 9 #624; Task 10 #625; Task 11 #626.
+- Current branch: `codex/freemium-task12-trial-schema` in the isolated programme worktree.
+- Task 10 follow-ups: audit output now uses exact `safe_to_remove`; `paid_shape` counts only paid rows retaining trial shape; converted soft-deleted trial history is normalised before deletion.
+- Task 12 local gate: exact trial audit exits 0 with `0/0/0/true`; tier-collapse audit also reports all zero counts and `safe_to_collapse=true` after local migrations and the mandatory reseed.
+- Task 12 verification before schema removal: 54 frontend files/726 tests green; production build green; changed-file lint, policy lint and Pint green; focused backend sweep 180 tests/714 assertions green.
+- Blocker: the exact audit command must first land and deploy through PR #625, then run read-only on csjones and production. Current SSH keys are rejected by both hosts. No schema-removal migration has been created and Task 13 has not started.
+- Boundary: the primary Save Tax checkout remains untouched on `codex/savetax-allowance-ctas`.
