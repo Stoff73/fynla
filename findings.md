@@ -81,3 +81,5 @@
 - Task 12 migration-test cleanup must restore both `000000_collapse_tier_identity_to_free_premium` and `000001_support_unbounded_premium_quotas`; restoring only `000000` leaks the temporary 90-day Premium snapshot window into later tests.
 - Payment finalisation replay tests must freeze time at second precision. The settlement path recomputes `now()->addMonth()`, so an unfrozen assertion can cross a second boundary and fail despite correct idempotent effects.
 - Task 12 is locally migrated and green in draft PR #627, but this does not satisfy the cross-environment gate. No remote migration is authorised until the exact audit is green and saved on both csjones and production.
+- Task 13 now has a single repository source of truth at `codex/plans/canonical/01-freemium-economic-contract.md`. The implemented signup spec and design guide point to it, while older commercial designs are visibly historical rather than silently competing contracts.
+- The corresponding vault documents remain materially stale about trials and former paid tiers. They have been inventoried for a gated update, not edited ahead of the Task 12 cross-environment audit.
