@@ -27,6 +27,12 @@ it('converts trial-origin users to Free and halts any deletion countdown', funct
         expect($u->plan)->toBe('free');
         expect($u->trial_ends_at)->toBeNull();
         expect(Subscription::where('user_id', $u->id)->exists())->toBeFalse();
+
+        $historical = Subscription::withTrashed()->where('user_id', $u->id)->firstOrFail();
+        expect($historical->status)->toBe('expired');
+        expect($historical->trial_started_at)->toBeNull();
+        expect($historical->trial_ends_at)->toBeNull();
+        expect($historical->data_retention_starts_at)->toBeNull();
     }
 });
 

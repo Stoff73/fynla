@@ -45,9 +45,15 @@ class ConvertTrialUsersToFree extends Command
         $converted = 0;
         foreach ($candidates as $user) {
             DB::transaction(function () use ($user, &$converted) {
-                // Halt any deletion countdown BEFORE removing the subscription.
+                // Preserve a readable historical row without retaining schema-
+                // blocking trial state, then halt any deletion countdown.
                 Subscription::where('user_id', $user->id)
-                    ->update(['data_retention_starts_at' => null]);
+                    ->update([
+                        'status' => 'expired',
+                        'trial_started_at' => null,
+                        'trial_ends_at' => null,
+                        'data_retention_starts_at' => null,
+                    ]);
                 Subscription::where('user_id', $user->id)->delete(); // soft-delete (Subscription uses SoftDeletes)
 
                 $user->update([
