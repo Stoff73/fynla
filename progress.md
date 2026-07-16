@@ -214,4 +214,5 @@
 - Task 13 repository documentation is prepared on `codex/freemium-task13-canonical-docs`: one concise canonical economic contract, the implemented pure-freemium signup state, and design-system rules for Free, pending, active, cancelled, payment-issue, grace and terminal presentation.
 - Historical design specifications with retired tier/trial economics are explicitly labelled superseded; current-document scans, policy lint and diff checks are green.
 - Vault payment, authentication, onboarding, public-page and architecture notes were inventoried but not changed. Publication remains gated on the exact csjones and production audits required by Task 12.
-- Next: publish the Task 13 repository documentation as a draft PR stacked on #627, then begin Task 14 static regression cleanup without claiming the external or vault gates complete.
+- Draft PR #628 publishes the Task 13 repository documentation and is correctly stacked on Task 12 PR #627. It remains draft until the external audit and gated vault publication are complete.
+- Next: begin Task 14 static regression cleanup without claiming the external, vault, deployment or live-browser gates complete.

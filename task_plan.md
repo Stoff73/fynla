@@ -4,7 +4,7 @@
 > Authoritative SP1 Pass 2 plan: `docs/superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md` (active).
 
 ## Current phase
-Native Swift programme, Package 1 economic/API readiness. Tasks 1–12 are checkpointed across PRs #622–#627. Task 12 is migrated, reseeded and fully green locally in draft PR #627, while remote merge/deployment remains gated on exact read-only audit evidence from csjones and production. Task 13 repository documentation is ready for a stacked draft PR; vault publication and Package 2/Xcode remain blocked until the external gate and Package 1 are fully green.
+Native Swift programme, Package 1 economic/API readiness. Tasks 1–13 are checkpointed across PRs #622–#628. Task 12 is migrated, reseeded and fully green locally in draft PR #627, while remote merge/deployment remains gated on exact read-only audit evidence from csjones and production. Task 13 repository documentation is in draft PR #628; vault publication and Package 2/Xcode remain blocked until the external gate and Package 1 are fully green.
 
 ## Phases — Native Swift programme (active)
 - [x] Package 1 Task 1 — two-tier identity and payment cutover
@@ -20,7 +20,7 @@ Native Swift programme, Package 1 economic/API readiness. Tasks 1–12 are check
 - [x] Package 1 Task 11 — obsolete trial-copy removal (#626)
 - [x] Package 1 Task 12 — guarded trial schema and compatibility removal; local migration/reseed/verification green in draft PR #627
 - [ ] Package 1 Task 12 external gate — exact csjones and production audit evidence before PR #627 merge/deploy
-- [ ] Package 1 Task 13 — canonical repository documentation ready; vault publication remains gated
+- [ ] Package 1 Task 13 — canonical repository documentation in draft PR #628; vault publication remains gated
 - [ ] Package 1 Task 14 — final regression, browser acceptance and Swift readiness gate
 - [ ] Package 2 — native SwiftUI foundation; blocked on Package 1 completion
 
