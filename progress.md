@@ -196,6 +196,7 @@
 - Handover: [[handover-2026-07-15-session-1-clear]]
 - Plans: all ten approved programme/iOS plans restored under `codex/plans/` at `15689c8`.
 - PR stack: Tasks 1–7 #622; Task 8 #623; Task 9 #624; Task 10 #625; Task 11 #626.
+- Task 7 final verification: PR #622 run `29463239284` is fully green after aligning canonical tier fixtures/caps and clearing whole-range frontend/policy lint; Feature passed in 12m32s and Unit in 7m09s. PRs #623–#626 remain correctly stacked and clean after the final rebase.
 - Current branch: `codex/freemium-task12-trial-schema` in the isolated programme worktree.
 - Task 10 follow-ups: audit output now uses exact `safe_to_remove`; `paid_shape` counts only paid rows retaining trial shape; converted soft-deleted trial history is normalised before deletion.
 - Task 12 local gate: exact trial audit exits 0 with `0/0/0/true`; tier-collapse audit also reports all zero counts and `safe_to_collapse=true` after local migrations and the mandatory reseed.

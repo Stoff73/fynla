@@ -4,7 +4,7 @@
 > Authoritative SP1 Pass 2 plan: `docs/superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md` (active).
 
 ## Current phase
-Native Swift programme, Package 1 economic/API readiness. Tasks 1–11 are checkpointed across PRs #622–#626. Task 12 is active but paused before schema removal pending exact read-only audit evidence from csjones and production. Package 2/Xcode work remains blocked until Package 1 is fully green.
+Native Swift programme, Package 1 economic/API readiness. Tasks 1–11 are checkpointed across PRs #622–#626; Task 7's final GitHub run is fully green and PRs #623–#626 remain correctly stacked and clean. Task 12 is active but paused before schema removal pending exact read-only audit evidence from csjones and production. Package 2/Xcode work remains blocked until Package 1 is fully green.
 
 ## Phases — Native Swift programme (active)
 - [x] Package 1 Task 1 — two-tier identity and payment cutover

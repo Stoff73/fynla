@@ -5,7 +5,7 @@
 ## 2026-07-15 — Native Swift programme Package 1
 
 - [x] Restore all ten approved programme and iOS implementation plans under `codex/plans/` (`15689c8`).
-- [x] Tasks 1–7 — consolidated readiness branch and draft PR #622; Task 7 preserves only canonical Premium checkout intent and keeps verified accounts Free until payment.
+- [x] Tasks 1–7 — consolidated readiness branch and PR #622; Task 7 preserves only canonical Premium checkout intent and keeps verified accounts Free until payment. Final GitHub run `29463239284` is fully green across lint, PHP, frontend, build, browser, logic and security checks.
 - [x] Task 8 — upgrade and limit guidance, PR #623.
 - [x] Task 9 — canonical subscription UI, PR #624.
 - [x] Task 10 — pure-freemium lifecycle semantics, corrected audit contract and converted-history normalisation, PR #625.
