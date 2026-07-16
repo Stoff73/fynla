@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('subscriptions:send-renewal-reminders')->dailyAt('09:00');
         $schedule->command('data-retention:send-warnings')->dailyAt('09:00');
-        $schedule->command('trials:expire')->dailyAt('00:05');
+        $schedule->command('subscriptions:expire')->dailyAt('00:05');
         $schedule->command('accounts:execute-scheduled-deletions')->dailyAt('00:10');
         $schedule->command('accounts:execute-grace-deletions')->dailyAt('00:15');
         $schedule->command('accounts:send-deletion-reminders')->dailyAt('00:20');

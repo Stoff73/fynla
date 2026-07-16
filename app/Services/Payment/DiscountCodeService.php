@@ -72,6 +72,10 @@ class DiscountCodeService
             return $this->invalid('This discount code is no longer active.');
         }
 
+        if (! in_array($discount->type, ['percentage', 'fixed_amount', 'lifecycle_welcome'], true)) {
+            return $this->invalid('This discount code type is no longer supported.');
+        }
+
         if ($discount->expires_at && $discount->expires_at->isPast()) {
             return $this->invalid('This discount code has expired.');
         }
@@ -111,14 +115,13 @@ class DiscountCodeService
         $discountAmount = $this->calculateDiscount($discount, $amountPence, $planSlug, $billingCycle);
         $finalAmount = max(0, $amountPence - $discountAmount);
 
-        if ($discount->type !== 'trial_extension' && $finalAmount < 1) {
+        if ($finalAmount < 1) {
             return $this->invalid('This discount would reduce the paid order below the minimum charge.');
         }
 
         $description = match ($discount->type) {
             'percentage' => "{$discount->value}% off",
             'fixed_amount' => '£'.number_format($discount->value / 100, 2).' off',
-            'trial_extension' => "{$discount->value} extra trial days",
             default => 'Discount applied',
         };
 
@@ -188,7 +191,6 @@ class DiscountCodeService
             'percentage' => (int) round($amountPence * $discount->value / 100),
             'fixed_amount' => min($discount->value, $amountPence),
             'lifecycle_welcome' => $this->calculateLifecycleWelcomeDiscount($discount, $amountPence, $planSlug, $billingCycle),
-            'trial_extension' => 0,
             default => 0,
         };
     }

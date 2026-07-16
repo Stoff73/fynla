@@ -23,7 +23,10 @@ describe('Notification Preferences API', function () {
                     'security_alerts' => true,
                     'payment_alerts' => true,
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.lifecycle_empty_trialer')
+            ->assertJsonMissingPath('data.lifecycle_engaged_trialer')
+            ->assertJsonMissingPath('data.lifecycle_cancelled_trialer');
     });
 
     it('updates specific preferences', function () {

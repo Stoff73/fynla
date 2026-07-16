@@ -142,7 +142,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Get subscription and trial statistics for admin dashboard.
+     * Get subscription statistics for admin dashboard.
      */
     public function getSubscriptionStats(): JsonResponse
     {
@@ -754,7 +754,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'code' => 'required|string|max:50|unique:discount_codes,code',
-            'type' => 'required|string|in:percentage,fixed_amount,trial_extension',
+            'type' => 'required|string|in:percentage,fixed_amount',
             'value' => 'required|integer|min:1',
             'max_uses' => 'nullable|integer|min:1',
             'max_uses_per_user' => 'integer|min:1',
@@ -806,7 +806,7 @@ class AdminController extends Controller
 
         $request->validate([
             'code' => "required|string|max:50|unique:discount_codes,code,{$id}",
-            'type' => 'required|string|in:percentage,fixed_amount,trial_extension',
+            'type' => 'required|string|in:percentage,fixed_amount',
             'value' => 'required|integer|min:1',
             'max_uses' => 'nullable|integer|min:1',
             'max_uses_per_user' => 'integer|min:1',

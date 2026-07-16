@@ -179,7 +179,6 @@ class InvoiceService
         return match ($discount->type) {
             'percentage' => "{$discount->value}% off",
             'fixed_amount' => '£'.number_format($discount->value / 100, 2).' off',
-            'trial_extension' => "{$discount->value} extra trial days",
             default => 'Discount applied',
         };
     }

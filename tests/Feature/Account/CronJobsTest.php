@@ -32,9 +32,10 @@ it('accounts:execute-grace-deletions soft-deletes users whose 30-day grace ended
     $user = User::factory()->create();
     DB::table('subscriptions')->insert([
         'user_id' => $user->id,
-        'plan' => 'pro',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
         'status' => 'expired',
+        'trial_started_at' => now()->subYear(),
         'data_retention_starts_at' => now()->subDays(31),
         'amount' => 0,
         'created_at' => now(),
@@ -45,7 +46,7 @@ it('accounts:execute-grace-deletions soft-deletes users whose 30-day grace ended
 
     expect(User::withTrashed()->find($user->id)->trashed())->toBeTrue();
     expect(User::withTrashed()->find($user->id)->deletion_reason)
-        ->toBeIn(['trial_expired', 'subscription_cancelled_grace_ended']);
+        ->toBe('subscription_cancelled_grace_ended');
 });
 
 it('accounts:execute-grace-deletions skips preview users', function () {
