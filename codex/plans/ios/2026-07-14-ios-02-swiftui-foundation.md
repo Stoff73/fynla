@@ -220,8 +220,8 @@ Recorded 2026-07-16: the TDD red run failed because the API boundary types did n
 
 **Files:** Create `Core/Diagnostics/DiagnosticEvent.swift`, `DiagnosticsClient.swift`, `RedactingDiagnosticsClient.swift`; create tests.
 
-- [ ] Write failing tests proving header names `Authorization`, `Cookie`, verification fields, password fields, `signedTransaction`, `signedPayload` and arbitrary financial JSON values never reach the sink.
-- [ ] Use an allowlisted event, not a generic dictionary logger:
+- [x] Write failing tests proving header names `Authorization`, `Cookie`, verification fields, password fields, `signedTransaction`, `signedPayload` and arbitrary financial JSON values never reach the sink.
+- [x] Use an allowlisted event, not a generic dictionary logger:
 
 ```swift
 struct DiagnosticEvent: Sendable, Equatable {
@@ -233,9 +233,11 @@ struct DiagnosticEvent: Sendable, Equatable {
 }
 ```
 
-- [ ] Use `Logger` privacy annotations for these allowlisted scalar fields only.
-- [ ] Ensure network bodies are not accepted by the diagnostics protocol at compile time.
-- [ ] Run diagnostics tests; expect PASS.
+- [x] Use `Logger` privacy annotations for these allowlisted scalar fields only.
+- [x] Ensure network bodies are not accepted by the diagnostics protocol at compile time.
+- [x] Run diagnostics tests; expect PASS.
+
+Recorded 2026-07-16: the TDD red run failed because the diagnostics boundary did not exist. The protocol now accepts only `DiagnosticEvent`; the private OSLog sink can be constructed only through the redacting client, and operation names are fixed to a closed allowlist. Unsafe operations, request identifiers, credential/header names and financial JSON are removed before the sink. All 36 exact-source Swift 6 host tests across six suites passed, followed by an Xcode `build-for-testing` pass under warnings-as-errors with asset catalogues excluded to isolate the known local asset-service fault.
 
 **Intended review boundary:** `feat: add privacy-safe native diagnostics`
 
