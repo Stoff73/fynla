@@ -33,7 +33,7 @@ A row must not use `green` while either evidence cell is blank. User journeys re
 
 - Package: iOS Package 1, Economic Contract and API Readiness
 - Commit/PR: dev `aaf27c961d37c6d1897904bdcb29247d718638f8`; Package 1 PR pending
-- Backend tests: freemium remediation full suite green before dev deployment; Package 1 Task 2 architecture test 1 passed with 72 assertions; Task 3 auth and entitlement suite 37 passed with 177 assertions; Task 4 compatibility/Fyn ordering slice 20 passed with 209 assertions
+- Backend tests: freemium remediation full suite green before dev deployment; Package 1 Task 2 architecture test 1 passed with 72 assertions; Task 3 auth and entitlement suite 37 passed with 177 assertions; Task 4 Mobile, AI and client contracts 487 passed with 1851 assertions and 3 intentional capture-only skips
 - Mobile decoding tests: `tests/frontend/mobile/Dashboard.test.js` 3 passed, including unknown additive response fields
 - Swift tests: not applicable until Package 2
 - Desktop browser evidence: actual Google Chrome on csjones dev `aaf27c96`; `/fynla/pricing` exposes only Free/Premium with no obsolete copy, and the seeded `young_saver` preview reached `/fynla/dashboard`; screenshot `codex/evidence/ios-package1/csjones-pricing-chrome.png`
