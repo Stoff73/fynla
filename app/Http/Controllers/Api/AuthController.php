@@ -119,8 +119,8 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'registration_source' => $request->registration_source ?? null,
             'preview_persona_id' => $request->preview_persona_id ?? null,
-            'plan' => $request->plan ?? null,
-            'billing_cycle' => $request->billing_cycle ?? null,
+            'plan' => $request->validated('plan'),
+            'billing_cycle' => $request->validated('billing_cycle'),
             'referral_code' => $request->referral_code ?? null,
             'signup_source' => $request->validated('signup_source'),
             'funnel_answers' => $funnelAnswers,
@@ -666,6 +666,8 @@ class AuthController extends Controller
                 'method' => 'registration',
             ]);
 
+            $checkoutIntent = $pending->checkoutIntent();
+
             // Delete the pending registration
             $pending->delete();
 
@@ -675,7 +677,12 @@ class AuthController extends Controller
             // never throws — a failure must not break account creation.
             app(PointsService::class)->recordLogin($user);
 
-            return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
+            return $this->buildAuthSuccessResponse(
+                $user,
+                $authResult['token'],
+                'Registration complete',
+                ['checkout_intent' => $checkoutIntent]
+            );
         }
 
         // Handle login verification (existing flow)

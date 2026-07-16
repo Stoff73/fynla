@@ -356,18 +356,10 @@ export default {
       return store.getters['preview/isPreviewMode'];
     });
 
-    // Show upgrade for non-pro subscribers (trialing or active on student/standard/family)
     const showUpgradeButton = computed(() => {
       if (!trialData.value) return false;
       if (isPreviewMode.value) return false;
-      const plan = trialData.value.plan;
-      const status = trialData.value.status;
-      // Don't show for pro users
-      if (plan === 'pro') return false;
-      // Don't show if already showing the trial upgrade inline
-      if (status === 'trialing') return false;
-      // Show for active subscribers on student/standard/family
-      return status === 'active';
+      return trialData.value.tier !== 'premium';
     });
 
     const isPaidSubscriber = computed(() => {

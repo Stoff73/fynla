@@ -452,7 +452,7 @@ export default {
     async checkTrialStatus() {
       if (this.isPreviewMode) return;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         this.subscriptionData = response.data;
         this.$store.commit('auth/setSubscriptionData', response.data);
         if (!response.data.has_subscription) return;

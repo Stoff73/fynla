@@ -23,7 +23,7 @@ use Tests\Support\Fyn\FynStreamHarness;
  * status='pending' and must never be promoted or written to the procedural corpus.
  */
 beforeEach(function () {
-    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
     TaxConfiguration::factory()->create(['is_active' => true]);
 });
 

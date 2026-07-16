@@ -10,6 +10,8 @@ use App\Http\Requests\UpdateLifeEventRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\LifeEvent;
 use App\Services\Goals\LifeEventService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,13 +76,23 @@ class LifeEventController extends Controller
         $data = $request->validated();
 
         try {
-            $event = $this->lifeEventService->createEvent($user->id, $data);
+            $event = $this->lifeEventService->createEvent($user, $data, IngestSource::FORM);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Life event created successfully.',
                 'data' => $event,
             ], 201);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'tier_limit_reached',
+                'entity_key' => $e->entityKey,
+                'current_count' => $e->currentCount,
+                'hard_limit' => $e->hardLimit,
+                'required_tier' => 'premium',
+                'message' => 'Life Event limit reached for your current plan.',
+            ], 403);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Create life event', 500, ['user_id' => $user->id]);
         }

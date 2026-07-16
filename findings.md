@@ -64,3 +64,11 @@
 - `create_investment_account` silently dropped any user-stated fact without a schema field (the £800 dividends case) — when iterating on captures, diff the recorded `tool_calls` in `ai_messages` against the user's verbatim message to spot dropped facts (PR #531).
 - `buildCaptureAck` is a state-keyed table covering only base states; campaign grouped_extract states need explicit entries — delegated turns ack via LLM, grouped_extract turns don't.
 - csjones `php artisan cache:clear` invalidates live user tokens — every deploy needs re-login in browser tests.
+
+## 2026-07-15 — Native Swift programme Package 1
+
+- The primary checkout can show the Save Tax branch while programme work remains correctly isolated in a separate worktree. Every programme command must set `workdir=/private/tmp/fynla-freemium-economic-api-readiness`; never switch `/Users/CSJ/Desktop/fynla` away from Save Tax.
+- Registration checkout intent is a paid-intent contract, not a general tier selector. `free` must be rejected by registration validation, and public Free calls to action must use plain `/register` rather than `plan=free`.
+- Checkout routing must be derived from the verified `PendingRegistration`, never from the verification request or current query string. The resulting user still starts Free and no `Subscription` is created before payment.
+- The historical `.agents/skills` files are absent from the current checkout, but their last committed copies are recoverable from commit `ff5520b` when a named repository skill must be followed.
+- Session tech-debt audit found no critical blockers. Deferred items are ownership-share duplication and orchestration length in `BalanceHistoryService`, plus the broad collection responsibility in `AdviserExportPackService`.

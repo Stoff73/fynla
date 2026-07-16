@@ -94,6 +94,24 @@ class PendingRegistration extends Model
     }
 
     /**
+     * Return the canonical checkout intent captured at registration.
+     *
+     * @return array{tier: string, billing_cycle: string}|null
+     */
+    public function checkoutIntent(): ?array
+    {
+        if ($this->plan !== 'premium'
+            || ! in_array($this->billing_cycle, ['monthly', 'yearly'], true)) {
+            return null;
+        }
+
+        return [
+            'tier' => 'premium',
+            'billing_cycle' => $this->billing_cycle,
+        ];
+    }
+
+    /**
      * Check if this pending registration has expired.
      */
     public function isExpired(): bool

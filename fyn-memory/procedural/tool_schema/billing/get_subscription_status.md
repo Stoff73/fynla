@@ -2,15 +2,15 @@
 procedure_id: 'billing.tool.get_subscription_status'
 kind: tool_schema
 module: billing
-version: 1
+version: 2
 active: true
-effective_from: 2026-06-02
+effective_from: 2026-07-15
 ---
 
 ```json
 {
     "name": "get_subscription_status",
-    "description": "Get the user's current subscription status — plan, billing cycle, current period end, trial end, next charge, and whether they have cancelled. Use when the user asks about their subscription, billing, when they will be charged next, whether their trial has ended, or whether their subscription is still active.",
+    "description": "Get the user's current Free or Premium subscription state — tier display name, billing cycle, paid period end, renewal date, and whether payment is pending, active, past due, cancelled, or expired. Use when the user asks about their subscription, billing, next renewal, cancellation, or access state.",
     "parameters": {
         "type": "object",
         "properties": {},

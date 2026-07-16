@@ -27,7 +27,7 @@ trait GatesEstateAccess
         $teaserGate = $this->teaserGate;
 
         if (! $teaserGate->isFull($user, 'estate')) {
-            abort(403, 'Full Estate Planning requires Tier 2 or above.');
+            abort(403, 'Full Estate Planning requires Premium.');
         }
     }
 }

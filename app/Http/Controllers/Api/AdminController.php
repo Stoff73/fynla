@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Admin\DatabaseMetricsService;
 use App\Services\Admin\UserModuleTrackingService;
+use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminController extends Controller
@@ -757,7 +759,7 @@ class AdminController extends Controller
             'max_uses' => 'nullable|integer|min:1',
             'max_uses_per_user' => 'integer|min:1',
             'applicable_plans' => 'nullable|array',
-            'applicable_plans.*' => 'string|in:student,standard,family,pro',
+            'applicable_plans.*' => ['string', Rule::in(TierConfigurationStore::paidTiers())],
             'applicable_cycles' => 'nullable|array',
             'applicable_cycles.*' => 'string|in:monthly,yearly',
             'starts_at' => 'nullable|date',
@@ -809,7 +811,7 @@ class AdminController extends Controller
             'max_uses' => 'nullable|integer|min:1',
             'max_uses_per_user' => 'integer|min:1',
             'applicable_plans' => 'nullable|array',
-            'applicable_plans.*' => 'string|in:student,standard,family,pro',
+            'applicable_plans.*' => ['string', Rule::in(TierConfigurationStore::paidTiers())],
             'applicable_cycles' => 'nullable|array',
             'applicable_cycles.*' => 'string|in:monthly,yearly',
             'starts_at' => 'nullable|date',

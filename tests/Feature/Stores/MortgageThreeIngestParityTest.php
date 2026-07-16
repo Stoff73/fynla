@@ -66,7 +66,7 @@ beforeEach(function () {
 });
 
 it('persists field-identical canonical rows for the same individual mortgage via form, fyn and upload', function () {
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
+    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
     // Pin current_value so the derived current_ltv_pct (200000 / 500000 * 100 = 40%)
     // is deterministic — PropertyFactory's default current_value is randomised.
     $property = Property::factory()->create(['user_id' => $user->id, 'current_value' => 500000]);
@@ -151,7 +151,7 @@ it('coerces tenants_in_common to joint across all three ingest paths', function 
     // mortgages do NOT support tenants_in_common; all three normaliser paths
     // must coerce 'tenants_in_common' → 'joint' before the canonical store
     // receives the payload.
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
+    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
     $store = app(MortgageStore::class);
 

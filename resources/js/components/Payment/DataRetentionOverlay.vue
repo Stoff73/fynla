@@ -144,7 +144,7 @@ export default {
 
     const fetchSubscriptionStatus = async () => {
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
       } catch (err) {
         logger.error('DataRetentionOverlay: failed to fetch status', err);

@@ -116,6 +116,7 @@ const BusinessInterestsList = () => import('@/components/NetWorth/BusinessIntere
 const ChattelsList = () => import('@/components/NetWorth/ChattelsList.vue');
 const LiabilitiesList = () => import('@/components/NetWorth/LiabilitiesList.vue');
 const JointAccountHistory = () => import('@/components/NetWorth/JointAccountHistory.vue');
+const BalanceHistory = () => import('@/views/NetWorth/BalanceHistory.vue');
 const ProtectionDashboard = () => import('@/views/Protection/ProtectionDashboard.vue');
 const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
@@ -782,6 +783,11 @@ const routes = [
         path: 'joint-history',
         name: 'JointAccountHistory',
         component: JointAccountHistory,
+      },
+      {
+        path: 'history',
+        name: 'BalanceHistory',
+        component: BalanceHistory,
       },
     ],
   },
@@ -1461,6 +1467,11 @@ const routes = [
         name: 'PreviewNetWorthLiabilities',
         component: LiabilitiesList,
       },
+      {
+        path: 'history',
+        name: 'PreviewBalanceHistory',
+        component: BalanceHistory,
+      },
     ],
   },
   {
@@ -1690,12 +1701,12 @@ router.beforeEach(async (to, from, next) => {
     // the primary enforcement; if the matrix isn't loaded yet, allow through.
     if (requiresAuth && isAuthenticated && !isPreviewMode && to.path !== '/teaser' && capabilityForRoute(to.path, to.query)) {
       let matrix = store.state.auth?.subscriptionData?.capability_matrix;
-      // On a fresh full-page load the trial-status hasn't been fetched yet, so
+      // On a fresh full-page load the subscription status hasn't been fetched yet, so
       // the matrix is missing — fetch it once before deciding, otherwise a
       // gated URL opened directly (or refreshed) would skip the teaser.
       if (!matrix) {
         try {
-          const resp = await api.get('/payment/trial-status');
+          const resp = await api.get('/payment/subscription-status');
           store.commit('auth/setSubscriptionData', resp.data);
           matrix = resp.data?.capability_matrix;
         } catch {

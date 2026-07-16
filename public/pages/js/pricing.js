@@ -1,13 +1,9 @@
 /**
- * Fynla pricing page — interactive billing toggle.
+ * Fynla pricing page — canonical Free/Premium rendering.
  *
- * Prices are the paid tiers (Tier 1/2/3) and come from the live tier store
- * via the public GET /api/pricing-config endpoint — the same single source of
- * truth as the in-app upgrade modal and the admin Tier Configuration screen.
- * Seeded values are kept inline as a fallback so the page still shows sensible
- * pricing if the request fails. There are no trials and no launch discounts.
- *
- * FAQ accordion and carousel JS live in site.js — not re-implemented here.
+ * The page contains a complete server-rendered fallback. Live values replace
+ * those defaults only when both canonical tier rows are returned by the public
+ * pricing endpoint.
  */
 (function () {
   'use strict';
@@ -16,184 +12,187 @@
     if (!Number.isFinite(monthlyPence) || !Number.isFinite(annualPence) || monthlyPence <= 0 || annualPence <= 0) {
       return null;
     }
+
     var monthlyAnnualised = monthlyPence * 12;
     if (annualPence >= monthlyAnnualised) return null;
 
-    return Math.round((1 - annualPence / (monthlyPence * 12)) * 100);
+    return Math.round((1 - annualPence / monthlyAnnualised) * 100);
   }
 
   window.FynlaPricing = { annualSavingPercent: annualSavingPercent };
 
   var btnMonthly = document.getElementById('btn-monthly');
-  var btnYearly  = document.getElementById('btn-yearly');
-  var saveLabel  = document.getElementById('save-label');
-  var cancelLabel = document.getElementById('cancel-label');
+  var btnYearly = document.getElementById('btn-yearly');
+  var saveLabel = document.getElementById('save-label');
 
-  if (!btnMonthly || !btnYearly) return; /* guard — element not present */
+  if (!btnMonthly || !btnYearly) return;
 
-  var isYearly = true; /* yearly is the default */
-  var yearlySavingPercent = null;
-
-  /* Paid-tier prices in pence. Fallback values mirror tier_configurations;
-     overwritten by the live /api/pricing-config response when it arrives. */
-  var TIERS = {
-    tier1: { monthly: 499, yearly: 4990 },
-    tier2: { monthly: 1499, yearly: 14990 },
-    tier3: { monthly: 2999, yearly: 29990 },
-  };
-
-  /* The app is served under /fynla on dev (csjones) and at the root on prod. */
   var BASE = location.pathname.indexOf('/fynla') === 0 ? '/fynla' : '';
+  var isYearly = true;
+  var premium = { monthly: 699, yearly: 5999 };
+  var yearlySavingPercent = annualSavingPercent(premium.monthly, premium.yearly);
 
-  var CHECK_SVG = '<svg class="plan-card__check" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
-
-  /* A capability is "on" when full, teaser or limited; 'none'/missing = off. */
-  function isOn(cap) { return cap === 'full' || cap === 'teaser' || cap === 'limited'; }
-
-  /* Combined accounts label — savings accounts, investments and pensions in one
-     bullet. When all three are uncapped (full) it reads "Unlimited savings
-     accounts, investments and pensions"; when capped it shows the "up to N" caps
-     for each, e.g. "Up to 3 savings accounts, 2 investments and 5 pensions". */
-  function accountsLabel(m, c) {
-    var sOn = isOn(m.savings_account), iOn = isOn(m.investment), pOn = isOn(m.pension_account);
-    if (!sOn && !iOn && !pOn) return null;
-    var sLim = m.savings_account === 'limited';
-    var iLim = m.investment === 'limited';
-    var pLim = m.pension_account === 'limited';
-
-    if (!sLim && !iLim && !pLim) return 'Unlimited savings accounts, investments and pensions';
-
-    var parts = [];
-    if (sOn) parts.push((sLim && c.savings_account != null ? 'up to ' + c.savings_account + ' ' : '') + 'savings accounts');
-    if (iOn) parts.push((iLim && c.investment != null ? c.investment + ' ' : '') + 'investments');
-    if (pOn) parts.push((pLim && c.pension_account != null ? c.pension_account + ' ' : '') + 'pensions');
-
-    var joined = parts.length <= 1
-      ? (parts[0] || '')
-      : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
-    return joined.charAt(0).toUpperCase() + joined.slice(1);
-  }
-
-  /* Property label — capped reads "Up to N properties"; uncapped "Unlimited
-     properties". The cap comes from the live count_caps (single source of
-     truth), so it stays in sync with what the tier actually grants. */
-  function propertyLabel(m, c) {
-    if (!isOn(m.property)) return null;
-    if (c.property != null) return 'Up to ' + c.property + ' properties';
-    return 'Unlimited properties';
-  }
-
-  /* Build the curated feature set for a tier as {id, label} entries (included
-     items only — crossed-out capabilities are omitted). The id is stable across
-     tiers so paid cards can show only the DELTA vs the tier below; the label can
-     change between tiers (e.g. capped → unlimited) which counts as an upgrade. */
-  function buildFeatures(tier) {
-    var m = tier.capability_matrix || {};
-    var c = tier.count_caps || {};
-    var out = [];
-    var add = function (id, label) { if (label) out.push({ id: id, label: label }); };
-
-    if (isOn(m.dashboard)) add('dashboard', 'Financial dashboard');
-    if (isOn(m.income) || isOn(m.expenditure) || isOn(m.liabilities)) add('tracking', 'Income, expenditure and liabilities tracking');
-    if (isOn(m.protection)) add('protection', 'Protection module');
-    add('accounts', accountsLabel(m, c));
-    if (isOn(m.investments_exotic)) add('investments_exotic', 'Alternative investments');
-    if (isOn(m.retirement_decumulation)) add('retirement', 'Retirement planning');
-    add('property', propertyLabel(m, c));
-    if (isOn(m.chattels)) add('chattels', 'Unlimited personal valuables');
-    if (isOn(m.goals)) add('goals', 'Goals and life events');
-    if (isOn(m.family_module) || isOn(m.benefits_child)) add('family', 'Family module inc benefit modelling and protection');
-    if (m.estate === 'full') add('estate', 'Full estate planning');
-    else if (m.estate === 'teaser') add('estate', 'Estate planning preview');
-    if (isOn(m.letter_to_spouse)) add('letter_to_spouse', 'Letter to spouse and expression of wishes');
-
-    return out;
-  }
-
-  /* Render a card's feature list. Free (no prevTier) shows its full list; paid
-     tiers show only what they ADD over the previous tier (new ids, or ids whose
-     label changed — i.e. a genuine upgrade), keeping the cards short. */
-  function renderFeatures(key, tier, prevName, prevTier) {
-    var listEl = document.getElementById(key + '-features');
-    var plusEl = document.getElementById(key + '-plus');
-    if (!listEl) return;
-
-    var features = buildFeatures(tier);
-
-    if (prevTier) {
-      var prevById = {};
-      buildFeatures(prevTier).forEach(function (f) { prevById[f.id] = f.label; });
-      features = features.filter(function (f) {
-        return !(f.id in prevById) || prevById[f.id] !== f.label;
-      });
-    }
-
-    var html = features.map(function (f) {
-      return '<li class="plan-card__feature">' + CHECK_SVG + f.label + '</li>';
-    }).join('');
-    if (html) listEl.innerHTML = html;
-
-    if (plusEl) {
-      if (prevName) {
-        plusEl.textContent = 'Everything in ' + prevName + ', plus:';
-        plusEl.hidden = false;
-      } else {
-        plusEl.hidden = true;
-      }
-    }
-  }
-
-  function fmt(pence) {
-    if (pence === null || pence === undefined) return '…';
+  function formatMoney(pence) {
     return '£' + (pence / 100).toFixed(2);
   }
 
+  function formatNumber(value) {
+    return new Intl.NumberFormat('en-GB').format(value);
+  }
+
+  function formatStorage(value) {
+    var amount = Number(value);
+    if (!Number.isFinite(amount) || amount <= 0) return 'Not included';
+
+    return amount.toLocaleString('en-GB', { maximumFractionDigits: 2 }) + ' GB document storage';
+  }
+
+  function isIncluded(value) {
+    return value && value !== 'none';
+  }
+
+  function includedLabel(value) {
+    return isIncluded(value) ? 'Included' : 'Not included';
+  }
+
+  function capacityLabel(tier, key, singular, plural) {
+    var matrix = tier.capability_matrix || {};
+    var caps = tier.count_caps || {};
+
+    if (!isIncluded(matrix[key])) return 'Not included';
+    if (caps[key] === null || caps[key] === undefined) return 'Unlimited ' + plural;
+
+    var count = Number(caps[key]);
+    return count + ' ' + (count === 1 ? singular : plural);
+  }
+
+  function goalCapacityLabel(tier, key, capKey, singular, plural) {
+    var matrix = tier.capability_matrix || {};
+    var caps = tier.count_caps || {};
+
+    if (!isIncluded(matrix[key])) return 'Not included';
+    if (caps[capKey] === null || caps[capKey] === undefined) return 'Unlimited ' + plural;
+
+    var count = Number(caps[capKey]);
+    return count + ' ' + (count === 1 ? singular : plural);
+  }
+
+  function estateLabel(value) {
+    if (value === 'full') return 'Full planning';
+    if (value === 'teaser') return 'Preview';
+    return 'Not included';
+  }
+
+  function historyLabel(days) {
+    if (days === null || days === undefined) return 'Full available history';
+    return Number(days) + ' days';
+  }
+
+  function fynLabel(tokens) {
+    if (!Number.isFinite(Number(tokens)) || Number(tokens) <= 0) return 'Not included';
+    return formatNumber(Number(tokens)) + ' Fyn tokens each week';
+  }
+
+  function setText(id, value) {
+    var element = document.getElementById(id);
+    if (element) element.textContent = value;
+  }
+
+  function makeFeature(label) {
+    var item = document.createElement('li');
+    item.className = 'plan-card__feature';
+    item.textContent = label;
+    return item;
+  }
+
+  function replaceHighlights(tierKey, labels) {
+    var list = document.getElementById(tierKey + '-features');
+    if (!list) return;
+
+    list.replaceChildren.apply(list, labels.map(makeFeature));
+  }
+
   function applyPrices() {
+    var price = document.getElementById('premium-price');
+    var period = document.getElementById('premium-period');
+    var equivalent = document.getElementById('premium-equiv');
+    var cta = document.getElementById('cta-premium');
     var cycle = isYearly ? 'yearly' : 'monthly';
 
-    ['tier1', 'tier2', 'tier3'].forEach(function (key) {
-      var t = TIERS[key];
-      if (!t) return;
-      var elPrice  = document.getElementById(key + '-price');
-      var elPeriod = document.getElementById(key + '-period');
-      var elEquiv  = document.getElementById(key + '-equiv');
-      var elCta    = document.getElementById('cta-' + key);
-      var elCtaTop = document.getElementById('cta-' + key + '-top');
+    if (isYearly) {
+      if (price) price.textContent = formatMoney(premium.yearly);
+      if (period) period.textContent = '/year';
+      if (equivalent) equivalent.textContent = formatMoney(Math.round(premium.yearly / 12)) + ' per month equivalent';
+    } else {
+      if (price) price.textContent = formatMoney(premium.monthly);
+      if (period) period.textContent = '/month';
+      if (equivalent) equivalent.textContent = 'Billed monthly';
+    }
 
-      // Yearly: show the monthly-equivalent as the big price, with the total
-      // billed annually underneath. Monthly: show the monthly price directly,
-      // with a green "Cancel anytime" reassurance line in the equiv slot.
-      if (isYearly && t.yearly) {
-        if (elPrice)  elPrice.textContent  = fmt(Math.round(t.yearly / 12));
-        if (elPeriod) elPeriod.textContent = '/month';
-        if (elEquiv)  elEquiv.textContent  = fmt(t.yearly) + ' billed yearly';
-      } else {
-        if (elPrice)  elPrice.textContent  = fmt(t.monthly);
-        if (elPeriod) elPeriod.textContent = '/month';
-        if (elEquiv)  elEquiv.textContent  = 'Cancel anytime';
-      }
-      var href = BASE + '/register?plan=' + key + '&billing=' + cycle;
-      if (elCta)    elCta.href    = href;
-      if (elCtaTop) elCtaTop.href = href;
-    });
+    if (cta) cta.href = BASE + '/register?plan=premium&billing=' + cycle;
 
     btnMonthly.setAttribute('aria-pressed', isYearly ? 'false' : 'true');
-    btnYearly.setAttribute('aria-pressed',  isYearly ? 'true'  : 'false');
+    btnYearly.setAttribute('aria-pressed', isYearly ? 'true' : 'false');
+    btnMonthly.classList.toggle('billing-toggle__btn--active', !isYearly);
+    btnYearly.classList.toggle('billing-toggle__btn--active', isYearly);
 
-    if (isYearly) {
-      btnYearly.classList.add('billing-toggle__btn--active');
-      btnMonthly.classList.remove('billing-toggle__btn--active');
-      if (saveLabel) {
-        saveLabel.textContent = yearlySavingPercent === null ? '' : 'Save ' + yearlySavingPercent + '%';
-        saveLabel.hidden = yearlySavingPercent === null;
-      }
-      if (cancelLabel) cancelLabel.hidden = true;
-    } else {
-      btnMonthly.classList.add('billing-toggle__btn--active');
-      btnYearly.classList.remove('billing-toggle__btn--active');
-      if (saveLabel) saveLabel.hidden = true;
-      if (cancelLabel) cancelLabel.hidden = false;
+    if (saveLabel) {
+      saveLabel.textContent = yearlySavingPercent === null ? '' : 'Save ' + yearlySavingPercent + '%';
+      saveLabel.hidden = !isYearly || yearlySavingPercent === null;
     }
+  }
+
+  function applyComparison(freeTier, premiumTier) {
+    var tiers = { free: freeTier, premium: premiumTier };
+
+    Object.keys(tiers).forEach(function (key) {
+      var tier = tiers[key];
+      var matrix = tier.capability_matrix || {};
+
+      setText('comparison-' + key + '-cash-accounts', capacityLabel(tier, 'savings_account', 'cash or savings account', 'cash or savings accounts'));
+      setText('comparison-' + key + '-investments', capacityLabel(tier, 'investment', 'investment', 'investments'));
+      setText('comparison-' + key + '-property', capacityLabel(tier, 'property', 'property', 'properties'));
+      setText('comparison-' + key + '-pensions', capacityLabel(tier, 'pension_account', 'pension', 'pensions'));
+      setText('comparison-' + key + '-personal-valuables', includedLabel(matrix.chattels));
+      setText('comparison-' + key + '-net-worth', includedLabel(matrix.dashboard));
+      setText('comparison-' + key + '-combined-household', includedLabel(matrix.joint_household_view));
+      setText('comparison-' + key + '-projections', includedLabel(matrix.future_value_projections));
+      setText('comparison-' + key + '-save-tax', includedLabel(matrix.tax_strategy));
+      setText('comparison-' + key + '-inheritance-tax', estateLabel(matrix.estate));
+      setText('comparison-' + key + '-risk', includedLabel(matrix.risk_profile));
+      setText('comparison-' + key + '-goals', goalCapacityLabel(tier, 'goals', 'goal', 'Goal', 'Goals'));
+      setText('comparison-' + key + '-life-events', goalCapacityLabel(tier, 'life_events', 'life_event', 'Life Event', 'Life Events'));
+      setText('comparison-' + key + '-fyn', fynLabel(tier.fyn_weekly_token_budget));
+      setText('comparison-' + key + '-balance-history', historyLabel(tier.snapshot_surfacing_window_days));
+      setText('comparison-' + key + '-basic-expenditure', includedLabel(matrix.expenditure));
+      setText('comparison-' + key + '-detailed-expenditure', includedLabel(matrix.expenditure_detailed));
+      setText('comparison-' + key + '-document-storage', formatStorage(tier.document_storage_gb));
+      setText('comparison-' + key + '-letter-to-spouse', includedLabel(matrix.letter_to_spouse));
+      setText('comparison-' + key + '-retirement-planning', includedLabel(matrix.retirement_decumulation));
+      setText('comparison-' + key + '-what-if', includedLabel(matrix.what_if));
+      setText('comparison-' + key + '-plan-export', includedLabel(matrix.advisor_export));
+      setText('comparison-' + key + '-statement-upload', includedLabel(matrix.statement_upload));
+      setText('comparison-' + key + '-investment-fee-analysis', includedLabel(matrix.investment_cost_analysis));
+    });
+
+    replaceHighlights('free', [
+      capacityLabel(freeTier, 'savings_account', 'cash or savings account', 'cash or savings accounts'),
+      capacityLabel(freeTier, 'investment', 'investment', 'investments'),
+      capacityLabel(freeTier, 'pension_account', 'pension', 'pensions'),
+      capacityLabel(freeTier, 'property', 'property', 'properties'),
+      goalCapacityLabel(freeTier, 'goals', 'goal', 'Goal', 'Goals') + ' and ' + goalCapacityLabel(freeTier, 'life_events', 'life_event', 'Life Event', 'Life Events'),
+      fynLabel(freeTier.fyn_weekly_token_budget),
+      historyLabel(freeTier.snapshot_surfacing_window_days) + ' of balance history',
+    ]);
+
+    replaceHighlights('premium', [
+      'Unlimited cash or savings accounts, investments, pensions and properties',
+      goalCapacityLabel(premiumTier, 'goals', 'goal', 'Goal', 'Goals') + ' and ' + goalCapacityLabel(premiumTier, 'life_events', 'life_event', 'Life Event', 'Life Events'),
+      fynLabel(premiumTier.fyn_weekly_token_budget),
+      formatStorage(premiumTier.document_storage_gb),
+      historyLabel(premiumTier.snapshot_surfacing_window_days),
+      'Detailed planning, projections and exports',
+    ]);
   }
 
   btnMonthly.addEventListener('click', function () {
@@ -208,82 +207,35 @@
     applyPrices();
   });
 
-  [btnMonthly, btnYearly].forEach(function (btn) {
-    btn.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        btn.click();
-      }
-    });
-  });
-
-  /* Pull live tier config (price + capability matrix) from the single source of
-     truth, then render each card's feature list to match the in-app pricing. */
   fetch(BASE + '/api/pricing-config', { headers: { Accept: 'application/json' } })
-    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (response) { return response.ok ? response.json() : null; })
     .then(function (json) {
       var rows = (json && json.data) || [];
+      var byKey = {};
 
-      // Update prices.
-      rows.forEach(function (t) {
-        if (TIERS[t.tier]) {
-          TIERS[t.tier] = { monthly: t.price_monthly_pence, yearly: t.price_annual_pence };
-        }
+      rows.forEach(function (tier) {
+        if (tier.tier === 'free' || tier.tier === 'premium') byKey[tier.tier] = tier;
       });
-      var livePremium = rows.find(function (t) { return t.tier === 'tier1'; });
-      var yearlyAvailable = !!(livePremium && livePremium.price_monthly_pence > 0 && livePremium.price_annual_pence > 0);
-      if (!yearlyAvailable) isYearly = false;
+
+      if (!byKey.free || !byKey.premium) return;
+
+      premium = {
+        monthly: Number(byKey.premium.price_monthly_pence),
+        yearly: Number(byKey.premium.price_annual_pence),
+      };
+
+      var yearlyAvailable = premium.monthly > 0 && premium.yearly > 0;
       btnYearly.disabled = !yearlyAvailable;
       btnYearly.setAttribute('aria-disabled', yearlyAvailable ? 'false' : 'true');
-      yearlySavingPercent = livePremium
-        ? annualSavingPercent(livePremium.price_monthly_pence, livePremium.price_annual_pence)
-        : null;
+      if (!yearlyAvailable) isYearly = false;
+
+      yearlySavingPercent = annualSavingPercent(premium.monthly, premium.yearly);
       applyPrices();
-
-      // Render capability-matrix feature lists. "Everything in <prev>, plus:"
-      // uses the on-page card names (Bronze/Silver/Gold), read from the headings.
-      var nameOf = function (key) {
-        var h = document.getElementById('plan-' + key + '-heading');
-        return h ? h.textContent.trim() : null;
-      };
-      var byKey = {};
-      rows.forEach(function (t) { byKey[t.tier] = t; });
-
-      // Free card — its full feature list.
-      var freeTier = byKey.free || {};
-      renderFeatures('free', freeTier, null, null);
-
-      // Premium card (tier1 element) — the page now shows a single paid plan, so
-      // it lists the UNION of all paid tiers' capabilities (Bronze + Silver +
-      // Gold), shown as the delta over Free ("Everything in Free, plus:").
-      var freeById = {};
-      buildFeatures(freeTier).forEach(function (f) { freeById[f.id] = f.label; });
-      var merged = {}, ordered = [];
-      ['tier1', 'tier2', 'tier3'].forEach(function (k) {
-        var t = byKey[k];
-        if (!t) return;
-        buildFeatures(t).forEach(function (f) {
-          if (!(f.id in merged)) ordered.push(f.id);
-          merged[f.id] = f.label;   // a higher tier may upgrade the label
-        });
-      });
-      var premiumLabels = ordered
-        .filter(function (id) { return !(id in freeById) || freeById[id] !== merged[id]; })
-        .map(function (id) { return merged[id]; });
-      // Gold's storage differentiator isn't a capability-matrix item — append it.
-      if (byKey.tier3) premiumLabels.push('More document uploads and storage');
-
-      var pListEl = document.getElementById('tier1-features');
-      var pPlusEl = document.getElementById('tier1-plus');
-      if (pListEl && premiumLabels.length) {
-        pListEl.innerHTML = premiumLabels.map(function (l) {
-          return '<li class="plan-card__feature">' + CHECK_SVG + l + '</li>';
-        }).join('');
-      }
-      if (pPlusEl) { pPlusEl.textContent = 'Everything in Free, plus:'; pPlusEl.hidden = false; }
+      applyComparison(byKey.free, byKey.premium);
     })
-    .catch(function () { /* fallback static features already in the DOM */ });
+    .catch(function () {
+      // The complete server-rendered contract remains visible.
+    });
 
   applyPrices();
-
 }());

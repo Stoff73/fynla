@@ -98,6 +98,7 @@
 <script>
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import api from '../../services/api';
+import authService from '../../services/authService';
 
 export default {
     name: 'VerificationCodeModal',
@@ -198,24 +199,19 @@ export default {
             error.value = null;
 
             try {
-                // Build request based on type
-                const requestData = {
-                    code: fullCode.value,
-                    type: props.type
-                };
+                const verificationId = props.type === 'registration'
+                    ? props.pendingId
+                    : props.challengeToken;
+                const response = await authService.verifyCode(
+                    verificationId,
+                    fullCode.value,
+                    props.type
+                );
 
-                if (props.type === 'registration') {
-                    requestData.pending_id = props.pendingId;
+                if (response.success) {
+                    emit('verified', response.data);
                 } else {
-                    requestData.challenge_token = props.challengeToken;
-                }
-
-                const response = await api.post('/auth/verify-code', requestData);
-
-                if (response.data.success) {
-                    emit('verified', response.data.data);
-                } else {
-                    error.value = response.data.message || 'Verification failed';
+                    error.value = response.message || 'Verification failed';
                     clearCode();
                 }
             } catch (err) {

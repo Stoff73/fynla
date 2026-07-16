@@ -41,12 +41,13 @@ class SubscriptionRenewalService
             } else {
                 // Find subscription that has this as a renewal — look for subscriptions with revolut_subscription_id
                 $subscription = Subscription::whereNotNull('revolut_subscription_id')
+                    ->where('auto_renew', true)
                     ->where('status', 'active')
                     ->latest('current_period_end')
                     ->first();
             }
 
-            if (! $subscription) {
+            if (! $subscription || ! $subscription->auto_renew) {
                 Log::warning('Renewal payment: subscription not found', ['order_id' => $orderId]);
 
                 return;
@@ -127,7 +128,9 @@ class SubscriptionRenewalService
             return;
         }
 
-        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)->first();
+        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)
+            ->where('auto_renew', true)
+            ->first();
         if (! $subscription) {
             Log::warning('Subscription overdue: subscription not found', [
                 'revolut_subscription_id' => $revolutSubscriptionId,
@@ -166,7 +169,9 @@ class SubscriptionRenewalService
             return;
         }
 
-        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)->first();
+        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)
+            ->where('auto_renew', true)
+            ->first();
         if (! $subscription) {
             Log::warning('Subscription cancelled webhook: subscription not found', [
                 'revolut_subscription_id' => $revolutSubscriptionId,
@@ -200,7 +205,9 @@ class SubscriptionRenewalService
             return;
         }
 
-        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)->first();
+        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)
+            ->where('auto_renew', true)
+            ->first();
         if (! $subscription) {
             return;
         }

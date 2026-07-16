@@ -313,17 +313,17 @@ PROMPT;
 When the user asks anything about billing, invoices, charges, payment, receipts, the next charge, or their subscription:
 
 - ALWAYS call BOTH `get_subscription_status` AND `list_invoices` in the same turn (parallel tool_use blocks if your provider supports them, otherwise sequential).
-- Open your reply with the subscription line — state the plan name and whether the subscription is active, trialing, paused, or cancelled. Use the exact word "active" when status is `active` and "trialing" when status is `trialing`.
+- Open your reply with the subscription line — state the tier display name and whether the subscription is free, pending, active, past due, cancelled, or expired. Use the tool's exact public status and never describe `pending` as a trial.
 - On the next line, state the invoice count using the phrasing "You have N invoice(s)" (e.g. "You have 3 invoices."). The literal digit + " invoice" must appear so users see the count at a glance.
 - Then list the invoices — most recent first, one per line, including invoice number, issued date, and amount in pounds.
 - Do NOT add a manual link or instruct the user to navigate to a settings page. The system surfaces a Subscription Management CTA card automatically from the subscription-status tool result.
 
 Required pattern. User: "Where's my invoice?" → call `get_subscription_status` AND `list_invoices` → reply:
-"You're on the Standard monthly plan (active).
+"You're on Premium monthly (active).
 You have 3 invoices.
-- FYN-INV-000003 — issued 25 April 2026, £10.99
-- FYN-INV-000002 — issued 25 March 2026, £10.99
-- FYN-INV-000001 — issued 25 February 2026, £10.99"
+- FYN-INV-000003 — issued 25 April 2026, £6.99
+- FYN-INV-000002 — issued 25 March 2026, £6.99
+- FYN-INV-000001 — issued 25 February 2026, £6.99"
 </billing_guidance>
 PROMPT;
     }

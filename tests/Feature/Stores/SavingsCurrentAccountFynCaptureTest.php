@@ -16,7 +16,7 @@ use Database\Seeders\TierConfigurationSeeder;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
-    $this->user = User::factory()->create(['tier' => 'tier1']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
 });
 
 function invokeCreateSavings(object $user, array $input): array

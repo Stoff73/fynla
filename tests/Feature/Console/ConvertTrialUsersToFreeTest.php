@@ -31,8 +31,8 @@ it('converts trial-origin users to Free and halts any deletion countdown', funct
 });
 
 it('leaves genuinely paid users untouched', function () {
-    $paidActive = User::factory()->create(['tier' => 'tier3', 'plan' => 'pro']);
-    $sub = Subscription::factory()->create(['user_id' => $paidActive->id, 'plan' => 'pro', 'status' => 'active']);
+    $paidActive = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    $sub = Subscription::factory()->create(['user_id' => $paidActive->id, 'plan' => 'premium', 'status' => 'active']);
     Payment::factory()->create(['user_id' => $paidActive->id, 'subscription_id' => $sub->id, 'status' => 'completed']);
 
     $paidChurned = User::factory()->create(['tier' => null, 'plan' => 'pro']);
@@ -45,7 +45,7 @@ it('leaves genuinely paid users untouched', function () {
     $this->artisan('freemium:convert-trial-users')->assertExitCode(0);
 
     $paidActive->refresh();
-    expect($paidActive->tier)->toBe('tier3');
+    expect($paidActive->tier)->toBe('premium');
     expect(Subscription::where('user_id', $paidActive->id)->exists())->toBeTrue();
 
     $paidChurned->refresh();

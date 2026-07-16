@@ -14,7 +14,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'tier1']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
     $this->property = Property::factory()->create(['user_id' => $this->user->id]);
     Sanctum::actingAs($this->user);
 });
@@ -86,7 +86,7 @@ it('soft-deletes a mortgage via DELETE', function () {
 });
 
 it('rejects update from non-owner (joint owner is read-only)', function () {
-    $spouse = User::factory()->create(['tier' => 'tier1']);
+    $spouse = User::factory()->create(['tier' => 'premium']);
     $mortgage = Mortgage::factory()->create([
         'user_id' => $this->user->id,
         'joint_owner_id' => $spouse->id,
@@ -122,7 +122,7 @@ it('returns 422 on invalid mortgage_type', function () {
 });
 
 it('returns 403 with structured payload when free-tier mortgage cap is exceeded', function () {
-    // Default user factory creates tier1 (unlimited); recreate as free-tier for this cap test.
+    // Default user factory creates Premium (unlimited); recreate as Free for this cap test.
     $freeUser = User::factory()->create(['tier' => 'free']);
     $freeProperty = Property::factory()->create(['user_id' => $freeUser->id]);
     Sanctum::actingAs($freeUser);

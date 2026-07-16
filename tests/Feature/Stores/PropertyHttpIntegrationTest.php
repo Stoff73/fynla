@@ -13,7 +13,7 @@ beforeEach(function () {
 });
 
 it('POST /api/properties persists a Property via PropertyStore', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
 
     $response = $this->actingAs($user)->postJson('/api/properties', [
         'property_type' => 'main_residence',
@@ -36,7 +36,7 @@ it('POST /api/properties persists a Property via PropertyStore', function () {
 });
 
 it('PUT /api/properties/{id} updates a Property via PropertyStore', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id, 'current_value' => 350000]);
 
     $response = $this->actingAs($user)->putJson("/api/properties/{$property->id}", [
@@ -48,7 +48,7 @@ it('PUT /api/properties/{id} updates a Property via PropertyStore', function () 
 });
 
 it('DELETE /api/properties/{id} soft-deletes via PropertyStore', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
 
     $response = $this->actingAs($user)->deleteJson("/api/properties/{$property->id}");
@@ -59,8 +59,8 @@ it('DELETE /api/properties/{id} soft-deletes via PropertyStore', function () {
 });
 
 it('rejects updates from a non-owner', function () {
-    $owner = User::factory()->create(['tier' => 'tier1']);
-    $stranger = User::factory()->create(['tier' => 'tier1']);
+    $owner = User::factory()->create(['tier' => 'premium']);
+    $stranger = User::factory()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $owner->id]);
 
     $response = $this->actingAs($stranger)->putJson("/api/properties/{$property->id}", [

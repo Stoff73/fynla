@@ -42,5 +42,20 @@ export default {
     async refresh() {
         const response = await api.post(`${API_BASE}/refresh`);
         return response.data;
+    },
+
+    /**
+     * Get the user's retained balance history. The backend applies the tier window.
+     */
+    async getBalanceHistory(params = {}) {
+        const response = await api.get('/balance-history', { params });
+        return response.data;
+    },
+
+    /**
+     * Download the Premium adviser handover pack.
+     */
+    async downloadAdviserExportPack() {
+        return api.get('/plans/adviser-export-pack', { responseType: 'blob' });
     }
 };

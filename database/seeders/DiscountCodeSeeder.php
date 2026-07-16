@@ -40,7 +40,7 @@ class DiscountCodeSeeder extends Seeder
         ];
 
         foreach ($codes as $code) {
-            DiscountCode::updateOrCreate(
+            DiscountCode::withTrashed()->firstOrCreate(
                 ['code' => $code['code']],
                 $code
             );

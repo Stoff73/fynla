@@ -106,7 +106,7 @@
             <span class="text-body-sm text-horizon-500">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-neutral-500">Next Renewal:</span>
+            <span class="text-body-sm text-neutral-500">{{ subscriptionData.auto_renew ? 'Next Renewal:' : 'Access Ends:' }}</span>
             <span class="text-body-sm text-horizon-500">{{ formatDate(subscriptionData.current_period_end) }}</span>
           </div>
           <div v-if="subscriptionData.auto_renew" class="flex justify-between">
@@ -122,7 +122,7 @@
         </div>
 
         <button
-          v-if="subscriptionData.plan !== 'pro'"
+          v-if="subscriptionData.tier !== 'premium'"
           @click="showPlanModal = true"
           class="btn-primary w-full text-center block mb-3"
         >
@@ -130,6 +130,7 @@
         </button>
 
         <button
+          v-if="subscriptionData.auto_renew"
           @click="showCancelModal = true"
           class="text-body-sm text-raspberry-600 hover:text-raspberry-700 transition-colors"
         >
@@ -470,7 +471,7 @@ export default {
       loading.value = true;
       error.value = null;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
         // Fetch billing history if user has a subscription
         if (response.data.has_subscription) {
@@ -499,8 +500,9 @@ export default {
     });
 
     const planDisplayName = computed(() => {
-      if (!subscriptionData.value?.plan) return '';
-      return subscriptionData.value.plan.charAt(0).toUpperCase() + subscriptionData.value.plan.slice(1);
+      const tier = subscriptionData.value?.tier;
+      if (!tier) return '';
+      return tier.charAt(0).toUpperCase() + tier.slice(1);
     });
 
     // Live countdown calculation

@@ -3,9 +3,9 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h2 class="text-xl font-semibold text-horizon-500">Tier Configuration</h2>
+        <h2 class="text-xl font-semibold text-horizon-500">Free and Premium Configuration</h2>
         <p class="text-sm text-neutral-500 mt-1">
-          Manage tier pricing, capabilities, and limits. Changes take effect immediately.
+          Manage plan pricing, capabilities, and limits. Changes take effect immediately.
         </p>
       </div>
       <button
@@ -253,7 +253,7 @@ export default {
       const errorKey = tierKey + '_capability';
       try {
         this.tierEdits[tierKey].capability_matrix = JSON.parse(this.capabilityJson[tierKey]);
-        this.$delete ? this.$delete(this.jsonErrors, errorKey) : delete this.jsonErrors[errorKey];
+        delete this.jsonErrors[errorKey];
       } catch (e) {
         this.jsonErrors = { ...this.jsonErrors, [errorKey]: e.message };
       }
@@ -263,7 +263,7 @@ export default {
       const errorKey = tierKey + '_caps';
       try {
         this.tierEdits[tierKey].count_caps = JSON.parse(this.countCapsJson[tierKey]);
-        this.$delete ? this.$delete(this.jsonErrors, errorKey) : delete this.jsonErrors[errorKey];
+        delete this.jsonErrors[errorKey];
       } catch (e) {
         this.jsonErrors = { ...this.jsonErrors, [errorKey]: e.message };
       }

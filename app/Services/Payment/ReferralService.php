@@ -6,13 +6,19 @@ namespace App\Services\Payment;
 
 use App\Mail\ReferralInvitationEmail;
 use App\Models\Referral;
+use App\Models\Subscription;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class ReferralService
 {
+    public function __construct(
+        private readonly SubscriptionEntitlementService $entitlements,
+    ) {}
+
     /**
      * Generate or return existing referral code for a user.
      */
@@ -38,8 +44,7 @@ class ReferralService
     {
         $email = strtolower(trim($email));
 
-        $subscription = $referrer->subscription;
-        if (! $subscription || $subscription->status !== 'active') {
+        if ($this->entitlements->activePaidFor($referrer) === null) {
             throw new \InvalidArgumentException('You must have an active paid subscription to refer a friend.');
         }
 
@@ -125,62 +130,72 @@ class ReferralService
     /**
      * Apply referral bonus after a successful payment.
      */
-    public function applyReferralBonus(User $referee, string $billingCycle): void
-    {
+    public function applyReferralBonus(
+        User $referee,
+        string $billingCycle,
+        ?int $refereeSubscriptionId = null,
+    ): void {
         if (! $referee->referred_by_code) {
             return;
         }
 
-        $referral = Referral::where('referee_id', $referee->id)
-            ->where('bonus_applied', false)
-            ->first();
+        DB::transaction(function () use ($referee, $billingCycle, $refereeSubscriptionId): void {
+            $referral = Referral::where('referee_id', $referee->id)
+                ->lockForUpdate()
+                ->first();
 
-        if (! $referral) {
-            return;
-        }
+            if (! $referral || $referral->bonus_applied) {
+                return;
+            }
 
-        $referrer = $referral->referrer;
-        if (! $referrer) {
-            return;
-        }
+            $referrer = $referral->referrer;
+            if (! $referrer) {
+                return;
+            }
 
-        $isMonthly = $billingCycle === 'monthly';
+            $subscriptions = Subscription::whereIn('user_id', [$referee->id, $referrer->id])
+                ->orderBy('user_id')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->groupBy('user_id');
+            $refereeSubscription = $this->entitlements->activePaidFrom(
+                $subscriptions->get($referee->id, collect()),
+                $refereeSubscriptionId,
+            );
+            $referrerSubscription = $this->entitlements->activePaidFrom(
+                $subscriptions->get($referrer->id, collect()),
+            );
 
-        // Refresh referee's subscription to get latest data (confirmPayment may have just updated it)
-        $referee->load('subscription');
-        $refereeSub = $referee->subscription;
-        if ($refereeSub && $refereeSub->current_period_end) {
-            $refereeSub->update([
-                'current_period_end' => $isMonthly
-                    ? $refereeSub->current_period_end->addWeek()
-                    : $refereeSub->current_period_end->addMonth(),
+            if ($refereeSubscription?->current_period_end === null
+                || $referrerSubscription?->current_period_end === null) {
+                return;
+            }
+
+            $isMonthly = $billingCycle === 'monthly';
+
+            foreach ([$refereeSubscription, $referrerSubscription] as $subscription) {
+                $subscription->update([
+                    'current_period_end' => $isMonthly
+                        ? $subscription->current_period_end->copy()->addWeek()
+                        : $subscription->current_period_end->copy()->addMonth(),
+                ]);
+            }
+
+            $referral->update([
+                'bonus_applied' => true,
+                'status' => 'converted',
+                'converted_at' => now(),
             ]);
-        }
 
-        // Refresh referrer's subscription to get latest data (confirmPayment may have just updated it)
-        $referrer->load('subscription');
-        $referrerSub = $referrer->subscription;
-        if ($referrerSub && $referrerSub->current_period_end) {
-            $referrerSub->update([
-                'current_period_end' => $isMonthly
-                    ? $referrerSub->current_period_end->addWeek()
-                    : $referrerSub->current_period_end->addMonth(),
+            $bonusText = $isMonthly ? '1 week' : '1 month';
+            Log::info('Referral bonus applied', [
+                'referral_id' => $referral->id,
+                'referrer_id' => $referrer->id,
+                'referee_id' => $referee->id,
+                'bonus' => $bonusText,
+                'billing_cycle' => $billingCycle,
             ]);
-        }
-
-        $referral->update([
-            'bonus_applied' => true,
-            'status' => 'converted',
-            'converted_at' => now(),
-        ]);
-
-        $bonusText = $isMonthly ? '1 week' : '1 month';
-        Log::info('Referral bonus applied', [
-            'referral_id' => $referral->id,
-            'referrer_id' => $referrer->id,
-            'referee_id' => $referee->id,
-            'bonus' => $bonusText,
-            'billing_cycle' => $billingCycle,
-        ]);
+        });
     }
 }

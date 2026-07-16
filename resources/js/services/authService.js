@@ -139,14 +139,15 @@ const authService = {
 
   /**
    * Verify email code and get auth token
-   * @param {string} challengeToken - Challenge token from login response
+   * @param {string|number} verificationId - Pending registration ID or login challenge token
    * @param {string} code - 6-digit verification code
    * @param {string} type - 'login' or 'registration'
    * @returns {Promise}
    */
-  async verifyCode(challengeToken, code, type) {
+  async verifyCode(verificationId, code, type) {
+    const verificationField = type === 'registration' ? 'pending_id' : 'challenge_token';
     const response = await api.post('/auth/verify-code', {
-      challenge_token: challengeToken,
+      [verificationField]: verificationId,
       code,
       type,
     });

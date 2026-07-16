@@ -51,6 +51,27 @@ export async function apiGet(path, token) {
   return { ok: res.ok, status: res.status, data };
 }
 
+export async function apiDownload(path, token) {
+  const res = await fetch(`${BASE}${path}`, {
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/pdf',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, status: res.status, data };
+  }
+
+  return {
+    ok: true,
+    status: res.status,
+    blob: await res.blob(),
+    disposition: res.headers.get('content-disposition') || '',
+  };
+}
+
 /**
  * POST and consume a Server-Sent-Events (SSE) response. The Fyn chat backend
  * (/api/ai-chat/conversations/{id}/messages) always streams `data: {json}\n\n`

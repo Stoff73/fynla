@@ -20,7 +20,7 @@ uses(RefreshDatabase::class);
  * Store-side tier-cap integration for mortgages.
  *
  * Spec §13 + TierConfigurationSeeder: free tier `count_caps['mortgage'] = 10`.
- * tier1+ is unlimited (`null`). Enforcement seam was wired in PR 1 of Pass 5
+ * Premium is unlimited (`null`). Enforcement seam was wired in PR 1 of Pass 5
  * (`MortgageStore::enforceTierCap` invoked from `create()` and `updateOrCreate()`);
  * this test pins the contract.
  *
@@ -99,8 +99,8 @@ it('allows the first ten mortgages for a free-tier user', function () {
     expect(Mortgage::where('user_id', $user->id)->count())->toBe(10);
 });
 
-it('does NOT enforce the cap for a tier1 user (unlimited)', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+it('does NOT enforce the cap for a Premium user (unlimited)', function () {
+    $user = User::factory()->create(['tier' => 'premium']);
     $store = app(MortgageStore::class);
 
     $property = Property::factory()->create(['user_id' => $user->id]);

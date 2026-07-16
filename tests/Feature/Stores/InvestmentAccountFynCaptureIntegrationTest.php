@@ -13,7 +13,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'tier1']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
 });
 
 it('creates an investment account via Fyn AI handleCreateInvestmentAccount with FYN_AI audit context', function () {

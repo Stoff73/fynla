@@ -91,7 +91,7 @@ export async function register(page, request, {
 
   const verificationResponse = await verificationResponsePromise;
   expect(verificationResponse.ok()).toBeTruthy();
-  await expect(page).toHaveURL(/\/(?:onboarding|dashboard)(?:[/?#]|$)/);
+  await expect(page).toHaveURL(/\/(?:onboarding|dashboard)(?:[/?#]|$)/, { timeout: 30_000 });
 
   await page.goto('/dashboard');
   await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/);

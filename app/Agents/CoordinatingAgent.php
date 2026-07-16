@@ -40,8 +40,6 @@ use App\Models\Property;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\StatePension;
-use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
@@ -66,12 +64,16 @@ use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\HouseholdProvisioner;
 use App\Services\Onboarding\SpouseLinkingService;
+use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\GoalStore;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\LiabilityStore;
+use App\Services\Stores\LifeEventStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
@@ -145,6 +147,7 @@ class CoordinatingAgent extends BaseAgent
         private readonly TeaserGate $teaserGate,
         private readonly CaptureAccuracyGate $captureAccuracyGate,
         private readonly HouseholdProvisioner $householdProvisioner,
+        private readonly SubscriptionStatusService $subscriptionStatusService,
     ) {}
 
     /**
@@ -2444,42 +2447,13 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    /**
-     * Resolve the user's current subscription. Read-only — returns null if absent.
-     * Mirrors the controller-side resolution so chat-tool callers see the same row.
-     */
-    private function resolveSubscription(User $user): ?Subscription
-    {
-        return $user->subscription()->latest('id')->first();
-    }
-
     private function handleGetSubscriptionStatus(User $user): array
     {
-        $sub = $this->resolveSubscription($user);
+        $status = $this->subscriptionStatusService->forUser($user);
 
-        if (! $sub) {
-            return ['status' => 'none'];
-        }
-
-        $plan = SubscriptionPlan::findBySlug($sub->plan);
-
-        // S0.5.u (BS-16): when the user has any real subscription (active,
-        // trialing, paused, or cancelled) we surface the Subscription
-        // Management page so they can act on the answer. HasAiChat::stream
-        // turns this into a `navigation` SSE event consumed by
-        // AiChatPanel; the user lands on /settings/subscription where
-        // their invoices and billing details are managed. INV-2.7.2 only
-        // mandates parity of the read tools, not their result shape, so
-        // BillingToolsTest::list_invoices stays green (extra keys are
-        // accepted by toHaveKeys).
         return [
-            'status' => $sub->status,
-            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
-            'billing_cycle' => $sub->billing_cycle,
-            'trial_ends_at' => $sub->trial_ends_at?->toIso8601String(),
-            'current_period_end' => $sub->current_period_end?->toIso8601String(),
-            'next_charge_amount' => round((float) $sub->amount, 2),
-            'is_cancelled' => $sub->cancelled_at !== null,
+            ...$status,
+            'status' => $status['subscription_status'] ?? 'free',
             'action' => 'navigate',
             'route_path' => '/settings/subscription',
             'description' => 'View your subscription and invoices',
@@ -2509,30 +2483,19 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleGetCurrentPlan(User $user): array
     {
-        $sub = $this->resolveSubscription($user);
-
-        if (! $sub) {
-            return [
-                'plan_name' => 'none',
-                'tier' => 'none',
-                'billing_cycle' => null,
-                'price_gbp' => 0.0,
-                'features' => [],
-            ];
-        }
-
-        $plan = SubscriptionPlan::findBySlug($sub->plan);
-
-        $pricePence = $plan
-            ? ($plan->getLaunchPriceForCycle($sub->billing_cycle) ?? $plan->getPriceForCycle($sub->billing_cycle))
-            : (int) round(((float) $sub->amount) * 100);
+        $status = $this->subscriptionStatusService->forUser($user);
+        $features = collect($status['capability_matrix'] ?? [])
+            ->filter(static fn (string $access): bool => $access !== 'none')
+            ->keys()
+            ->values()
+            ->all();
 
         return [
-            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
-            'tier' => $sub->plan,
-            'billing_cycle' => $sub->billing_cycle,
-            'price_gbp' => round($pricePence / 100, 2),
-            'features' => $plan?->features ?? [],
+            'plan_name' => $status['tier_display_name'],
+            'tier' => $status['tier'],
+            'billing_cycle' => $status['billing_cycle'],
+            'price_gbp' => round(((int) ($status['amount'] ?? 0)) / 100, 2),
+            'features' => $features,
         ];
     }
 
@@ -2584,8 +2547,8 @@ class CoordinatingAgent extends BaseAgent
         if (! $this->teaserGate->isFull($user, 'holistic_plan')) {
             return [
                 'error' => 'upgrade_required',
-                'message' => 'The Holistic Plan is part of Tier 2 and above.',
-                'required_tier' => 'tier2',
+                'message' => 'The Holistic Plan is part of Premium.',
+                'required_tier' => 'premium',
             ];
         }
 
@@ -2636,7 +2599,6 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $payload = [
-            'user_id' => $user->id,
             'goal_name' => $input['name'],
             'goal_type' => $input['goal_type'],
             'target_amount' => (float) $input['target_amount'],
@@ -2657,7 +2619,19 @@ class CoordinatingAgent extends BaseAgent
             $payload['description'] = $input['description'];
         }
 
-        $goal = DB::transaction(fn () => Goal::create($payload));
+        try {
+            $goal = app(GoalStore::class)->create($payload, $user, IngestSource::FYN_AI);
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_reached',
+                'entity_key' => $e->entityKey,
+                'current_count' => $e->currentCount,
+                'hard_limit' => $e->hardLimit,
+                'required_tier' => 'premium',
+                'message' => "You've reached your plan's limit of {$e->hardLimit} Goals. To add more, upgrade your plan.",
+            ];
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2667,7 +2641,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'goal',
             'entity_id' => $goal->id,
             'name' => $goal->goal_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($payload),
             'message' => "I've added your \"{$goal->goal_name}\" goal.",
         ];
     }
@@ -2691,7 +2665,6 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $payload = [
-            'user_id' => $user->id,
             'event_name' => $input['event_name'],
             'event_type' => $input['event_type'],
             'amount' => (float) $input['estimated_amount'],
@@ -2705,7 +2678,19 @@ class CoordinatingAgent extends BaseAgent
             $payload['description'] = $input['description'];
         }
 
-        $event = DB::transaction(fn () => LifeEvent::create($payload));
+        try {
+            $event = app(LifeEventStore::class)->create($payload, $user, IngestSource::FYN_AI);
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_reached',
+                'entity_key' => $e->entityKey,
+                'current_count' => $e->currentCount,
+                'hard_limit' => $e->hardLimit,
+                'required_tier' => 'premium',
+                'message' => "You've reached your plan's limit of {$e->hardLimit} Life Event. To add more, upgrade your plan.",
+            ];
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2715,7 +2700,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'life_event',
             'entity_id' => $event->id,
             'name' => $event->event_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($payload),
             'message' => "I've added your \"{$event->event_name}\" life event.",
         ];
     }
@@ -3781,7 +3766,7 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
-        $liability = DB::transaction(fn () => Liability::create($payload));
+        $liability = app(LiabilityStore::class)->create($payload, $user, IngestSource::FYN_AI);
 
         $this->invalidateUserCache($user->id);
 
@@ -5553,11 +5538,13 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        if ($entityType === 'savings_account' || $entityType === 'investment_account') {
+        if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability'], true)) {
             try {
-                $record = $entityType === 'savings_account'
-                    ? app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI)
-                    : app(InvestmentAccountStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI);
+                $record = match ($entityType) {
+                    'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'investment_account' => app(InvestmentAccountStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'estate_liability' => app(LiabilityStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                };
             } catch (ModelNotFoundException $e) {
                 return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
             } catch (StoreValidationException $e) {
@@ -5679,6 +5666,24 @@ class CoordinatingAgent extends BaseAgent
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
                 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
+            ];
+        }
+
+        if ($entityType === 'estate_liability') {
+            $liability = app(LiabilityStore::class)->find($entityId, $user);
+            if ($liability === null || $liability->user_id !== $user->id) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            }
+
+            $name = $liability->liability_name ?? "#{$entityId}";
+            app(LiabilityStore::class)->delete($entityId, $user, IngestSource::FYN_AI);
+
+            return [
+                'success' => true,
+                'deleted' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'message' => "Estate liability \"{$name}\" deleted.",
             ];
         }
 

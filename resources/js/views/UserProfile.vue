@@ -103,32 +103,15 @@ export default {
     const loading = computed(() => store.getters['userProfile/loading']);
     const error = computed(() => store.getters['userProfile/error']);
 
-    // Subscription-based tab gating
-    const subscriptionData = computed(() => store.state.auth?.subscriptionData);
-    const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
-    const userPlan = computed(() => {
-      if (isPreviewMode.value) return 'pro';
-      if (!subscriptionData.value) return 'pro'; // Payments disabled = show all
-      if (subscriptionData.value.status === 'trialing') return 'pro';
-      return subscriptionData.value.plan || 'student';
-    });
-
     // Define all tabs
     const allTabs = [
       { id: 'personal', label: 'Personal Info' },
       { id: 'health', label: 'Health' },
-      { id: 'family', label: 'Family', requiredPlan: 'family' },
+      { id: 'family', label: 'Family' },
       { id: 'subscription', label: 'Subscription' },
     ];
 
-    const planOrder = ['student', 'standard', 'family', 'pro'];
-    const tabs = computed(() => allTabs.filter(tab => {
-      if (!tab.requiredPlan) return true;
-      const userIndex = planOrder.indexOf(userPlan.value);
-      const requiredIndex = planOrder.indexOf(tab.requiredPlan);
-      if (userIndex === -1 || requiredIndex === -1) return true;
-      return userIndex >= requiredIndex;
-    }));
+    const tabs = computed(() => allTabs);
 
     const loadProfile = async () => {
       try {
@@ -174,4 +157,3 @@ export default {
   },
 };
 </script>
-

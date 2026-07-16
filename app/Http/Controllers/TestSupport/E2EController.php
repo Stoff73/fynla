@@ -9,11 +9,14 @@ use App\Models\AiConversation;
 use App\Models\EmailVerificationCode;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
+use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,13 +111,15 @@ class E2EController extends Controller
         ], 201);
     }
 
-    public function activeUser(Request $request): JsonResponse
+    public function activeUser(Request $request, InvestmentAccountStore $investmentAccountStore): JsonResponse
     {
         $this->ensureE2EEnvironment();
 
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
+            'tier' => ['sometimes', 'string', 'in:free,premium'],
+            'with_balance_history' => ['sometimes', 'boolean'],
         ]);
 
         $user = User::factory()->create([
@@ -124,11 +129,38 @@ class E2EController extends Controller
             'password' => Hash::make($validated['password']),
             'email_verified_at' => now(),
             'is_preview_user' => false,
+            'tier' => $validated['tier'] ?? 'free',
+            'onboarding_completed' => true,
+            'onboarding_fyn_step' => null,
         ]);
+
+        if ($validated['with_balance_history'] ?? false) {
+            $account = $investmentAccountStore->create([
+                'account_name' => 'Long-term portfolio',
+                'account_type' => 'gia',
+                'provider' => 'Test provider',
+                'current_value' => 10000,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ], $user, IngestSource::FORM);
+            InvestmentAccountValueSnapshot::query()
+                ->where('investment_account_id', $account->id)
+                ->update(['taken_at' => now()->subMonthsNoOverflow(13)]);
+            $investmentAccountStore->update(
+                $account->id,
+                ['current_value' => 12500],
+                $user,
+                IngestSource::FORM,
+            );
+        }
+
+        $token = $user->createToken('e2e-active-user', ['mfa_verified'])->plainTextToken;
 
         return response()->json([
             'email' => $user->email,
             'active' => true,
+            'tier' => $user->tier,
+            'token' => $token,
         ], 201);
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Mail\ReferralInvitationEmail;
 use App\Models\Referral;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\ReferralService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -65,6 +66,18 @@ describe('sendInvitation', function () {
         $service = app(ReferralService::class);
 
         expect(fn () => $service->sendInvitation($user, 'friend@example.com'))
+            ->toThrow(InvalidArgumentException::class);
+    });
+
+    it('rejects an ended one-time subscription before the expiry sweep', function () {
+        $user = User::factory()->create();
+        $user->subscription()->create([
+            'plan' => 'premium', 'billing_cycle' => 'monthly', 'status' => 'active',
+            'auto_renew' => false, 'amount' => 699,
+            'current_period_start' => now()->subMonth(), 'current_period_end' => now()->subMinute(),
+        ]);
+
+        expect(fn () => app(ReferralService::class)->sendInvitation($user, 'friend@example.com'))
             ->toThrow(InvalidArgumentException::class);
     });
 
@@ -191,5 +204,63 @@ describe('applyReferralBonus', function () {
         $service->applyReferralBonus($referee, 'yearly');
 
         expect(Referral::where('referee_id', $referee->id)->first()->bonus_applied)->toBeTrue();
+    });
+
+    it('extends the intended active subscriptions when newer provisional rows exist', function () {
+        $referrer = User::factory()->create(['referral_code' => 'FYN-ACT01']);
+        $referrerActive = Subscription::factory()->plan('premium')->create([
+            'user_id' => $referrer->id,
+            'status' => 'active',
+            'current_period_end' => now()->addMonth(),
+        ]);
+        Subscription::factory()->pending()->plan('premium')->create(['user_id' => $referrer->id]);
+
+        $referee = User::factory()->create(['referred_by_code' => 'FYN-ACT01']);
+        $refereeActive = Subscription::factory()->plan('premium')->create([
+            'user_id' => $referee->id,
+            'status' => 'active',
+            'current_period_end' => now()->addMonth(),
+        ]);
+        Subscription::factory()->pending()->plan('premium')->create(['user_id' => $referee->id]);
+
+        $referral = Referral::create([
+            'referrer_id' => $referrer->id, 'referee_id' => $referee->id,
+            'referral_code' => 'FYN-ACT01', 'referee_email' => $referee->email,
+            'status' => 'registered', 'referred_at' => now(), 'registered_at' => now(),
+        ]);
+        $referrerEnd = $referrerActive->current_period_end->copy();
+        $refereeEnd = $refereeActive->current_period_end->copy();
+
+        app(ReferralService::class)->applyReferralBonus($referee, 'monthly', $refereeActive->id);
+
+        expect($referrerActive->fresh()->current_period_end->diffInDays($referrerEnd))->toBe(7)
+            ->and($refereeActive->fresh()->current_period_end->diffInDays($refereeEnd))->toBe(7)
+            ->and($referral->fresh()->bonus_applied)->toBeTrue();
+    });
+
+    it('does not consume the referral bonus when the referrer has no active period', function () {
+        $referrer = User::factory()->create(['referral_code' => 'FYN-END01']);
+        Subscription::factory()->plan('premium')->create([
+            'user_id' => $referrer->id,
+            'status' => 'active',
+            'current_period_end' => now()->subMinute(),
+        ]);
+        $referee = User::factory()->create(['referred_by_code' => 'FYN-END01']);
+        $refereeActive = Subscription::factory()->plan('premium')->create([
+            'user_id' => $referee->id,
+            'status' => 'active',
+            'current_period_end' => now()->addMonth(),
+        ]);
+        $refereeEnd = $refereeActive->current_period_end->copy();
+        $referral = Referral::create([
+            'referrer_id' => $referrer->id, 'referee_id' => $referee->id,
+            'referral_code' => 'FYN-END01', 'referee_email' => $referee->email,
+            'status' => 'registered', 'referred_at' => now(), 'registered_at' => now(),
+        ]);
+
+        app(ReferralService::class)->applyReferralBonus($referee, 'monthly', $refereeActive->id);
+
+        expect($refereeActive->fresh()->current_period_end->equalTo($refereeEnd))->toBeTrue()
+            ->and($referral->fresh()->bonus_applied)->toBeFalse();
     });
 });

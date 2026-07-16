@@ -155,20 +155,20 @@ describe('UserProfile.vue', () => {
     expect(fetchProfile).toHaveBeenCalledTimes(2);
   });
 
-  it('hides the family tab below the family plan', async () => {
+  it('keeps the Family tab available on the Free tier', async () => {
     store = createTestStore({
-      subscriptionData: { status: 'active', plan: 'standard' },
+      subscriptionData: { status: 'free', plan: 'free' },
     });
     wrapper = mountComponent();
     await flushPromises();
 
     const labels = wrapper.findAll('nav[aria-label="Tabs"] button').map((tab) => tab.text());
-    expect(labels).toEqual(['Personal Info', 'Health', 'Subscription']);
+    expect(labels).toEqual(['Personal Info', 'Health', 'Family', 'Subscription']);
   });
 
   it('keeps the family tab available in preview mode', async () => {
     store = createTestStore({
-      subscriptionData: { status: 'active', plan: 'student' },
+      subscriptionData: { status: 'free', plan: 'free' },
       isPreviewMode: true,
     });
     wrapper = mountComponent();

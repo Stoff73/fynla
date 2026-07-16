@@ -19,11 +19,11 @@ beforeEach(function () {
     $this->seed(RetirementActionDefinitionSeeder::class);
 });
 
-it('returns the cross-module composite plan for a premium (Tier 2+) user', function () {
+it('returns the cross-module composite plan for a Premium user', function () {
     // The holistic group is now premium-gated (TeaserGate holistic_plan, /m
     // freemium 5.3): a free user gets a 403 upgrade_required, so the engine is
-    // exercised as a Tier 2 user who can reach it.
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier2']);
+    // exercised as a Premium user who can reach it.
+    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
 
     $response = $this->actingAs($user)->getJson('/api/holistic/composite-plan');
 

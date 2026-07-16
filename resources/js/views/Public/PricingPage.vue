@@ -38,20 +38,12 @@
               ]"
             >
               Yearly
-              <span class="ml-1 text-xs text-spring-500 font-semibold" v-if="isYearly">Save up to 33%</span>
+              <span v-if="isYearly && annualSavingLabel" class="ml-1 text-xs text-spring-500 font-semibold">{{ annualSavingLabel }}</span>
             </button>
           </div>
         </div>
 
-        <!-- Launch Offer Banner -->
-        <div class="flex justify-center mb-10">
-          <div class="bg-gradient-to-r from-raspberry-500 to-violet-500 rounded-xl px-8 py-4 text-center shadow-lg">
-            <p class="text-xl sm:text-2xl font-bold text-white mb-1">Limited Time Offer</p>
-            <p class="text-sm text-white/80">Lock in discounted pricing today for your first 12 months</p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
 
           <!-- Tier cards — identity, pricing and features driven entirely by /api/pricing-config -->
           <div
@@ -94,9 +86,10 @@
 
             <button
               @click="selectTier(tier.tier)"
-              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
+              :disabled="isCurrentPremium(tier)"
+              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {{ ctaLabel }}
+              {{ ctaLabel(tier) }}
             </button>
           </div>
         </div>
@@ -132,8 +125,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-horizon-500 mb-1">Cancel Anytime</h3>
-            <p class="text-sm text-neutral-500">No lock-in contracts. Downgrade or cancel whenever you like.</p>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">One-Time Premium</h3>
+            <p class="text-sm text-neutral-500">Premium access is sold for the period shown at checkout and does not renew automatically.</p>
           </div>
         </div>
         <p class="text-center text-sm text-neutral-500 mt-8">
@@ -237,13 +230,15 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAuthenticated']),
 
-    ctaLabel() {
-      return this.isAuthenticated ? 'Upgrade now' : 'Get started free';
+    featuredIndex() {
+      return this.tiers.findIndex(tier => tier.tier === 'premium');
     },
 
-    // Feature the most-popular badge: second-from-top tier when present.
-    featuredIndex() {
-      return this.tiers.length >= 2 ? this.tiers.length - 2 : -1;
+    annualSavingLabel() {
+      const premium = this.tiers.find(tier => tier.tier === 'premium');
+      if (!premium?.price_monthly_pence || !premium?.price_annual_pence) return '';
+      const saving = Math.round((1 - premium.price_annual_pence / (premium.price_monthly_pence * 12)) * 100);
+      return saving > 0 ? `Save ${saving}%` : '';
     },
   },
 
@@ -252,6 +247,7 @@ export default {
       isYearly: true,
       openFaq: null,
       faqs: getPricingFaqs().map(item => ({ question: item.q, answer: item.a })),
+      subscriptionData: null,
       tiers: [],
     };
   },
@@ -259,8 +255,9 @@ export default {
   mounted() {
     document.title = 'Pricing — Simple, Transparent Plans | Fynla';
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Choose the Fynla tier that fits — from the Free tier to higher tiers with full estate planning and unlimited accounts. Start free, no credit card required.');
+    if (meta) meta.setAttribute('content', 'Choose Free or Premium Fynla access. Start free with no credit card required, then upgrade to Premium for full planning capabilities and higher limits.');
     this.fetchTiers();
+    if (this.isAuthenticated) this.fetchSubscriptionStatus();
   },
 
   methods: {
@@ -271,6 +268,15 @@ export default {
         this.tiers = response.data.data || [];
       } catch {
         // Cards render their fallback ('...') price until the store responds.
+      }
+    },
+
+    async fetchSubscriptionStatus() {
+      try {
+        const response = await api.get('/payment/subscription-status');
+        this.subscriptionData = response.data;
+      } catch {
+        this.subscriptionData = null;
       }
     },
 
@@ -307,6 +313,20 @@ export default {
       return `£${monthlyEq}/mo — save ${saving}%`;
     },
 
+    isCurrentPremium(tier) {
+      return this.isAuthenticated
+        && tier.tier === 'premium'
+        && this.subscriptionData?.tier === 'premium'
+        && this.subscriptionData?.is_terminal_paid !== true
+        && ['active', 'cancelled', 'past_due'].includes(this.subscriptionData?.subscription_status);
+    },
+
+    ctaLabel(tier) {
+      if (this.isCurrentPremium(tier)) return 'Premium active';
+      if (tier.tier === 'free') return this.isAuthenticated ? 'Go to dashboard' : 'Get started free';
+      return this.isAuthenticated ? 'Upgrade now' : 'Choose Premium';
+    },
+
     // Build the feature list from the tier's own capability_matrix +
     // count_caps. full → included; teaser → preview only; limited → "Up to N"
     // (or "Unlimited" when cap is null); none → shown as not included.
@@ -337,7 +357,14 @@ export default {
     },
 
     selectTier(tierKey) {
-      // Pass the tier KEY (free/tier1/tier2/tier3), never a legacy slug (§5.2).
+      if (tierKey === 'free') {
+        this.$router.push(this.isAuthenticated ? '/dashboard' : '/register');
+        return;
+      }
+
+      if (this.isCurrentPremium({ tier: tierKey })) return;
+
+      // Pass the Premium tier key, never a legacy slug (§5.2).
       if (this.isAuthenticated) {
         this.$router.push({
           path: '/checkout',

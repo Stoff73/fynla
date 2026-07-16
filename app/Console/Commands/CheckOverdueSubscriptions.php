@@ -18,6 +18,7 @@ class CheckOverdueSubscriptions extends Command
     public function handle(RevolutSubscriptionService $service): int
     {
         $overdueSubscriptions = Subscription::where('status', 'active')
+            ->where('auto_renew', true)
             ->whereNotNull('revolut_subscription_id')
             ->where('current_period_end', '<', now())
             ->get();

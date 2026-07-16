@@ -1,6 +1,15 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-06-16 — context-clear wrap, session 2. **Cross-module composer Phases 5–6 DONE + the whole composer (Phases 1–5) + CoALA (Phases 1–6) SHIPPED TO PROD (fynla.org).** Then started **SaveTax verify-after-capture**: backend (Tasks 1–6) + the two `/m` screens + Cash Management nav (Tasks 7–9) done, committed, pushed, GREEN on `savetax-verify-capture`. Paused at Task 10 (a real refactor — CSJ chose **Option B**: resume onboarding in the dock). **NEXT SESSION (mandate): land Option B + the `/m` E2E + open the dev PR.** Handover: `June/June16Updates/handover-2026-06-16-session-2-clear.md`. Plan: `docs/superpowers/plans/2026-06-16-savetax-verify-after-capture.md`.*
+*Last updated: 2026-07-15 — context-clear wrap, session 1. Native Swift programme Package 1 Tasks 1–6 are checkpointed at `5a35bd5` on `codex/freemium-economic-api-readiness`. Next: Task 7, Premium checkout intent through verified registration. Handover: `July/July15Updates/handover-2026-07-15-session-1-clear.md`.*
+
+## 2026-07-15 — Native Swift programme Package 1 (context clear)
+
+- [x] Tasks 1–6 — Free/Premium contract, economic matrix, balance history and adviser export on web and `/m`, subscription-state hardening, pending checkout safety, trial audits, and two-tier public pricing.
+- [ ] Task 7 — preserve canonical Premium checkout intent through registration; verified account remains Free with no subscription.
+- [ ] Task 7 boundary — change Free pricing links from `/register?plan=free` to plain `/register` and lock with a contract assertion.
+- [ ] Task 8 and remaining Package 1 gates — finish before any Xcode or Package 2 SwiftUI work.
+- [ ] Deferred tech debt — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
+- Deployment: none. The Package 1 branch is incomplete and not deployable.
 
 ## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
 
