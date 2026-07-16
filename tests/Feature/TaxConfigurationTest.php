@@ -236,10 +236,10 @@ class TaxConfigurationTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-            ])
-            ->assertJsonCount(2, 'data');
+            ]);
 
-        // Verify both configs are returned
+        // Verify both requested configs are returned. Other valid historical
+        // rows may exist when the full suite's tax-config safety net is active.
         $data = $response->json('data');
         $taxYears = collect($data)->pluck('tax_year')->toArray();
         $this->assertContains($this->previousTaxYear, $taxYears);

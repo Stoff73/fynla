@@ -41,7 +41,7 @@ async function exerciseCap(page, route, trigger, entityLabel) {
 }
 
 test.describe('desktop upgrade entry points', () => {
-  test.beforeEach((_, testInfo) => {
+  test.beforeEach(({}, testInfo) => {
     test.skip(testInfo.project.name === 'mobile-webkit');
   });
 
@@ -69,7 +69,8 @@ test('Premium has no paid entry and cannot open an empty plan modal', async ({ p
   await expect(page.getByRole('button', { name: 'Upgrade Now', exact: true })).toHaveCount(0);
   await page.goto('/settings/subscription?openPricing=1');
   await expect(page.getByRole('main').getByRole('heading', { name: 'Settings' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'You are on Premium' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your Subscription' })).toBeVisible();
+  await expect(page.getByText('Your Premium plan is active')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Choose a Plan', exact: true })).toHaveCount(0);
 });

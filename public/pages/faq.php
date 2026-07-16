@@ -338,7 +338,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-0">How much does Fynla cost? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-0" hidden>
-                <div class="faq__answer-inner">Student tier from approximately &pound;3/month, Standard at &pound;8.50/month, and Premium at &pound;20/month. Annual billing gives you a discount. No hidden fees, no commission, no lock-in. See our pricing page for full details.</div>
+                <div class="faq__answer-inner">Free costs &pound;0. Premium costs &pound;6.99 per month or &pound;59.99 per year for web billing. There are no hidden fees or commissions. See our pricing page for the live capability and limit comparison.</div>
               </dd>
             </div>
 
@@ -347,7 +347,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-1">What is the difference between the plans? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-1" hidden>
-                <div class="faq__answer-inner">Each tier adds more depth. Student covers budgeting, savings, and basic pension tracking. Standard adds full retirement projections, property, investments, and protection analysis. Premium adds Monte Carlo simulations, Inheritance Tax planning, In Case of Emergency letters, and advanced scenario modelling.</div>
+                <div class="faq__answer-inner">Free includes the core planning experience within published account and feature limits. Premium removes count limits, adds one gigabyte of document storage, increases weekly Fyn usage, and shows the full retained balance history.</div>
               </dd>
             </div>
 
@@ -374,7 +374,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-4">Can I change plans? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-4" hidden>
-                <div class="faq__answer-inner">Yes, upgrade or downgrade at any time. Changes take effect from your next billing cycle.</div>
+                <div class="faq__answer-inner">You can purchase Premium or cancel paid access at any time. Cancellation stops renewal, while Premium access continues until the end of the current billing period.</div>
               </dd>
             </div>
 
@@ -383,7 +383,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-5">What payment methods do you accept? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-5" hidden>
-                <div class="faq__answer-inner">We accept all major credit and debit cards. Payments are processed securely through Stripe.</div>
+                <div class="faq__answer-inner">Premium web payments are processed securely through Revolut. The checkout shows the payment methods available to you.</div>
               </dd>
             </div>
 
@@ -392,7 +392,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-6">What if I cancel? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-6" hidden>
-                <div class="faq__answer-inner">You can export your data at any time. Cancel monthly plans any time; annual plans run to the end of the 12-month period. Your data is retained for 30 days after cancellation, then permanently deleted.</div>
+                <div class="faq__answer-inner">You can export your data at any time. Cancellation stops renewal, while Premium access continues until the purchased period ends. It then enters a 30-day read-only grace period before account access is disabled and the regulatory retention process begins.</div>
               </dd>
             </div>
 

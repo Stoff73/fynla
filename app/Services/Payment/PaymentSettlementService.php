@@ -99,6 +99,6 @@ class PaymentSettlementService
             ]);
 
             return $payment;
-        });
+        }, 3);
     }
 }

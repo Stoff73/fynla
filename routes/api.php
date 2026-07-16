@@ -926,7 +926,7 @@ Route::middleware(['auth:sanctum', 'estate.full'])->prefix('estate')->group(func
 
     // Will Builder + Will + Bequests + LPA are Estate-module sub-routes.
     // Spec §7 has no separate will/POA capability key — they fall under
-    // "Estate planning" (teaser for Free/Tier1). §10.2 requires them gated
+    // "Estate planning" (teaser for Free). §10.2 requires them gated
     // server-side, not just hidden. The legacy `feature:pro` above is NOT
     // sufficient: a grandfathered legacy-paid sub resolves to the `free`
     // tier under SP2 and must hit the Estate teaser, so the canonical

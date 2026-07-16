@@ -50,7 +50,7 @@ describe('BalanceHistory', () => {
     expect(wrapper.text()).toContain('£2,000');
 
     await wrapper.get('[data-testid="history-upgrade"]').trigger('click');
-    expect(push).toHaveBeenCalledWith('/settings?tab=subscription');
+    expect(push).toHaveBeenCalledWith('/settings/subscription?openPricing=1');
   });
 
   it('shows full available history for Premium without an upgrade action', async () => {

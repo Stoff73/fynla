@@ -3,6 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TierConfigurationSeeder;
+
+beforeEach(function () {
+    $this->seed(TierConfigurationSeeder::class);
+});
 
 /**
  * The /m Income screen reads getCompleteProfile()'s `income_summary` block —
