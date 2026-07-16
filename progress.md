@@ -203,3 +203,12 @@
 - Task 12 verification before schema removal: 54 frontend files/726 tests green; production build green; changed-file lint, policy lint and Pint green; focused backend sweep 180 tests/714 assertions green.
 - Blocker: the exact audit command must first land and deploy through PR #625, then run read-only on csjones and production. Current SSH keys are rejected by both hosts. No schema-removal migration has been created and Task 13 has not started.
 - Boundary: the primary Save Tax checkout remains untouched on `codex/savetax-allowance-ctas`.
+
+## 2026-07-16 — Task 12 checkpoint
+
+- Draft PR #627 opened from `codex/freemium-task12-trial-schema`, stacked on Task 11 PR #626.
+- Guarded migration `2026_07_15_000005_remove_trial_subscription_schema` applied locally; mandatory full reseed completed; schema and rollback guard tests are green.
+- Task 12 verification: core payment/tier/middleware/lifecycle run 255 tests/989 assertions; related account/authentication/AI/service run 90 tests/383 assertions; frontend 54 files/726 tests; production build, ESLint, policy lint, Pint and diff checks green.
+- Two baseline test-order defects found and fixed in the same loop: tier-collapse cleanup now restores both Task 1 migrations, and payment replay time is frozen at second precision.
+- PR #627 is explicitly blocked from merge or remote deployment until PR #625's exact audit command exits 0 on csjones and production and both evidence objects are saved.
+- Next: branch Task 13 from #627 for canonical repository documentation; do not publish vault changes until the external gate clears.
