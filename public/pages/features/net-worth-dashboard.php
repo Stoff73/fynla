@@ -86,7 +86,7 @@
           Your home. Your pensions. Your savings. Your debts. Fynla brings it all together into a single number &mdash; your net worth &mdash; and tracks how it changes over time.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -303,7 +303,7 @@
       'heading' => 'Start With the Number That Matters Most',
       'subtext' => 'Your net worth is the foundation of every financial decision. See it clearly, track it over time, and build your plan from there.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register',  'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register',  'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register',  'primary' => false],
       ],
     ];

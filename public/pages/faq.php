@@ -353,19 +353,19 @@
 
             <div class="faq__item" data-faq-item>
               <dt class="faq__question">
-                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-2">Is there a free trial? <span class="faq__icon" aria-hidden="true"></span></button>
+                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-2">Is the Free account time-limited? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-2" hidden>
-                <div class="faq__answer-inner">Yes. Try Fynla free with full access to all features in your chosen tier. No credit card required to start.</div>
+                <div class="faq__answer-inner">No. Free has no time limit and requires no credit card. You can keep using the capabilities and limits included in Free, then choose Premium whenever you want more.</div>
               </dd>
             </div>
 
             <div class="faq__item" data-faq-item>
               <dt class="faq__question">
-                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-3">What happens when my free trial ends? <span class="faq__icon" aria-hidden="true"></span></button>
+                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-3">What happens when Premium access ends? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-3" hidden>
-                <div class="faq__answer-inner">You'll be prompted to choose a plan. If you don't subscribe, your account remains accessible in read-only mode — you won't lose any data. You can subscribe at any time to regain full access.</div>
+                <div class="faq__answer-inner">Paid access continues until the end of the purchased period. It then enters a 30-day read-only grace period so you can export your data or purchase Premium again. If you take neither action, account access is disabled and the account enters the regulatory retention process.</div>
               </dd>
             </div>
 

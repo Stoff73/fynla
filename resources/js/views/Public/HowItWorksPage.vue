@@ -22,7 +22,7 @@
             to="/register"
             class="px-6 py-2.5 bg-light-pink-100 text-horizon-500 text-sm font-semibold rounded-lg hover:bg-light-pink-200 transition-colors"
           >
-            Start your free trial
+            Create your free account
           </router-link>
         </div>
       </div>
@@ -235,10 +235,10 @@
     <section class="py-16 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">15 minutes to clarity</h2>
-        <p class="text-sm text-neutral-500 max-w-lg mx-auto mb-6">That's all it takes to see your complete financial picture. Start with the demo, or go straight to your free trial.</p>
+        <p class="text-sm text-neutral-500 max-w-lg mx-auto mb-6">That's all it takes to see your complete financial picture. Start with the demo, or create your Free account.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">Try the free demo</a>
-          <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Start your free trial</router-link>
+          <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Create your free account</router-link>
         </div>
       </div>
     </section>
@@ -336,7 +336,7 @@ export default {
       ],
       demoSteps: [
         { title: 'Explore the demo', text: 'Try Fynla with pre-built personas and realistic financial data — no sign-up needed.' },
-        { title: 'Sign up free', text: 'Create your account with a 7-day free trial. No credit card required.' },
+        { title: 'Sign up free', text: 'Create your Free account with no time limit. No credit card required.' },
         { title: 'Add your data', text: '15-20 minutes to enter your pensions, property, savings, and insurance.' },
         { title: 'See your dashboard', text: 'Your complete financial picture — net worth, projections, and gaps.' },
         { title: 'Model scenarios', text: 'Test decisions before you make them. What if you retire early? Overpay your mortgage?' },

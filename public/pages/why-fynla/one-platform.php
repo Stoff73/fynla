@@ -255,7 +255,7 @@
       'subtext' => 'See how all seven modules work together with sample data. No sign-up required.',
       'actions' => [
         ['text' => 'Try the free demo', 'href' => '/?demo=true', 'primary' => true],
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => false],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => false],
       ],
     ];
     include __DIR__ . '/../partials/modules/cta-band.php';

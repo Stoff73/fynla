@@ -86,7 +86,7 @@
           The average UK worker has 11 jobs in their lifetime. That&rsquo;s potentially 11 different pension pots scattered across providers. Fynla brings them all together.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -308,7 +308,7 @@
       'heading' => 'Stop guessing what your retirement looks like',
       'subtext' => 'Add your pensions in under 10 minutes. See what you\'ve really got — and what you need to do about it.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

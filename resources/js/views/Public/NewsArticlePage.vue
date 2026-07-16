@@ -68,13 +68,13 @@
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">See your complete financial picture</h2>
           <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
-            Plan savings, investments, retirement and estate in one place. Start your free trial today.
+            Plan savings, investments, retirement and estate in one place. Create your free account today.
           </p>
           <router-link
             to="/register"
             class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
           >
-            Start your free trial
+            Create your free account
           </router-link>
         </div>
       </section>

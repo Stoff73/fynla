@@ -86,7 +86,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.menuIcon || 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 7h16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z'" />
               </svg>
               <span class="truncate">{{ item.name }}</span>
-              <span v-if="item.type !== 'free'" class="ml-auto text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-md bg-light-pink-100 text-raspberry-500">Free trial</span>
+              <span v-if="item.type !== 'free'" class="ml-auto text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-md bg-light-pink-100 text-raspberry-500">{{ item.type === 'gated-paid' ? 'Premium' : 'Free account' }}</span>
             </button>
           </div>
         </div>
@@ -2249,7 +2249,6 @@ export default {
       const salary1 = this.mortgageAfford.salary1 || 0;
       const salary2 = this.mortgageAfford.salary2 || 0;
       const monthlyDebts = this.mortgageAfford.monthlyDebts || 0;
-      const deposit = this.mortgageAfford.deposit || 0;
       const totalIncome = salary1 + salary2;
       if (totalIncome <= 0) return;
       const debtAdjustment = monthlyDebts * 12 * 4;
@@ -2486,5 +2485,3 @@ export default {
   },
 };
 </script>
-
-
