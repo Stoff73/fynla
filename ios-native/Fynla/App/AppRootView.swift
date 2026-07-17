@@ -11,7 +11,8 @@ struct AppRootView: View {
             case .signedOut,
                  .authenticating,
                  .verificationRequired,
-                 .multiFactorRequired:
+                 .multiFactorRequired,
+                 .restorationRequired:
                 SignedOutView(state: session.state)
             case .authenticatedLocked:
                 LockedView(message: "Unlock to view your financial plan.")
@@ -58,6 +59,8 @@ private struct SignedOutView: View {
             "Verify your email to continue."
         case .multiFactorRequired:
             "Confirm your identity to continue."
+        case .restorationRequired:
+            "Restore your account to continue."
         case .launching,
              .authenticatedLocked,
              .authenticatedUnlocked,

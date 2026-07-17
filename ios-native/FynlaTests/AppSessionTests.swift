@@ -59,4 +59,15 @@ struct AppSessionTests {
         #expect(session.state == .authenticatedLocked)
         #expect(!session.lock())
     }
+
+    @Test @MainActor
+    func restorationIsAnExplicitPendingStateThatCannotUnlock() {
+        let session = AppSession(state: .signedOut)
+
+        #expect(session.beginAuthentication())
+        #expect(session.requireRestoration())
+        #expect(session.state == .restorationRequired)
+        #expect(!session.completeAuthentication())
+        #expect(!session.unlock())
+    }
 }

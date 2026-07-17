@@ -61,6 +61,7 @@ final class AppRouter {
              .authenticating,
              .verificationRequired,
              .multiFactorRequired,
+             .restorationRequired,
              .deletingAccount:
             false
         }

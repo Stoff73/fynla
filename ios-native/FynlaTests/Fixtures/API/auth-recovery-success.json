@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "message": "Recovery code accepted.",
+  "data": {
+    "access_token": "bootstrap-example-recovery",
+    "user": {
+      "id": 105,
+      "first_name": "Recovery",
+      "surname": "Example",
+      "name": "Recovery Example",
+      "email": "recovery@example.test"
+    },
+    "remaining_recovery_codes": 7,
+    "warning": null
+  }
+}

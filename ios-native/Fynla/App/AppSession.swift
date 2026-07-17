@@ -9,6 +9,7 @@ final class AppSession {
         case authenticating
         case verificationRequired
         case multiFactorRequired
+        case restorationRequired
         case authenticatedLocked
         case authenticatedUnlocked
         case deletingAccount
@@ -43,6 +44,11 @@ final class AppSession {
             from: [.authenticating, .verificationRequired],
             to: .multiFactorRequired
         )
+    }
+
+    @discardableResult
+    func requireRestoration() -> Bool {
+        transition(from: [.authenticating], to: .restorationRequired)
     }
 
     @discardableResult

@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "message": "Please check your email for verification code.",
+  "requires_verification": true,
+  "data": {
+    "challenge_token": "challenge-example-login",
+    "email": "e*****e@example.test"
+  }
+}
