@@ -102,10 +102,12 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
 enum AuthError: Error, Sendable, Equatable {
     case decoding
     case locked(message: String, remainingSeconds: Int?)
-    case validation([String: [String]])
+    case validation(message: String?, errors: [String: [String]])
     case resendExhausted(message: String)
     case rateLimited(message: String?)
-    case unauthenticated
+    case unauthenticated(message: String?)
+    case offline
+    case transport
     case server(status: Int)
 }
 
@@ -256,9 +258,12 @@ enum AuthResponseDecoder {
 
         switch status {
         case 401:
-            return .unauthenticated
+            return .unauthenticated(message: response?.message)
         case 422:
-            return .validation(response?.errors ?? [:])
+            return .validation(
+                message: response?.message,
+                errors: response?.errors ?? [:]
+            )
         case 423 where response?.locked == true:
             return .locked(
                 message: response?.message ?? "Authentication is temporarily locked.",

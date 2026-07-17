@@ -5,8 +5,9 @@ import Testing
 @Suite("Authentication coordinator")
 struct AuthenticationCoordinatorTests {
     @Test @MainActor
-    func immediateLoginExchangesFetchesUserThenUnlocks() async throws {
-        let harness = makeHarness(login: .authenticated(bootstrapAccessToken: "bootstrap-immediate"), mustChange: true)
+    func decodedMandatoryPasswordLoginRetainsNativeAuthButCannotUnlockUntilCompletion() async throws {
+        let completion = try AuthResponseDecoder.login(from: fixture("auth-immediate-success"))
+        let harness = makeHarness(loginCompletion: completion)
 
         try await harness.coordinator.login(
             email: "example@example.test",
@@ -15,14 +16,25 @@ struct AuthenticationCoordinatorTests {
         )
 
         #expect(await harness.events.values() == [
-            "login", "exchange:bootstrap-immediate", "user:native-access",
+            "login", "exchange:bootstrap-example-immediate", "user:native-access",
         ])
-        #expect(harness.coordinator.state == .authenticated(mustChangePassword: true))
+        #expect(harness.coordinator.state == .passwordChangeRequired)
         #expect(harness.coordinator.mustChangePassword == true)
         #expect(harness.coordinator.authenticatedUser?.id == 101)
         #expect(harness.coordinator.credentials?.refreshToken == "native-refresh")
-        #expect(harness.session.state == .authenticatedUnlocked)
+        #expect(harness.session.state == .passwordChangeRequired)
         #expect(await harness.coordinator.accessToken() == "native-access")
+
+        let router = AppRouter(session: harness.session)
+        #expect(!router.navigate(to: .dashboard))
+        #expect(!router.navigate(to: .settings))
+
+        #expect(harness.coordinator.completeMandatoryPasswordChange())
+        #expect(harness.coordinator.state == .authenticated(mustChangePassword: false))
+        #expect(harness.coordinator.mustChangePassword == false)
+        #expect(harness.session.state == .authenticatedUnlocked)
+        #expect(harness.coordinator.credentials?.accessToken == "native-access")
+        #expect(!harness.coordinator.completeMandatoryPasswordChange())
     }
 
     @Test @MainActor
@@ -136,6 +148,12 @@ struct AuthenticationCoordinatorTests {
 
             let events = await harness.events.values()
             #expect(events.suffix(2) == ["exchange:\(bootstrap)", "user:native-access"])
+            if action == .verification {
+                #expect(harness.coordinator.state == .passwordChangeRequired)
+                #expect(harness.session.state == .passwordChangeRequired)
+                #expect(harness.coordinator.credentials?.accessToken == "native-access")
+                #expect(harness.coordinator.completeMandatoryPasswordChange())
+            }
             #expect(harness.session.state == .authenticatedUnlocked)
         }
     }
@@ -269,6 +287,57 @@ struct AuthenticationCoordinatorTests {
         #expect(harness.session.state == .signedOut)
     }
 
+    @Test @MainActor
+    func signOutInvalidatesOldAttemptWithoutClearingNewSuccessfulLogin() async throws {
+        let gate = AsyncGate()
+        let events = EventLog()
+        let client = SupersedingAuthClient(gate: gate, events: events)
+        let session = AppSession(state: .signedOut)
+        let coordinator = AuthenticationCoordinator(
+            appSession: session,
+            authClient: client,
+            currentUserClient: client
+        )
+
+        let first = Task { @MainActor in
+            try await coordinator.login(
+                email: "first@example.test",
+                password: "Example1!",
+                deviceLabel: "First iPhone"
+            )
+        }
+        while coordinator.state != .submitting {
+            await Task.yield()
+        }
+
+        coordinator.signOut()
+        try await coordinator.login(
+            email: "second@example.test",
+            password: "Example1!",
+            deviceLabel: "Second iPhone"
+        )
+        #expect(coordinator.credentials?.accessToken == "native-access-second")
+        #expect(coordinator.authenticatedUser?.id == 202)
+        #expect(session.state == .authenticatedUnlocked)
+
+        await gate.open()
+        await expectCoordinatorError(.cancelled) {
+            try await first.value
+        }
+
+        #expect(coordinator.credentials?.accessToken == "native-access-second")
+        #expect(coordinator.credentials?.refreshToken == "native-refresh-second")
+        #expect(coordinator.authenticatedUser?.id == 202)
+        #expect(coordinator.state == .authenticated(mustChangePassword: false))
+        #expect(session.state == .authenticatedUnlocked)
+        #expect(await events.values() == [
+            "login:first@example.test",
+            "login:second@example.test",
+            "exchange:bootstrap-second",
+            "user:native-access-second",
+        ])
+    }
+
     @Test
     func authenticationSourcesContainNoCredentialPersistenceOrDiagnostics() throws {
         let testDirectory = URL(fileURLWithPath: #filePath)
@@ -303,12 +372,16 @@ struct AuthenticationCoordinatorTests {
         exchangeError: (any Error)? = nil,
         userError: (any Error)? = nil,
         loginGate: AsyncGate? = nil,
-        loginDelay: Duration? = nil
+        loginDelay: Duration? = nil,
+        loginCompletion: LoginCompletion? = nil
     ) -> CoordinatorHarness {
         let events = EventLog()
         let auth = ScriptedAuthClient(
             events: events,
-            login: LoginCompletion(outcome: login, mustChangePassword: mustChange),
+            login: loginCompletion ?? LoginCompletion(
+                outcome: login,
+                mustChangePassword: mustChange
+            ),
             exchangeError: exchangeError,
             loginGate: loginGate,
             loginDelay: loginDelay
@@ -351,10 +424,16 @@ struct AuthenticationCoordinatorTests {
         }
     }
 
-    private enum CompletionAction {
+    private enum CompletionAction: Equatable {
         case verification
         case mfa
         case recovery
+    }
+
+    private func fixture(_ name: String) throws -> Data {
+        try Data(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appending(path: "Fixtures/API/\(name).json"))
     }
 }
 
@@ -507,6 +586,89 @@ private actor ScriptedCurrentUserClient: CurrentUserClient {
             surname: "User",
             name: "Example User",
             email: "example@example.test"
+        )
+    }
+}
+
+private actor SupersedingAuthClient: AuthCompletionClient, CurrentUserClient {
+    private let gate: AsyncGate
+    private let events: EventLog
+
+    init(gate: AsyncGate, events: EventLog) {
+        self.gate = gate
+        self.events = events
+    }
+
+    func register(_ input: RegistrationInput) async throws -> RegistrationChallenge {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func loginCompletion(email: String, password: String) async throws -> LoginCompletion {
+        await events.append("login:\(email)")
+        if email == "first@example.test" {
+            await gate.wait()
+            return LoginCompletion(
+                outcome: .authenticated(bootstrapAccessToken: "bootstrap-first"),
+                mustChangePassword: false
+            )
+        }
+        return LoginCompletion(
+            outcome: .authenticated(bootstrapAccessToken: "bootstrap-second"),
+            mustChangePassword: false
+        )
+    }
+
+    func verifyRegistrationCompletion(
+        _ input: RegistrationVerificationInput
+    ) async throws -> BootstrapAuthentication {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func verifyLoginCompletion(
+        code: String,
+        challengeToken: String
+    ) async throws -> BootstrapAuthentication {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func verifyMFACompletion(code: String, token: String) async throws -> BootstrapAuthentication {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func useRecoveryCodeCompletion(
+        _ code: String,
+        token: String
+    ) async throws -> BootstrapAuthentication {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func exchange(
+        bootstrapToken: String,
+        deviceLabel: String
+    ) async throws -> NativeCredentials {
+        let suffix = bootstrapToken == "bootstrap-second" ? "second" : "first"
+        await events.append("exchange:\(bootstrapToken)")
+        return NativeCredentials(
+            accessToken: "native-access-\(suffix)",
+            accessExpiresAt: "2026-07-17T12:15:00Z",
+            refreshToken: "native-refresh-\(suffix)",
+            refreshExpiresAt: "2026-08-16T12:00:00Z",
+            absoluteExpiresAt: "2026-10-15T12:00:00Z",
+            sessionID: suffix == "second"
+                ? "22222222-2222-2222-2222-222222222222"
+                : "11111111-1111-1111-1111-111111111111"
+        )
+    }
+
+    func currentUser(accessToken: String) async throws -> AuthenticatedUser {
+        await events.append("user:\(accessToken)")
+        let isSecond = accessToken == "native-access-second"
+        return AuthenticatedUser(
+            id: isSecond ? 202 : 101,
+            firstName: isSecond ? "Second" : "First",
+            surname: "User",
+            name: isSecond ? "Second User" : "First User",
+            email: isSecond ? "second@example.test" : "first@example.test"
         )
     }
 }

@@ -195,7 +195,19 @@ actor APIAuthClient: AuthCompletionClient, CurrentUserClient {
             requestID: requestID(),
             accessToken: bearer
         )
-        let (data, response) = try await transport.data(for: request)
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch let error as URLError where error.code.isAuthOffline {
+            throw AuthError.offline
+        } catch {
+            throw AuthError.transport
+        }
 
         guard (200..<300).contains(response.statusCode) else {
             throw AuthResponseDecoder.error(from: data, status: response.statusCode)
@@ -254,5 +266,21 @@ private struct DeviceLabelRequest: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case deviceLabel = "device_label"
+    }
+}
+
+private extension URLError.Code {
+    var isAuthOffline: Bool {
+        switch self {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .timedOut:
+            true
+        default:
+            false
+        }
     }
 }

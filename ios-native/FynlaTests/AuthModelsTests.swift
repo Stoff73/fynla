@@ -109,10 +109,13 @@ struct AuthModelsTests {
         )
         #expect(
             AuthResponseDecoder.error(from: validation, status: 422)
-                == .validation([
-                    "email": ["The email field is required."],
-                    "password": ["The password field is required."],
-                ])
+                == .validation(
+                    message: "The given data was invalid.",
+                    errors: [
+                        "email": ["The email field is required."],
+                        "password": ["The password field is required."],
+                    ]
+                )
         )
         #expect(
             AuthResponseDecoder.error(from: exhausted, status: 429)
@@ -126,6 +129,62 @@ struct AuthModelsTests {
                 status: 429
             ) == .rateLimited(message: "Slow down")
         )
+    }
+
+    @Test
+    func preservesCurrentAuthenticationFailureMessages() throws {
+        let cases: [(String, Int, AuthError)] = [
+            (
+                "auth-invalid-credentials",
+                401,
+                .unauthenticated(message: "Invalid email or password.")
+            ),
+            (
+                "auth-registration-code-invalid",
+                422,
+                .validation(message: "Invalid verification code", errors: [:])
+            ),
+            (
+                "auth-registration-code-expired",
+                422,
+                .validation(
+                    message: "Verification code has expired. Please register again.",
+                    errors: [:]
+                )
+            ),
+            (
+                "auth-login-session-expired",
+                422,
+                .validation(message: "Invalid or expired verification session", errors: [:])
+            ),
+            (
+                "auth-login-code-invalid",
+                422,
+                .validation(message: "Invalid or expired verification code", errors: [:])
+            ),
+            (
+                "auth-mfa-challenge-expired",
+                401,
+                .unauthenticated(message: "Invalid or expired verification request.")
+            ),
+            (
+                "auth-mfa-code-invalid",
+                401,
+                .unauthenticated(message: "Invalid verification code.")
+            ),
+            (
+                "auth-recovery-code-invalid",
+                401,
+                .unauthenticated(message: "Invalid recovery code.")
+            ),
+        ]
+
+        for (fixtureName, status, expected) in cases {
+            #expect(
+                AuthResponseDecoder.error(from: try fixture(fixtureName), status: status)
+                    == expected
+            )
+        }
     }
 
     @Test

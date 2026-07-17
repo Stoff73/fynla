@@ -108,10 +108,13 @@ struct AuthClientTests {
         ) {
             try await client.login(email: "example@example.test", password: "Example1!")
         }
-        await expectAuthError(.validation([
-            "email": ["The email field is required."],
-            "password": ["The password field is required."],
-        ])) {
+        await expectAuthError(.validation(
+            message: "The given data was invalid.",
+            errors: [
+                "email": ["The email field is required."],
+                "password": ["The password field is required."],
+            ]
+        )) {
             try await client.login(email: "example@example.test", password: "Example1!")
         }
         await expectAuthError(
@@ -121,7 +124,95 @@ struct AuthClientTests {
         }
     }
 
-    private func makeClient(_ transport: TestHTTPTransport) -> APIAuthClient {
+    @Test
+    func currentCodeAndChallengeFailuresKeepServerWording() async {
+        let transport = TestHTTPTransport([
+            response("auth-invalid-credentials", status: 401),
+            response("auth-registration-code-invalid", status: 422),
+            response("auth-registration-code-expired", status: 422),
+            response("auth-login-session-expired", status: 422),
+            response("auth-login-code-invalid", status: 422),
+            response("auth-mfa-challenge-expired", status: 401),
+            response("auth-mfa-code-invalid", status: 401),
+            response("auth-recovery-code-invalid", status: 401),
+        ])
+        let client = makeClient(transport)
+
+        await expectAuthError(.unauthenticated(message: "Invalid email or password.")) {
+            try await client.login(email: "example@example.test", password: "wrong")
+        }
+        await expectAuthError(.validation(message: "Invalid verification code", errors: [:])) {
+            try await client.verifyRegistration(
+                RegistrationVerificationInput(code: "000000", pendingID: 321)
+            )
+        }
+        await expectAuthError(.validation(
+            message: "Verification code has expired. Please register again.",
+            errors: [:]
+        )) {
+            try await client.verifyRegistration(
+                RegistrationVerificationInput(code: "000000", pendingID: 321)
+            )
+        }
+        await expectAuthError(.validation(
+            message: "Invalid or expired verification session",
+            errors: [:]
+        )) {
+            try await client.verifyLogin(code: "000000", challengeToken: "expired-challenge")
+        }
+        await expectAuthError(.validation(
+            message: "Invalid or expired verification code",
+            errors: [:]
+        )) {
+            try await client.verifyLogin(code: "000000", challengeToken: "current-challenge")
+        }
+        await expectAuthError(.unauthenticated(
+            message: "Invalid or expired verification request."
+        )) {
+            try await client.verifyMFA(code: "000000", token: "expired-mfa")
+        }
+        await expectAuthError(.unauthenticated(message: "Invalid verification code.")) {
+            try await client.verifyMFA(code: "000000", token: "current-mfa")
+        }
+        await expectAuthError(.unauthenticated(message: "Invalid recovery code.")) {
+            try await client.useRecoveryCode("wrong-recovery", token: "current-mfa")
+        }
+    }
+
+    @Test
+    func preservesCancellationAndNormalizesTransportFailures() async {
+        let cancelled = makeClient(ThrowingAuthTransport(.cancelled))
+        do {
+            _ = try await cancelled.login(email: "example@example.test", password: "Example1!")
+            Issue.record("Expected cancellation")
+        } catch is CancellationError {
+            // Cancellation remains cancellation for coordinator ownership.
+        } catch {
+            Issue.record("Unexpected cancellation error type")
+        }
+
+        let urlCancelled = makeClient(ThrowingAuthTransport(.urlError(.cancelled)))
+        do {
+            _ = try await urlCancelled.login(email: "example@example.test", password: "Example1!")
+            Issue.record("Expected URL cancellation to normalize to CancellationError")
+        } catch is CancellationError {
+            // URLSession cancellation remains cancellation.
+        } catch {
+            Issue.record("Unexpected URL cancellation error type")
+        }
+
+        let offline = makeClient(ThrowingAuthTransport(.urlError(.networkConnectionLost)))
+        await expectAuthError(.offline) {
+            try await offline.login(email: "example@example.test", password: "Example1!")
+        }
+
+        let failed = makeClient(ThrowingAuthTransport(.other))
+        await expectAuthError(.transport) {
+            try await failed.login(email: "example@example.test", password: "Example1!")
+        }
+    }
+
+    private func makeClient(_ transport: any HTTPTransport) -> APIAuthClient {
         APIAuthClient(
             environment: try! AppEnvironment.values([
                 "FYNLA_ENVIRONMENT": "staging",
@@ -162,5 +253,38 @@ struct AuthClientTests {
         } catch {
             Issue.record("Unexpected error type")
         }
+    }
+}
+
+private enum AuthTransportTestFailure: Error {
+    case expected
+}
+
+private actor ThrowingAuthTransport: HTTPTransport {
+    enum Failure: Sendable {
+        case cancelled
+        case urlError(URLError.Code)
+        case other
+    }
+
+    private let failure: Failure
+
+    init(_ failure: Failure) {
+        self.failure = failure
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        switch failure {
+        case .cancelled:
+            throw CancellationError()
+        case let .urlError(code):
+            throw URLError(code)
+        case .other:
+            throw AuthTransportTestFailure.expected
+        }
+    }
+
+    func byteStream(for request: URLRequest) async throws -> HTTPByteStream {
+        throw AuthTransportTestFailure.expected
     }
 }

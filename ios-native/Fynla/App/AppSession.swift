@@ -10,6 +10,7 @@ final class AppSession {
         case verificationRequired
         case multiFactorRequired
         case restorationRequired
+        case passwordChangeRequired
         case authenticatedLocked
         case authenticatedUnlocked
         case deletingAccount
@@ -49,6 +50,19 @@ final class AppSession {
     @discardableResult
     func requireRestoration() -> Bool {
         transition(from: [.authenticating], to: .restorationRequired)
+    }
+
+    @discardableResult
+    func requirePasswordChange() -> Bool {
+        transition(
+            from: [.authenticating, .verificationRequired, .multiFactorRequired],
+            to: .passwordChangeRequired
+        )
+    }
+
+    @discardableResult
+    func completeMandatoryPasswordChange() -> Bool {
+        transition(from: [.passwordChangeRequired], to: .authenticatedUnlocked)
     }
 
     @discardableResult
