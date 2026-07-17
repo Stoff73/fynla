@@ -279,14 +279,14 @@ Recorded 2026-07-17: implemented opt-in Face ID, a biometric-protected cold-unlo
 
 **Files:** Update tests and `docs/architecture/client-parity-ledger.md`; no opportunistic feature changes.
 
-- [ ] Run backend auth/native-session tests and all existing auth regressions.
+- [x] Run backend auth/native-session tests and all existing auth regressions.
 - [ ] Use `verify-m` to prove `/m` login, token rotation and logout still work.
 - [ ] Run Swift unit and UI tests on iPhone 11 simulator.
 - [ ] On a physical Face ID iPhone, verify opt-in, cold unlock, cancel, failed Face ID, 60-second background relock, Lock, Sign out and full-login fallback.
 - [ ] On an iPhone 11-family device, repeat registration, email verification, dashboard shell launch and relock.
 - [ ] Inspect Keychain accessibility with Xcode/device tools; prove no credential is synchronizable.
 - [ ] Inspect Laravel logs and an exported diagnostic bundle; prove no secrets or financial bodies are present.
-- [ ] Revoke a native session server-side, then prove the next refresh returns signed-out state and clears memory.
+- [x] Revoke a native session server-side, then prove the next refresh returns signed-out state and clears memory.
 
 Commands:
 
@@ -296,6 +296,10 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging -destinatio
 ```
 
 Expected: all PASS and physical-device evidence is recorded.
+
+Recorded 2026-07-17 automated evidence: the exact backend gate passed 345 tests with 1,261 assertions. A test-only Laravel clock alignment keeps Sanctum token creation and expiry on the same frozen clock; no production code changed. The exact-source Swift 6 host suite passed 176 tests across 21 suites, with the bearer-gated staging health test skipped because no credential was supplied. The added revocation boundary test pairs the backend's revoked-family 401 contract with the native refresh path and proves that the next refresh enters signed-out state, clears access and refresh memory, deletes the protected Keychain item and disables the Face ID preference. The Laravel log scan found no known native fixture secrets, bearer values or financial JSON bodies; the only password-related wording was MySQL's boolean `using password` connection diagnostic, not a credential. Project verification passed, and real Xcode compiled the app, unit-test and UI-test targets for generic physical arm64 iOS with Swift warnings treated as errors.
+
+Open manual/runtime evidence: Xcode compiled the complete simulator test action for the plan's iPhone 11, but the installed iOS 26.3 runtime stalled at Apple's test-manager `waiting for workers to materialize` boundary, so no simulator test pass is claimed. The Xcode-built app installed successfully on that iPhone 11 simulator, while subsequent launch services stalled as the simulated Home Screen continued loading system assets. Earlier Task 8 evidence remains valid: the same project built, installed and visibly launched the deterministic native signed-out shell on iPhone 16 Pro Max. Xcode can see the paired physical iPhone 11, but its developer services and connection tunnel are unavailable, so physical Face ID, registration and Keychain-item inspection remain open. The Google Chrome connector installation, extension and native-host checks are healthy, but the current Chrome control connection is unavailable; the repository rule forbids Chromium fallback, so current `/m` browser acceptance remains open rather than being substituted with another engine. An exported device diagnostic bundle also remains part of the physical-device gate.
 
 ### Package 3 exit criteria
 

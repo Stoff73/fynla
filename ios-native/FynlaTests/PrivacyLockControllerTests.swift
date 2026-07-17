@@ -113,6 +113,32 @@ struct PrivacyLockControllerTests {
     }
 
     @Test @MainActor
+    func serverRevocationOnNextRefreshSignsOutAndClearsEveryLocalCredential() async throws {
+        let harness = try await makeAuthenticatedHarness(
+            biometry: .faceID,
+            rotationError: AuthError.unauthenticated(message: "Native session invalid.")
+        )
+        await harness.controller.refreshFaceIDOffer()
+        try await harness.controller.enableFaceID()
+        await harness.events.clear()
+
+        await #expect(throws: PrivacyLockControllerError.fullLoginRequired) {
+            _ = try await harness.controller.refreshAccessToken()
+        }
+
+        #expect(harness.session.state == .signedOut)
+        #expect(harness.coordinator.credentials == nil)
+        #expect(harness.coordinator.inMemoryRefreshCredential == nil)
+        #expect(await harness.keychain.currentCredential() == nil)
+        #expect(await harness.keychain.deleteCount() == 1)
+        #expect(!(await harness.preference.isFaceIDEnabled()))
+        #expect(await harness.events.values() == [
+            "native.rotate:refresh-1",
+            "keychain.delete",
+        ])
+    }
+
+    @Test @MainActor
     func concurrentAccessTokenRefreshesShareOneRotationOfTheOneTimeCredential() async throws {
         let harness = try await makeAuthenticatedHarness(
             biometry: .faceID,
@@ -494,6 +520,7 @@ struct PrivacyLockControllerTests {
     private func makeAuthenticatedHarness(
         biometry: BiometryType,
         revokeError: (any Error)? = nil,
+        rotationError: (any Error)? = nil,
         rotationDelay: Duration? = nil,
         biometryDelay: Duration? = nil,
         keychainSaveDelay: Duration? = nil,
@@ -505,6 +532,7 @@ struct PrivacyLockControllerTests {
             biometry: biometry,
             initialKeychainCredential: nil,
             revokeError: revokeError,
+            rotationError: rotationError,
             rotationDelay: rotationDelay,
             biometryDelay: biometryDelay,
             keychainSaveDelay: keychainSaveDelay,
@@ -547,6 +575,7 @@ struct PrivacyLockControllerTests {
         initialKeychainCredential: NativeRefreshCredential?,
         keychainReadError: (any Error)? = nil,
         revokeError: (any Error)? = nil,
+        rotationError: (any Error)? = nil,
         userError: (any Error)? = nil,
         rotationDelay: Duration? = nil,
         biometryDelay: Duration? = nil,
@@ -557,6 +586,7 @@ struct PrivacyLockControllerTests {
         let client = Task8SessionClient(
             events: events,
             revokeError: revokeError,
+            rotationError: rotationError,
             userError: userError,
             rotationDelay: rotationDelay,
             rotationIgnoresCancellation: rotationIgnoresCancellation
@@ -800,6 +830,7 @@ private final class Task8PrivacyClock: PrivacyClock, @unchecked Sendable {
 private actor Task8SessionClient: AuthCompletionClient, CurrentUserClient, NativeSessionClient {
     private let events: Task8EventLog
     private let revokeError: (any Error)?
+    private let rotationError: (any Error)?
     private let rotationDelay: Duration?
     private let rotationIgnoresCancellation: Bool
     private var userError: (any Error)?
@@ -809,12 +840,14 @@ private actor Task8SessionClient: AuthCompletionClient, CurrentUserClient, Nativ
     init(
         events: Task8EventLog,
         revokeError: (any Error)?,
+        rotationError: (any Error)?,
         userError: (any Error)?,
         rotationDelay: Duration?,
         rotationIgnoresCancellation: Bool
     ) {
         self.events = events
         self.revokeError = revokeError
+        self.rotationError = rotationError
         self.userError = userError
         self.rotationDelay = rotationDelay
         self.rotationIgnoresCancellation = rotationIgnoresCancellation
@@ -890,6 +923,7 @@ private actor Task8SessionClient: AuthCompletionClient, CurrentUserClient, Nativ
         deviceLabel: String
     ) async throws -> NativeCredentials {
         await events.append("native.rotate:\(refreshCredential.token)")
+        if let rotationError { throw rotationError }
         if let rotationDelay {
             if rotationIgnoresCancellation {
                 await Task.detached {

@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Auth\NativeSessionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -84,11 +85,11 @@ function nativeSessionApiPreviewFamily(User $user): array
 }
 
 beforeEach(function (): void {
-    CarbonImmutable::setTestNow('2026-07-17 10:00:00 UTC');
+    Carbon::setTestNow('2026-07-17 10:00:00 UTC');
 });
 
 afterEach(function (): void {
-    CarbonImmutable::setTestNow();
+    Carbon::setTestNow();
 });
 
 it('registers exactly the four native session routes with the required middleware', function (): void {
@@ -291,7 +292,7 @@ it('rotates credentials in the exact response shape and refreshes metadata from 
     $user = User::factory()->create(['is_preview_user' => false]);
     $original = nativeSessionApiCredentials($user);
 
-    CarbonImmutable::setTestNow('2026-07-17 11:00:00 UTC');
+    Carbon::setTestNow('2026-07-17 11:00:00 UTC');
     $response = $this->withHeaders(nativeSessionApiHeaders([
         'X-Fynla-Version' => '2.0.0',
         'X-Fynla-Build' => '84',
