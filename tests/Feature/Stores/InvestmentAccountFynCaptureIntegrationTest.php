@@ -13,7 +13,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'tier1']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
 });
 
 it('creates an investment account via Fyn AI handleCreateInvestmentAccount with FYN_AI audit context', function () {
@@ -67,7 +67,7 @@ it('rejects preview-user investment account creates via Fyn', function () {
     expect($result['blocked'] ?? false)->toBeTrue();
 });
 
-it('returns tier_limit_exceeded error when free-tier user exceeds investment cap of 2', function () {
+it('returns tier_limit_reached error when free-tier user reaches the investment cap of 2', function () {
     $freeUser = User::factory()->create(['tier' => 'free']);
 
     InvestmentAccount::factory()->create(['user_id' => $freeUser->id]);
@@ -85,7 +85,7 @@ it('returns tier_limit_exceeded error when free-tier user exceeds investment cap
     ], $freeUser, false);
 
     expect($result['error'] ?? false)->toBeTrue();
-    expect($result['error_type'] ?? null)->toBe('tier_limit_exceeded');
+    expect($result['error_type'] ?? null)->toBe('tier_limit_reached');
 });
 
 it('rejects ISA with non-individual ownership', function () {

@@ -16,15 +16,15 @@ it('is the bound TierGate implementation', function () {
     expect(app(TierGate::class))->toBeInstanceOf(DbTierGate::class);
 });
 
-it('enforces the free savings cap of 3', function () {
+it('enforces the free savings cap of 2', function () {
     $u = User::factory()->create(['tier' => 'free']);
-    expect($this->gate->canCreate($u, 'savings_account', 2))->toBeTrue()
-        ->and($this->gate->canCreate($u, 'savings_account', 3))->toBeFalse()
-        ->and($this->gate->hardLimit($u, 'savings_account'))->toBe(3);
+    expect($this->gate->canCreate($u, 'savings_account', 1))->toBeTrue()
+        ->and($this->gate->canCreate($u, 'savings_account', 2))->toBeFalse()
+        ->and($this->gate->hardLimit($u, 'savings_account'))->toBe(2);
 });
 
-it('treats tier1+ as unlimited', function () {
-    $u = User::factory()->create(['tier' => 'tier1']);
+it('treats Premium as unlimited', function () {
+    $u = User::factory()->create(['tier' => 'premium']);
     expect($this->gate->canCreate($u, 'savings_account', 9999))->toBeTrue()
         ->and($this->gate->hardLimit($u, 'savings_account'))->toBeNull();
 });

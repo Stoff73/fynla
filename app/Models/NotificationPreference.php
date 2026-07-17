@@ -24,9 +24,6 @@ class NotificationPreference extends Model
         'payment_alerts',
         'mortgage_rate_alerts',
         'estate_alerts',
-        'lifecycle_empty_trialer',
-        'lifecycle_engaged_trialer',
-        'lifecycle_cancelled_trialer',
         'lifecycle_churned_subscriber',
         'lifecycle_lapsed_subscriber',
     ];
@@ -41,9 +38,6 @@ class NotificationPreference extends Model
         'payment_alerts' => 'boolean',
         'mortgage_rate_alerts' => 'boolean',
         'estate_alerts' => 'boolean',
-        'lifecycle_empty_trialer' => 'boolean',
-        'lifecycle_engaged_trialer' => 'boolean',
-        'lifecycle_cancelled_trialer' => 'boolean',
         'lifecycle_churned_subscriber' => 'boolean',
         'lifecycle_lapsed_subscriber' => 'boolean',
     ];
@@ -67,9 +61,6 @@ class NotificationPreference extends Model
                 'payment_alerts' => true,
                 'mortgage_rate_alerts' => true,
                 'estate_alerts' => true,
-                'lifecycle_empty_trialer' => true,
-                'lifecycle_engaged_trialer' => true,
-                'lifecycle_cancelled_trialer' => true,
                 'lifecycle_churned_subscriber' => true,
                 'lifecycle_lapsed_subscriber' => true,
             ]

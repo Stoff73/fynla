@@ -60,3 +60,12 @@ it('defines every quality lane and pull request evidence field', function (): vo
         '/m browser evidence:',
     );
 });
+
+it('runs every chromium-labelled Playwright project with installed Google Chrome', function (): void {
+    $root = dirname(__DIR__, 2);
+    $config = file_get_contents($root.'/playwright.config.js');
+
+    expect($config)->not->toBeFalse()
+        ->and($config)->toContain("process.env.PLAYWRIGHT_CHROME_CHANNEL || 'chrome'")
+        ->and(substr_count($config, 'channel: chromeChannel'))->toBe(2);
+});

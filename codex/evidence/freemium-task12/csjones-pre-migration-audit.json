@@ -1,0 +1,40 @@
+{
+  "environment": "csjones",
+  "url": "https://csjones.co/fynla",
+  "captured_at_utc": "2026-07-16T11:24:13Z",
+  "deployed_commit": "adb7749ea3ddfdc0900d09fcbced9647f56dce2f",
+  "tier_collapse": {
+    "active_paid_subscriptions": 0,
+    "active_paid_users": 0,
+    "live_provider_agreements": 0,
+    "completed_payments": 1,
+    "retired_tier_user_rows": 0,
+    "retired_tier_subscription_rows": 0,
+    "duplicate_provider_order_ids": 0,
+    "duplicate_invoice_payments": 0,
+    "duplicate_discount_usage_payments": 0,
+    "duplicate_referral_referees": 0,
+    "multiple_pending_checkout_users": 0,
+    "safe_to_collapse": true
+  },
+  "trial_remnants": {
+    "provisional_shape": 0,
+    "historical_trial_shape": 0,
+    "paid_shape": 0,
+    "safe_to_remove": true
+  },
+  "data_remediation": {
+    "unpaid_trial_shaped_subscriptions_normalised": 19,
+    "paid_sandbox_subscriptions_expired": 1,
+    "historical_completed_payments_preserved": 1,
+    "note": "Legacy dev and test fixtures were normalised transactionally. The historical April Revolut sandbox payment remains retained but grants no current entitlement."
+  },
+  "deployment": {
+    "tasks_1_to_11_migrations_ran": true,
+    "database_reseeded": true,
+    "desktop_bundle_smoke_status": 200,
+    "mobile_bundle_smoke_status": 200,
+    "homepage_smoke_status": 200,
+    "pricing_smoke_status": 200
+  }
+}

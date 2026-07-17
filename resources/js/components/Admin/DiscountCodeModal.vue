@@ -200,9 +200,8 @@ export default {
       types: [
         { value: 'percentage', label: 'Percentage' },
         { value: 'fixed_amount', label: 'Fixed Amount' },
-        { value: 'trial_extension', label: 'Trial Extension' },
       ],
-      plans: ['student', 'standard', 'family', 'pro'],
+      plans: ['premium'],
     };
   },
 
@@ -211,10 +210,10 @@ export default {
       return !!this.code;
     },
     valueLabel() {
-      return { percentage: 'Discount (%)', fixed_amount: 'Discount (pence)', trial_extension: 'Extra Trial Days' }[this.form.type] || 'Value';
+      return { percentage: 'Discount (%)', fixed_amount: 'Discount (pence)' }[this.form.type] || 'Value';
     },
     valuePlaceholder() {
-      return { percentage: 'e.g. 20', fixed_amount: 'e.g. 1000 (= \u00A310)', trial_extension: 'e.g. 14' }[this.form.type] || '';
+      return { percentage: 'e.g. 20', fixed_amount: 'e.g. 1000 (= \u00A310)' }[this.form.type] || '';
     },
   },
 

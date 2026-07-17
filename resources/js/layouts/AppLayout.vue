@@ -121,21 +121,21 @@
     <!-- Global toast notifications -->
     <ToastNotification />
 
-    <!-- Trial Expired — plan selection.
+    <!-- Subscription ended — plan selection.
          Suppressed on /checkout because the user is already in the subscribe flow.
          Dismissable when opened from DataRetentionOverlay (grace-period flow) so the user
          can back out and choose Delete All Data instead. -->
     <PlanSelectionModal
-      v-if="showTrialExpiredModal && !isOnCheckoutRoute"
-      :dismissable="planModalDismissable"
+      v-if="showSubscriptionEndedModal && !isOnCheckoutRoute"
+      :dismissable="subscriptionModalDismissable"
       :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
-      @close="handleTrialModalClose"
+      @close="handleSubscriptionModalClose"
     />
 
     <!-- Plan selection modal (from navbar/sidebar "Choose a Plan" / "Upgrade Now") -->
     <PlanSelectionModal
-      v-if="showPlanModal && !showTrialExpiredModal"
+      v-if="showPlanModal && !showSubscriptionEndedModal"
       :current-plan="activePlanSlug"
       :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
@@ -163,6 +163,7 @@ import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import SubNavBar from '@/components/SubNavBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
+import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 import storage from '@/utils/storage';
 import { fynIconUrl } from '@/constants/fynIcon';
 
@@ -198,9 +199,9 @@ export default {
       chatCollapsed: storage.get('fynChatCollapsed') === null ? true : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
-      showTrialExpiredModal: false,
+      showSubscriptionEndedModal: false,
       showPlanModal: false,
-      planModalDismissable: false,
+      subscriptionModalDismissable: false,
       subscriptionData: null,
       isMobileView: window.innerWidth < 1024,
       // Route the user was on before the director pushed us to /profile for a
@@ -262,13 +263,11 @@ export default {
       return 'w-[356px]';
     },
 
-    // Only set for active paid subscribers — trial users see all plans
     activePlanSlug() {
-      if (!this.subscriptionData || this.subscriptionData.status !== 'active') return null;
-      return this.subscriptionData.plan;
+      return this.subscriptionData?.tier || 'free';
     },
 
-    // True when the current route is /checkout. Used to suppress the expired-trial
+    // True when the current route is /checkout. Used to suppress subscription-ended
     // and grace-period overlays so the user can actually reach the Revolut widget.
     isOnCheckoutRoute() {
       return this.$route.path === '/checkout' || this.$route.name === 'Checkout';
@@ -285,6 +284,12 @@ export default {
   },
 
   watch: {
+    isAuthenticated(authenticated) {
+      if (authenticated && !this.isPreviewMode && !this.subscriptionData) {
+        this.checkSubscriptionStatus();
+      }
+    },
+
     // Collapse side menu when docked chat becomes active and expanded
     showDockedChat(active) {
       if (active && !this.chatCollapsed && !this.sideMenuCollapsed) {
@@ -297,9 +302,9 @@ export default {
     '$route.path'() {
       if (this.isAuthenticated && !this.isPreviewMode) {
         const now = Date.now();
-        if (!this._lastTrialCheck || now - this._lastTrialCheck > 300000) {
-          this._lastTrialCheck = now;
-          this.checkTrialStatus();
+        if (!this._lastSubscriptionCheck || now - this._lastSubscriptionCheck > 300000) {
+          this._lastSubscriptionCheck = now;
+          this.checkSubscriptionStatus();
         }
       }
     },
@@ -348,7 +353,7 @@ export default {
       this.fetchInfoGuidePreference();
     }
     if (this.isAuthenticated) {
-      this.checkTrialStatus();
+      this.checkSubscriptionStatus();
     }
 
     // Honour ?openPricing=1 — set by RestoreAccountController after a
@@ -449,20 +454,20 @@ export default {
       storage.set('fynChatCollapsed', false);
     },
 
-    async checkTrialStatus() {
+    async checkSubscriptionStatus() {
       if (this.isPreviewMode) return;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         this.subscriptionData = response.data;
         this.$store.commit('auth/setSubscriptionData', response.data);
-        if (!response.data.has_subscription) return;
-        const status = response.data.status;
+        this.maybeOpenPricingFromQuery();
+        const presentation = getSubscriptionPresentation(response.data);
         // For grace-period users, DataRetentionOverlay is the primary surface.
         // PlanSelectionModal opens from its "Subscribe Now" button via handleSubscribeFromOverlay.
-        // Only auto-show the non-dismissable plan modal for non-grace expired users.
-        if (status !== 'trialing' && status !== 'active' && !response.data.is_in_grace_period) {
-          this.planModalDismissable = false;
-          this.showTrialExpiredModal = true;
+        // Only auto-show the non-dismissable plan modal after paid access has ended.
+        if (presentation.state === 'expired' && presentation.showUpgrade) {
+          this.subscriptionModalDismissable = false;
+          this.showSubscriptionEndedModal = true;
         }
       } catch {
         // Silently fail
@@ -470,8 +475,8 @@ export default {
     },
 
     handleSubscribeFromOverlay() {
-      this.planModalDismissable = true;
-      this.showTrialExpiredModal = true;
+      this.subscriptionModalDismissable = true;
+      this.showSubscriptionEndedModal = true;
     },
 
     // Opens PlanSelectionModal when the URL carries ?openPricing=1. Used by
@@ -482,9 +487,13 @@ export default {
     // not re-pop the modal.
     maybeOpenPricingFromQuery() {
       if (!this.$route.query.openPricing) return;
+      if (this.$route.path === '/settings/subscription') return;
       if (!this.isAuthenticated || this.isPreviewMode) return;
+      if (!this.subscriptionData) return;
 
-      this.handleSubscribeFromOverlay();
+      if (getSubscriptionPresentation(this.subscriptionData).showUpgrade) {
+        this.showPlanModal = true;
+      }
 
       const rest = { ...this.$route.query };
       delete rest.openPricing;
@@ -493,19 +502,16 @@ export default {
         .catch(() => {});
     },
 
-    handleTrialModalClose() {
-      this.showTrialExpiredModal = false;
+    handleSubscriptionModalClose() {
+      this.showSubscriptionEndedModal = false;
     },
 
-    handlePlanSelect({ plan, billingCycle, isUpgrade, discountCode }) {
-      this.showTrialExpiredModal = false;
+    handlePlanSelect({ plan, billingCycle, discountCode }) {
+      this.showSubscriptionEndedModal = false;
       this.showPlanModal = false;
-      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      // Thread the discount code through to the checkout page — its
-      // prefilledDiscountCode computed reads $route.query.discount and
-      // auto-validates + applies before creating the Revolut order.
-      const discountParam = discountCode ? `&discount=${encodeURIComponent(discountCode)}` : '';
-      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}${discountParam}`);
+      const query = { plan, cycle: billingCycle };
+      if (discountCode) query.discount = discountCode;
+      this.$router.push({ path: '/checkout', query });
     },
   },
 };

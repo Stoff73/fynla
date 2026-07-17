@@ -20,7 +20,22 @@ it('has a tier_configurations table with the canonical columns', function () {
 });
 
 it('enforces a unique tier slug', function () {
+    TierConfiguration::where('tier', 'free')->delete();
     TierConfiguration::create(tierConfigFixture('free'));
     expect(fn () => TierConfiguration::create(tierConfigFixture('free')))
         ->toThrow(QueryException::class);
 });
+
+it('accepts only canonical tier identities', function () {
+    TierConfiguration::query()->delete();
+    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::create(tierConfigFixture('premium'));
+
+    expect(TierConfiguration::pluck('tier')->sort()->values()->all())
+        ->toBe(['free', 'premium']);
+});
+
+it('rejects retired tier identities', function (string $tier) {
+    expect(fn () => TierConfiguration::create(tierConfigFixture($tier)))
+        ->toThrow(QueryException::class);
+})->with(['tier1', 'tier2', 'tier3']);

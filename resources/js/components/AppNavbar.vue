@@ -29,10 +29,8 @@
           </button>
 
         <div class="hidden sm:flex sm:items-center space-x-4">
-          <!-- Pure freemium: there are no trials, so no "free trial ends" timer
-               ever shows. Free users upgrade via the gated-module teaser →
-               PlanSelectionModal; paid subscribers see the Upgrade Now button
-               below. -->
+          <!-- Pure freemium: there are no trial countdowns. Free users can
+               compare the single Premium plan when payments are available. -->
           <router-link
             v-if="isAdvisor"
             to="/advisor"
@@ -58,10 +56,10 @@
             Sign Up Now
           </router-link>
 
-          <!-- Upgrade (non-trial, non-pro subscribers only) -->
+          <!-- Upgrade (Free, non-preview, payments-enabled users only) -->
           <button
             v-else-if="showUpgradeButton"
-            @click="$emit('open-plan-modal')"
+            @click="openSubscriptionOptions"
             class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
           >
             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,6 +260,7 @@ import ReferralModal from './Payment/ReferralModal.vue';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import { fynIconUrl } from '@/constants/fynIcon';
+import { shouldShowUpgradeEntry, subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
 import logger from '@/utils/logger';
 export default {
@@ -289,12 +288,7 @@ export default {
     const userDropdownOpen = ref(false);
     const supportDropdownOpen = ref(false);
     const showBugReportModal = ref(false);
-    const trialData = computed(() => props.subscriptionData);
-
-    const trialPlanName = computed(() => {
-      if (!trialData.value) return '';
-      return trialData.value.plan;
-    });
+    const subscriptionState = computed(() => props.subscriptionData);
 
     // Countdown timer to 9 April 2026 12:00
     const countdown = ref(null);
@@ -356,24 +350,16 @@ export default {
       return store.getters['preview/isPreviewMode'];
     });
 
-    // Show upgrade for non-pro subscribers (trialing or active on student/standard/family)
-    const showUpgradeButton = computed(() => {
-      if (!trialData.value) return false;
-      if (isPreviewMode.value) return false;
-      const plan = trialData.value.plan;
-      const status = trialData.value.status;
-      // Don't show for pro users
-      if (plan === 'pro') return false;
-      // Don't show if already showing the trial upgrade inline
-      if (status === 'trialing') return false;
-      // Show for active subscribers on student/standard/family
-      return status === 'active';
-    });
+    const showUpgradeButton = computed(() => shouldShowUpgradeEntry(subscriptionState.value, isPreviewMode.value));
+
+    const openSubscriptionOptions = () => {
+      router.push(subscriptionOptionsLocation());
+    };
 
     const isPaidSubscriber = computed(() => {
-      if (!trialData.value) return false;
+      if (!subscriptionState.value) return false;
       if (isPreviewMode.value) return false;
-      return trialData.value.status === 'active';
+      return subscriptionState.value.subscription_status === 'active';
     });
 
     const showReferralModal = ref(false);
@@ -451,10 +437,9 @@ export default {
       isAdvisor,
       isPreviewMode,
       showUpgradeButton,
+      openSubscriptionOptions,
       isPaidSubscriber,
       showReferralModal,
-      trialData,
-      trialPlanName,
       showMFAReminder,
       supportDropdownOpen,
       showBugReportModal,

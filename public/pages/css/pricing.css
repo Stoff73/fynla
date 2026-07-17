@@ -1,236 +1,404 @@
 /**
- * Fynla public pages — pricing page stylesheet
- *
- * Page-specific styles for public/pages/pricing.php only.
- * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
- * FAQ accordion styles live in global.css MODULE STYLES.
+ * Fynla public pages — pricing page stylesheet.
+ * Shared tokens, navigation, footer and module styles live in global.css.
  */
 
-/* ===================================================================
-   VISUALLY HIDDEN — accessible label helper
-   =================================================================== */
 .visually-hidden {
-  position: absolute; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* ===================================================================
-   HERO  [.pricing-hero]
-   Critical rules above the fold live in the inline <style> in pricing.php.
-   This block contains nothing that would duplicate them.
-   =================================================================== */
-
-/* ===================================================================
-   PLANS SECTION  [.pricing-plans]
-   =================================================================== */
 .pricing-plans {
   background: var(--light-pink-100);
   padding: 3rem 0 5rem;
   overflow: hidden;
 }
-.pricing-plans__inner {
-  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+
+.pricing-plans__inner,
+.comparison-section__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-/* ── Billing toggle ─────────────────────────────────────────────── */
-.billing-toggle {
-  display: flex; justify-content: center; align-items: center; gap: 0.25rem;
-  background: var(--white); border-radius: var(--radius-full);
-  padding: 0.375rem; border: 1px solid var(--light-gray);
-  box-shadow: var(--shadow-sm);
-  width: fit-content; margin: 0 auto 1.5rem;
-}
-.billing-toggle__btn {
-  display: inline-flex; align-items: center; gap: 0.375rem;
-  padding: 0.5rem 1.25rem; border-radius: var(--radius-full);
-  border: none; background: none;
-  font-size: 0.875rem; font-weight: 500; color: var(--horizon-400);
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-  min-height: 2.75rem; /* 44px touch target */
-}
-#btn-yearly { min-width: 9rem; }
-.billing-toggle__btn:hover { color: var(--horizon-500); }
-.billing-toggle__btn--active {
-  background: var(--horizon-500); color: var(--white);
-  box-shadow: var(--shadow-sm);
-}
-.billing-toggle__btn--active:hover { background: var(--horizon-600); color: var(--white); }
-.billing-toggle__save {
-  font-size: 0.75rem; font-weight: 600; color: var(--spring-500);
-}
-.billing-toggle__btn--active .billing-toggle__save { color: var(--spring-400); }
-
-/* ── Launch banner ──────────────────────────────────────────────── */
-.launch-banner {
-  background: linear-gradient(to right, var(--raspberry-500), var(--violet-500));
-  border-radius: var(--radius-xl);
-  padding: 1rem 2rem; text-align: center;
-  box-shadow: var(--shadow-lg);
-  margin-bottom: 2.5rem;
-  width: fit-content; margin-left: auto; margin-right: auto;
-}
-.launch-banner__title {
-  font-size: 1.25rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem;
-}
-.launch-banner__sub {
-  font-size: 0.875rem; color: var(--white-80);
+.pricing-plans__heading-block,
+.comparison-section__heading-block {
+  max-width: 45rem;
+  margin: 0 auto 2rem;
+  text-align: center;
 }
 
-/* ── Plan grid ──────────────────────────────────────────────────── */
-.plan-grid {
-  display: grid; grid-template-columns: 1fr; gap: 1.5rem;
-}
-
-/* ── Plan card ──────────────────────────────────────────────────── */
-.plan-card {
-  background: var(--horizon-500); border-radius: var(--radius-2xl);
-  border: 1px solid var(--horizon-500); padding: 2rem;
-  display: flex; flex-direction: column; position: relative;
-}
-.plan-card--featured {
-  border-width: 3px; border-color: var(--raspberry-500);
-}
-.plan-card__badge {
-  position: absolute; top: -0.875rem; left: 50%;
-  transform: translateX(-50%);
-  padding: 0.25rem 1rem; background: var(--raspberry-500);
-  color: var(--white); font-size: 0.75rem; font-weight: 600;
-  border-radius: var(--radius-full); box-shadow: var(--shadow-lg);
-  white-space: nowrap;
-}
-.plan-card__header { margin-bottom: 1.5rem; }
-.plan-card__name {
-  font-size: 1.5rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem;
-}
-.plan-card__tagline { font-size: 0.875rem; color: var(--white-60); }
-
-/* Price block */
-.plan-card__price { margin-bottom: 1.5rem; }
-.plan-card__price-row { display: flex; align-items: baseline; gap: 0.25rem; flex-wrap: wrap; }
-.plan-card__full-price {
-  font-size: 1.125rem; color: var(--neutral-400);
-  text-decoration: line-through; flex-shrink: 0;
-}
-.plan-card__launch-price {
-  font-size: 1.875rem; font-weight: 700; color: var(--raspberry-500);
-  margin-left: 0.25rem; white-space: nowrap;
-}
-.plan-card__period { font-size: 0.875rem; color: var(--white-50); white-space: nowrap; }
-.plan-card__equiv {
-  font-size: 0.875rem; color: var(--spring-500); margin-top: 0.25rem;
-}
-
-/* Trial badge */
-.plan-card__trial {
-  display: inline-flex; align-items: center; gap: 0.375rem;
-  padding: 0.25rem 0.75rem;
-  background: var(--light-pink-100); border: 1px solid var(--light-pink-200);
-  border-radius: var(--radius-full);
-  font-size: 0.75rem; font-weight: 500; color: var(--raspberry-500);
-  margin-bottom: 1.5rem; width: fit-content;
-}
-
-/* Feature list */
-.plan-card__features {
-  flex: 1; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;
-}
-.plan-card__feature {
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  font-size: 0.875rem; color: var(--white-70); line-height: 1.4;
-}
-.plan-card__check { color: var(--spring-500); flex-shrink: 0; margin-top: 0.125rem; }
-
-/* "Everything in <prev>, plus:" lead line above the feature list */
-.plan-card__plus {
-  font-size: 0.8125rem; font-weight: 700; color: var(--white);
+.pricing-plans__heading,
+.comparison-section__heading {
+  color: var(--horizon-500);
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
   margin-bottom: 0.75rem;
 }
-/* Free card has no "Everything in…" line — add matching top space so its first
-   bullet aligns with the bullets in the other cards. */
-#free-features { margin-top: 1.8rem; }
 
-/* Not-included capability — greyed with a cross icon (matches the in-app matrix) */
-.plan-card__feature--off { color: var(--white-40); }
-.plan-card__feature--off .plan-card__check--off { color: var(--white-40); }
+.pricing-plans__intro,
+.comparison-section__intro {
+  color: var(--neutral-500);
+  font-size: 1rem;
+}
 
-/* CTA button */
+.billing-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 2rem;
+  padding: 0.375rem;
+  background: var(--white);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.billing-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--horizon-400);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.billing-toggle__btn:hover {
+  color: var(--horizon-500);
+}
+
+.billing-toggle__btn--active,
+.billing-toggle__btn--active:hover {
+  background: var(--horizon-500);
+  color: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.billing-toggle__btn:focus-visible,
+.plan-card__cta:focus-visible,
+.comparison-table-wrap:focus-visible,
+.trust-section__link:focus-visible {
+  outline: 3px solid var(--violet-500);
+  outline-offset: 3px;
+}
+
+.billing-toggle__btn:disabled {
+  cursor: not-allowed;
+  color: var(--neutral-400);
+}
+
+.billing-toggle__save {
+  color: var(--spring-500);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.billing-toggle__btn--active .billing-toggle__save {
+  color: var(--white);
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 2rem;
+  background: var(--horizon-500);
+  border: 1px solid var(--horizon-500);
+  border-radius: var(--radius-2xl);
+}
+
+.plan-card--featured {
+  border: 3px solid var(--raspberry-500);
+}
+
+.plan-card__badge {
+  position: absolute;
+  top: -0.875rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 1rem;
+  background: var(--raspberry-500);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.plan-card__header {
+  margin-bottom: 1.5rem;
+}
+
+.plan-card__name {
+  margin-bottom: 0.25rem;
+  color: var(--white);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.plan-card__tagline {
+  color: var(--white-70);
+  font-size: 0.875rem;
+}
+
+.plan-card__price {
+  margin-bottom: 1.5rem;
+}
+
+.plan-card__price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.plan-card__amount {
+  color: var(--raspberry-300);
+  font-size: 1.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.plan-card__period {
+  color: var(--white-70);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.plan-card__equiv {
+  min-height: 1.3125rem;
+  margin-top: 0.25rem;
+  color: var(--spring-500);
+  font-size: 0.875rem;
+}
+
 .plan-card__cta {
-  display: block; width: 100%; padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-xl); font-weight: 600; font-size: 0.875rem;
-  text-align: center; border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-xl);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
   transition: background 0.15s ease, box-shadow 0.15s ease;
-  min-height: 2.75rem; /* 44px touch target */
 }
-.plan-card__cta--spring {
-  background: var(--spring-500); color: var(--white);
-}
-.plan-card__cta--spring:hover {
-  background: var(--spring-600); box-shadow: var(--shadow-lg);
-}
-/* Secondary CTA placed above the feature list — same styling, with spacing below
-   so it sits clearly between the price block and the bullets. */
-.plan-card__cta--top { margin-bottom: 1.5rem; }
 
-/* ===================================================================
-   TRUST SECTION  [.trust-section]
-   =================================================================== */
+.plan-card__cta--spring {
+  background: var(--spring-500);
+}
+
+.plan-card__cta--spring:hover {
+  background: var(--spring-600);
+  box-shadow: var(--shadow-lg);
+}
+
+.plan-card__features {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+}
+
+.plan-card__feature {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--white-50);
+  color: var(--white-80);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.pricing-plans__status {
+  max-width: 48rem;
+  margin: 2rem auto 0;
+  color: var(--horizon-500);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.comparison-section {
+  padding: 4rem 0;
+  background: var(--savannah-100);
+}
+
+.comparison-table-wrap {
+  max-width: 64rem;
+  margin: 0 auto;
+  overflow-x: auto;
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-xl);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.comparison-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 0.875rem 0.75rem;
+  border-bottom: 1px solid var(--horizon-200);
+  color: var(--horizon-500);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: left;
+  vertical-align: top;
+}
+
+.comparison-table thead th {
+  background: var(--horizon-500);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.comparison-table thead th:first-child,
+.comparison-table tbody th {
+  width: 42%;
+}
+
+.comparison-table tbody th {
+  font-weight: 700;
+}
+
+.comparison-table tbody tr:last-child th,
+.comparison-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .trust-section {
-  background: var(--eggshell-500);
   padding: 3rem 0;
+  background: var(--eggshell-500);
   border-top: 1px solid var(--light-gray);
 }
+
 .trust-section__inner {
-  max-width: 60rem; margin: 0 auto; padding: 0 1rem;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
+
 .trust-section__heading {
-  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700;
-  color: var(--horizon-500); text-align: center; margin-bottom: 2.5rem;
+  margin-bottom: 2.5rem;
+  color: var(--horizon-500);
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 700;
+  text-align: center;
 }
+
 .trust-grid {
-  display: grid; grid-template-columns: 1fr; gap: 2rem; text-align: center;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
   margin-bottom: 2rem;
+  text-align: center;
 }
+
 .trust-item__title {
-  font-size: 1.125rem; font-weight: 600; color: var(--horizon-500); margin-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
+  color: var(--horizon-500);
+  font-size: 1.125rem;
+  font-weight: 700;
 }
-.trust-item__body { font-size: 0.875rem; color: var(--neutral-500); }
-.trust-section__more { text-align: center; font-size: 0.875rem; color: var(--neutral-500); }
-.trust-section__link { color: var(--raspberry-500); font-weight: 500; }
-.trust-section__link:hover { color: var(--raspberry-600); }
 
-/* ===================================================================
-   FAQ OVERRIDE — page-scoped: remove top padding because it
-   follows the trust section without extra spacing needed
-   =================================================================== */
-.pricing-page .faq { padding-top: 3rem; }
-.pricing-page .faq__inner { max-width: 48rem; }
+.trust-item__body,
+.trust-section__more {
+  color: var(--neutral-500);
+  font-size: 0.875rem;
+}
 
-/* FAQ intro subtext (Vue had a static subtext; replicate via heading block) */
+.trust-section__more {
+  text-align: center;
+}
+
+.trust-section__link {
+  color: var(--raspberry-500);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.trust-section__link:hover {
+  color: var(--raspberry-600);
+}
+
+.pricing-page .faq {
+  padding-top: 3rem;
+}
+
+.pricing-page .faq__inner {
+  max-width: 48rem;
+}
+
 .pricing-page .faq__heading::after {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--white-70);
   content: 'Everything you need to know about Fynla plans';
-  display: block; font-size: 1rem; font-weight: 400;
-  color: var(--white-70); margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 400;
 }
-.pricing-page .faq--dark .faq__heading::after { color: var(--white-70); }
 
-/* ===================================================================
-   RESPONSIVE
-   =================================================================== */
 @media (min-width: 640px) {
-  .launch-banner { padding: 1rem 3rem; }
-  .launch-banner__title { font-size: 1.5rem; }
+  .comparison-table th,
+  .comparison-table td {
+    padding: 1rem;
+    font-size: 0.875rem;
+  }
 }
 
 @media (min-width: 768px) {
-  .plan-grid { grid-template-columns: repeat(2, 1fr); }
-  .trust-grid { grid-template-columns: repeat(3, 1fr); }
+  .plan-grid,
+  .trust-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trust-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1024px) {
-  .pricing-plans__inner { padding-left: 2rem; padding-right: 2rem; }
-  .trust-section__inner { padding-left: 2rem; padding-right: 2rem; }
-  /* Two plans (Free + Premium) span the full content width, side by side. */
-  .plan-grid { grid-template-columns: repeat(2, 1fr); }
-  .pricing-page .faq__inner { padding-left: 2rem; padding-right: 2rem; }
+  .pricing-plans__inner,
+  .comparison-section__inner,
+  .trust-section__inner,
+  .pricing-page .faq__inner {
+    padding-right: 2rem;
+    padding-left: 2rem;
+  }
 }

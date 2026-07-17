@@ -19,6 +19,9 @@ use App\Services\Goals\GoalProgressService;
 use App\Services\Goals\GoalRiskService;
 use App\Services\Goals\GoalsProjectionService;
 use App\Services\Goals\LifeEventService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\GoalStore;
+use App\Services\Stores\IngestSource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,7 +42,8 @@ class GoalsController extends Controller
         private readonly GoalRiskService $riskService,
         private readonly GoalsProjectionService $projectionService,
         private readonly LifeEventService $lifeEventService,
-        private readonly FinancialForecastService $forecastService
+        private readonly FinancialForecastService $forecastService,
+        private readonly GoalStore $goalStore,
     ) {}
 
     /**
@@ -139,7 +143,6 @@ class GoalsController extends Controller
                 $data['assigned_module'] = $this->assignmentService->determineModule($data);
             }
 
-            $data['user_id'] = $user->id;
             $data['start_date'] = $data['start_date'] ?? now()->toDateString();
 
             // Calculate property costs if property goal
@@ -154,7 +157,7 @@ class GoalsController extends Controller
                 }
             }
 
-            $goal = Goal::create($data);
+            $goal = $this->goalStore->create($data, $user, IngestSource::FORM);
 
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
@@ -168,6 +171,16 @@ class GoalsController extends Controller
                 'message' => 'Goal created successfully.',
                 'data' => new GoalResource($goal),
             ], 201);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'tier_limit_reached',
+                'entity_key' => $e->entityKey,
+                'current_count' => $e->currentCount,
+                'hard_limit' => $e->hardLimit,
+                'required_tier' => 'premium',
+                'message' => 'Goal limit reached for your current plan.',
+            ], 403);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Create goal', 500, ['user_id' => $user->id]);
         }

@@ -16,19 +16,24 @@ class Subscription extends Model
 {
     use Auditable, HasFactory, SoftDeletes;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const PROVISIONAL_STATUSES = [
+        self::STATUS_PENDING,
+    ];
+
     protected $fillable = [
         'user_id',
         'plan',
         'billing_cycle',
         'amount',
-        'trial_started_at',
-        'trial_ends_at',
         'current_period_start',
         'current_period_end',
         'cancelled_at',
         'cancellation_reason',
         'status',
         'revolut_order_id',
+        'revolut_subscription_id',
         'revolut_plan_id',
         'revolut_plan_variation_id',
         'auto_renew',
@@ -37,8 +42,6 @@ class Subscription extends Model
     ];
 
     protected $casts = [
-        'trial_started_at' => 'datetime',
-        'trial_ends_at' => 'datetime',
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
         'cancelled_at' => 'datetime',
@@ -76,7 +79,7 @@ class Subscription extends Model
     public function isActive(): bool
     {
         if ($this->status === 'active') {
-            return true;
+            return $this->current_period_end === null || $this->current_period_end->isFuture();
         }
 
         // Cancelled and past_due subscriptions retain access until the current period ends

@@ -124,7 +124,7 @@ function repetitionTextTurn(string $text): array
 }
 
 beforeEach(function (): void {
-    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
     TaxConfiguration::factory()->create(['is_active' => true]);
     app()->forgetInstance(TaxConfigService::class);
 });

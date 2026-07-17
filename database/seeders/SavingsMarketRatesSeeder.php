@@ -13,9 +13,8 @@ class SavingsMarketRatesSeeder extends Seeder
     /**
      * Seed UK savings market benchmark rates for 2025/26.
      *
-     * Re-runnable: looks up existing rows by (rate_key, tax_year) and calls
-     * SavingsMarketRateStore::update if present, else create. Preserves the
-     * canonical store-and-event contract (SP1 Pass 2 §12).
+     * Re-runnable: creates a missing baseline row by (rate_key, tax_year)
+     * and preserves admin-managed values when that row already exists.
      *
      * To update rates, modify the values below and run:
      *   php artisan db:seed --class=SavingsMarketRatesSeeder --force
@@ -51,9 +50,7 @@ class SavingsMarketRatesSeeder extends Seeder
                 'effective_from' => $effectiveFrom,
             ];
 
-            if ($existing) {
-                $store->update($existing->id, $payload, IngestSource::SEEDER);
-            } else {
+            if (! $existing) {
                 $store->create($payload, IngestSource::SEEDER);
             }
         }

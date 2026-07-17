@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('subscriptions:send-renewal-reminders')->dailyAt('09:00');
         $schedule->command('data-retention:send-warnings')->dailyAt('09:00');
-        $schedule->command('trials:expire')->dailyAt('00:05');
+        $schedule->command('subscriptions:expire')->dailyAt('00:05');
         $schedule->command('accounts:execute-scheduled-deletions')->dailyAt('00:10');
         $schedule->command('accounts:execute-grace-deletions')->dailyAt('00:15');
         $schedule->command('accounts:send-deletion-reminders')->dailyAt('00:20');
@@ -39,7 +39,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
-        $schedule->command('tier:sync-revolut')->weeklyOn(1, '02:00'); // SP2 PR5: Mon 02:00, alongside billing cadence
+        $schedule->command('payments:reconcile-pending --older-than=15')->everyTenMinutes()->withoutOverlapping();
 
         $schedule->job(new PublishScheduledInsightsJob)->everyFiveMinutes();
 

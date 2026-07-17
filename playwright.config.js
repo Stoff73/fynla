@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8000';
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === '1' && !process.env.CI;
-const chromeChannel = process.env.PLAYWRIGHT_CHROME_CHANNEL || undefined;
+const chromeChannel = process.env.PLAYWRIGHT_CHROME_CHANNEL || 'chrome';
 
 export default defineConfig({
   testDir: './tests/E2E',
@@ -11,7 +11,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: [
     ['list'],
     ['html', { open: 'never' }],
@@ -32,11 +32,11 @@ export default defineConfig({
     {
       name: 'mobile-chromium',
       testMatch: /mobile\.spec\.js$/,
-      use: { ...devices['Pixel 7'] },
+      use: { ...devices['Pixel 7'], channel: chromeChannel },
     },
     {
       name: 'mobile-webkit',
-      testMatch: /mobile\.spec\.js$/,
+      testMatch: [/mobile\.spec\.js$/, /freemium\/upgrade-entry-points\.spec\.js$/],
       use: { ...devices['iPhone 14'] },
     },
   ],

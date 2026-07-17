@@ -61,7 +61,7 @@
                     </span>
                   </div>
                   <p v-if="isUpgrade" class="text-caption text-neutral-500 mt-1">
-                    Prorated difference until your next renewal
+                    Prorated difference for the rest of your current access period
                   </p>
                 </div>
               </div>
@@ -130,8 +130,7 @@
               </h2>
               <div ref="checkoutContainer" class="min-h-[300px] revolut-checkout-container"></div>
               <p class="text-caption text-neutral-500 mt-3 text-center">
-                Your subscription will automatically renew each {{ billingCycle === 'monthly' ? 'month' : 'year' }}.
-                You can cancel at any time from your profile.
+                This is a one-time payment. Your Premium access period will appear in subscription settings.
               </p>
             </div>
 
@@ -359,7 +358,7 @@ export default {
   methods: {
     async fetchPlanData() {
       try {
-        const TIER_KEYS = ['free', 'tier1', 'tier2', 'tier3'];
+        const TIER_KEYS = ['free', 'premium'];
         if (TIER_KEYS.includes(this.plan)) {
           // Tier-based plan: resolve display name + price from the tier store.
           const response = await api.get('/pricing-config');

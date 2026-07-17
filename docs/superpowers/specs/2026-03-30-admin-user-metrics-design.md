@@ -1,8 +1,10 @@
 # Admin User Metrics Dashboard & Subscription Tier Update
 
 **Date:** 2026-03-30
-**Status:** Draft
+**Status:** Historical and superseded
 **Branch:** adminUserView
+
+The subscription products, pricing, and trial metrics below are retained only as March 2026 design history. They are not current Fynla behaviour. See `codex/plans/canonical/01-freemium-economic-contract.md` for the live contract.
 
 ---
 

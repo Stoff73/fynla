@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\AiAuditController;
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\Auth\RestoreAccountController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BalanceHistoryController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
@@ -76,6 +77,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PersonalAccountsController;
+use App\Http\Controllers\Api\Plans\AdviserExportPackController;
 use App\Http\Controllers\Api\Plans\PlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PostcodeLookupController;
@@ -302,7 +304,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/letter-to-spouse', [LetterToSpouseController::class, 'show']);
     Route::get('/letter-to-spouse/exists', [LetterToSpouseController::class, 'exists']);
     Route::get('/letter-to-spouse/spouse', [LetterToSpouseController::class, 'showSpouse']);
-    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update'])->middleware('feature:standard');
+    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update']);
 
     // Family Members CRUD — household/spouse linking is never tier-gated
     // (SP2 spec firm rule: family_module=full at every tier, including Free).
@@ -871,6 +873,8 @@ Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(functio
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
 });
 
+Route::middleware('auth:sanctum')->get('/balance-history', [BalanceHistoryController::class, 'index']);
+
 // Estate read-only + IHT calculations (all tiers — used by dashboard)
 Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
     Route::get('/', [EstateController::class, 'index']);
@@ -880,7 +884,7 @@ Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
 });
 
 // Estate Planning write operations (pro tier)
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(function () {
+Route::middleware(['auth:sanctum', 'estate.full'])->prefix('estate')->group(function () {
 
     // IHT Profile
     Route::post('/profile', [IHTController::class, 'storeOrUpdateIHTProfile']);
@@ -922,7 +926,7 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(func
 
     // Will Builder + Will + Bequests + LPA are Estate-module sub-routes.
     // Spec §7 has no separate will/POA capability key — they fall under
-    // "Estate planning" (teaser for Free/Tier1). §10.2 requires them gated
+    // "Estate planning" (teaser for Free). §10.2 requires them gated
     // server-side, not just hidden. The legacy `feature:pro` above is NOT
     // sufficient: a grandfathered legacy-paid sub resolves to the `free`
     // tier under SP2 and must hit the Estate teaser, so the canonical
@@ -1032,6 +1036,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
 // Plans routes (comprehensive cross-module plans)
 Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     // Plan system
+    Route::get('/adviser-export-pack', AdviserExportPackController::class);
     Route::get('/statuses', [PlanController::class, 'statuses']);
     Route::get('/goal/{goalId}', [PlanController::class, 'generateGoalPlan']);
     Route::post('/goal/{goalId}/recalculate', [PlanController::class, 'recalculateGoalPlan']);
@@ -1053,7 +1058,7 @@ Route::middleware('auth:sanctum')->prefix('household')->group(function () {
 });
 
 // Holistic Planning routes (coordinating agent)
-Route::middleware(['auth:sanctum', 'feature:pro', 'holistic.full'])->prefix('holistic')->group(function () {
+Route::middleware(['auth:sanctum', 'holistic.full'])->prefix('holistic')->group(function () {
     // Main holistic analysis and plan
     Route::post('/analyze', [HolisticPlanningController::class, 'analyze']);
     Route::post('/plan', [HolisticPlanningController::class, 'plan']);
@@ -1118,9 +1123,11 @@ Route::prefix('payment')->group(function () {
 // Public pricing config — reads live tier store; no auth required
 Route::get('/pricing-config', [PricingConfigController::class, 'index']);
 
+Route::get('/payment/trial-status', fn () => abort(404));
+
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::get('/trial-status', [PaymentController::class, 'trialStatus']);
+    Route::get('/subscription-status', [PaymentController::class, 'subscriptionStatus']);
     Route::get('/billing-history', [PaymentController::class, 'billingHistory']);
     Route::post('/create-order', [PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
     Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
@@ -1400,7 +1407,7 @@ Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
 
 // What-If Scenarios
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenarios')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('what-if-scenarios')->group(function () {
     Route::get('/', [WhatIfScenarioController::class, 'index']);
     Route::get('/count', [WhatIfScenarioController::class, 'count']);
     Route::get('/{id}', [WhatIfScenarioController::class, 'show']);

@@ -20,6 +20,7 @@ use App\Http\Middleware\HasPermission;
 use App\Http\Middleware\HasRole;
 use App\Http\Middleware\IdempotencyKeyMiddleware;
 use App\Http\Middleware\IdentifyMobileClient;
+use App\Http\Middleware\IdentifyNativeClient;
 use App\Http\Middleware\InsightsSeoMetaInjector;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\PreventRequestsDuringMaintenance;
@@ -130,6 +131,7 @@ class Kernel extends HttpKernel
         'role' => HasRole::class,
         'permission' => HasPermission::class,
         'identify.mobile' => IdentifyMobileClient::class,
+        'native.client' => IdentifyNativeClient::class,
         'etag' => ETagResponse::class,
         'advisor' => AdvisorMiddleware::class,
         'advisor.impersonate' => AdvisorImpersonationMiddleware::class,

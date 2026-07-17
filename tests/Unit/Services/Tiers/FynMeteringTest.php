@@ -29,11 +29,40 @@ $harness = fn () => new class
         return $this->isDailyBackstopExceeded($u);
     }
 
+    public function maxTokens(User $u): int
+    {
+        return $this->getAiMaxTokens($u);
+    }
+
     public function softDegradeModel(): string
     {
         return self::SOFT_DEGRADE_MODEL;
     }
 };
+
+it('gives Premium the advanced model for complex requests and the paid output allowance', function () use ($harness) {
+    config([
+        'services.ai_provider' => 'anthropic',
+        'services.anthropic.chat_model' => 'standard-model',
+        'services.anthropic.advanced_chat_model' => 'advanced-model',
+    ]);
+    $premium = User::factory()->create(['tier' => 'premium', 'plan' => 'free']);
+
+    expect($harness()->model($premium, 'complex'))->toBe('advanced-model')
+        ->and($harness()->maxTokens($premium))->toBe(8192);
+});
+
+it('keeps Free on the standard model and lower output allowance', function () use ($harness) {
+    config([
+        'services.ai_provider' => 'anthropic',
+        'services.anthropic.chat_model' => 'standard-model',
+        'services.anthropic.advanced_chat_model' => 'advanced-model',
+    ]);
+    $free = User::factory()->create(['tier' => 'free', 'plan' => 'premium']);
+
+    expect($harness()->model($free, 'complex'))->toBe('standard-model')
+        ->and($harness()->maxTokens($free))->toBe(4096);
+});
 
 it('reads the weekly budget from the tier store, not the legacy plan array', function () use ($harness) {
     $u = User::factory()->create(['tier' => 'free']);

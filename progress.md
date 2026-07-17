@@ -190,3 +190,29 @@
 - Branch: docs/session-2026-06-15-clear (Phase 6 built on coala-phase-6-learning → dev via #554)
 - Shipped: CoALA Phase 6 (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (fae710c), suite 5030/0; deployed + live-E2E-verified on csjones. Cross-module composer spec written + approved (parked).
 - Next: write the cross-module plan composer implementation plan (superpowers:writing-plans) from docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md, then build.
+
+## 2026-07-15 — session 1 (context-clear)
+
+- Handover: [[handover-2026-07-15-session-1-clear]]
+- Plans: all ten approved programme/iOS plans restored under `codex/plans/` at `15689c8`.
+- PR stack: Tasks 1–7 #622; Task 8 #623; Task 9 #624; Task 10 #625; Task 11 #626.
+- Task 7 final verification: PR #622 run `29463239284` is fully green after aligning canonical tier fixtures/caps and clearing whole-range frontend/policy lint; Feature passed in 12m32s and Unit in 7m09s. PRs #623–#626 remain correctly stacked and clean after the final rebase.
+- Current branch: `codex/freemium-task12-trial-schema` in the isolated programme worktree.
+- Task 10 follow-ups: audit output now uses exact `safe_to_remove`; `paid_shape` counts only paid rows retaining trial shape; converted soft-deleted trial history is normalised before deletion.
+- Task 12 local gate: exact trial audit exits 0 with `0/0/0/true`; tier-collapse audit also reports all zero counts and `safe_to_collapse=true` after local migrations and the mandatory reseed.
+- Task 12 verification before schema removal: 54 frontend files/726 tests green; production build green; changed-file lint, policy lint and Pint green; focused backend sweep 180 tests/714 assertions green.
+- Blocker: the exact audit command must first land and deploy through PR #625, then run read-only on csjones and production. Current SSH keys are rejected by both hosts. No schema-removal migration has been created and Task 13 has not started.
+- Boundary: the primary Save Tax checkout remains untouched on `codex/savetax-allowance-ctas`.
+
+## 2026-07-16 — Task 12 checkpoint
+
+- Draft PR #627 opened from `codex/freemium-task12-trial-schema`, stacked on Task 11 PR #626.
+- Guarded migration `2026_07_15_000005_remove_trial_subscription_schema` applied locally; mandatory full reseed completed; schema and rollback guard tests are green.
+- Task 12 verification: core payment/tier/middleware/lifecycle run 255 tests/989 assertions; related account/authentication/AI/service run 90 tests/383 assertions; frontend 54 files/726 tests; production build, ESLint, policy lint, Pint and diff checks green.
+- Two baseline test-order defects found and fixed in the same loop: tier-collapse cleanup now restores both Task 1 migrations, and payment replay time is frozen at second precision.
+- PR #627 is explicitly blocked from merge or remote deployment until PR #625's exact audit command exits 0 on csjones and production and both evidence objects are saved.
+- Task 13 repository documentation is prepared on `codex/freemium-task13-canonical-docs`: one concise canonical economic contract, the implemented pure-freemium signup state, and design-system rules for Free, pending, active, cancelled, payment-issue, grace and terminal presentation.
+- Historical design specifications with retired tier/trial economics are explicitly labelled superseded; current-document scans, policy lint and diff checks are green.
+- Vault payment, authentication, onboarding, public-page and architecture notes were inventoried but not changed. Publication remains gated on the exact csjones and production audits required by Task 12.
+- Draft PR #628 publishes the Task 13 repository documentation and is correctly stacked on Task 12 PR #627. It remains draft until the external audit and gated vault publication are complete.
+- Next: begin Task 14 static regression cleanup without claiming the external, vault, deployment or live-browser gates complete.

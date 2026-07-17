@@ -117,6 +117,14 @@ class RegisterRequest extends FormRequest
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
+            'plan' => ['nullable', 'string', Rule::in(['premium'])],
+            'billing_cycle' => [
+                'nullable',
+                Rule::requiredIf(fn (): bool => $this->filled('plan')),
+                Rule::prohibitedIf(fn (): bool => ! $this->filled('plan')),
+                'string',
+                Rule::in(['monthly', 'yearly']),
+            ],
             'signup_source' => ['nullable', 'string', Rule::in(self::ALLOWED_SIGNUP_SOURCES)],
             // /savetax acquisition-funnel answers (coarse hints carried from the
             // public funnel via localStorage). Validated loosely at the boundary.

@@ -24,6 +24,7 @@ it('defines every blocking quality job', function (): void {
     $build = collect($workflow['jobs']['builds']['steps'])
         ->firstWhere('run', 'bash scripts/quality/run.sh build');
     $browserSteps = collect($workflow['jobs']['browser-smoke']['steps']);
+    $browserInstall = $browserSteps->firstWhere('name', 'Install browser dependencies');
     $prepare = $browserSteps->firstWhere('run', 'bash scripts/e2e/prepare.sh');
     $smoke = $browserSteps->firstWhere('run', 'npm run test:e2e:smoke');
     $artifact = collect($workflow['jobs']['browser-smoke']['steps'])
@@ -39,6 +40,9 @@ it('defines every blocking quality job', function (): void {
         ->and($prepare['env']['E2E_DB_NAME'])->toBe('fynla_e2e_ci')
         ->and($smoke['env']['APP_ENV'])->toBe('e2e')
         ->and($smoke['env']['DB_DATABASE'])->toBe('fynla_e2e_ci')
+        ->and($smoke['env']['PLAYWRIGHT_CHROME_CHANNEL'])->toBe('chrome')
+        ->and($browserInstall['run'])->toBe('npx playwright install --with-deps chrome webkit')
+        ->and($browserInstall['run'])->not->toContain('chromium')
         ->and($artifact)->not->toBeNull()
         ->and($artifact['if'])->toBe('always()')
         ->and($runs('lint'))->toContain('composer install --no-interaction --prefer-dist', 'npm ci')
@@ -72,6 +76,9 @@ it('runs full browser and dependency checks nightly', function (): void {
         ->and($browserCheckout['with']['ref'])->toBe('dev')
         ->and($auditCheckout['with']['ref'])->toBe('dev')
         ->and($browserSteps->firstWhere('run', 'npm run test:e2e:full'))->not->toBeNull()
+        ->and($browserSteps->firstWhere('run', 'npm run test:e2e:full')['env']['PLAYWRIGHT_CHROME_CHANNEL'])->toBe('chrome')
+        ->and($browserSteps->firstWhere('name', 'Install browser dependencies')['run'])
+        ->toBe('npx playwright install --with-deps chrome webkit')
         ->and($browserSteps->firstWhere('uses', 'actions/upload-artifact@v4')['if'])->toBe('always()')
         ->and($browserRuns)->toContain('composer install --no-interaction --prefer-dist', 'npm ci')
         ->and($auditRuns)->toContain('composer install --no-interaction --prefer-dist', 'npm ci')

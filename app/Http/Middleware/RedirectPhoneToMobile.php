@@ -26,7 +26,7 @@ class RedirectPhoneToMobile
         'm', 'm/*', 'api/*', 'admin/*', 'advisor/*',
         'lifecycle/*', 'feed/*', 'storage/*', 'subscribe/*', 'unsubscribe/*',
         'sanctum/*', 'broadcasting/*', 'livewire/*',
-        'checkout', 'preview', 'preview/*',
+        'checkout', 'settings', 'settings/*', 'preview', 'preview/*',
     ];
 
     /**

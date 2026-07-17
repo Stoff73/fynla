@@ -8,8 +8,8 @@ use App\Services\Tiers\TierResolver;
 beforeEach(fn () => $this->resolver = app(TierResolver::class));
 
 it('resolves an explicit users.tier value', function () {
-    $u = User::factory()->create(['tier' => 'tier2']);
-    expect($this->resolver->resolve($u))->toBe('tier2');
+    $u = User::factory()->create(['tier' => 'premium']);
+    expect($this->resolver->resolve($u))->toBe('premium');
 });
 
 it('resolves a user with no subscription to free', function () {

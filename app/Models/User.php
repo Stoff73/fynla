@@ -172,8 +172,6 @@ class User extends Authenticatable
         'info_guide_enabled' => 'boolean',
         // Dashboard preferences
         'dashboard_widget_order' => 'array',
-        // Subscription fields
-        'trial_ends_at' => 'datetime',
         // Lifecycle email e2e testing
         'is_lifecycle_test_user' => 'boolean',
         // SaveTax campaign — household tax-strategy
@@ -204,7 +202,7 @@ class User extends Authenticatable
      */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
     public function deletionReminderLog()

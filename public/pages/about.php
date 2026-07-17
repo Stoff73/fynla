@@ -277,8 +277,8 @@
     <?php
     $module = [
       'id'      => 'about-cta',
-      'heading' => 'Start your free trial today',
-      'subtext' => 'No credit card required. Try any plan free for 7 days and see your complete financial picture.',
+      'heading' => 'Create your free account today',
+      'subtext' => 'No credit card required. Free has no time limit, so you can build your financial picture at your own pace.',
       'actions' => [
         ['text' => 'Get started free', 'href' => '/register',    'primary' => true],
         ['text' => 'See pricing',      'href' => '/pricing',     'primary' => false],

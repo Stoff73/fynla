@@ -4,7 +4,25 @@
 > Authoritative SP1 Pass 2 plan: `docs/superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md` (active).
 
 ## Current phase
-SP1 Pass 2 (reference-data canonical stores) — R4 / R3 / R2 / R1 all SHIPPED. R1.0 audit (browser-blocked) + R1.5 (depends on R1.0) + final review + finishing-a-development-branch remain. **22 of 26 PRs done.**
+Native Swift programme, Package 1 economic/API readiness. Tasks 1–13 are checkpointed across PRs #622–#628. Task 12 is migrated, reseeded and fully green locally in draft PR #627, while remote merge/deployment remains gated on exact read-only audit evidence from csjones and production. Task 13 repository documentation is in draft PR #628; vault publication and Package 2/Xcode remain blocked until the external gate and Package 1 are fully green.
+
+## Phases — Native Swift programme (active)
+- [x] Package 1 Task 1 — two-tier identity and payment cutover
+- [x] Package 1 Task 2 — approved Free/Premium economic matrix
+- [x] Package 1 Task 3 — Premium balance history and adviser export on web and `/m`
+- [x] Package 1 Task 4 — canonical subscription and entitlement contract
+- [x] Package 1 Task 5 — non-entitling pending checkout state and trial-remnant audit
+- [x] Package 1 Task 6 — approved Free/Premium public pricing contract
+- [x] Package 1 Task 7 — preserve Premium checkout intent through registration (#622)
+- [x] Package 1 Task 8 — upgrade and limit guidance (#623)
+- [x] Package 1 Task 9 — canonical subscription UI (#624)
+- [x] Package 1 Task 10 — pure-freemium lifecycle semantics (#625)
+- [x] Package 1 Task 11 — obsolete trial-copy removal (#626)
+- [x] Package 1 Task 12 — guarded trial schema and compatibility removal; local migration/reseed/verification green in draft PR #627
+- [ ] Package 1 Task 12 external gate — exact csjones and production audit evidence before PR #627 merge/deploy
+- [ ] Package 1 Task 13 — canonical repository documentation in draft PR #628; vault publication remains gated
+- [ ] Package 1 Task 14 — final regression, browser acceptance and Swift readiness gate
+- [ ] Package 2 — native SwiftUI foundation; blocked on Package 1 completion
 
 ## Phases — SP3 (DONE)
 - [x] Brainstorm → spec → implementation plan (committed)

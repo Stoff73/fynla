@@ -120,7 +120,7 @@ Three derived columns are materialised inside every write transaction by `Mortga
 |---|---|
 | Entity key | `'mortgage'` (`MortgageStore::ENTITY_KEY`) |
 | Free-tier cap | 10 (seeded by `TierConfigurationSeeder`) |
-| tier1+ cap | `null` (unlimited) |
+| Premium cap | `null` (unlimited) |
 | Counted by | `Mortgage::where('user_id', $user->id)->count()` — primary ownership only; joint mortgages do **not** count against the joint owner's cap |
 | Enforced at | `create()` and `updateOrCreate()` (new-record path only); `update()` / `delete()` / `restore()` do not re-check |
 | Exception | `TierLimitExceededException($entityKey, $currentCount, $hardLimit)` |

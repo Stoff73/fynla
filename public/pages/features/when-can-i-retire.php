@@ -86,7 +86,7 @@
           Not when your pension provider says. Not when the government says. When YOUR money says you can. Fynla calculates your personal retirement date based on everything.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -293,7 +293,7 @@
       'heading' => 'Find Out Your Number. It Might Surprise You.',
       'subtext' => 'Whether it\'s 55 or 68, you deserve to know. The demo lets you explore with sample data in under 5 minutes.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

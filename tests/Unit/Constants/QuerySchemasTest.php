@@ -32,6 +32,14 @@ describe('QuerySchemas', function () {
             expect($holisticTriggers)->toContain('iht_exceeds_nrb');
             expect(count($holisticTriggers))->toBeGreaterThan(20);
         });
+
+        it('billing patterns describe only the current subscription lifecycle', function () {
+            $patterns = implode("\n", QuerySchemas::KEYWORD_PATTERNS[QuerySchemas::BILLING]);
+
+            expect($patterns)->not->toContain('trial')
+                ->and($patterns)->toContain('subscription')
+                ->and($patterns)->toContain('renew');
+        });
     });
 
     describe('required tools', function () {

@@ -99,7 +99,7 @@
           Fynla turns your scattered financial data into a clear, actionable plan. Three steps, 15 minutes, and you'll see your complete financial picture for the first time.
         </p>
         <div class="hiw-hero__cta">
-          <a href="/register" class="btn-hiw-primary">Start your free trial</a>
+          <a href="/register" class="btn-hiw-primary">Create your free account</a>
           <a href="#steps" class="btn-hiw-secondary">See how it works</a>
         </div>
       </div>
@@ -468,7 +468,7 @@
           <li class="hiw-demo-steps__card">
             <div class="hiw-demo-steps__num" aria-hidden="true">2</div>
             <h3 class="hiw-demo-steps__card-title">Sign up free</h3>
-            <p class="hiw-demo-steps__card-body">Create your account with a 7-day free trial. No credit card required.</p>
+            <p class="hiw-demo-steps__card-body">Create your Free account with no time limit. No credit card required.</p>
           </li>
           <li class="hiw-demo-steps__card">
             <div class="hiw-demo-steps__num" aria-hidden="true">3</div>
@@ -492,7 +492,7 @@
           </li>
         </ol>
         <div class="hiw-demo-steps__cta">
-          <a href="/register" class="btn-hiw-demo">Start your free trial</a>
+          <a href="/register" class="btn-hiw-demo">Create your free account</a>
         </div>
       </div>
     </section>
@@ -541,9 +541,9 @@
     $module = [
       'id'      => 'clarity',
       'heading' => '15 minutes to clarity',
-      'subtext' => 'That\'s all it takes to see your complete financial picture. Start with the demo, or go straight to your free trial.',
+      'subtext' => 'That\'s all it takes to see your complete financial picture. Start with the demo, or create your Free account.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'View pricing',           'href' => '/pricing',  'primary' => false],
       ],
     ];

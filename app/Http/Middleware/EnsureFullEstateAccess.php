@@ -31,7 +31,12 @@ class EnsureFullEstateAccess
         $user = $request->user();
 
         if ($user && ! $this->teaserGate->isFull($user, 'estate')) {
-            abort(403, 'Full Estate Planning requires Tier 2 or above.');
+            return response()->json([
+                'error' => 'capability_denied',
+                'capability' => 'estate',
+                'required_tier' => 'premium',
+                'message' => 'Full Estate Planning is part of Premium.',
+            ], 403);
         }
 
         return $next($request);

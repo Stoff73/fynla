@@ -93,8 +93,6 @@ class RevolutSubscriptionService
      * Each plan gets 2 variations:
      * - Variation 0: Monthly (P1M), using launch price or regular price
      * - Variation 1: Yearly (P1Y), using launch price or regular price
-     *
-     * trial_duration set at plan level (P7D = 7-day trial).
      * cycle_count null = indefinite billing.
      */
     public function createSubscriptionPlan(SubscriptionPlan $plan): array
@@ -104,7 +102,6 @@ class RevolutSubscriptionService
 
         $body = [
             'name' => "Fynla {$plan->name} Plan",
-            'trial_duration' => 'P'.($plan->trial_days ?? 7).'D',
             'variations' => [
                 [
                     'phases' => [
@@ -209,7 +206,6 @@ class RevolutSubscriptionService
         User $user,
         string $planVariationId,
         string $redirectUrl,
-        ?string $trialDuration = null,
         ?string $externalReference = null
     ): array {
         $body = [
@@ -220,10 +216,6 @@ class RevolutSubscriptionService
 
         if ($externalReference !== null) {
             $body['external_reference'] = $externalReference;
-        }
-
-        if ($trialDuration !== null) {
-            $body['trial_duration'] = $trialDuration;
         }
 
         $response = Http::withHeaders(array_merge($this->headers(), [
@@ -444,7 +436,7 @@ class RevolutSubscriptionService
      * the caller must create a new plan and re-subscribe affected customers.
      * Since there are no existing paid subscribers (A9), create is safe.
      *
-     * @param  string  $displayName  Human-readable tier name, e.g. "Tier 2"
+     * @param  string  $displayName  Human-readable tier name, e.g. "Premium"
      * @param  int  $monthlyPricePence  Monthly price in pence
      * @return array{id: string|null, plan_id: string} Variation id (null if
      *                                                 Revolut returned no
@@ -454,7 +446,6 @@ class RevolutSubscriptionService
     {
         $body = [
             'name' => "Fynla {$displayName} Tier",
-            'trial_duration' => 'P7D',
             'variations' => [
                 [
                     'phases' => [

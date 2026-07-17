@@ -60,7 +60,7 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
       - name: Install browser dependencies
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps chrome webkit
       - name: Prepare the end-to-end database
         env:
           E2E_DB_NAME: fynla_e2e_ci
@@ -68,6 +68,7 @@ jobs:
       - name: Run the full browser suite
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
+          PLAYWRIGHT_CHROME_CHANNEL: chrome
         run: npm run test:e2e:full
       - name: Upload full browser artifacts
         if: always()

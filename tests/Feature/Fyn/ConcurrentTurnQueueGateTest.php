@@ -21,7 +21,7 @@ use Laravel\Sanctum\Sanctum;
  */
 function gateConversation(): array
 {
-    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
 
     $user = User::factory()->create([
         'onboarding_completed' => true,

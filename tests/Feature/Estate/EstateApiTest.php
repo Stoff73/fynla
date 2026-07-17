@@ -19,9 +19,9 @@ beforeEach(function () {
     Carbon::setTestNow(Carbon::create(2025, 6, 15));
     $this->seed(TaxConfigurationSeeder::class);
     // SP2 PR7: TeaserGate reads TierConfigurationStore — seed tier rows so the
-    // gate resolves correctly. Tests use tier2 to exercise the full module path.
+    // gate resolves correctly. Tests use Premium to exercise the full module path.
     $this->seed(TierConfigurationSeeder::class);
-    $this->user = User::factory()->create(['tier' => 'tier2']);
+    $this->user = User::factory()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 

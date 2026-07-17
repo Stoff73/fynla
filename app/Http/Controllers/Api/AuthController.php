@@ -119,8 +119,8 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'registration_source' => $request->registration_source ?? null,
             'preview_persona_id' => $request->preview_persona_id ?? null,
-            'plan' => $request->plan ?? null,
-            'billing_cycle' => $request->billing_cycle ?? null,
+            'plan' => $request->validated('plan'),
+            'billing_cycle' => $request->validated('billing_cycle'),
             'referral_code' => $request->referral_code ?? null,
             'signup_source' => $request->validated('signup_source'),
             'funnel_answers' => $funnelAnswers,
@@ -467,6 +467,8 @@ class AuthController extends Controller
             $tierConfig = $this->tierStore->forTier($resolvedTier);
             $tierFlags = [
                 'resolved_tier' => $resolvedTier,
+                'capabilities' => $tierConfig->capability_matrix ?? [],
+                'limits' => $tierConfig->count_caps ?? [],
                 'open_api_affordance' => $tierConfig->open_api_affordance,
                 'currency_display_mode' => $tierConfig->currency_display_mode,
                 'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
@@ -476,6 +478,8 @@ class AuthController extends Controller
             // open_api_affordance defaults false (capability-off, not a tier number).
             $tierFlags = [
                 'resolved_tier' => $resolvedTier,
+                'capabilities' => [],
+                'limits' => [],
                 'open_api_affordance' => false,
                 'currency_display_mode' => null,
                 'snapshot_surfacing_window_days' => null,
@@ -666,6 +670,8 @@ class AuthController extends Controller
                 'method' => 'registration',
             ]);
 
+            $checkoutIntent = $pending->checkoutIntent();
+
             // Delete the pending registration
             $pending->delete();
 
@@ -675,7 +681,12 @@ class AuthController extends Controller
             // never throws — a failure must not break account creation.
             app(PointsService::class)->recordLogin($user);
 
-            return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
+            return $this->buildAuthSuccessResponse(
+                $user,
+                $authResult['token'],
+                'Registration complete',
+                ['checkout_intent' => $checkoutIntent]
+            );
         }
 
         // Handle login verification (existing flow)

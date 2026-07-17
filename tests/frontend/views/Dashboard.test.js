@@ -169,7 +169,7 @@ describe('Dashboard', () => {
     expect(dispatch).not.toHaveBeenCalledWith('trusts/fetchTrusts', undefined);
   });
 
-  it('does not request the Tier 2 estate calculation for a free-tier dashboard', async () => {
+  it('does not request the Premium estate calculation for a Free dashboard', async () => {
     const dispatch = vi.fn(() => Promise.resolve());
 
     await Dashboard.methods.loadAllData.call({

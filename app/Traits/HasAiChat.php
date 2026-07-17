@@ -364,6 +364,8 @@ trait HasAiChat
         // reports both; xAI surfaces no cache-creation equivalent (stays 0).
         $totalCacheCreationTokens = 0;
         $toolCallsSummary = [];
+        $presentationActions = [];
+        $presentationActionKeys = [];
         // Full, uncompressed tool round-trips for the admin AI-Audit view.
         // tool_calls = what the model emitted; tool_results = what the tool
         // produced (raw) AND the verbatim payload sent back to the model
@@ -828,6 +830,26 @@ trait HasAiChat
                             ];
                         }
 
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'subscription_options') {
+                            $presentationAction = [
+                                'action' => 'subscription_options',
+                                'reason' => $toolResult['reason'] ?? 'tier_limit_reached',
+                                'entity_key' => $toolResult['entity_key'] ?? null,
+                                'current_count' => $toolResult['current_count'] ?? null,
+                                'limit' => $toolResult['limit'] ?? $toolResult['hard_limit'] ?? null,
+                                'tier' => $toolResult['tier'] ?? null,
+                            ];
+                            $presentationActionKey = implode(':', [
+                                $presentationAction['action'],
+                                $presentationAction['reason'],
+                                $presentationAction['entity_key'],
+                            ]);
+                            if (! isset($presentationActionKeys[$presentationActionKey])) {
+                                $presentationActions[] = $presentationAction;
+                                $presentationActionKeys[$presentationActionKey] = true;
+                            }
+                        }
+
                         // Handle entity creation results
                         if (isset($toolResult['created']) && $toolResult['created'] === true) {
                             yield [
@@ -961,6 +983,7 @@ trait HasAiChat
                             'retry_of_tool_call_id' => $retryOfToolCallId,
                             'landed' => $writeLanded,
                             'message' => $isToolError ? (string) ($toolResult['message'] ?? 'The write failed.') : null,
+                            'result' => $toolResult,
                         ];
                     }
 
@@ -1075,6 +1098,9 @@ trait HasAiChat
         if (! empty($violations)) {
             $messageMetadata['validation_violations'] = $violations;
         }
+        if ($presentationActions !== []) {
+            $messageMetadata['actions'] = $presentationActions;
+        }
 
         // Save assistant message with system prompt for audit trail
         if ($totalCachedTokens > 0) {
@@ -1188,6 +1214,10 @@ trait HasAiChat
             } catch (\Exception $e) {
                 Log::warning('[HasAiChat] Failed to log advice', ['error' => $e->getMessage()]);
             }
+        }
+
+        foreach ($presentationActions as $presentationAction) {
+            yield array_merge(['type' => 'action'], $presentationAction);
         }
 
         yield [

@@ -155,15 +155,15 @@
               <tbody class="divide-y divide-savannah-100">
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Account and profile data</td>
-                  <td class="py-3 text-neutral-500">Duration of account plus 30 days</td>
+                  <td class="py-3 text-neutral-500">Duration of account, then the seven-year regulatory retention period</td>
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Financial planning data</td>
-                  <td class="py-3 text-neutral-500">Deleted immediately on account closure</td>
+                  <td class="py-3 text-neutral-500">Duration of account, then the seven-year regulatory retention period</td>
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Uploaded documents</td>
-                  <td class="py-3 text-neutral-500">Until you delete them or close your account</td>
+                  <td class="py-3 text-neutral-500">Until you delete them; otherwise retained with the account and purged after the regulatory retention period</td>
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Audit logs (standard)</td>

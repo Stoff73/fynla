@@ -31,7 +31,7 @@ beforeEach(function () {
 });
 
 it('creates an investment account via upload-equivalent path with UPLOAD audit context', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
 
     $upload = [
         'account_name' => 'Vanguard Stocks & Shares ISA',
@@ -63,7 +63,7 @@ it('creates an investment account via upload-equivalent path with UPLOAD audit c
 });
 
 it('updateOrCreate through the store is idempotent for the ChrisUserSeeder canonical', function () {
-    $user = User::factory()->create(['tier' => 'tier1']);
+    $user = User::factory()->create(['tier' => 'premium']);
     $store = app(InvestmentAccountStore::class);
 
     // Mirrors ChrisUserSeeder: match on (provider, account_type), data carries

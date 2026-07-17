@@ -35,9 +35,6 @@ use App\Services\AI\XaiClient;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\LevelUpCollector;
 use App\Services\Gamification\MilestoneCollector;
-use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
-use App\Services\Lifecycle\LifecycleEngine;
-use App\Services\Lifecycle\LifecycleSnapshotService;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
@@ -153,18 +150,6 @@ class AppServiceProvider extends ServiceProvider
             DbTierGate::class
         );
 
-        // LifecycleEngine is a singleton so its per-run caches
-        // (trialAfterEndCandidates, cachedHasDataIds) are shared across every
-        // campaign resolved from config during a single engine run. Without
-        // the singleton, Laravel would construct a fresh engine each time a
-        // campaign's constructor asks for one, defeating the cache and
-        // re-running the expensive candidate query N times per run.
-        $this->app->singleton(LifecycleEngine::class, function ($app) {
-            return new LifecycleEngine(
-                snapshotService: $app->make(LifecycleSnapshotService::class),
-                discountGenerator: $app->make(LifecycleDiscountCodeGenerator::class),
-            );
-        });
     }
 
     /**

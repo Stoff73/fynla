@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "data": {
+    "module": "savings",
+    "summary": {
+      "total_savings": 25000,
+      "emergency_fund": {
+        "runway_months": 4.2,
+        "category": "moderate"
+      }
+    },
+    "cached_at": "2026-07-16T12:00:00Z"
+  }
+}

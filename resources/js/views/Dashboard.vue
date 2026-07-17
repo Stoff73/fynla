@@ -1250,7 +1250,7 @@ export default {
       const estateCalculationAction = isMarried
         ? 'estate/calculateIHTPlanning'
         : 'estate/calculateIHT';
-      const hasFullEstateAccess = ['tier2', 'tier3'].includes(this.tierFlags?.resolved_tier);
+      const hasFullEstateAccess = this.tierFlags?.resolved_tier === 'premium';
 
       // Student persona: only load modules they actually use
       const moduleLoaders = this.isStudentPersona ? [

@@ -7,6 +7,7 @@ use App\Models\LetterToSpouse;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -14,7 +15,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->user = User::factory()->create();
+    $this->seed(TierConfigurationSeeder::class);
+    $this->user = User::factory()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 

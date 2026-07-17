@@ -26,7 +26,6 @@ class SubscriptionPlanSeeder extends Seeder
                 'launch_monthly_price' => 399,
                 'yearly_price' => 4500,
                 'launch_yearly_price' => 3000,
-                'trial_days' => 7,
                 'is_active' => true,
                 'sort_order' => 1,
                 'features' => [
@@ -45,7 +44,6 @@ class SubscriptionPlanSeeder extends Seeder
                 'launch_monthly_price' => 1099,
                 'yearly_price' => 13500,
                 'launch_yearly_price' => 10000,
-                'trial_days' => 7,
                 'is_active' => true,
                 'sort_order' => 2,
                 'features' => [
@@ -64,7 +62,6 @@ class SubscriptionPlanSeeder extends Seeder
                 'launch_monthly_price' => 1499,
                 'yearly_price' => 19900,
                 'launch_yearly_price' => 15000,
-                'trial_days' => 7,
                 'is_active' => true,
                 'sort_order' => 3,
                 'features' => [
@@ -79,7 +76,6 @@ class SubscriptionPlanSeeder extends Seeder
                 'launch_monthly_price' => 1999,
                 'yearly_price' => 26999,
                 'launch_yearly_price' => 20000,
-                'trial_days' => 7,
                 'is_active' => true,
                 'sort_order' => 4,
                 'features' => [

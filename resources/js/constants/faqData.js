@@ -249,32 +249,32 @@ export const FAQ_CATEGORIES = [
       {
         id: 'how-much',
         q: 'How much does Fynla cost?',
-        a: 'Student tier from approximately \u00A33/month, Standard at \u00A38.50/month, and Premium at \u00A320/month. Annual billing gives you a discount. No hidden fees, no commission, no lock-in. See our pricing page for full details.',
+        a: 'Free costs nothing and requires no credit card. Premium costs \u00A36.99 per month or \u00A359.99 per year. There are no hidden fees, commissions, or lock-in contracts.',
       },
       {
         id: 'plan-differences',
         q: 'What is the difference between the tiers?',
-        a: 'Each tier adds more depth. The Free tier covers your dashboard, income and expenditure, property, protection, savings, investments and pensions. Tier 1 unlocks unlimited savings, investment and pension accounts plus the Letter to Spouse. Tier 2 adds Estate Planning — Wills, Trusts, Powers of Attorney and Inheritance Tax — along with What If Scenarios and the Holistic Plan. Tier 3 adds higher document, storage and Fyn allowances.',
+        a: 'Free covers your dashboard, income and expenditure, property, protection, savings, investments and pensions. Premium adds unlimited account counts, the Letter to Spouse, full Estate Planning, What If Scenarios, the Holistic Plan, and higher document, storage and Fyn allowances.',
       },
       {
-        id: 'free-trial',
-        q: 'Is there a free trial?',
-        a: 'There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.',
+        id: 'free-account',
+        q: 'Is the Free account time-limited?',
+        a: 'No. Free is available for as long as you like, with no credit card required. Choose Premium whenever you want more capabilities and higher limits.',
       },
       {
         id: 'change-plans',
         q: 'Can I change plans?',
-        a: 'Yes, upgrade or downgrade at any time. Changes take effect from your next billing cycle.',
+        a: 'You can upgrade from Free to Premium at any time. Premium is sold as a monthly or yearly access period and does not renew automatically.',
       },
       {
         id: 'payment-methods',
         q: 'What payment methods do you accept?',
-        a: 'We accept all major credit and debit cards. Payments are processed securely through Stripe.',
+        a: 'We accept supported credit and debit cards. Payments are processed securely through Revolut.',
       },
       {
         id: 'cancel',
         q: 'What if I cancel?',
-        a: 'You can export your data at any time. Cancel monthly plans any time; annual plans run to the end of the 12-month period. Your data is retained for 30 days after cancellation, then permanently deleted.',
+        a: 'Cancel paid access at any time; Premium continues until the end of the purchased period. It then enters a 30-day read-only grace period so you can export your data or purchase Premium again. If you take neither action, account access is disabled and the account enters the regulatory retention process.',
       },
     ],
   },
@@ -380,7 +380,7 @@ export const FEATURE_PAGE_FAQS = {
 };
 
 export const PRICING_PAGE_FAQS = [
-  'free-trial',
+  'free-account',
   'change-plans',
   'payment-methods',
   'data-safe',
