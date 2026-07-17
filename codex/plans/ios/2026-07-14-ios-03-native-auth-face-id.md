@@ -26,8 +26,8 @@
 
 | Path | Responsibility |
 |---|---|
-| `database/migrations/2026_07_15_000001_create_native_device_sessions_table.php` | Device-session family state |
-| `database/migrations/2026_07_15_000002_create_native_refresh_tokens_table.php` | One-time refresh-token replay evidence |
+| `database/migrations/2026_07_17_000000_create_native_device_sessions_table.php` | Device-session family state |
+| `database/migrations/2026_07_17_000001_create_native_refresh_tokens_table.php` | One-time refresh-token replay evidence |
 | `app/Models/NativeDeviceSession.php`, `NativeRefreshToken.php` | Native session persistence |
 | `app/Services/Auth/NativeSessionService.php` | Exchange, rotation, replay revocation and logout |
 | `app/Http/Requests/V1/Native/Auth/` | Exchange/refresh boundary validation |
@@ -42,13 +42,15 @@
 
 **Files:** Create the two migrations, models, factories and `tests/Feature/Native/Auth/NativeSessionSchemaTest.php`.
 
-- [ ] Write a failing schema test for both tables, indexes, unique hashes and cascade relationships.
-- [ ] Create `native_device_sessions` with UUID primary key and these columns: `user_id`, `platform`, `device_label`, `app_version`, `app_build`, nullable `current_access_token_id`, `authenticated_at`, `absolute_expires_at`, nullable `last_used_at`, nullable `revoked_at`, nullable `revoke_reason`, timestamps.
-- [ ] Index `user_id`, `absolute_expires_at`, `revoked_at`; foreign-key `user_id` cascade delete and `current_access_token_id` set null.
-- [ ] Create `native_refresh_tokens` with bigint ID, `native_device_session_id`, unique 64-character `token_hash`, `expires_at`, nullable `used_at`, nullable `revoked_at`, timestamps.
-- [ ] Index session plus expiry; cascade tokens when session is deleted.
-- [ ] Add casts and relationships. Do not make token hashes mass-serializable or JSON-visible.
-- [ ] Add model helpers `isActive()` and `canRotate()` that use an injected/current server clock only.
+Migration note: the original `2026_07_15_000001` and `000002` draft names collided with migrations merged to `dev` before Package 3 began. Package 3 therefore reserves fresh `2026_07_17_000000` and `000001` names without altering migration order already shipped on `dev`.
+
+- [x] Write a failing schema test for both tables, indexes, unique hashes and cascade relationships.
+- [x] Create `native_device_sessions` with UUID primary key and these columns: `user_id`, `platform`, `device_label`, `app_version`, `app_build`, nullable `current_access_token_id`, `authenticated_at`, `absolute_expires_at`, nullable `last_used_at`, nullable `revoked_at`, nullable `revoke_reason`, timestamps.
+- [x] Index `user_id`, `absolute_expires_at`, `revoked_at`; foreign-key `user_id` cascade delete and `current_access_token_id` set null.
+- [x] Create `native_refresh_tokens` with bigint ID, `native_device_session_id`, unique 64-character `token_hash`, `expires_at`, nullable `used_at`, nullable `revoked_at`, timestamps.
+- [x] Index session plus expiry; cascade tokens when session is deleted.
+- [x] Add casts and relationships. Do not make token hashes mass-serializable or JSON-visible.
+- [x] Add model helpers `isActive()` and `canRotate()` that use an injected/current server clock only.
 
 Run:
 
@@ -57,6 +59,8 @@ Run:
 ```
 
 Expected: PASS. Do not run destructive migration commands. If applying the migration to a persistent local database, follow with `php artisan db:seed`.
+
+Recorded 2026-07-17: the schema red run failed on the absent tables and relationships, and the model red run failed on the absent persistence classes. The final focused suite passed 5 tests with 42 assertions. The broader native/parity regression passed 17 tests with 145 assertions after the isolated worktree generated its local Laravel package-discovery cache. PHP syntax, Pint and diff checks passed. No migration was applied to a persistent development database.
 
 **Intended review boundary:** `feat: add native device session persistence`
 
