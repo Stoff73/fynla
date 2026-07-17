@@ -5,6 +5,9 @@ declare(strict_types=1);
 use App\Data\Auth\NativeDeviceContext;
 use App\Data\Auth\NativeSessionCredentials;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
+use App\Http\Kernel;
+use App\Http\Middleware\CaptureNativeDeviceLabel;
+use App\Http\Middleware\TrimStrings;
 use App\Models\NativeDeviceSession;
 use App\Models\NativeRefreshToken;
 use App\Models\User;
@@ -235,6 +238,45 @@ it('rejects controls before global normalization for non-json input', function (
     'query trailing carriage return' => ['query', "iPhone\r"],
     'query line feed' => ['query', "My\niPhone"],
 ]);
+
+it('captures native device labels before global trimming without changing unrelated requests', function (): void {
+    $kernel = app(Kernel::class);
+    $property = new ReflectionProperty($kernel, 'middleware');
+    $middleware = $property->getValue($kernel);
+
+    expect(array_search(CaptureNativeDeviceLabel::class, $middleware, true))
+        ->toBeLessThan(array_search(TrimStrings::class, $middleware, true));
+
+    $runMiddleware = function (string $path): array {
+        $request = Request::create($path, 'POST', ['device_label' => "\tiPhone\t"]);
+
+        $response = (new CaptureNativeDeviceLabel)->handle(
+            $request,
+            fn (Request $captured) => (new TrimStrings)->handle(
+                $captured,
+                fn (Request $trimmed) => response()->json([
+                    'device_label' => $trimmed->input('device_label'),
+                    'original' => $trimmed->attributes->get('native_original_device_label'),
+                ]),
+            ),
+        );
+
+        return $response->getData(true);
+    };
+
+    expect($runMiddleware('/api/v1/native/auth/session/exchange'))->toBe([
+        'device_label' => 'iPhone',
+        'original' => "\tiPhone\t",
+    ])->and($runMiddleware('/api/v1/mobile/devices'))->toBe([
+        'device_label' => 'iPhone',
+        'original' => null,
+    ]);
+
+    expect(File::get(app_path('Http/Middleware/TrimStrings.php')))
+        ->not->toContain("'device_label'")
+        ->and(File::get(app_path('Http/Middleware/SanitizeInput.php')))
+        ->not->toContain("attributes->set('native_original_device_label'");
+});
 
 it('requires a string refresh credential no longer than 512 characters', function (): void {
     foreach ([[], ['refresh_token' => ['not-a-string']], ['refresh_token' => str_repeat('r', 513)]] as $payload) {
@@ -524,6 +566,57 @@ it('does not mutate a seeded preview family through intercepted destroy or refre
         ->and(json_encode($refreshResponse->json(), JSON_THROW_ON_ERROR))
         ->not->toContain('refresh_token', $plainRefresh);
 });
+
+it('never echoes submitted native auth data while intercepting preview writes', function (string $source): void {
+    $preview = User::factory()->create(['is_preview_user' => true]);
+    [$session, $accessToken, $plainRefresh] = nativeSessionApiPreviewFamily($preview);
+    $refresh = NativeRefreshToken::query()->where('native_device_session_id', $session->id)->sole();
+    $accessTokenCount = PersonalAccessToken::query()->where('tokenable_id', $preview->id)->count();
+    $knownSecret = "{$source}-nested-refresh-secret";
+    $renamedSecret = "{$source}-renamed-credential-secret";
+    $request = $this->withToken($accessToken)->withHeaders(nativeSessionApiHeaders());
+    $payload = [
+        'refresh_token' => $plainRefresh,
+        'device_label' => "{$source} Preview iPhone",
+        'nested' => ['refresh_token' => $knownSecret],
+        'renamed_credential' => $renamedSecret,
+    ];
+
+    $response = match ($source) {
+        'json' => $request->postJson('/api/v1/native/auth/session/refresh', $payload),
+        'form' => $request->post('/api/v1/native/auth/session/refresh', $payload),
+        'query' => $request->postJson(
+            '/api/v1/native/auth/session/refresh?'.http_build_query([
+                'nested' => ['refresh_token' => $knownSecret],
+                'renamed_credential' => $renamedSecret,
+                'device_label' => 'Query Preview iPhone',
+            ]),
+            ['refresh_token' => $plainRefresh],
+        ),
+    };
+
+    $response->assertOk()->assertExactJson([
+        'success' => true,
+        'message' => 'Preview: Record created (not saved)',
+        'preview_mode' => true,
+        'preview_notice' => 'Changes are session-only and will be lost on refresh.',
+    ]);
+
+    $encodedResponse = json_encode($response->json(), JSON_THROW_ON_ERROR);
+    expect($encodedResponse)->not->toContain(
+        $plainRefresh,
+        $knownSecret,
+        $renamedSecret,
+        'device_label',
+        'nested',
+        'renamed_credential',
+        'refresh_token',
+    )->and($session->fresh()?->revoked_at)->toBeNull()
+        ->and($session->fresh()?->current_access_token_id)->toBe($session->current_access_token_id)
+        ->and($refresh->fresh()?->used_at)->toBeNull()
+        ->and(NativeRefreshToken::query()->where('native_device_session_id', $session->id)->count())->toBe(1)
+        ->and(PersonalAccessToken::query()->where('tokenable_id', $preview->id)->count())->toBe($accessTokenCount);
+})->with(['json', 'form', 'query']);
 
 it('limits exchange to ten attempts per authenticated user independently of IP', function (): void {
     $first = User::factory()->create(['is_preview_user' => false]);

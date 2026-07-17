@@ -209,6 +209,13 @@ class PreviewWriteInterceptor
             'preview_notice' => 'Changes are session-only and will be lost on refresh.',
         ];
 
+        // Native authentication requests may contain credentials under any
+        // submitted key, including nested JSON, form, or query parameters.
+        // Return only the conventional preview envelope for these paths.
+        if ($request->is('api/v1/native/auth/*')) {
+            return response()->json($responseData);
+        }
+
         // For POST/PUT/PATCH, include the submitted data with a fake ID if needed
         if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
             $requestData = $request->except(self::SENSITIVE_FIELDS);

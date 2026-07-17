@@ -75,11 +75,6 @@ class SanitizeInput
     public function handle(Request $request, Closure $next): Response
     {
         $input = $request->all();
-
-        if ($request->is('api/v1/native/auth/*') && array_key_exists('device_label', $input)) {
-            $request->attributes->set('native_original_device_label', $input['device_label']);
-        }
-
         $sanitized = $this->sanitizeArray($input);
 
         $request->merge($sanitized);
