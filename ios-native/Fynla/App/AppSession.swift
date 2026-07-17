@@ -55,7 +55,11 @@ final class AppSession {
     @discardableResult
     func requirePasswordChange() -> Bool {
         transition(
-            from: [.authenticating, .verificationRequired, .multiFactorRequired],
+            from: [
+                .authenticating,
+                .verificationRequired,
+                .multiFactorRequired,
+            ],
             to: .passwordChangeRequired
         )
     }
@@ -68,9 +72,18 @@ final class AppSession {
     @discardableResult
     func completeAuthentication() -> Bool {
         transition(
-            from: [.authenticating, .verificationRequired, .multiFactorRequired],
+            from: [
+                .authenticating,
+                .verificationRequired,
+                .multiFactorRequired,
+            ],
             to: .authenticatedLocked
         )
+    }
+
+    @discardableResult
+    func completeRestoration() -> Bool {
+        transition(from: [.restorationRequired], to: .authenticatedLocked)
     }
 
     @discardableResult

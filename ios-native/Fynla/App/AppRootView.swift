@@ -3,12 +3,18 @@ import SwiftUI
 struct AppRootView: View {
     let session: AppSession
     @State private var registrationModel: RegistrationModel
+    @State private var loginModel: LoginModel
+    @State private var passwordResetModel: PasswordResetModel
+    @State private var isPresentingPasswordReset: Bool
 
     init(
         session: AppSession,
         registrationActions: RegistrationActions,
+        loginActions: LoginActions,
+        passwordResetActions: PasswordResetActions,
         webBaseURL: URL,
-        initiallyPresentsRegistration: Bool = false
+        initiallyPresentsRegistration: Bool = false,
+        initiallyPresentsPasswordReset: Bool = false
     ) {
         self.session = session
         _registrationModel = State(
@@ -17,6 +23,13 @@ struct AppRootView: View {
                 webBaseURL: webBaseURL,
                 isPresentingRegistration: initiallyPresentsRegistration
             )
+        )
+        _loginModel = State(initialValue: LoginModel(actions: loginActions))
+        _passwordResetModel = State(
+            initialValue: PasswordResetModel(actions: passwordResetActions)
+        )
+        _isPresentingPasswordReset = State(
+            initialValue: initiallyPresentsPasswordReset
         )
     }
 
@@ -28,27 +41,27 @@ struct AppRootView: View {
             case .signedOut:
                 if registrationModel.isPresentingRegistration {
                     RegistrationView(model: registrationModel)
+                } else if isPresentingPasswordReset {
+                    passwordResetView
                 } else {
-                    SignedOutView {
-                        registrationModel.presentRegistration()
-                    }
+                    loginView
                 }
             case .authenticating:
                 if registrationModel.isPresentingRegistration {
                     RegistrationView(model: registrationModel)
                 } else {
-                    LoadingView(message: "Signing in securely")
+                    loginView
                 }
             case .verificationRequired:
                 if registrationModel.challenge != nil {
                     VerificationCodeView(model: registrationModel)
                 } else {
-                    LoadingView(message: "Preparing email verification")
+                    loginView
                 }
             case .multiFactorRequired:
-                SignedOutPendingView(message: "Confirm your identity to continue.")
+                MultiFactorView(model: loginModel)
             case .restorationRequired:
-                SignedOutPendingView(message: "Restore your account to continue.")
+                RestoreAccountFlow(model: loginModel)
             case .passwordChangeRequired:
                 LockedView(message: "Change your password to continue.")
             case .authenticatedLocked:
@@ -64,61 +77,34 @@ struct AppRootView: View {
             session.completeLaunch(hasAuthenticatedSession: false)
         }
     }
+
+    private var loginView: some View {
+        LoginView(
+            model: loginModel,
+            createAccount: {
+                isPresentingPasswordReset = false
+                registrationModel.presentRegistration()
+            },
+            forgotPassword: {
+                isPresentingPasswordReset = true
+            }
+        )
+    }
+
+    private var passwordResetView: some View {
+        PasswordResetFlow(
+            model: passwordResetModel,
+            onDismiss: {
+                isPresentingPasswordReset = false
+            }
+        )
+    }
 }
 
 private struct LaunchingView: View {
     var body: some View {
         LoadingView(message: "Fynla is starting")
             .accessibilityIdentifier("app.launching")
-    }
-}
-
-private struct SignedOutView: View {
-    let createAccount: @MainActor () -> Void
-
-    var body: some View {
-        VStack(spacing: FynlaSpacing.large) {
-            VStack(spacing: FynlaSpacing.small) {
-                Text("Fynla")
-                    .font(FynlaTypography.sectionTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
-                Text("Sign in to continue.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .multilineTextAlignment(.center)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("auth.signedOut")
-
-            FynlaButton("Create account", action: createAccount)
-                .frame(maxWidth: 320)
-                .accessibilityIdentifier("registration.createAccount")
-
-            Text("Native sign-in options will appear here in the next authentication step.")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(FynlaSpacing.large)
-        .background(FynlaColor.pageBackground.ignoresSafeArea())
-    }
-}
-
-private struct SignedOutPendingView: View {
-    let message: String
-
-    var body: some View {
-        VStack(spacing: FynlaSpacing.small) {
-            Text("Fynla")
-                .font(FynlaTypography.sectionTitle)
-            Text(message)
-                .foregroundStyle(FynlaColor.secondaryText)
-                .multilineTextAlignment(.center)
-        }
-        .padding(FynlaSpacing.large)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("auth.signedOut")
     }
 }
 

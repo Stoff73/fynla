@@ -215,14 +215,16 @@ Recorded 2026-07-17: registration and verification were implemented against the 
 
 **Files:** Create `LoginView.swift`, `LoginModel.swift`, `MultiFactorView.swift`, `PasswordResetFlow.swift`, `RestoreAccountFlow.swift`; tests.
 
-- [ ] Implement email/password login and the email-verification branch using current `challenge_token` fields.
-- [ ] Implement six-digit time-based one-time password and recovery-code branches using `mfa_token`.
-- [ ] Implement all `/api/auth/password-reset/*` steps without bypassing multi-factor authentication.
-- [ ] Implement `/api/auth/restore/check` and `/api/auth/restore` using the server-issued restoration challenge; never reveal deleted-account state before correct credentials.
-- [ ] Show server lockout wording and countdown from `remaining_seconds`; prevent repeated submissions while locked.
-- [ ] Add accessibility identifiers for each field, submit, resend and alternate recovery action.
-- [ ] Add UI tests for every branch using deterministic AuthClient doubles.
-- [ ] Confirm no user-facing copy calls Face ID a password replacement.
+- [x] Implement email/password login and the email-verification branch using current `challenge_token` fields.
+- [x] Implement six-digit time-based one-time password and recovery-code branches using `mfa_token`.
+- [x] Implement all `/api/auth/password-reset/*` steps without bypassing multi-factor authentication.
+- [x] Implement `/api/auth/restore/check` and `/api/auth/restore` using the server-issued restoration challenge; never reveal deleted-account state before correct credentials.
+- [x] Show server lockout wording and countdown from `remaining_seconds`; prevent repeated submissions while locked.
+- [x] Add accessibility identifiers for each field, submit, resend and alternate recovery action.
+- [x] Add UI tests for every branch using deterministic AuthClient doubles.
+- [x] Confirm no user-facing copy calls Face ID a password replacement.
+
+Recorded 2026-07-17: the live signed-out shell now owns the complete login, verification, TOTP, recovery-code, password-reset and account-restoration branches, with deterministic UI-test scenarios and exact client fixtures for every server contract. Secrets and codes remain view-local; cancellation ownership prevents late responses from mutating a newer attempt; lockouts gate every continuation and render a stable countdown. Restoration state is exposed only after credential verification and uses a dedicated `AppSession.completeRestoration()` gate, preserving the existing fail-closed rule that generic authentication completion cannot unlock a pending restoration. Frozen review then reproduced three integration gaps: IP lockouts without `remaining_seconds` could retry, one-time MFA challenges were restored after a server 401, and the restoration UI double bypassed the real coordinator. Separate RED→GREEN remediation added indefinite lockout gating, returned consumed MFA/recovery challenges to full sign-in, and routed every login UI scenario through a deterministic `AuthCompletionClient` and the production coordinator; reset MFA controls now freeze during submission and the reset-token fixture matches the server's 64-character contract. The final exact-source Swift 6 host suite passed 135 tests across 18 suites with one credential-gated staging test skipped because no bearer was supplied. Project verification passed, and the unsigned generic iOS device build compiled the app, unit-test and UI-test targets for arm64 under warnings-as-errors without launching a simulator. No browser, remote endpoint or production system was accessed.
 
 **Intended review boundary:** `feat: complete native login branches`
 

@@ -73,6 +73,21 @@ struct AppSessionTests {
     }
 
     @Test @MainActor
+    func verifiedRestorationUsesItsDedicatedCompletionGate() {
+        let signedOut = AppSession(state: .signedOut)
+        #expect(!signedOut.completeRestoration())
+
+        let session = AppSession(state: .signedOut)
+        #expect(session.beginAuthentication())
+        #expect(session.requireRestoration())
+        #expect(session.completeRestoration())
+        #expect(session.state == .authenticatedLocked)
+        #expect(session.unlock())
+        #expect(session.state == .authenticatedUnlocked)
+        #expect(!session.completeRestoration())
+    }
+
+    @Test @MainActor
     func mandatoryPasswordChangeIsTheOnlyGateThatCanCompleteItsTransition() {
         let signedOut = AppSession(state: .signedOut)
         #expect(!signedOut.completeMandatoryPasswordChange())

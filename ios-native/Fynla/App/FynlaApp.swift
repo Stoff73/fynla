@@ -6,6 +6,7 @@ struct FynlaApp: App {
     @State private var router: AppRouter
     @State private var authenticationCoordinator: AuthenticationCoordinator
     private let dependencies: AppDependencies
+    private let authenticationClient: APIAuthClient
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -27,14 +28,33 @@ struct FynlaApp: App {
         self.dependencies = dependencies
         let session = AppSession(state: initialState)
         let authClient = dependencies.makeAuthenticationClient()
-        let authenticationCoordinator = AuthenticationCoordinator(
+        self.authenticationClient = authClient
+        #if FYNLA_UI_TESTING
+        let coordinator: AuthenticationCoordinator
+        if let scenario = uiTestMode?.loginScenario {
+            let uiTestAuthClient = LoginUITestAuthClient(scenario: scenario)
+            coordinator = AuthenticationCoordinator(
+                appSession: session,
+                authClient: uiTestAuthClient,
+                currentUserClient: uiTestAuthClient
+            )
+        } else {
+            coordinator = AuthenticationCoordinator(
+                appSession: session,
+                authClient: authClient,
+                currentUserClient: authClient
+            )
+        }
+        #else
+        let coordinator = AuthenticationCoordinator(
             appSession: session,
             authClient: authClient,
             currentUserClient: authClient
         )
+        #endif
         _session = State(initialValue: session)
         _router = State(initialValue: AppRouter(session: session))
-        _authenticationCoordinator = State(initialValue: authenticationCoordinator)
+        _authenticationCoordinator = State(initialValue: coordinator)
     }
 
     var body: some Scene {
@@ -61,8 +81,11 @@ struct FynlaApp: App {
         AppRootView(
             session: session,
             registrationActions: registrationActions,
+            loginActions: loginActions,
+            passwordResetActions: passwordResetActions,
             webBaseURL: dependencies.environment.webBaseURL,
-            initiallyPresentsRegistration: initiallyPresentsRegistration
+            initiallyPresentsRegistration: initiallyPresentsRegistration,
+            initiallyPresentsPasswordReset: initiallyPresentsPasswordReset
         )
             .environment(session)
             .environment(router)
@@ -81,9 +104,37 @@ struct FynlaApp: App {
         )
     }
 
+    @MainActor
+    private var loginActions: LoginActions {
+        return .coordinator(
+            authenticationCoordinator,
+            deviceLabel: "Fynla iPhone"
+        )
+    }
+
+    @MainActor
+    private var passwordResetActions: PasswordResetActions {
+        #if FYNLA_UI_TESTING
+        if let scenario = uiTestMode?.passwordResetScenario {
+            return scenario.actions(session: session)
+        }
+        #endif
+        return .client(authenticationClient) {
+            authenticationCoordinator.signOut()
+        }
+    }
+
     private var initiallyPresentsRegistration: Bool {
         #if FYNLA_UI_TESTING
         uiTestMode?.registrationScenario != nil
+        #else
+        false
+        #endif
+    }
+
+    private var initiallyPresentsPasswordReset: Bool {
+        #if FYNLA_UI_TESTING
+        uiTestMode?.passwordResetScenario != nil
         #else
         false
         #endif

@@ -13,6 +13,14 @@ enum UITestMode: String, Sendable {
     case registrationExpired = "registration-expired"
     case registrationResendExhausted = "registration-resend-exhausted"
     case registrationLargeText = "registration-large-text"
+    case loginSuccess = "login-success"
+    case loginVerification = "login-verification"
+    case loginMultiFactor = "login-mfa"
+    case loginRestoration = "login-restoration"
+    case loginRestorationWithoutMFA = "login-restoration-no-mfa"
+    case loginLockout = "login-lockout"
+    case passwordReset = "password-reset"
+    case passwordResetMultiFactor = "password-reset-mfa"
 
     init?(arguments: [String]) {
         guard let flagIndex = arguments.firstIndex(of: "-fynla-ui-test-mode"),
@@ -41,7 +49,15 @@ enum UITestMode: String, Sendable {
              .registrationWrongCode,
              .registrationExpired,
              .registrationResendExhausted,
-             .registrationLargeText:
+             .registrationLargeText,
+             .loginSuccess,
+             .loginVerification,
+             .loginMultiFactor,
+             .loginRestoration,
+             .loginRestorationWithoutMFA,
+             .loginLockout,
+             .passwordReset,
+             .passwordResetMultiFactor:
             .signedOut
         }
     }
@@ -69,9 +85,280 @@ enum UITestMode: String, Sendable {
         case .liveLaunch,
              .signedOut,
              .unlocked,
-             .designSystem:
+             .designSystem,
+             .loginSuccess,
+             .loginVerification,
+             .loginMultiFactor,
+             .loginRestoration,
+             .loginRestorationWithoutMFA,
+             .loginLockout,
+             .passwordReset,
+             .passwordResetMultiFactor:
             nil
         }
+    }
+
+    var loginScenario: LoginUITestScenario? {
+        switch self {
+        case .loginSuccess:
+            .success
+        case .loginVerification:
+            .verification
+        case .loginMultiFactor:
+            .multiFactor
+        case .loginRestoration:
+            .restoration
+        case .loginRestorationWithoutMFA:
+            .restorationWithoutMFA
+        case .loginLockout:
+            .lockout
+        case .liveLaunch,
+             .signedOut,
+             .unlocked,
+             .designSystem,
+             .registrationSuccess,
+             .registrationFieldErrors,
+             .registrationDuplicateEmail,
+             .registrationWrongCode,
+             .registrationExpired,
+             .registrationResendExhausted,
+             .registrationLargeText,
+             .passwordReset,
+             .passwordResetMultiFactor:
+            nil
+        }
+    }
+
+    var passwordResetScenario: PasswordResetUITestScenario? {
+        switch self {
+        case .passwordReset:
+            .withoutMultiFactor
+        case .passwordResetMultiFactor:
+            .withMultiFactor
+        case .liveLaunch,
+             .signedOut,
+             .unlocked,
+             .designSystem,
+             .registrationSuccess,
+             .registrationFieldErrors,
+             .registrationDuplicateEmail,
+             .registrationWrongCode,
+             .registrationExpired,
+             .registrationResendExhausted,
+             .registrationLargeText,
+             .loginSuccess,
+             .loginVerification,
+             .loginMultiFactor,
+             .loginRestoration,
+             .loginRestorationWithoutMFA,
+             .loginLockout:
+            nil
+        }
+    }
+}
+
+enum LoginUITestScenario: Sendable, Equatable {
+    case success
+    case verification
+    case multiFactor
+    case restoration
+    case restorationWithoutMFA
+    case lockout
+}
+
+actor LoginUITestAuthClient: AuthCompletionClient, CurrentUserClient {
+    private let scenario: LoginUITestScenario
+
+    init(scenario: LoginUITestScenario) {
+        self.scenario = scenario
+    }
+
+    func register(_ input: RegistrationInput) async throws -> RegistrationChallenge {
+        throw TestDependencyError.unexpectedNetworkRequest
+    }
+
+    func verifyRegistrationCompletion(
+        _ input: RegistrationVerificationInput
+    ) async throws -> BootstrapAuthentication {
+        throw TestDependencyError.unexpectedNetworkRequest
+    }
+
+    func resendRegistration(pendingID: Int) async throws -> String {
+        throw TestDependencyError.unexpectedNetworkRequest
+    }
+
+    func loginCompletion(email: String, password: String) async throws -> LoginCompletion {
+        switch scenario {
+        case .success:
+            LoginCompletion(
+                outcome: .authenticated(bootstrapAccessToken: "ui-bootstrap"),
+                mustChangePassword: false
+            )
+        case .verification:
+            LoginCompletion(
+                outcome: .verification(
+                    challengeToken: "ui-login-challenge",
+                    maskedEmail: "e***@example.test"
+                ),
+                mustChangePassword: nil
+            )
+        case .multiFactor:
+            LoginCompletion(
+                outcome: .multiFactor(
+                    token: "ui-mfa-token",
+                    maskedEmail: "e***@example.test"
+                ),
+                mustChangePassword: nil
+            )
+        case .restoration, .restorationWithoutMFA:
+            LoginCompletion(
+                outcome: .restorable(RestorationChallenge(
+                    token: "untrusted-ui-restoration-token",
+                    deletedAt: "2026-07-16T12:00:00Z",
+                    deletionReason: "user_requested",
+                    deletionSource: "settings",
+                    firstName: "Example"
+                )),
+                mustChangePassword: nil
+            )
+        case .lockout:
+            throw AuthError.locked(
+                message: "Account temporarily locked. Try again in 1 minute(s).",
+                remainingSeconds: 60
+            )
+        }
+    }
+
+    func verifyLoginCompletion(
+        code: String,
+        challengeToken: String
+    ) async throws -> BootstrapAuthentication {
+        guard scenario == .verification else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return completedAuthentication()
+    }
+
+    func verifyMFACompletion(
+        code: String,
+        token: String
+    ) async throws -> BootstrapAuthentication {
+        guard scenario == .multiFactor else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return completedAuthentication()
+    }
+
+    func useRecoveryCodeCompletion(
+        _ code: String,
+        token: String
+    ) async throws -> BootstrapAuthentication {
+        guard scenario == .multiFactor else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return completedAuthentication()
+    }
+
+    func resendLogin(challengeToken: String) async throws -> LoginResendResult {
+        guard scenario == .verification else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return LoginResendResult(
+            message: "Verification code sent",
+            canResend: true,
+            remainingResends: 1
+        )
+    }
+
+    func checkRestoration(email: String, password: String) async throws -> RestorationSession {
+        guard scenario == .restoration || scenario == .restorationWithoutMFA else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return RestorationSession(
+            token: "checked-ui-restoration-token",
+            requiresMFA: scenario == .restoration
+        )
+    }
+
+    func restoreAccount(
+        token: String,
+        mfaCode: String?
+    ) async throws -> BootstrapAuthentication {
+        guard token == "checked-ui-restoration-token",
+              (scenario == .restoration && mfaCode == "123456")
+                || (scenario == .restorationWithoutMFA && mfaCode == nil)
+        else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return completedAuthentication()
+    }
+
+    func exchange(bootstrapToken: String, deviceLabel: String) async throws -> NativeCredentials {
+        NativeCredentials(
+            accessToken: "ui-native-access",
+            accessExpiresAt: "2026-07-17T12:15:00Z",
+            refreshToken: "ui-native-refresh",
+            refreshExpiresAt: "2026-08-16T12:00:00Z",
+            absoluteExpiresAt: "2026-10-15T12:00:00Z",
+            sessionID: "11111111-2222-3333-4444-555555555555"
+        )
+    }
+
+    func currentUser(accessToken: String) async throws -> AuthenticatedUser {
+        guard accessToken == "ui-native-access" else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return AuthenticatedUser(
+            id: 101,
+            firstName: "Example",
+            surname: "User",
+            name: "Example User",
+            email: "example@example.test"
+        )
+    }
+
+    private func completedAuthentication() -> BootstrapAuthentication {
+        BootstrapAuthentication(
+            bootstrapAccessToken: "ui-bootstrap",
+            mustChangePassword: false
+        )
+    }
+}
+
+enum PasswordResetUITestScenario: Sendable, Equatable {
+    case withoutMultiFactor
+    case withMultiFactor
+
+    @MainActor
+    func actions(session: AppSession) -> PasswordResetActions {
+        PasswordResetActions(
+            request: { _ in
+                PasswordResetRequestResult(
+                    message: "Verification code sent",
+                    resetToken: "ui-reset-token"
+                )
+            },
+            verifyEmail: { _, _ in
+                PasswordResetEmailVerification(
+                    requiresMFA: self == .withMultiFactor,
+                    canResetPassword: self == .withoutMultiFactor
+                )
+            },
+            resend: { _ in
+                PasswordResetResendResult(
+                    message: "Verification code sent",
+                    remainingResends: 1
+                )
+            },
+            verifyMFA: { _, _ in
+                PasswordResetAuthorization(canResetPassword: true)
+            },
+            useRecoveryCode: { _, _ in
+                PasswordResetAuthorization(canResetPassword: true)
+            },
+            reset: { _, _, _ in "Your password has been reset successfully." },
+            cancel: { session.signOut() }
+        )
     }
 }
 

@@ -404,6 +404,8 @@ final class RegistrationModel {
             message = serverMessage ?? "Too many attempts. Please try again later."
         case let .unauthenticated(serverMessage):
             message = serverMessage ?? "Authentication failed. Please try again."
+        case let .requestRejected(serverMessage, _):
+            message = serverMessage
         case .offline:
             message = "You appear to be offline. Check your connection and try again."
         case .transport:

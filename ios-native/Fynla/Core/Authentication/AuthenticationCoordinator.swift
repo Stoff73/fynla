@@ -13,6 +13,11 @@ enum RefreshCredentialPersistence: Sendable, Equatable {
 @MainActor
 @Observable
 final class AuthenticationCoordinator: AccessTokenProviding {
+    private enum SessionCompletion {
+        case authentication
+        case restoration
+    }
+
     enum State: Sendable, Equatable {
         case signedOut
         case submitting
@@ -111,10 +116,24 @@ final class AuthenticationCoordinator: AccessTokenProviding {
                 state = .multiFactor(token: token, maskedEmail: maskedEmail)
                 isSubmitting = false
             case let .restorable(challenge):
+                let checked = try await authClient.checkRestoration(
+                    email: email,
+                    password: password
+                )
+                try requireCurrentAttempt(attempt)
                 guard appSession.requireRestoration() else {
                     throw AuthenticationCoordinatorError.fullLoginRequired
                 }
-                state = .restoration(challenge)
+                state = .restoration(
+                    RestorationChallenge(
+                        token: checked.token,
+                        deletedAt: challenge.deletedAt,
+                        deletionReason: challenge.deletionReason,
+                        deletionSource: challenge.deletionSource,
+                        firstName: challenge.firstName,
+                        requiresMFA: checked.requiresMFA
+                    )
+                )
                 isSubmitting = false
             case let .authenticated(bootstrapAccessToken):
                 try await completeFullAuthentication(
@@ -249,6 +268,37 @@ final class AuthenticationCoordinator: AccessTokenProviding {
         }
     }
 
+    func resendLogin() async throws -> LoginResendResult {
+        guard case let .loginVerification(challengeToken, _) = state else {
+            throw AuthenticationCoordinatorError.fullLoginRequired
+        }
+        let pendingState = state
+        let attempt = try beginPendingAttempt()
+
+        do {
+            let result = try await authClient.resendLogin(
+                challengeToken: challengeToken
+            )
+            try requireCurrentAttempt(attempt)
+            restorePending(pendingState, ifCurrent: attempt)
+            return result
+        } catch let error as AuthenticationCoordinatorError {
+            if error == .cancelled {
+                clearToSignedOut(ifCurrent: attempt)
+            }
+            throw error
+        } catch is CancellationError {
+            clearToSignedOut(ifCurrent: attempt)
+            throw AuthenticationCoordinatorError.cancelled
+        } catch {
+            guard isCurrentAttempt(attempt) else {
+                throw AuthenticationCoordinatorError.cancelled
+            }
+            restorePending(pendingState, ifCurrent: attempt)
+            throw error
+        }
+    }
+
     func verifyMFA(code: String, deviceLabel: String) async throws {
         guard case let .multiFactor(token, _) = state else {
             throw AuthenticationCoordinatorError.fullLoginRequired
@@ -279,6 +329,10 @@ final class AuthenticationCoordinator: AccessTokenProviding {
             guard isCurrentAttempt(attempt) else {
                 throw AuthenticationCoordinatorError.cancelled
             }
+            if case AuthError.unauthenticated = error {
+                clearForFullLoginRetry(ifCurrent: attempt)
+                throw AuthenticationCoordinatorError.fullLoginRequired
+            }
             restorePending(pendingState, ifCurrent: attempt)
             throw error
         }
@@ -301,6 +355,46 @@ final class AuthenticationCoordinator: AccessTokenProviding {
                 completion,
                 deviceLabel: deviceLabel,
                 attempt: attempt
+            )
+        } catch let error as AuthenticationCoordinatorError {
+            if error == .cancelled {
+                clearToSignedOut(ifCurrent: attempt)
+            }
+            throw error
+        } catch is CancellationError {
+            clearToSignedOut(ifCurrent: attempt)
+            throw AuthenticationCoordinatorError.cancelled
+        } catch {
+            guard isCurrentAttempt(attempt) else {
+                throw AuthenticationCoordinatorError.cancelled
+            }
+            if case AuthError.unauthenticated = error {
+                clearForFullLoginRetry(ifCurrent: attempt)
+                throw AuthenticationCoordinatorError.fullLoginRequired
+            }
+            restorePending(pendingState, ifCurrent: attempt)
+            throw error
+        }
+    }
+
+    func restoreAccount(mfaCode: String?, deviceLabel: String) async throws {
+        guard case let .restoration(challenge) = state else {
+            throw AuthenticationCoordinatorError.fullLoginRequired
+        }
+        let pendingState = state
+        let attempt = try beginPendingAttempt()
+
+        do {
+            let completion = try await authClient.restoreAccount(
+                token: challenge.token,
+                mfaCode: mfaCode
+            )
+            try requireCurrentAttempt(attempt)
+            try await completeFullAuthentication(
+                completion,
+                deviceLabel: deviceLabel,
+                attempt: attempt,
+                sessionCompletion: .restoration
             )
         } catch let error as AuthenticationCoordinatorError {
             if error == .cancelled {
@@ -373,7 +467,8 @@ final class AuthenticationCoordinator: AccessTokenProviding {
     private func completeFullAuthentication(
         _ completion: BootstrapAuthentication,
         deviceLabel: String,
-        attempt: Int
+        attempt: Int,
+        sessionCompletion: SessionCompletion = .authentication
     ) async throws {
         do {
             try requireCurrentAttempt(attempt)
@@ -388,11 +483,19 @@ final class AuthenticationCoordinator: AccessTokenProviding {
             try requireCurrentAttempt(attempt)
 
             if completion.mustChangePassword == true {
-                guard appSession.requirePasswordChange() else {
+                guard sessionCompletion == .authentication,
+                      appSession.requirePasswordChange()
+                else {
                     throw AuthenticationCoordinatorError.fullLoginRequired
                 }
             } else {
-                guard appSession.completeAuthentication(), appSession.unlock() else {
+                let completed = switch sessionCompletion {
+                case .authentication:
+                    appSession.completeAuthentication()
+                case .restoration:
+                    appSession.completeRestoration()
+                }
+                guard completed, appSession.unlock() else {
                     throw AuthenticationCoordinatorError.fullLoginRequired
                 }
             }

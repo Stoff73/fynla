@@ -39,6 +39,53 @@ struct RestorationChallenge: Sendable, Equatable {
     let deletionReason: String?
     let deletionSource: String?
     let firstName: String?
+    let requiresMFA: Bool
+
+    init(
+        token: String,
+        deletedAt: String,
+        deletionReason: String?,
+        deletionSource: String?,
+        firstName: String?,
+        requiresMFA: Bool = false
+    ) {
+        self.token = token
+        self.deletedAt = deletedAt
+        self.deletionReason = deletionReason
+        self.deletionSource = deletionSource
+        self.firstName = firstName
+        self.requiresMFA = requiresMFA
+    }
+}
+
+struct LoginResendResult: Sendable, Equatable {
+    let message: String
+    let canResend: Bool
+    let remainingResends: Int?
+}
+
+struct PasswordResetRequestResult: Sendable, Equatable {
+    let message: String
+    let resetToken: String?
+}
+
+struct PasswordResetEmailVerification: Sendable, Equatable {
+    let requiresMFA: Bool
+    let canResetPassword: Bool
+}
+
+struct PasswordResetResendResult: Sendable, Equatable {
+    let message: String
+    let remainingResends: Int
+}
+
+struct PasswordResetAuthorization: Sendable, Equatable {
+    let canResetPassword: Bool
+}
+
+struct RestorationSession: Sendable, Equatable {
+    let token: String
+    let requiresMFA: Bool
 }
 
 enum LoginOutcome: Sendable, Equatable {
@@ -108,6 +155,7 @@ enum AuthError: Error, Sendable, Equatable {
     case rateLimited(message: String?)
     case unauthenticated(message: String?)
     case notFound(message: String?)
+    case requestRejected(message: String, status: Int)
     case offline
     case transport
     case server(status: Int)
@@ -265,6 +313,105 @@ enum AuthResponseDecoder {
         return message
     }
 
+    static func loginResend(from data: Data) throws -> LoginResendResult {
+        let response = try decode(AuthResponse.self, from: data)
+        guard response.success == true,
+              let message = nonempty(response.message),
+              let canResend = response.data?.canResend
+        else {
+            throw AuthError.decoding
+        }
+        return LoginResendResult(
+            message: message,
+            canResend: canResend,
+            remainingResends: response.data?.remainingResends
+        )
+    }
+
+    static func passwordResetRequest(from data: Data) throws -> PasswordResetRequestResult {
+        let response = try decode(PasswordResetResponse.self, from: data)
+        guard response.success,
+              let message = nonempty(response.message)
+        else {
+            throw AuthError.decoding
+        }
+        return PasswordResetRequestResult(
+            message: message,
+            resetToken: nonempty(response.data?.resetToken)
+        )
+    }
+
+    static func passwordResetEmailVerification(
+        from data: Data
+    ) throws -> PasswordResetEmailVerification {
+        let response = try decode(PasswordResetResponse.self, from: data)
+        guard response.success,
+              let requiresMFA = response.data?.requiresMFA,
+              let canResetPassword = response.data?.canResetPassword
+        else {
+            throw AuthError.decoding
+        }
+        return PasswordResetEmailVerification(
+            requiresMFA: requiresMFA,
+            canResetPassword: canResetPassword
+        )
+    }
+
+    static func passwordResetResend(from data: Data) throws -> PasswordResetResendResult {
+        let response = try decode(PasswordResetResponse.self, from: data)
+        guard response.success,
+              let message = nonempty(response.message),
+              let remaining = response.data?.remainingResends
+        else {
+            throw AuthError.decoding
+        }
+        return PasswordResetResendResult(
+            message: message,
+            remainingResends: remaining
+        )
+    }
+
+    static func passwordResetAuthorization(
+        from data: Data
+    ) throws -> PasswordResetAuthorization {
+        let response = try decode(PasswordResetResponse.self, from: data)
+        guard response.success,
+              let canResetPassword = response.data?.canResetPassword
+        else {
+            throw AuthError.decoding
+        }
+        return PasswordResetAuthorization(canResetPassword: canResetPassword)
+    }
+
+    static func successMessage(from data: Data) throws -> String {
+        let response = try decode(PasswordResetResponse.self, from: data)
+        guard response.success,
+              let message = nonempty(response.message)
+        else {
+            throw AuthError.decoding
+        }
+        return message
+    }
+
+    static func restorationSession(from data: Data) throws -> RestorationSession {
+        let response = try decode(RestorationSessionResponse.self, from: data)
+        guard let token = nonempty(response.restorationToken) else {
+            throw AuthError.decoding
+        }
+        return RestorationSession(token: token, requiresMFA: response.requiresMFA)
+    }
+
+    static func restorationAuthentication(from data: Data) throws -> BootstrapAuthentication {
+        let response = try decode(RestorationSuccessResponse.self, from: data)
+        guard let token = nonempty(response.token) else {
+            throw AuthError.decoding
+        }
+        return BootstrapAuthentication(
+            bootstrapAccessToken: token,
+            mustChangePassword: nil
+        )
+    }
+
     static func error(from data: Data, status: Int) -> AuthError {
         let response = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
 
@@ -294,6 +441,11 @@ enum AuthResponseDecoder {
             return .rateLimited(message: response?.message)
         case 404:
             return .notFound(message: response?.message)
+        case 400, 409:
+            return .requestRejected(
+                message: response?.message ?? "The request could not be completed.",
+                status: status
+            )
         default:
             return .server(status: status)
         }
@@ -351,6 +503,8 @@ private struct AuthResponseData: Decodable {
     let mfaToken: String?
     let accessToken: String?
     let mustChangePassword: Bool?
+    let canResend: Bool?
+    let remainingResends: Int?
 
     enum CodingKeys: String, CodingKey {
         case pendingID = "pending_id"
@@ -359,7 +513,43 @@ private struct AuthResponseData: Decodable {
         case mfaToken = "mfa_token"
         case accessToken = "access_token"
         case mustChangePassword = "must_change_password"
+        case canResend = "can_resend"
+        case remainingResends = "remaining_resends"
     }
+}
+
+private struct PasswordResetResponse: Decodable {
+    struct Payload: Decodable {
+        let resetToken: String?
+        let requiresMFA: Bool?
+        let canResetPassword: Bool?
+        let remainingResends: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case resetToken = "reset_token"
+            case requiresMFA = "requires_mfa"
+            case canResetPassword = "can_reset_password"
+            case remainingResends = "remaining_resends"
+        }
+    }
+
+    let success: Bool
+    let message: String?
+    let data: Payload?
+}
+
+private struct RestorationSessionResponse: Decodable {
+    let restorationToken: String
+    let requiresMFA: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case restorationToken = "restoration_token"
+        case requiresMFA = "requires_mfa"
+    }
+}
+
+private struct RestorationSuccessResponse: Decodable {
+    let token: String
 }
 
 private struct NativeCredentialsResponse: Decodable {

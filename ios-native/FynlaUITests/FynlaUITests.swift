@@ -10,7 +10,8 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "live-launch")
         app.launch()
 
-        XCTAssertTrue(element("auth.signedOut", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["login.submit"].isHittable)
         XCTAssertTrue(app.buttons["registration.createAccount"].isHittable)
     }
 
@@ -19,9 +20,10 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "signed-out")
         app.launch()
 
-        let shell = element("auth.signedOut", in: app)
-        XCTAssertTrue(shell.waitForExistence(timeout: 3))
-        XCTAssertTrue(shell.label.contains("Sign in to continue."))
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.secureTextFields["login.password"].exists)
+        XCTAssertTrue(app.buttons["login.submit"].isHittable)
+        XCTAssertTrue(app.buttons["registration.createAccount"].isHittable)
     }
 
     @MainActor
@@ -32,6 +34,19 @@ final class FynlaUITests: XCTestCase {
         let shell = element("app.unlocked", in: app)
         XCTAssertTrue(shell.waitForExistence(timeout: 3))
         XCTAssertTrue(shell.label.contains("Your secure workspace is ready."))
+    }
+
+    @MainActor
+    func testSignedOutForgotPasswordNavigationReturnsToNativeLogin() throws {
+        let app = app(mode: "signed-out")
+        app.launch()
+
+        let forgotPassword = app.buttons["login.forgotPassword"]
+        XCTAssertTrue(forgotPassword.waitForExistence(timeout: 3))
+        forgotPassword.tap()
+        XCTAssertTrue(app.textFields["passwordReset.email"].waitForExistence(timeout: 3))
+        app.buttons["passwordReset.cancel"].tap()
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
     }
 
     @MainActor
@@ -226,7 +241,141 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(cancel.waitForExistence(timeout: 3))
         assertReachable(cancel, in: app)
         cancel.tap()
-        XCTAssertTrue(element("auth.signedOut", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["login.submit"].isHittable)
+    }
+
+    @MainActor
+    func testImmediateLoginSuccessUsesTheOfflineAuthenticatedGate() throws {
+        let app = app(mode: "login-success")
+        app.launch()
+        submitValidLogin(in: app)
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testLoginEmailVerificationResendAndSuccessBranches() throws {
+        let app = app(mode: "login-verification")
+        app.launch()
+        submitValidLogin(in: app)
+
+        let resend = app.buttons["login.verification.resend"]
+        XCTAssertTrue(resend.waitForExistence(timeout: 3))
+        resend.tap()
+        XCTAssertTrue(app.staticTexts["login.message"].waitForExistence(timeout: 3))
+        type("123456", into: "login.verification.code", in: app)
+        app.buttons["login.verification.submit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testLoginAuthenticatorBranch() throws {
+        let app = app(mode: "login-mfa")
+        app.launch()
+        submitValidLogin(in: app)
+
+        type("123456", into: "login.mfa.code", in: app)
+        app.buttons["login.mfa.submit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testLoginRecoveryCodeBranch() throws {
+        let app = app(mode: "login-mfa")
+        app.launch()
+        submitValidLogin(in: app)
+
+        let alternate = app.buttons["login.mfa.useRecovery"]
+        XCTAssertTrue(alternate.waitForExistence(timeout: 3))
+        alternate.tap()
+        type("RECOVERY-CODE", into: "login.mfa.recoveryCode", in: app)
+        app.buttons["login.mfa.recoverySubmit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testLoginRestorationUsesServerConfirmedMetadataAndChallenge() throws {
+        let app = app(mode: "login-restoration")
+        app.launch()
+        submitValidLogin(in: app)
+
+        let code = app.textFields["login.restore.mfaCode"]
+        XCTAssertTrue(code.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Example, we found your retained account after your credentials were verified. Restore it to continue where you left off."].exists)
+        code.tap()
+        code.typeText("123456")
+        app.buttons["login.restore.submit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testLoginRestorationWithoutMultiFactorOmitsTheCodeField() throws {
+        let app = app(mode: "login-restoration-no-mfa")
+        app.launch()
+        submitValidLogin(in: app)
+
+        let restore = app.buttons["login.restore.submit"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.textFields["login.restore.mfaCode"].exists)
+        XCTAssertTrue(restore.isEnabled)
+        restore.tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testLoginLockoutShowsServerWordingAndBlocksSubmission() throws {
+        let app = app(mode: "login-lockout")
+        app.launch()
+        submitValidLogin(in: app)
+
+        let message = app.staticTexts["login.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(message.label.contains("temporarily locked"))
+        XCTAssertTrue(app.staticTexts["login.lockoutCountdown"].exists)
+        XCTAssertFalse(app.buttons["login.submit"].isEnabled)
+    }
+
+    @MainActor
+    func testPasswordResetWithoutMultiFactorIncludesResendAndCompletion() throws {
+        let app = app(mode: "password-reset")
+        app.launch()
+        reachPasswordResetVerification(in: app)
+
+        app.buttons["passwordReset.verification.resend"].tap()
+        XCTAssertTrue(app.staticTexts["passwordReset.message"].waitForExistence(timeout: 3))
+        type("123456", into: "passwordReset.verification.code", in: app)
+        app.buttons["passwordReset.verification.submit"].tap()
+        completePasswordReset(in: app)
+    }
+
+    @MainActor
+    func testPasswordResetAuthenticatorBranchCannotBypassMultiFactor() throws {
+        let app = app(mode: "password-reset-mfa")
+        app.launch()
+        reachPasswordResetMultiFactor(in: app)
+
+        XCTAssertFalse(app.secureTextFields["passwordReset.newPassword"].exists)
+        type("123456", into: "passwordReset.mfa.code", in: app)
+        app.buttons["passwordReset.mfa.submit"].tap()
+        completePasswordReset(in: app)
+    }
+
+    @MainActor
+    func testPasswordResetRecoveryCodeBranchCannotBypassMultiFactor() throws {
+        let app = app(mode: "password-reset-mfa")
+        app.launch()
+        reachPasswordResetMultiFactor(in: app)
+
+        app.buttons["passwordReset.mfa.useRecovery"].tap()
+        type("RECOVERY-CODE", into: "passwordReset.mfa.recoveryCode", in: app)
+        app.buttons["passwordReset.mfa.recoverySubmit"].tap()
+        completePasswordReset(in: app)
     }
 
     @MainActor
@@ -249,6 +398,46 @@ final class FynlaUITests: XCTestCase {
             into: "registration.passwordConfirmation",
             in: app,
             secure: true
+        )
+    }
+
+    @MainActor
+    private func submitValidLogin(in app: XCUIApplication) {
+        type("example@example.test", into: "login.email", in: app)
+        type("Example1!", into: "login.password", in: app, secure: true)
+        app.buttons["login.submit"].tap()
+    }
+
+    @MainActor
+    private func reachPasswordResetVerification(in app: XCUIApplication) {
+        type("example@example.test", into: "passwordReset.email", in: app)
+        app.buttons["passwordReset.request"].tap()
+        XCTAssertTrue(
+            app.textFields["passwordReset.verification.code"]
+                .waitForExistence(timeout: 3)
+        )
+    }
+
+    @MainActor
+    private func reachPasswordResetMultiFactor(in app: XCUIApplication) {
+        reachPasswordResetVerification(in: app)
+        type("123456", into: "passwordReset.verification.code", in: app)
+        app.buttons["passwordReset.verification.submit"].tap()
+        XCTAssertTrue(app.textFields["passwordReset.mfa.code"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    private func completePasswordReset(in app: XCUIApplication) {
+        type("Changed1!", into: "passwordReset.newPassword", in: app, secure: true)
+        type(
+            "Changed1!",
+            into: "passwordReset.passwordConfirmation",
+            in: app,
+            secure: true
+        )
+        app.buttons["passwordReset.reset"].tap()
+        XCTAssertTrue(
+            app.buttons["passwordReset.complete.signIn"].waitForExistence(timeout: 3)
         )
     }
 

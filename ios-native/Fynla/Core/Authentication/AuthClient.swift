@@ -25,6 +25,12 @@ protocol AuthCompletionClient: AuthClient {
         _ code: String,
         token: String
     ) async throws -> BootstrapAuthentication
+    func resendLogin(challengeToken: String) async throws -> LoginResendResult
+    func checkRestoration(email: String, password: String) async throws -> RestorationSession
+    func restoreAccount(
+        token: String,
+        mfaCode: String?
+    ) async throws -> BootstrapAuthentication
 }
 
 extension AuthCompletionClient {
@@ -50,13 +56,36 @@ extension AuthCompletionClient {
     func useRecoveryCode(_ code: String, token: String) async throws -> String {
         try await useRecoveryCodeCompletion(code, token: token).bootstrapAccessToken
     }
+
+}
+
+protocol PasswordResetClient: Sendable {
+    func requestPasswordReset(email: String) async throws -> PasswordResetRequestResult
+    func verifyPasswordResetEmail(
+        token: String,
+        code: String
+    ) async throws -> PasswordResetEmailVerification
+    func resendPasswordResetCode(token: String) async throws -> PasswordResetResendResult
+    func verifyPasswordResetMFA(
+        token: String,
+        code: String
+    ) async throws -> PasswordResetAuthorization
+    func usePasswordResetRecoveryCode(
+        token: String,
+        recoveryCode: String
+    ) async throws -> PasswordResetAuthorization
+    func resetPassword(
+        token: String,
+        password: String,
+        confirmation: String
+    ) async throws -> String
 }
 
 protocol CurrentUserClient: Sendable {
     func currentUser(accessToken: String) async throws -> AuthenticatedUser
 }
 
-actor APIAuthClient: AuthCompletionClient, CurrentUserClient {
+actor APIAuthClient: AuthCompletionClient, CurrentUserClient, PasswordResetClient {
     private let environment: AppEnvironment
     private let version: String
     private let build: String
@@ -170,6 +199,124 @@ actor APIAuthClient: AuthCompletionClient, CurrentUserClient {
         return try AuthResponseDecoder.authentication(from: data)
     }
 
+    func resendLogin(challengeToken: String) async throws -> LoginResendResult {
+        let data = try await perform(
+            path: "api/auth/resend-code",
+            method: .post,
+            body: try encode(
+                LoginResendRequest(
+                    type: "login",
+                    challengeToken: challengeToken
+                )
+            )
+        )
+        return try AuthResponseDecoder.loginResend(from: data)
+    }
+
+    func requestPasswordReset(email: String) async throws -> PasswordResetRequestResult {
+        let data = try await perform(
+            path: "api/auth/password-reset/request",
+            method: .post,
+            body: try encode(EmailRequest(email: email))
+        )
+        return try AuthResponseDecoder.passwordResetRequest(from: data)
+    }
+
+    func verifyPasswordResetEmail(
+        token: String,
+        code: String
+    ) async throws -> PasswordResetEmailVerification {
+        let data = try await perform(
+            path: "api/auth/password-reset/verify-email",
+            method: .post,
+            body: try encode(TokenCodeRequest(token: token, code: code))
+        )
+        return try AuthResponseDecoder.passwordResetEmailVerification(from: data)
+    }
+
+    func resendPasswordResetCode(token: String) async throws -> PasswordResetResendResult {
+        let data = try await perform(
+            path: "api/auth/password-reset/resend-code",
+            method: .post,
+            body: try encode(TokenRequest(token: token))
+        )
+        return try AuthResponseDecoder.passwordResetResend(from: data)
+    }
+
+    func verifyPasswordResetMFA(
+        token: String,
+        code: String
+    ) async throws -> PasswordResetAuthorization {
+        let data = try await perform(
+            path: "api/auth/password-reset/verify-mfa",
+            method: .post,
+            body: try encode(TokenCodeRequest(token: token, code: code))
+        )
+        return try AuthResponseDecoder.passwordResetAuthorization(from: data)
+    }
+
+    func usePasswordResetRecoveryCode(
+        token: String,
+        recoveryCode: String
+    ) async throws -> PasswordResetAuthorization {
+        let data = try await perform(
+            path: "api/auth/password-reset/mfa-recovery",
+            method: .post,
+            body: try encode(
+                TokenRecoveryRequest(token: token, recoveryCode: recoveryCode)
+            )
+        )
+        return try AuthResponseDecoder.passwordResetAuthorization(from: data)
+    }
+
+    func resetPassword(
+        token: String,
+        password: String,
+        confirmation: String
+    ) async throws -> String {
+        let data = try await perform(
+            path: "api/auth/password-reset/reset",
+            method: .post,
+            body: try encode(
+                PasswordResetRequest(
+                    token: token,
+                    password: password,
+                    passwordConfirmation: confirmation
+                )
+            )
+        )
+        return try AuthResponseDecoder.successMessage(from: data)
+    }
+
+    func checkRestoration(
+        email: String,
+        password: String
+    ) async throws -> RestorationSession {
+        let data = try await perform(
+            path: "api/auth/restore/check",
+            method: .post,
+            body: try encode(LoginRequest(email: email, password: password))
+        )
+        return try AuthResponseDecoder.restorationSession(from: data)
+    }
+
+    func restoreAccount(
+        token: String,
+        mfaCode: String?
+    ) async throws -> BootstrapAuthentication {
+        let data = try await perform(
+            path: "api/auth/restore",
+            method: .post,
+            body: try encode(
+                RestoreAccountRequest(
+                    restorationToken: token,
+                    mfaCode: mfaCode
+                )
+            )
+        )
+        return try AuthResponseDecoder.restorationAuthentication(from: data)
+    }
+
     func exchange(
         bootstrapToken: String,
         deviceLabel: String
@@ -263,6 +410,61 @@ private struct RegistrationResendRequest: Encodable {
     enum CodingKeys: String, CodingKey {
         case type
         case pendingID = "pending_id"
+    }
+}
+
+private struct LoginResendRequest: Encodable {
+    let type: String
+    let challengeToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case challengeToken = "challenge_token"
+    }
+}
+
+private struct EmailRequest: Encodable {
+    let email: String
+}
+
+private struct TokenRequest: Encodable {
+    let token: String
+}
+
+private struct TokenCodeRequest: Encodable {
+    let token: String
+    let code: String
+}
+
+private struct TokenRecoveryRequest: Encodable {
+    let token: String
+    let recoveryCode: String
+
+    enum CodingKeys: String, CodingKey {
+        case token
+        case recoveryCode = "recovery_code"
+    }
+}
+
+private struct PasswordResetRequest: Encodable {
+    let token: String
+    let password: String
+    let passwordConfirmation: String
+
+    enum CodingKeys: String, CodingKey {
+        case token
+        case password
+        case passwordConfirmation = "password_confirmation"
+    }
+}
+
+private struct RestoreAccountRequest: Encodable {
+    let restorationToken: String
+    let mfaCode: String?
+
+    enum CodingKeys: String, CodingKey {
+        case restorationToken = "restoration_token"
+        case mfaCode = "mfa_code"
     }
 }
 

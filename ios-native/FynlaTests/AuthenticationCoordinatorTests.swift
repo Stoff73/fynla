@@ -63,7 +63,12 @@ struct AuthenticationCoordinatorTests {
                 deviceLabel: "Example iPhone"
             )
 
-            #expect(await harness.events.values() == ["login"])
+            let expectedEvents = if case .restorable = outcome {
+                ["login", "restore-check"]
+            } else {
+                ["login"]
+            }
+            #expect(await harness.events.values() == expectedEvents)
             #expect(harness.coordinator.credentials == nil)
             #expect(harness.coordinator.authenticatedUser == nil)
             #expect(harness.session.state != .authenticatedUnlocked)
@@ -74,6 +79,12 @@ struct AuthenticationCoordinatorTests {
                 #expect(harness.session.state == .multiFactorRequired)
             case .restorable:
                 #expect(harness.session.state == .restorationRequired)
+                if case let .restoration(challenge) = harness.coordinator.state {
+                    #expect(challenge.token == "checked-restoration")
+                    #expect(challenge.requiresMFA)
+                } else {
+                    Issue.record("Expected checked restoration challenge")
+                }
             case .authenticated:
                 Issue.record("Unexpected authenticated case")
             }
@@ -179,6 +190,71 @@ struct AuthenticationCoordinatorTests {
             }
             #expect(harness.session.state == .authenticatedUnlocked)
         }
+    }
+
+    @Test @MainActor
+    func consumedMFAChallengeFailureRequiresFreshFullLogin() async throws {
+        for action in [CompletionAction.mfa, .recovery] {
+            let harness = makeHarness(
+                login: .multiFactor(token: "one-time-mfa", maskedEmail: "e***@example.test"),
+                mfaError: AuthError.unauthenticated(
+                    message: "Invalid or expired verification request."
+                )
+            )
+            try await harness.coordinator.login(
+                email: "example@example.test",
+                password: "Example1!",
+                deviceLabel: "Example iPhone"
+            )
+
+            await expectCoordinatorError(.fullLoginRequired) {
+                switch action {
+                case .mfa:
+                    try await harness.coordinator.verifyMFA(
+                        code: "000000",
+                        deviceLabel: "Example iPhone"
+                    )
+                case .recovery:
+                    try await harness.coordinator.useRecoveryCode(
+                        "invalid-recovery",
+                        deviceLabel: "Example iPhone"
+                    )
+                case .verification:
+                    Issue.record("Unexpected verification case")
+                }
+            }
+
+            #expect(harness.coordinator.state == .fullLoginRequired)
+            #expect(harness.session.state == .signedOut)
+        }
+    }
+
+    @Test @MainActor
+    func checkedRestorationCompletesThroughExchangeAndCurrentUserGate() async throws {
+        let harness = makeHarness(login: .restorable(RestorationChallenge(
+            token: "untrusted-login-token",
+            deletedAt: "2026-07-16T12:00:00Z",
+            deletionReason: "user_requested",
+            deletionSource: "settings",
+            firstName: "Example"
+        )))
+        try await harness.coordinator.login(
+            email: "example@example.test",
+            password: "Example1!",
+            deviceLabel: "Example iPhone"
+        )
+
+        try await harness.coordinator.restoreAccount(
+            mfaCode: "123456",
+            deviceLabel: "Example iPhone"
+        )
+
+        #expect(await harness.events.values() == [
+            "login", "restore-check", "restore:checked-restoration:123456",
+            "exchange:bootstrap-restoration", "user:native-access",
+        ])
+        #expect(harness.session.state == .authenticatedUnlocked)
+        #expect(harness.coordinator.authenticatedUser?.id == 101)
     }
 
     @Test @MainActor
@@ -394,6 +470,7 @@ struct AuthenticationCoordinatorTests {
         mustChange: Bool? = nil,
         exchangeError: (any Error)? = nil,
         userError: (any Error)? = nil,
+        mfaError: (any Error)? = nil,
         loginGate: AsyncGate? = nil,
         loginDelay: Duration? = nil,
         loginCompletion: LoginCompletion? = nil
@@ -406,6 +483,7 @@ struct AuthenticationCoordinatorTests {
                 mustChangePassword: mustChange
             ),
             exchangeError: exchangeError,
+            mfaError: mfaError,
             loginGate: loginGate,
             loginDelay: loginDelay
         )
@@ -508,6 +586,7 @@ private actor ScriptedAuthClient: AuthCompletionClient {
     private let events: EventLog
     private let loginValue: LoginCompletion
     private let exchangeError: (any Error)?
+    private let mfaError: (any Error)?
     private let loginGate: AsyncGate?
     private let loginDelay: Duration?
 
@@ -515,12 +594,14 @@ private actor ScriptedAuthClient: AuthCompletionClient {
         events: EventLog,
         login: LoginCompletion,
         exchangeError: (any Error)?,
+        mfaError: (any Error)?,
         loginGate: AsyncGate?,
         loginDelay: Duration?
     ) {
         self.events = events
         self.loginValue = login
         self.exchangeError = exchangeError
+        self.mfaError = mfaError
         self.loginGate = loginGate
         self.loginDelay = loginDelay
     }
@@ -565,6 +646,7 @@ private actor ScriptedAuthClient: AuthCompletionClient {
 
     func verifyMFACompletion(code: String, token: String) async throws -> BootstrapAuthentication {
         await events.append("verify-mfa")
+        if let mfaError { throw mfaError }
         return BootstrapAuthentication(
             bootstrapAccessToken: "bootstrap-mfa",
             mustChangePassword: nil
@@ -576,9 +658,35 @@ private actor ScriptedAuthClient: AuthCompletionClient {
         token: String
     ) async throws -> BootstrapAuthentication {
         await events.append("recovery")
+        if let mfaError { throw mfaError }
         return BootstrapAuthentication(
             bootstrapAccessToken: "bootstrap-recovery",
             mustChangePassword: nil
+        )
+    }
+
+    func resendLogin(challengeToken: String) async throws -> LoginResendResult {
+        await events.append("resend-login:\(challengeToken)")
+        return LoginResendResult(
+            message: "Verification code sent",
+            canResend: true,
+            remainingResends: 1
+        )
+    }
+
+    func checkRestoration(email: String, password: String) async throws -> RestorationSession {
+        await events.append("restore-check")
+        return RestorationSession(token: "checked-restoration", requiresMFA: true)
+    }
+
+    func restoreAccount(
+        token: String,
+        mfaCode: String?
+    ) async throws -> BootstrapAuthentication {
+        await events.append("restore:\(token):\(mfaCode ?? "none")")
+        return BootstrapAuthentication(
+            bootstrapAccessToken: "bootstrap-restoration",
+            mustChangePassword: false
         )
     }
 
@@ -670,6 +778,21 @@ private actor SupersedingAuthClient: AuthCompletionClient, CurrentUserClient {
     func useRecoveryCodeCompletion(
         _ code: String,
         token: String
+    ) async throws -> BootstrapAuthentication {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func resendLogin(challengeToken: String) async throws -> LoginResendResult {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func checkRestoration(email: String, password: String) async throws -> RestorationSession {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func restoreAccount(
+        token: String,
+        mfaCode: String?
     ) async throws -> BootstrapAuthentication {
         throw TestAuthenticationFailure.expected
     }
