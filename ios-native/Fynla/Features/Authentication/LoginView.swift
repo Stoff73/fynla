@@ -24,7 +24,7 @@ struct LoginView: View {
             }
         }
         .background(FynlaColor.pageBackground.ignoresSafeArea())
-        .onDisappear(perform: cancelWorkAndClearSecrets)
+        .onDisappear(perform: clearSecrets)
     }
 
     private var signIn: some View {
@@ -76,12 +76,14 @@ struct LoginView: View {
                     ) { submitLogin() }
                     .accessibilityIdentifier("login.submit")
 
-                    Button("Forgot your password?") { forgotPassword() }
+                    Button("Forgot your password?") {
+                        leaveLoginFlow(forgotPassword)
+                    }
                         .fynlaAuthTextAction()
                         .accessibilityIdentifier("login.forgotPassword")
 
                     FynlaButton("Create account", variant: .secondary) {
-                        createAccount()
+                        leaveLoginFlow(createAccount)
                     }
                     .accessibilityIdentifier("registration.createAccount")
                 }
@@ -220,6 +222,11 @@ struct LoginView: View {
         model.cancel()
     }
 
+    private func leaveLoginFlow(_ action: @MainActor () -> Void) {
+        cancelWorkAndClearSecrets()
+        action()
+    }
+
     private func cancelWorkAndClearSecrets() {
         submissionTask?.cancel()
         submissionTask = nil
@@ -227,6 +234,10 @@ struct LoginView: View {
         resendTask = nil
         countdownTask?.cancel()
         countdownTask = nil
+        clearSecrets()
+    }
+
+    private func clearSecrets() {
         password = ""
         code = ""
     }
