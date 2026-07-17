@@ -68,9 +68,9 @@ Recorded 2026-07-17: the schema red run failed on the absent tables and relation
 
 **Files:** Create `app/Services/Auth/NativeSessionService.php`, `app/Data/Auth/NativeSessionCredentials.php`; create `tests/Unit/Services/Auth/NativeSessionServiceTest.php`.
 
-- [ ] Write failing tests for exchange, 15-minute access expiry, 30-day refresh expiry, 90-day absolute expiry, rotation, expired refresh, revoked family and replay.
-- [ ] Generate refresh credentials with 32 cryptographically random bytes encoded base64url; hash the opaque string with SHA-256 before storage.
-- [ ] Implement this service boundary:
+- [x] Write failing tests for exchange, 15-minute access expiry, 30-day refresh expiry, 90-day absolute expiry, rotation, expired refresh, revoked family and replay.
+- [x] Generate refresh credentials with 32 cryptographically random bytes encoded base64url; hash the opaque string with SHA-256 before storage.
+- [x] Implement this service boundary:
 
 ```php
 final class NativeSessionService
@@ -81,13 +81,13 @@ final class NativeSessionService
 }
 ```
 
-- [ ] In `exchange`, use `DB::transaction`, create the family, create a Sanctum token named `native-access:{session_uuid}` with ability `native` and `expires_at=now()+15m`, create the hashed refresh row with `expires_at=min(now()+30d, absolute expiry)`, delete matching `UserSession`, then delete bootstrap token.
-- [ ] In `rotate`, hash input, lock the refresh row and session `FOR UPDATE`, reject unknown values with a generic 401, and inspect `used_at`.
-- [ ] If a matching row was already used, revoke the session and all unused rows, delete the current access token, commit, and return `native_session_replayed` without issuing credentials.
-- [ ] On valid rotation, mark the current row used, revoke/delete the prior access token, issue a new access token and refresh row, update `last_used_at`, then return both plaintext credentials once.
-- [ ] At absolute expiry, revoke and return `native_full_login_required`.
-- [ ] Ensure concurrent rotations yield exactly one success and one family revocation, never two valid refresh credentials.
-- [ ] Ensure service logs contain session UUID/reason only, never plaintext or hash.
+- [x] In `exchange`, use `DB::transaction`, create the family, create a Sanctum token named `native-access:{session_uuid}` with ability `native` and `expires_at=now()+15m`, create the hashed refresh row with `expires_at=min(now()+30d, absolute expiry)`, delete matching `UserSession`, then delete bootstrap token.
+- [x] In `rotate`, hash input, lock the refresh row and session `FOR UPDATE`, reject unknown values with a generic 401, and inspect `used_at`.
+- [x] If a matching row was already used, revoke the session and all unused rows, delete the current access token, commit, and return `native_session_replayed` without issuing credentials.
+- [x] On valid rotation, mark the current row used, revoke/delete the prior access token, issue a new access token and refresh row, update `last_used_at`, then return both plaintext credentials once.
+- [x] At absolute expiry, revoke and return `native_full_login_required`.
+- [x] Ensure concurrent rotations yield exactly one success and one family revocation, never two valid refresh credentials.
+- [x] Ensure service logs contain session UUID/reason only, never plaintext or hash.
 
 Run:
 
@@ -96,6 +96,8 @@ Run:
 ```
 
 Expected: PASS including a database concurrency/replay case.
+
+Recorded 2026-07-17: RED evidence reproduced missing service behavior, duplicate bootstrap exchange, unsafe replay/current-refresh lock ordering, authentication-time drift and access-token lifetime beyond the absolute family deadline. The final focused suite passed 15 tests with 111 assertions, including three independent-process MySQL contention cases. The broader native persistence, auth-service and existing `/m` regression suite passed 178 tests with 589 assertions. Pint, repository-wide PHP syntax and diff checks passed. Two independent post-fix reviews reported no blocking findings; the frozen-commit controller review approved both specification compliance and task quality with no Critical, Important or Minor findings.
 
 **Intended review boundary:** `feat: add rotating native session service`
 
