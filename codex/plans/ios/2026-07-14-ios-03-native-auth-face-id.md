@@ -162,8 +162,8 @@ Recorded 2026-07-17: the initial endpoint RED run produced 21 expected failures 
 
 **Files:** Create `Core/Authentication/AuthModels.swift`, `AuthClient.swift`, `AuthenticationCoordinator.swift`; create fixture tests.
 
-- [ ] Add failing decode/state tests for all current response branches: immediate bearer, `requires_verification`, `requires_mfa`, `account_deleted_restorable`, lock status, validation, resend exhaustion and mandatory password change if returned.
-- [ ] Define explicit outcomes:
+- [x] Add failing decode/state tests for all current response branches: immediate bearer, `requires_verification`, `requires_mfa`, `account_deleted_restorable`, lock status, validation, resend exhaustion and mandatory password change if returned.
+- [x] Define explicit outcomes:
 
 ```swift
 enum LoginOutcome: Sendable, Equatable {
@@ -184,11 +184,13 @@ protocol AuthClient: Sendable {
 }
 ```
 
-- [ ] Keep password and verification values in view-local transient state; never store in `AppSession`, UserDefaults or logs.
-- [ ] After any successful full auth, immediately exchange the bootstrap bearer. If exchange fails, discard it and show full-login retry; do not retain it as the long-lived native credential.
-- [ ] If Face ID is declined or unavailable, retain the current refresh credential only in memory for that process; app termination therefore requires normal full login.
-- [ ] Fetch `/api/auth/user` using the new access token before entering `authenticatedUnlocked`.
-- [ ] Run auth model/coordinator tests; expect PASS.
+- [x] Keep password and verification values in view-local transient state; never store in `AppSession`, UserDefaults or logs.
+- [x] After any successful full auth, immediately exchange the bootstrap bearer. If exchange fails, discard it and show full-login retry; do not retain it as the long-lived native credential.
+- [x] If Face ID is declined or unavailable, retain the current refresh credential only in memory for that process; app termination therefore requires normal full login.
+- [x] Fetch `/api/auth/user` using the new access token before entering `authenticatedUnlocked`.
+- [x] Run auth model/coordinator tests; expect PASS.
+
+Recorded 2026-07-17: 13 initial sanitized fixtures and focused model/client/coordinator tests failed at compile time because the native authentication boundary did not exist. The implemented client preserves the exact current Laravel registration, verification, MFA, recovery, restoration, lock, validation, resend and native-exchange contracts; typed completion methods retain `must_change_password` without a second request or token encoding. Frozen review then reproduced three state/error/ownership gaps: password-change users unlocked financial routes, message-only 401/422 wording was lost, and a pre-sign-out request could clear a newer login. Separate RED→GREEN remediation added a route-blocking password-change state, lossless typed failures, monotonic attempt ownership and typed offline/transport errors. The final exact-source Swift 6 host suite passed 92 tests across 14 suites with one credential-gated staging test skipped because no bearer was supplied. Project verification passed, and the unsigned generic-iOS-simulator build compiled app, unit-test and UI-test targets under warnings-as-errors without launching a simulator. The final frozen two-commit review approved specification compliance and task quality with no Critical, Important or Minor findings. No remote endpoint, browser or production system was accessed.
 
 **Intended review boundary:** `feat: add native authentication coordinator`
 
