@@ -42,6 +42,14 @@ class InsightArticle extends Model
         'meta_title',
         'meta_description',
         'canonical_url',
+        'pipeline_campaign_id',
+        'source_docx_drive_file_id',
+        'source_docx_drive_url',
+        'source_docx_hash',
+        'source_docx_imported_at',
+        'dev_synced_at',
+        'prod_synced_at',
+        'prod_pushed_by',
     ];
 
     protected $casts = [
@@ -52,6 +60,9 @@ class InsightArticle extends Model
         'is_bespoke' => 'boolean',
         'published_at' => 'datetime',
         'scheduled_at' => 'datetime',
+        'source_docx_imported_at' => 'datetime',
+        'dev_synced_at' => 'datetime',
+        'prod_synced_at' => 'datetime',
     ];
 
     public const ALLOWED_AUTHORS = [
@@ -68,6 +79,17 @@ class InsightArticle extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(InsightTemplate::class, 'template_id');
+    }
+
+    public function pipelineCampaign(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Pipeline\PipelineCampaign::class, 'pipeline_campaign_id');
+    }
+
+    public function syncLogs(): HasMany
+    {
+        return $this->hasMany(\App\Models\Pipeline\ArticleSyncLog::class)
+            ->orderByDesc('created_at');
     }
 
     public function revisions(): HasMany

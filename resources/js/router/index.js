@@ -129,6 +129,9 @@ const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
 const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
 const PostApprovalQueue = () => import('@/views/Admin/Pipeline/PostApprovalQueue.vue');
+const PipelineArticleManager = () => import('@/views/Admin/Pipeline/ArticleManager.vue');
+const PipelineArticleEditor = () => import('@/views/Admin/Pipeline/ArticleEditor.vue');
+const PipelinePublisherManager = () => import('@/views/Admin/Pipeline/PublisherManager.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -1114,6 +1117,24 @@ const routes = [
     path: '/admin/pipeline/posts',
     name: 'AdminPipelinePosts',
     component: PostApprovalQueue,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles',
+    name: 'AdminPipelineArticles',
+    component: PipelineArticleManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles/:id',
+    name: 'AdminPipelineArticleEditor',
+    component: PipelineArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/publishers',
+    name: 'AdminPipelinePublishers',
+    component: PipelinePublisherManager,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

@@ -33,6 +33,9 @@ class Kernel extends ConsoleKernel
 
         $schedule->job(new \App\Jobs\PublishScheduledInsightsJob())->everyFiveMinutes();
 
+        $schedule->command('pipeline:detect-new-article-docs')
+            ->dailyAt(config('pipeline.article_docs_schedule', '06:45'));
+
         $schedule->command('pipeline:detect-new-articles')
             ->dailyAt(config('pipeline.detect_schedule', '07:00'));
 

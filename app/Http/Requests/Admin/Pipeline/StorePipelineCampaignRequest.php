@@ -31,6 +31,9 @@ class StorePipelineCampaignRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             'active_from' => ['nullable', 'date'],
             'active_to' => ['nullable', 'date', 'after_or_equal:active_from'],
+            'cta_heading' => ['nullable', 'string', 'max:120'],
+            'cta_subheading' => ['nullable', 'string', 'max:500'],
+            'cta_button_text' => ['nullable', 'string', 'max:60'],
         ];
     }
 

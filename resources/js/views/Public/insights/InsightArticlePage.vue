@@ -74,6 +74,8 @@
       <p v-if="byline" class="text-sm text-neutral-400 mb-10">{{ byline }}</p>
 
       <ArticleBlockRenderer :blocks="article.body_blocks || []" />
+
+      <InsightCtaPanel :article="article" />
     </div>
 
     <div v-else class="max-w-4xl mx-auto px-4 py-20 text-center">
@@ -95,6 +97,7 @@
 import { mapActions } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import ArticleBlockRenderer from '@/components/Insights/ArticleBlockRenderer.vue';
+import InsightCtaPanel from '@/components/Insights/InsightCtaPanel.vue';
 import { formatDateLong } from '@/utils/dateFormatter';
 
 const CATEGORY_LABELS = {
@@ -112,7 +115,7 @@ const CATEGORY_LABELS = {
 
 export default {
   name: 'InsightArticlePage',
-  components: { PublicLayout, ArticleBlockRenderer },
+  components: { PublicLayout, ArticleBlockRenderer, InsightCtaPanel },
   data() {
     return { loading: true, article: null };
   },

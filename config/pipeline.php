@@ -255,4 +255,35 @@ return [
         'weekly_social_schedule_time' => env('PIPELINE_WEEKLY_REPORT_TIME', '09:00'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Content ingestion (Stage 5 — Word docs → InsightArticles)
+    |--------------------------------------------------------------------------
+    */
+
+    'article_docs_schedule' => env('PIPELINE_ARTICLE_DOCS_SCHEDULE', '06:45'),
+
+    'gate' => [
+        'dev_to_prod_min_hours' => (int) env('PIPELINE_DEV_TO_PROD_MIN_HOURS', 1),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cross-env sync (Stage 5)
+    |--------------------------------------------------------------------------
+    |
+    | Local set: PIPELINE_SYNC_URL_* + PIPELINE_SYNC_TOKEN_* — targets.
+    | On each target env set: PIPELINE_SYNC_TOKEN — matched against inbound
+    | requests' X-Pipeline-Sync-Token header. This IS the auth.
+    |
+    */
+
+    'sync' => [
+        'dev_url' => env('PIPELINE_SYNC_URL_DEV'),
+        'dev_token' => env('PIPELINE_SYNC_TOKEN_DEV'),
+        'prod_url' => env('PIPELINE_SYNC_URL_PROD'),
+        'prod_token' => env('PIPELINE_SYNC_TOKEN_PROD'),
+        'inbound_token' => env('PIPELINE_SYNC_TOKEN'),
+    ],
+
 ];

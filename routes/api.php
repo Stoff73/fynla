@@ -1135,6 +1135,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('news-subscribers/export', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
 });
 
+// Marketing Pipeline — Stage 5 cross-env sync inbound (shared-secret auth, no user session)
+Route::post('admin/pipeline/articles/sync-inbound', [\App\Http\Controllers\Api\Admin\Pipeline\ArticleSyncInboundController::class, 'receive'])
+    ->name('pipeline.articles.sync-inbound');
+
 // Marketing Pipeline — Stage 4 admin (campaigns + post approval queue)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pipeline')->group(function () {
     Route::apiResource('campaigns', \App\Http\Controllers\Api\Admin\Pipeline\PipelineCampaignsController::class)
@@ -1145,6 +1149,22 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pi
     Route::patch('posts/{post}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'update']);
     Route::post('posts/{post}/approve', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'approve']);
     Route::post('posts/{post}/reject', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'reject']);
+
+    // Stage 5 — Article manager (Word doc → cross-env publish flow)
+    Route::get('articles', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'index']);
+    Route::get('articles/{article}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'show']);
+    Route::patch('articles/{article}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'update']);
+    Route::post('articles/{article}/publish-local', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'publishLocal']);
+    Route::post('articles/{article}/push-to-dev', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'pushToDev']);
+    Route::post('articles/{article}/push-to-live', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'pushToLive']);
+    Route::post('articles/{article}/reimport', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'reimport']);
+    Route::delete('articles/{article}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'destroy']);
+
+    // Stage 5 — Publisher whitelist (users allowed to push to live)
+    Route::get('publishers', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'index']);
+    Route::post('publishers', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'store']);
+    Route::delete('publishers/{userId}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'destroy']);
+    Route::get('publishers/search-users', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'searchUsers']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)

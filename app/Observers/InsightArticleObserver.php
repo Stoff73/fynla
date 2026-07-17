@@ -37,13 +37,21 @@ class InsightArticleObserver
             return;
         }
 
+        $savedBy = auth()->id() ?? $article->author_id;
+        if ($savedBy === null) {
+            // Cross-env sync inserts (from ArticleSyncService::receive) have
+            // no local actor — skip the revision. The article itself is the
+            // audit; the sync log records who pushed it.
+            return;
+        }
+
         InsightArticleRevision::create([
             'article_id' => $article->id,
             'title' => $article->title,
             'subtitle' => $article->subtitle,
             'summary' => $article->summary,
             'body_blocks' => $article->body_blocks,
-            'saved_by' => auth()->id() ?? $article->author_id,
+            'saved_by' => $savedBy,
             'saved_at' => now(),
         ]);
     }

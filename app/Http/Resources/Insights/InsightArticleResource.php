@@ -36,6 +36,15 @@ class InsightArticleResource extends JsonResource
             'meta_title' => $this->meta_title,
             'meta_description' => $this->meta_description,
             'canonical_url' => $this->canonical_url,
+            'pipeline_campaign' => $this->whenLoaded('pipelineCampaign', fn () => $this->pipelineCampaign ? [
+                'id' => $this->pipelineCampaign->id,
+                'slug' => $this->pipelineCampaign->slug,
+                'name' => $this->pipelineCampaign->name,
+                'landing_url' => $this->pipelineCampaign->landing_url,
+                'cta_heading' => $this->pipelineCampaign->cta_heading,
+                'cta_subheading' => $this->pipelineCampaign->cta_subheading,
+                'cta_button_text' => $this->pipelineCampaign->cta_button_text,
+            ] : null),
         ];
     }
 

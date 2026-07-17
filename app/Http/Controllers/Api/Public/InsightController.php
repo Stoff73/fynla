@@ -72,6 +72,6 @@ class InsightController extends Controller
 
         $article = $query->firstOrFail();
 
-        return new InsightArticleResource($article->load('author'));
+        return new InsightArticleResource($article->load(['author', 'pipelineCampaign']));
     }
 }
