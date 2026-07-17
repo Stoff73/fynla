@@ -105,11 +105,11 @@ Recorded 2026-07-17: RED evidence reproduced missing service behavior, duplicate
 
 **Files:** Create `NativeSessionExchangeRequest.php`, `NativeSessionRefreshRequest.php`, `NativeSessionController.php`; modify `routes/api_v1.php`, `app/Providers/RouteServiceProvider.php`; create `tests/Feature/Native/Auth/NativeSessionApiTest.php`.
 
-- [ ] Write failing endpoint tests first.
-- [ ] Validate `device_label` as required trimmed string, maximum 80, with control characters rejected. Platform/version/build come from validated native headers, not request JSON.
-- [ ] Validate refresh input as required string maximum 512.
-- [ ] Add a per-IP/per-user named limiter `native-session` at 10 attempts/minute and apply it to exchange/refresh.
-- [ ] Register routes exactly:
+- [x] Write failing endpoint tests first.
+- [x] Validate `device_label` as required trimmed string, maximum 80, with control characters rejected. Platform/version/build come from validated native headers, not request JSON.
+- [x] Validate refresh input as required string maximum 512.
+- [x] Add a per-IP/per-user named limiter `native-session` at 10 attempts/minute and apply it to exchange/refresh.
+- [x] Register routes exactly:
 
 ```php
 Route::prefix('/native/auth')->middleware('native.client')->group(function () {
@@ -125,9 +125,9 @@ Route::prefix('/native/auth')->middleware('native.client')->group(function () {
 });
 ```
 
-- [ ] Exchange requires a `PersonalAccessToken`, rejects `TransientToken`, and rejects a token already carrying only the `native` ability.
-- [ ] Show/destroy resolve the session by `current_access_token_id` and authenticated user; they cannot accept a session ID from the client.
-- [ ] Return credentials only in this shape:
+- [x] Exchange requires a `PersonalAccessToken`, rejects `TransientToken`, and rejects a token already carrying only the `native` ability.
+- [x] Show/destroy resolve the session by `current_access_token_id` and authenticated user; they cannot accept a session ID from the client.
+- [x] Return credentials only in this shape:
 
 ```json
 {
@@ -143,8 +143,8 @@ Route::prefix('/native/auth')->middleware('native.client')->group(function () {
 }
 ```
 
-- [ ] Return stable error codes `native_session_invalid`, `native_session_expired`, `native_session_replayed`, `native_full_login_required`.
-- [ ] Add session route write operations to `PreviewWriteInterceptor::EXCLUDED_ROUTES` only if preview authentication is an approved non-production path; assert production preview purchase/session behaviour remains disabled otherwise.
+- [x] Return stable error codes `native_session_invalid`, `native_session_expired`, `native_session_replayed`, `native_full_login_required`.
+- [x] Add session route write operations to `PreviewWriteInterceptor::EXCLUDED_ROUTES` only if preview authentication is an approved non-production path; assert production preview purchase/session behaviour remains disabled otherwise.
 
 Run:
 
@@ -153,6 +153,8 @@ Run:
 ```
 
 Expected: all PASS; `/api/v1/auth/refresh-token` remains unchanged.
+
+Recorded 2026-07-17: the initial endpoint RED run produced 21 expected failures and one passing legacy refresh assertion because the four routes, controller and limiter did not yet exist. Further RED runs reproduced control characters hidden by global input normalization and nested/form/query credentials echoed by preview interception. The completed endpoint suite passed 33 tests with 229 assertions. The exact login, registration, MFA and existing `/m` regression suite passed 157 tests with 685 assertions; the native session service/concurrency suite passed 15 tests with 111 assertions. Native preview writes remain intercepted, return no submitted data and create no credentials or session mutation. Pint, PHP syntax and diff checks passed. The final frozen two-commit review approved specification compliance and task quality with no Critical or Important findings; only non-blocking duplicate request-rule cleanup remains for future consolidation.
 
 **Intended review boundary:** `feat: expose native session api`
 
