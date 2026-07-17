@@ -110,6 +110,29 @@ struct AuthenticationCoordinatorTests {
     }
 
     @Test @MainActor
+    func registrationResendUsesPendingChallengeWithoutBypassingCoordinatorState() async throws {
+        let harness = makeHarness()
+        let input = RegistrationInput(
+            firstName: "Example",
+            middleName: nil,
+            surname: "User",
+            email: "example@example.test",
+            password: "Example1!",
+            passwordConfirmation: "Example1!"
+        )
+        try await harness.coordinator.register(input)
+
+        let message = try await harness.coordinator.resendRegistration()
+
+        #expect(message == "Verification code sent")
+        #expect(harness.coordinator.state == .registrationVerification(
+            RegistrationChallenge(pendingID: 321, maskedEmail: "e***@example.test")
+        ))
+        #expect(harness.session.state == .verificationRequired)
+        #expect(await harness.events.values() == ["register", "resend-registration:321"])
+    }
+
+    @Test @MainActor
     func loginVerificationMFAAndRecoverySuccessesAllUseTheFullAuthenticationPipeline() async throws {
         let cases: [(LoginOutcome, CompletionAction, String)] = [
             (
@@ -524,6 +547,11 @@ private actor ScriptedAuthClient: AuthCompletionClient {
         )
     }
 
+    func resendRegistration(pendingID: Int) async throws -> String {
+        await events.append("resend-registration:\(pendingID)")
+        return "Verification code sent"
+    }
+
     func verifyLoginCompletion(
         code: String,
         challengeToken: String
@@ -621,6 +649,10 @@ private actor SupersedingAuthClient: AuthCompletionClient, CurrentUserClient {
     func verifyRegistrationCompletion(
         _ input: RegistrationVerificationInput
     ) async throws -> BootstrapAuthentication {
+        throw TestAuthenticationFailure.expected
+    }
+
+    func resendRegistration(pendingID: Int) async throws -> String {
         throw TestAuthenticationFailure.expected
     }
 

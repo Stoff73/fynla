@@ -4,6 +4,7 @@ import SwiftUI
 struct FynlaApp: App {
     @State private var session: AppSession
     @State private var router: AppRouter
+    @State private var authenticationCoordinator: AuthenticationCoordinator
     private let dependencies: AppDependencies
 
     #if FYNLA_UI_TESTING
@@ -25,8 +26,15 @@ struct FynlaApp: App {
 
         self.dependencies = dependencies
         let session = AppSession(state: initialState)
+        let authClient = dependencies.makeAuthenticationClient()
+        let authenticationCoordinator = AuthenticationCoordinator(
+            appSession: session,
+            authClient: authClient,
+            currentUserClient: authClient
+        )
         _session = State(initialValue: session)
         _router = State(initialValue: AppRouter(session: session))
+        _authenticationCoordinator = State(initialValue: authenticationCoordinator)
     }
 
     var body: some Scene {
@@ -50,9 +58,35 @@ struct FynlaApp: App {
     }
 
     private var appRootView: some View {
-        AppRootView(session: session)
+        AppRootView(
+            session: session,
+            registrationActions: registrationActions,
+            webBaseURL: dependencies.environment.webBaseURL,
+            initiallyPresentsRegistration: initiallyPresentsRegistration
+        )
             .environment(session)
             .environment(router)
+    }
+
+    @MainActor
+    private var registrationActions: RegistrationActions {
+        #if FYNLA_UI_TESTING
+        if let scenario = uiTestMode?.registrationScenario {
+            return scenario.actions(session: session)
+        }
+        #endif
+        return .coordinator(
+            authenticationCoordinator,
+            deviceLabel: "Fynla iPhone"
+        )
+    }
+
+    private var initiallyPresentsRegistration: Bool {
+        #if FYNLA_UI_TESTING
+        uiTestMode?.registrationScenario != nil
+        #else
+        false
+        #endif
     }
 
     private static func makeLiveDependencies() -> AppDependencies {

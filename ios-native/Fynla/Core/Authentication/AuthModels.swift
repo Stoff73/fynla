@@ -106,6 +106,7 @@ enum AuthError: Error, Sendable, Equatable {
     case resendExhausted(message: String)
     case rateLimited(message: String?)
     case unauthenticated(message: String?)
+    case notFound(message: String?)
     case offline
     case transport
     case server(status: Int)
@@ -253,6 +254,16 @@ enum AuthResponseDecoder {
         return response.data.user
     }
 
+    static func resendMessage(from data: Data) throws -> String {
+        let response = try decode(AuthResponse.self, from: data)
+        guard response.success == true,
+              let message = nonempty(response.message)
+        else {
+            throw AuthError.decoding
+        }
+        return message
+    }
+
     static func error(from data: Data, status: Int) -> AuthError {
         let response = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
 
@@ -275,6 +286,8 @@ enum AuthResponseDecoder {
             )
         case 429:
             return .rateLimited(message: response?.message)
+        case 404:
+            return .notFound(message: response?.message)
         default:
             return .server(status: status)
         }
@@ -299,6 +312,7 @@ enum AuthResponseDecoder {
 
 private struct AuthResponse: Decodable {
     let success: Bool?
+    let message: String?
     let requiresVerification: Bool?
     let requiresMFA: Bool?
     let accountDeletedRestorable: Bool?
@@ -311,6 +325,7 @@ private struct AuthResponse: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case success
+        case message
         case requiresVerification = "requires_verification"
         case requiresMFA = "requires_mfa"
         case accountDeletedRestorable = "account_deleted_restorable"

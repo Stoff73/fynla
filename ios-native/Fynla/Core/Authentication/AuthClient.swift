@@ -3,6 +3,7 @@ import Foundation
 protocol AuthClient: Sendable {
     func register(_ input: RegistrationInput) async throws -> RegistrationChallenge
     func verifyRegistration(_ input: RegistrationVerificationInput) async throws -> String
+    func resendRegistration(pendingID: Int) async throws -> String
     func login(email: String, password: String) async throws -> LoginOutcome
     func verifyLogin(code: String, challengeToken: String) async throws -> String
     func verifyMFA(code: String, token: String) async throws -> String
@@ -101,6 +102,20 @@ actor APIAuthClient: AuthCompletionClient, CurrentUserClient {
             )
         )
         return try AuthResponseDecoder.authentication(from: data)
+    }
+
+    func resendRegistration(pendingID: Int) async throws -> String {
+        let data = try await perform(
+            path: "api/auth/resend-code",
+            method: .post,
+            body: try encode(
+                RegistrationResendRequest(
+                    type: "registration",
+                    pendingID: pendingID
+                )
+            )
+        )
+        return try AuthResponseDecoder.resendMessage(from: data)
     }
 
     func loginCompletion(email: String, password: String) async throws -> LoginCompletion {
@@ -237,6 +252,16 @@ private struct VerificationRequest: Encodable {
         case code
         case type
         case challengeToken = "challenge_token"
+        case pendingID = "pending_id"
+    }
+}
+
+private struct RegistrationResendRequest: Encodable {
+    let type: String
+    let pendingID: Int
+
+    enum CodingKeys: String, CodingKey {
+        case type
         case pendingID = "pending_id"
     }
 }

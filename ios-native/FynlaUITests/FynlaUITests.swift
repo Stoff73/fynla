@@ -70,11 +70,165 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testRegistrationSuccessReachesTheAuthenticatedShellOffline() throws {
+        let app = app(mode: "registration-success")
+        app.launch()
+        fillValidRegistration(in: app)
+        app.buttons["registration.submit"].tap()
+
+        let code = app.textFields["registration.verification.code"]
+        XCTAssertTrue(code.waitForExistence(timeout: 3))
+        code.tap()
+        code.typeText("123456")
+        app.buttons["registration.verification.submit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testRegistrationServerFieldErrorsPreserveNonSecretValues() throws {
+        let app = app(mode: "registration-field-errors")
+        app.launch()
+        fillValidRegistration(in: app)
+        app.buttons["registration.submit"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["registration.firstName.error"].waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["registration.email.error"].exists)
+        XCTAssertEqual(
+            app.textFields["registration.email"].value as? String,
+            "example@example.test"
+        )
+    }
+
+    @MainActor
+    func testRegistrationDuplicateEmailMessageIsVisible() throws {
+        let app = app(mode: "registration-duplicate-email")
+        app.launch()
+        fillValidRegistration(in: app)
+        app.buttons["registration.submit"].tap()
+
+        let message = app.staticTexts["registration.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(message.label.contains("already exists"))
+    }
+
+    @MainActor
+    func testWrongCodeClearsTheCodeForARecoverableRetry() throws {
+        let app = app(mode: "registration-wrong-code")
+        app.launch()
+        reachVerification(in: app)
+
+        let code = app.textFields["registration.verification.code"]
+        code.tap()
+        code.typeText("000000")
+        app.buttons["registration.verification.submit"].tap()
+
+        let message = app.staticTexts["registration.verification.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(message.label.contains("Invalid verification code"))
+        XCTAssertEqual(code.value as? String, "")
+    }
+
+    @MainActor
+    func testExpiredRegistrationStartsOverWithNonSecretDraftPreserved() throws {
+        let app = app(mode: "registration-expired")
+        app.launch()
+        reachVerification(in: app)
+
+        let code = app.textFields["registration.verification.code"]
+        code.tap()
+        code.typeText("123456")
+        app.buttons["registration.verification.submit"].tap()
+
+        let startOver = app.buttons["registration.verification.startOver"]
+        XCTAssertTrue(startOver.waitForExistence(timeout: 3))
+        startOver.tap()
+        XCTAssertTrue(app.textFields["registration.firstName"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.textFields["registration.firstName"].value as? String, "Example")
+    }
+
+    @MainActor
+    func testRegistrationResendExhaustionDisablesFurtherResends() throws {
+        let app = app(mode: "registration-resend-exhausted")
+        app.launch()
+        reachVerification(in: app)
+
+        let resend = app.buttons["registration.verification.resend"]
+        resend.tap()
+        let message = app.staticTexts["registration.verification.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(message.label.contains("Maximum resend limit reached"))
+        XCTAssertFalse(resend.isEnabled)
+    }
+
+    @MainActor
+    func testRegistrationActionsRemainReachableAtAccessibilityXXXL() throws {
+        let app = app(
+            mode: "registration-large-text",
+            additionalArguments: [
+                "-UIPreferredContentSizeCategoryName",
+                "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge",
+            ]
+        )
+        app.launch()
+
+        let submit = app.buttons["registration.submit"]
+        XCTAssertTrue(submit.waitForExistence(timeout: 3))
+        assertReachable(submit, in: app)
+        XCTAssertGreaterThanOrEqual(submit.frame.height, 44)
+        let privacy = app.links["Privacy Policy"]
+        XCTAssertTrue(privacy.exists)
+        assertReachable(privacy, in: app)
+    }
+
+    @MainActor
     private func assertReachable(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<6 where !element.isHittable {
             app.swipeUp()
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func fillValidRegistration(in app: XCUIApplication) {
+        type("Example", into: "registration.firstName", in: app)
+        type("Middle", into: "registration.middleName", in: app)
+        type("User", into: "registration.surname", in: app)
+        type("example@example.test", into: "registration.email", in: app)
+        type("Example1!", into: "registration.password", in: app, secure: true)
+        type(
+            "Example1!",
+            into: "registration.passwordConfirmation",
+            in: app,
+            secure: true
+        )
+    }
+
+    @MainActor
+    private func reachVerification(in app: XCUIApplication) {
+        fillValidRegistration(in: app)
+        app.buttons["registration.submit"].tap()
+        XCTAssertTrue(
+            app.textFields["registration.verification.code"].waitForExistence(timeout: 3)
+        )
+    }
+
+    @MainActor
+    private func type(
+        _ value: String,
+        into identifier: String,
+        in app: XCUIApplication,
+        secure: Bool = false
+    ) {
+        let field = secure
+            ? app.secureTextFields[identifier]
+            : app.textFields[identifier]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        assertReachable(field, in: app)
+        field.tap()
+        field.typeText(value)
     }
 
     @MainActor

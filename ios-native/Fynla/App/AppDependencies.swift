@@ -101,6 +101,16 @@ struct AppDependencies: Sendable {
         )
     }
 
+    func makeAuthenticationClient() -> APIAuthClient {
+        APIAuthClient(
+            environment: environment,
+            version: appVersion,
+            build: appBuild,
+            transport: httpTransport,
+            requestID: requestID
+        )
+    }
+
     private static func requiredBundleValue(
         _ key: String,
         bundle: Bundle

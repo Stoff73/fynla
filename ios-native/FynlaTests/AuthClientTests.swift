@@ -9,6 +9,7 @@ struct AuthClientTests {
         let transport = TestHTTPTransport([
             response("auth-registration-challenge", status: 201),
             response("auth-registration-verification-success"),
+            response("auth-registration-resend-success"),
             response("auth-login-verification"),
             response("auth-login-verification-success"),
             response("auth-mfa-success"),
@@ -29,6 +30,7 @@ struct AuthClientTests {
         _ = try await client.verifyRegistration(
             RegistrationVerificationInput(code: "123456", pendingID: 321)
         )
+        _ = try await client.resendRegistration(pendingID: 321)
         _ = try await client.login(email: "example@example.test", password: "Example1!")
         _ = try await client.verifyLogin(code: "234567", challengeToken: "challenge-example-login")
         _ = try await client.verifyMFA(code: "345678", token: "mfa-example-challenge")
@@ -38,6 +40,7 @@ struct AuthClientTests {
         #expect(requests.map(\.url?.path) == [
             "/fynla/api/auth/register",
             "/fynla/api/auth/verify-code",
+            "/fynla/api/auth/resend-code",
             "/fynla/api/auth/login",
             "/fynla/api/auth/verify-code",
             "/fynla/api/auth/mfa/verify",
@@ -55,15 +58,18 @@ struct AuthClientTests {
             "code": "123456", "pending_id": 321, "type": "registration",
         ])
         #expect(try jsonObject(requests[2]) == [
-            "email": "example@example.test", "password": "Example1!",
+            "pending_id": 321, "type": "registration",
         ])
         #expect(try jsonObject(requests[3]) == [
-            "challenge_token": "challenge-example-login", "code": "234567", "type": "login",
+            "email": "example@example.test", "password": "Example1!",
         ])
         #expect(try jsonObject(requests[4]) == [
-            "code": "345678", "mfa_token": "mfa-example-challenge",
+            "challenge_token": "challenge-example-login", "code": "234567", "type": "login",
         ])
         #expect(try jsonObject(requests[5]) == [
+            "code": "345678", "mfa_token": "mfa-example-challenge",
+        ])
+        #expect(try jsonObject(requests[6]) == [
             "mfa_token": "mfa-example-challenge", "recovery_code": "example-recovery-code",
         ])
     }

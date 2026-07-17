@@ -183,6 +183,37 @@ final class AuthenticationCoordinator: AccessTokenProviding {
         }
     }
 
+    func resendRegistration() async throws -> String {
+        guard case let .registrationVerification(challenge) = state else {
+            throw AuthenticationCoordinatorError.fullLoginRequired
+        }
+        let pendingState = state
+        let attempt = try beginPendingAttempt()
+
+        do {
+            let message = try await authClient.resendRegistration(
+                pendingID: challenge.pendingID
+            )
+            try requireCurrentAttempt(attempt)
+            restorePending(pendingState, ifCurrent: attempt)
+            return message
+        } catch let error as AuthenticationCoordinatorError {
+            if error == .cancelled {
+                clearToSignedOut(ifCurrent: attempt)
+            }
+            throw error
+        } catch is CancellationError {
+            clearToSignedOut(ifCurrent: attempt)
+            throw AuthenticationCoordinatorError.cancelled
+        } catch {
+            guard isCurrentAttempt(attempt) else {
+                throw AuthenticationCoordinatorError.cancelled
+            }
+            restorePending(pendingState, ifCurrent: attempt)
+            throw error
+        }
+    }
+
     func verifyLogin(code: String, deviceLabel: String) async throws {
         guard case let .loginVerification(challengeToken, _) = state else {
             throw AuthenticationCoordinatorError.fullLoginRequired
