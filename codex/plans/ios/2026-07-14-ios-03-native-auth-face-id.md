@@ -248,16 +248,16 @@ Recorded 2026-07-17: the Keychain boundary accepts only `NativeRefreshCredential
 
 **Files:** Create `Core/Biometrics/BiometricClient.swift`, `LocalAuthenticationClient.swift`, `PrivacyLockController.swift`, `Features/Authentication/FaceIDOptInView.swift`, `LockedView.swift`; tests.
 
-- [ ] Inject an LAContext adapter so unit/UI tests can cover available, unavailable, success, cancel, failure, lockout and changed enrolment without automating system Face ID UI.
-- [ ] Offer Face ID only after complete authentication and only when `biometryType == .faceID`.
-- [ ] Store the opt-in flag as non-sensitive app preference; the protected Keychain item remains the security boundary.
-- [ ] On cold launch, enter `authenticatedLocked`, request Face ID from an explicit unlock action, read refresh credential, rotate on the server, then fetch user and enter unlocked.
-- [ ] After a successful Keychain read, keep the active refresh credential in memory for background access-token rotations and replace the protected Keychain item after each successful server rotation, without another Face ID prompt while the app remains unlocked.
-- [ ] On `scenePhase` background, cover the root with an opaque privacy view immediately and record monotonic background time.
-- [ ] At foreground, lock if elapsed time is 60 seconds or more and clear access/refresh credentials from memory before requesting Face ID again. Under 60 seconds, remove only the privacy cover without cancelling active work or clearing the active in-memory session.
-- [ ] On cancellation, remain locked with `Sign in another way` available.
-- [ ] On biometric lockout or an unavailable protected Keychain item (including system-reported biometric-set invalidation), delete local credential and require full login; do not rely on a distinct invalidation status that Apple does not provide.
-- [ ] `Lock` does not call the server. `Sign out` calls DELETE native session best-effort, deletes local Keychain credential and clears all in-memory feature state.
+- [x] Inject an LAContext adapter so unit/UI tests can cover available, unavailable, success, cancel, failure, lockout and changed enrolment without automating system Face ID UI.
+- [x] Offer Face ID only after complete authentication and only when `biometryType == .faceID`.
+- [x] Store the opt-in flag as non-sensitive app preference; the protected Keychain item remains the security boundary.
+- [x] On cold launch, enter `authenticatedLocked`, request Face ID from an explicit unlock action, read refresh credential, rotate on the server, then fetch user and enter unlocked.
+- [x] After a successful Keychain read, keep the active refresh credential in memory for background access-token rotations and replace the protected Keychain item after each successful server rotation, without another Face ID prompt while the app remains unlocked.
+- [x] On `scenePhase` background, cover the root with an opaque privacy view immediately and record monotonic background time.
+- [x] At foreground, lock if elapsed time is 60 seconds or more and clear access/refresh credentials from memory before requesting Face ID again. Under 60 seconds, remove only the privacy cover without cancelling active work or clearing the active in-memory session.
+- [x] On cancellation, remain locked with `Sign in another way` available.
+- [x] On biometric lockout or an unavailable protected Keychain item (including system-reported biometric-set invalidation), delete local credential and require full login; do not rely on a distinct invalidation status that Apple does not provide.
+- [x] `Lock` does not call the server. `Sign out` calls DELETE native session best-effort, deletes local Keychain credential and clears all in-memory feature state.
 
 Unit tests use an injected continuous clock:
 
@@ -272,6 +272,8 @@ Unit tests use an injected continuous clock:
 ```
 
 **Intended review boundary:** `feat: add opt in face id privacy lock`
+
+Recorded 2026-07-17: implemented opt-in Face ID, a biometric-protected cold-unlock flow, in-memory access-token refresh and immediate app-switcher privacy with a monotonic 60-second relock. Native-session snapshots now own each one-time rotation by generation, preventing a delayed account-A refresh from replacing account-B credentials. Lock/relock fence an in-flight rotation without cancelling it and preserve any returned protected credential; opt-in and decline share a mutation gate; sign-out atomically captures and clears the latest session, clears local state immediately, and revokes both the captured token and any later stale rotation result. The locked UI exposes Face ID only when the stored preference and hardware state permit it, while production lockout and unavailable Keychain states converge on full login. Deterministic UI compositions cover opt-in, success, cancellation, failed recognition, lockout and Keychain invalidation without automating system Face ID. Final evidence: 175 Swift tests passed across 21 suites, with one bearer-gated staging integration skipped because no token was supplied; project structure verification passed; an unsigned generic physical-iOS arm64 build compiled the app, unit-test and UI-test targets with Swift warnings treated as errors; and the final frozen review reported no Critical, Important or Minor findings. Xcode was then opened on this exact Package 3 project and compiled the app successfully for an iPhone 16 Pro Max simulator with warnings treated as errors. After clearing a stalled CoreSimulator/XCTest runner state, the Xcode-built development app installed and launched on that device; a deterministic signed-out launch rendered the native email/password, password-recovery and create-account controls. XCTest's runner handshake remained blocked inside the installed iOS 26.3 simulator runtime, so this is recorded as launch/visual evidence rather than a simulator UI-test pass. No browser, remote endpoint or production system was used.
 
 ### Task 9: End-to-end security and regression gate
 

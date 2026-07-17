@@ -37,6 +37,61 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testFaceIDOptInIsReachableAfterFullAuthentication() throws {
+        let app = app(mode: "face-id-opt-in")
+        app.launch()
+        submitValidLogin(in: app)
+
+        let enable = app.buttons["face-id.opt-in.enable"]
+        let notNow = app.buttons["face-id.opt-in.not-now"]
+        XCTAssertTrue(enable.waitForExistence(timeout: 3))
+        XCTAssertTrue(notNow.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["face-id.opt-in.cover"].exists)
+        notNow.tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+        XCTAssertFalse(enable.exists)
+    }
+
+    @MainActor
+    func testDeterministicFaceIDSuccessUnlocksTheProtectedSession() throws {
+        let app = app(mode: "face-id-unlock-success")
+        app.launch()
+
+        let unlock = app.buttons["app.locked.unlock"]
+        XCTAssertTrue(unlock.waitForExistence(timeout: 3))
+        unlock.tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testDeterministicFaceIDCancellationStaysLockedWithFallback() throws {
+        assertRecoverableFaceIDFailure(
+            mode: "face-id-cancelled",
+            messageFragment: "cancelled"
+        )
+    }
+
+    @MainActor
+    func testDeterministicFaceIDFailureStaysLockedWithFallback() throws {
+        assertRecoverableFaceIDFailure(
+            mode: "face-id-failed",
+            messageFragment: "did not recognise"
+        )
+    }
+
+    @MainActor
+    func testDeterministicFaceIDLockoutRequiresFullLogin() throws {
+        assertTerminalFaceIDFailure(mode: "face-id-lockout")
+    }
+
+    @MainActor
+    func testDeterministicProtectedItemInvalidationRequiresFullLogin() throws {
+        assertTerminalFaceIDFailure(mode: "face-id-invalidated")
+    }
+
+    @MainActor
     func testSignedOutForgotPasswordNavigationReturnsToNativeLogin() throws {
         let app = app(mode: "signed-out")
         app.launch()
@@ -384,6 +439,36 @@ final class FynlaUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func assertRecoverableFaceIDFailure(
+        mode: String,
+        messageFragment: String
+    ) {
+        let app = app(mode: mode)
+        app.launch()
+        let unlock = app.buttons["app.locked.unlock"]
+        XCTAssertTrue(unlock.waitForExistence(timeout: 3))
+        unlock.tap()
+
+        let message = app.staticTexts["app.locked.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(message.label.contains(messageFragment))
+        XCTAssertTrue(element("app.locked", in: app).exists)
+        XCTAssertTrue(app.buttons["app.locked.sign-in-another-way"].isHittable)
+    }
+
+    @MainActor
+    private func assertTerminalFaceIDFailure(mode: String) {
+        let app = app(mode: mode)
+        app.launch()
+        let unlock = app.buttons["app.locked.unlock"]
+        XCTAssertTrue(unlock.waitForExistence(timeout: 3))
+        unlock.tap()
+
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["app.locked.unlock"].exists)
     }
 
     @MainActor

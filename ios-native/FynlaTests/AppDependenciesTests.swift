@@ -38,6 +38,48 @@ struct AppDependenciesTests {
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer runtime-token")
     }
 
+    @Test
+    func authenticatedCompositionUsesInMemoryAccessAndNativeRefreshClients() async throws {
+        let transport = TestHTTPTransport([
+            .response(status: 401, body: Data()),
+            .response(
+                status: 200,
+                body: Data(#"{"success":true,"data":{"value":"ready"}}"#.utf8)
+            ),
+        ])
+        let unavailable = TestTokenStore(token: nil)
+        let sessionTokens = TestTokenStore(
+            token: "stale-native-access",
+            refreshedToken: "rotated-native-access"
+        )
+        let base = AppDependencies(
+            environment: stagingEnvironment,
+            appVersion: "1.0",
+            appBuild: "7",
+            httpTransport: transport,
+            diagnostics: NoOpDiagnosticsClient(),
+            accessTokenProvider: unavailable,
+            clock: { Date(timeIntervalSince1970: 1_700_000_000) },
+            requestID: { "composition-request" },
+            featureClients: .foundation
+        )
+        let authenticated = base.authenticatedSession(
+            accessTokenProvider: sessionTokens,
+            tokenRefresher: sessionTokens
+        )
+
+        let value = try await authenticated.makeAPIClient().send(
+            APIRequest<TestValue>(path: "api/v1/native/health", method: .get)
+        )
+
+        #expect(value == TestValue(value: "ready"))
+        #expect(await sessionTokens.refreshCount() == 1)
+        let requests = await transport.requests()
+        #expect(requests.map {
+            $0.value(forHTTPHeaderField: "Authorization")
+        } == ["Bearer stale-native-access", "Bearer rotated-native-access"])
+    }
+
     #if FYNLA_UI_TESTING
     @Test
     @MainActor
@@ -54,9 +96,20 @@ struct AppDependenciesTests {
             UITestMode(arguments: ["Fynla", "-fynla-ui-test-mode", "design-system"])
                 == .designSystem
         )
+        #expect(
+            UITestMode(arguments: ["Fynla", "-fynla-ui-test-mode", "face-id-opt-in"])
+                == .faceIDOptIn
+        )
+        #expect(
+            UITestMode(
+                arguments: ["Fynla", "-fynla-ui-test-mode", "face-id-unlock-success"]
+            ) == .faceIDUnlockSuccess
+        )
         #expect(UITestMode.signedOut.initialSessionState == .signedOut)
         #expect(UITestMode.unlocked.initialSessionState == .authenticatedUnlocked)
         #expect(UITestMode.designSystem.showsDesignSystem)
+        #expect(UITestMode.faceIDOptIn.faceIDScenario == .optIn)
+        #expect(UITestMode.faceIDInvalidated.faceIDScenario == .invalidated)
     }
 
     @Test

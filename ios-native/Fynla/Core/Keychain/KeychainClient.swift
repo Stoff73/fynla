@@ -4,6 +4,9 @@ import Security
 protocol KeychainClient: Sendable {
     func save(_ credential: NativeRefreshCredential) async throws
     func read() async throws -> NativeRefreshCredential
+    func read(
+        authentication: LocalAuthenticationAuthorization
+    ) async throws -> NativeRefreshCredential
     func delete() async throws
 }
 
@@ -35,6 +38,7 @@ struct KeychainStoreItem: Sendable, Equatable {
 
 enum KeychainStoreReadAuthentication: Sendable, Equatable {
     case userPresence(localizedReason: String)
+    case authenticated(LocalAuthenticationAuthorization)
 }
 
 struct KeychainStoreReadQuery: Sendable, Equatable {

@@ -2,9 +2,11 @@ import SwiftUI
 
 @main
 struct FynlaApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var session: AppSession
     @State private var router: AppRouter
     @State private var authenticationCoordinator: AuthenticationCoordinator
+    @State private var privacyLockController: PrivacyLockController
     private let dependencies: AppDependencies
     private let authenticationClient: APIAuthClient
 
@@ -25,7 +27,6 @@ struct FynlaApp: App {
         let initialState = AppSession.State.launching
         #endif
 
-        self.dependencies = dependencies
         let session = AppSession(state: initialState)
         let authClient = dependencies.makeAuthenticationClient()
         self.authenticationClient = authClient
@@ -52,9 +53,47 @@ struct FynlaApp: App {
             currentUserClient: authClient
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let faceIDTestClient = uiTestMode?.faceIDScenario.map {
+            TestAppDependencies.makeFaceIDClient(scenario: $0)
+        }
+        let faceIDPreference: any FaceIDPreference = uiTestMode == nil
+            ? UserDefaultsFaceIDPreference()
+            : faceIDTestClient ?? TestAppDependencies.makeFaceIDPreference()
+        let biometricClient: any BiometricClient = faceIDTestClient
+            ?? LocalAuthenticationClient()
+        let keychainClient: any KeychainClient = faceIDTestClient
+            ?? SystemKeychainClient()
+        let nativeSessionClient: any NativeSessionClient = faceIDTestClient
+            ?? authClient
+        let currentUserClient: any CurrentUserClient = faceIDTestClient
+            ?? authClient
+        #else
+        let faceIDPreference: any FaceIDPreference = UserDefaultsFaceIDPreference()
+        let biometricClient: any BiometricClient = LocalAuthenticationClient()
+        let keychainClient: any KeychainClient = SystemKeychainClient()
+        let nativeSessionClient: any NativeSessionClient = authClient
+        let currentUserClient: any CurrentUserClient = authClient
+        #endif
+        let privacyLockController = PrivacyLockController(
+            appSession: session,
+            authenticationCoordinator: coordinator,
+            biometricClient: biometricClient,
+            keychainClient: keychainClient,
+            nativeSessionClient: nativeSessionClient,
+            currentUserClient: currentUserClient,
+            preference: faceIDPreference,
+            clock: ContinuousPrivacyClock(),
+            deviceLabel: "Fynla iPhone"
+        )
+        self.dependencies = dependencies.authenticatedSession(
+            accessTokenProvider: coordinator,
+            tokenRefresher: privacyLockController
+        )
         _session = State(initialValue: session)
         _router = State(initialValue: AppRouter(session: session))
         _authenticationCoordinator = State(initialValue: coordinator)
+        _privacyLockController = State(initialValue: privacyLockController)
     }
 
     var body: some Scene {
@@ -80,6 +119,7 @@ struct FynlaApp: App {
     private var appRootView: some View {
         AppRootView(
             session: session,
+            privacyLockController: privacyLockController,
             registrationActions: registrationActions,
             loginActions: loginActions,
             passwordResetActions: passwordResetActions,
@@ -89,6 +129,18 @@ struct FynlaApp: App {
         )
             .environment(session)
             .environment(router)
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .background:
+                    privacyLockController.didEnterBackground()
+                case .active:
+                    privacyLockController.didBecomeActive()
+                case .inactive:
+                    privacyLockController.willBecomeInactive()
+                @unknown default:
+                    break
+                }
+            }
     }
 
     @MainActor

@@ -101,6 +101,42 @@ struct AuthClientTests {
     }
 
     @Test
+    func nativeRefreshAndRevokeUseExactSessionContracts() async throws {
+        let transport = TestHTTPTransport([
+            response("auth-native-credentials"),
+            .response(status: 200, body: Data("{}".utf8)),
+        ])
+        let client = makeClient(transport)
+        let refresh = NativeRefreshCredential(
+            token: "one-time-native-refresh",
+            expiresAt: "2026-08-16T12:00:00Z",
+            absoluteExpiresAt: "2026-10-15T12:00:00Z",
+            sessionID: "11111111-2222-3333-4444-555555555555"
+        )
+
+        let rotated = try await client.rotate(
+            refreshCredential: refresh,
+            deviceLabel: "Example iPhone"
+        )
+        try await client.revoke(accessToken: rotated.accessToken)
+
+        let requests = await transport.requests()
+        #expect(requests.map(\.url?.path) == [
+            "/fynla/api/v1/native/auth/session/refresh",
+            "/fynla/api/v1/native/auth/session",
+        ])
+        #expect(requests.map(\.httpMethod) == ["POST", "DELETE"])
+        #expect(try jsonObject(requests[0]) == [
+            "device_label": "Example iPhone",
+            "refresh_token": "one-time-native-refresh",
+        ])
+        #expect(requests[0].value(forHTTPHeaderField: "Authorization") == nil)
+        #expect(requests[1].value(forHTTPHeaderField: "Authorization") == "Bearer native-access-example")
+        #expect(requests[1].httpBody == nil)
+        #expect(requests.allSatisfy { $0.url?.query == nil })
+    }
+
+    @Test
     func exposesTypedErrorsWithoutIncludingResponseBodies() async {
         let transport = TestHTTPTransport([
             response("auth-locked", status: 423),

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppRootView: View {
     let session: AppSession
+    let privacyLockController: PrivacyLockController?
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
     @State private var passwordResetModel: PasswordResetModel
@@ -9,6 +10,7 @@ struct AppRootView: View {
 
     init(
         session: AppSession,
+        privacyLockController: PrivacyLockController? = nil,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
         passwordResetActions: PasswordResetActions,
@@ -17,6 +19,7 @@ struct AppRootView: View {
         initiallyPresentsPasswordReset: Bool = false
     ) {
         self.session = session
+        self.privacyLockController = privacyLockController
         _registrationModel = State(
             initialValue: RegistrationModel(
                 actions: registrationActions,
@@ -65,16 +68,70 @@ struct AppRootView: View {
             case .passwordChangeRequired:
                 LockedView(message: "Change your password to continue.")
             case .authenticatedLocked:
-                LockedView(message: "Unlock to view your financial plan.")
+                if let privacyLockController {
+                    LockedView(
+                        message: "Unlock to view your financial plan.",
+                        isUnlocking: privacyLockController.isUnlocking,
+                        failure: privacyLockController.lastUnlockFailure,
+                        unlock: privacyLockController.canUnlockWithFaceID
+                            ? { @MainActor @Sendable in
+                                Task { @MainActor in
+                                    await privacyLockController.unlock()
+                                }
+                            }
+                            : nil,
+                        signInAnotherWay: {
+                            Task { @MainActor in
+                                await privacyLockController.signInAnotherWay()
+                            }
+                        }
+                    )
+                } else {
+                    LockedView(message: "Unlock to view your financial plan.")
+                }
             case .authenticatedUnlocked:
-                UnlockedView()
+                UnlockedView(privacyLockController: privacyLockController)
             case .deletingAccount:
                 LockedView(message: "Updating your account securely…")
             }
         }
         .preferredColorScheme(.light)
         .task {
-            session.completeLaunch(hasAuthenticatedSession: false)
+            if let privacyLockController {
+                await privacyLockController.completeLaunch()
+                await privacyLockController.refreshFaceIDOffer()
+            } else {
+                session.completeLaunch(hasAuthenticatedSession: false)
+            }
+        }
+        .onChange(of: session.state) { _, _ in
+            guard let privacyLockController else { return }
+            Task { @MainActor in
+                await privacyLockController.refreshFaceIDOffer()
+            }
+        }
+        .overlay {
+            if let privacyLockController,
+               privacyLockController.shouldOfferFaceID,
+               session.state == .authenticatedUnlocked,
+               !privacyLockController.isPrivacyCovered
+            {
+                ZStack {
+                    FynlaColor.Token.horizon500.color.opacity(0.45)
+                        .ignoresSafeArea()
+                    FaceIDOptInView(controller: privacyLockController)
+                        .padding(FynlaSpacing.standard)
+                }
+                .accessibilityIdentifier("face-id.opt-in.cover")
+            }
+        }
+        .overlay {
+            if privacyLockController?.isPrivacyCovered == true {
+                FynlaColor.Token.horizon500.color
+                    .ignoresSafeArea()
+                    .accessibilityLabel("Fynla content hidden")
+                    .accessibilityIdentifier("privacy-lock.cover")
+            }
         }
     }
 
@@ -108,33 +165,39 @@ private struct LaunchingView: View {
     }
 }
 
-private struct LockedView: View {
-    let message: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Fynla is locked")
-                .font(.title.bold())
-            Text(message)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("app.locked")
-    }
-}
-
 private struct UnlockedView: View {
+    let privacyLockController: PrivacyLockController?
+
     var body: some View {
         VStack(spacing: 12) {
             Text("Fynla")
                 .font(.title.bold())
             Text("Your secure workspace is ready.")
                 .foregroundStyle(.secondary)
+            if let privacyLockController {
+                FynlaButton(
+                    "Lock",
+                    variant: .secondary,
+                    accessibilityLabel: "Lock Fynla"
+                ) {
+                    privacyLockController.lock()
+                }
+                .accessibilityIdentifier("app.unlocked.lock")
+
+                FynlaButton(
+                    "Sign out",
+                    variant: .secondary,
+                    accessibilityLabel: "Sign out of Fynla"
+                ) {
+                    Task { @MainActor in
+                        await privacyLockController.signOut()
+                    }
+                }
+                .accessibilityIdentifier("app.unlocked.sign-out")
+            }
         }
         .padding()
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("app.unlocked")
     }
 }

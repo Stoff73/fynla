@@ -87,6 +87,26 @@ struct KeychainClientTests {
     }
 
     @Test
+    func authenticatedReadPassesTheExactEvaluatedCapabilityToTheStore() async throws {
+        let adapter = InMemoryKeychainStoreAdapter()
+        let client = SystemKeychainClient(adapter: adapter)
+        let expected = credential()
+
+        try await client.save(expected)
+        let actual = try await client.read(authentication: .testing)
+
+        #expect(actual == expected)
+        let operations = await adapter.recordedOperations()
+        guard case let .read(query) = operations.last,
+              case let .authenticated(authorization) = query.authentication
+        else {
+            Issue.record("Expected a read using the evaluated authentication capability")
+            return
+        }
+        #expect(authorization == .testing)
+    }
+
+    @Test
     func deleteRemovesTheOnlyNativeSessionCredential() async throws {
         let adapter = InMemoryKeychainStoreAdapter()
         let client = SystemKeychainClient(adapter: adapter)

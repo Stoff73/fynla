@@ -42,11 +42,25 @@ actor SystemKeychainClient: KeychainClient {
     }
 
     func read() async throws -> NativeRefreshCredential {
-        let result = await adapter.read(KeychainStoreReadQuery(
+        try await read(KeychainStoreReadQuery(
             service: Self.service,
             synchronizable: false,
             authentication: .userPresence(localizedReason: Self.unlockReason)
         ))
+    }
+
+    func read(
+        authentication: LocalAuthenticationAuthorization
+    ) async throws -> NativeRefreshCredential {
+        try await read(KeychainStoreReadQuery(
+            service: Self.service,
+            synchronizable: false,
+            authentication: .authenticated(authentication)
+        ))
+    }
+
+    private func read(_ query: KeychainStoreReadQuery) async throws -> NativeRefreshCredential {
+        let result = await adapter.read(query)
 
         switch result {
         case let .success(item):
@@ -152,17 +166,20 @@ struct SystemKeychainStoreAdapter: KeychainStoreAdapter {
     }
 
     func read(_ query: KeychainStoreReadQuery) async -> KeychainStoreReadResult {
-        let localizedReason: String
+        let context: LAContext
         switch query.authentication {
         case let .userPresence(reason):
-            localizedReason = reason
+            guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return .failure(.status(errSecParam))
+            }
+            context = LAContext()
+            context.localizedReason = reason
+        case let .authenticated(authorization):
+            guard let authenticatedContext = authorization.context else {
+                return .failure(.status(errSecParam))
+            }
+            context = authenticatedContext
         }
-        guard !localizedReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return .failure(.status(errSecParam))
-        }
-
-        let context = LAContext()
-        context.localizedReason = localizedReason
 
         var attributes: CFTypeRef?
         let status = SecItemCopyMatching([

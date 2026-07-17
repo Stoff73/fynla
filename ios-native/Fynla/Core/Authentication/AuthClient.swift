@@ -85,7 +85,19 @@ protocol CurrentUserClient: Sendable {
     func currentUser(accessToken: String) async throws -> AuthenticatedUser
 }
 
-actor APIAuthClient: AuthCompletionClient, CurrentUserClient, PasswordResetClient {
+protocol NativeSessionClient: Sendable {
+    func rotate(
+        refreshCredential: NativeRefreshCredential,
+        deviceLabel: String
+    ) async throws -> NativeCredentials
+    func revoke(accessToken: String) async throws
+}
+
+actor APIAuthClient: AuthCompletionClient,
+    CurrentUserClient,
+    NativeSessionClient,
+    PasswordResetClient
+{
     private let environment: AppEnvironment
     private let version: String
     private let build: String
@@ -339,6 +351,29 @@ actor APIAuthClient: AuthCompletionClient, CurrentUserClient, PasswordResetClien
         return try AuthResponseDecoder.currentUser(from: data)
     }
 
+    func rotate(
+        refreshCredential: NativeRefreshCredential,
+        deviceLabel: String
+    ) async throws -> NativeCredentials {
+        let data = try await perform(
+            path: "api/v1/native/auth/session/refresh",
+            method: .post,
+            body: try encode(NativeRefreshRequest(
+                refreshToken: refreshCredential.token,
+                deviceLabel: deviceLabel
+            ))
+        )
+        return try AuthResponseDecoder.nativeCredentials(from: data)
+    }
+
+    func revoke(accessToken: String) async throws {
+        _ = try await perform(
+            path: "api/v1/native/auth/session",
+            method: .delete,
+            bearer: accessToken
+        )
+    }
+
     private func perform(
         path: String,
         method: HTTPMethod,
@@ -387,6 +422,16 @@ private struct DiscardedAuthResponse: Decodable, Sendable {}
 private struct LoginRequest: Encodable {
     let email: String
     let password: String
+}
+
+private struct NativeRefreshRequest: Encodable {
+    let refreshToken: String
+    let deviceLabel: String
+
+    enum CodingKeys: String, CodingKey {
+        case refreshToken = "refresh_token"
+        case deviceLabel = "device_label"
+    }
 }
 
 private struct VerificationRequest: Encodable {

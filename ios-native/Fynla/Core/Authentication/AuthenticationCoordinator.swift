@@ -8,11 +8,18 @@ enum AuthenticationCoordinatorError: Error, Sendable, Equatable {
 
 enum RefreshCredentialPersistence: Sendable, Equatable {
     case memoryOnly
+    case protectedKeychain
 }
 
 @MainActor
 @Observable
 final class AuthenticationCoordinator: AccessTokenProviding {
+    struct NativeSessionSnapshot: Sendable, Equatable {
+        fileprivate let generation: Int
+        let refreshCredential: NativeRefreshCredential
+        let persistence: RefreshCredentialPersistence
+    }
+
     private enum SessionCompletion {
         case authentication
         case restoration
@@ -27,6 +34,7 @@ final class AuthenticationCoordinator: AccessTokenProviding {
         case restoration(RestorationChallenge)
         case passwordChangeRequired
         case authenticated(mustChangePassword: Bool?)
+        case authenticatedLocked
         case fullLoginRequired
     }
 
@@ -45,6 +53,8 @@ final class AuthenticationCoordinator: AccessTokenProviding {
     private let currentUserClient: any CurrentUserClient
     private var isSubmitting = false
     private var attemptGeneration = 0
+    private var nativeSessionGeneration = 0
+    private var lockedSessionOriginGeneration: Int?
 
     init(
         appSession: AppSession,
@@ -420,6 +430,139 @@ final class AuthenticationCoordinator: AccessTokenProviding {
     func declineBiometricPersistence() {
         guard credentials != nil else { return }
         refreshPersistence = .memoryOnly
+        nativeSessionGeneration += 1
+    }
+
+    func activeNativeSessionSnapshot() -> NativeSessionSnapshot? {
+        guard appSession.state == .authenticatedUnlocked,
+              let credential = credentials?.refreshCredential,
+              let refreshPersistence
+        else {
+            return nil
+        }
+        return NativeSessionSnapshot(
+            generation: nativeSessionGeneration,
+            refreshCredential: credential,
+            persistence: refreshPersistence
+        )
+    }
+
+    func isCurrentNativeSession(_ snapshot: NativeSessionSnapshot) -> Bool {
+        appSession.state == .authenticatedUnlocked
+            && nativeSessionGeneration == snapshot.generation
+            && credentials?.refreshCredential == snapshot.refreshCredential
+            && refreshPersistence == snapshot.persistence
+    }
+
+    @discardableResult
+    func protectRefreshCredential(replacing snapshot: NativeSessionSnapshot) -> Bool {
+        guard isCurrentNativeSession(snapshot)
+        else {
+            return false
+        }
+        refreshPersistence = .protectedKeychain
+        nativeSessionGeneration += 1
+        return true
+    }
+
+    @discardableResult
+    func protectLockedSession(replacing snapshot: NativeSessionSnapshot) -> Bool {
+        guard appSession.state == .authenticatedLocked,
+              lockedSessionOriginGeneration == snapshot.generation
+        else {
+            return false
+        }
+        refreshPersistence = .protectedKeychain
+        lockedSessionOriginGeneration = nil
+        return true
+    }
+
+    @discardableResult
+    func resumeProtectedSession(
+        credentials: NativeCredentials,
+        user: AuthenticatedUser
+    ) -> Bool {
+        guard appSession.state == .authenticatedLocked,
+              appSession.unlock()
+        else {
+            return false
+        }
+        self.credentials = credentials
+        authenticatedUser = user
+        mustChangePassword = false
+        refreshPersistence = .protectedKeychain
+        nativeSessionGeneration += 1
+        lockedSessionOriginGeneration = nil
+        state = .authenticated(mustChangePassword: false)
+        isSubmitting = false
+        return true
+    }
+
+    @discardableResult
+    func replaceNativeCredentials(
+        _ credentials: NativeCredentials,
+        replacing snapshot: NativeSessionSnapshot
+    ) -> Bool {
+        guard isCurrentNativeSession(snapshot)
+        else {
+            return false
+        }
+        self.credentials = credentials
+        nativeSessionGeneration += 1
+        return true
+    }
+
+    func canPersistRotationAfterLock(_ snapshot: NativeSessionSnapshot) -> Bool {
+        appSession.state == .authenticatedLocked
+            && snapshot.persistence == .protectedKeychain
+            && lockedSessionOriginGeneration == snapshot.generation
+    }
+
+    @discardableResult
+    func finishProtectedRotationAfterLock(
+        replacing snapshot: NativeSessionSnapshot
+    ) -> Bool {
+        guard canPersistRotationAfterLock(snapshot) else { return false }
+        lockedSessionOriginGeneration = nil
+        return true
+    }
+
+    @discardableResult
+    func invalidateNativeSession(ifCurrent snapshot: NativeSessionSnapshot) -> Bool {
+        guard isCurrentNativeSession(snapshot) else { return false }
+        requireFullLogin()
+        return true
+    }
+
+    @discardableResult
+    func lockAndClearCredentials() -> Bool {
+        guard appSession.state == .authenticatedUnlocked,
+              appSession.lock()
+        else {
+            return false
+        }
+        lockedSessionOriginGeneration = nativeSessionGeneration
+        attemptGeneration += 1
+        nativeSessionGeneration += 1
+        credentials = nil
+        authenticatedUser = nil
+        mustChangePassword = nil
+        state = .authenticatedLocked
+        isSubmitting = false
+        return true
+    }
+
+    func requireFullLogin() {
+        attemptGeneration += 1
+        nativeSessionGeneration += 1
+        lockedSessionOriginGeneration = nil
+        credentials = nil
+        authenticatedUser = nil
+        mustChangePassword = nil
+        refreshPersistence = nil
+        state = .fullLoginRequired
+        isSubmitting = false
+        appSession.signOut()
     }
 
     @discardableResult
@@ -438,8 +581,14 @@ final class AuthenticationCoordinator: AccessTokenProviding {
     }
 
     func signOut() {
+        _ = takeAccessTokenAndSignOut()
+    }
+
+    func takeAccessTokenAndSignOut() -> String? {
+        let accessToken = credentials?.accessToken
         attemptGeneration += 1
         clearToSignedOut()
+        return accessToken
     }
 
     private func beginInitialAttempt() throws -> Int {
@@ -504,6 +653,8 @@ final class AuthenticationCoordinator: AccessTokenProviding {
             authenticatedUser = user
             mustChangePassword = completion.mustChangePassword
             refreshPersistence = .memoryOnly
+            nativeSessionGeneration += 1
+            lockedSessionOriginGeneration = nil
             state = completion.mustChangePassword == true
                 ? .passwordChangeRequired
                 : .authenticated(mustChangePassword: completion.mustChangePassword)
@@ -536,6 +687,8 @@ final class AuthenticationCoordinator: AccessTokenProviding {
 
     private func restorePending(_ pendingState: State, ifCurrent attempt: Int) {
         guard isCurrentAttempt(attempt) else { return }
+        nativeSessionGeneration += 1
+        lockedSessionOriginGeneration = nil
         credentials = nil
         authenticatedUser = nil
         mustChangePassword = nil
@@ -546,6 +699,8 @@ final class AuthenticationCoordinator: AccessTokenProviding {
 
     private func clearForFullLoginRetry(ifCurrent attempt: Int) {
         guard isCurrentAttempt(attempt) else { return }
+        nativeSessionGeneration += 1
+        lockedSessionOriginGeneration = nil
         credentials = nil
         authenticatedUser = nil
         mustChangePassword = nil
@@ -556,6 +711,8 @@ final class AuthenticationCoordinator: AccessTokenProviding {
     }
 
     private func clearToSignedOut() {
+        nativeSessionGeneration += 1
+        lockedSessionOriginGeneration = nil
         credentials = nil
         authenticatedUser = nil
         mustChangePassword = nil

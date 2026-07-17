@@ -21,6 +21,12 @@ enum UITestMode: String, Sendable {
     case loginLockout = "login-lockout"
     case passwordReset = "password-reset"
     case passwordResetMultiFactor = "password-reset-mfa"
+    case faceIDOptIn = "face-id-opt-in"
+    case faceIDUnlockSuccess = "face-id-unlock-success"
+    case faceIDCancelled = "face-id-cancelled"
+    case faceIDFailed = "face-id-failed"
+    case faceIDLockout = "face-id-lockout"
+    case faceIDInvalidated = "face-id-invalidated"
 
     init?(arguments: [String]) {
         guard let flagIndex = arguments.firstIndex(of: "-fynla-ui-test-mode"),
@@ -43,6 +49,12 @@ enum UITestMode: String, Sendable {
             .authenticatedUnlocked
         case .designSystem:
             .launching
+        case .faceIDUnlockSuccess,
+             .faceIDCancelled,
+             .faceIDFailed,
+             .faceIDLockout,
+             .faceIDInvalidated:
+            .launching
         case .registrationSuccess,
              .registrationFieldErrors,
              .registrationDuplicateEmail,
@@ -57,7 +69,8 @@ enum UITestMode: String, Sendable {
              .loginRestorationWithoutMFA,
              .loginLockout,
              .passwordReset,
-             .passwordResetMultiFactor:
+             .passwordResetMultiFactor,
+             .faceIDOptIn:
             .signedOut
         }
     }
@@ -93,14 +106,20 @@ enum UITestMode: String, Sendable {
              .loginRestorationWithoutMFA,
              .loginLockout,
              .passwordReset,
-             .passwordResetMultiFactor:
+             .passwordResetMultiFactor,
+             .faceIDOptIn,
+             .faceIDUnlockSuccess,
+             .faceIDCancelled,
+             .faceIDFailed,
+             .faceIDLockout,
+             .faceIDInvalidated:
             nil
         }
     }
 
     var loginScenario: LoginUITestScenario? {
         switch self {
-        case .loginSuccess:
+        case .loginSuccess, .faceIDOptIn:
             .success
         case .loginVerification:
             .verification
@@ -124,7 +143,12 @@ enum UITestMode: String, Sendable {
              .registrationResendExhausted,
              .registrationLargeText,
              .passwordReset,
-             .passwordResetMultiFactor:
+             .passwordResetMultiFactor,
+             .faceIDUnlockSuccess,
+             .faceIDCancelled,
+             .faceIDFailed,
+             .faceIDLockout,
+             .faceIDInvalidated:
             nil
         }
     }
@@ -151,10 +175,62 @@ enum UITestMode: String, Sendable {
              .loginMultiFactor,
              .loginRestoration,
              .loginRestorationWithoutMFA,
-             .loginLockout:
+             .loginLockout,
+             .faceIDOptIn,
+             .faceIDUnlockSuccess,
+             .faceIDCancelled,
+             .faceIDFailed,
+             .faceIDLockout,
+             .faceIDInvalidated:
             nil
         }
     }
+
+    var faceIDScenario: FaceIDUITestScenario? {
+        switch self {
+        case .faceIDOptIn:
+            .optIn
+        case .faceIDUnlockSuccess:
+            .unlockSuccess
+        case .faceIDCancelled:
+            .cancelled
+        case .faceIDFailed:
+            .failed
+        case .faceIDLockout:
+            .lockout
+        case .faceIDInvalidated:
+            .invalidated
+        case .liveLaunch,
+             .signedOut,
+             .unlocked,
+             .designSystem,
+             .registrationSuccess,
+             .registrationFieldErrors,
+             .registrationDuplicateEmail,
+             .registrationWrongCode,
+             .registrationExpired,
+             .registrationResendExhausted,
+             .registrationLargeText,
+             .loginSuccess,
+             .loginVerification,
+             .loginMultiFactor,
+             .loginRestoration,
+             .loginRestorationWithoutMFA,
+             .loginLockout,
+             .passwordReset,
+             .passwordResetMultiFactor:
+            nil
+        }
+    }
+}
+
+enum FaceIDUITestScenario: Sendable, Equatable {
+    case optIn
+    case unlockSuccess
+    case cancelled
+    case failed
+    case lockout
+    case invalidated
 }
 
 enum LoginUITestScenario: Sendable, Equatable {
@@ -465,6 +541,129 @@ enum TestAppDependencies {
             featureClients: .foundation
         )
     }
+
+    static func makeFaceIDPreference() -> any FaceIDPreference {
+        DisabledTestFaceIDPreference()
+    }
+
+    static func makeFaceIDClient(
+        scenario: FaceIDUITestScenario
+    ) -> FaceIDUITestClient {
+        FaceIDUITestClient(scenario: scenario)
+    }
+}
+
+actor FaceIDUITestClient: BiometricClient,
+    KeychainClient,
+    NativeSessionClient,
+    CurrentUserClient,
+    FaceIDPreference
+{
+    private let scenario: FaceIDUITestScenario
+    private var enabled: Bool
+    private var credential: NativeRefreshCredential?
+
+    init(scenario: FaceIDUITestScenario) {
+        self.scenario = scenario
+        enabled = scenario != .optIn
+        credential = scenario == .optIn
+            ? nil
+            : Self.credentials(1).refreshCredential
+    }
+
+    func biometryType() -> BiometryType {
+        .faceID
+    }
+
+    func authenticate(reason: String) async throws -> LocalAuthenticationAuthorization {
+        switch scenario {
+        case .optIn, .unlockSuccess, .invalidated:
+            return .testing
+        case .cancelled:
+            throw BiometricError.cancelled
+        case .failed:
+            throw BiometricError.authenticationFailed
+        case .lockout:
+            throw BiometricError.lockout
+        }
+    }
+
+    func save(_ credential: NativeRefreshCredential) {
+        self.credential = credential
+    }
+
+    func read() throws -> NativeRefreshCredential {
+        guard scenario != .invalidated else {
+            throw KeychainError.itemNotFound
+        }
+        guard let credential else { throw KeychainError.itemNotFound }
+        return credential
+    }
+
+    func read(
+        authentication: LocalAuthenticationAuthorization
+    ) throws -> NativeRefreshCredential {
+        guard authentication == .testing else {
+            throw KeychainError.authenticationFailed
+        }
+        return try read()
+    }
+
+    func delete() {
+        credential = nil
+    }
+
+    func rotate(
+        refreshCredential: NativeRefreshCredential,
+        deviceLabel: String
+    ) throws -> NativeCredentials {
+        guard refreshCredential == Self.credentials(1).refreshCredential else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return Self.credentials(2)
+    }
+
+    func revoke(accessToken: String) {}
+
+    func currentUser(accessToken: String) throws -> AuthenticatedUser {
+        guard accessToken == Self.credentials(2).accessToken else {
+            throw TestDependencyError.unexpectedNetworkRequest
+        }
+        return AuthenticatedUser(
+            id: 101,
+            firstName: "Example",
+            surname: "User",
+            name: "Example User",
+            email: "example@example.test"
+        )
+    }
+
+    func isFaceIDEnabled() -> Bool {
+        enabled
+    }
+
+    func setFaceIDEnabled(_ enabled: Bool) {
+        self.enabled = enabled
+    }
+
+    private static func credentials(_ generation: Int) -> NativeCredentials {
+        NativeCredentials(
+            accessToken: "ui-faceid-access-\(generation)",
+            accessExpiresAt: "2026-07-17T12:\(generation)0:00Z",
+            refreshToken: "ui-faceid-refresh-\(generation)",
+            refreshExpiresAt: "2026-08-16T12:00:00Z",
+            absoluteExpiresAt: "2026-10-15T12:00:00Z",
+            sessionID: "11111111-2222-3333-4444-555555555555"
+        )
+    }
+}
+
+private actor DisabledTestFaceIDPreference: FaceIDPreference {
+    func isFaceIDEnabled() -> Bool {
+        false
+    }
+
+    func setFaceIDEnabled(_ enabled: Bool) {}
 }
 
 private actor FailingTestHTTPTransport: HTTPTransport {
