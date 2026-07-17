@@ -3,6 +3,8 @@ import SwiftUI
 struct VerificationCodeView: View {
     @Bindable var model: RegistrationModel
     @State private var code = ""
+    @State private var verificationTask: Task<Void, Never>?
+    @State private var resendTask: Task<Void, Never>?
     @FocusState private var isCodeFocused: Bool
 
     var body: some View {
@@ -74,21 +76,19 @@ struct VerificationCodeView: View {
                         variant: .secondary,
                         isDisabled: model.isSubmitting || !model.isResendAvailable
                     ) {
-                        Task { @MainActor in await model.resendCode() }
+                        resend()
                     }
                     .accessibilityIdentifier("registration.verification.resend")
 
                     if model.requiresStartOver {
                         FynlaButton("Start registration again", variant: .secondary) {
-                            clearCode()
-                            model.startOver()
+                            startOver()
                         }
                         .accessibilityIdentifier("registration.verification.startOver")
                     }
 
                     Button("Cancel") {
-                        clearCode()
-                        model.cancelFlow()
+                        cancelFlow()
                     }
                     .font(FynlaTypography.button)
                     .foregroundStyle(FynlaColor.Token.raspberry700.color)
@@ -102,7 +102,7 @@ struct VerificationCodeView: View {
             .frame(maxWidth: .infinity)
         }
         .background(FynlaColor.pageBackground.ignoresSafeArea())
-        .onDisappear(perform: clearCode)
+        .onDisappear(perform: cancelWorkAndClearCode)
     }
 
     private var instructions: String {
@@ -132,12 +132,40 @@ struct VerificationCodeView: View {
     }
 
     private func submit() {
-        Task { @MainActor in
-            let result = await model.submitVerification(code: code)
+        let submittedCode = code
+        verificationTask = Task { @MainActor in
+            defer { verificationTask = nil }
+            let result = await model.submitVerification(code: submittedCode)
+            guard !Task.isCancelled else { return }
             if case let .failed(clearCode) = result, clearCode {
                 self.clearCode()
             }
         }
+    }
+
+    private func resend() {
+        resendTask = Task { @MainActor in
+            defer { resendTask = nil }
+            await model.resendCode()
+        }
+    }
+
+    private func startOver() {
+        cancelWorkAndClearCode()
+        model.startOver()
+    }
+
+    private func cancelFlow() {
+        cancelWorkAndClearCode()
+        model.cancelFlow()
+    }
+
+    private func cancelWorkAndClearCode() {
+        verificationTask?.cancel()
+        verificationTask = nil
+        resendTask?.cancel()
+        resendTask = nil
+        clearCode()
     }
 
     private func clearCode() {

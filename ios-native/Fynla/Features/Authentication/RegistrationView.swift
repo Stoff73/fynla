@@ -5,6 +5,7 @@ struct RegistrationView: View {
 
     @State private var password = ""
     @State private var passwordConfirmation = ""
+    @State private var submissionTask: Task<Void, Never>?
     @FocusState private var focusedField: RegistrationField?
 
     var body: some View {
@@ -88,8 +89,7 @@ struct RegistrationView: View {
                     .accessibilityIdentifier("registration.submit")
 
                     FynlaButton("Cancel", variant: .secondary) {
-                        clearSecrets()
-                        model.cancelFlow()
+                        cancelFlow()
                     }
                     .accessibilityIdentifier("registration.cancel")
                 }
@@ -99,9 +99,13 @@ struct RegistrationView: View {
                         .font(FynlaTypography.bodySmall)
                         .foregroundStyle(FynlaColor.secondaryText)
                         .multilineTextAlignment(.center)
-                    HStack(spacing: FynlaSpacing.standard) {
+                    VStack(spacing: FynlaSpacing.xSmall) {
                         Link("Terms of Service", destination: model.termsURL)
+                            .fynlaLegalLinkTarget()
+                            .accessibilityIdentifier("registration.terms")
                         Link("Privacy Policy", destination: model.privacyURL)
+                            .fynlaLegalLinkTarget()
+                            .accessibilityIdentifier("registration.privacy")
                     }
                     .font(FynlaTypography.bodySmall)
                     .tint(FynlaColor.Token.raspberry700.color)
@@ -114,7 +118,7 @@ struct RegistrationView: View {
             .frame(maxWidth: .infinity)
         }
         .background(FynlaColor.pageBackground.ignoresSafeArea())
-        .onDisappear(perform: clearSecrets)
+        .onDisappear(perform: cancelSubmissionAndClearSecrets)
     }
 
     private var emailField: some View {
@@ -204,15 +208,30 @@ struct RegistrationView: View {
     }
 
     private func submit() {
-        Task { @MainActor in
+        let submittedPassword = password
+        let submittedConfirmation = passwordConfirmation
+        submissionTask = Task { @MainActor in
+            defer { submissionTask = nil }
             let result = await model.submitRegistration(
-                password: password,
-                confirmation: passwordConfirmation
+                password: submittedPassword,
+                confirmation: submittedConfirmation
             )
+            guard !Task.isCancelled else { return }
             if result == .advanced(clearSecrets: true) {
                 clearSecrets()
             }
         }
+    }
+
+    private func cancelFlow() {
+        cancelSubmissionAndClearSecrets()
+        model.cancelFlow()
+    }
+
+    private func cancelSubmissionAndClearSecrets() {
+        submissionTask?.cancel()
+        submissionTask = nil
+        clearSecrets()
     }
 
     private func clearSecrets() {
@@ -228,6 +247,15 @@ private enum RegistrationTextContent {
 }
 
 extension View {
+    fileprivate func fynlaLegalLinkTarget() -> some View {
+        self
+            .frame(
+                minWidth: FynlaSpacing.minimumInteractiveTarget,
+                minHeight: FynlaSpacing.minimumInteractiveTarget
+            )
+            .contentShape(Rectangle())
+    }
+
     @ViewBuilder
     func fynlaEmailInput() -> some View {
         #if os(iOS)

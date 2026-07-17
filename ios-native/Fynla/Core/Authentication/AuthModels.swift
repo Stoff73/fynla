@@ -103,6 +103,7 @@ enum AuthError: Error, Sendable, Equatable {
     case decoding
     case locked(message: String, remainingSeconds: Int?)
     case validation(message: String?, errors: [String: [String]])
+    case registrationUnavailable(message: String)
     case resendExhausted(message: String)
     case rateLimited(message: String?)
     case unauthenticated(message: String?)
@@ -270,6 +271,11 @@ enum AuthResponseDecoder {
         switch status {
         case 401:
             return .unauthenticated(message: response?.message)
+        case 422 where response?.error == "registration_unavailable":
+            return .registrationUnavailable(
+                message: response?.message
+                    ?? "Registration is no longer available. Please register again."
+            )
         case 422:
             return .validation(
                 message: response?.message,
@@ -388,6 +394,7 @@ private struct CurrentUserResponse: Decodable {
 }
 
 private struct AuthErrorResponse: Decodable {
+    let error: String?
     let message: String?
     let errors: [String: [String]]?
     let locked: Bool?
@@ -395,6 +402,7 @@ private struct AuthErrorResponse: Decodable {
     let canResend: Bool?
 
     enum CodingKeys: String, CodingKey {
+        case error
         case message
         case errors
         case locked

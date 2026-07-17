@@ -152,9 +152,8 @@ struct AuthClientTests {
                 RegistrationVerificationInput(code: "000000", pendingID: 321)
             )
         }
-        await expectAuthError(.validation(
-            message: "Verification code has expired. Please register again.",
-            errors: [:]
+        await expectAuthError(.registrationUnavailable(
+            message: "Verification code has expired. Please register again."
         )) {
             try await client.verifyRegistration(
                 RegistrationVerificationInput(code: "000000", pendingID: 321)

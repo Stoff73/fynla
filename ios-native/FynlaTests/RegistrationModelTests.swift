@@ -31,6 +31,28 @@ struct RegistrationModelTests {
     }
 
     @Test
+    func passwordCharacterClassesMatchTheLaravelASCIIRegex() throws {
+        for password in ["Éxample1!", "ÉXAMPLé1!", "Example١!"] {
+            let result = RegistrationValidator.validate(
+                draft: .valid(),
+                password: password,
+                confirmation: password
+            )
+            #expect(result.input == nil)
+            #expect(result.fieldErrors[.password] != nil)
+        }
+
+        for password in ["Example1 ", "Example1é"] {
+            let result = RegistrationValidator.validate(
+                draft: .valid(),
+                password: password,
+                confirmation: password
+            )
+            #expect(try #require(result.input).password == password)
+        }
+    }
+
+    @Test
     func trimsOnlyNonSecretRequestValues() throws {
         let result = RegistrationValidator.validate(
             draft: .valid(
@@ -129,12 +151,11 @@ struct RegistrationModelTests {
     @Test @MainActor
     func unavailableRegistrationsOfferStartOverAndPreserveOnlyNonSecretDraft() async {
         for error in [
-            AuthError.validation(
-                message: "Verification code has expired. Please register again.",
-                errors: [:]
+            AuthError.registrationUnavailable(
+                message: "Verification code has expired. Please register again."
             ),
             .notFound(message: "Registration not found. Please start over."),
-            .validation(message: "Registration has already been consumed.", errors: [:]),
+            .registrationUnavailable(message: "Registration has already been consumed."),
         ] {
             let recorder = RegistrationActionRecorder(verificationError: error)
             let model = makeVerificationModel(recorder: recorder)
@@ -151,6 +172,25 @@ struct RegistrationModelTests {
             #expect(model.firstName == "Example")
             #expect(model.email == "example@example.test")
         }
+    }
+
+    @Test @MainActor
+    func realUnavailableResponseRequiresStartOverWithoutMessageHeuristics() async throws {
+        let decoded = AuthResponseDecoder.error(
+            from: try authFixture("auth-registration-unavailable"),
+            status: 422
+        )
+        let recorder = RegistrationActionRecorder(verificationError: decoded)
+        let model = makeVerificationModel(recorder: recorder)
+
+        let result = await model.submitVerification(code: "123456")
+
+        #expect(result == .failed(clearCode: true))
+        #expect(model.requiresStartOver)
+        #expect(
+            model.message
+                == "Registration is no longer available. Please register again."
+        )
     }
 
     @Test @MainActor
@@ -275,6 +315,15 @@ struct RegistrationModelTests {
         #expect(verificationSource.contains("ScrollView"))
         #expect(verificationSource.contains(".oneTimeCode"))
         #expect(verificationSource.contains(".numberPad"))
+        #expect(registrationSource.contains("@State private var submissionTask: Task<Void, Never>?"))
+        #expect(registrationSource.contains("submissionTask?.cancel()"))
+        #expect(verificationSource.contains("@State private var verificationTask: Task<Void, Never>?"))
+        #expect(verificationSource.contains("@State private var resendTask: Task<Void, Never>?"))
+        #expect(verificationSource.contains("verificationTask?.cancel()"))
+        #expect(verificationSource.contains("resendTask?.cancel()"))
+        #expect(registrationSource.components(separatedBy: ".fynlaLegalLinkTarget()").count == 3)
+        #expect(registrationSource.contains("minWidth: FynlaSpacing.minimumInteractiveTarget"))
+        #expect(registrationSource.contains("minHeight: FynlaSpacing.minimumInteractiveTarget"))
     }
 
     @Test
@@ -295,6 +344,7 @@ struct RegistrationModelTests {
         #expect(source.contains("RegistrationView(model: registrationModel)"))
         #expect(source.contains("VerificationCodeView(model: registrationModel)"))
         #expect(source.contains("registrationModel.presentRegistration()"))
+        #expect(source.contains("session.completeLaunch(hasAuthenticatedSession: false)"))
     }
 
     @MainActor
@@ -329,6 +379,12 @@ struct RegistrationModelTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Sources/Fynla")
+    }
+
+    private func authFixture(_ name: String) throws -> Data {
+        let testDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        return try Data(contentsOf: testDirectory
+            .appending(path: "Fixtures/API/\(name).json"))
     }
 }
 

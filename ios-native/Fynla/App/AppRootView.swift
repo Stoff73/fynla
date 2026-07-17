@@ -60,6 +60,9 @@ struct AppRootView: View {
             }
         }
         .preferredColorScheme(.light)
+        .task {
+            session.completeLaunch(hasAuthenticatedSession: false)
+        }
     }
 }
 

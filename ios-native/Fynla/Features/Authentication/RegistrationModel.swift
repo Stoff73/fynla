@@ -115,17 +115,16 @@ enum RegistrationValidator {
     private static func passwordContainsEveryRequiredCharacterClass(
         _ value: String
     ) -> Bool {
-        let scalars = value.unicodeScalars
-        let lowercase = CharacterSet.lowercaseLetters
-        let uppercase = CharacterSet.uppercaseLetters
-        let digits = CharacterSet.decimalDigits
-        let asciiLettersAndDigits = CharacterSet(
-            charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        )
-        return scalars.contains(where: lowercase.contains)
-            && scalars.contains(where: uppercase.contains)
-            && scalars.contains(where: digits.contains)
-            && scalars.contains { !asciiLettersAndDigits.contains($0) }
+        let values = value.unicodeScalars.map(\.value)
+        let isLowercase: (UInt32) -> Bool = { (97...122).contains($0) }
+        let isUppercase: (UInt32) -> Bool = { (65...90).contains($0) }
+        let isDigit: (UInt32) -> Bool = { (48...57).contains($0) }
+        return values.contains(where: isLowercase)
+            && values.contains(where: isUppercase)
+            && values.contains(where: isDigit)
+            && values.contains {
+                !isLowercase($0) && !isUppercase($0) && !isDigit($0)
+            }
     }
 }
 
@@ -390,7 +389,9 @@ final class RegistrationModel {
         case let .validation(serverMessage, errors):
             fieldErrors = Self.visibleFieldErrors(errors)
             message = serverMessage ?? fieldErrors.values.first
-            requiresStartOver = Self.indicatesUnavailableRegistration(serverMessage)
+        case let .registrationUnavailable(serverMessage):
+            message = serverMessage
+            requiresStartOver = true
         case let .notFound(serverMessage):
             message = serverMessage ?? "Registration not found. Please start over."
             requiresStartOver = true
@@ -403,7 +404,6 @@ final class RegistrationModel {
             message = serverMessage ?? "Too many attempts. Please try again later."
         case let .unauthenticated(serverMessage):
             message = serverMessage ?? "Authentication failed. Please try again."
-            requiresStartOver = Self.indicatesUnavailableRegistration(serverMessage)
         case .offline:
             message = "You appear to be offline. Check your connection and try again."
         case .transport:
@@ -431,15 +431,5 @@ final class RegistrationModel {
             }
             result[field] = first
         }
-    }
-
-    private static func indicatesUnavailableRegistration(_ value: String?) -> Bool {
-        guard let value = value?.lowercased() else { return false }
-        return value.contains("expired")
-            || value.contains("register again")
-            || value.contains("start over")
-            || value.contains("not found")
-            || value.contains("consumed")
-            || value.contains("already been used")
     }
 }

@@ -6,13 +6,12 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
-    func testAppShowsThePrivacySafeLaunchingShell() throws {
-        let app = XCUIApplication()
+    func testLocalLaunchReachesCreateAccountWithoutAStoredSession() throws {
+        let app = app(mode: "live-launch")
         app.launch()
 
-        XCTAssertTrue(
-            element("app.launching", in: app).waitForExistence(timeout: 3)
-        )
+        XCTAssertTrue(element("auth.signedOut", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["registration.createAccount"].isHittable)
     }
 
     @MainActor
@@ -174,13 +173,60 @@ final class FynlaUITests: XCTestCase {
         )
         app.launch()
 
-        let submit = app.buttons["registration.submit"]
-        XCTAssertTrue(submit.waitForExistence(timeout: 3))
-        assertReachable(submit, in: app)
-        XCTAssertGreaterThanOrEqual(submit.frame.height, 44)
-        let privacy = app.links["Privacy Policy"]
-        XCTAssertTrue(privacy.exists)
-        assertReachable(privacy, in: app)
+        for identifier in [
+            "registration.submit",
+            "registration.cancel",
+            "registration.terms",
+            "registration.privacy",
+        ] {
+            let control = app.descendants(matching: .any)[identifier]
+            XCTAssertTrue(control.waitForExistence(timeout: 3))
+            assertReachable(control, in: app)
+            XCTAssertGreaterThanOrEqual(control.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(control.frame.height, 44)
+        }
+
+        for _ in 0..<8 { app.swipeDown() }
+        fillValidRegistration(in: app)
+        app.buttons["registration.submit"].tap()
+
+        let code = app.textFields["registration.verification.code"]
+        XCTAssertTrue(code.waitForExistence(timeout: 3))
+        for identifier in [
+            "registration.verification.submit",
+            "registration.verification.resend",
+            "registration.verification.cancel",
+        ] {
+            let control = app.buttons[identifier]
+            assertReachable(control, in: app)
+            XCTAssertGreaterThanOrEqual(control.frame.height, 44)
+        }
+
+        let resend = app.buttons["registration.verification.resend"]
+        resend.tap()
+        XCTAssertTrue(
+            app.staticTexts["registration.verification.message"]
+                .waitForExistence(timeout: 3)
+        )
+
+        assertReachable(code, in: app)
+        code.tap()
+        code.typeText("123456")
+        let verify = app.buttons["registration.verification.submit"]
+        assertReachable(verify, in: app)
+        verify.tap()
+
+        let startOver = app.buttons["registration.verification.startOver"]
+        XCTAssertTrue(startOver.waitForExistence(timeout: 3))
+        assertReachable(startOver, in: app)
+        XCTAssertGreaterThanOrEqual(startOver.frame.height, 44)
+        startOver.tap()
+
+        let cancel = app.buttons["registration.cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 3))
+        assertReachable(cancel, in: app)
+        cancel.tap()
+        XCTAssertTrue(element("auth.signedOut", in: app).waitForExistence(timeout: 3))
     }
 
     @MainActor

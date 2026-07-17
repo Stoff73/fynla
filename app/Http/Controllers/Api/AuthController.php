@@ -565,13 +565,15 @@ class AuthController extends Controller
             if (! $pending) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid verification code',
+                    'error' => 'registration_unavailable',
+                    'message' => 'Registration is no longer available. Please register again.',
                 ], 422);
             }
 
             if ($pending->isExpired()) {
                 return response()->json([
                     'success' => false,
+                    'error' => 'registration_unavailable',
                     'message' => 'Verification code has expired. Please register again.',
                 ], 422);
             }
@@ -582,6 +584,7 @@ class AuthController extends Controller
 
                 return response()->json([
                     'success' => false,
+                    'error' => 'registration_unavailable',
                     'message' => 'Too many failed attempts. Please register again.',
                 ], 422);
             }

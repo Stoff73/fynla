@@ -132,6 +132,18 @@ struct AuthModelsTests {
     }
 
     @Test
+    func mapsTheStableRegistrationUnavailableContractBeforeGenericValidation() throws {
+        #expect(
+            AuthResponseDecoder.error(
+                from: try fixture("auth-registration-unavailable"),
+                status: 422
+            ) == .registrationUnavailable(
+                message: "Registration is no longer available. Please register again."
+            )
+        )
+    }
+
+    @Test
     func preservesCurrentAuthenticationFailureMessages() throws {
         let cases: [(String, Int, AuthError)] = [
             (
@@ -147,9 +159,8 @@ struct AuthModelsTests {
             (
                 "auth-registration-code-expired",
                 422,
-                .validation(
-                    message: "Verification code has expired. Please register again.",
-                    errors: [:]
+                .registrationUnavailable(
+                    message: "Verification code has expired. Please register again."
                 )
             ),
             (

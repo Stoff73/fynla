@@ -80,6 +80,19 @@ it('creates verification code during registration', function () {
     expect(strlen($pending->verification_code))->toBe(6);
 });
 
+it('returns a stable unavailable error when a pending registration no longer exists', function () {
+    $this->postJson('/api/auth/verify-code', [
+        'type' => 'registration',
+        'pending_id' => 2147483647,
+        'code' => '123456',
+    ])->assertUnprocessable()
+        ->assertExactJson([
+            'success' => false,
+            'error' => 'registration_unavailable',
+            'message' => 'Registration is no longer available. Please register again.',
+        ]);
+});
+
 it('prevents registration with existing email', function () {
     User::factory()->create(['email' => 'existing@example.com']);
 

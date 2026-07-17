@@ -2,6 +2,7 @@
 import Foundation
 
 enum UITestMode: String, Sendable {
+    case liveLaunch = "live-launch"
     case signedOut = "signed-out"
     case unlocked
     case designSystem = "design-system"
@@ -26,6 +27,8 @@ enum UITestMode: String, Sendable {
 
     var initialSessionState: AppSession.State {
         switch self {
+        case .liveLaunch:
+            .launching
         case .signedOut:
             .signedOut
         case .unlocked:
@@ -62,8 +65,9 @@ enum UITestMode: String, Sendable {
         case .registrationResendExhausted:
             .resendExhausted
         case .registrationLargeText:
-            .success
-        case .signedOut,
+            .largeText
+        case .liveLaunch,
+             .signedOut,
              .unlocked,
              .designSystem:
             nil
@@ -78,6 +82,7 @@ enum RegistrationUITestScenario: Sendable {
     case wrongCode
     case expired
     case resendExhausted
+    case largeText
 
     @MainActor
     func actions(session: AppSession) -> RegistrationActions {
@@ -100,7 +105,8 @@ enum RegistrationUITestScenario: Sendable {
                 case .success,
                      .wrongCode,
                      .expired,
-                     .resendExhausted:
+                     .resendExhausted,
+                     .largeText:
                     guard session.beginAuthentication(), session.requireVerification() else {
                         throw AuthenticationCoordinatorError.fullLoginRequired
                     }
@@ -118,9 +124,12 @@ enum RegistrationUITestScenario: Sendable {
                         errors: [:]
                     )
                 case .expired:
-                    throw AuthError.validation(
-                        message: "Verification code has expired. Please register again.",
-                        errors: [:]
+                    throw AuthError.registrationUnavailable(
+                        message: "Verification code has expired. Please register again."
+                    )
+                case .largeText:
+                    throw AuthError.registrationUnavailable(
+                        message: "Registration is no longer available. Please register again."
                     )
                 case .success,
                      .resendExhausted:
