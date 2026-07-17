@@ -198,14 +198,16 @@ Recorded 2026-07-17: 13 initial sanitized fixtures and focused model/client/coor
 
 **Files:** Create `Features/Authentication/RegistrationView.swift`, `RegistrationModel.swift`, `VerificationCodeView.swift`; UI/unit tests.
 
-- [ ] Read `fynlaDesignGuide.md` before UI work.
-- [ ] Write model tests for required first name, surname, valid email, password confirmation and current password complexity rules.
-- [ ] Build fields for first name, optional middle name, surname, email, password and confirmation.
-- [ ] Include plain-text links to current Terms of Service and Privacy Policy using `AppEnvironment.webBaseURL`; do not embed the pages.
-- [ ] Submit exactly the current RegisterRequest keys. Do not send a tier, plan or trial field.
-- [ ] Verification accepts six digits, submits `type=registration` and `pending_id`, supports the existing resend flow and handles expired/consumed registrations.
-- [ ] Preserve entered non-secret registration fields after recoverable 422 errors; clear passwords on leaving the flow.
-- [ ] UI tests cover success, field errors, duplicate email, wrong code, expired code and resend limit.
+- [x] Read `fynlaDesignGuide.md` before UI work.
+- [x] Write model tests for required first name, surname, valid email, password confirmation and current password complexity rules.
+- [x] Build fields for first name, optional middle name, surname, email, password and confirmation.
+- [x] Include plain-text links to current Terms of Service and Privacy Policy using `AppEnvironment.webBaseURL`; do not embed the pages.
+- [x] Submit exactly the current RegisterRequest keys. Do not send a tier, plan or trial field.
+- [x] Verification accepts six digits, submits `type=registration` and `pending_id`, supports the existing resend flow and handles expired/consumed registrations.
+- [x] Preserve entered non-secret registration fields after recoverable 422 errors; clear passwords on leaving the flow.
+- [x] UI tests cover success, field errors, duplicate email, wrong code, expired code and resend limit.
+
+Recorded 2026-07-17: registration and verification were implemented against the exact existing Laravel request keys, with ASCII password-rule parity, transient secret/code ownership, cancellable attempt ownership, 44-point legal targets derived from `webBaseURL`, Dynamic Type/VoiceOver coverage and deterministic offline UI branches. Stable additive `registration_unavailable` responses now cover missing, consumed, expired and resend-expired pending registrations so the native flow can offer a safe start-over action without parsing human wording; existing web consumers retain the same status and message. The final exact-source Swift suite passed 109 tests across 15 suites before the focused resend regression was added; the complete app/unit/UI warnings-as-errors build then compiled the new API-client mapping test for both simulator architectures without launching a simulator. The registration PHP suite passed 25 tests with 90 assertions, the focused resend RED reproduced the missing machine code and its GREEN run passed, and PHP syntax, project structure and diff checks passed. The final independent remediation review reported no Critical, Important or Minor findings and approved specification compliance, quality and readiness. No remote endpoint, browser, production system or persistent migration was accessed.
 
 **Intended review boundary:** `feat: add native registration flow`
 

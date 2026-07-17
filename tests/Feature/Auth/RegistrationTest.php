@@ -93,6 +93,28 @@ it('returns a stable unavailable error when a pending registration no longer exi
         ]);
 });
 
+it('returns the stable unavailable error when resending an expired registration', function () {
+    $pending = PendingRegistration::create([
+        'first_name' => 'Expired',
+        'surname' => 'Registration',
+        'email' => 'expired.registration@example.com',
+        'password' => Hash::make('Password1!'),
+        'verification_code' => '123456',
+        'verification_attempts' => 0,
+        'expires_at' => now()->subSecond(),
+    ]);
+
+    $this->postJson('/api/auth/resend-code', [
+        'type' => 'registration',
+        'pending_id' => $pending->id,
+    ])->assertUnprocessable()
+        ->assertExactJson([
+            'success' => false,
+            'error' => 'registration_unavailable',
+            'message' => 'Registration has expired. Please register again.',
+        ]);
+});
+
 it('prevents registration with existing email', function () {
     User::factory()->create(['email' => 'existing@example.com']);
 

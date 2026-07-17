@@ -769,6 +769,7 @@ class AuthController extends Controller
             if ($pending->isExpired()) {
                 return response()->json([
                     'success' => false,
+                    'error' => 'registration_unavailable',
                     'message' => 'Registration has expired. Please register again.',
                 ], 422);
             }
