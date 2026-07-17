@@ -232,13 +232,15 @@ Recorded 2026-07-17: the live signed-out shell now owns the complete login, veri
 
 **Files:** Create `Core/Keychain/KeychainClient.swift`, `SystemKeychainClient.swift`, `KeychainError.swift`; tests with in-memory adapter.
 
-- [ ] Write tests for save/read/delete, missing item, cancelled interaction and biometric-set invalidation mapping.
-- [ ] Define a narrow interface that accepts only `NativeRefreshCredential`, not arbitrary financial data.
-- [ ] Save under service `org.fynla.app.native-session`, account equal to the server session UUID, synchronizable false.
-- [ ] Build access control with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and `.biometryCurrentSet`; require user presence when reading.
-- [ ] Do not store access token, password, email verification code, MFA code or API response.
-- [ ] Delete any older session item before saving a new account session.
-- [ ] Surface `errSecUserCanceled`, `errSecAuthFailed` and `errSecItemNotFound` distinctly.
+- [x] Write tests for save/read/delete, corrupt data, missing item, cancelled interaction and safe fallback when the system reports a protected item as unavailable.
+- [x] Define a narrow interface that accepts only `NativeRefreshCredential`, not arbitrary financial data.
+- [x] Save under service `org.fynla.app.native-session`, account equal to the server session UUID, synchronizable false.
+- [x] Build access control with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and `.biometryCurrentSet`; require user presence when reading.
+- [x] Do not store access token, password, email verification code, MFA code or API response.
+- [x] Delete any older session item before saving a new account session.
+- [x] Surface `errSecUserCanceled`, `errSecAuthFailed` and `errSecItemNotFound` distinctly.
+
+Recorded 2026-07-17: the Keychain boundary accepts only `NativeRefreshCredential` and stores only the refresh token, expiry values and server session UUID under service `org.fynla.app.native-session`, account equal to that UUID and synchronizable false. Replacement saves delete all older service items first. The system adapter applies `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` with `.biometryCurrentSet`, and its closed read-authentication type always supplies a validated user-presence reason through `LAContext`. The TDD RED run failed because the boundary and adapter did not yet exist; GREEN passed nine focused tests covering save/read/delete, status mappings, protected-item unavailability, malformed JSON and account/payload mismatch. Apple does not expose a reliable distinct status for `.biometryCurrentSet` invalidation, so the implementation does not invent one: `errSecItemNotFound` means the protected credential is unavailable and Task 8 requires full login. The final exact-source Swift 6 suite passed 144 tests across 19 suites, with the bearer-gated staging test skipped because no token was supplied and no endpoint contacted. Project verification passed, and an unsigned generic iOS-device build compiled the app, unit-test and UI-test targets for arm64 under warnings-as-errors without launching a simulator. Frozen re-review found no Critical, Important or Minor issues. No browser, remote endpoint or production system was accessed.
 
 **Intended review boundary:** `feat: protect native refresh credential in keychain`
 
@@ -254,7 +256,7 @@ Recorded 2026-07-17: the live signed-out shell now owns the complete login, veri
 - [ ] On `scenePhase` background, cover the root with an opaque privacy view immediately and record monotonic background time.
 - [ ] At foreground, lock if elapsed time is 60 seconds or more and clear access/refresh credentials from memory before requesting Face ID again. Under 60 seconds, remove only the privacy cover without cancelling active work or clearing the active in-memory session.
 - [ ] On cancellation, remain locked with `Sign in another way` available.
-- [ ] On biometric lockout or Keychain biometric-set invalidation, delete local credential and require full login.
+- [ ] On biometric lockout or an unavailable protected Keychain item (including system-reported biometric-set invalidation), delete local credential and require full login; do not rely on a distinct invalidation status that Apple does not provide.
 - [ ] `Lock` does not call the server. `Sign out` calls DELETE native session best-effort, deletes local Keychain credential and clears all in-memory feature state.
 
 Unit tests use an injected continuous clock:
