@@ -87,7 +87,6 @@ struct LoginView: View {
                 }
             }
             .fynlaAuthPagePadding()
-            .accessibilityIdentifier("auth.signedOut")
         }
     }
 

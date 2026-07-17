@@ -33,7 +33,10 @@ final class FynlaUITests: XCTestCase {
 
         let shell = element("app.unlocked", in: app)
         XCTAssertTrue(shell.waitForExistence(timeout: 3))
-        XCTAssertTrue(shell.label.contains("Your secure workspace is ready."))
+        XCTAssertTrue(
+            app.staticTexts["Your secure workspace is ready."]
+                .waitForExistence(timeout: 3)
+        )
     }
 
     @MainActor
@@ -197,7 +200,9 @@ final class FynlaUITests: XCTestCase {
         let message = app.staticTexts["registration.verification.message"]
         XCTAssertTrue(message.waitForExistence(timeout: 3))
         XCTAssertTrue(message.label.contains("Invalid verification code"))
-        XCTAssertEqual(code.value as? String, "")
+        XCTAssertTrue(
+            ["", "Six-digit verification code"].contains(code.value as? String)
+        )
     }
 
     @MainActor

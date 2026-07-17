@@ -87,12 +87,18 @@ struct VerificationCodeView: View {
                         .accessibilityIdentifier("registration.verification.startOver")
                     }
 
-                    Button("Cancel") {
+                    Button {
                         cancelFlow()
+                    } label: {
+                        Text("Cancel")
+                            .font(FynlaTypography.button)
+                            .foregroundStyle(FynlaColor.Token.raspberry700.color)
+                            .frame(
+                                minWidth: FynlaSpacing.minimumInteractiveTarget,
+                                minHeight: FynlaSpacing.minimumInteractiveTarget
+                            )
+                            .contentShape(Rectangle())
                     }
-                    .font(FynlaTypography.button)
-                    .foregroundStyle(FynlaColor.Token.raspberry700.color)
-                    .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
                     .accessibilityIdentifier("registration.verification.cancel")
                 }
             }
