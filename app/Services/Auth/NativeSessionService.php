@@ -40,6 +40,7 @@ final class NativeSessionService
                 $lockedBootstrap === null
                 || $lockedBootstrap->tokenable_type !== $user->getMorphClass()
                 || (string) $lockedBootstrap->tokenable_id !== (string) $user->getKey()
+                || $user->is_preview_user
             ) {
                 return new NativeSessionException('native_session_invalid');
             }
@@ -127,6 +128,10 @@ final class NativeSessionService
                 ->first();
 
             if ($session === null) {
+                return new NativeSessionException('native_session_invalid');
+            }
+
+            if ($session->user()->where('is_preview_user', true)->exists()) {
                 return new NativeSessionException('native_session_invalid');
             }
 

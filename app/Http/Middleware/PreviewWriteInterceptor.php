@@ -39,6 +39,7 @@ class PreviewWriteInterceptor
         'mfa_secret',
         'mfa_recovery_codes',
         'token',
+        'refresh_token',
         'api_key',
     ];
 
