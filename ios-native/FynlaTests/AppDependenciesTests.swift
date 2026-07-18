@@ -110,6 +110,16 @@ struct AppDependenciesTests {
         #expect(UITestMode.designSystem.showsDesignSystem)
         #expect(UITestMode.faceIDOptIn.faceIDScenario == .optIn)
         #expect(UITestMode.faceIDInvalidated.faceIDScenario == .invalidated)
+        #expect(
+            UITestMode(
+                arguments: ["Fynla", "-fynla-ui-test-mode", "subscription-free"]
+            )?.subscriptionScenario == .free
+        )
+        #expect(
+            UITestMode(
+                arguments: ["Fynla", "-fynla-ui-test-mode", "subscription-web-premium"]
+            )?.subscriptionScenario == .webPremium
+        )
     }
 
     @Test

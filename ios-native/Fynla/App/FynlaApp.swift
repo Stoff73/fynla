@@ -7,8 +7,10 @@ struct FynlaApp: App {
     @State private var router: AppRouter
     @State private var authenticationCoordinator: AuthenticationCoordinator
     @State private var privacyLockController: PrivacyLockController
+    @State private var subscriptionModel: SubscriptionModel
     private let dependencies: AppDependencies
     private let authenticationClient: APIAuthClient
+    private let appleSubscriptionManager: any AppleSubscriptionManaging
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -86,14 +88,42 @@ struct FynlaApp: App {
             clock: ContinuousPrivacyClock(),
             deviceLabel: "Fynla iPhone"
         )
-        self.dependencies = dependencies.authenticatedSession(
+        let authenticatedDependencies = dependencies.authenticatedSession(
             accessTokenProvider: coordinator,
             tokenRefresher: privacyLockController
         )
+        #if FYNLA_UI_TESTING
+        let subscriptionModel: SubscriptionModel
+        let appleSubscriptionManager: any AppleSubscriptionManaging
+        if let scenario = uiTestMode?.subscriptionScenario {
+            subscriptionModel = SubscriptionUITestComposition.model(for: scenario)
+            appleSubscriptionManager = SubscriptionUITestAppleManager()
+        } else {
+            subscriptionModel = SubscriptionModel(
+                api: LiveSubscriptionAPI(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                ),
+                storeKit: SystemStoreKitClient()
+            )
+            appleSubscriptionManager = SystemAppleSubscriptionManager()
+        }
+        #else
+        let subscriptionModel = SubscriptionModel(
+            api: LiveSubscriptionAPI(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            storeKit: SystemStoreKitClient()
+        )
+        let appleSubscriptionManager: any AppleSubscriptionManaging =
+            SystemAppleSubscriptionManager()
+        #endif
+        self.dependencies = authenticatedDependencies
+        self.appleSubscriptionManager = appleSubscriptionManager
         _session = State(initialValue: session)
         _router = State(initialValue: AppRouter(session: session))
         _authenticationCoordinator = State(initialValue: coordinator)
         _privacyLockController = State(initialValue: privacyLockController)
+        _subscriptionModel = State(initialValue: subscriptionModel)
     }
 
     var body: some Scene {
@@ -120,6 +150,8 @@ struct FynlaApp: App {
         AppRootView(
             session: session,
             privacyLockController: privacyLockController,
+            subscriptionModel: subscriptionModel,
+            appleSubscriptionManager: appleSubscriptionManager,
             registrationActions: registrationActions,
             loginActions: loginActions,
             passwordResetActions: passwordResetActions,

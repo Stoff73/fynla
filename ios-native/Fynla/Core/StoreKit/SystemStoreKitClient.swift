@@ -98,6 +98,22 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
         try await AppStore.sync()
     }
 
+    func currentEntitlements() async -> [SignedStoreTransaction] {
+        var transactions: [SignedStoreTransaction] = []
+        for await verification in Transaction.currentEntitlements {
+            guard let transaction = try? Self.signedTransaction(
+                verification,
+                allowedProductIDs: productIDs,
+                expectedProductID: nil,
+                expectedAppAccountToken: nil
+            ) else {
+                continue
+            }
+            transactions.append(transaction)
+        }
+        return transactions
+    }
+
     private static func storeProduct(_ product: Product) throws -> StoreProduct {
         guard let period = product.subscription?.subscriptionPeriod else {
             throw StoreKitClientError.missingSubscriptionMetadata

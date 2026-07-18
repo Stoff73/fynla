@@ -3,6 +3,8 @@ import SwiftUI
 struct AppRootView: View {
     let session: AppSession
     let privacyLockController: PrivacyLockController?
+    let subscriptionModel: SubscriptionModel
+    let appleSubscriptionManager: any AppleSubscriptionManaging
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
     @State private var passwordResetModel: PasswordResetModel
@@ -11,6 +13,8 @@ struct AppRootView: View {
     init(
         session: AppSession,
         privacyLockController: PrivacyLockController? = nil,
+        subscriptionModel: SubscriptionModel,
+        appleSubscriptionManager: any AppleSubscriptionManaging,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
         passwordResetActions: PasswordResetActions,
@@ -20,6 +24,8 @@ struct AppRootView: View {
     ) {
         self.session = session
         self.privacyLockController = privacyLockController
+        self.subscriptionModel = subscriptionModel
+        self.appleSubscriptionManager = appleSubscriptionManager
         _registrationModel = State(
             initialValue: RegistrationModel(
                 actions: registrationActions,
@@ -90,7 +96,11 @@ struct AppRootView: View {
                     LockedView(message: "Unlock to view your financial plan.")
                 }
             case .authenticatedUnlocked:
-                UnlockedView(privacyLockController: privacyLockController)
+                UnlockedView(
+                    privacyLockController: privacyLockController,
+                    subscriptionModel: subscriptionModel,
+                    appleSubscriptionManager: appleSubscriptionManager
+                )
             case .deletingAccount:
                 LockedView(message: "Updating your account securely…")
             }
@@ -108,6 +118,13 @@ struct AppRootView: View {
             guard let privacyLockController else { return }
             Task { @MainActor in
                 await privacyLockController.refreshFaceIDOffer()
+            }
+        }
+        .task(id: session.state) {
+            if session.state == .authenticatedUnlocked {
+                await subscriptionModel.start()
+            } else if session.state == .signedOut {
+                subscriptionModel.stop()
             }
         }
         .overlay {
@@ -167,37 +184,60 @@ private struct LaunchingView: View {
 
 private struct UnlockedView: View {
     let privacyLockController: PrivacyLockController?
+    let subscriptionModel: SubscriptionModel
+    let appleSubscriptionManager: any AppleSubscriptionManaging
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text("Fynla")
-                .font(.title.bold())
-            Text("Your secure workspace is ready.")
-                .foregroundStyle(.secondary)
-            if let privacyLockController {
-                FynlaButton(
-                    "Lock",
-                    variant: .secondary,
-                    accessibilityLabel: "Lock Fynla"
-                ) {
-                    privacyLockController.lock()
-                }
-                .accessibilityIdentifier("app.unlocked.lock")
+        NavigationStack {
+            VStack(spacing: FynlaSpacing.large) {
+                Text("Fynla")
+                    .font(FynlaTypography.pageTitle)
+                    .foregroundStyle(FynlaColor.primaryText)
+                Text("Your secure workspace is ready.")
+                    .font(FynlaTypography.body)
+                    .foregroundStyle(FynlaColor.secondaryText)
 
-                FynlaButton(
-                    "Sign out",
-                    variant: .secondary,
-                    accessibilityLabel: "Sign out of Fynla"
-                ) {
-                    Task { @MainActor in
-                        await privacyLockController.signOut()
+                NavigationLink {
+                    SettingsView(
+                        subscriptionModel: subscriptionModel,
+                        appleManager: appleSubscriptionManager,
+                        privacyLockController: privacyLockController
+                    )
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                        .font(FynlaTypography.button)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.bordered)
+                .tint(FynlaColor.primaryText)
+                .accessibilityIdentifier("app.unlocked.settings")
+
+                if let privacyLockController {
+                    FynlaButton(
+                        "Sign out",
+                        variant: .secondary,
+                        accessibilityLabel: "Sign out of Fynla"
+                    ) {
+                        Task { @MainActor in
+                            await privacyLockController.signOut()
+                        }
+                    }
+                    .accessibilityIdentifier("app.unlocked.sign-out")
+                }
+            }
+            .padding(FynlaSpacing.large)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("app.unlocked")
+            .toolbar {
+                if let privacyLockController {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Lock", systemImage: "lock") {
+                            privacyLockController.lock()
+                        }
+                        .accessibilityIdentifier("app.unlocked.lock")
                     }
                 }
-                .accessibilityIdentifier("app.unlocked.sign-out")
             }
         }
-        .padding()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("app.unlocked")
     }
 }

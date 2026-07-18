@@ -27,6 +27,14 @@ enum UITestMode: String, Sendable {
     case faceIDFailed = "face-id-failed"
     case faceIDLockout = "face-id-lockout"
     case faceIDInvalidated = "face-id-invalidated"
+    case subscriptionFree = "subscription-free"
+    case subscriptionApplePremium = "subscription-apple-premium"
+    case subscriptionWebPremium = "subscription-web-premium"
+    case subscriptionUnavailable = "subscription-unavailable"
+    case subscriptionPurchaseSuccess = "subscription-purchase-success"
+    case subscriptionPurchasePending = "subscription-purchase-pending"
+    case subscriptionPurchaseCancelled = "subscription-purchase-cancelled"
+    case subscriptionRestoreSuccess = "subscription-restore-success"
 
     init?(arguments: [String]) {
         guard let flagIndex = arguments.firstIndex(of: "-fynla-ui-test-mode"),
@@ -46,6 +54,15 @@ enum UITestMode: String, Sendable {
         case .signedOut:
             .signedOut
         case .unlocked:
+            .authenticatedUnlocked
+        case .subscriptionFree,
+             .subscriptionApplePremium,
+             .subscriptionWebPremium,
+             .subscriptionUnavailable,
+             .subscriptionPurchaseSuccess,
+             .subscriptionPurchasePending,
+             .subscriptionPurchaseCancelled,
+             .subscriptionRestoreSuccess:
             .authenticatedUnlocked
         case .designSystem:
             .launching
@@ -112,7 +129,15 @@ enum UITestMode: String, Sendable {
              .faceIDCancelled,
              .faceIDFailed,
              .faceIDLockout,
-             .faceIDInvalidated:
+             .faceIDInvalidated,
+             .subscriptionFree,
+             .subscriptionApplePremium,
+             .subscriptionWebPremium,
+             .subscriptionUnavailable,
+             .subscriptionPurchaseSuccess,
+             .subscriptionPurchasePending,
+             .subscriptionPurchaseCancelled,
+             .subscriptionRestoreSuccess:
             nil
         }
     }
@@ -148,7 +173,15 @@ enum UITestMode: String, Sendable {
              .faceIDCancelled,
              .faceIDFailed,
              .faceIDLockout,
-             .faceIDInvalidated:
+             .faceIDInvalidated,
+             .subscriptionFree,
+             .subscriptionApplePremium,
+             .subscriptionWebPremium,
+             .subscriptionUnavailable,
+             .subscriptionPurchaseSuccess,
+             .subscriptionPurchasePending,
+             .subscriptionPurchaseCancelled,
+             .subscriptionRestoreSuccess:
             nil
         }
     }
@@ -181,7 +214,15 @@ enum UITestMode: String, Sendable {
              .faceIDCancelled,
              .faceIDFailed,
              .faceIDLockout,
-             .faceIDInvalidated:
+             .faceIDInvalidated,
+             .subscriptionFree,
+             .subscriptionApplePremium,
+             .subscriptionWebPremium,
+             .subscriptionUnavailable,
+             .subscriptionPurchaseSuccess,
+             .subscriptionPurchasePending,
+             .subscriptionPurchaseCancelled,
+             .subscriptionRestoreSuccess:
             nil
         }
     }
@@ -218,10 +259,76 @@ enum UITestMode: String, Sendable {
              .loginRestorationWithoutMFA,
              .loginLockout,
              .passwordReset,
-             .passwordResetMultiFactor:
+             .passwordResetMultiFactor,
+             .subscriptionFree,
+             .subscriptionApplePremium,
+             .subscriptionWebPremium,
+             .subscriptionUnavailable,
+             .subscriptionPurchaseSuccess,
+             .subscriptionPurchasePending,
+             .subscriptionPurchaseCancelled,
+             .subscriptionRestoreSuccess:
             nil
         }
     }
+
+    var subscriptionScenario: SubscriptionUITestScenario? {
+        switch self {
+        case .subscriptionFree:
+            .free
+        case .subscriptionApplePremium:
+            .applePremium
+        case .subscriptionWebPremium:
+            .webPremium
+        case .subscriptionUnavailable:
+            .unavailable
+        case .subscriptionPurchaseSuccess:
+            .purchaseSuccess
+        case .subscriptionPurchasePending:
+            .purchasePending
+        case .subscriptionPurchaseCancelled:
+            .purchaseCancelled
+        case .subscriptionRestoreSuccess:
+            .restoreSuccess
+        case .liveLaunch,
+             .signedOut,
+             .unlocked,
+             .designSystem,
+             .registrationSuccess,
+             .registrationFieldErrors,
+             .registrationDuplicateEmail,
+             .registrationWrongCode,
+             .registrationExpired,
+             .registrationResendExhausted,
+             .registrationLargeText,
+             .loginSuccess,
+             .loginVerification,
+             .loginMultiFactor,
+             .loginRestoration,
+             .loginRestorationWithoutMFA,
+             .loginLockout,
+             .passwordReset,
+             .passwordResetMultiFactor,
+             .faceIDOptIn,
+             .faceIDUnlockSuccess,
+             .faceIDCancelled,
+             .faceIDFailed,
+             .faceIDLockout,
+             .faceIDInvalidated:
+            nil
+        }
+    }
+}
+
+enum SubscriptionUITestScenario: Sendable, Equatable {
+    case free
+    case applePremium
+    case webPremium
+    case unavailable
+    case purchaseSuccess
+    case purchasePending
+    case purchaseCancelled
+    case restoreSuccess
 }
 
 enum FaceIDUITestScenario: Sendable, Equatable {

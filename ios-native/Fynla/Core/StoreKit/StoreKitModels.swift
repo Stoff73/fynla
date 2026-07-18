@@ -17,6 +17,25 @@ struct StoreSubscriptionPeriod: Sendable, Equatable {
 
     let value: Int
     let unit: Unit
+
+    var label: String {
+        if value == 1 {
+            return switch unit {
+            case .day: "per day"
+            case .week: "per week"
+            case .month: "per month"
+            case .year: "per year"
+            }
+        }
+
+        let unitLabel = switch unit {
+        case .day: "days"
+        case .week: "weeks"
+        case .month: "months"
+        case .year: "years"
+        }
+        return "every \(value) \(unitLabel)"
+    }
 }
 
 struct StoreProduct: Sendable, Equatable {
@@ -25,6 +44,8 @@ struct StoreProduct: Sendable, Equatable {
     let description: String
     let displayPrice: String
     let subscriptionPeriod: StoreSubscriptionPeriod
+
+    var periodLabel: String { subscriptionPeriod.label }
 }
 
 struct SignedStoreTransaction: Sendable, Equatable {

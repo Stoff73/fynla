@@ -5,4 +5,11 @@ protocol StoreKitClient: Sendable {
     func purchase(_ productID: String, appAccountToken: UUID) async throws -> PurchaseOutcome
     func updates() -> AsyncStream<SignedStoreTransaction>
     func sync() async throws
+    func currentEntitlements() async -> [SignedStoreTransaction]
+}
+
+extension StoreKitClient {
+    func currentEntitlements() async -> [SignedStoreTransaction] {
+        []
+    }
 }
