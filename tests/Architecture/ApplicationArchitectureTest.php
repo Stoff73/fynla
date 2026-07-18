@@ -133,6 +133,11 @@ arch('services are organized by module')
         'App\Services\Documents\FieldMappers\FieldMapperInterface',
         'App\Services\Lifecycle\Contracts\LifecycleCampaign',
         'App\Services\Tax\Strategies\Contract\TaxStrategy',
+        // Package 4 Apple billing ports are service contracts with concrete
+        // Python/Symfony implementations bound in AppServiceProvider.
+        'App\Services\Billing\Apple\AppleBridgeClient',
+        'App\Services\Billing\Apple\AppleSignedDataVerifier',
+        'App\Services\Billing\Apple\AppleStoreServerClient',
         // Sub-project 1 Stores: IngestSource is a string-backed enum, TierGate is an interface
         'App\Services\Stores\IngestSource',
         'App\Services\Stores\TierGate',
