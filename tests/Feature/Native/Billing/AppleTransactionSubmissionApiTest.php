@@ -328,6 +328,8 @@ it('fails closed when a verifier double returns invalid subscription semantics',
     'wrong environment' => [['environment' => 'production']],
     'wrong product' => [['productId' => 'org.fynla.premium.unapproved']],
     'missing subscription expiry' => [['expiresDate' => null]],
+    'family-shared ownership' => [['ownershipType' => 'FAMILY_SHARED']],
+    'missing ownership' => [['ownershipType' => null]],
 ]);
 
 it('projects a newer verified revocation and removes canonical premium access', function (): void {

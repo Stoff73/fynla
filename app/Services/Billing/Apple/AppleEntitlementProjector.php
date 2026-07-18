@@ -13,6 +13,8 @@ use Illuminate\Auth\Access\AuthorizationException;
 
 final class AppleEntitlementProjector
 {
+    private const PURCHASED_OWNERSHIP = 'PURCHASED';
+
     public function project(
         User $user,
         VerifiedAppleTransaction $transaction,
@@ -115,7 +117,7 @@ final class AppleEntitlementProjector
             || ! $this->fits($transaction->transactionId, 191)
             || ! $this->fits($transaction->originalTransactionId, 191)
             || ! $this->fits($transaction->productId, 100)
-            || ! $this->fitsNullable($transaction->ownershipType, 32)
+            || $transaction->ownershipType !== self::PURCHASED_OWNERSHIP
             || ! $this->fitsNullable($transaction->transactionReason, 32)
         ) {
             throw new AppleVerificationException('invalid_signed_data');
