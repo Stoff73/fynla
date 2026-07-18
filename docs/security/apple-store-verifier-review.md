@@ -1,7 +1,7 @@
 # Apple App Store server verifier review
 
 **Reviewed:** 18 July 2026
-**Decision:** Approved for use behind Fynla's Apple verifier adapter, subject to the deployment and update gates below.
+**Decision:** **REJECTED / BLOCKED.** The locked PHP package must not be used to enable Apple billing.
 
 ## Selected package
 
@@ -17,7 +17,7 @@
 
 Primary sources: the [package repository and support policy](https://github.com/hoels/app-store-server-library-php), the [2.0.0 package metadata](https://packagist.org/packages/hoels/app-store-server-library-php#2.0.0), and Apple's [official server-library guidance](https://developer.apple.com/documentation/AppStoreServerAPI/simplifying-your-implementation-by-using-the-app-store-server-library).
 
-Apple publishes official Swift, Java, Node.js and Python libraries, but no official PHP library. This package is therefore acceptable only behind Fynla's own adapter so it can be replaced without leaking third-party types through the billing domain.
+Apple publishes official Swift, Java, Node.js and Python libraries, but no official PHP library. The package remains locked only to make this review reproducible. Task 1 and Package 4 cannot proceed to billing enablement until either an upstream fix is independently audited or CSJ approves moving verification to an official-library runtime. This review does not select an alternative runtime.
 
 ## Runtime and locked dependency review
 
@@ -42,7 +42,7 @@ composer check-platform-reqs --no-dev
 
 The SiteGround extension check is pending because this review neither accesses production nor imports deployment secrets.
 
-## Certificate trust and revocation policy
+## Certificate trust
 
 The trust anchor is Apple's published `AppleRootCA-G3.cer`, downloaded over HTTPS from the [Apple PKI repository](https://www.apple.com/certificateauthority/) and checked in at `resources/certificates/apple/AppleRootCA-G3.cer`. OpenSSL reports:
 
@@ -51,26 +51,40 @@ The trust anchor is Apple's published `AppleRootCA-G3.cer`, downloaded over HTTP
 - critical basic constraint: `CA:TRUE`; and
 - SHA-256 fingerprint: `63:34:3A:BF:B8:9A:6A:03:EB:B5:7E:9B:3F:5F:A7:BE:7C:4F:5C:75:6F:30:17:B3:A8:C4:88:C3:65:3E:91:79`.
 
-The future Fynla adapter must read this checked-in DER certificate and pass its bytes as the trusted-root list. It must not download roots during a request and must not treat the JWS `x5c` root as trusted. Apple's [signed-data verification guidance](https://developer.apple.com/videos/play/wwdc2023/10143/) requires constructing the chain back to a previously obtained Apple root and checking certificate status with OCSP.
+Any future approved verifier must read this checked-in DER certificate and use it as the trust anchor. It must not download roots during a request and must not treat the JWS `x5c` root as trusted. Apple's [signed-data verification guidance](https://developer.apple.com/videos/play/wwdc2023/10143/) requires constructing the chain back to a previously obtained Apple root and checking certificate status with OCSP.
 
-For newly received transactions and notifications, configure `SignedDataVerifier` with online checks enabled. The reviewed implementation then validates the ES256 algorithm, the three-certificate header shape, leaf and intermediate signatures and validity, Apple receipt/WWDR OIDs, the chain against the supplied root, and signed OCSP responses. It caches a successfully checked leaf/intermediate public key for 15 minutes. Disabling online checks is not the normal runtime policy and requires an explicit historical-verification use case and separate review.
+## Blocking OCSP defects
 
-The library deliberately skips signature verification for `XCODE` and `LOCAL_TESTING`. The future adapter must select the expected environment from trusted server configuration, never from request data, and must never permit those modes on a deployed endpoint.
+Release 2.0.0's online checks are not sufficient for a billing security boundary. Its `ChainVerifier::checkOcspStatus()` validates the certificate ID, response signature and a signing-certificate chain, but it does not validate the `thisUpdate` or `nextUpdate` fields. A previously signed `good` response can therefore remain acceptable after its freshness interval and be replayed after the certificate is revoked. This is an OCSP replay risk, not merely an availability or hardening concern.
+
+The implementation also accepts a delegated signing certificate after general chain-signature validation without checking that it carries the `id-kp-OCSPSigning` extended-key-usage purpose. It does not match the response's `ResponderID` (`byName` or `byKey`) to the certificate whose key verifies the response. These omissions mean the code does not establish that the selected delegated signer is the responder authorised for this OCSP response.
+
+[RFC 6960 section 4.2.2.1](https://www.rfc-editor.org/rfc/rfc6960.html#section-4.2.2.1) defines the `thisUpdate`/`nextUpdate` validity interval and says future `thisUpdate` or expired `nextUpdate` responses should be considered unreliable. [Section 4.2.2.2](https://www.rfc-editor.org/rfc/rfc6960.html#section-4.2.2.2) requires delegated responders to be issued by the relevant CA with `id-kp-OCSPSigning`, and requires relying applications to enforce that authorisation.
+
+Apple's official Python verifier at commit [`200e9ac5e14dd5971c451de1e8b6c26e9ae8907e`](https://github.com/apple/app-store-server-library-python/blob/200e9ac5e14dd5971c451de1e8b6c26e9ae8907e/appstoreserverlibrary/signed_data_verifier.py#L241-L342) performs the missing controls: it selects the signing certificate by the response's responder key hash or responder name, enforces `OCSP_SIGNING` EKU for a delegated signer, and requires `this_update` and `next_update` to bound the current time with limited clock skew. The PHP package's claim to mirror Apple's implementation is therefore incomplete at this security-critical boundary.
+
+The package is rejected for billing use. Do not compensate with a custom OCSP or JWS verifier. Resolution requires an audited upstream fix or a CSJ-approved official-library runtime, followed by a new security review.
+
+## Transaction identity controls
+
+The PHP `SignedDataVerifier::verifyAndDecodeSignedTransaction()` validates the signature chain and environment but does not compare the decoded transaction's `bundleId` with the configured bundle. Apple's [official Python method](https://github.com/apple/app-store-server-library-python/blob/200e9ac5e14dd5971c451de1e8b6c26e9ae8907e/appstoreserverlibrary/signed_data_verifier.py#L64-L77) performs that bundle check.
+
+If a verifier is approved later, Fynla's adapter must independently enforce all entitlement identity fields after cryptographic verification: exact bundle ID, expected environment, a server-owned product allowlist, and the expected account token (`appAccountToken`). None may be accepted from untrusted request configuration. The library also deliberately skips signature verification for `XCODE` and `LOCAL_TESTING`; those modes must never be permitted on a deployed endpoint.
 
 ## Security advisories and maintenance policy
 
 `composer audit --locked --format=json` on 18 July 2026 reported 11 advisories across six already-locked packages. Every affected package and version was unchanged from the pre-task lock; none targets the verifier or the four newly locked transitive packages. The pre-existing set includes one high Laravel advisory, medium Laravel/Symfony advisories, two medium Guzzle advisories, three medium PSR-7 advisories, and one low Symfony polyfill advisory.
 
-The Guzzle and PSR-7 findings matter to the future OCSP path even though this task adds no runtime adapter. Their reviewed OCSP usage does not use cookies, and the responder URI comes from an Apple-signed certificate after chain validation, which limits the currently reported attack paths. Nevertheless, update the existing Guzzle/PSR-7 locks to patched releases before enabling Apple billing, and clear or explicitly disposition the wider project audit before deployment.
+The Guzzle and PSR-7 findings would matter to any future PHP OCSP path even though this task adds no runtime adapter. Their reviewed OCSP usage does not use cookies, and the responder URI comes from an Apple-signed certificate after chain validation, which limits the currently reported attack paths. Nevertheless, update the existing Guzzle/PSR-7 locks to patched releases before any reconsideration of PHP verification, and clear or explicitly disposition the wider project audit before deployment.
 
 The package maintainer supports only the latest major version, including for security fixes. Fynla's update policy is therefore:
 
 1. run `composer audit --locked` in dependency review and release checks;
 2. monitor Packagist/GitHub releases and Apple's official server-library changes;
-3. apply compatible 2.x security/bugfix releases promptly with focused verification;
+3. do not adopt an upstream release until the OCSP freshness, responder-ID and delegated-signer controls are demonstrated by tests and independently audited;
 4. review each new major before adoption, because staying on an old major forfeits upstream security support; and
 5. re-download roots only from Apple's PKI repository in a reviewed change, then verify and pin the new fingerprint.
 
 ## Review boundary
 
-This change locks the dependency and trust anchor only. It does not implement a verifier adapter, accept signed payloads, call Apple, grant entitlements, or add billing behaviour.
+This change locks the rejected dependency and trust anchor for a reproducible audit only. It does not implement a verifier adapter, accept signed payloads, call Apple, grant entitlements, or add billing behaviour. Package 4 remains blocked pending an architecture decision.

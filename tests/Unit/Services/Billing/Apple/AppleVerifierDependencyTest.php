@@ -31,6 +31,22 @@ final class AppleVerifierDependencyTest extends TestCase
 
         self::assertIsArray($details);
         self::assertStringContainsString('CA:TRUE', $details['extensions']['basicConstraints'] ?? '');
+        $expectedDistinguishedName = [
+            'CN' => 'Apple Root CA - G3',
+            'OU' => 'Apple Certification Authority',
+            'O' => 'Apple Inc.',
+            'C' => 'US',
+        ];
+        self::assertSame($expectedDistinguishedName, $details['subject'] ?? null);
+        self::assertSame($expectedDistinguishedName, $details['issuer'] ?? null);
+
+        $fingerprint = openssl_x509_fingerprint($certificate, 'sha256');
+
+        self::assertNotFalse($fingerprint);
+        self::assertSame(
+            '63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179',
+            $fingerprint,
+        );
         self::assertTrue(class_exists(SignedDataVerifier::class));
     }
 }
