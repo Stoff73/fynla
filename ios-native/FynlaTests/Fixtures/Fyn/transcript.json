@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "data": {
+    "conversation": {
+      "id": 321,
+      "title": "Onboarding",
+      "message_count": 2,
+      "status": "active"
+    },
+    "messages": [
+      {
+        "id": 9001,
+        "role": "assistant",
+        "content": "Welcome back. Would you like to continue?",
+        "metadata": {
+          "bubbles": [
+            {"id": "continue", "label": "Continue"},
+            {"id": "something_else", "label": "Something else"}
+          ],
+          "action_bubbles": true
+        },
+        "created_at": "2026-07-18T18:00:00Z"
+      },
+      {
+        "id": 9002,
+        "role": "user",
+        "content": "Continue",
+        "metadata": null,
+        "created_at": "2026-07-18T18:01:00Z"
+      }
+    ]
+  }
+}

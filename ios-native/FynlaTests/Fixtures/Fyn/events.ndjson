@@ -1,0 +1,10 @@
+{"type":"conversation_created","conversation_id":321}
+{"type":"content","text":"I have saved that. "}
+{"type":"entity_created","name":"Cash ISA"}
+{"type":"capture_complete","summary":"Saved Cash ISA with a balance of £12,000."}
+{"type":"onboarding_advance","from_step":"savings","to_step":"retirement"}
+{"type":"quick_replies","prompt_text":"Do you have a pension?","bubbles":[{"id":"yes","label":"Yes"},{"id":"no","label":"No"}],"action_bubbles":false}
+{"type":"done","message_id":9003}
+{"type":"level_up","level":3,"level_name":"Builder","next_actions":["Add a pension"]}
+{"type":"future_server_event","safe":"ignored"}
+{"type":"content","text":"This still arrives."}

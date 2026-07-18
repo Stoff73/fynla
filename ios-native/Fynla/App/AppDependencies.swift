@@ -114,6 +114,32 @@ struct AppDependencies: Sendable {
         )
     }
 
+    func makeFynClient() -> LiveFynClient {
+        LiveFynClient(
+            apiClient: makeAPIClient(),
+            environment: environment,
+            version: appVersion,
+            build: appBuild,
+            transport: httpTransport,
+            tokenProvider: accessTokenProvider,
+            requestID: requestID
+        )
+    }
+
+    func makeBugReportMetadata(
+        route: String,
+        nativeSessionUUID: String
+    ) -> BugReportMetadata {
+        BugReportMetadata(
+            appVersion: appVersion,
+            appBuild: appBuild,
+            environment: environment.name.rawValue,
+            route: route,
+            requestCorrelationID: nil,
+            nativeSessionUUID: nativeSessionUUID
+        )
+    }
+
     func authenticatedSession(
         accessTokenProvider: any AccessTokenProviding,
         tokenRefresher: any AccessTokenRefreshing

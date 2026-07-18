@@ -142,6 +142,37 @@ it('never attaches another user\'s conversation (ownership-scoped)', function ()
     });
 });
 
+it('accepts allowlisted native diagnostics without attaching financial conversation text', function () {
+    $user = User::factory()->create();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'My Cash ISA contains £12,000.',
+    ]);
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/bug-report', [
+        'description' => 'The native screen did not refresh.',
+        'platform' => 'ios',
+        'app_version' => '1.0.0',
+        'app_build' => '42',
+        'environment' => 'staging',
+        'request_correlation_id' => 'request-42',
+        'native_session_uuid' => '9e7d314a-e607-4b93-b739-6864363cf913',
+        'conversation_id' => $conversation->id,
+    ])->assertOk();
+
+    Mail::assertQueued(BugReportMail::class, function (BugReportMail $mail) use ($conversation) {
+        return $mail->bugReport['app_build'] === '42'
+            && $mail->bugReport['environment'] === 'staging'
+            && $mail->bugReport['request_correlation_id'] === 'request-42'
+            && $mail->bugReport['native_session_uuid'] === '9e7d314a-e607-4b93-b739-6864363cf913'
+            && $mail->bugReport['conversation_id'] === $conversation->id
+            && $mail->bugReport['fyn_transcript'] === null;
+    });
+});
+
 it('rate-limits to 5 bug reports per hour per user', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

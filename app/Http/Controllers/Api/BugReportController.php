@@ -53,6 +53,10 @@ class BugReportController extends Controller
             'category' => 'nullable|string|max:50',
             'severity' => 'nullable|string|max:20',
             'app_version' => 'nullable|string|max:50',
+            'app_build' => 'nullable|string|max:50',
+            'environment' => 'nullable|string|max:50',
+            'request_correlation_id' => 'nullable|string|max:100',
+            'native_session_uuid' => 'nullable|uuid',
             'device_model' => 'nullable|string|max:100',
             'os_version' => 'nullable|string|max:100',
             'platform' => 'nullable|string|max:20',
@@ -88,14 +92,23 @@ class BugReportController extends Controller
             'category' => isset($validated['category']) ? strip_tags($validated['category']) : null,
             'severity' => isset($validated['severity']) ? strip_tags($validated['severity']) : null,
             'app_version' => isset($validated['app_version']) ? strip_tags($validated['app_version']) : null,
+            'app_build' => isset($validated['app_build']) ? strip_tags($validated['app_build']) : null,
+            'environment' => isset($validated['environment']) ? strip_tags($validated['environment']) : null,
+            'request_correlation_id' => isset($validated['request_correlation_id'])
+                ? strip_tags($validated['request_correlation_id'])
+                : null,
+            'native_session_uuid' => $validated['native_session_uuid'] ?? null,
             'device_model' => isset($validated['device_model']) ? strip_tags($validated['device_model']) : null,
             'os_version' => isset($validated['os_version']) ? strip_tags($validated['os_version']) : null,
             'platform' => isset($validated['platform']) ? strip_tags($validated['platform']) : null,
             'route' => isset($validated['route']) ? strip_tags($validated['route']) : null,
+            'conversation_id' => $validated['conversation_id'] ?? null,
             // Fyn conversation transcript, when the report was filed from the
             // chat. Ownership-scoped (forUser) so a user can only attach their
             // own conversation — never another user's by guessing an id.
-            'fyn_transcript' => $this->captureTranscript($user->id, $validated['conversation_id'] ?? null),
+            'fyn_transcript' => ($validated['platform'] ?? null) === 'ios'
+                ? null
+                : $this->captureTranscript($user->id, $validated['conversation_id'] ?? null),
         ];
 
         try {

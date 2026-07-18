@@ -15,6 +15,7 @@ enum AppRoute: Hashable, Sendable {
     case goals
     case taxStrategy
     case holisticPlan
+    case bugReport
     case settings
 
     var requiresUnlockedSession: Bool {

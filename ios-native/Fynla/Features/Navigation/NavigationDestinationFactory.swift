@@ -17,6 +17,7 @@ enum NavigationDestinationFactory {
         case .goals: "Goals"
         case .taxStrategy: "Tax Strategy"
         case .holisticPlan: "Holistic Plan"
+        case .bugReport: "Report a problem"
         case .settings: "Settings"
         }
     }
@@ -26,6 +27,7 @@ enum NavigationDestinationFactory {
         for route: AppRoute,
         subscriptionModel: SubscriptionModel,
         achievementsModel: AchievementsModel,
+        bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
         onRoute: @escaping (AppRoute) -> Void
@@ -33,6 +35,8 @@ enum NavigationDestinationFactory {
         switch route {
         case .achievements:
             AchievementsView(model: achievementsModel, onRoute: onRoute)
+        case .bugReport:
+            BugReportView(model: bugReportModel)
         case .settings:
             SettingsView(
                 subscriptionModel: subscriptionModel,

@@ -59,6 +59,52 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testNativeFynOpensThePersistedConversationAndSendsAReply() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let open = app.buttons["fyn.open"]
+        XCTAssertTrue(open.waitForExistence(timeout: 3))
+        open.tap()
+
+        XCTAssertTrue(element("fyn.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["What would you like to focus on first?"].exists)
+
+        let reply = app.buttons["fyn.reply.savings"]
+        XCTAssertTrue(reply.isHittable)
+        reply.tap()
+        XCTAssertTrue(app.staticTexts["Let's work through savings."].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testNativeBugReportReviewsMetadataBeforeSubmitting() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let menu = app.buttons["navigation.open"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3))
+        menu.tap()
+
+        let reportProblem = app.buttons["navigation.report-a-problem"]
+        XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
+        reportProblem.tap()
+
+        let description = app.textFields["bug-report.description"]
+        XCTAssertTrue(description.waitForExistence(timeout: 3))
+        description.tap()
+        description.typeText("The native dashboard did not refresh.")
+        app.buttons["bug-report.review"].tap()
+
+        XCTAssertTrue(app.staticTexts["Technical details included"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Conversation text, financial values, network contents, passwords, tokens and purchase signatures are not attached."].exists)
+        app.buttons["bug-report.submit"].tap()
+
+        XCTAssertTrue(
+            element("bug-report.submitted", in: app).waitForExistence(timeout: 3)
+        )
+    }
+
+    @MainActor
     func testFreeSubscriptionShowsLocalizedStoreKitChoicesAndRestore() throws {
         let app = openSubscription(mode: "subscription-free")
 

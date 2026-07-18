@@ -29,6 +29,7 @@ struct NavigationMenuTests {
             "Goals",
             "Tax Strategy",
             "Holistic Plan",
+            "Report a problem",
             "Settings",
         ])
         #expect(sections.flatMap(\.items).map(\.route) == [
@@ -45,6 +46,7 @@ struct NavigationMenuTests {
             .goals,
             .taxStrategy,
             .holisticPlan,
+            .bugReport,
             .settings,
         ])
     }
@@ -54,7 +56,7 @@ struct NavigationMenuTests {
         let items = NavigationMenuSection.version1.flatMap(\.items)
         let implemented = items.filter { !$0.isStaged }.map(\.route)
 
-        #expect(implemented == [.dashboard, .achievements, .settings])
+        #expect(implemented == [.dashboard, .achievements, .bugReport, .settings])
     }
 
     @Test

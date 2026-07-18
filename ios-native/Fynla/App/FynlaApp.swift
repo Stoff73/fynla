@@ -10,6 +10,8 @@ struct FynlaApp: App {
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
+    @State private var fynModel: FynConversationModel
+    @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
     private let authenticationClient: APIAuthClient
     private let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -149,6 +151,43 @@ struct FynlaApp: App {
             )
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let fynModel = uiTestMode == nil
+            ? FynConversationModel(client: authenticatedDependencies.makeFynClient())
+            : FynUITestComposition.model()
+        #else
+        let fynModel = FynConversationModel(
+            client: authenticatedDependencies.makeFynClient()
+        )
+        #endif
+        #if FYNLA_UI_TESTING
+        let bugReportModel = uiTestMode == nil
+            ? BugReportModel(
+                client: LiveBugReportClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                ),
+                metadata: authenticatedDependencies.makeBugReportMetadata(
+                    route: "/dashboard",
+                    nativeSessionUUID: UUID().uuidString
+                )
+            )
+            : BugReportUITestComposition.model(
+                metadata: authenticatedDependencies.makeBugReportMetadata(
+                    route: "/dashboard",
+                    nativeSessionUUID: "9E7D314A-E607-4B93-B739-6864363CF913"
+                )
+            )
+        #else
+        let bugReportModel = BugReportModel(
+            client: LiveBugReportClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            metadata: authenticatedDependencies.makeBugReportMetadata(
+                route: "/dashboard",
+                nativeSessionUUID: UUID().uuidString
+            )
+        )
+        #endif
         self.dependencies = authenticatedDependencies
         self.appleSubscriptionManager = appleSubscriptionManager
         _session = State(initialValue: session)
@@ -158,6 +197,8 @@ struct FynlaApp: App {
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
+        _fynModel = State(initialValue: fynModel)
+        _bugReportModel = State(initialValue: bugReportModel)
     }
 
     var body: some Scene {
@@ -187,6 +228,8 @@ struct FynlaApp: App {
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,
+            fynModel: fynModel,
+            bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
             registrationActions: registrationActions,
             loginActions: loginActions,

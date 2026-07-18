@@ -6,6 +6,8 @@ struct AppRootView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let fynModel: FynConversationModel
+    let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
@@ -18,6 +20,8 @@ struct AppRootView: View {
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
+        fynModel: FynConversationModel,
+        bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
@@ -31,6 +35,8 @@ struct AppRootView: View {
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
+        self.fynModel = fynModel
+        self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
         _registrationModel = State(
             initialValue: RegistrationModel(
@@ -107,6 +113,8 @@ struct AppRootView: View {
                     subscriptionModel: subscriptionModel,
                     dashboardModel: dashboardModel,
                     achievementsModel: achievementsModel,
+                    fynModel: fynModel,
+                    bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
                 )
             case .deletingAccount:
@@ -135,6 +143,8 @@ struct AppRootView: View {
                 subscriptionModel.stop()
                 dashboardModel.stop()
                 achievementsModel.stop()
+                fynModel.stopAndClear()
+                bugReportModel.reset()
             }
         }
         .overlay {
@@ -197,9 +207,12 @@ private struct UnlockedView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let fynModel: FynConversationModel
+    let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     @Environment(AppRouter.self) private var router
     @State private var isPresentingMenu = false
+    @State private var isPresentingFyn = false
 
     var body: some View {
         NavigationStack(path: navigationPath) {
@@ -209,7 +222,7 @@ private struct UnlockedView: View {
                     navigate(to: route)
                 },
                 onOpenFyn: { _ in
-                    // The Fyn destination is implemented later in Package 5.
+                    presentFyn()
                 }
             )
             .navigationDestination(for: AppRoute.self) { route in
@@ -217,6 +230,7 @@ private struct UnlockedView: View {
                     for: route,
                     subscriptionModel: subscriptionModel,
                     achievementsModel: achievementsModel,
+                    bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     privacyLockController: privacyLockController,
                     onRoute: navigate
@@ -254,6 +268,35 @@ private struct UnlockedView: View {
                 }
             )
         }
+        .sheet(isPresented: $isPresentingFyn) {
+            FynView(
+                model: fynModel,
+                onClose: { isPresentingFyn = false },
+                onRoute: { route in
+                    isPresentingFyn = false
+                    navigate(to: route)
+                },
+                onRefreshCurrentScreen: {
+                    if router.path.isEmpty {
+                        Task { await dashboardModel.refresh() }
+                    }
+                }
+            )
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button("Ask Fyn") { presentFyn() }
+                .font(FynlaTypography.button)
+                .foregroundStyle(.white)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: FynlaSpacing.minimumInteractiveTarget
+                )
+                .background(FynlaColor.Token.horizon500.color)
+                .padding(.horizontal, FynlaSpacing.standard)
+                .padding(.vertical, FynlaSpacing.small)
+                .background(FynlaColor.pageBackground)
+                .accessibilityIdentifier("fyn.open")
+        }
     }
 
     private var navigationPath: Binding<[AppRoute]> {
@@ -266,10 +309,42 @@ private struct UnlockedView: View {
     }
 
     private func navigate(to route: AppRoute) {
+        if route == .bugReport {
+            bugReportModel.updateContext(
+                route: mobilePath(for: router.path.last ?? .dashboard),
+                conversationID: fynModel.conversationID
+            )
+        }
         if route == .dashboard {
             router.reset()
         } else {
             _ = router.navigate(to: route)
+        }
+    }
+
+    private func presentFyn() {
+        fynModel.currentRoute = mobilePath(for: router.path.last ?? .dashboard)
+        isPresentingFyn = true
+    }
+
+    private func mobilePath(for route: AppRoute) -> String {
+        switch route {
+        case .dashboard: "/dashboard"
+        case .income: "/income"
+        case .expenditure: "/expenditure"
+        case .savings: "/savings"
+        case .investment: "/investment"
+        case .retirement: "/retirement"
+        case .taxStrategy: "/tax-strategy"
+        case .achievements: "/achievements"
+        case .netWorth: "/net-worth"
+        case .protection: "/protection"
+        case .estate: "/estate"
+        case .goals: "/goals"
+        case .holisticPlan: "/holistic-plan"
+        case .bugReport: "/report-a-problem"
+        case .settings: "/settings"
+        case .module: "/dashboard"
         }
     }
 

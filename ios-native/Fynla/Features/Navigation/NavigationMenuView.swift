@@ -56,6 +56,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
         NavigationMenuSection(
             title: "Account",
             items: [
+                NavigationMenuItem(label: "Report a problem", route: .bugReport, isStaged: false),
                 NavigationMenuItem(label: "Settings", route: .settings, isStaged: false),
             ]
         ),
