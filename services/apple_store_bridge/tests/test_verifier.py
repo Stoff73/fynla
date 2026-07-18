@@ -219,7 +219,7 @@ class AppleSignedDataServiceTest(unittest.TestCase):
         )
 
     def test_rejects_invalid_or_oversized_signed_input(self):
-        for value in (None, "", "   ", 1, True, "x" * 131_073):
+        for value in (None, "", "   ", 1, True, "x" * 262_145):
             with self.subTest(value_type=type(value).__name__):
                 self.assert_bridge_error(
                     "invalid_signed_data",
@@ -227,6 +227,13 @@ class AppleSignedDataServiceTest(unittest.TestCase):
                         self.request(signed_data=value)
                     ),
                 )
+
+    def test_accepts_signed_input_at_the_256_kib_boundary(self):
+        result = self.service.verify_transaction(
+            self.request(signed_data="x" * (256 * 1024))
+        )
+
+        self.assertEqual("transaction-1", result["transaction_id"])
 
     def test_rejects_transaction_identity_and_evidence_mismatches(self):
         mutations = {
@@ -382,6 +389,12 @@ class AppleSignedDataServiceTest(unittest.TestCase):
                 "environment": "sandbox",
                 "transaction": unittest.mock.ANY,
                 "renewal": unittest.mock.ANY,
+                "transaction_signed_payload_sha256": (
+                    "929d6e24d3f87f502e1468c2cc6858e88dfac5f0e3d72decf7dc3ec1c6b9fba9"
+                ),
+                "renewal_signed_payload_sha256": (
+                    "457b48a7cab1251249c7770b0a3fad1a87c4879b39c0dccc321fbc7539a8676c"
+                ),
             },
             result,
         )

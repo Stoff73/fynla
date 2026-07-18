@@ -55,6 +55,8 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
         'environment',
         'transaction',
         'renewal',
+        'transaction_signed_payload_sha256',
+        'renewal_signed_payload_sha256',
     ];
 
     public function __construct(
@@ -107,6 +109,18 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
         if ($renewal !== null && ! is_array($renewal)) {
             $this->throwUnavailable();
         }
+        $transactionHash = $this->nullableSha256(
+            $data['transaction_signed_payload_sha256'] ?? null,
+        );
+        $renewalHash = $this->nullableSha256(
+            $data['renewal_signed_payload_sha256'] ?? null,
+        );
+        if (
+            ($transaction === null) !== ($transactionHash === null)
+            || ($renewal === null) !== ($renewalHash === null)
+        ) {
+            $this->throwUnavailable();
+        }
 
         return new VerifiedAppleNotification(
             notificationUuid: $notificationUuid,
@@ -119,6 +133,8 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
             renewal: $renewal === null
                 ? null
                 : $this->mapRenewal($renewal),
+            transactionSignedPayloadSha256: $transactionHash,
+            renewalSignedPayloadSha256: $renewalHash,
         );
     }
 
@@ -325,6 +341,22 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
         }
 
         return $this->requiredString($value);
+    }
+
+    private function nullableSha256(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (
+            ! is_string($value)
+            || preg_match('/\A[0-9a-f]{64}\z/D', $value) !== 1
+        ) {
+            $this->throwUnavailable();
+        }
+
+        return $value;
     }
 
     private function requiredCanonicalUuid(mixed $value): string

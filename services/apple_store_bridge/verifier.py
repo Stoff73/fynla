@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 from uuid import UUID
@@ -11,7 +12,7 @@ from appstoreserverlibrary.signed_data_verifier import (
 
 from .errors import BridgeError
 
-MAX_SIGNED_DATA_BYTES = 128 * 1024
+MAX_SIGNED_DATA_BYTES = 256 * 1024
 MAX_ROOT_CERTIFICATE_BYTES = 64 * 1024
 MAX_ALLOWED_PRODUCTS = 32
 
@@ -52,6 +53,8 @@ class AppleSignedDataService:
 
         transaction = None
         renewal = None
+        transaction_hash = None
+        renewal_hash = None
         data = getattr(decoded, "data", None)
         if data is not None:
             if getattr(data, "bundleId", None) != request["bundle_id"]:
@@ -64,6 +67,9 @@ class AppleSignedDataService:
             signed_transaction = getattr(data, "signedTransactionInfo", None)
             if signed_transaction is not None:
                 signed_transaction = self._nested_signed_data(signed_transaction)
+                transaction_hash = hashlib.sha256(
+                    signed_transaction.encode("utf-8")
+                ).hexdigest()
                 transaction = self._transaction_dict(
                     self._verify_official(
                         lambda: verifier.verify_and_decode_signed_transaction(
@@ -76,6 +82,9 @@ class AppleSignedDataService:
             signed_renewal = getattr(data, "signedRenewalInfo", None)
             if signed_renewal is not None:
                 signed_renewal = self._nested_signed_data(signed_renewal)
+                renewal_hash = hashlib.sha256(
+                    signed_renewal.encode("utf-8")
+                ).hexdigest()
                 renewal = self._renewal_dict(
                     self._verify_official(
                         lambda: verifier.verify_and_decode_renewal_info(signed_renewal)
@@ -90,6 +99,8 @@ class AppleSignedDataService:
             "environment": request["environment"],
             "transaction": transaction,
             "renewal": renewal,
+            "transaction_signed_payload_sha256": transaction_hash,
+            "renewal_signed_payload_sha256": renewal_hash,
         }
 
     def verify_renewal(self, request: dict) -> dict:

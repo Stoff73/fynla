@@ -75,6 +75,8 @@ it('maps nested notification transaction and renewal DTOs without raw signed val
         'environment' => 'sandbox',
         'transaction' => validAppleTransactionData(),
         'renewal' => validAppleRenewalData(),
+        'transaction_signed_payload_sha256' => str_repeat('a', 64),
+        'renewal_signed_payload_sha256' => str_repeat('b', 64),
     ];
 
     $notification = $this->verifier->verifyNotification(
@@ -103,6 +105,8 @@ it('maps nested notification transaction and renewal DTOs without raw signed val
         ->and($notification->renewal?->autoRenewStatus)->toBe(1)
         ->and($notification->renewal?->isInBillingRetryPeriod)->toBeFalse()
         ->and($notification->renewal?->renewalDate?->format('Y-m-d\TH:i:s.v\Z'))->toBe('2024-08-03T09:46:40.000Z')
+        ->and($notification->transactionSignedPayloadSha256)->toBe(str_repeat('a', 64))
+        ->and($notification->renewalSignedPayloadSha256)->toBe(str_repeat('b', 64))
         ->and(array_keys(get_object_vars($notification)))->not->toContain('signed_data', 'x5c');
 });
 
@@ -114,6 +118,8 @@ it('maps a notification with no nested subscription data', function () {
         'environment' => 'sandbox',
         'transaction' => null,
         'renewal' => null,
+        'transaction_signed_payload_sha256' => null,
+        'renewal_signed_payload_sha256' => null,
     ];
 
     $notification = $this->verifier->verifyNotification('signed', 'sandbox');
@@ -121,7 +127,9 @@ it('maps a notification with no nested subscription data', function () {
     expect($notification->notificationType)->toBe('TEST')
         ->and($notification->subtype)->toBeNull()
         ->and($notification->transaction)->toBeNull()
-        ->and($notification->renewal)->toBeNull();
+        ->and($notification->renewal)->toBeNull()
+        ->and($notification->transactionSignedPayloadSha256)->toBeNull()
+        ->and($notification->renewalSignedPayloadSha256)->toBeNull();
 });
 
 it('rejects a caller environment that differs from trusted runtime configuration', function () {

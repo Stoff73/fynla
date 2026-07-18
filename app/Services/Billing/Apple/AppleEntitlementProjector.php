@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Billing\Apple;
 
+use App\Data\Billing\Apple\VerifiedAppleRenewal;
 use App\Data\Billing\Apple\VerifiedAppleTransaction;
 use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\PremiumEntitlement;
@@ -78,6 +79,78 @@ final class AppleEntitlementProjector
             'revoked_at' => $this->databaseDate($transaction->revocationDate),
             'last_verified_at' => $this->databaseDate($transaction->signedDate),
             'provider_metadata' => $this->metadata($transaction),
+        ])->save();
+
+        return $entitlement->fresh();
+    }
+
+    public function projectRenewal(
+        User $user,
+        VerifiedAppleRenewal $renewal,
+        string $notificationType,
+        ?string $subtype,
+    ): PremiumEntitlement {
+        if (
+            $user->is_preview_user
+            || $renewal->environment !== config('apple_store.environment')
+            || $renewal->signedDate === null
+            || ! in_array($renewal->productId, config('apple_store.allowed_product_ids', []), true)
+            || ! in_array($renewal->autoRenewProductId, config('apple_store.allowed_product_ids', []), true)
+        ) {
+            throw new AppleVerificationException('invalid_signed_data');
+        }
+
+        $entitlement = PremiumEntitlement::query()
+            ->where('provider', PremiumEntitlement::PROVIDER_APPLE)
+            ->where('provider_reference', $renewal->originalTransactionId)
+            ->lockForUpdate()
+            ->first();
+
+        if (
+            ! $entitlement instanceof PremiumEntitlement
+            || (string) $entitlement->user_id !== (string) $user->getKey()
+        ) {
+            throw new AuthorizationException('Apple entitlement ownership mismatch.');
+        }
+
+        if (
+            $entitlement->last_verified_at !== null
+            && $entitlement->last_verified_at->greaterThan($renewal->signedDate)
+        ) {
+            return $entitlement;
+        }
+
+        $status = match (true) {
+            in_array($notificationType, ['GRACE_PERIOD_EXPIRED', 'EXPIRED'], true) => PremiumEntitlement::STATUS_EXPIRED,
+            in_array($notificationType, ['REFUND', 'REVOKE'], true) => PremiumEntitlement::STATUS_REVOKED,
+            $notificationType === 'DID_FAIL_TO_RENEW' && $subtype === 'GRACE_PERIOD' => PremiumEntitlement::STATUS_GRACE_PERIOD,
+            $notificationType === 'DID_FAIL_TO_RENEW' => PremiumEntitlement::STATUS_BILLING_RETRY,
+            $notificationType === 'DID_CHANGE_RENEWAL_STATUS'
+                && $subtype === 'AUTO_RENEW_DISABLED' => PremiumEntitlement::STATUS_CANCELLED,
+            $renewal->autoRenewStatus === 0 => PremiumEntitlement::STATUS_CANCELLED,
+            default => PremiumEntitlement::STATUS_ACTIVE,
+        };
+        $terminal = in_array($status, [
+            PremiumEntitlement::STATUS_CANCELLED,
+            PremiumEntitlement::STATUS_EXPIRED,
+            PremiumEntitlement::STATUS_REVOKED,
+        ], true);
+        $metadata = is_array($entitlement->provider_metadata)
+            ? $entitlement->provider_metadata
+            : [];
+        $metadata['auto_renew_product_id'] = $renewal->autoRenewProductId;
+        $metadata['expiration_intent'] = $renewal->expirationIntent;
+        $metadata['notification_type'] = $notificationType;
+        $metadata['notification_subtype'] = $subtype;
+
+        $entitlement->forceFill([
+            'status' => $status,
+            'will_renew' => ! $terminal && $renewal->autoRenewStatus === 1,
+            'grace_period_ends_at' => $status === PremiumEntitlement::STATUS_GRACE_PERIOD
+                ? $this->databaseDate($renewal->gracePeriodExpiresDate)
+                : null,
+            'last_verified_at' => $this->databaseDate($renewal->signedDate),
+            'provider_metadata' => $metadata,
         ])->save();
 
         return $entitlement->fresh();

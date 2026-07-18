@@ -13,5 +13,7 @@ final readonly class VerifiedAppleNotification
         public string $environment,
         public ?VerifiedAppleTransaction $transaction,
         public ?VerifiedAppleRenewal $renewal,
+        public ?string $transactionSignedPayloadSha256 = null,
+        public ?string $renewalSignedPayloadSha256 = null,
     ) {}
 }

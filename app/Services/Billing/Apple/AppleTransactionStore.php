@@ -32,10 +32,28 @@ final class AppleTransactionStore
             throw new AppleVerificationException('invalid_signed_data');
         }
 
+        return $this->storeVerifiedEvidence(
+            $user,
+            $verified,
+            hash('sha256', $signedTransaction),
+        );
+    }
+
+    public function storeVerifiedEvidence(
+        User $user,
+        VerifiedAppleTransaction $verified,
+        string $signedPayloadSha256,
+        ?CarbonImmutable $reconciledAt = null,
+    ): AppleTransaction {
+        if (preg_match('/\A[0-9a-f]{64}\z/D', $signedPayloadSha256) !== 1) {
+            throw new AppleVerificationException('invalid_signed_data');
+        }
+
         return DB::transaction(function () use (
             $user,
             $verified,
-            $signedTransaction,
+            $signedPayloadSha256,
+            $reconciledAt,
         ): AppleTransaction {
             $lockedUser = User::query()
                 ->whereKey($user->getKey())
@@ -68,9 +86,9 @@ final class AppleTransactionStore
                 'revoked_at' => $this->databaseDate($verified->revocationDate),
                 'ownership_type' => $verified->ownershipType,
                 'transaction_reason' => $verified->transactionReason,
-                'signed_payload_sha256' => hash('sha256', $signedTransaction),
+                'signed_payload_sha256' => $signedPayloadSha256,
                 'received_at' => $now,
-                'reconciled_at' => null,
+                'reconciled_at' => $this->databaseDate($reconciledAt),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -83,6 +101,7 @@ final class AppleTransactionStore
             if (
                 ! $stored instanceof AppleTransaction
                 || ! $this->matches($stored, $lockedUser, $entitlement->getKey(), $verified)
+                || $stored->signed_payload_sha256 !== $signedPayloadSha256
             ) {
                 throw new AuthorizationException('Apple transaction ownership mismatch.');
             }
