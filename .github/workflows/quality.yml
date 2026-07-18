@@ -131,7 +131,7 @@ jobs:
         run: >-
           ./vendor/bin/pest
           tests/Feature/Console/AppleStoreBridgeHealthTest.php
-          tests/Unit/Services/Billing/Apple/SymfonyAppleBridgeClientTest.php
+          tests/Integration/Services/Billing/Apple/SymfonyAppleBridgeClientTest.php
           tests/Unit/Services/Billing/Apple/PythonAppleSignedDataVerifierTest.php
           tests/Unit/Services/Billing/Apple/PythonAppleStoreServerClientTest.php
       - name: Prove the locked bridge runtime
