@@ -23,6 +23,8 @@ MAX_PRIVATE_KEY_BYTES = 64 * 1024
 MAX_ROOT_CERTIFICATE_BYTES = 64 * 1024
 MAX_PAGES = 50
 MAX_SIGNED_VALUES = 1_000
+MAX_STATUS_GROUPS = 1_000
+MAX_STATUS_ITEMS = 1_000
 MAX_SIGNED_DATA_BYTES = 256 * 1024
 
 _ENVIRONMENTS = {
@@ -132,7 +134,11 @@ class AppleServerReconciler:
         if type(groups) is not list:
             raise BridgeError("invalid_signed_data")
 
+        status_group_count = 0
+        status_item_count = 0
         for group in groups:
+            status_group_count += 1
+            self._check_status_count(status_group_count, MAX_STATUS_GROUPS)
             last_transactions = getattr(group, "lastTransactions", None)
             if last_transactions is None:
                 last_transactions = []
@@ -140,6 +146,8 @@ class AppleServerReconciler:
                 raise BridgeError("invalid_signed_data")
 
             for item in last_transactions:
+                status_item_count += 1
+                self._check_status_count(status_item_count, MAX_STATUS_ITEMS)
                 item_original = getattr(item, "originalTransactionId", None)
                 if item_original != configuration["original_transaction_id"]:
                     raise BridgeError("invalid_signed_data")
@@ -262,13 +270,15 @@ class AppleServerReconciler:
     ) -> Dict[str, Any]:
         signed_data = self._bounded_signed_data(signed_data)
         data = service.verify_transaction(
-            {**configuration, "signed_data": signed_data}
+            self._verification_payload(configuration, signed_data)
         )
         if (
             data.get("original_transaction_id")
             != configuration["original_transaction_id"]
             or data.get("app_account_token")
             != configuration["expected_app_account_token"]
+            or data.get("product_id")
+            not in configuration["allowed_product_ids"]
         ):
             raise BridgeError("invalid_signed_data")
         return self._evidence(signed_data, data)
@@ -280,10 +290,16 @@ class AppleServerReconciler:
         configuration: Dict[str, Any],
     ) -> Dict[str, Any]:
         signed_data = self._bounded_signed_data(signed_data)
-        data = service.verify_renewal({**configuration, "signed_data": signed_data})
+        data = service.verify_renewal(
+            self._verification_payload(configuration, signed_data)
+        )
         if (
             data.get("original_transaction_id")
             != configuration["original_transaction_id"]
+            or data.get("product_id")
+            not in configuration["allowed_product_ids"]
+            or data.get("auto_renew_product_id")
+            not in configuration["allowed_product_ids"]
         ):
             raise BridgeError("invalid_signed_data")
         return self._evidence(signed_data, data)
@@ -349,6 +365,28 @@ class AppleServerReconciler:
     def _check_result_count(count: int) -> None:
         if count > MAX_SIGNED_VALUES:
             raise BridgeError("response_too_large")
+
+    @staticmethod
+    def _check_status_count(count: int, maximum: int) -> None:
+        if count > maximum:
+            raise BridgeError("response_too_large")
+
+    @staticmethod
+    def _verification_payload(
+        configuration: Dict[str, Any],
+        signed_data: str,
+    ) -> Dict[str, Any]:
+        return {
+            "root_certificate_path": configuration["root_certificate_path"],
+            "environment": configuration["environment"],
+            "bundle_id": configuration["bundle_id"],
+            "app_apple_id": configuration["app_apple_id"],
+            "allowed_product_ids": configuration["allowed_product_ids"],
+            "expected_app_account_token": configuration[
+                "expected_app_account_token"
+            ],
+            "signed_data": signed_data,
+        }
 
     @staticmethod
     def _trusted_file_path(value: Any, maximum_bytes: int) -> Path:

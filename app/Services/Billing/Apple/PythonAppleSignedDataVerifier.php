@@ -215,7 +215,7 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
             || ($expiresDate !== null && $expiresDate->lessThan($purchaseDate))
             || ($revocationDate !== null && $revocationDate->lessThan($purchaseDate))
         ) {
-            $this->throwUnavailable();
+            $this->throwInvalidSignedData();
         }
 
         return new VerifiedAppleTransaction(
@@ -261,7 +261,7 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
             || ! in_array($autoRenewProductId, self::PRODUCTS, true)
             || $environment !== config('apple_store.environment')
         ) {
-            $this->throwUnavailable();
+            $this->throwInvalidSignedData();
         }
 
         return new VerifiedAppleRenewal(
@@ -360,5 +360,10 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
             'verifier_unavailable',
             retryable: true,
         );
+    }
+
+    private function throwInvalidSignedData(): never
+    {
+        throw new AppleVerificationException('invalid_signed_data');
     }
 }

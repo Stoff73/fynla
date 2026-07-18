@@ -134,7 +134,7 @@ it('rejects a caller environment that differs from trusted runtime configuration
     expect($this->bridge->calls)->toBe([]);
 });
 
-it('rejects malformed or extra transaction fields without exposing the signed value', function (Closure $mutate) {
+it('rejects malformed or invalid transaction fields without exposing the signed value', function (Closure $mutate, string $expectedCode, bool $retryable) {
     $data = validAppleTransactionData();
     $mutate($data);
     $this->bridge->response = $data;
@@ -147,37 +147,37 @@ it('rejects malformed or extra transaction fields without exposing the signed va
         );
         test()->fail('Expected malformed bridge response to fail closed.');
     } catch (AppleVerificationException $exception) {
-        expect($exception->errorCode)->toBe('verifier_unavailable')
-            ->and($exception->retryable)->toBeTrue()
-            ->and($exception->getMessage())->toBe('verifier_unavailable')
+        expect($exception->errorCode)->toBe($expectedCode)
+            ->and($exception->retryable)->toBe($retryable)
+            ->and($exception->getMessage())->toBe($expectedCode)
             ->and($exception->getMessage())->not->toContain('private.signed.transaction')
             ->and($exception->getPrevious())->toBeNull();
     }
 })->with([
-    'missing transaction ID' => function (array &$data): void {
+    'missing transaction ID' => [function (array &$data): void {
         unset($data['transaction_id']);
-    },
-    'extra raw field' => function (array &$data): void {
+    }, 'verifier_unavailable', true],
+    'extra raw field' => [function (array &$data): void {
         $data['signed_data'] = 'raw';
-    },
-    'bool date' => function (array &$data): void {
+    }, 'verifier_unavailable', true],
+    'bool date' => [function (array &$data): void {
         $data['purchase_date'] = true;
-    },
-    'wrong bundle' => function (array &$data): void {
+    }, 'verifier_unavailable', true],
+    'wrong bundle' => [function (array &$data): void {
         $data['bundle_id'] = 'org.attacker.app';
-    },
-    'wrong environment' => function (array &$data): void {
+    }, 'invalid_signed_data', false],
+    'wrong environment' => [function (array &$data): void {
         $data['environment'] = 'production';
-    },
-    'wrong product' => function (array &$data): void {
+    }, 'invalid_signed_data', false],
+    'wrong product' => [function (array &$data): void {
         $data['product_id'] = 'org.attacker.product';
-    },
-    'wrong token' => function (array &$data): void {
+    }, 'invalid_signed_data', false],
+    'wrong token' => [function (array &$data): void {
         $data['app_account_token'] = '8e681f74-77f5-429f-96ee-6e56019d97f3';
-    },
-    'expiry before purchase' => function (array &$data): void {
+    }, 'invalid_signed_data', false],
+    'expiry before purchase' => [function (array &$data): void {
         $data['expires_date'] = 1_719_999_999_999;
-    },
+    }, 'invalid_signed_data', false],
 ]);
 
 it('preserves only a stable bridge failure without adding source detail', function () {

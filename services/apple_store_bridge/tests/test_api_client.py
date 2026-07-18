@@ -32,13 +32,14 @@ def transaction_data(
     transaction_id,
     original_transaction_id=ORIGINAL_TRANSACTION_ID,
     account_token=ACCOUNT_TOKEN,
+    product_id=MONTHLY_PRODUCT,
 ):
     return {
         "transaction_id": transaction_id,
         "original_transaction_id": original_transaction_id,
         "bundle_id": "org.fynla.app",
         "environment": "sandbox",
-        "product_id": MONTHLY_PRODUCT,
+        "product_id": product_id,
         "app_account_token": account_token,
         "purchase_date": 1_720_000_000_000,
         "expires_date": 1_722_678_400_000,
@@ -49,11 +50,15 @@ def transaction_data(
     }
 
 
-def renewal_data(original_transaction_id=ORIGINAL_TRANSACTION_ID):
+def renewal_data(
+    original_transaction_id=ORIGINAL_TRANSACTION_ID,
+    product_id=MONTHLY_PRODUCT,
+    auto_renew_product_id=MONTHLY_PRODUCT,
+):
     return {
         "original_transaction_id": original_transaction_id,
-        "product_id": MONTHLY_PRODUCT,
-        "auto_renew_product_id": MONTHLY_PRODUCT,
+        "product_id": product_id,
+        "auto_renew_product_id": auto_renew_product_id,
         "auto_renew_status": 1,
         "renewal_date": 1_722_678_400_000,
         "expiration_intent": None,
@@ -222,6 +227,23 @@ class AppleServerReconcilerTest(unittest.TestCase):
                 for request in self.service.transaction_calls
             )
         )
+        expected_verifier_keys = {
+            "root_certificate_path",
+            "environment",
+            "bundle_id",
+            "app_apple_id",
+            "allowed_product_ids",
+            "expected_app_account_token",
+            "signed_data",
+        }
+        self.assertTrue(
+            all(
+                set(request) == expected_verifier_keys
+                for request in (
+                    self.service.transaction_calls + self.service.renewal_calls
+                )
+            )
+        )
 
         self.assertEqual(
             {
@@ -257,7 +279,7 @@ class AppleServerReconcilerTest(unittest.TestCase):
         self.assertNotIn(str(self.private_key_path), serialized)
         self.assertNotIn("private-key-file-bytes", serialized)
 
-    def test_rejects_verified_identity_mismatch(self):
+    def test_rejects_only_account_token_mismatch(self):
         self.client.get_transaction_history.return_value = SimpleNamespace(
             revision="done",
             hasMore=False,
@@ -269,7 +291,6 @@ class AppleServerReconcilerTest(unittest.TestCase):
         self.service.transactions = {
             "mismatched.transaction": transaction_data(
                 "transaction-1",
-                original_transaction_id="another-original",
                 account_token="2efc1b61-4c5f-4cf4-8389-4db4f90044ed",
             )
         }
@@ -280,6 +301,117 @@ class AppleServerReconcilerTest(unittest.TestCase):
         self.assertEqual("invalid_signed_data", raised.exception.code)
         self.assertFalse(raised.exception.retryable)
         self.client.get_all_subscription_statuses.assert_not_called()
+
+    def test_rejects_only_transaction_product_mismatch(self):
+        self.client.get_transaction_history.return_value = SimpleNamespace(
+            revision="done",
+            hasMore=False,
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            signedTransactions=["mismatched.transaction"],
+        )
+        self.service.transactions = {
+            "mismatched.transaction": transaction_data(
+                "transaction-1",
+                product_id="org.attacker.product",
+            )
+        }
+
+        with self.assertRaises(BridgeError) as raised:
+            self.reconciler.reconcile(self.request)
+
+        self.assertEqual("invalid_signed_data", raised.exception.code)
+        self.assertFalse(raised.exception.retryable)
+        self.client.get_all_subscription_statuses.assert_not_called()
+
+    def test_rejects_only_renewal_product_mismatch(self):
+        self._set_single_renewal(
+            renewal_data(product_id="org.attacker.product")
+        )
+
+        with self.assertRaises(BridgeError) as raised:
+            self.reconciler.reconcile(self.request)
+
+        self.assertEqual("invalid_signed_data", raised.exception.code)
+        self.assertFalse(raised.exception.retryable)
+
+    def test_rejects_only_renewal_auto_renew_product_mismatch(self):
+        self._set_single_renewal(
+            renewal_data(auto_renew_product_id="org.attacker.product")
+        )
+
+        with self.assertRaises(BridgeError) as raised:
+            self.reconciler.reconcile(self.request)
+
+        self.assertEqual("invalid_signed_data", raised.exception.code)
+        self.assertFalse(raised.exception.retryable)
+
+    def test_bounds_status_items_even_when_they_have_no_signed_values(self):
+        from services.apple_store_bridge.api_client import MAX_STATUS_ITEMS
+
+        self.client.get_transaction_history.return_value = SimpleNamespace(
+            revision="done",
+            hasMore=False,
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            signedTransactions=[],
+        )
+        self.client.get_all_subscription_statuses.return_value = SimpleNamespace(
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            data=[
+                SimpleNamespace(
+                    lastTransactions=[
+                        SimpleNamespace(
+                            originalTransactionId=ORIGINAL_TRANSACTION_ID,
+                            signedTransactionInfo=None,
+                            signedRenewalInfo=None,
+                        )
+                        for _ in range(MAX_STATUS_ITEMS + 1)
+                    ]
+                )
+            ],
+        )
+
+        with self.assertRaises(BridgeError) as raised:
+            self.reconciler.reconcile(self.request)
+
+        self.assertEqual("response_too_large", raised.exception.code)
+        self.assertFalse(raised.exception.retryable)
+        self.assertEqual([], self.service.transaction_calls)
+        self.assertEqual([], self.service.renewal_calls)
+
+    def test_bounds_status_groups_even_when_they_have_no_items(self):
+        from services.apple_store_bridge.api_client import MAX_STATUS_GROUPS
+
+        self.client.get_transaction_history.return_value = SimpleNamespace(
+            revision="done",
+            hasMore=False,
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            signedTransactions=[],
+        )
+        self.client.get_all_subscription_statuses.return_value = SimpleNamespace(
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            data=[
+                SimpleNamespace(lastTransactions=[])
+                for _ in range(MAX_STATUS_GROUPS + 1)
+            ],
+        )
+
+        with self.assertRaises(BridgeError) as raised:
+            self.reconciler.reconcile(self.request)
+
+        self.assertEqual("response_too_large", raised.exception.code)
+        self.assertFalse(raised.exception.retryable)
+        self.assertEqual([], self.service.transaction_calls)
+        self.assertEqual([], self.service.renewal_calls)
 
     def test_rejects_repeated_pagination_revision_before_unbounded_work(self):
         repeating_page = SimpleNamespace(
@@ -341,6 +473,33 @@ class AppleServerReconcilerTest(unittest.TestCase):
                 self.assertEqual("invalid_configuration", raised.exception.code)
                 self.assertFalse(raised.exception.retryable)
                 self.assertEqual("invalid_configuration", str(raised.exception))
+
+    def _set_single_renewal(self, verified_renewal):
+        self.client.get_transaction_history.return_value = SimpleNamespace(
+            revision="done",
+            hasMore=False,
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            signedTransactions=[],
+        )
+        self.client.get_all_subscription_statuses.return_value = SimpleNamespace(
+            bundleId="org.fynla.app",
+            appAppleId=None,
+            environment=Environment.SANDBOX,
+            data=[
+                SimpleNamespace(
+                    lastTransactions=[
+                        SimpleNamespace(
+                            originalTransactionId=ORIGINAL_TRANSACTION_ID,
+                            signedTransactionInfo=None,
+                            signedRenewalInfo="status.renewal.1",
+                        )
+                    ]
+                )
+            ],
+        )
+        self.service.renewals = {"status.renewal.1": verified_renewal}
 
 
 if __name__ == "__main__":

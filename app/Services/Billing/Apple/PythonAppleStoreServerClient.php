@@ -120,13 +120,15 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
         if (
             array_is_list($data)
             || ! $this->hasExactKeys($data, self::BATCH_KEYS)
-            || ($data['original_transaction_id'] ?? null) !== $originalTransactionId
             || ! is_array($data['transactions'] ?? null)
             || ! array_is_list($data['transactions'])
             || ! is_array($data['renewals'] ?? null)
             || ! array_is_list($data['renewals'])
         ) {
             $this->throwUnavailable();
+        }
+        if ($data['original_transaction_id'] !== $originalTransactionId) {
+            $this->throwInvalidSignedData();
         }
 
         $transactions = [];
@@ -137,7 +139,7 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
                 $expectedAppAccountToken,
             );
             if ($transaction->originalTransactionId !== $originalTransactionId) {
-                $this->throwUnavailable();
+                $this->throwInvalidSignedData();
             }
             $transactions[] = new AppleReconciliationTransactionEvidence(
                 signedPayloadSha256: $hash,
@@ -150,7 +152,7 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
             [$hash, $verified] = $this->evidenceParts($evidence);
             $renewal = $this->mapper->mapRenewal($verified);
             if ($renewal->originalTransactionId !== $originalTransactionId) {
-                $this->throwUnavailable();
+                $this->throwInvalidSignedData();
             }
             $renewals[] = new AppleReconciliationRenewalEvidence(
                 signedPayloadSha256: $hash,
@@ -235,5 +237,10 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
             'verifier_unavailable',
             retryable: true,
         );
+    }
+
+    private function throwInvalidSignedData(): never
+    {
+        throw new AppleVerificationException('invalid_signed_data');
     }
 }

@@ -100,7 +100,7 @@ it('sends server-only configuration and maps only verified evidence DTOs', funct
     );
 });
 
-it('fails closed on malformed evidence or identity mismatches', function (Closure $mutate): void {
+it('fails closed with stable retryability for malformed evidence and identity mismatches', function (Closure $mutate, string $expectedCode, bool $retryable): void {
     $response = [
         'original_transaction_id' => RECONCILIATION_ORIGINAL_ID,
         'transactions' => [[
@@ -114,46 +114,73 @@ it('fails closed on malformed evidence or identity mismatches', function (Closur
     ];
     $this->reconciliationBridge->response = $mutate($response);
 
-    expect(fn () => $this->serverClient->reconcile(
-        RECONCILIATION_ORIGINAL_ID,
-        RECONCILIATION_ACCOUNT_TOKEN,
-    ))->toThrow(AppleVerificationException::class, 'verifier_unavailable');
+    try {
+        $this->serverClient->reconcile(
+            RECONCILIATION_ORIGINAL_ID,
+            RECONCILIATION_ACCOUNT_TOKEN,
+        );
+        test()->fail('Expected reconciliation evidence to fail closed.');
+    } catch (AppleVerificationException $exception) {
+        expect($exception->errorCode)->toBe($expectedCode)
+            ->and($exception->retryable)->toBe($retryable)
+            ->and($exception->getPrevious())->toBeNull();
+    }
 })->with([
-    'extra batch field' => function (array $response): array {
+    'extra batch field' => [function (array $response): array {
         $response['debug'] = 'unsafe';
 
         return $response;
-    },
-    'wrong original ID' => function (array $response): array {
+    }, 'verifier_unavailable', true],
+    'wrong original ID' => [function (array $response): array {
         $response['original_transaction_id'] = 'another-original';
 
         return $response;
-    },
-    'invalid hash' => function (array $response): array {
+    }, 'invalid_signed_data', false],
+    'invalid hash' => [function (array $response): array {
         $response['transactions'][0]['signed_payload_sha256'] = 'not-a-hash';
 
         return $response;
-    },
-    'extra evidence field' => function (array $response): array {
+    }, 'verifier_unavailable', true],
+    'extra evidence field' => [function (array $response): array {
         $response['transactions'][0]['signed_data'] = 'private.signed.value';
 
         return $response;
-    },
-    'wrong account token' => function (array $response): array {
+    }, 'verifier_unavailable', true],
+    'wrong account token' => [function (array $response): array {
         $response['transactions'][0]['data']['app_account_token'] = '2efc1b61-4c5f-4cf4-8389-4db4f90044ed';
 
         return $response;
-    },
-    'wrong renewal original' => function (array $response): array {
+    }, 'invalid_signed_data', false],
+    'wrong transaction original' => [function (array $response): array {
+        $response['transactions'][0]['data']['original_transaction_id'] = 'another-original';
+
+        return $response;
+    }, 'invalid_signed_data', false],
+    'wrong transaction product' => [function (array $response): array {
+        $response['transactions'][0]['data']['product_id'] = 'org.attacker.product';
+
+        return $response;
+    }, 'invalid_signed_data', false],
+    'wrong renewal original' => [function (array $response): array {
         $response['renewals'][0]['data']['original_transaction_id'] = 'another-original';
 
         return $response;
-    },
-    'list transaction data' => function (array $response): array {
+    }, 'invalid_signed_data', false],
+    'wrong renewal product' => [function (array $response): array {
+        $response['renewals'][0]['data']['product_id'] = 'org.attacker.product';
+
+        return $response;
+    }, 'invalid_signed_data', false],
+    'wrong renewal auto-renew product' => [function (array $response): array {
+        $response['renewals'][0]['data']['auto_renew_product_id'] = 'org.attacker.product';
+
+        return $response;
+    }, 'invalid_signed_data', false],
+    'list transaction data' => [function (array $response): array {
         $response['transactions'][0]['data'] = ['unexpected'];
 
         return $response;
-    },
+    }, 'verifier_unavailable', true],
 ]);
 
 it('rejects missing or untrusted server configuration before calling the bridge', function (string $key, mixed $value): void {
