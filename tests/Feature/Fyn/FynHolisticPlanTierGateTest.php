@@ -66,7 +66,7 @@ it('returns the REST-equivalent upgrade payload for a free user', function (): v
 });
 
 it('allows an entitled Premium user to generate a financial plan', function (): void {
-    $user = User::factory()->create([
+    $user = User::factory()->withActivePremiumSubscription()->create([
         'tier' => 'premium',
         'date_of_birth' => '1985-01-01',
         'annual_employment_income' => 75000,
@@ -97,7 +97,7 @@ it('allows an entitled Premium user to generate a financial plan', function (): 
 });
 
 it('allows holistic recommendations when the exact primary matrix passes', function (): void {
-    $user = User::factory()->create([
+    $user = User::factory()->withActivePremiumSubscription()->create([
         'tier' => 'premium',
         'date_of_birth' => '1985-01-01',
         'annual_employment_income' => 75000,

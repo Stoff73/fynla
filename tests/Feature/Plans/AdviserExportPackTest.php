@@ -30,7 +30,7 @@ it('denies Free users with a structured Premium action', function () {
 });
 
 it('returns a real dated PDF download for Premium', function () {
-    $user = User::factory()->create([
+    $user = User::factory()->withActivePremiumSubscription()->create([
         'tier' => 'premium',
         'first_name' => 'Avery',
         'surname' => 'Morgan',
@@ -48,7 +48,7 @@ it('returns a real dated PDF download for Premium', function () {
 });
 
 it('builds the adviser pack from live financial data without chat transcripts or invented empty sections', function () {
-    $user = User::factory()->create([
+    $user = User::factory()->withActivePremiumSubscription()->create([
         'tier' => 'premium',
         'first_name' => 'Avery',
         'surname' => 'Morgan',
