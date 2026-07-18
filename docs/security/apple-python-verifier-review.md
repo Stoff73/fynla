@@ -2,7 +2,7 @@
 
 **Reviewed:** 18 July 2026
 **Decision:** **APPROVED FOR THE DEVELOPMENT BRIDGE, SUBJECT TO THE DEPLOYMENT GATES BELOW.**
-**Scope:** Dependency, provenance, certificate trust and process-boundary review only. This change does not yet implement the verifier CLI, accept signed payloads, persist Apple transactions or enable Apple billing.
+**Scope:** Dependency, provenance, certificate trust, implemented local-process bridge and development/CI runtime gate. Apple billing remains disabled for production.
 
 ## Selected runtime
 
@@ -115,3 +115,9 @@ Before Apple billing is enabled on a development host, independently prove:
 - outbound DNS/TLS and required Apple OCSP and App Store Server API connectivity work under the host firewall policy.
 
 Those are development deployment gates only. No production host access, production credentials, `fynla.org` request or billing activation is authorised by this review. A failed gate blocks new Apple billing state changes while existing login, Revolut and canonical entitlement reads remain available.
+
+## Implemented runtime gate
+
+The read-only `apple-store:bridge-health --json` command checks only the configured executable, checked-in CLI and root-certificate readability before invoking the existing bounded bridge `health` operation. It accepts only service `apple-store-bridge`, contract `1` and library `3.1.2`. Its output is restricted to the fixed keys `success`, `python`, `bridge`, `contract`, `library` and `root_certificate`; failures return exit code `1` without paths, signed values, environment values or exception text.
+
+`AppleStoreBridgeHealthTest` covers success, a missing runtime, a bridge timeout, a wrong contract and a wrong library version. The pull-request quality lane selects Python 3.12, installs `services/apple_store_bridge/requirements.lock` with `--require-hashes`, runs the Python bridge tests and focused Laravel bridge tests, then executes the health command. A local run on 18 July 2026 returned the expected healthy contract/library/root booleans. This is local and CI evidence only; no development or production deployment is claimed.

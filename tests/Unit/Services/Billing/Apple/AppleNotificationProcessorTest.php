@@ -12,6 +12,7 @@ use App\Models\PremiumEntitlement;
 use App\Models\User;
 use App\Services\Billing\Apple\AppleNotificationProcessor;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
 
 beforeEach(function (): void {
     config()->set('apple_store.environment', 'sandbox');
@@ -192,6 +193,122 @@ it('preserves millisecond ordering for events within the same second', function 
         ->toBe($newerSignedDate->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s.v'));
 });
 
+it('projects same transaction active refund and refund reversal from newer signed evidence', function (): void {
+    $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
+    appleNotificationUser($token);
+    $purchaseDate = CarbonImmutable::parse('2026-07-17T12:00:00.000Z');
+    $activeSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.100Z');
+    $refundSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.200Z');
+    $reversalSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.300Z');
+    $common = [
+        'transactionId' => 'same-refund-transaction',
+        'originalTransactionId' => 'same-refund-original',
+        'purchaseDate' => $purchaseDate,
+        'expiresDate' => $purchaseDate->addMonth(),
+    ];
+
+    $active = appleVerifiedNotification(
+        'DID_RENEW',
+        null,
+        $token,
+        [...$common, 'signedDate' => $activeSignedDate],
+        ['signedDate' => $activeSignedDate],
+        transactionHash: str_repeat('a', 64),
+    );
+    $refund = appleVerifiedNotification(
+        'REFUND',
+        null,
+        $token,
+        [
+            ...$common,
+            'revocationDate' => $refundSignedDate,
+            'signedDate' => $refundSignedDate,
+        ],
+        ['signedDate' => $refundSignedDate, 'autoRenewStatus' => 0],
+        transactionHash: str_repeat('d', 64),
+    );
+    $reversal = appleVerifiedNotification(
+        'REFUND_REVERSED',
+        null,
+        $token,
+        [...$common, 'revocationDate' => null, 'signedDate' => $reversalSignedDate],
+        ['signedDate' => $reversalSignedDate, 'autoRenewStatus' => 1],
+        transactionHash: str_repeat('e', 64),
+    );
+
+    $processor = app(AppleNotificationProcessor::class);
+    $processor->process(appleNotificationLog($active), $active);
+    expect(PremiumEntitlement::query()->sole()->status)
+        ->toBe(PremiumEntitlement::STATUS_ACTIVE);
+
+    $processor->process(appleNotificationLog($refund), $refund);
+    expect(PremiumEntitlement::query()->sole()->status)
+        ->toBe(PremiumEntitlement::STATUS_REVOKED);
+
+    $processor->process(appleNotificationLog($reversal), $reversal);
+
+    $stored = AppleTransaction::query()->sole();
+    $entitlement = PremiumEntitlement::query()->sole();
+    expect($stored->signed_payload_sha256)->toBe(str_repeat('e', 64))
+        ->and($stored->signed_at?->format('Y-m-d H:i:s.v'))
+        ->toBe($reversalSignedDate->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s.v'))
+        ->and($stored->revoked_at)->toBeNull()
+        ->and($entitlement->status)->toBe(PremiumEntitlement::STATUS_ACTIVE)
+        ->and($entitlement->revoked_at)->toBeNull()
+        ->and($entitlement->last_verified_at?->format('Y-m-d H:i:s.v'))
+        ->toBe($reversalSignedDate->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s.v'));
+});
+
+it('rejects stale same transaction evidence without downgrading a refund reversal', function (): void {
+    $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
+    appleNotificationUser($token);
+    $purchaseDate = CarbonImmutable::parse('2026-07-17T12:00:00.000Z');
+    $newerSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.300Z');
+    $staleSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.200Z');
+    $common = [
+        'transactionId' => 'stale-refund-transaction',
+        'originalTransactionId' => 'stale-refund-original',
+        'purchaseDate' => $purchaseDate,
+        'expiresDate' => $purchaseDate->addMonth(),
+    ];
+    $reversal = appleVerifiedNotification(
+        'REFUND_REVERSED',
+        null,
+        $token,
+        [...$common, 'signedDate' => $newerSignedDate],
+        ['signedDate' => $newerSignedDate],
+        transactionHash: str_repeat('e', 64),
+    );
+    $staleRefund = appleVerifiedNotification(
+        'REFUND',
+        null,
+        $token,
+        [
+            ...$common,
+            'revocationDate' => $staleSignedDate,
+            'signedDate' => $staleSignedDate,
+        ],
+        ['signedDate' => $staleSignedDate, 'autoRenewStatus' => 0],
+        transactionHash: str_repeat('f', 64),
+    );
+    $processor = app(AppleNotificationProcessor::class);
+    $processor->process(appleNotificationLog($reversal), $reversal);
+
+    expect(fn () => $processor->process(
+        appleNotificationLog($staleRefund),
+        $staleRefund,
+    ))->toThrow(AuthorizationException::class);
+
+    $stored = AppleTransaction::query()->sole();
+    $entitlement = PremiumEntitlement::query()->sole();
+    expect($stored->signed_payload_sha256)->toBe(str_repeat('e', 64))
+        ->and($stored->revoked_at)->toBeNull()
+        ->and($entitlement->status)->toBe(PremiumEntitlement::STATUS_ACTIVE)
+        ->and($entitlement->revoked_at)->toBeNull()
+        ->and($entitlement->last_verified_at?->format('Y-m-d H:i:s.v'))
+        ->toBe($newerSignedDate->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s.v'));
+});
+
 it('rejects a verified notification whose outer and nested environments differ', function (): void {
     $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
     appleNotificationUser($token);
@@ -242,6 +359,8 @@ function appleVerifiedNotification(
     string $token,
     array $transactionOverrides = [],
     array $renewalOverrides = [],
+    ?string $transactionHash = null,
+    ?string $renewalHash = null,
 ): VerifiedAppleNotification {
     static $sequence = 0;
     $sequence++;
@@ -282,7 +401,7 @@ function appleVerifiedNotification(
         environment: 'sandbox',
         transaction: $transaction,
         renewal: $renewal,
-        transactionSignedPayloadSha256: str_repeat('a', 64),
-        renewalSignedPayloadSha256: str_repeat('b', 64),
+        transactionSignedPayloadSha256: $transactionHash ?? str_repeat('a', 64),
+        renewalSignedPayloadSha256: $renewalHash ?? str_repeat('b', 64),
     );
 }

@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AppleTransaction extends Model
 {
+    protected $dateFormat = 'Y-m-d H:i:s.v';
+
     public const ENVIRONMENT_SANDBOX = 'sandbox';
 
     public const ENVIRONMENT_PRODUCTION = 'production';
@@ -32,6 +34,7 @@ class AppleTransaction extends Model
         'ownership_type',
         'transaction_reason',
         'signed_payload_sha256',
+        'signed_at',
         'received_at',
         'reconciled_at',
     ];
@@ -44,6 +47,7 @@ class AppleTransaction extends Model
         'purchased_at' => 'datetime',
         'expires_at' => 'datetime',
         'revoked_at' => 'datetime',
+        'signed_at' => 'datetime',
         'received_at' => 'datetime',
         'reconciled_at' => 'datetime',
     ];

@@ -83,6 +83,7 @@ it('creates provider-neutral entitlement and Apple evidence schemas with require
             'ownership_type',
             'transaction_reason',
             'signed_payload_sha256',
+            'signed_at',
             'received_at',
             'reconciled_at',
             'created_at',

@@ -276,6 +276,43 @@ struct SubscriptionModelTests {
     }
 
     @Test
+    func relaunchRecoversAnUnfinishedTransactionEmittedBeforeSubscription() async {
+        let events = EventRecorder()
+        let finish = FinishRecorder(events: events)
+        let transaction = SignedStoreTransaction.testing(
+            id: 49,
+            originalID: 40,
+            productID: StoreProductIdentifier.monthly,
+            appAccountToken: .testAccount,
+            signedJWS: "unfinished.header.payload",
+            finish: { await finish.record() }
+        )
+        let store = StoreProductsSpy(
+            products: [.monthly, .annual],
+            unfinishedTransactions: [transaction],
+            events: events
+        )
+        store.sendUpdate(transaction)
+
+        let api = SubscriptionAPISpy(
+            entitlements: [.applePremium, .applePremium],
+            events: events
+        )
+        let relaunchedModel = SubscriptionModel(api: api, storeKit: store)
+        await relaunchedModel.start()
+
+        #expect(await finish.count == 1)
+        #expect(relaunchedModel.state == .applePremium(.applePremium))
+        #expect(await api.acknowledgedJWS() == ["unfinished.header.payload"])
+        let recoveryEvents = await events.values().filter {
+            ["unfinishedTransactions", "acknowledge", "finish"].contains($0)
+        }
+        #expect(recoveryEvents == [
+            "unfinishedTransactions", "acknowledge", "finish",
+        ])
+    }
+
+    @Test
     func cancellationKeepsFreeStateWithoutAnError() async {
         let model = SubscriptionModel(
             api: SubscriptionAPISpy(entitlements: [.free]),
@@ -512,6 +549,7 @@ private actor StoreProductsSpy: StoreKitClient {
     private let loadGate: LoadGate?
     private let purchaseOutcome: PurchaseOutcome
     private let entitlementTransactions: [SignedStoreTransaction]
+    private let unfinished: [SignedStoreTransaction]
     private let events: EventRecorder?
     private var purchases = 0
     nonisolated private let updateBroadcaster =
@@ -522,12 +560,14 @@ private actor StoreProductsSpy: StoreKitClient {
         loadGate: LoadGate? = nil,
         purchaseOutcome: PurchaseOutcome = .userCancelled,
         currentEntitlements: [SignedStoreTransaction] = [],
+        unfinishedTransactions: [SignedStoreTransaction] = [],
         events: EventRecorder? = nil
     ) {
         availableProducts = products
         self.loadGate = loadGate
         self.purchaseOutcome = purchaseOutcome
         entitlementTransactions = currentEntitlements
+        unfinished = unfinishedTransactions
         self.events = events
     }
 
@@ -556,6 +596,11 @@ private actor StoreProductsSpy: StoreKitClient {
     func currentEntitlements() async -> [SignedStoreTransaction] {
         await events?.append("currentEntitlements")
         return entitlementTransactions
+    }
+
+    func unfinishedTransactions() async -> [SignedStoreTransaction] {
+        await events?.append("unfinishedTransactions")
+        return unfinished
     }
 
     nonisolated func sendUpdate(_ transaction: SignedStoreTransaction) {

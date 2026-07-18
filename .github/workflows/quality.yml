@@ -90,6 +90,53 @@ jobs:
       - name: Run ${{ matrix.suite }} tests
         run: ./vendor/bin/pest --testsuite=${{ matrix.suite }}
 
+  apple-store-bridge:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: laravel_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/apple_store_bridge/requirements.lock
+      - name: Record the configured Python executable
+        run: echo "APPLE_STORE_PYTHON_EXECUTABLE=$(command -v python)" >> "$GITHUB_ENV"
+      - name: Install the hash-locked Apple bridge runtime
+        run: python -m pip install --require-hashes -r services/apple_store_bridge/requirements.lock
+      - name: Run Apple bridge Python tests
+        run: python -m unittest discover -s services/apple_store_bridge/tests -v
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Run Laravel Apple bridge tests
+        run: >-
+          ./vendor/bin/pest
+          tests/Feature/Console/AppleStoreBridgeHealthTest.php
+          tests/Unit/Services/Billing/Apple/SymfonyAppleBridgeClientTest.php
+          tests/Unit/Services/Billing/Apple/PythonAppleSignedDataVerifierTest.php
+          tests/Unit/Services/Billing/Apple/PythonAppleStoreServerClientTest.php
+      - name: Prove the locked bridge runtime
+        run: php artisan apple-store:bridge-health --json
+
   frontend-tests:
     runs-on: ubuntu-latest
     steps:

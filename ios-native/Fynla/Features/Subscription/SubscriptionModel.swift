@@ -65,6 +65,7 @@ final class SubscriptionModel {
     private let storeKit: any StoreKitClient
     private var availableProducts: [StoreProduct] = []
     private var processingTransactionIDs: Set<UInt64> = []
+    private var processedTransactionIDs: Set<UInt64> = []
     private var updateTask: Task<Void, Never>?
     private var loadGeneration = 0
 
@@ -88,12 +89,16 @@ final class SubscriptionModel {
     func start() async {
         if updateTask == nil {
             let storeKit = self.storeKit
+            let updates = storeKit.updates()
             updateTask = Task { [weak self] in
-                for await transaction in storeKit.updates() {
+                for await transaction in updates {
                     guard !Task.isCancelled else { return }
                     await self?.process(transaction)
                 }
             }
+        }
+        for transaction in await storeKit.unfinishedTransactions() {
+            await process(transaction)
         }
         await load()
     }
@@ -108,6 +113,7 @@ final class SubscriptionModel {
         isRestoring = false
         availableProducts = []
         processingTransactionIDs = []
+        processedTransactionIDs = []
     }
 
     func load() async {
@@ -252,6 +258,7 @@ final class SubscriptionModel {
 
     private func process(_ transaction: SignedStoreTransaction) async {
         guard StoreProductIdentifier.all.contains(transaction.productID),
+              !processedTransactionIDs.contains(transaction.id),
               processingTransactionIDs.insert(transaction.id).inserted
         else {
             return
@@ -264,6 +271,7 @@ final class SubscriptionModel {
                 return
             }
             await transaction.finish()
+            processedTransactionIDs.insert(transaction.id)
             await refreshCanonicalEntitlement()
         } catch {
             message = safeMessage(for: error)

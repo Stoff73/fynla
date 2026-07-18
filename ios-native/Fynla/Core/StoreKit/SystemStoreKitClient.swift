@@ -123,6 +123,22 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
         Self.updateBroadcaster.stream()
     }
 
+    func unfinishedTransactions() async -> [SignedStoreTransaction] {
+        var transactions: [SignedStoreTransaction] = []
+        for await verification in Transaction.unfinished {
+            guard let transaction = try? Self.signedTransaction(
+                verification,
+                allowedProductIDs: productIDs,
+                expectedProductID: nil,
+                expectedAppAccountToken: nil
+            ) else {
+                continue
+            }
+            transactions.append(transaction)
+        }
+        return transactions
+    }
+
     func sync() async throws {
         try await AppStore.sync()
     }

@@ -87,6 +87,7 @@ final class AppleTransactionStore
                 'ownership_type' => $verified->ownershipType,
                 'transaction_reason' => $verified->transactionReason,
                 'signed_payload_sha256' => $signedPayloadSha256,
+                'signed_at' => $this->preciseDatabaseDate($verified->signedDate),
                 'received_at' => $now,
                 'reconciled_at' => $this->databaseDate($reconciledAt),
                 'created_at' => $now,
@@ -100,17 +101,62 @@ final class AppleTransactionStore
 
             if (
                 ! $stored instanceof AppleTransaction
-                || ! $this->matches($stored, $lockedUser, $entitlement->getKey(), $verified)
-                || $stored->signed_payload_sha256 !== $signedPayloadSha256
+                || ! $this->immutableFieldsMatch(
+                    $stored,
+                    $lockedUser,
+                    $entitlement->getKey(),
+                    $verified,
+                )
             ) {
                 throw new AuthorizationException('Apple transaction ownership mismatch.');
             }
+
+            $incomingSignedAt = $this->databaseDate($verified->signedDate);
+
+            if (
+                $incomingSignedAt === null
+                || (
+                    $stored->signed_payload_sha256 === $signedPayloadSha256
+                    && ! $this->mutableFieldsMatch(
+                        $stored,
+                        $verified,
+                        $incomingSignedAt,
+                        $signedPayloadSha256,
+                    )
+                )
+            ) {
+                throw new AuthorizationException('Apple transaction evidence mismatch.');
+            }
+
+            if ($this->mutableFieldsMatch(
+                $stored,
+                $verified,
+                $incomingSignedAt,
+                $signedPayloadSha256,
+            )) {
+                return $stored;
+            }
+
+            $storedSignedAt = $stored->signed_at;
+            $orderingBoundary = $storedSignedAt ?? $stored->received_at;
+
+            if ($orderingBoundary === null || ! $incomingSignedAt->greaterThan($orderingBoundary)) {
+                throw new AuthorizationException('Apple transaction evidence is stale.');
+            }
+
+            $stored->forceFill([
+                'revoked_at' => $this->databaseDate($verified->revocationDate),
+                'signed_payload_sha256' => $signedPayloadSha256,
+                'signed_at' => $incomingSignedAt,
+                'received_at' => $now,
+                'reconciled_at' => $this->databaseDate($reconciledAt),
+            ])->save();
 
             return $stored;
         }, 3);
     }
 
-    private function matches(
+    private function immutableFieldsMatch(
         AppleTransaction $stored,
         User $user,
         mixed $entitlementId,
@@ -124,9 +170,21 @@ final class AppleTransactionStore
             && $stored->environment === $verified->environment
             && $stored->purchased_at?->equalTo($verified->purchaseDate) === true
             && $this->sameDate($stored->expires_at, $verified->expiresDate)
-            && $this->sameDate($stored->revoked_at, $verified->revocationDate)
             && $stored->ownership_type === $verified->ownershipType
             && $stored->transaction_reason === $verified->transactionReason;
+    }
+
+    private function mutableFieldsMatch(
+        AppleTransaction $stored,
+        VerifiedAppleTransaction $verified,
+        CarbonImmutable $incomingSignedAt,
+        string $incomingHash,
+    ): bool {
+        return $stored->signed_payload_sha256 !== ''
+            && $stored->signed_payload_sha256 !== null
+            && $stored->signed_payload_sha256 === $incomingHash
+            && $this->sameDate($stored->revoked_at, $verified->revocationDate)
+            && $this->sameDate($stored->signed_at, $incomingSignedAt);
     }
 
     private function sameDate(mixed $stored, mixed $verified): bool
@@ -141,5 +199,10 @@ final class AppleTransactionStore
     private function databaseDate(?CarbonImmutable $date): ?CarbonImmutable
     {
         return $date?->setTimezone((string) config('app.timezone'));
+    }
+
+    private function preciseDatabaseDate(?CarbonImmutable $date): ?string
+    {
+        return $this->databaseDate($date)?->format('Y-m-d H:i:s.v');
     }
 }
