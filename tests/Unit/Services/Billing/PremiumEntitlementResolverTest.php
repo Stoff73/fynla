@@ -244,6 +244,39 @@ it('memoises provider queries and explicitly invalidates one user', function ():
     expect($providerSelects)->toHaveCount(4);
 });
 
+it('memoises the selected Revolut source and clears it on invalidation', function (): void {
+    $user = User::factory()->create(['tier' => 'premium']);
+    $initialWinner = Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'current_period_end' => now()->addMonths(2),
+    ]);
+    $laterWinner = Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'current_period_end' => now()->addMonth(),
+    ]);
+    $resolver = app(PremiumEntitlementResolver::class);
+
+    expect(method_exists($resolver, 'selectedRevolutSubscriptionFor'))->toBeTrue();
+    expect($resolver->resolve($user)->periodEndsAt?->equalTo($initialWinner->current_period_end))->toBeTrue()
+        ->and($resolver->selectedRevolutSubscriptionFor($user)?->id)->toBe($initialWinner->id);
+
+    DB::table('subscriptions')->where('id', $initialWinner->id)->update([
+        'current_period_end' => now()->addWeeks(2),
+    ]);
+    DB::table('subscriptions')->where('id', $laterWinner->id)->update([
+        'current_period_end' => now()->addMonths(3),
+    ]);
+
+    expect($resolver->selectedRevolutSubscriptionFor($user)?->id)->toBe($initialWinner->id);
+
+    $resolver->invalidate($user);
+
+    expect($resolver->resolve($user)->periodEndsAt?->equalTo(now()->addMonths(3)))->toBeTrue()
+        ->and($resolver->selectedRevolutSubscriptionFor($user)?->id)->toBe($laterWinner->id);
+});
+
 it('keeps preview users Free even when provider records and stale tier claim Premium', function (): void {
     $user = User::factory()->create(['tier' => 'premium', 'is_preview_user' => true]);
     createTaskThreeAppleGrant($user);

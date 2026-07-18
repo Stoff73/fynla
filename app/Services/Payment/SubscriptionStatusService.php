@@ -13,17 +13,17 @@ class SubscriptionStatusService
     public function __construct(
         private readonly PremiumEntitlementResolver $entitlementResolver,
         private readonly TierConfigurationStore $tierConfigurations,
-        private readonly SubscriptionEntitlementService $entitlements,
     ) {}
 
     /** @return array<string, mixed> */
     public function forUser(User $user): array
     {
         $resolved = $this->entitlementResolver->resolve($user);
-        $subscription = $this->entitlements->activePremiumFor($user);
-        if ($subscription === null && $resolved->provider !== 'apple') {
-            $subscription = $user->subscriptions()->latest('id')->first();
-        }
+        $subscription = match ($resolved->provider) {
+            'revolut' => $this->entitlementResolver->selectedRevolutSubscriptionFor($user),
+            'apple' => null,
+            default => $user->subscriptions()->latest('id')->first(),
+        };
         $tier = $resolved->tier;
         $tierConfig = $this->tierConfigurations->forTier($tier);
         $paymentEnabled = (bool) config('app.payment_enabled', false);

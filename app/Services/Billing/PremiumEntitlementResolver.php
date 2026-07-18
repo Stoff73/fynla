@@ -6,12 +6,16 @@ namespace App\Services\Billing;
 
 use App\Data\Billing\ResolvedEntitlement;
 use App\Models\PremiumEntitlement;
+use App\Models\Subscription;
 use App\Models\User;
 
 final class PremiumEntitlementResolver
 {
     /** @var array<int, ResolvedEntitlement> */
     private array $memo = [];
+
+    /** @var array<int, Subscription|null> */
+    private array $selectedRevolutMemo = [];
 
     public function __construct(
         private readonly RevolutEntitlementAdapter $revolut,
@@ -25,12 +29,16 @@ final class PremiumEntitlementResolver
             return $this->memo[$userId];
         }
 
-        $resolved = $user->is_preview_user
-            ? $this->free()
-            : $this->resolveLiveProviders($user);
+        if ($user->is_preview_user) {
+            $resolved = $this->free();
+            $selectedRevolut = null;
+        } else {
+            [$resolved, $selectedRevolut] = $this->resolveLiveProviders($user);
+        }
 
         if (is_int($userId)) {
             $this->memo[$userId] = $resolved;
+            $this->selectedRevolutMemo[$userId] = $selectedRevolut;
         }
 
         return $resolved;
@@ -41,24 +49,61 @@ final class PremiumEntitlementResolver
         $userId = $user instanceof User ? $user->getKey() : $user;
 
         if (is_int($userId)) {
-            unset($this->memo[$userId]);
+            unset($this->memo[$userId], $this->selectedRevolutMemo[$userId]);
         }
     }
 
-    private function resolveLiveProviders(User $user): ResolvedEntitlement
+    public function selectedRevolutSubscriptionFor(User $user): ?Subscription
+    {
+        $userId = $user->getKey();
+        $resolved = $this->resolve($user);
+
+        if (! is_int($userId) || $resolved->provider !== 'revolut') {
+            return null;
+        }
+
+        return $this->selectedRevolutMemo[$userId] ?? null;
+    }
+
+    /** @return array{ResolvedEntitlement, Subscription|null} */
+    private function resolveLiveProviders(User $user): array
     {
         $candidates = array_merge(
-            $this->revolut->liveEntitlementsFor($user),
-            $this->liveAppleEntitlementsFor($user),
+            $this->revolut->liveCandidatesFor($user),
+            array_map(fn (ResolvedEntitlement $entitlement): array => [
+                'entitlement' => $entitlement,
+                'subscription' => null,
+            ], $this->liveAppleEntitlementsFor($user)),
         );
 
         if ($candidates === []) {
-            return $this->free();
+            return [$this->free(), null];
         }
 
-        usort($candidates, fn (ResolvedEntitlement $left, ResolvedEntitlement $right): int => $this->compare($left, $right));
+        usort(
+            $candidates,
+            fn (array $left, array $right): int => $this->compare(
+                $left['entitlement'],
+                $right['entitlement'],
+            ),
+        );
 
-        return $candidates[0];
+        $resolved = $candidates[0]['entitlement'];
+        $selectedRevolut = null;
+
+        if ($resolved->provider === 'revolut') {
+            $canonicalMatches = array_values(array_filter(
+                $candidates,
+                fn (array $candidate): bool => $candidate['subscription'] instanceof Subscription
+                    && $this->compare($candidate['entitlement'], $resolved) === 0,
+            ));
+
+            if (count($canonicalMatches) === 1) {
+                $selectedRevolut = $canonicalMatches[0]['subscription'];
+            }
+        }
+
+        return [$resolved, $selectedRevolut];
     }
 
     /** @return list<ResolvedEntitlement> */
@@ -122,7 +167,13 @@ final class PremiumEntitlementResolver
 
         $provider = strcmp($left->provider ?? '', $right->provider ?? '');
 
-        return $provider !== 0 ? $provider : strcmp($left->status, $right->status);
+        if ($provider !== 0) {
+            return $provider;
+        }
+
+        $status = strcmp($left->status, $right->status);
+
+        return $status !== 0 ? $status : $right->renews <=> $left->renews;
     }
 
     private function free(): ResolvedEntitlement

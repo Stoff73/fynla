@@ -36,10 +36,13 @@ it('shows one Apple Premium entitlement and matching capabilities on every share
         'last_verified_at' => now(),
         'provider_metadata' => [],
     ]);
-    Subscription::factory()->expired()->plan('premium')->create([
+    Subscription::factory()->plan('premium')->create([
         'user_id' => $user->id,
         'billing_cycle' => 'yearly',
         'amount' => 5999,
+        'status' => 'active',
+        'auto_renew' => true,
+        'current_period_end' => now()->addWeek(),
     ]);
 
     Cache::put("mobile_dashboard_{$user->id}", [
@@ -85,4 +88,80 @@ it('shows one Apple Premium entitlement and matching capabilities on every share
         ->assertJsonPath('data.entitlement.limits.savings_account', null);
 
     expect($premiumDashboard->json('data.cached_at'))->toBe('2026-07-17T12:00:00+00:00');
+});
+
+it('uses billing metadata from the exact furthest Revolut entitlement row', function (): void {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    $selectedStart = now()->subMonth();
+    $selectedEnd = now()->addMonths(2);
+
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'billing_cycle' => 'yearly',
+        'amount' => 5999,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_start' => $selectedStart,
+        'current_period_end' => $selectedEnd,
+    ]);
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'billing_cycle' => 'monthly',
+        'amount' => 699,
+        'status' => 'active',
+        'auto_renew' => true,
+        'current_period_start' => now()->subWeek(),
+        'current_period_end' => now()->addMonth(),
+    ]);
+    Sanctum::actingAs($user);
+
+    $this->getJson('/api/payment/subscription-status')
+        ->assertOk()
+        ->assertJsonPath('data.provider', 'revolut')
+        ->assertJsonPath('data.current_period_end', $selectedEnd->toISOString())
+        ->assertJsonPath('billing_cycle', 'yearly')
+        ->assertJsonPath('amount', '5999.00')
+        ->assertJsonPath('current_period_start', $selectedStart->toISOString())
+        ->assertJsonPath('current_period_end', $selectedEnd->toISOString())
+        ->assertJsonPath('auto_renew', false)
+        ->assertJsonPath('next_renewal_date', null);
+});
+
+it('leaves Revolut metadata null when identical canonical candidates are ambiguous', function (): void {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    $sharedEnd = now()->addMonth();
+
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'billing_cycle' => 'yearly',
+        'amount' => 5999,
+        'status' => 'active',
+        'auto_renew' => true,
+        'current_period_start' => now()->subMonth(),
+        'current_period_end' => $sharedEnd,
+    ]);
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'billing_cycle' => 'monthly',
+        'amount' => 699,
+        'status' => 'active',
+        'auto_renew' => true,
+        'current_period_start' => now()->subWeek(),
+        'current_period_end' => $sharedEnd,
+    ]);
+    Sanctum::actingAs($user);
+
+    $this->getJson('/api/payment/subscription-status')
+        ->assertOk()
+        ->assertJsonPath('data.provider', 'revolut')
+        ->assertJsonPath('data.current_period_end', $sharedEnd->toISOString())
+        ->assertJsonPath('has_subscription', true)
+        ->assertJsonPath('subscription_status', 'active')
+        ->assertJsonPath('plan', null)
+        ->assertJsonPath('billing_cycle', null)
+        ->assertJsonPath('amount', null)
+        ->assertJsonPath('current_period_start', null)
+        ->assertJsonPath('current_period_end', $sharedEnd->toISOString())
+        ->assertJsonPath('auto_renew', true)
+        ->assertJsonPath('next_renewal_date', $sharedEnd->toISOString());
 });
