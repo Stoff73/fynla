@@ -1165,6 +1165,9 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pi
     Route::post('publishers', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'store']);
     Route::delete('publishers/{userId}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'destroy']);
     Route::get('publishers/search-users', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'searchUsers']);
+
+    // Stage 5 — Cross-env sync credential health check
+    Route::get('sync-status', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineSyncStatusController::class, 'index']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)

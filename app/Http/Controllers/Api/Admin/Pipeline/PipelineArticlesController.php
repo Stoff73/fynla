@@ -10,6 +10,7 @@ use App\Models\Pipeline\ArticleSyncLog;
 use App\Models\Pipeline\PublisherUser;
 use App\Services\Pipeline\Content\ArticleImporter;
 use App\Services\Pipeline\Content\ArticleSyncService;
+use App\Services\Pipeline\Google\ArticlesFolderLocator;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -153,17 +154,26 @@ class PipelineArticlesController extends Controller
         ]);
     }
 
-    public function reimport(Request $request, InsightArticle $article, ArticleImporter $importer, GoogleDriveService $drive): JsonResponse
-    {
+    public function reimport(
+        Request $request,
+        InsightArticle $article,
+        ArticleImporter $importer,
+        GoogleDriveService $drive,
+        ArticlesFolderLocator $locator,
+    ): JsonResponse {
         if (! $article->source_docx_drive_file_id) {
             throw new HttpException(422, 'Article has no source Word doc — nothing to re-import.');
         }
 
-        $files = $drive->listFiles((string) config('pipeline.google.drive_folder_id'));
+        $articlesFolderId = $locator->resolve();
+        $files = array_merge(
+            $drive->listFiles($articlesFolderId, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+            $drive->listFiles($articlesFolderId, 'application/vnd.google-apps.document'),
+        );
         $target = collect($files)->firstWhere('id', $article->source_docx_drive_file_id);
 
         if ($target === null) {
-            throw new HttpException(404, 'Source Word doc no longer in Drive.');
+            throw new HttpException(404, 'Source Word doc no longer in the Articles folder.');
         }
 
         try {

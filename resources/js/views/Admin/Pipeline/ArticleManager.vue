@@ -9,6 +9,30 @@
         </div>
       </header>
 
+      <section v-if="syncStatus" class="mb-5">
+        <div
+          class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm border"
+          :class="statusBandClass"
+        >
+          <span class="text-lg" aria-hidden="true">{{ statusBandIcon }}</span>
+          <div class="flex-1">
+            <p class="font-semibold" :class="statusBandTextClass">
+              {{ statusBandHeading }}
+            </p>
+            <p class="text-xs mt-0.5" :class="statusBandTextClass">
+              <span class="mr-3">Dev: {{ envStatusLabel(syncStatus.dev) }}</span>
+              <span class="mr-3">Live: {{ envStatusLabel(syncStatus.prod) }}</span>
+              <span>Inbound token on this env: {{ syncStatus.inbound.configured ? '✓' : '—' }}</span>
+            </p>
+          </div>
+          <button
+            @click="refreshSyncStatus"
+            class="text-xs px-2 py-1 border rounded"
+            :class="statusBandTextClass"
+          >Re-check</button>
+        </div>
+      </section>
+
       <div class="flex flex-wrap gap-3 mb-6">
         <select v-model="filters.status" class="px-3 py-2 text-sm border border-light-gray rounded-lg">
           <option value="">All statuses</option>
@@ -132,14 +156,54 @@ export default {
       loading: true,
       articles: [],
       campaigns: [],
+      syncStatus: null,
       filters: { status: '', campaign_id: '', search: '', has_docx: false },
     };
+  },
+  computed: {
+    worstEnvStatus() {
+      if (!this.syncStatus) return 'unknown';
+      const envs = [this.syncStatus.dev, this.syncStatus.prod];
+      if (envs.some(e => e.configured && e.reachable && e.token_valid)) {
+        if (envs.every(e => e.configured && e.reachable && e.token_valid)) return 'green';
+        return 'amber';
+      }
+      if (envs.every(e => !e.configured)) return 'red';
+      return 'amber';
+    },
+    statusBandClass() {
+      return {
+        green: 'bg-spring-50 border-spring-200',
+        amber: 'bg-violet-50 border-violet-200',
+        red: 'bg-raspberry-50 border-raspberry-200',
+        unknown: 'bg-savannah-50 border-savannah-200',
+      }[this.worstEnvStatus];
+    },
+    statusBandTextClass() {
+      return {
+        green: 'text-spring-500',
+        amber: 'text-violet-500',
+        red: 'text-raspberry-500',
+        unknown: 'text-horizon-500',
+      }[this.worstEnvStatus];
+    },
+    statusBandIcon() {
+      return { green: '✓', amber: '⚠', red: '⚠', unknown: '…' }[this.worstEnvStatus];
+    },
+    statusBandHeading() {
+      return {
+        green: 'Cross-env sync is healthy',
+        amber: 'Cross-env sync has warnings — dev or live may fail',
+        red: 'Cross-env sync not configured — dev + live push are unavailable',
+        unknown: 'Checking sync credentials…',
+      }[this.worstEnvStatus];
+    },
   },
   watch: {
     filters: { handler: 'refresh', deep: true },
   },
   async mounted() {
-    await this.loadCampaigns();
+    await Promise.all([this.loadCampaigns(), this.refreshSyncStatus()]);
     await this.refresh();
   },
   methods: {
@@ -160,6 +224,22 @@ export default {
     async loadCampaigns() {
       const res = await pipelineArticlesService.listCampaigns();
       this.campaigns = res.data?.data ?? [];
+    },
+    async refreshSyncStatus() {
+      try {
+        const res = await pipelineArticlesService.syncStatus();
+        this.syncStatus = res.data ?? null;
+      } catch {
+        this.syncStatus = null;
+      }
+    },
+    envStatusLabel(env) {
+      if (!env) return '—';
+      if (!env.configured) return 'not configured';
+      if (env.reachable === false) return 'unreachable';
+      if (env.token_valid === false) return 'token invalid';
+      if (env.token_valid === true) return '✓ ready';
+      return 'partial';
     },
     async pushToDev(article) {
       if (!confirm(`Push "${article.title}" to dev (csjones.co/fynla)?`)) return;

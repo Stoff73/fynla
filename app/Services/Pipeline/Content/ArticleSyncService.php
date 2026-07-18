@@ -6,6 +6,7 @@ namespace App\Services\Pipeline\Content;
 
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\ArticleSyncLog;
+use App\Models\Pipeline\PipelineCampaign;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -124,6 +125,7 @@ class ArticleSyncService
             'source_docx_drive_file_id' => $payload['source_docx_drive_file_id'] ?? null,
             'source_docx_drive_url' => $payload['source_docx_drive_url'] ?? null,
             'source_docx_hash' => $payload['source_docx_hash'] ?? null,
+            'pipeline_campaign_id' => $this->resolveCampaignId($payload['campaign_slug'] ?? null, $slug),
         ];
 
         if ($article === null) {
@@ -174,6 +176,31 @@ class ArticleSyncService
             'source_docx_hash' => $article->source_docx_hash,
             'campaign_slug' => $article->pipelineCampaign?->slug,
         ];
+    }
+
+    /**
+     * Look up a PipelineCampaign on THIS env by slug. Called during sync
+     * receive. If no local campaign matches the sender's slug, returns null
+     * and logs a warning — the operator can create the campaign later, then
+     * re-sync to relink.
+     */
+    private function resolveCampaignId(mixed $campaignSlug, string $articleSlug): ?int
+    {
+        if (! is_string($campaignSlug) || $campaignSlug === '') {
+            return null;
+        }
+
+        $campaign = PipelineCampaign::where('slug', $campaignSlug)->first();
+        if ($campaign === null) {
+            Log::channel('pipeline')->warning('sync-receive: no local campaign matches inbound slug — article stored without campaign link.', [
+                'article_slug' => $articleSlug,
+                'campaign_slug' => $campaignSlug,
+            ]);
+
+            return null;
+        }
+
+        return $campaign->id;
     }
 
     private function assertEnv(string $env): void

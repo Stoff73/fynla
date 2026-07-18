@@ -28,6 +28,9 @@ const pipelineArticlesService = {
   async listCampaigns() {
     return (await api.get('/admin/pipeline/campaigns', { params: { active_only: true } })).data;
   },
+  async syncStatus() {
+    return (await api.get('/admin/pipeline/sync-status')).data;
+  },
 };
 
 export default pipelineArticlesService;

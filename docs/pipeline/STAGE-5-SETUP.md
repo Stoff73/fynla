@@ -63,6 +63,27 @@ PIPELINE_SYNC_TOKEN=<value that matches what the local sends>
 
 `PIPELINE_ENABLED=true` in local `.env` + `config:clear`.
 
+### 4a. Turn on the public `/insights/{slug}` route
+
+Fynla ships with the insight article route gated behind a build-time
+flag. Without it, published articles return the SPA's 404 page even
+though the API serves them fine.
+
+Add to local `.env` (and every other env's `.env`):
+
+```
+VITE_INSIGHTS_CMS_ENABLED=true
+```
+
+Then **restart Vite** (`npm run dev`) — this is a build-time env, HMR
+doesn't pick it up. On production/dev builds, re-run the deploy script
+(`deploy/fynla-org/build.sh` / `deploy/csjones-fynla/build.sh`) so the
+compiled router bundle includes the route.
+
+Verify: `http://localhost:8000/insights/{any-published-slug}` should
+render the article + the `InsightCtaPanel` at the bottom, not the
+"Oh no, we messed up!" 404.
+
 ## 5. Grant yourself publisher permission
 
 Publisher = able to push articles LIVE. Only you (an admin) can grant this via `/admin/pipeline/publishers`.
@@ -168,12 +189,14 @@ To disable ONLY auto-import (keep the CMS operational for manually-created artic
 |---|---|
 | Article doesn't appear after upload | Wait until 06:45 next day, or run `php artisan pipeline:detect-new-article-docs` manually |
 | "Could not find an Articles subfolder" | Create the folder in Drive under Marketing Automation |
+| **`/insights/{slug}` returns "Oh no, we messed up!" 404** even though the article is published + the API returns 200 | `VITE_INSIGHTS_CMS_ENABLED=true` is missing from `.env` OR the current Vite/prod build predates that env value. Add it + restart Vite (local) or re-run the deploy build script (dev/prod). |
 | Push to dev returns "sync endpoint not configured on this environment" | Target env's `.env` missing `PIPELINE_SYNC_TOKEN`; `config:clear` after adding |
 | Push to dev returns "invalid sync token" | Local's `PIPELINE_SYNC_TOKEN_DEV` doesn't match dev's `PIPELINE_SYNC_TOKEN` |
 | Push to live returns 403 | You aren't in `pipeline_publisher_users`. Go to `/admin/pipeline/publishers` |
 | Push to live returns 422 "must be on dev for at least..." | Wait — the gate keeps prod safe from same-second mistakes |
 | Re-import overwrites my manual edits | Expected — the Word doc is the source of truth. Edit the Word doc, not the article, if you'll want to re-import |
 | Images from Word doc not showing | MVP skips images. Upload hero image via the existing InsightArticle admin editor |
+| Sync status band is red or amber | Open `/admin/pipeline/articles` — the band lists exactly which env is misconfigured / unreachable / has an invalid token. Fix the env vars on THAT side |
 
 ---
 

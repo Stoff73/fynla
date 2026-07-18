@@ -18,5 +18,22 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_network_requests",
+      "mcp__ccd_session__mark_chapter",
+      "PowerShell(Get-ChildItem*)",
+      "PowerShell(Get-Content*)",
+      "PowerShell(Get-Process*)",
+      "PowerShell(Test-Path*)"
+    ]
   }
 }

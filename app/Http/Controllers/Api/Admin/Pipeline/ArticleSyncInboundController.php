@@ -38,6 +38,17 @@ class ArticleSyncInboundController extends Controller
             throw new HttpException(401, 'invalid sync token');
         }
 
+        // Health-check ping: called by PipelineSyncStatusController::probe on
+        // the sending env. Just confirms the token is accepted; does not
+        // upsert anything.
+        if ($request->boolean('ping') || $request->header('X-Pipeline-Ping') === '1') {
+            return response()->json([
+                'success' => true,
+                'status' => 'ready',
+                'env' => app()->environment(),
+            ]);
+        }
+
         $payload = $request->all();
         $payload['_payload_hash'] = $request->header('X-Pipeline-Sync-Payload-Hash');
 
