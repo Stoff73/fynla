@@ -9,6 +9,7 @@
 - Local CoreSimulator/XCTest worker materialisation can fail while a clean GitHub Xcode runner remains healthy. Keep the local limitation honest and use clean-runner evidence rather than weakening UI tests.
 - Package 3 PR #633 is current with `origin/dev` at the handover point (19 ahead, 0 behind), all current-head workflows green, and Save Tax untouched in the primary checkout.
 - Browser law: installed Google Chrome via connector only; never Chromium or the in-app browser. If disconnected, defer the browser gate and continue independent implementation.
+- User-approved PR structure: Packages 4, 5, 6 and 7 each have a separate branch and PR. Package 6's five waves are independently closed within one Package 6 PR rather than split into five package-level PRs.
 
 ## Resolved gotchas
 - **Auth is Bearer-token, not session-cookie.** `/api/auth/login` returns `requires_verification` at TOP LEVEL with `data:{challenge_token,email}` nested; `/api/auth/verify-code` → `data.access_token`. The original spec/plan wrongly described cookie auth and nested `requires_verification` — corrected in plan commit `664c9c6b` (caught in Task 5 code review; would have broken login entirely).

@@ -21,7 +21,7 @@ iOS Package 3's implementation/evidence head is automated-test green in draft PR
 - Clean Xcode 26.5 evidence on implementation/evidence head `d5d34d3` is green: 183 tests across 23 suites, all 28 iPhone 11 UI tests with zero failures, `TEST SUCCEEDED`, and unsigned Production-scheme `BUILD SUCCEEDED` in run `29619531322`.
 - The broader Quality Gate and Logic Guard on `d5d34d3` are green. The exact backend auth/native-session/mobile gate passed 345 tests with 1,261 assertions; the exact-source Swift host suite passed 176 tests across 21 suites.
 - Xcode is open on the Package 3 project and the actual iPhone 16 Pro Max simulator is booted. Local iOS 26.3 XCTest worker materialisation remains unreliable, but the clean Xcode 26.5 CI simulator gate supersedes that local runner limitation.
-- The user explicitly wants the next inference to continue through Packages 4–7 so the complete native migration can be finished.
+- The user explicitly wants the next inference to continue through Packages 4–7 so the complete native migration can be finished, with a separate isolated branch and separate PR for each package.
 
 ## Files touched (recently committed)
 
@@ -55,6 +55,7 @@ iOS Package 3's implementation/evidence head is automated-test green in draft PR
 - The user has authorised merges and deployment to **dev**, but no production work. Use normal PR/package boundaries and keep evidence honest.
 - The settled dev-server fact is that there are no current paid subscriptions. Do not ask this again. Package 4 must still implement deterministic Free/Premium and Apple/Revolut entitlement fixtures.
 - The user approved iPhone 16 Pro/Pro Max simulator use and wants real Xcode compilation, not chat-only or Swift-package-only claims.
+- Package boundary law: Package 4, Package 5, Package 6 and Package 7 each use their own isolated worktree/branch and their own PR. Do not combine packages in one PR. Finish/merge the preceding package into refreshed `dev` before branching the next whenever possible; if a package must be temporarily stacked, keep its PR separate and retarget it to `dev` after the dependency merges.
 
 ### Scope truth
 
@@ -74,7 +75,7 @@ iOS Package 3's implementation/evidence head is automated-test green in draft PR
 
 1. `codex/plans/ios/2026-07-14-ios-04-storekit-entitlements.md` — 11 tasks: Apple verifier dependency audit, provider-neutral persistence/resolution, app-account tokens, signed transaction verification, reconciliation/notifications, native entitlement API, StoreKit 2 client, purchase/restore UI and three-surface sandbox gate.
 2. `codex/plans/ios/2026-07-14-ios-05-dashboard-fyn.md` — 10 tasks: typed dashboard, gamification, navigation, achievements, Fyn transcript/SSE reducer, queued sends/retry, native conversation UI, bug reporting and vertical-slice acceptance.
-3. `codex/plans/ios/2026-07-14-ios-06-financial-feature-waves.md` — 17 tasks across five independently closed waves: A income/expenditure/net worth; B savings/investments; C retirement/protection; D estate/goals; E tax strategy/holistic plan.
+3. `codex/plans/ios/2026-07-14-ios-06-financial-feature-waves.md` — 17 tasks across five independently closed waves: A income/expenditure/net worth; B savings/investments; C retirement/protection; D estate/goals; E tax strategy/holistic plan. The five waves are review/commit checkpoints inside one dedicated Package 6 PR.
 4. `codex/plans/ios/2026-07-14-ios-07-platform-release.md` — 12 tasks: settings/security, consent/export/deletion, push, universal links, legacy credential cleanup, native version policy, privacy manifest, reproducible archive, App Store configuration and release-candidate verification. Execute dev/repository work only; defer production/App Store submission until the user separately authorises the later release phase.
 5. Programme sequencing and invariants: `codex/plans/programme/2026-07-14-native-ios-swift-migration-programme.md`.
 6. Live evidence source of truth: `docs/architecture/client-parity-ledger.md`.
@@ -84,9 +85,9 @@ iOS Package 3's implementation/evidence head is automated-test green in draft PR
 1. Run `session-start`, read this handover, all four remaining package plans, the programme plan and parity ledger before changing code.
 2. Fetch `origin`, confirm PR #633/head/checks and calculate drift from `origin/dev`. Incorporate any new `dev` commits into the isolated native branch; never switch the primary Save Tax checkout.
 3. Retry only the open Package 3 gates that are actually available: actual Google Chrome through the connector and the physical iPhone through Xcode. Record evidence without weakening or substituting the gates.
-4. Start Package 4 in a new isolated worktree/branch such as `codex/ios-package4-storekit-entitlements`. If Package 3 can be approved and merged, branch from refreshed `origin/dev`; otherwise stack from PR #633 while keeping Package 4 in its own draft PR.
+4. Start Package 4 in a new isolated worktree/branch such as `codex/ios-package4-storekit-entitlements` and create a dedicated Package 4 PR. If Package 3 can be approved and merged, branch from refreshed `origin/dev`; otherwise stack from PR #633 while keeping Package 4 in its own separate draft PR.
 5. Execute Package 4 task-by-task with TDD, focused review, full Xcode compilation, clean-runner CI and parity-ledger updates. The first implementation task is the Apple verifier dependency/security audit; do not jump directly to purchase UI.
-6. Continue with separate, reviewable Package 5 and Package 7 PRs. For Package 6, use one PR per wave unless the actual diff stays demonstrably small. Incorporate `dev` before each package/wave to avoid Save Tax drift.
+6. Continue sequentially with exactly one separate PR for Package 5, one separate PR for Package 6 and one separate PR for Package 7. Keep Package 6's five waves as explicit commits/review checkpoints within its single PR. Incorporate refreshed `dev` before each package and at each Package 6 wave boundary to avoid Save Tax drift.
 7. Keep moving when a manual browser/device gate is unavailable, but never relabel an unavailable gate as passed. No production work.
 
 ## Deploy status

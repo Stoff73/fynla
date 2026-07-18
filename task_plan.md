@@ -3,6 +3,7 @@
 > Authoritative programme plan: `codex/plans/programme/2026-07-14-native-ios-swift-migration-programme.md`.
 > Current continuation handover: `July/July18Updates/handover-2026-07-18-session-1-clear.md`.
 > Historical SP3 and SP1 Pass 2 state is retained below for traceability, not as the current work queue.
+> PR boundary: Packages 4, 5, 6 and 7 each require their own isolated branch and separate PR; Package 6 waves remain checkpoints inside the Package 6 PR.
 
 ## Current phase
 Native Swift programme, Package 3 handoff into Packages 4–7. Package 3's automated authentication/Face ID gate is green in draft PR #633 at implementation/evidence head `d5d34d3`; the session-end documentation commit follows it. Physical-iPhone and current actual-Google-Chrome `/m` evidence remain open. The user has directed the next inference to continue through Packages 4–7 without touching production or the primary Save Tax checkout.

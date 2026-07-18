@@ -12,6 +12,7 @@
 - [ ] Package 5 — native dashboard, navigation, achievements/gamification and complete Fyn conversation vertical slice.
 - [ ] Package 6 — port every financial screen in five independently closed waves.
 - [ ] Package 7 — settings/privacy/account deletion/push/universal links/archive and release readiness; no production/App Store action without later explicit authority.
+- [ ] PR boundary — create exactly one separate PR for each of Packages 4, 5, 6 and 7; do not mix packages. Package 6's five waves are commits/review checkpoints within its one package PR.
 - [ ] Deferred tech debt from the prior report — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
 - Boundary — primary `/Users/CSJ/Desktop/fynla` remains Save Tax; native work stays in isolated `/private/tmp` worktrees and incorporates `origin/dev` before every package/wave.
 - Browser rule — actual installed Google Chrome through the connector only; never Chromium, bundled/headless Chromium or the in-app browser.

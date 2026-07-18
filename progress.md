@@ -224,4 +224,4 @@
 - Package 3: Tasks 1–8 and automated Task 9 complete. Current-head Xcode 26.5 evidence is 183 tests/23 suites plus 28 UI tests/0 failures, `TEST SUCCEEDED`, and Production `BUILD SUCCEEDED`; Quality Gate and Logic Guard are green.
 - Open: actual Google Chrome `/m` acceptance and physical-iPhone Face ID/registration/relock/Keychain/diagnostic evidence.
 - Status: source/docs committed and pushed; only Xcode's generated per-user UI state remains intentionally untracked and must never be committed.
-- Next: read the Package 4 plan, refresh `origin/dev`, preserve Save Tax isolation, close any available Package 3 manual gates, then start Package 4 in its own isolated worktree/PR and continue Packages 5–7.
+- Next: read the Package 4 plan, refresh `origin/dev`, preserve Save Tax isolation, close any available Package 3 manual gates, then continue with one isolated branch and separate PR each for Packages 4, 5, 6 and 7.
