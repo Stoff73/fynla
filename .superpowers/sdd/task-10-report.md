@@ -106,3 +106,56 @@ The requested direct smoke check used the already-signed app with bundle ID
 stalled for 60 seconds before a single termination (exit 130); the one subsequent
 `simctl launch` attempt also emitted no output and stalled for 30 seconds before
 termination (exit 130). Neither command was retried.
+
+## Review fixes — lifecycle and localization
+
+A separate follow-up commit addresses all five Task 10 review findings:
+
+1. **StoreKit update lifecycle:** replaced the shared single-consumer static
+   `AsyncStream` with one process-lifetime `Transaction.updates` producer and a
+   lock-protected broadcaster that creates an independent stream per subscriber.
+   Cancelling/deallocating one subscriber removes only its continuation. Product
+   filtering, local verification, JWS forwarding, app-account-token validation,
+   and server-acknowledgement-before-finish behavior remain unchanged. Tests cover
+   two simultaneous subscribers, cancellation, later subscription, and a new
+   subscription model receiving updates after the old model stops.
+2. **Stale load race:** every canonical load/acknowledgement refresh owns a
+   MainActor generation. Only the current generation can mutate presentation, and
+   sign-out invalidates in-flight loads. A deterministic test suspends a Free
+   response captured before acknowledgement, refreshes to Apple Premium, releases
+   the stale response, and asserts Premium remains.
+3. **Pending lifecycle:** the update subscriber remains active throughout privacy
+   lock because the authenticated session is still valid. Unlock reloads preserve
+   Ask-to-Buy pending when canonical entitlement remains Free, including purchase
+   suppression and the selected product; a verified update while locked still
+   acknowledges, finishes, and activates Premium. Only actual sign-out cancels the
+   subscriber and clears user-scoped pending state. Focused tests cover pending
+   lock/unlock, no repeat purchase, update while locked, sign-out reset, and later
+   model resubscription.
+4. **Localized period:** removed English `per month`/`per year` construction.
+   `DateComponentsFormatter` now formats the StoreKit subscription period with the
+   SwiftUI locale, while StoreKit supplies product name and `displayPrice`.
+   Production visible and accessibility text share this path. German structural
+   tests assert `1 Monat` and `3 Monate`.
+5. **Fractional ISO dates:** entitlement dates now parse ISO-8601 with fractional
+   seconds first, then retain the second-only fallback. Presentation uses the
+   environment locale and time zone. The exact Laravel-style
+   `2026-08-18T20:00:00.123456Z` and the second-only fixture both render
+   `18 August 2026` under injected `en_GB`/UTC.
+
+### Follow-up verification
+
+- RED: exact-device signed build exited 65 when the broadcaster regression first
+  referenced missing `StoreKitTransactionUpdateBroadcaster`.
+- GREEN: exact-device signed build then exited 0 after the independent-stream
+  broadcaster implementation.
+- RED: exact-device signed build exited 65 for the missing locale-aware
+  `StoreSubscriptionPeriod.formatted(locale:)` API.
+- GREEN: final exact-device signed build on UUID
+  `2FCE7BF1-85F1-4956-A7B8-F1F676DD244C` exited 0 with
+  `** TEST BUILD SUCCEEDED **` and `Sign to Run Locally`.
+- The single focused runtime attempt targeted `StoreKitClientTests` and
+  `SubscriptionModelTests`. XCTest printed `Testing started` but launched no test
+  case for 33.813 seconds, so it was interrupted once per the task constraint
+  (exit 75) and not retried. Result bundle:
+  `/Users/CSJ/Library/Developer/Xcode/DerivedData/Fynla-bpitrkqdkqukesaoavhwgibvbzci/Logs/Test/Test-Fynla-Staging-2026.07.18_21-51-26-+0100.xcresult`.

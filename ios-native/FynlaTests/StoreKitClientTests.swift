@@ -5,6 +5,39 @@ import Testing
 @Suite("StoreKit client contract")
 struct StoreKitClientTests {
     @Test
+    func subscriptionPeriodUsesTheSuppliedLocale() {
+        let locale = Locale(identifier: "de_DE")
+
+        #expect(
+            StoreSubscriptionPeriod(value: 1, unit: .month)
+                .formatted(locale: locale) == "1 Monat"
+        )
+        #expect(
+            StoreSubscriptionPeriod(value: 3, unit: .month)
+                .formatted(locale: locale) == "3 Monate"
+        )
+    }
+
+    @Test
+    func updateBroadcasterKeepsProducerAliveAcrossCancellationAndResubscribe() async {
+        let broadcaster = StoreKitTransactionUpdateBroadcaster()
+        var cancelledSubscriber: AsyncStream<SignedStoreTransaction>.Iterator? =
+            broadcaster.stream().makeAsyncIterator()
+        var activeSubscriber = broadcaster.stream().makeAsyncIterator()
+
+        broadcaster.broadcast(.update(id: 1))
+        #expect(await cancelledSubscriber?.next()?.id == 1)
+        #expect(await activeSubscriber.next()?.id == 1)
+
+        cancelledSubscriber = nil
+        var laterSubscriber = broadcaster.stream().makeAsyncIterator()
+        broadcaster.broadcast(.update(id: 2))
+
+        #expect(await activeSubscriber.next()?.id == 2)
+        #expect(await laterSubscriber.next()?.id == 2)
+    }
+
+    @Test
     func injectedClientPreservesProductsAndPurchaseOutcomes() async throws {
         let token = UUID(uuidString: "19659A36-8E55-4F95-98CB-3F5D61F489AA")!
         let finishRecorder = FinishRecorder()
@@ -55,6 +88,20 @@ struct StoreKitClientTests {
         #expect(
             StoreKitClientError.unverifiedTransaction.safeMessage
                 == "We couldn't verify this purchase with the App Store. Please try again."
+        )
+    }
+}
+
+private extension SignedStoreTransaction {
+    static func update(id: UInt64) -> Self {
+        .testing(
+            id: id,
+            originalID: id,
+            productID: StoreProductIdentifier.monthly,
+            appAccountToken: UUID(
+                uuidString: "19659A36-8E55-4F95-98CB-3F5D61F489AA"
+            )!,
+            signedJWS: "update.\(id).jws"
         )
     }
 }

@@ -45,9 +45,9 @@ final class FynlaUITests: XCTestCase {
 
         XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("£6.99"))
-        XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("per month"))
+        XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("1 month"))
         XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("£59.99"))
-        XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("per year"))
+        XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("1 year"))
         XCTAssertTrue(app.buttons["subscription.purchase"].isHittable)
         XCTAssertTrue(app.buttons["subscription.restore"].isHittable)
     }

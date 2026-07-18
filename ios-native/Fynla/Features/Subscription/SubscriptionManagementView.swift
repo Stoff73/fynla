@@ -28,6 +28,8 @@ struct SubscriptionManagementView: View {
     let model: SubscriptionModel
     let appleManager: any AppleSubscriptionManaging
 
+    @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
     @State private var managementError: String?
 
     var body: some View {
@@ -191,10 +193,10 @@ struct SubscriptionManagementView: View {
                     )
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text(product.id == StoreProductIdentifier.monthly ? "Monthly" : "Annual")
+                    Text(product.displayName)
                         .font(FynlaTypography.heading)
                         .foregroundStyle(FynlaColor.primaryText)
-                    Text("\(product.displayPrice) \(product.periodLabel)")
+                    Text("\(product.displayPrice) \(product.periodLabel(locale: locale))")
                         .font(FynlaTypography.body)
                         .foregroundStyle(FynlaColor.secondaryText)
                 }
@@ -216,7 +218,7 @@ struct SubscriptionManagementView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(
-            "\(product.id == StoreProductIdentifier.monthly ? "Monthly" : "Annual"), \(product.displayPrice) \(product.periodLabel)"
+            "\(product.displayName), \(product.displayPrice) \(product.periodLabel(locale: locale))"
         )
         .accessibilityValue(selected ? "Selected" : "Not selected")
         .accessibilityIdentifier(
@@ -307,13 +309,44 @@ struct SubscriptionManagementView: View {
     }
 
     private func formattedDate(_ value: String?) -> String? {
+        SubscriptionDateFormatter.string(
+            from: value,
+            locale: locale,
+            timeZone: timeZone
+        )
+    }
+}
+
+enum SubscriptionDateFormatter {
+    static func string(
+        from value: String?,
+        locale: Locale,
+        timeZone: TimeZone
+    ) -> String? {
         guard let value,
-              let date = ISO8601DateFormatter().date(from: value)
+              let date = fractionalISO8601.date(from: value)
+                ?? secondISO8601.date(from: value)
         else {
             return nil
         }
-        return date.formatted(
-            .dateTime.day().month(.wide).year().locale(Locale(identifier: "en_GB"))
-        )
+        var style = Date.FormatStyle.dateTime
+            .day()
+            .month(.wide)
+            .year()
+            .locale(locale)
+        style.timeZone = timeZone
+        return date.formatted(style)
+    }
+
+    private static var fractionalISO8601: ISO8601DateFormatter {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }
+
+    private static var secondISO8601: ISO8601DateFormatter {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
     }
 }

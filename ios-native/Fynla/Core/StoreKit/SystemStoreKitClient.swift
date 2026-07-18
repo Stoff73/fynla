@@ -1,16 +1,47 @@
 import Foundation
 import StoreKit
 
-final class SystemStoreKitClient: StoreKitClient, Sendable {
-    private let productIDs = StoreProductIdentifier.all
-    private static let transactionUpdates: AsyncStream<SignedStoreTransaction> = {
+final class StoreKitTransactionUpdateBroadcaster: @unchecked Sendable {
+    private typealias Continuation =
+        AsyncStream<SignedStoreTransaction>.Continuation
+
+    private let lock = NSLock()
+    private var subscribers: [UUID: Continuation] = [:]
+
+    func stream() -> AsyncStream<SignedStoreTransaction> {
+        let subscriberID = UUID()
         let (stream, continuation) = AsyncStream.makeStream(
             of: SignedStoreTransaction.self
         )
-        Task {
+        continuation.onTermination = { [weak self] _ in
+            self?.removeSubscriber(subscriberID)
+        }
+        lock.withLock {
+            subscribers[subscriberID] = continuation
+        }
+        return stream
+    }
+
+    func broadcast(_ transaction: SignedStoreTransaction) {
+        let continuations = lock.withLock { Array(subscribers.values) }
+        continuations.forEach { $0.yield(transaction) }
+    }
+
+    private func removeSubscriber(_ subscriberID: UUID) {
+        _ = lock.withLock {
+            subscribers.removeValue(forKey: subscriberID)
+        }
+    }
+}
+
+final class SystemStoreKitClient: StoreKitClient, Sendable {
+    private let productIDs = StoreProductIdentifier.all
+    private static let updateBroadcaster = StoreKitTransactionUpdateBroadcaster()
+    private static let transactionUpdateProducer: Task<Void, Never> = {
+        let broadcaster = updateBroadcaster
+        return Task.detached(priority: .utility) {
             for await verification in Transaction.updates {
-                guard !Task.isCancelled,
-                      let transaction = try? SystemStoreKitClient.signedTransaction(
+                guard let transaction = try? SystemStoreKitClient.signedTransaction(
                           verification,
                           allowedProductIDs: StoreProductIdentifier.all,
                           expectedProductID: nil,
@@ -19,15 +50,13 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
                 else {
                     continue
                 }
-                continuation.yield(transaction)
+                broadcaster.broadcast(transaction)
             }
-            continuation.finish()
         }
-        return stream
     }()
 
     init() {
-        _ = Self.transactionUpdates
+        _ = Self.transactionUpdateProducer
     }
 
     func products() async throws -> [StoreProduct] {
@@ -91,7 +120,7 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
     }
 
     func updates() -> AsyncStream<SignedStoreTransaction> {
-        Self.transactionUpdates
+        Self.updateBroadcaster.stream()
     }
 
     func sync() async throws {

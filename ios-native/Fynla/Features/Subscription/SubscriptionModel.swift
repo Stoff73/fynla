@@ -66,6 +66,7 @@ final class SubscriptionModel {
     private var availableProducts: [StoreProduct] = []
     private var processingTransactionIDs: Set<UInt64> = []
     private var updateTask: Task<Void, Never>?
+    private var loadGeneration = 0
 
     init(api: any SubscriptionAPI, storeKit: any StoreKitClient) {
         self.api = api
@@ -100,6 +101,7 @@ final class SubscriptionModel {
     func stop() {
         updateTask?.cancel()
         updateTask = nil
+        loadGeneration &+= 1
         state = .loading
         message = nil
         isPurchasing = false
@@ -109,13 +111,20 @@ final class SubscriptionModel {
     }
 
     func load() async {
-        state = .loading
-        message = nil
+        let generation = nextLoadGeneration()
+        let pendingProductID = pendingSelectedProductID
+        if pendingProductID == nil {
+            state = .loading
+            message = nil
+        }
         async let entitlementResult = loadEntitlement()
         async let productsResult = loadProducts()
         let (entitlement, products) = await (entitlementResult, productsResult)
 
+        guard generation == loadGeneration else { return }
+
         guard case let .success(resolvedEntitlement) = entitlement else {
+            if pendingProductID != nil { return }
             state = .unavailable(
                 message: "Subscription details are unavailable. Please try again."
             )
@@ -126,12 +135,15 @@ final class SubscriptionModel {
         case let .success(products):
             availableProducts = products
         case .failure:
-            availableProducts = []
+            if pendingProductID == nil {
+                availableProducts = []
+            }
         }
 
         present(
             entitlement: resolvedEntitlement,
-            products: availableProducts
+            products: availableProducts,
+            pendingProductID: pendingProductID
         )
     }
 
@@ -206,7 +218,8 @@ final class SubscriptionModel {
 
     private func present(
         entitlement: NativeEntitlement,
-        products: [StoreProduct]
+        products: [StoreProduct],
+        pendingProductID: String? = nil
     ) {
         switch (entitlement.tier, entitlement.billingManagement) {
         case (.premium, .apple):
@@ -231,8 +244,8 @@ final class SubscriptionModel {
             }
             state = .free(
                 products: sorted,
-                selectedProductID: selected,
-                isPending: false
+                selectedProductID: pendingProductID ?? selected,
+                isPending: pendingProductID != nil
             )
         }
     }
@@ -258,11 +271,14 @@ final class SubscriptionModel {
     }
 
     private func refreshCanonicalEntitlement() async {
+        let generation = nextLoadGeneration()
         do {
             let entitlement = try await api.entitlement()
+            guard generation == loadGeneration else { return }
             present(entitlement: entitlement, products: availableProducts)
             message = nil
         } catch {
+            guard generation == loadGeneration else { return }
             message = "Premium was verified, but your subscription details couldn't be refreshed. Please try again."
         }
     }
@@ -307,6 +323,20 @@ final class SubscriptionModel {
 
     private func productRank(_ productID: String) -> Int {
         productID == StoreProductIdentifier.monthly ? 0 : 1
+    }
+
+    private var pendingSelectedProductID: String? {
+        guard case let .free(_, selectedProductID, isPending) = state,
+              isPending
+        else {
+            return nil
+        }
+        return selectedProductID
+    }
+
+    private func nextLoadGeneration() -> Int {
+        loadGeneration &+= 1
+        return loadGeneration
     }
 }
 

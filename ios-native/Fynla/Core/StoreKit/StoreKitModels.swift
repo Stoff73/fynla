@@ -18,23 +18,34 @@ struct StoreSubscriptionPeriod: Sendable, Equatable {
     let value: Int
     let unit: Unit
 
-    var label: String {
-        if value == 1 {
-            return switch unit {
-            case .day: "per day"
-            case .week: "per week"
-            case .month: "per month"
-            case .year: "per year"
-            }
-        }
+    func formatted(locale: Locale) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [calendarUnit]
+        formatter.unitsStyle = .full
+        formatter.maximumUnitCount = 1
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        formatter.calendar = calendar
+        return formatter.string(from: dateComponents)
+            ?? value.formatted(.number.locale(locale))
+    }
 
-        let unitLabel = switch unit {
-        case .day: "days"
-        case .week: "weeks"
-        case .month: "months"
-        case .year: "years"
+    private var calendarUnit: NSCalendar.Unit {
+        switch unit {
+        case .day: .day
+        case .week: .weekOfMonth
+        case .month: .month
+        case .year: .year
         }
-        return "every \(value) \(unitLabel)"
+    }
+
+    private var dateComponents: DateComponents {
+        switch unit {
+        case .day: DateComponents(day: value)
+        case .week: DateComponents(weekOfMonth: value)
+        case .month: DateComponents(month: value)
+        case .year: DateComponents(year: value)
+        }
     }
 }
 
@@ -45,7 +56,9 @@ struct StoreProduct: Sendable, Equatable {
     let displayPrice: String
     let subscriptionPeriod: StoreSubscriptionPeriod
 
-    var periodLabel: String { subscriptionPeriod.label }
+    func periodLabel(locale: Locale) -> String {
+        subscriptionPeriod.formatted(locale: locale)
+    }
 }
 
 struct SignedStoreTransaction: Sendable, Equatable {
