@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Anthropic\Client;
+use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\RecommendationTracking;
@@ -32,6 +33,10 @@ use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
 use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
+use App\Services\Billing\Apple\AppleBridgeClient;
+use App\Services\Billing\Apple\AppleSignedDataVerifier;
+use App\Services\Billing\Apple\PythonAppleSignedDataVerifier;
+use App\Services\Billing\Apple\SymfonyAppleBridgeClient;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\LevelUpCollector;
 use App\Services\Gamification\MilestoneCollector;
@@ -148,6 +153,38 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             TierGate::class,
             DbTierGate::class
+        );
+
+        $this->app->singleton(AppleBridgeClient::class, function () {
+            $pythonExecutable = config('apple_store.python_executable');
+            $cliPath = config('apple_store.bridge_cli_path');
+            $timeout = config('apple_store.process_timeout_seconds');
+            $maxRequestBytes = config('apple_store.max_request_bytes');
+            $maxResponseBytes = config('apple_store.max_response_bytes');
+
+            if (
+                ! is_string($pythonExecutable)
+                || ! is_string($cliPath)
+                || (! is_int($timeout) && ! is_float($timeout))
+                || ! is_int($maxRequestBytes)
+                || ! is_int($maxResponseBytes)
+            ) {
+                throw new AppleVerificationException(
+                    'invalid_configuration',
+                );
+            }
+
+            return new SymfonyAppleBridgeClient(
+                pythonExecutable: $pythonExecutable,
+                cliPath: $cliPath,
+                timeout: (float) $timeout,
+                maxRequestBytes: $maxRequestBytes,
+                maxResponseBytes: $maxResponseBytes,
+            );
+        });
+        $this->app->singleton(
+            AppleSignedDataVerifier::class,
+            PythonAppleSignedDataVerifier::class,
         );
 
     }
