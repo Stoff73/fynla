@@ -172,7 +172,7 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
     }
 
     /** @param array<string, mixed> $data */
-    private function mapTransaction(
+    public function mapTransaction(
         array $data,
         ?string $expectedAppAccountToken,
     ): VerifiedAppleTransaction {
@@ -237,7 +237,7 @@ final class PythonAppleSignedDataVerifier implements AppleSignedDataVerifier
     }
 
     /** @param array<string, mixed> $data */
-    private function mapRenewal(array $data): VerifiedAppleRenewal
+    public function mapRenewal(array $data): VerifiedAppleRenewal
     {
         if (! $this->hasExactKeys($data, self::RENEWAL_KEYS)) {
             $this->throwUnavailable();

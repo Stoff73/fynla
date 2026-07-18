@@ -14,6 +14,9 @@ from services.apple_store_bridge.contract import (  # noqa: E402
     success,
 )
 from services.apple_store_bridge.errors import BridgeError  # noqa: E402
+from services.apple_store_bridge.api_client import (  # noqa: E402
+    AppleServerReconciler,
+)
 from services.apple_store_bridge.verifier import (  # noqa: E402
     AppleSignedDataService,
 )
@@ -31,7 +34,7 @@ def _dispatch(request: dict) -> Dict[str, Any]:
             "library": version(LIBRARY_DISTRIBUTION),
         }
     if operation == "reconcile":
-        raise BridgeError("unsupported_operation")
+        return AppleServerReconciler().reconcile(request)
 
     service = AppleSignedDataService()
     if operation == "verify_transaction":

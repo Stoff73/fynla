@@ -35,7 +35,9 @@ use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
 use App\Services\Billing\Apple\AppleBridgeClient;
 use App\Services\Billing\Apple\AppleSignedDataVerifier;
+use App\Services\Billing\Apple\AppleStoreServerClient;
 use App\Services\Billing\Apple\PythonAppleSignedDataVerifier;
+use App\Services\Billing\Apple\PythonAppleStoreServerClient;
 use App\Services\Billing\Apple\SymfonyAppleBridgeClient;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\LevelUpCollector;
@@ -185,6 +187,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             AppleSignedDataVerifier::class,
             PythonAppleSignedDataVerifier::class,
+        );
+        $this->app->singleton(
+            AppleStoreServerClient::class,
+            PythonAppleStoreServerClient::class,
         );
 
     }

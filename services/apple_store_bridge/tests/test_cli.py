@@ -89,22 +89,33 @@ class CliTest(unittest.TestCase):
                 self.assertEqual("", stderr)
                 method.assert_called_once_with(request)
 
-    def test_known_but_unimplemented_reconcile_is_a_handled_failure(self):
-        exit_code, stdout, stderr = self.invoke(
-            '{"version":1,"operation":"reconcile","signed_data":"secret"}'
-        )
+    def test_dispatches_reconcile_without_returning_server_configuration(self):
+        request = {
+            "version": 1,
+            "operation": "reconcile",
+            "original_transaction_id": "apple-original-1",
+            "private_key_path": "/private/server/AuthKey.p8",
+        }
+        safe_result = {
+            "original_transaction_id": "apple-original-1",
+            "transactions": [],
+            "renewals": [],
+        }
+        with patch(
+            "services.apple_store_bridge.cli.AppleServerReconciler"
+        ) as reconciler_class:
+            reconciler_class.return_value.reconcile.return_value = safe_result
+            exit_code, stdout, stderr = self.invoke(json.dumps(request))
 
-        self.assertEqual(2, exit_code)
+        self.assertEqual(0, exit_code)
         self.assertEqual(
-            {
-                "version": 1,
-                "ok": False,
-                "error": {"code": "unsupported_operation", "retryable": False},
-            },
+            {"version": 1, "ok": True, "data": safe_result},
             json.loads(stdout),
         )
-        self.assertNotIn("secret", stdout)
+        self.assertNotIn("AuthKey", stdout)
+        self.assertNotIn("/private/server", stdout)
         self.assertEqual("", stderr)
+        reconciler_class.return_value.reconcile.assert_called_once_with(request)
 
     def test_handled_bridge_error_returns_only_its_stable_envelope(self):
         payload = (
