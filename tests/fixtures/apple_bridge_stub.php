@@ -27,6 +27,23 @@ if ($scenario === 'oversized') {
     exit(0);
 }
 
+if ($scenario === 'streaming_stdout_overflow' || $scenario === 'streaming_stderr_overflow') {
+    $stream = $scenario === 'streaming_stdout_overflow' ? STDOUT : STDERR;
+
+    for ($chunk = 0; $chunk < 50; $chunk++) {
+        fwrite($stream, str_repeat('x', 1024));
+        fflush($stream);
+        usleep(20_000);
+    }
+
+    $completionPath = $request['completion_path'] ?? null;
+    if (is_string($completionPath)) {
+        file_put_contents($completionPath, 'completed');
+    }
+
+    exit(0);
+}
+
 if ($scenario === 'multiple') {
     $write(['version' => 1, 'ok' => true, 'data' => []]);
     $write(['version' => 1, 'ok' => true, 'data' => []]);

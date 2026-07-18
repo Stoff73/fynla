@@ -113,9 +113,7 @@ final class SymfonyAppleBridgeClient implements AppleBridgeClient
                 );
             }
 
-            $exitCode = $process->run();
-            $stdout = $process->getOutput();
-            $stderr = $process->getErrorOutput();
+            [$stdout, $stderr, $exitCode] = $this->runWithBoundedOutput($process);
         } catch (Throwable) {
             throw new AppleVerificationException(
                 'verifier_unavailable',
@@ -124,6 +122,64 @@ final class SymfonyAppleBridgeClient implements AppleBridgeClient
         }
 
         return $this->validatedResponse($stdout, $stderr, $exitCode);
+    }
+
+    /** @return array{string, string, int} */
+    private function runWithBoundedOutput(Process $process): array
+    {
+        $stdout = '';
+        $stderr = '';
+        $stdoutBytes = 0;
+        $stderrBytes = 0;
+        $overflowed = false;
+
+        $process->disableOutput();
+
+        try {
+            $exitCode = $process->run(function (string $type, string $chunk) use (
+                &$stdout,
+                &$stderr,
+                &$stdoutBytes,
+                &$stderrBytes,
+                &$overflowed,
+            ): void {
+                if ($overflowed) {
+                    return;
+                }
+
+                $chunkBytes = strlen($chunk);
+                $nextTotalBytes = $stdoutBytes + $stderrBytes + $chunkBytes;
+
+                if (
+                    $nextTotalBytes > $this->maxResponseBytes
+                    || ($type !== Process::OUT && $type !== Process::ERR)
+                ) {
+                    $overflowed = true;
+
+                    throw new \RuntimeException('apple_bridge_output_limit');
+                }
+
+                if ($type === Process::OUT) {
+                    $stdout .= $chunk;
+                    $stdoutBytes += $chunkBytes;
+
+                    return;
+                }
+
+                $stderr .= $chunk;
+                $stderrBytes += $chunkBytes;
+            });
+        } catch (Throwable $exception) {
+            try {
+                $process->stop(0);
+            } catch (Throwable) {
+                // The stable verifier error below is the only public detail.
+            }
+
+            throw $exception;
+        }
+
+        return [$stdout, $stderr, $exitCode];
     }
 
     /** @return array<string, mixed> */

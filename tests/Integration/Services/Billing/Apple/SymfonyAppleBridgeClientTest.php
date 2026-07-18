@@ -125,6 +125,24 @@ it('fails closed on malformed, contradictory or noisy process output', function 
     'list_data',
 ]);
 
+it('terminates the bridge before either output stream can exceed its hard bound', function (string $scenario) {
+    $completionPath = sys_get_temp_dir().'/fynla-apple-bridge-'.bin2hex(random_bytes(8));
+    $client = appleTestBridgeClient($this->factory, maxResponseBytes: 1024);
+
+    try {
+        expect(fn () => $client->call('health', [
+            'scenario' => $scenario,
+            'completion_path' => $completionPath,
+        ]))->toThrow(AppleVerificationException::class, 'verifier_unavailable')
+            ->and(file_exists($completionPath))->toBeFalse();
+    } finally {
+        @unlink($completionPath);
+    }
+})->with([
+    'stdout' => 'streaming_stdout_overflow',
+    'stderr' => 'streaming_stderr_overflow',
+]);
+
 it('rejects oversized or reserved request payloads before launching a process', function (array $payload) {
     $launched = false;
     $factory = static function () use (&$launched): Process {
