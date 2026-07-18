@@ -1,0 +1,81 @@
+{
+  "identifier" : "48E769AA-9FB2-4C53-A01A-8E3D9E9B9703",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_GB",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "GBR",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "EC0622B3-4BA9-410A-AD5F-92965F1E40C9",
+      "localizations" : [
+
+      ],
+      "name" : "Fynla Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "6.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "D7BC1BDF-079F-467C-8F8C-C457D61C610C",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Fynla Premium",
+              "displayName" : "Fynla Premium Monthly",
+              "locale" : "en_GB"
+            }
+          ],
+          "productID" : "org.fynla.premium.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Fynla Premium Monthly",
+          "subscriptionGroupID" : "EC0622B3-4BA9-410A-AD5F-92965F1E40C9"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "59.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "933DFD9A-E612-4600-BB46-07391CD8CC41",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Fynla Premium",
+              "displayName" : "Fynla Premium Annual",
+              "locale" : "en_GB"
+            }
+          ],
+          "productID" : "org.fynla.premium.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Fynla Premium Annual",
+          "subscriptionGroupID" : "EC0622B3-4BA9-410A-AD5F-92965F1E40C9"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
