@@ -1,7 +1,7 @@
 # Apple Python Verifier Bridge Design
 
 **Date:** 18 July 2026  
-**Status:** Approved direction; written-spec review pending  
+**Status:** Approved by CSJ on 18 July 2026
 **Scope:** iOS Package 4 server-side Apple verification only  
 **Environment:** Development only until the normal release programme authorises production
 

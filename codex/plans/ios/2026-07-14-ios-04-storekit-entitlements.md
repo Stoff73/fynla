@@ -6,7 +6,7 @@
 
 **Architecture:** StoreKit 2 performs the device purchase and local verification. Laravel independently verifies signed Apple data, persists immutable transaction evidence, derives a provider-neutral Premium grant and returns the canonical capability matrix. Existing Revolut subscriptions are adapted into the same resolver. The client finishes a StoreKit transaction only after durable server acknowledgement.
 
-**Tech Stack:** StoreKit 2, Swift concurrency, StoreKit Test, XCTest; Laravel 10, MySQL 8, Pest, `hoels/app-store-server-library-php` 2.x behind a Fynla adapter, App Store Server API and App Store Server Notifications V2.
+**Tech Stack:** StoreKit 2, Swift concurrency, StoreKit Test, XCTest; Laravel 10, MySQL 8, Pest, Symfony Process, Python 3.8+ and Apple's official `app-store-server-library==3.1.2` behind Fynla-owned PHP interfaces, App Store Server API and App Store Server Notifications V2.
 
 ## Global Constraints
 
@@ -20,13 +20,15 @@
 - Cancellation preserves access through verified period end. Expiry/revocation returns to Free without deleting data.
 - Account deletion does not cancel Apple billing automatically.
 - Never log or persist full signed payloads; store SHA-256 evidence and decoded allowlisted fields.
-- The third-party PHP verifier is isolated behind `AppleSignedDataVerifier`; its version stays locked in `composer.lock` and receives a security/license review before production.
+- Apple's official Python verifier is isolated behind `AppleSignedDataVerifier`; Python dependencies stay hash-locked and receive a security/licence review before deployment.
+- The iOS app calls only the current Laravel backend. Python is an internal bounded process and never becomes a public client endpoint or identity store.
 
 ## File map
 
 | Path | Responsibility |
 |---|---|
-| `composer.json`, `composer.lock` | Locked PHP App Store server library |
+| `services/apple_store_bridge/` | Hash-locked official Apple Python verifier/API bridge and tests |
+| `composer.json`, `composer.lock` | PHP dependencies; the rejected PHP App Store verifier must be absent |
 | `config/apple_store.php`, `.env.example` | Product, bundle, app ID and server API configuration names |
 | `resources/certificates/apple/` | Apple public root certificate used by verifier |
 | `database/migrations/2026_07_16_000001_add_apple_account_token_to_users_table.php` | Stable per-user UUID |
@@ -41,28 +43,16 @@
 | `ios-native/Fynla/Features/Subscription/` | Premium screen and management |
 | `ios-native/StoreKit/Fynla.storekit` | Deterministic local StoreKit products |
 
-### Task 1: Lock and audit the PHP App Store server verifier
+### Task 1: Lock and audit Apple's official Python verifier runtime
 
-**Files:** Modify `composer.json`, `composer.lock`; create `docs/security/apple-store-verifier-review.md`; add public root certificate under `resources/certificates/apple/`; create `tests/Unit/Services/Billing/Apple/AppleVerifierDependencyTest.php`.
+**Files:** Remove the rejected PHP verifier from `composer.json`/`composer.lock`; create the hash-locked Python runtime and security review; retain and test the checked-in Apple root certificate.
 
-- [ ] Write a failing test that requires the verifier adapter's configured root certificate to exist, parse with OpenSSL and be a CA certificate.
-- [ ] Add `hoels/app-store-server-library-php:^2.0` with Composer and commit its locked transitive versions only when implementation is authorised.
-- [ ] Record in the review: package/version/commit, MIT licence, PHP/OpenSSL requirements, online revocation checking, update policy, security advisories and the fact that it mirrors Apple's official Python/Swift implementations but is not Apple-maintained.
-- [ ] Download the current Apple Root CA certificate from Apple PKI over HTTPS, inspect it with OpenSSL and check the public certificate into `resources/certificates/apple/AppleRootCA-G3.cer`.
-- [ ] Do not download certificates dynamically in a request or trust an `x5c` chain without anchoring it to the checked-in root.
-- [ ] Verify SiteGround PHP has required `openssl`, `json`, `mbstring` extensions before deployment.
+- [ ] Execute Bridge Task 1 in `codex/plans/ios/2026-07-18-ios-04-apple-python-verifier-bridge.md` exactly.
+- [ ] Preserve `docs/security/apple-store-verifier-review.md` as the durable rejection record for the incomplete PHP OCSP path.
+- [ ] Do not write or adopt a custom JWS/OCSP verifier.
+- [ ] Do not enable Apple billing until the current development backend passes the Python/process health gate.
 
-Commands:
-
-```bash
-composer show hoels/app-store-server-library-php
-openssl x509 -inform DER -in resources/certificates/apple/AppleRootCA-G3.cer -noout -subject -issuer -dates -fingerprint -sha256
-./vendor/bin/pest tests/Unit/Services/Billing/Apple/AppleVerifierDependencyTest.php
-```
-
-Expected: locked 2.x package, valid Apple root certificate, PASS. If package review fails, stop this package and obtain CSJ approval for a different server runtime; do not write an incomplete custom JWS verifier.
-
-**Intended review boundary:** `build: add reviewed app store server verifier`
+**Intended review boundary:** `build: use official apple server verifier`
 
 ### Task 2: Create provider-neutral billing persistence
 
@@ -136,7 +126,9 @@ The example is shape-only in documentation; tests use generated UUIDs.
 
 ### Task 5: Verify signed Apple transactions behind a Fynla adapter
 
-**Files:** Create `AppleSignedDataVerifier.php`, `HoelsAppleSignedDataVerifier.php`, `VerifiedAppleTransaction.php`, `AppleStoreConfiguration.php`; create unit tests with sandbox fixtures.
+**Files:** Create `AppleSignedDataVerifier.php`, `PythonAppleSignedDataVerifier.php`, the internal bridge client, Fynla DTOs and Python verifier modules; create PHP/Python tests with official sandbox fixtures.
+
+- [ ] Execute Bridge Tasks 2–4 in `codex/plans/ios/2026-07-18-ios-04-apple-python-verifier-bridge.md` exactly.
 
 - [ ] Add configuration keys: bundle ID `org.fynla.app`, allowed products, runtime environment, root certificate path, numeric app ID and online-check policy. Private App Store key values are environment-only.
 - [ ] Define a Fynla-owned interface so package types do not escape the Apple adapter:
@@ -144,12 +136,20 @@ The example is shape-only in documentation; tests use generated UUIDs.
 ```php
 interface AppleSignedDataVerifier
 {
-    public function verifyTransaction(string $jws, string $expectedEnvironment): VerifiedAppleTransaction;
-    public function verifyNotification(string $jws, string $expectedEnvironment): VerifiedAppleNotification;
+    public function verifyTransaction(
+        string $jws,
+        string $expectedEnvironment,
+        ?string $expectedAppAccountToken,
+    ): VerifiedAppleTransaction;
+
+    public function verifyNotification(
+        string $jws,
+        string $expectedEnvironment,
+    ): VerifiedAppleNotification;
 }
 ```
 
-- [ ] Construct the library verifier with checked-in Apple root, online checks enabled, bundle ID, environment and production numeric app ID.
+- [ ] Laravel sends signed data only through stdin to the bounded no-shell Python process; the Apple library uses the checked-in root, online checks, bundle, environment and production numeric app ID.
 - [ ] After cryptographic verification, enforce product allowlist, exact bundle/environment, UUID app account token and coherent transaction/original transaction IDs/dates.
 - [ ] Map library exceptions into stable internal error codes without returning certificate details to clients.
 - [ ] Test valid signed sandbox fixtures and tampered signature/header/payload, wrong bundle, wrong product, wrong environment, missing/mismatched account token and expired certificate paths.
@@ -192,7 +192,9 @@ interface AppleSignedDataVerifier
 
 ### Task 7: Implement notifications V2 and server reconciliation
 
-**Files:** Create `AppleNotificationController.php`, `ProcessAppleNotification.php`, `AppleNotificationProcessor.php`, `AppleStoreServerClient.php`, `HoelsAppleStoreServerClient.php`, `AppleReconciliationService.php`; routes, config and tests.
+**Files:** Create `AppleNotificationController.php`, `ProcessAppleNotification.php`, `AppleNotificationProcessor.php`, `AppleStoreServerClient.php`, `PythonAppleStoreServerClient.php`, `AppleReconciliationService.php`; Python API bridge modules, routes, config and tests.
+
+- [ ] Execute Bridge Task 5 in `codex/plans/ios/2026-07-18-ios-04-apple-python-verifier-bridge.md` as the App Store Server client implementation.
 
 - [ ] Expose `POST /api/webhooks/apple/v2` in `routes/api.php`; csjones configures the sandbox URL and fynla.org configures production at the same path on separate hosts.
 - [ ] Validate JSON contains one `signedPayload` string <=256 KB; signature is the authentication boundary.
@@ -278,6 +280,7 @@ protocol StoreKitClient: Sendable {
 
 **Files:** Update parity ledger and operational docs; no unrelated fixes.
 
+- [ ] Execute Bridge Task 6 in `codex/plans/ios/2026-07-18-ios-04-apple-python-verifier-bridge.md` before enabling Apple billing on development.
 - [ ] Run all billing, tier, mobile, auth and native Swift tests.
 - [ ] Use Apple sandbox signed transactions for monthly and annual purchases on a real device/TestFlight build.
 - [ ] Verify renewal, renewal-off, billing retry, Grace Period, expiry, refund, refund reversal and revoke through signed notifications/test controls.
