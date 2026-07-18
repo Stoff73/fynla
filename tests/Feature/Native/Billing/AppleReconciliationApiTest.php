@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 use App\Data\Billing\Apple\AppleReconciliationBatch;
 use App\Data\Billing\Apple\AppleReconciliationRenewalEvidence;
+use App\Data\Billing\Apple\AppleReconciliationStatusEvidence;
 use App\Data\Billing\Apple\AppleReconciliationTransactionEvidence;
 use App\Data\Billing\Apple\VerifiedAppleRenewal;
 use App\Data\Billing\Apple\VerifiedAppleTransaction;
 use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\AppleTransaction;
 use App\Models\NativeDeviceSession;
+use App\Models\PremiumEntitlement;
 use App\Models\User;
 use App\Services\Billing\Apple\AppleStoreServerClient;
 use Carbon\CarbonImmutable;
@@ -144,6 +146,93 @@ it('returns a retryable response when the App Store Server API is unavailable', 
     expect(AppleTransaction::query()->count())->toBe(0);
 });
 
+it('projects the official subscription status authoritatively', function (
+    int $subscriptionStatus,
+    array $renewalOverrides,
+    string $expectedStatus,
+    bool $expectedWillRenew,
+): void {
+    $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
+    $user = appleReconciliationUser($token);
+    $native = appleReconciliationNativeSession($user);
+    $this->appleStoreServer->batch = appleReconciliationBatch(
+        $token,
+        $subscriptionStatus,
+        $renewalOverrides,
+    );
+
+    $this->withToken($native['plain'])
+        ->withHeaders(appleReconciliationHeaders())
+        ->postJson('/api/v1/native/storekit/reconcile', [
+            'original_transaction_id' => 'reconcile-original-1',
+        ])->assertOk();
+
+    $entitlement = PremiumEntitlement::query()->sole();
+    expect($entitlement->status)->toBe($expectedStatus)
+        ->and($entitlement->will_renew)->toBe($expectedWillRenew);
+})->with([
+    'active but not renewing remains active' => [
+        AppleReconciliationStatusEvidence::ACTIVE,
+        ['autoRenewStatus' => 0],
+        PremiumEntitlement::STATUS_ACTIVE,
+        false,
+    ],
+    'expired cannot be reactivated by renewal metadata' => [
+        AppleReconciliationStatusEvidence::EXPIRED,
+        ['autoRenewStatus' => 1],
+        PremiumEntitlement::STATUS_EXPIRED,
+        false,
+    ],
+    'billing retry' => [
+        AppleReconciliationStatusEvidence::BILLING_RETRY,
+        ['autoRenewStatus' => 1, 'isInBillingRetryPeriod' => true],
+        PremiumEntitlement::STATUS_BILLING_RETRY,
+        true,
+    ],
+    'billing grace period' => [
+        AppleReconciliationStatusEvidence::BILLING_GRACE_PERIOD,
+        [
+            'autoRenewStatus' => 1,
+            'gracePeriodExpiresDate' => CarbonImmutable::now('UTC')->addDays(3),
+        ],
+        PremiumEntitlement::STATUS_GRACE_PERIOD,
+        true,
+    ],
+    'revoked cannot be reactivated by renewal metadata' => [
+        AppleReconciliationStatusEvidence::REVOKED,
+        ['autoRenewStatus' => 1],
+        PremiumEntitlement::STATUS_REVOKED,
+        false,
+    ],
+]);
+
+it('persists transaction evidence paired directly with an official status item', function (): void {
+    $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
+    $user = appleReconciliationUser($token);
+    $native = appleReconciliationNativeSession($user);
+    $batch = appleReconciliationBatch($token);
+    $status = $batch->statuses[0];
+    $this->appleStoreServer->batch = new AppleReconciliationBatch(
+        originalTransactionId: $batch->originalTransactionId,
+        transactions: [],
+        statuses: [new AppleReconciliationStatusEvidence(
+            originalTransactionId: $status->originalTransactionId,
+            subscriptionStatus: $status->subscriptionStatus,
+            transaction: $batch->transactions[0],
+            renewal: $status->renewal,
+        )],
+    );
+
+    $this->withToken($native['plain'])
+        ->withHeaders(appleReconciliationHeaders())
+        ->postJson('/api/v1/native/storekit/reconcile', [
+            'original_transaction_id' => 'reconcile-original-1',
+        ])->assertOk();
+
+    expect(AppleTransaction::query()->sole()->transaction_id)
+        ->toBe('reconcile-transaction-1');
+});
+
 /** @return array<string, string> */
 function appleReconciliationHeaders(): array
 {
@@ -179,8 +268,11 @@ function appleReconciliationUser(string $token): User
     return $user->fresh();
 }
 
-function appleReconciliationBatch(string $token): AppleReconciliationBatch
-{
+function appleReconciliationBatch(
+    string $token,
+    int $subscriptionStatus = AppleReconciliationStatusEvidence::ACTIVE,
+    array $renewalOverrides = [],
+): AppleReconciliationBatch {
     $purchase = CarbonImmutable::now('UTC')->subDay()->startOfSecond();
     $expires = CarbonImmutable::now('UTC')->addMonth()->startOfSecond();
     $signed = CarbonImmutable::now('UTC')->startOfSecond();
@@ -202,11 +294,11 @@ function appleReconciliationBatch(string $token): AppleReconciliationBatch
         originalTransactionId: 'reconcile-original-1',
         productId: 'org.fynla.premium.monthly',
         autoRenewProductId: 'org.fynla.premium.monthly',
-        autoRenewStatus: 1,
+        autoRenewStatus: $renewalOverrides['autoRenewStatus'] ?? 1,
         renewalDate: $expires,
         expirationIntent: null,
-        gracePeriodExpiresDate: null,
-        isInBillingRetryPeriod: false,
+        gracePeriodExpiresDate: $renewalOverrides['gracePeriodExpiresDate'] ?? null,
+        isInBillingRetryPeriod: $renewalOverrides['isInBillingRetryPeriod'] ?? false,
         environment: 'sandbox',
         signedDate: $signed,
     );
@@ -216,8 +308,13 @@ function appleReconciliationBatch(string $token): AppleReconciliationBatch
         transactions: [
             new AppleReconciliationTransactionEvidence(str_repeat('a', 64), $transaction),
         ],
-        renewals: [
-            new AppleReconciliationRenewalEvidence(str_repeat('b', 64), $renewal),
+        statuses: [
+            new AppleReconciliationStatusEvidence(
+                originalTransactionId: 'reconcile-original-1',
+                subscriptionStatus: $subscriptionStatus,
+                transaction: null,
+                renewal: new AppleReconciliationRenewalEvidence(str_repeat('b', 64), $renewal),
+            ),
         ],
     );
 }

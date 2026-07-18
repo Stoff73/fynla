@@ -160,6 +160,38 @@ it('does not let an older verified event overwrite newer canonical state', funct
         ->and(AppleTransaction::query()->count())->toBe(2);
 });
 
+it('preserves millisecond ordering for events within the same second', function (): void {
+    $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
+    appleNotificationUser($token);
+    $newerSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.900Z');
+    $olderSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.100Z');
+    $newer = appleVerifiedNotification(
+        'DID_CHANGE_RENEWAL_STATUS',
+        'AUTO_RENEW_DISABLED',
+        $token,
+        ['signedDate' => $newerSignedDate],
+        ['signedDate' => $newerSignedDate, 'autoRenewStatus' => 0],
+    );
+    $older = appleVerifiedNotification(
+        'DID_RENEW',
+        null,
+        $token,
+        ['signedDate' => $olderSignedDate],
+        ['signedDate' => $olderSignedDate, 'autoRenewStatus' => 1],
+    );
+
+    $processor = app(AppleNotificationProcessor::class);
+    $processor->process(appleNotificationLog($newer), $newer);
+    $processor->process(appleNotificationLog($older), $older);
+
+    $entitlement = PremiumEntitlement::query()->sole();
+
+    expect($entitlement->status)->toBe(PremiumEntitlement::STATUS_CANCELLED)
+        ->and($entitlement->will_renew)->toBeFalse()
+        ->and($entitlement->last_verified_at?->format('Y-m-d H:i:s.v'))
+        ->toBe($newerSignedDate->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s.v'));
+});
+
 it('rejects a verified notification whose outer and nested environments differ', function (): void {
     $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
     appleNotificationUser($token);

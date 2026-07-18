@@ -52,9 +52,17 @@ it('sends server-only configuration and maps only verified evidence DTOs', funct
             'signed_payload_sha256' => str_repeat('a', 64),
             'data' => $transactionData,
         ]],
-        'renewals' => [[
-            'signed_payload_sha256' => str_repeat('b', 64),
-            'data' => $renewalData,
+        'statuses' => [[
+            'original_transaction_id' => RECONCILIATION_ORIGINAL_ID,
+            'subscription_status' => 4,
+            'transaction' => [
+                'signed_payload_sha256' => str_repeat('c', 64),
+                'data' => $transactionData,
+            ],
+            'renewal' => [
+                'signed_payload_sha256' => str_repeat('b', 64),
+                'data' => $renewalData,
+            ],
         ]],
     ];
 
@@ -69,9 +77,12 @@ it('sends server-only configuration and maps only verified evidence DTOs', funct
         ->and($batch->transactions[0]->signedPayloadSha256)->toBe(str_repeat('a', 64))
         ->and($batch->transactions[0]->transaction->transactionId)->toBe('apple-transaction-1')
         ->and($batch->transactions[0]->transaction->appAccountToken)->toBe(RECONCILIATION_ACCOUNT_TOKEN)
-        ->and($batch->renewals)->toHaveCount(1)
-        ->and($batch->renewals[0]->signedPayloadSha256)->toBe(str_repeat('b', 64))
-        ->and($batch->renewals[0]->renewal->autoRenewStatus)->toBe(1)
+        ->and($batch->statuses)->toHaveCount(1)
+        ->and($batch->statuses[0]->subscriptionStatus)->toBe(4)
+        ->and($batch->statuses[0]->transaction?->signedPayloadSha256)->toBe(str_repeat('c', 64))
+        ->and($batch->statuses[0]->transaction?->transaction->transactionId)->toBe('apple-transaction-1')
+        ->and($batch->statuses[0]->renewal?->signedPayloadSha256)->toBe(str_repeat('b', 64))
+        ->and($batch->statuses[0]->renewal?->renewal->autoRenewStatus)->toBe(1)
         ->and($this->reconciliationBridge->calls)->toBe([[
             'reconcile',
             [
@@ -107,9 +118,14 @@ it('fails closed with stable retryability for malformed evidence and identity mi
             'signed_payload_sha256' => str_repeat('a', 64),
             'data' => reconciliationTransactionData(),
         ]],
-        'renewals' => [[
-            'signed_payload_sha256' => str_repeat('b', 64),
-            'data' => reconciliationRenewalData(),
+        'statuses' => [[
+            'original_transaction_id' => RECONCILIATION_ORIGINAL_ID,
+            'subscription_status' => 1,
+            'transaction' => null,
+            'renewal' => [
+                'signed_payload_sha256' => str_repeat('b', 64),
+                'data' => reconciliationRenewalData(),
+            ],
         ]],
     ];
     $this->reconciliationBridge->response = $mutate($response);
@@ -162,22 +178,37 @@ it('fails closed with stable retryability for malformed evidence and identity mi
         return $response;
     }, 'invalid_signed_data', false],
     'wrong renewal original' => [function (array $response): array {
-        $response['renewals'][0]['data']['original_transaction_id'] = 'another-original';
+        $response['statuses'][0]['renewal']['data']['original_transaction_id'] = 'another-original';
 
         return $response;
     }, 'invalid_signed_data', false],
     'wrong renewal product' => [function (array $response): array {
-        $response['renewals'][0]['data']['product_id'] = 'org.attacker.product';
+        $response['statuses'][0]['renewal']['data']['product_id'] = 'org.attacker.product';
 
         return $response;
     }, 'invalid_signed_data', false],
     'wrong renewal auto-renew product' => [function (array $response): array {
-        $response['renewals'][0]['data']['auto_renew_product_id'] = 'org.attacker.product';
+        $response['statuses'][0]['renewal']['data']['auto_renew_product_id'] = 'org.attacker.product';
 
         return $response;
     }, 'invalid_signed_data', false],
     'list transaction data' => [function (array $response): array {
         $response['transactions'][0]['data'] = ['unexpected'];
+
+        return $response;
+    }, 'verifier_unavailable', true],
+    'unknown official subscription status' => [function (array $response): array {
+        $response['statuses'][0]['subscription_status'] = 6;
+
+        return $response;
+    }, 'verifier_unavailable', true],
+    'string official subscription status' => [function (array $response): array {
+        $response['statuses'][0]['subscription_status'] = '1';
+
+        return $response;
+    }, 'verifier_unavailable', true],
+    'extra status evidence field' => [function (array $response): array {
+        $response['statuses'][0]['signed_data'] = 'private.signed.value';
 
         return $response;
     }, 'verifier_unavailable', true],

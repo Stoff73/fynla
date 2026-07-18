@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\AppleNotificationLog;
+use App\Models\AppleNotificationRecovery;
 use App\Models\AppleTransaction;
 use App\Models\PremiumEntitlement;
 use App\Models\User;
@@ -90,8 +91,11 @@ it('erases user-linked billing rows before their entitlement and retains non-per
     $method->setAccessible(true);
     $deletionOrder = $method->invoke($service);
 
-    expect(array_search('apple_transactions', $deletionOrder, true))
-        ->toBeLessThan(array_search('premium_entitlements', $deletionOrder, true));
+    expect(array_search('apple_notification_recoveries', $deletionOrder, true))->toBeInt()
+        ->and(array_search('apple_transactions', $deletionOrder, true))
+        ->toBeLessThan(array_search('premium_entitlements', $deletionOrder, true))
+        ->and(array_search('apple_notification_recoveries', $deletionOrder, true))
+        ->toBeLessThan(array_search('apple_transactions', $deletionOrder, true));
 
     $user = User::factory()->create();
     $accountToken = (string) Str::uuid();
@@ -132,10 +136,18 @@ it('erases user-linked billing rows before their entitlement and retains non-per
         'status' => AppleNotificationLog::STATUS_PROCESSED,
         'processed_at' => now(),
     ]);
+    $recovery = AppleNotificationRecovery::query()->create([
+        'apple_notification_log_id' => $notification->id,
+        'user_id' => $user->id,
+        'original_transaction_id' => 'purge-original-transaction',
+        'status' => AppleNotificationRecovery::STATUS_PROCESSED,
+        'processed_at' => now(),
+    ]);
 
     $service->purgeUser($user);
 
-    expect(DB::table('apple_transactions')->where('id', $transaction->id)->exists())->toBeFalse()
+    expect(DB::table('apple_notification_recoveries')->where('id', $recovery->id)->exists())->toBeFalse()
+        ->and(DB::table('apple_transactions')->where('id', $transaction->id)->exists())->toBeFalse()
         ->and(DB::table('premium_entitlements')->where('id', $entitlement->id)->exists())->toBeFalse()
         ->and(DB::table('users')->where('id', $user->id)->value('apple_app_account_token'))->toBeNull()
         ->and(DB::table('apple_notification_logs')->where('id', $notification->id)->exists())->toBeTrue();

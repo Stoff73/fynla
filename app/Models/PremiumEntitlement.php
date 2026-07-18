@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PremiumEntitlement extends Model
 {
+    protected $dateFormat = 'Y-m-d H:i:s.v';
+
     public const PROVIDER_APPLE = 'apple';
 
     public const PROVIDER_REVOLUT = 'revolut';
@@ -61,7 +63,7 @@ class PremiumEntitlement extends Model
         'period_end' => 'datetime',
         'grace_period_ends_at' => 'datetime',
         'revoked_at' => 'datetime',
-        'last_verified_at' => 'datetime',
+        'last_verified_at' => 'immutable_datetime',
         'provider_metadata' => 'array',
     ];
 

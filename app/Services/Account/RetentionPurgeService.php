@@ -343,6 +343,7 @@ class RetentionPurgeService
 
             // ── Subscription / Billing ──
             // NB: data_retention_email_log and renewal_reminder_log are intentionally
+            'apple_notification_recoveries',
             'apple_transactions',
             'premium_entitlements',
             'payments',

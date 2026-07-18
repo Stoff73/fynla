@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Billing\Apple;
 
-use App\Data\Billing\Apple\VerifiedAppleRenewal;
+use App\Data\Billing\Apple\AppleReconciliationStatusEvidence;
 use App\Data\Billing\ResolvedEntitlement;
 use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\User;
@@ -48,7 +48,6 @@ final class AppleReconciliationService
         $batch = $this->client->reconcile($originalTransactionId, $token);
         if (
             $batch->originalTransactionId !== $originalTransactionId
-            || $batch->transactions === []
         ) {
             throw new AppleVerificationException('invalid_signed_data');
         }
@@ -61,6 +60,14 @@ final class AppleReconciliationService
         ): void {
             $reconciledAt = CarbonImmutable::now();
             $transactionEvidence = $batch->transactions;
+            foreach ($batch->statuses as $status) {
+                if ($status->transaction !== null) {
+                    $transactionEvidence[] = $status->transaction;
+                }
+            }
+            if ($transactionEvidence === []) {
+                throw new AppleVerificationException('invalid_signed_data');
+            }
             usort($transactionEvidence, fn ($left, $right): int => ($left->transaction->signedDate?->getTimestampMs() ?? 0)
                 <=> ($right->transaction->signedDate?->getTimestampMs() ?? 0));
 
@@ -82,24 +89,33 @@ final class AppleReconciliationService
                 $stored->forceFill(['reconciled_at' => $reconciledAt])->save();
             }
 
-            $renewalEvidence = $batch->renewals;
-            usort($renewalEvidence, fn ($left, $right): int => ($left->renewal->signedDate?->getTimestampMs() ?? 0)
-                <=> ($right->renewal->signedDate?->getTimestampMs() ?? 0));
+            $statusEvidence = $batch->statuses;
+            usort($statusEvidence, fn ($left, $right): int => ($left->renewal?->renewal->signedDate?->getTimestampMs() ?? 0)
+                <=> ($right->renewal?->renewal->signedDate?->getTimestampMs() ?? 0));
 
-            foreach ($renewalEvidence as $evidence) {
+            foreach ($statusEvidence as $evidence) {
                 if (
-                    $evidence->renewal->originalTransactionId !== $originalTransactionId
-                    || ! $this->isSha256($evidence->signedPayloadSha256)
+                    $evidence->originalTransactionId !== $originalTransactionId
+                    || ! in_array(
+                        $evidence->subscriptionStatus,
+                        AppleReconciliationStatusEvidence::VALUES,
+                        true,
+                    )
+                    || ($evidence->renewal !== null
+                        && ($evidence->renewal->renewal->originalTransactionId
+                                !== $originalTransactionId
+                            || ! $this->isSha256(
+                                $evidence->renewal->signedPayloadSha256,
+                            )))
                 ) {
                     throw new AppleVerificationException('invalid_signed_data');
                 }
 
-                [$type, $subtype] = $this->renewalTransition($evidence->renewal);
-                $this->entitlements->projectRenewal(
+                $this->entitlements->projectServerStatus(
                     $user,
-                    $evidence->renewal,
-                    $type,
-                    $subtype,
+                    $evidence->subscriptionStatus,
+                    $evidence->renewal?->renewal,
+                    $originalTransactionId,
                 );
             }
         }, 3);
@@ -107,25 +123,6 @@ final class AppleReconciliationService
         $this->resolver->invalidate($user);
 
         return $this->resolver->resolve($user->fresh());
-    }
-
-    /** @return array{string, string|null} */
-    private function renewalTransition(VerifiedAppleRenewal $renewal): array
-    {
-        if (
-            $renewal->gracePeriodExpiresDate !== null
-            && $renewal->gracePeriodExpiresDate->isFuture()
-        ) {
-            return ['DID_FAIL_TO_RENEW', 'GRACE_PERIOD'];
-        }
-        if ($renewal->isInBillingRetryPeriod === true) {
-            return ['DID_FAIL_TO_RENEW', null];
-        }
-        if ($renewal->autoRenewStatus === 0) {
-            return ['DID_CHANGE_RENEWAL_STATUS', 'AUTO_RENEW_DISABLED'];
-        }
-
-        return ['DID_RENEW', null];
     }
 
     private function isSha256(string $value): bool

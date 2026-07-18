@@ -8,11 +8,11 @@ final readonly class AppleReconciliationBatch
 {
     /**
      * @param  list<AppleReconciliationTransactionEvidence>  $transactions
-     * @param  list<AppleReconciliationRenewalEvidence>  $renewals
+     * @param  list<AppleReconciliationStatusEvidence>  $statuses
      */
     public function __construct(
         public string $originalTransactionId,
         public array $transactions,
-        public array $renewals,
+        public array $statuses,
     ) {}
 }

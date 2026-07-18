@@ -10,6 +10,7 @@ from appstoreserverlibrary.api_client import (
     GetTransactionHistoryVersion,
 )
 from appstoreserverlibrary.models.Environment import Environment
+from appstoreserverlibrary.models.Status import Status
 from appstoreserverlibrary.models.TransactionHistoryRequest import (
     Order,
     ProductType,
@@ -30,6 +31,14 @@ MAX_SIGNED_DATA_BYTES = 256 * 1024
 _ENVIRONMENTS = {
     "sandbox": Environment.SANDBOX,
     "production": Environment.PRODUCTION,
+}
+
+_SUBSCRIPTION_STATUSES = {
+    Status.ACTIVE.value,
+    Status.EXPIRED.value,
+    Status.BILLING_RETRY.value,
+    Status.BILLING_GRACE_PERIOD.value,
+    Status.REVOKED.value,
 }
 
 _REQUEST_KEYS = {
@@ -69,7 +78,7 @@ class AppleServerReconciler:
         )
 
         transactions: List[Dict[str, Any]] = []
-        renewals: List[Dict[str, Any]] = []
+        statuses: List[Dict[str, Any]] = []
         signed_value_count = 0
         revision = None
         seen_revisions = set()
@@ -151,35 +160,45 @@ class AppleServerReconciler:
                 item_original = getattr(item, "originalTransactionId", None)
                 if item_original != configuration["original_transaction_id"]:
                     raise BridgeError("invalid_signed_data")
+                subscription_status = self._subscription_status(
+                    getattr(item, "status", None)
+                )
 
                 signed_transaction = getattr(item, "signedTransactionInfo", None)
+                transaction_evidence = None
                 if signed_transaction is not None:
                     signed_value_count += 1
                     self._check_result_count(signed_value_count)
-                    transactions.append(
-                        self._transaction_evidence(
-                            signed_transaction,
-                            signed_data_service,
-                            configuration,
-                        )
+                    transaction_evidence = self._transaction_evidence(
+                        signed_transaction,
+                        signed_data_service,
+                        configuration,
                     )
 
                 signed_renewal = getattr(item, "signedRenewalInfo", None)
+                renewal_evidence = None
                 if signed_renewal is not None:
                     signed_value_count += 1
                     self._check_result_count(signed_value_count)
-                    renewals.append(
-                        self._renewal_evidence(
-                            signed_renewal,
-                            signed_data_service,
-                            configuration,
-                        )
+                    renewal_evidence = self._renewal_evidence(
+                        signed_renewal,
+                        signed_data_service,
+                        configuration,
                     )
+
+                statuses.append(
+                    {
+                        "original_transaction_id": item_original,
+                        "subscription_status": subscription_status,
+                        "transaction": transaction_evidence,
+                        "renewal": renewal_evidence,
+                    }
+                )
 
         return {
             "original_transaction_id": configuration["original_transaction_id"],
             "transactions": transactions,
-            "renewals": renewals,
+            "statuses": statuses,
         }
 
     def _configuration(self, request: dict) -> Dict[str, Any]:
@@ -434,3 +453,10 @@ class AppleServerReconciler:
         if raw == Environment.PRODUCTION.value:
             return "production"
         raise BridgeError("invalid_signed_data")
+
+    @staticmethod
+    def _subscription_status(value: Any) -> int:
+        raw = getattr(value, "value", value)
+        if type(raw) is not int or raw not in _SUBSCRIPTION_STATUSES:
+            raise BridgeError("invalid_signed_data")
+        return raw

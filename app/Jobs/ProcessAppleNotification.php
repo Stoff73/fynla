@@ -18,9 +18,9 @@ final class ProcessAppleNotification
         public readonly VerifiedAppleNotification $notification,
     ) {}
 
-    public function handle(AppleNotificationProcessor $processor): void
+    public function handle(AppleNotificationProcessor $processor): bool
     {
-        $processor->process(
+        return $processor->process(
             AppleNotificationLog::query()->findOrFail($this->notificationLogId),
             $this->notification,
         );

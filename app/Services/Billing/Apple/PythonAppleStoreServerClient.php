@@ -6,6 +6,7 @@ namespace App\Services\Billing\Apple;
 
 use App\Data\Billing\Apple\AppleReconciliationBatch;
 use App\Data\Billing\Apple\AppleReconciliationRenewalEvidence;
+use App\Data\Billing\Apple\AppleReconciliationStatusEvidence;
 use App\Data\Billing\Apple\AppleReconciliationTransactionEvidence;
 use App\Exceptions\Billing\AppleVerificationException;
 use Throwable;
@@ -22,12 +23,19 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
     private const BATCH_KEYS = [
         'original_transaction_id',
         'transactions',
-        'renewals',
+        'statuses',
     ];
 
     private const EVIDENCE_KEYS = [
         'signed_payload_sha256',
         'data',
+    ];
+
+    private const STATUS_KEYS = [
+        'original_transaction_id',
+        'subscription_status',
+        'transaction',
+        'renewal',
     ];
 
     public function __construct(
@@ -122,8 +130,8 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
             || ! $this->hasExactKeys($data, self::BATCH_KEYS)
             || ! is_array($data['transactions'] ?? null)
             || ! array_is_list($data['transactions'])
-            || ! is_array($data['renewals'] ?? null)
-            || ! array_is_list($data['renewals'])
+            || ! is_array($data['statuses'] ?? null)
+            || ! array_is_list($data['statuses'])
         ) {
             $this->throwUnavailable();
         }
@@ -147,23 +155,73 @@ final class PythonAppleStoreServerClient implements AppleStoreServerClient
             );
         }
 
-        $renewals = [];
-        foreach ($data['renewals'] as $evidence) {
-            [$hash, $verified] = $this->evidenceParts($evidence);
-            $renewal = $this->mapper->mapRenewal($verified);
-            if ($renewal->originalTransactionId !== $originalTransactionId) {
+        $statuses = [];
+        foreach ($data['statuses'] as $statusEvidence) {
+            if (
+                ! is_array($statusEvidence)
+                || array_is_list($statusEvidence)
+                || ! $this->hasExactKeys($statusEvidence, self::STATUS_KEYS)
+                || ! is_int($statusEvidence['subscription_status'] ?? null)
+                || ! in_array(
+                    $statusEvidence['subscription_status'],
+                    AppleReconciliationStatusEvidence::VALUES,
+                    true,
+                )
+                || (! is_array($statusEvidence['transaction'] ?? null)
+                    && ($statusEvidence['transaction'] ?? null) !== null)
+                || (! is_array($statusEvidence['renewal'] ?? null)
+                    && ($statusEvidence['renewal'] ?? null) !== null)
+            ) {
+                $this->throwUnavailable();
+            }
+            if (
+                ! is_string($statusEvidence['original_transaction_id'] ?? null)
+                || $statusEvidence['original_transaction_id'] !== $originalTransactionId
+            ) {
                 $this->throwInvalidSignedData();
             }
-            $renewals[] = new AppleReconciliationRenewalEvidence(
-                signedPayloadSha256: $hash,
-                renewal: $renewal,
+
+            $transactionEvidence = null;
+            if (is_array($statusEvidence['transaction'])) {
+                [$hash, $verified] = $this->evidenceParts($statusEvidence['transaction']);
+                $transaction = $this->mapper->mapTransaction(
+                    $verified,
+                    $expectedAppAccountToken,
+                );
+                if ($transaction->originalTransactionId !== $originalTransactionId) {
+                    $this->throwInvalidSignedData();
+                }
+                $transactionEvidence = new AppleReconciliationTransactionEvidence(
+                    signedPayloadSha256: $hash,
+                    transaction: $transaction,
+                );
+            }
+
+            $renewalEvidence = null;
+            if (is_array($statusEvidence['renewal'])) {
+                [$hash, $verified] = $this->evidenceParts($statusEvidence['renewal']);
+                $renewal = $this->mapper->mapRenewal($verified);
+                if ($renewal->originalTransactionId !== $originalTransactionId) {
+                    $this->throwInvalidSignedData();
+                }
+                $renewalEvidence = new AppleReconciliationRenewalEvidence(
+                    signedPayloadSha256: $hash,
+                    renewal: $renewal,
+                );
+            }
+
+            $statuses[] = new AppleReconciliationStatusEvidence(
+                originalTransactionId: $originalTransactionId,
+                subscriptionStatus: $statusEvidence['subscription_status'],
+                transaction: $transactionEvidence,
+                renewal: $renewalEvidence,
             );
         }
 
         return new AppleReconciliationBatch(
             originalTransactionId: $originalTransactionId,
             transactions: $transactions,
-            renewals: $renewals,
+            statuses: $statuses,
         );
     }
 

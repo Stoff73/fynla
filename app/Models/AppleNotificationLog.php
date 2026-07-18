@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AppleNotificationLog extends Model
 {
@@ -44,4 +45,9 @@ class AppleNotificationLog extends Model
     protected $casts = [
         'processed_at' => 'datetime',
     ];
+
+    public function recovery(): HasOne
+    {
+        return $this->hasOne(AppleNotificationRecovery::class);
+    }
 }

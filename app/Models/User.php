@@ -233,6 +233,11 @@ class User extends Authenticatable
         return $this->hasMany(AppleTransaction::class);
     }
 
+    public function appleNotificationRecoveries(): HasMany
+    {
+        return $this->hasMany(AppleNotificationRecovery::class);
+    }
+
     /**
      * Get the user's notification preferences (single row per user).
      */

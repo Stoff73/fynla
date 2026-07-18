@@ -136,6 +136,43 @@ it('creates provider-neutral entitlement and Apple evidence schemas with require
         ->toBe("enum('active','grace_period','billing_retry','cancelled','expired','revoked')")
         ->and(strtolower((string) $enumColumns->get('apple_transactions.environment')->COLUMN_TYPE))
         ->toBe("enum('sandbox','production')");
+
+    $verifiedPrecision = DB::selectOne(
+        'SELECT DATETIME_PRECISION
+         FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?',
+        ['premium_entitlements', 'last_verified_at']
+    );
+
+    expect((int) $verifiedPrecision->DATETIME_PRECISION)->toBe(3);
+});
+
+it('creates a user-linked recovery context without weakening hash-only notification audit', function (): void {
+    expect(Schema::hasColumns('apple_notification_recoveries', [
+        'id',
+        'apple_notification_log_id',
+        'user_id',
+        'original_transaction_id',
+        'status',
+        'error_code',
+        'attempt_count',
+        'next_attempt_at',
+        'last_attempted_at',
+        'processed_at',
+        'created_at',
+        'updated_at',
+    ]))->toBeTrue();
+
+    $indexes = collect(DB::select('SHOW INDEX FROM apple_notification_recoveries'))
+        ->groupBy('Key_name')
+        ->map(fn ($rows) => $rows->sortBy('Seq_in_index')->pluck('Column_name')->all());
+
+    expect($indexes->get('apple_notification_recoveries_notification_unique'))
+        ->toBe(['apple_notification_log_id'])
+        ->and($indexes->get('apple_notification_recoveries_due_index'))
+        ->toBe(['status', 'next_attempt_at', 'id']);
 });
 
 it('keeps Apple notification audit rows strictly non-personal and hash-only', function (): void {
@@ -209,7 +246,7 @@ it('never creates raw signed-payload or private-key columns in billing persisten
         'private_key_id',
     ];
 
-    foreach (['premium_entitlements', 'apple_transactions', 'apple_notification_logs'] as $table) {
+    foreach (['premium_entitlements', 'apple_transactions', 'apple_notification_logs', 'apple_notification_recoveries'] as $table) {
         foreach ($forbiddenColumns as $column) {
             expect(Schema::hasColumn($table, $column))
                 ->toBeFalse("{$table}.{$column} must never exist");

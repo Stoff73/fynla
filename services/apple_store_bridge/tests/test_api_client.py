@@ -12,6 +12,7 @@ from appstoreserverlibrary.api_client import (
     GetTransactionHistoryVersion,
 )
 from appstoreserverlibrary.models.Environment import Environment
+from appstoreserverlibrary.models.Status import Status
 from appstoreserverlibrary.models.TransactionHistoryRequest import (
     Order,
     ProductType,
@@ -152,6 +153,7 @@ class AppleServerReconcilerTest(unittest.TestCase):
                     lastTransactions=[
                         SimpleNamespace(
                             originalTransactionId=ORIGINAL_TRANSACTION_ID,
+                            status=Status.BILLING_GRACE_PERIOD,
                             signedTransactionInfo="status.transaction.3",
                             signedRenewalInfo="status.renewal.1",
                         )
@@ -258,15 +260,24 @@ class AppleServerReconcilerTest(unittest.TestCase):
                     for signed in [
                         "history.transaction.1",
                         "history.transaction.2",
-                        "status.transaction.3",
                     ]
                 ],
-                "renewals": [
+                "statuses": [
                     {
-                        "signed_payload_sha256": hashlib.sha256(
-                            b"status.renewal.1"
-                        ).hexdigest(),
-                        "data": renewal_data(),
+                        "original_transaction_id": ORIGINAL_TRANSACTION_ID,
+                        "subscription_status": Status.BILLING_GRACE_PERIOD.value,
+                        "transaction": {
+                            "signed_payload_sha256": hashlib.sha256(
+                                b"status.transaction.3"
+                            ).hexdigest(),
+                            "data": transaction_data("transaction-3"),
+                        },
+                        "renewal": {
+                            "signed_payload_sha256": hashlib.sha256(
+                                b"status.renewal.1"
+                            ).hexdigest(),
+                            "data": renewal_data(),
+                        },
                     }
                 ],
             },
@@ -367,6 +378,7 @@ class AppleServerReconcilerTest(unittest.TestCase):
                     lastTransactions=[
                         SimpleNamespace(
                             originalTransactionId=ORIGINAL_TRANSACTION_ID,
+                            status=Status.ACTIVE,
                             signedTransactionInfo=None,
                             signedRenewalInfo=None,
                         )
@@ -412,6 +424,43 @@ class AppleServerReconcilerTest(unittest.TestCase):
         self.assertFalse(raised.exception.retryable)
         self.assertEqual([], self.service.transaction_calls)
         self.assertEqual([], self.service.renewal_calls)
+
+    def test_rejects_unknown_or_malformed_official_subscription_status(self):
+        for invalid_status in (None, 0, 6, "1", True):
+            with self.subTest(status=invalid_status):
+                self.client.reset_mock()
+                self.service.renewal_calls = []
+                self.client.get_transaction_history.return_value = SimpleNamespace(
+                    revision="done",
+                    hasMore=False,
+                    bundleId="org.fynla.app",
+                    appAppleId=None,
+                    environment=Environment.SANDBOX,
+                    signedTransactions=[],
+                )
+                self.client.get_all_subscription_statuses.return_value = SimpleNamespace(
+                    bundleId="org.fynla.app",
+                    appAppleId=None,
+                    environment=Environment.SANDBOX,
+                    data=[
+                        SimpleNamespace(
+                            lastTransactions=[
+                                SimpleNamespace(
+                                    originalTransactionId=ORIGINAL_TRANSACTION_ID,
+                                    status=invalid_status,
+                                    signedTransactionInfo=None,
+                                    signedRenewalInfo=None,
+                                )
+                            ]
+                        )
+                    ],
+                )
+
+                with self.assertRaises(BridgeError) as raised:
+                    self.reconciler.reconcile(self.request)
+
+                self.assertEqual("invalid_signed_data", raised.exception.code)
+                self.assertFalse(raised.exception.retryable)
 
     def test_rejects_repeated_pagination_revision_before_unbounded_work(self):
         repeating_page = SimpleNamespace(
@@ -492,6 +541,7 @@ class AppleServerReconcilerTest(unittest.TestCase):
                     lastTransactions=[
                         SimpleNamespace(
                             originalTransactionId=ORIGINAL_TRANSACTION_ID,
+                            status=Status.ACTIVE,
                             signedTransactionInfo=None,
                             signedRenewalInfo="status.renewal.1",
                         )

@@ -345,6 +345,8 @@ it('serializes concurrent verified duplicates into one audit record and transact
         DB::connection()->getPdo();
 
         expect(collect($results)->pluck('status')->all())->toBe([200, 200])
+            ->and(collect($results)->pluck('duplicate')->sort()->values()->all())
+            ->toBe([false, true])
             ->and(AppleNotificationLog::query()->count())->toBe(1)
             ->and(AppleTransaction::query()->count())->toBe(1)
             ->and(PremiumEntitlement::query()->count())->toBe(1);

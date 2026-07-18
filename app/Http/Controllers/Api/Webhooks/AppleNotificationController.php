@@ -100,7 +100,10 @@ final class AppleNotificationController extends Controller
         }
 
         try {
-            ProcessAppleNotification::dispatchSync($log->getKey(), $verified);
+            $duplicate = ProcessAppleNotification::dispatchSync(
+                $log->getKey(),
+                $verified,
+            );
         } catch (AuthorizationException) {
             $this->markRejected($log, 'invalid_signed_data');
 
@@ -124,7 +127,7 @@ final class AppleNotificationController extends Controller
             return $this->unavailableResponse();
         }
 
-        return $this->successResponse(duplicate: false);
+        return $this->successResponse(duplicate: $duplicate === true);
     }
 
     private function successResponse(bool $duplicate): JsonResponse
