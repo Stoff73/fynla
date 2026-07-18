@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "message": "Registration complete",
+  "data": {
+    "user": {
+      "id": 102,
+      "first_name": "Registered",
+      "surname": "Example",
+      "name": "Registered Example",
+      "email": "registered@example.test"
+    },
+    "access_token": "bootstrap-example-registration",
+    "token_type": "Bearer",
+    "must_change_password": false,
+    "mfa_enabled": false,
+    "checkout_intent": null
+  }
+}

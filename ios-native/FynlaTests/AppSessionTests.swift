@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Fynla
 
@@ -58,5 +59,62 @@ struct AppSessionTests {
         #expect(session.lock())
         #expect(session.state == .authenticatedLocked)
         #expect(!session.lock())
+    }
+
+    @Test @MainActor
+    func restorationIsAnExplicitPendingStateThatCannotUnlock() {
+        let session = AppSession(state: .signedOut)
+
+        #expect(session.beginAuthentication())
+        #expect(session.requireRestoration())
+        #expect(session.state == .restorationRequired)
+        #expect(!session.completeAuthentication())
+        #expect(!session.unlock())
+    }
+
+    @Test @MainActor
+    func verifiedRestorationUsesItsDedicatedCompletionGate() {
+        let signedOut = AppSession(state: .signedOut)
+        #expect(!signedOut.completeRestoration())
+
+        let session = AppSession(state: .signedOut)
+        #expect(session.beginAuthentication())
+        #expect(session.requireRestoration())
+        #expect(session.completeRestoration())
+        #expect(session.state == .authenticatedLocked)
+        #expect(session.unlock())
+        #expect(session.state == .authenticatedUnlocked)
+        #expect(!session.completeRestoration())
+    }
+
+    @Test @MainActor
+    func mandatoryPasswordChangeIsTheOnlyGateThatCanCompleteItsTransition() {
+        let signedOut = AppSession(state: .signedOut)
+        #expect(!signedOut.completeMandatoryPasswordChange())
+        #expect(signedOut.state == .signedOut)
+
+        let session = AppSession(state: .signedOut)
+        #expect(session.beginAuthentication())
+        #expect(session.requirePasswordChange())
+        #expect(session.state == .passwordChangeRequired)
+        #expect(!session.completeAuthentication())
+        #expect(!session.unlock())
+        #expect(session.completeMandatoryPasswordChange())
+        #expect(session.state == .authenticatedUnlocked)
+        #expect(!session.completeMandatoryPasswordChange())
+    }
+
+    @Test
+    func passwordChangeRootSourceUsesLockedContentInsteadOfUnlockedWorkspace() throws {
+        let rootSource = URL(fileURLWithPath: #filePath)
+            .resolvingSymlinksInPath()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Fynla/App/AppRootView.swift")
+        let source = try String(contentsOf: rootSource, encoding: .utf8)
+
+        #expect(source.contains(
+            "case .passwordChangeRequired:\n                LockedView(message: \"Change your password to continue.\")"
+        ))
     }
 }

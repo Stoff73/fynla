@@ -38,6 +38,7 @@ struct AppDependencies: Sendable {
     let httpTransport: any HTTPTransport
     let diagnostics: any DiagnosticsClient
     let accessTokenProvider: any AccessTokenProviding
+    let tokenRefresher: (any AccessTokenRefreshing)?
     let clock: AppClock
     let requestID: RequestIDFactory
     let featureClients: FeatureClients
@@ -52,6 +53,7 @@ struct AppDependencies: Sendable {
         httpTransport: any HTTPTransport,
         diagnostics: any DiagnosticsClient,
         accessTokenProvider: any AccessTokenProviding,
+        tokenRefresher: (any AccessTokenRefreshing)? = nil,
         clock: @escaping AppClock,
         requestID: @escaping RequestIDFactory,
         featureClients: FeatureClients
@@ -62,6 +64,7 @@ struct AppDependencies: Sendable {
         self.httpTransport = httpTransport
         self.diagnostics = diagnostics
         self.accessTokenProvider = accessTokenProvider
+        self.tokenRefresher = tokenRefresher
         self.clock = clock
         self.requestID = requestID
         self.featureClients = featureClients
@@ -94,10 +97,38 @@ struct AppDependencies: Sendable {
                 appBuild: appBuild,
                 httpTransport: httpTransport,
                 accessTokenProvider: accessTokenProvider,
-                tokenRefresher: tokenRefresher,
+                tokenRefresher: tokenRefresher ?? self.tokenRefresher,
                 requestID: requestID,
                 clock: clock
             )
+        )
+    }
+
+    func makeAuthenticationClient() -> APIAuthClient {
+        APIAuthClient(
+            environment: environment,
+            version: appVersion,
+            build: appBuild,
+            transport: httpTransport,
+            requestID: requestID
+        )
+    }
+
+    func authenticatedSession(
+        accessTokenProvider: any AccessTokenProviding,
+        tokenRefresher: any AccessTokenRefreshing
+    ) -> Self {
+        Self(
+            environment: environment,
+            appVersion: appVersion,
+            appBuild: appBuild,
+            httpTransport: httpTransport,
+            diagnostics: diagnostics,
+            accessTokenProvider: accessTokenProvider,
+            tokenRefresher: tokenRefresher,
+            clock: clock,
+            requestID: requestID,
+            featureClients: featureClients
         )
     }
 

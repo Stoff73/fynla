@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "message": "Please check your email for verification code.",
+  "requires_verification": true,
+  "data": {
+    "pending_id": 321,
+    "email": "e*****e@example.test"
+  }
+}

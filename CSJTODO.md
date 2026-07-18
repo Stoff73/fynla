@@ -1,6 +1,21 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-16 — Native Swift programme Package 1 Tasks 1–13 are checkpointed in PRs #622–#628. Task 13's canonical repository contract is in draft PR #628; vault publication and remote schema removal remain blocked by the required csjones and production read-only audits.*
+*Last updated: 2026-07-18 — Native Swift Package 3 automated gate is green in draft PR #633; the next inference continues Packages 4–7 while preserving the open actual-Chrome and physical-iPhone evidence gates.*
+
+## 2026-07-18 — Native Swift Packages 3–7
+
+- [x] Package 3 Tasks 1–8 — native registration/authentication, rotating device sessions, Keychain and opt-in Face ID.
+- [x] Package 3 automated Task 9 — backend 345 tests/1,261 assertions; Swift host 176 tests/21 suites; clean Xcode 26.5 current-head 183 tests/23 suites and 28 UI tests/0 failures; Production build green.
+- [ ] Package 3 manual evidence — actual Google Chrome `/m`; physical iPhone Face ID, registration, relock, Lock/Sign out, Keychain inspection and exported diagnostic bundle.
+- [ ] Package 3 approval/merge — draft PR #633 is mergeable; implementation/evidence head `d5d34d3` is fully green and is followed by the session-end documentation commit. Keep draft while manual evidence is open.
+- [ ] Package 4 — StoreKit and provider-neutral entitlements; begin with the Apple verifier dependency/security audit, not purchase UI.
+- [ ] Package 5 — native dashboard, navigation, achievements/gamification and complete Fyn conversation vertical slice.
+- [ ] Package 6 — port every financial screen in five independently closed waves.
+- [ ] Package 7 — settings/privacy/account deletion/push/universal links/archive and release readiness; no production/App Store action without later explicit authority.
+- [ ] PR boundary — create exactly one separate PR for each of Packages 4, 5, 6 and 7; do not mix packages. Package 6's five waves are commits/review checkpoints within its one package PR.
+- [ ] Deferred tech debt from the prior report — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
+- Boundary — primary `/Users/CSJ/Desktop/fynla` remains Save Tax; native work stays in isolated `/private/tmp` worktrees and incorporates `origin/dev` before every package/wave.
+- Browser rule — actual installed Google Chrome through the connector only; never Chromium, bundled/headless Chromium or the in-app browser.
 
 ## 2026-07-15 — Native Swift programme Package 1
 

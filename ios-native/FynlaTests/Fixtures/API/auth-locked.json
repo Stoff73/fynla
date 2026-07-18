@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "message": "Too many attempts. Please try again later.",
+  "locked": true,
+  "remaining_seconds": 180
+}

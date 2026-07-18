@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "message": "Maximum resend limit reached. Please refresh and try again.",
+  "can_resend": false
+}

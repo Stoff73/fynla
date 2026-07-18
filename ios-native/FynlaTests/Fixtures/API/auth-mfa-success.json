@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "message": "MFA verification successful.",
+  "data": {
+    "access_token": "bootstrap-example-mfa",
+    "user": {
+      "id": 104,
+      "first_name": "MFA",
+      "surname": "Example",
+      "name": "MFA Example",
+      "email": "mfa@example.test"
+    }
+  }
+}

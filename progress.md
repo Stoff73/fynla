@@ -216,3 +216,12 @@
 - Vault payment, authentication, onboarding, public-page and architecture notes were inventoried but not changed. Publication remains gated on the exact csjones and production audits required by Task 12.
 - Draft PR #628 publishes the Task 13 repository documentation and is correctly stacked on Task 12 PR #627. It remains draft until the external audit and gated vault publication are complete.
 - Next: begin Task 14 static regression cleanup without claiming the external, vault, deployment or live-browser gates complete.
+
+## 2026-07-18 — session 1 (context-clear)
+
+- Handover: [[handover-2026-07-18-session-1-clear]]
+- Branch: `codex/ios-package3-native-auth`; green implementation/evidence head `d5d34d3` is pushed and the session-end documentation commit follows it. PR #633 remains draft and mergeable.
+- Package 3: Tasks 1–8 and automated Task 9 complete. Current-head Xcode 26.5 evidence is 183 tests/23 suites plus 28 UI tests/0 failures, `TEST SUCCEEDED`, and Production `BUILD SUCCEEDED`; Quality Gate and Logic Guard are green.
+- Open: actual Google Chrome `/m` acceptance and physical-iPhone Face ID/registration/relock/Keychain/diagnostic evidence.
+- Status: source/docs committed and pushed; only Xcode's generated per-user UI state remains intentionally untracked and must never be committed.
+- Next: read the Package 4 plan, refresh `origin/dev`, preserve Save Tax isolation, close any available Package 3 manual gates, then continue with one isolated branch and separate PR each for Packages 4, 5, 6 and 7.

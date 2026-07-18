@@ -1,0 +1,8 @@
+{
+  "account_deleted_restorable": true,
+  "deleted_at": "2026-07-16T12:00:00Z",
+  "deletion_reason": "user_requested",
+  "deletion_source": "settings",
+  "first_name": "Example",
+  "restoration_token": "restoration-example-challenge"
+}

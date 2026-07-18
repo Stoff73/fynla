@@ -9,6 +9,7 @@ use App\Http\Middleware\AdvisorMiddleware;
 use App\Http\Middleware\ApiCacheHeaders;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CaptureAwcCookie;
+use App\Http\Middleware\CaptureNativeDeviceLabel;
 use App\Http\Middleware\CheckFeatureAccess;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\EncryptCookies;
@@ -70,6 +71,7 @@ class Kernel extends HttpKernel
         HandleCors::class,
         PreventRequestsDuringMaintenance::class,
         ValidatePostSize::class,
+        CaptureNativeDeviceLabel::class,
         TrimStrings::class,
         ConvertEmptyStringsToNull::class,
         SecurityHeaders::class,
