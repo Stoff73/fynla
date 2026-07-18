@@ -6,7 +6,7 @@
 
 **Architecture:** Laravel invokes a pinned Python CLI through an argv-array `Symfony Process`, sends signed data through standard input and receives a versioned allowlisted JSON result. Python performs Apple cryptographic verification and App Store Server API calls; Laravel retains authentication, validation, persistence, idempotency and provider-neutral entitlement resolution.
 
-**Tech Stack:** Laravel 10/PHP 8.3, Symfony Process, Python 3.8+, Apple `app-store-server-library==3.1.2`, MySQL 8, Pest, Python `unittest`.
+**Tech Stack:** Laravel 10/PHP 8.3, Symfony Process, Python `>=3.12,<3.13`, Apple `app-store-server-library==3.1.2`, MySQL 8, Pest, Python `unittest`.
 
 ## Global Constraints
 

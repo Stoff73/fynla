@@ -14,12 +14,16 @@
 | Source commit | `4eaa2241218f5c82c0a7f3e23e2fb3a7c2078092` (`v3.1.2`) |
 | Ownership and publication | PyPI-verified owner Apple; trusted-publishing attestations identify Apple's `ci-release.yml` GitHub release workflow and the source commit above |
 | Licence | MIT, confirmed by Apple's [`LICENSE.txt`](https://github.com/apple/app-store-server-library-python/blob/4eaa2241218f5c82c0a7f3e23e2fb3a7c2078092/LICENSE.txt) and package metadata |
-| Runtime policy | Python 3.8 or newer and lower than Python 4; local lock/install proof used Python 3.12.6 |
+| Runtime policy | Python `>=3.12,<3.13`; lock generation, install and advisory proof used Python 3.12.6 |
 | Upstream security support | Apple supports only the latest major version, including for security updates |
 
 Apple documents the App Store Server Library as its open-source implementation for signed-data verification and publishes official Swift, Java, Node.js and Python libraries. Primary sources are [Apple's server-library guidance](https://developer.apple.com/documentation/AppStoreServerAPI/simplifying-your-implementation-by-using-the-app-store-server-library), [Apple's repository](https://github.com/apple/app-store-server-library-python) and the [PyPI 3.1.2 release](https://pypi.org/project/app-store-server-library/3.1.2/).
 
-PyPI metadata declares `Requires-Python: >=3.7,<4`, while Apple's README states Python 3.8+ and the changelog records that Python 3.7 support was dropped in version 1.5.0. Fynla therefore adopts the stricter documented Python 3.8+ floor. The current development proof on Python 3.12.6 is inside that supported range; the deployment host must be checked independently.
+PyPI metadata declares `Requires-Python: >=3.7,<4`, while Apple's README states Python 3.8+ and the changelog records that Python 3.7 support was dropped in version 1.5.0. That describes the direct Apple package, not a secure Fynla deployment floor for its complete dependency graph.
+
+The reviewer fix reproduced resolution under Python 3.8.0 using `pip-tools 7.4.1`. Hash-required installation succeeded, the installed Apple package reported `3.1.2` and `pip check` found no broken requirements, but `pip-audit 2.7.3` reported 15 known vulnerabilities across `cryptography 47.0.0`, `PyJWT 2.9.0`, `requests 2.32.4` and `urllib3 2.2.3`. The releases that clear the reported advisory set require newer Python floors: [`cryptography 48.0.1`](https://pypi.org/project/cryptography/48.0.1/) and [`PyJWT 2.13.0`](https://pypi.org/project/PyJWT/2.13.0/) require Python 3.9 or newer, while [`requests 2.33.0`](https://pypi.org/project/requests/2.33.0/) and [`urllib3 2.7.0`](https://pypi.org/project/urllib3/2.7.0/) require Python 3.10 or newer. Python 3.8 is therefore rejected as an unsafe runtime for this bridge.
+
+Fynla's exact baseline is Python `>=3.12,<3.13`. The lock was regenerated and audited on Python 3.12.6, selecting advisory-clean current releases while keeping the unchanged Apple `3.1.2` direct pin. The upper bound prevents an unreviewed Python minor from silently changing resolution or runtime behaviour; supporting another minor requires a separately regenerated, hash-installed and audited lock. The deployment host must be checked independently against this exact range.
 
 The PyPI release has two trusted-published artifacts, both represented in the checked-in lock:
 
@@ -51,7 +55,7 @@ The PyPI release has two trusted-published artifacts, both represented in the ch
 
 The optional `httpx` extra is not selected and is not in the runtime lock. On 18 July 2026, a clean `pip install --require-hashes -r services/apple_store_bridge/requirements.lock` completed successfully, `pip check` found no broken requirements, and the installed Apple package reported exactly `3.1.2`.
 
-`pip-audit 2.10.1 -r services/apple_store_bridge/requirements.lock --disable-pip` reported **no known vulnerabilities** for the locked Python runtime. Audit tooling was installed only in the temporary review environment and is not part of the deployed lock.
+On Python 3.12.6, `pip-audit 2.10.1 -r services/apple_store_bridge/requirements.lock --disable-pip` reported **no known vulnerabilities** for the locked Python runtime. This clean result supersedes the rejected Python 3.8 resolution described above. Audit tooling was installed only in the temporary review environment and is not part of the deployed lock.
 
 `composer audit --locked --format=json` continues to report 11 advisories across six existing PHP packages: Guzzle, PSR-7, Laravel Framework, Symfony HTTP Foundation, Symfony Intl IDN polyfill and Symfony Routing. These are the same unrelated, pre-existing audit set documented in the rejected PHP review; Composer removed the rejected verifier and its four now-unused transitives without updating any existing package version. The high Laravel finding and the remaining medium/low findings remain a release concern outside this narrowly locked replacement and must be dispositioned before production deployment.
 
@@ -104,7 +108,7 @@ For every Apple library update:
 
 Before Apple billing is enabled on a development host, independently prove:
 
-- the deployed Python executable is version 3.8 or newer and lower than 4, can create the isolated runtime and can import exact release `3.1.2` from the checked-in lock;
+- the deployed Python executable is version `>=3.12` and `<3.13`, can create the isolated runtime and can import exact release `3.1.2` from the checked-in lock;
 - PHP can start the configured Python executable and checked-in bridge entry point without a shell, pass requests on standard input, enforce timeout/concurrency limits and parse only the versioned response contract;
 - the deployed process user can read the checked-in root certificate but cannot read unrelated secrets or write into application source;
 - system time and certificate validation are correct; and

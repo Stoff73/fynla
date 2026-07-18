@@ -6,7 +6,7 @@
 
 **Architecture:** StoreKit 2 performs the device purchase and local verification. Laravel independently verifies signed Apple data, persists immutable transaction evidence, derives a provider-neutral Premium grant and returns the canonical capability matrix. Existing Revolut subscriptions are adapted into the same resolver. The client finishes a StoreKit transaction only after durable server acknowledgement.
 
-**Tech Stack:** StoreKit 2, Swift concurrency, StoreKit Test, XCTest; Laravel 10, MySQL 8, Pest, Symfony Process, Python 3.8+ and Apple's official `app-store-server-library==3.1.2` behind Fynla-owned PHP interfaces, App Store Server API and App Store Server Notifications V2.
+**Tech Stack:** StoreKit 2, Swift concurrency, StoreKit Test, XCTest; Laravel 10, MySQL 8, Pest, Symfony Process, Python `>=3.12,<3.13` and Apple's official `app-store-server-library==3.1.2` behind Fynla-owned PHP interfaces, App Store Server API and App Store Server Notifications V2.
 
 ## Global Constraints
 
