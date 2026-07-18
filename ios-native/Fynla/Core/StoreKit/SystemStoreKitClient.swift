@@ -3,18 +3,14 @@ import StoreKit
 
 final class SystemStoreKitClient: StoreKitClient, Sendable {
     private let productIDs = StoreProductIdentifier.all
-    private let transactionUpdates: AsyncStream<SignedStoreTransaction>
-    private let updatesTask: Task<Void, Never>
-
-    init() {
+    private static let transactionUpdates: AsyncStream<SignedStoreTransaction> = {
         let (stream, continuation) = AsyncStream.makeStream(
             of: SignedStoreTransaction.self
         )
-        transactionUpdates = stream
-        updatesTask = Task {
+        Task {
             for await verification in Transaction.updates {
                 guard !Task.isCancelled,
-                      let transaction = try? Self.signedTransaction(
+                      let transaction = try? SystemStoreKitClient.signedTransaction(
                           verification,
                           allowedProductIDs: StoreProductIdentifier.all,
                           expectedProductID: nil,
@@ -27,10 +23,11 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
             }
             continuation.finish()
         }
-    }
+        return stream
+    }()
 
-    deinit {
-        updatesTask.cancel()
+    init() {
+        _ = Self.transactionUpdates
     }
 
     func products() async throws -> [StoreProduct] {
@@ -94,7 +91,7 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
     }
 
     func updates() -> AsyncStream<SignedStoreTransaction> {
-        transactionUpdates
+        Self.transactionUpdates
     }
 
     func sync() async throws {
@@ -113,14 +110,14 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
             displayPrice: product.displayPrice,
             subscriptionPeriod: StoreSubscriptionPeriod(
                 value: period.value,
-                unit: storeUnit(period.unit)
+                unit: try storeUnit(period.unit)
             )
         )
     }
 
     private static func storeUnit(
         _ unit: Product.SubscriptionPeriod.Unit
-    ) -> StoreSubscriptionPeriod.Unit {
+    ) throws -> StoreSubscriptionPeriod.Unit {
         switch unit {
         case .day:
             .day
@@ -131,7 +128,7 @@ final class SystemStoreKitClient: StoreKitClient, Sendable {
         case .year:
             .year
         @unknown default:
-            .day
+            throw StoreKitClientError.missingSubscriptionMetadata
         }
     }
 

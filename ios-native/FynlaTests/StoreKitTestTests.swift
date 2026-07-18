@@ -25,6 +25,27 @@ struct StoreKitTestTests {
     }
 
     @Test
+    func configurationDisablesOffersAndFamilySharing() throws {
+        let configurationURL = try #require(
+            Bundle(for: StoreKitTestBundleToken.self).url(
+                forResource: "Fynla",
+                withExtension: "storekit"
+            )
+        )
+        let configuration = try JSONDecoder().decode(
+            StoreKitTestConfiguration.self,
+            from: Data(contentsOf: configurationURL)
+        )
+        let group = try #require(configuration.subscriptionGroups.only)
+
+        #expect(group.subscriptions.count == 2)
+        #expect(group.subscriptions.allSatisfy { !$0.familyShareable })
+        #expect(group.subscriptions.allSatisfy { $0.introductoryOffer == nil })
+        #expect(group.subscriptions.allSatisfy { $0.adHocOffers.isEmpty })
+        #expect(group.subscriptions.allSatisfy { $0.codeOffers.isEmpty })
+    }
+
+    @Test
     func purchaseReturnsVerifiedJWSWithStableAccountToken() async throws {
         let session = try makeSession()
         let client = SystemStoreKitClient()
@@ -88,6 +109,68 @@ struct StoreKitTestTests {
     }
 
     @Test
+    func verifiedUpdatesCarryJWSAndTokenWhileInvalidSignaturesAreFiltered() async throws {
+        let session = try makeSession()
+        let client = SystemStoreKitClient()
+        let token = UUID(uuidString: "45FCF13B-7C77-4FCF-A86D-A5136AF49EC3")!
+
+        let purchaseUpdate = Task {
+            try await nextUpdate(from: client.updates()) {
+                $0.appAccountToken == token
+                    && $0.productID == StoreProductIdentifier.monthly
+            }
+        }
+        await Task.yield()
+        let original = try await session.buyProduct(
+            identifier: StoreProductIdentifier.monthly,
+            options: [.appAccountToken(token)]
+        )
+        let purchased = try await purchaseUpdate.value
+
+        #expect(purchased.id == original.id)
+        #expect(purchased.appAccountToken == token)
+        #expect(!purchased.signedJWS.isEmpty)
+
+        let renewalUpdate = Task {
+            try await nextUpdate(from: client.updates()) {
+                $0.appAccountToken == token && $0.id != purchased.id
+            }
+        }
+        await Task.yield()
+        try session.forceRenewalOfSubscription(
+            productIdentifier: StoreProductIdentifier.monthly
+        )
+        let renewed = try await renewalUpdate.value
+
+        #expect(renewed.originalID == purchased.originalID)
+        #expect(renewed.appAccountToken == token)
+        #expect(!renewed.signedJWS.isEmpty)
+
+        try await session.setSimulatedError(
+            .verification(.invalidSignature),
+            forAPI: .verification
+        )
+        let invalidUpdate = Task {
+            try await nextUpdate(
+                from: client.updates(),
+                timeout: .milliseconds(500)
+            ) {
+                $0.appAccountToken == token
+                    && $0.id != purchased.id
+                    && $0.id != renewed.id
+            }
+        }
+        await Task.yield()
+        try session.forceRenewalOfSubscription(
+            productIdentifier: StoreProductIdentifier.monthly
+        )
+
+        await #expect(throws: StoreKitUpdateWaitError.self) {
+            _ = try await invalidUpdate.value
+        }
+    }
+
+    @Test
     func renewalExpiryAndRefundProduceDeterministicTransactions() async throws {
         let session = try makeSession()
         let token = UUID(uuidString: "90E0A67B-6629-43A9-BADC-8126E90E2115")!
@@ -113,7 +196,8 @@ struct StoreKitTestTests {
         let expired = try #require(
             session.allTransactions().first(where: { $0.identifier == renewed.identifier })
         )
-        #expect(expired.expirationDate != nil)
+        let expirationDate = try #require(expired.expirationDate)
+        #expect(expirationDate <= Date())
 
         try session.refundTransaction(identifier: UInt(original.id))
         let refunded = try #require(
@@ -147,5 +231,60 @@ struct StoreKitTestTests {
     ) -> SignedStoreTransaction? {
         guard case let .verified(transaction) = outcome else { return nil }
         return transaction
+    }
+
+    private func nextUpdate(
+        from stream: AsyncStream<SignedStoreTransaction>,
+        timeout: Duration = .seconds(5),
+        matching predicate: @escaping @Sendable (SignedStoreTransaction) -> Bool
+    ) async throws -> SignedStoreTransaction {
+        try await withThrowingTaskGroup(of: SignedStoreTransaction.self) { group in
+            group.addTask {
+                for await update in stream where predicate(update) {
+                    return update
+                }
+                throw StoreKitUpdateWaitError.streamEnded
+            }
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                throw StoreKitUpdateWaitError.timedOut
+            }
+
+            defer { group.cancelAll() }
+            guard let update = try await group.next() else {
+                throw StoreKitUpdateWaitError.streamEnded
+            }
+            return update
+        }
+    }
+}
+
+private final class StoreKitTestBundleToken {}
+
+private enum StoreKitUpdateWaitError: Error {
+    case streamEnded
+    case timedOut
+}
+
+private struct StoreKitTestConfiguration: Decodable {
+    let subscriptionGroups: [SubscriptionGroup]
+
+    struct SubscriptionGroup: Decodable {
+        let subscriptions: [Subscription]
+    }
+
+    struct Subscription: Decodable {
+        let adHocOffers: [Offer]
+        let codeOffers: [Offer]
+        let familyShareable: Bool
+        let introductoryOffer: Offer?
+    }
+
+    struct Offer: Decodable {}
+}
+
+private extension Collection {
+    var only: Element? {
+        count == 1 ? first : nil
     }
 }
