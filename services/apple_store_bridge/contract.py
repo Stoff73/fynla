@@ -22,6 +22,14 @@ class _DuplicateSecurityCriticalKey(ValueError):
     pass
 
 
+class _NonJSONNumericConstant(ValueError):
+    pass
+
+
+def _reject_non_json_numeric_constant(_: str) -> None:
+    raise _NonJSONNumericConstant
+
+
 def _object_without_critical_duplicates(
     pairs: List[Tuple[str, Any]],
 ) -> Dict[str, Any]:
@@ -43,8 +51,14 @@ def _load_json(stream: IO[str]) -> Any:
         return json.load(
             stream,
             object_pairs_hook=_object_without_critical_duplicates,
+            parse_constant=_reject_non_json_numeric_constant,
         )
-    except (json.JSONDecodeError, UnicodeError, _DuplicateSecurityCriticalKey):
+    except (
+        json.JSONDecodeError,
+        UnicodeError,
+        _DuplicateSecurityCriticalKey,
+        _NonJSONNumericConstant,
+    ):
         return _MALFORMED
 
 

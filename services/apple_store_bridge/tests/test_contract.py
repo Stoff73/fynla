@@ -88,6 +88,21 @@ class ContractTest(unittest.TestCase):
             with self.subTest(case=case):
                 self.assert_request_error(payload, "malformed_request")
 
+    def test_rejects_non_json_numeric_constants(self):
+        payloads = {
+            "nan": '{"version":1,"operation":"health","payload":NaN}',
+            "positive_infinity": (
+                '{"version":1,"operation":"health","payload":Infinity}'
+            ),
+            "negative_infinity": (
+                '{"version":1,"operation":"health","payload":-Infinity}'
+            ),
+        }
+
+        for case, payload in payloads.items():
+            with self.subTest(case=case):
+                self.assert_request_error(payload, "malformed_request")
+
     def test_rejects_duplicate_security_critical_keys(self):
         payloads = {
             "version": '{"version":1,"version":1,"operation":"health"}',
