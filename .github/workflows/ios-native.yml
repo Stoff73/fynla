@@ -35,6 +35,10 @@ jobs:
   test-and-build:
     runs-on: macos-26
     timeout-minutes: 45
+    env:
+      # Xcode 26.5 does not synchronise command-line StoreKit test
+      # configurations (FB22237318). GitHub's macOS 26 image retains 26.4.1.
+      DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
 
     steps:
       - name: Check out source

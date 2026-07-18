@@ -31,7 +31,7 @@ it('registers and schedules Apple notification evidence recovery', function (): 
 it('durably recovers an initially failed verified notification with no committed transaction', function (): void {
     config()->set('apple_store.environment', 'sandbox');
     $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
-    recoveryUser($token);
+    $user = recoveryUser($token);
     $notification = recoveryNotification($token, 'recovery-original-1', 1);
     app()->instance(
         AppleSignedDataVerifier::class,
@@ -57,7 +57,7 @@ it('durably recovers an initially failed verified notification with no committed
     expect(AppleTransaction::query()->count())->toBe(0)
         ->and($log->status)->toBe(AppleNotificationLog::STATUS_FAILED)
         ->and($context->status)->toBe(AppleNotificationRecovery::STATUS_FAILED)
-        ->and($context->user_id)->toBe(User::query()->sole()->id)
+        ->and($context->user_id)->toBe($user->id)
         ->and($context->original_transaction_id)->toBe('recovery-original-1');
     $auditHash = $log->signed_payload_sha256;
     $client = new RecoveryAppleStoreServerClientStub([
