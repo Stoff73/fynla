@@ -290,7 +290,7 @@ describe('Country Tracking API', function () {
             // Premium lifts the Free property cap (3).
             // so the 6-item loop below stays under the limit. The tier-cap is
             // enforced by PropertyStore::create, not the controller.
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
             $validCountries = ['United Kingdom', 'France', 'Germany', 'Spain', 'Italy', 'USA'];
 

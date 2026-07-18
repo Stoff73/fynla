@@ -102,7 +102,7 @@ it('enforces the cap under the global DbTierGate binding (PR 3: caps live)', fun
 });
 
 it('does NOT enforce the cap for a Premium user (unlimited)', function () use ($payload) {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(SavingsStore::class);
 
     SavingsAccount::factory(3)->create(['user_id' => $user->id]);

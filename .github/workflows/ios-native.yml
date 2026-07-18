@@ -52,8 +52,12 @@ jobs:
           runtime_id="$(
             xcrun simctl list runtimes --json |
               /usr/bin/ruby -rjson -e '
+                # iOS 26.5 does not sync StoreKit test configurations when
+                # xcodebuild runs outside the Xcode IDE (FB22237318).
                 runtimes = JSON.parse($stdin.read).fetch("runtimes").select do |runtime|
-                  runtime["isAvailable"] && runtime.fetch("identifier").start_with?("com.apple.CoreSimulator.SimRuntime.iOS-")
+                  runtime["isAvailable"] &&
+                    runtime.fetch("identifier").start_with?("com.apple.CoreSimulator.SimRuntime.iOS-") &&
+                    !runtime.fetch("version").start_with?("26.5")
                 end
                 runtime = runtimes.max_by do |candidate|
                   candidate.fetch("version").split(".").map(&:to_i)

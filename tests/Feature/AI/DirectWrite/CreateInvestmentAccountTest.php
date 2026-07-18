@@ -115,7 +115,7 @@ it('create_investment_account never counts ISA dividends against the Dividend Al
 });
 
 it('create_investment_account passes through specialised types unchanged', function (): void {
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false, 'tier' => 'premium']);
 
     foreach (['vct', 'eis', 'private_company', 'crowdfunding', 'saye'] as $type) {
         $result = $this->executeCaptureToolWithEvidence('create_investment_account', [

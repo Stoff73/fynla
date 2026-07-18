@@ -16,7 +16,7 @@ beforeEach(function () {
 });
 
 it('rejects files over 20MB', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $this->actingAs($user, 'sanctum');
 
     $file = UploadedFile::fake()->create('huge.xlsx', 21000);
@@ -29,7 +29,7 @@ it('rejects files over 20MB', function () {
 });
 
 it('rejects unsupported file types', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $this->actingAs($user, 'sanctum');
 
     $file = UploadedFile::fake()->create('malicious.exe', 100);
@@ -42,7 +42,7 @@ it('rejects unsupported file types', function () {
 });
 
 it('accepts xlsx file type in validation', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $this->actingAs($user, 'sanctum');
 
     // Create a minimal xlsx using PhpSpreadsheet

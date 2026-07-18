@@ -89,7 +89,7 @@ it('carries the entity key, current count and hard limit on the thrown exception
 });
 
 it('allows unlimited pensions for a Premium user', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PensionStore::class);
 
     DCPension::factory(10)->create(['user_id' => $user->id]);

@@ -55,7 +55,7 @@ it('clamps Free history to the latest 90 days', function () {
 });
 
 it('returns all requested retained history and exact year-on-year movement for Premium', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $user->id,
         'account_name' => 'Long-term portfolio',
@@ -94,7 +94,7 @@ it('returns all requested retained history and exact year-on-year movement for P
 });
 
 it('returns a null year-on-year value when less than 12 months are available', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $user->id,
         'ownership_type' => 'individual',
@@ -119,8 +119,8 @@ it('returns a null year-on-year value when less than 12 months are available', f
 });
 
 it('does not expose another users balance history', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
-    $other = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+    $other = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $other->id,
         'ownership_type' => 'individual',
@@ -146,8 +146,8 @@ it('does not expose another users balance history', function () {
 });
 
 it('returns each joint owner only their share of a recorded balance', function () {
-    $primary = User::factory()->create(['tier' => 'premium']);
-    $jointOwner = User::factory()->create(['tier' => 'premium']);
+    $primary = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+    $jointOwner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $primary->id,
         'joint_owner_id' => $jointOwner->id,

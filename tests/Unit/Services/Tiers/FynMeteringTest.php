@@ -46,7 +46,7 @@ it('gives Premium the advanced model for complex requests and the paid output al
         'services.anthropic.chat_model' => 'standard-model',
         'services.anthropic.advanced_chat_model' => 'advanced-model',
     ]);
-    $premium = User::factory()->create(['tier' => 'premium', 'plan' => 'free']);
+    $premium = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium', 'plan' => 'free']);
 
     expect($harness()->model($premium, 'complex'))->toBe('advanced-model')
         ->and($harness()->maxTokens($premium))->toBe(8192);

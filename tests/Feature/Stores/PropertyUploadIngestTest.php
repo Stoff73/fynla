@@ -16,7 +16,7 @@ beforeEach(function () {
 });
 
 it('persists a Property extraction via PropertyStore with IngestSource::UPLOAD', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
     // Mirror what DocumentProcessor::confirmExcel does for a property extraction.
     $canonical = (new PropertyNormaliser)->fromUpload([

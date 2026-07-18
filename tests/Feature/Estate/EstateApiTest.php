@@ -21,7 +21,7 @@ beforeEach(function () {
     // SP2 PR7: TeaserGate reads TierConfigurationStore — seed tier rows so the
     // gate resolves correctly. Tests use Premium to exercise the full module path.
     $this->seed(TierConfigurationSeeder::class);
-    $this->user = User::factory()->create(['tier' => 'premium']);
+    $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 

@@ -18,7 +18,7 @@ beforeEach(function () {
 });
 
 it('persists a Property via the Fyn capture path with IngestSource::FYN_AI', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
     // Mirror what CoordinatingAgent::handleCreateProperty does after the
     // Fyn tool-call validator passes:
@@ -51,7 +51,7 @@ it('persists Fyn-supplied monthly costs and tenant fields via fromFyn → Proper
     // must whitelist them or they're silently stripped before reaching the
     // store (PropertyStore::validateCanonical accepts them — the gap was
     // purely in the normaliser).
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
     $canonical = (new PropertyNormaliser)->fromFyn([
         'address_line_1' => '12 Tenant Road',

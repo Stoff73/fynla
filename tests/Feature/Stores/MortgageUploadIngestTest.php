@@ -27,7 +27,7 @@ beforeEach(function () {
 });
 
 it('creates a mortgage via upload-equivalent path with UPLOAD audit context', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $property = Property::factory()->create(['user_id' => $user->id]);
 
     $upload = [

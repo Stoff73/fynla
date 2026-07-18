@@ -20,7 +20,7 @@ beforeEach(function () {
 });
 
 it('PropertyStore::create persists a Property row scoped to the user', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
@@ -42,7 +42,7 @@ it('PropertyStore::create persists a Property row scoped to the user', function 
 });
 
 it('PropertyStore::create accepts tenants_in_common ownership (property-only enum value)', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
@@ -58,7 +58,7 @@ it('PropertyStore::create accepts tenants_in_common ownership (property-only enu
 });
 
 it('PropertyStore::create rejects invalid property_type via inner validator', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     expect(fn () => $store->create([
@@ -69,8 +69,8 @@ it('PropertyStore::create rejects invalid property_type via inner validator', fu
 });
 
 it('PropertyStore::find is joint-aware (joint owner sees the same property)', function () {
-    $owner = User::factory()->create(['tier' => 'premium']);
-    $jointOwner = User::factory()->create(['tier' => 'premium']);
+    $owner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+    $jointOwner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
@@ -87,8 +87,8 @@ it('PropertyStore::find is joint-aware (joint owner sees the same property)', fu
 });
 
 it('PropertyStore::update is primary-owner-only — joint owner cannot mutate', function () {
-    $owner = User::factory()->create(['tier' => 'premium']);
-    $jointOwner = User::factory()->create(['tier' => 'premium']);
+    $owner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+    $jointOwner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
@@ -105,8 +105,8 @@ it('PropertyStore::update is primary-owner-only — joint owner cannot mutate', 
 });
 
 it('PropertyStore::forUser returns properties where user is primary or joint owner', function () {
-    $alice = User::factory()->create(['tier' => 'premium']);
-    $bob = User::factory()->create(['tier' => 'premium']);
+    $alice = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+    $bob = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $store->create([
@@ -129,7 +129,7 @@ it('PropertyStore::forUser returns properties where user is primary or joint own
 });
 
 it('PropertyStore::forTrust returns properties matching trust_id', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $trust = Trust::factory()->create(['user_id' => $user->id]);
 
     Property::factory(2)->create([
@@ -145,7 +145,7 @@ it('PropertyStore::forTrust returns properties matching trust_id', function () {
 });
 
 it('PropertyStore::forTrust returns empty Collection when trust has no properties', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $trust = Trust::factory()->create(['user_id' => $user->id]);
 
     $collection = app(PropertyStore::class)->forTrust($trust->id);
@@ -154,7 +154,7 @@ it('PropertyStore::forTrust returns empty Collection when trust has no propertie
 });
 
 it('PropertyStore::forTrust does NOT return properties where trust_id is null', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $trust = Trust::factory()->create(['user_id' => $user->id]);
 
     // One trust-held property
@@ -177,7 +177,7 @@ it('PropertyStore::forTrust does NOT return properties where trust_id is null', 
 });
 
 it('create materialises current_value_gbp + writes initial snapshot', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
@@ -209,7 +209,7 @@ it('create materialises current_value_gbp + writes initial snapshot', function (
 });
 
 it('update fires snapshot only when policy threshold exceeded', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
@@ -233,7 +233,7 @@ it('update fires snapshot only when policy threshold exceeded', function () {
 });
 
 it('PropertyStore::delete soft-deletes; restore brings the row back', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     $property = $store->create([
