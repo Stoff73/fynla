@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -69,5 +70,23 @@ class UserFactory extends Factory
         return $this->state(fn () => [
             'is_advisor' => true,
         ]);
+    }
+
+    /**
+     * Give the user a live canonical Revolut Premium grant.
+     */
+    public function withActivePremiumSubscription(): static
+    {
+        return $this->state(fn () => [
+            'plan' => 'premium',
+            'tier' => 'premium',
+        ])->afterCreating(function (User $user): void {
+            Subscription::factory()->plan('premium')->create([
+                'user_id' => $user->id,
+                'status' => 'active',
+                'auto_renew' => true,
+                'current_period_end' => now()->addMonth(),
+            ]);
+        });
     }
 }

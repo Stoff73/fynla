@@ -8,12 +8,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\Billing\PremiumEntitlementResolver;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\Mobile\MobileLevelService;
 use App\Services\Mobile\NextActionsService;
 use App\Services\Mobile\PlanningProgressService;
+use App\Services\Stores\TierConfigurationStore;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +31,8 @@ class MobileDashboardController extends Controller
         private readonly NextActionsService $nextActions,
         private readonly PlanningProgressService $planningProgress,
         private readonly MilestoneDetectionService $milestones,
+        private readonly PremiumEntitlementResolver $entitlementResolver,
+        private readonly TierConfigurationStore $tierConfigurations,
     ) {}
 
     /**
@@ -44,6 +49,10 @@ class MobileDashboardController extends Controller
             $userId = $request->user()->id;
 
             $data = $this->aggregator->getAggregatedDashboard($userId);
+
+            // Billing state is request-current and must never be trapped inside
+            // the dashboard's 24-hour financial aggregation cache.
+            $data['entitlement'] = $this->entitlementFor($request->user());
 
             // Per-area focus cards for the carousel: a "Top actions" card (the
             // unified <=4) plus one card per module (real recs when the KYC gate
@@ -89,6 +98,30 @@ class MobileDashboardController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Fetching mobile dashboard data');
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function entitlementFor(User $user): array
+    {
+        $resolved = $this->entitlementResolver->resolve($user);
+        try {
+            $tier = $this->tierConfigurations->forTier($resolved->tier);
+            $capabilities = $tier->capability_matrix ?? [];
+            $limits = $tier->count_caps ?? [];
+        } catch (ModelNotFoundException) {
+            $capabilities = [];
+            $limits = [];
+        }
+
+        return [
+            'tier' => $resolved->tier,
+            'provider' => $resolved->provider,
+            'status' => $resolved->status,
+            'renews' => $resolved->renews,
+            'current_period_end' => $resolved->periodEndsAt?->toISOString(),
+            'capabilities' => $capabilities,
+            'limits' => $limits,
+        ];
     }
 
     /**

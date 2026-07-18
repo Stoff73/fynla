@@ -22,7 +22,7 @@ beforeEach(function () {
 
 describe('DocumentAllowanceGate (§11)', function () {
     it('allows Premium uploads when retained storage is below the ceiling', function () {
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
 
         Document::factory(2)->create(['user_id' => $user->id]);
 
@@ -77,7 +77,7 @@ describe('DocumentAllowanceGate (§11)', function () {
     });
 
     it('Premium user is not blocked by document count', function () {
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
 
         Document::factory(10)->create(['user_id' => $user->id, 'file_size' => 1024]);
 
@@ -91,7 +91,7 @@ describe('DocumentAllowanceGate (§11)', function () {
 
         $ceilingBytes = (float) $premiumConfig->document_storage_gb * 1024 * 1024 * 1024;
 
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
 
         Document::factory()->create(['user_id' => $user->id, 'file_size' => (int) $ceilingBytes]);
 
@@ -116,7 +116,7 @@ describe('CurrencyDisplayService (§12)', function () {
     });
 
     it('returns user_choice for Premium', function () {
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
         $svc = app(CurrencyDisplayService::class);
         expect($svc->modeFor($user))->toBe('user_choice')
             ->and($svc->canChooseCurrency($user))->toBeTrue();
@@ -124,7 +124,7 @@ describe('CurrencyDisplayService (§12)', function () {
 
     it('reads from TierConfigurationStore, not hardcoded values', function () {
         // Verify the service delegates to the store, not a local map
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
         $svc = app(CurrencyDisplayService::class);
         $store = app(TierConfigurationStore::class);
 
@@ -166,7 +166,7 @@ describe('SnapshotPolicies (§13)', function () {
 
 describe('Open API affordance via /api/auth/user (§14)', function () {
     it('Premium user gets open_api_affordance=true in tier_flags', function () {
-        Sanctum::actingAs(User::factory()->create(['tier' => 'premium']));
+        Sanctum::actingAs(User::factory()->withActivePremiumSubscription()->create());
 
         $this->getJson('/api/auth/user')
             ->assertOk()
@@ -184,7 +184,7 @@ describe('Open API affordance via /api/auth/user (§14)', function () {
     });
 
     it('tier_flags include currency_display_mode and snapshot_surfacing_window_days', function () {
-        Sanctum::actingAs(User::factory()->create(['tier' => 'premium']));
+        Sanctum::actingAs(User::factory()->withActivePremiumSubscription()->create());
 
         $this->getJson('/api/auth/user')
             ->assertOk()

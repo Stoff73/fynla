@@ -40,7 +40,7 @@ describe('/m freemium 5.1 — module payloads surface the free-tier cap', functi
     });
 
     it('reports an unlimited tier as null (no nudge) on GET /api/savings', function () {
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
 
         $this->actingAs($user, 'sanctum')->getJson('/api/savings')
             ->assertOk()
@@ -58,7 +58,7 @@ describe('/m freemium 5.3 — Holistic Plan is gated to Premium', function () {
     });
 
     it('does not hit the upgrade gate for a Premium user', function () {
-        $user = User::factory()->create(['tier' => 'premium']);
+        $user = User::factory()->withActivePremiumSubscription()->create();
 
         // Premium passes the gate (no 403). We assert "not 403" rather than 200 so the
         // check is about the gate, not the composite-plan engine's downstream output.

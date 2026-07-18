@@ -37,7 +37,7 @@ it('returns an Estate teaser for Free users with a Premium call to action', func
 });
 
 it('returns full Estate access for Premium users', function () {
-    Sanctum::actingAs(User::factory()->create(['tier' => 'premium']));
+    Sanctum::actingAs(User::factory()->withActivePremiumSubscription()->create());
 
     $this->getJson('/api/estate')
         ->assertOk()
@@ -72,7 +72,7 @@ it('blocks Free users from full Estate routes', function (string $method, string
 ]);
 
 it('allows Premium users through full Estate route gates', function (string $uri) {
-    Sanctum::actingAs(User::factory()->create(['tier' => 'premium']));
+    Sanctum::actingAs(User::factory()->withActivePremiumSubscription()->create());
 
     expect($this->postJson($uri)->status())->not->toBe(403);
 })->with([

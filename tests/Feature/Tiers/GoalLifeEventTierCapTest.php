@@ -123,7 +123,7 @@ it('returns structured cap responses from Fyn direct writes', function (string $
 ]);
 
 it('keeps Premium Goal and Life Event creation unlimited', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create();
     Goal::factory(3)->create(['user_id' => $user->id]);
     LifeEvent::factory(3)->create(['user_id' => $user->id]);
 
