@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
+use App\Http\Controllers\Api\V1\Native\NativeEntitlementController;
 use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
 use App\Http\Controllers\Api\V1\Native\StoreKit\AppleReconciliationController;
 use App\Http\Controllers\Api\V1\Native\StoreKit\AppleTransactionController;
@@ -66,6 +67,10 @@ Route::prefix('/native/auth')->middleware('native.client')->group(function () {
 Route::get('/native/storekit/account-token', AppAccountTokenController::class)
     ->middleware(['native.client', 'auth:sanctum', 'native.session'])
     ->name('api.v1.native.storekit.account-token');
+
+Route::get('/native/entitlement', NativeEntitlementController::class)
+    ->middleware(['native.client', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.entitlement');
 
 Route::post('/native/storekit/transactions', AppleTransactionController::class)
     ->middleware([
