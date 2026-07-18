@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Billing\Apple;
 
-use AppStoreServerLibrary\SignedDataVerifier;
 use PHPUnit\Framework\TestCase;
 
 final class AppleVerifierDependencyTest extends TestCase
@@ -47,6 +46,15 @@ final class AppleVerifierDependencyTest extends TestCase
             '63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179',
             $fingerprint,
         );
-        self::assertTrue(class_exists(SignedDataVerifier::class));
+
+        $composer = file_get_contents(dirname(__DIR__, 5).'/composer.json');
+        $requirements = file_get_contents(dirname(__DIR__, 5).'/services/apple_store_bridge/requirements.in');
+        $lock = file_get_contents(dirname(__DIR__, 5).'/services/apple_store_bridge/requirements.lock');
+
+        self::assertNotFalse($composer);
+        self::assertStringNotContainsString('hoels/app-store-server-library-php', $composer);
+        self::assertSame("app-store-server-library==3.1.2\n", $requirements);
+        self::assertStringContainsString('app-store-server-library==3.1.2', $lock);
+        self::assertStringContainsString('--hash=sha256:', $lock);
     }
 }

@@ -3,6 +3,8 @@
 **Reviewed:** 18 July 2026
 **Decision:** **REJECTED / BLOCKED.** The locked PHP package must not be used to enable Apple billing.
 
+**Approved replacement:** The rejected package has now been removed in favour of Apple's official, hash-locked Python runtime. See [`apple-python-verifier-review.md`](apple-python-verifier-review.md). The rejection evidence below remains unchanged.
+
 ## Selected package
 
 | Item | Reviewed value |
