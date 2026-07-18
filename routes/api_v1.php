@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
 use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppleTransactionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,6 +65,15 @@ Route::prefix('/native/auth')->middleware('native.client')->group(function () {
 Route::get('/native/storekit/account-token', AppAccountTokenController::class)
     ->middleware(['native.client', 'auth:sanctum', 'native.session'])
     ->name('api.v1.native.storekit.account-token');
+
+Route::post('/native/storekit/transactions', AppleTransactionController::class)
+    ->middleware([
+        'native.client',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.transactions.store');
 
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
