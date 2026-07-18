@@ -1,11 +1,22 @@
 import json
 import sys
 from importlib.metadata import version
+from pathlib import Path
 from typing import IO, Any, Dict
 
-from .contract import CONTRACT_VERSION, failure, read_request, success
-from .errors import BridgeError
-from .verifier import AppleSignedDataService
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from services.apple_store_bridge.contract import (  # noqa: E402
+    CONTRACT_VERSION,
+    failure,
+    read_request,
+    success,
+)
+from services.apple_store_bridge.errors import BridgeError  # noqa: E402
+from services.apple_store_bridge.verifier import (  # noqa: E402
+    AppleSignedDataService,
+)
 
 SERVICE_NAME = "apple-store-bridge"
 LIBRARY_DISTRIBUTION = "app-store-server-library"

@@ -1,6 +1,10 @@
 import io
 import json
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from services.apple_store_bridge.errors import BridgeError
@@ -28,6 +32,28 @@ class CliTest(unittest.TestCase):
         )
         self.assertEqual("", stderr)
         self.assertEqual(1, len(stdout.splitlines()))
+
+    def test_configured_cli_path_runs_directly_with_a_minimal_environment(self):
+        cli_path = Path(__file__).parents[1] / "cli.py"
+        with tempfile.TemporaryDirectory() as working_directory:
+            completed = subprocess.run(
+                [sys.executable, str(cli_path)],
+                input='{"version":1,"operation":"health"}',
+                text=True,
+                capture_output=True,
+                cwd=working_directory,
+                env={"PYTHONDONTWRITEBYTECODE": "1"},
+                timeout=10,
+                check=False,
+            )
+
+        self.assertEqual(0, completed.returncode)
+        self.assertEqual(
+            '{"version":1,"ok":true,"data":{"service":"apple-store-bridge",'
+            '"contract":1,"library":"3.1.2"}}\n',
+            completed.stdout,
+        )
+        self.assertEqual("", completed.stderr)
 
     def test_dispatches_each_verification_operation_with_the_full_request(self):
         operations = {
