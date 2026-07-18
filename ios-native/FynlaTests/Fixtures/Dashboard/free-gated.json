@@ -1,0 +1,8 @@
+{
+  "success":true,
+  "data":{
+    "modules":{"protection":{"status":"not_configured"},"savings":{"status":"active","total_savings":5000,"total_accounts":1},"investment":{"status":"not_configured"},"retirement":{"status":"not_configured"},"estate":{"status":"not_configured"},"goals":{"status":"not_configured"}},
+    "net_worth":{"total":5000,"breakdown":{"assets":{"savings":5000},"liabilities":{},"total_assets":5000,"total_liabilities":0}},"alerts":[],"fyn_insight":"Complete more details to unlock personalised guidance.","cached_at":"2026-07-18T09:00:00Z","focus_areas":[{"key":"tax","label":"Tax","locked":true,"stat":"Complete your details","actions":[{"id":"unlock:tax","type":"unlock","module":"tax","title":"Complete your tax details","meta":"A few more details","value":0,"done":false,"action":{"kind":"fyn_capture","payload":"tax"}}]}],"next_actions":[],"level":{"level":1,"level_name":"Starter","next_level_name":"Building","progress_percent":0,"actions_completed":0,"actions_total":4,"actions_to_next":4},"percentile":10,"new_milestones":[],"next_milestone":null,
+    "entitlement":{"tier":"free","provider":null,"status":"free","renews":false,"current_period_end":null,"capabilities":{"dashboard":"full","holistic_plan":"preview"},"limits":{"savings_account":2}}
+  }
+}

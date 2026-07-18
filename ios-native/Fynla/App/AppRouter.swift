@@ -50,6 +50,13 @@ final class AppRouter {
         path.removeAll(keepingCapacity: false)
     }
 
+    @discardableResult
+    func restore(_ routes: [AppRoute]) -> Bool {
+        guard routes.allSatisfy(canNavigate) else { return false }
+        path = routes
+        return true
+    }
+
     private func canNavigate(to route: AppRoute) -> Bool {
         switch session.state {
         case .authenticatedUnlocked:

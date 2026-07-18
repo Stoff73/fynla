@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "id": "101",
+      "kind": "data",
+      "label": "Added your first pension",
+      "occurred_at": "2026-07-17T10:00:00Z"
+    },
+    {
+      "id": "100",
+      "kind": "onboarding",
+      "label": "Told us about your income",
+      "occurred_at": "2026-07-16T10:00:00Z"
+    }
+  ],
+  "next_cursor": null
+}

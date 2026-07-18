@@ -1,0 +1,9 @@
+{
+  "success":true,
+  "data":{
+    "modules":{"protection":{"status":"not_configured","message":"Protection profile not yet set up."},"savings":{"status":"active","total_savings":0,"total_accounts":0,"emergency_fund_months":0,"emergency_fund_status":"Unknown"},"investment":{"status":"not_configured","message":"No investment accounts found."},"retirement":{"status":"not_configured","message":"Retirement profile not yet set up."},"estate":{"status":"not_configured","message":"Estate planning not yet set up."},"goals":{"status":"not_configured","message":"No goals set yet."}},
+    "net_worth":{"total":0,"breakdown":{"assets":{"property":0,"savings":0,"investments":0,"pensions":0,"business":0,"chattels":0,"cash":0},"liabilities":{"mortgages":0,"other_liabilities":0},"total_assets":0,"total_liabilities":0}},
+    "alerts":[],"fyn_insight":"Welcome to Fynla. Start by setting up your financial profile to receive personalised insights and guidance.","cached_at":"2026-07-18T09:00:00Z",
+    "focus_areas":[],"next_actions":[],"level":{"level":1,"level_name":"Starter","next_level_name":"Building","progress_percent":0,"actions_completed":0,"actions_total":4,"actions_to_next":4},"percentile":0,"new_milestones":[],"next_milestone":null
+  }
+}

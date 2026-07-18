@@ -70,7 +70,8 @@ actor APIClient {
             Value.self,
             data: result.data,
             response: result.response,
-            correlationID: correlationID
+            correlationID: correlationID,
+            responseDecoding: request.responseDecoding
         )
     }
 
@@ -99,7 +100,8 @@ actor APIClient {
         _ type: Value.Type,
         data: Data,
         response: HTTPURLResponse,
-        correlationID: String
+        correlationID: String,
+        responseDecoding: APIResponseDecoding
     ) throws -> Value {
         let responseRequestID = response.value(forHTTPHeaderField: "X-Request-ID")
             ?? correlationID
@@ -113,6 +115,9 @@ actor APIClient {
         }
 
         do {
+            if responseDecoding == .raw {
+                return try JSONDecoder().decode(Value.self, from: data)
+            }
             let envelope = try JSONDecoder().decode(APIEnvelope<Value>.self, from: data)
             guard envelope.success else {
                 throw APIError.decoding(requestID: responseRequestID)

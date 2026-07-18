@@ -4,6 +4,8 @@ struct AppRootView: View {
     let session: AppSession
     let privacyLockController: PrivacyLockController?
     let subscriptionModel: SubscriptionModel
+    let dashboardModel: DashboardModel
+    let achievementsModel: AchievementsModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
@@ -14,6 +16,8 @@ struct AppRootView: View {
         session: AppSession,
         privacyLockController: PrivacyLockController? = nil,
         subscriptionModel: SubscriptionModel,
+        dashboardModel: DashboardModel,
+        achievementsModel: AchievementsModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
@@ -25,6 +29,8 @@ struct AppRootView: View {
         self.session = session
         self.privacyLockController = privacyLockController
         self.subscriptionModel = subscriptionModel
+        self.dashboardModel = dashboardModel
+        self.achievementsModel = achievementsModel
         self.appleSubscriptionManager = appleSubscriptionManager
         _registrationModel = State(
             initialValue: RegistrationModel(
@@ -99,6 +105,8 @@ struct AppRootView: View {
                 UnlockedView(
                     privacyLockController: privacyLockController,
                     subscriptionModel: subscriptionModel,
+                    dashboardModel: dashboardModel,
+                    achievementsModel: achievementsModel,
                     appleSubscriptionManager: appleSubscriptionManager
                 )
             case .deletingAccount:
@@ -125,6 +133,8 @@ struct AppRootView: View {
                 await subscriptionModel.start()
             } else if session.state == .signedOut {
                 subscriptionModel.stop()
+                dashboardModel.stop()
+                achievementsModel.stop()
             }
         }
         .overlay {
@@ -185,59 +195,89 @@ private struct LaunchingView: View {
 private struct UnlockedView: View {
     let privacyLockController: PrivacyLockController?
     let subscriptionModel: SubscriptionModel
+    let dashboardModel: DashboardModel
+    let achievementsModel: AchievementsModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
+    @Environment(AppRouter.self) private var router
+    @State private var isPresentingMenu = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: FynlaSpacing.large) {
-                Text("Fynla")
-                    .font(FynlaTypography.pageTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
-                Text("Your secure workspace is ready.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-
-                NavigationLink {
-                    SettingsView(
-                        subscriptionModel: subscriptionModel,
-                        appleManager: appleSubscriptionManager,
-                        privacyLockController: privacyLockController
-                    )
-                } label: {
-                    Label("Settings", systemImage: "gearshape")
-                        .font(FynlaTypography.button)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+        NavigationStack(path: navigationPath) {
+            DashboardView(
+                model: dashboardModel,
+                onRoute: { route in
+                    navigate(to: route)
+                },
+                onOpenFyn: { _ in
+                    // The Fyn destination is implemented later in Package 5.
                 }
-                .buttonStyle(.bordered)
-                .tint(FynlaColor.primaryText)
-                .accessibilityIdentifier("app.unlocked.settings")
-
-                if let privacyLockController {
-                    FynlaButton(
-                        "Sign out",
-                        variant: .secondary,
-                        accessibilityLabel: "Sign out of Fynla"
-                    ) {
-                        Task { @MainActor in
-                            await privacyLockController.signOut()
-                        }
-                    }
-                    .accessibilityIdentifier("app.unlocked.sign-out")
-                }
+            )
+            .navigationDestination(for: AppRoute.self) { route in
+                NavigationDestinationFactory.destination(
+                    for: route,
+                    subscriptionModel: subscriptionModel,
+                    achievementsModel: achievementsModel,
+                    appleManager: appleSubscriptionManager,
+                    privacyLockController: privacyLockController,
+                    onRoute: navigate
+                )
             }
-            .padding(FynlaSpacing.large)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("app.unlocked")
             .toolbar {
-                if let privacyLockController {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Lock", systemImage: "lock") {
-                            privacyLockController.lock()
-                        }
-                        .accessibilityIdentifier("app.unlocked.lock")
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Menu") {
+                        isPresentingMenu = true
                     }
+                    .font(FynlaTypography.button)
+                    .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+                    .accessibilityIdentifier("navigation.open")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Settings") {
+                        navigate(to: .settings)
+                    }
+                    .font(FynlaTypography.button)
+                    .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+                    .accessibilityIdentifier("app.unlocked.settings")
                 }
             }
+            .accessibilityIdentifier("app.unlocked")
         }
+        .sheet(isPresented: $isPresentingMenu) {
+            NavigationMenuView(
+                includeStagedDestinations: isDevelopmentBuild,
+                onSelect: { route in
+                    isPresentingMenu = false
+                    navigate(to: route)
+                },
+                onDismiss: {
+                    isPresentingMenu = false
+                }
+            )
+        }
+    }
+
+    private var navigationPath: Binding<[AppRoute]> {
+        Binding(
+            get: { router.path },
+            set: { routes in
+                _ = router.restore(routes)
+            }
+        )
+    }
+
+    private func navigate(to route: AppRoute) {
+        if route == .dashboard {
+            router.reset()
+        } else {
+            _ = router.navigate(to: route)
+        }
+    }
+
+    private var isDevelopmentBuild: Bool {
+#if DEBUG
+        true
+#else
+        false
+#endif
     }
 }

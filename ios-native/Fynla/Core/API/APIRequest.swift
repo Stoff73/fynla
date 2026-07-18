@@ -13,25 +13,33 @@ enum HTTPMethod: String, Sendable {
     }
 }
 
+enum APIResponseDecoding: Sendable {
+    case envelope
+    case raw
+}
+
 struct APIRequest<Response: Decodable & Sendable>: Sendable {
     let path: String
     let method: HTTPMethod
     let queryItems: [URLQueryItem]
     let body: Data?
     let headers: [String: String]
+    let responseDecoding: APIResponseDecoding
 
     init(
         path: String,
         method: HTTPMethod,
         queryItems: [URLQueryItem] = [],
         body: Data? = nil,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        responseDecoding: APIResponseDecoding = .envelope
     ) {
         self.path = path
         self.method = method
         self.queryItems = queryItems
         self.body = body
         self.headers = headers
+        self.responseDecoding = responseDecoding
     }
 
     func urlRequest(

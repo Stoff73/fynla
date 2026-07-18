@@ -33,10 +33,29 @@ final class FynlaUITests: XCTestCase {
 
         let shell = element("app.unlocked", in: app)
         XCTAssertTrue(shell.waitForExistence(timeout: 3))
+        XCTAssertTrue(element("dashboard.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Your financial plan"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element("dashboard.level", in: app).exists)
+        XCTAssertTrue(element("dashboard.module.savings", in: app).exists)
+    }
+
+    @MainActor
+    func testNativeMenuOpensAchievementsWithoutLeavingTheApp() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let menu = app.buttons["navigation.open"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3))
+        menu.tap()
+
+        let achievements = app.buttons["navigation.achievements"]
+        XCTAssertTrue(achievements.waitForExistence(timeout: 3))
+        achievements.tap()
+
         XCTAssertTrue(
-            app.staticTexts["Your secure workspace is ready."]
-                .waitForExistence(timeout: 3)
+            element("achievements.screen", in: app).waitForExistence(timeout: 3)
         )
+        XCTAssertTrue(app.staticTexts["Achievements"].exists)
     }
 
     @MainActor

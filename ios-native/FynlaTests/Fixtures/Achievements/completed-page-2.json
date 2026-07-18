@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "data": {
+    "completed": [
+      {
+        "id": "action-1",
+        "title": "Build your emergency fund",
+        "module": "savings",
+        "completed_at": "2026-07-17T10:00:00Z"
+      },
+      {
+        "id": "action-0",
+        "title": "Add your income details",
+        "module": "income",
+        "completed_at": "2026-07-16T10:00:00Z"
+      }
+    ],
+    "completed_total": 3,
+    "page": 2,
+    "per_page": 25
+  }
+}

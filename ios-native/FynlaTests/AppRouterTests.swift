@@ -84,6 +84,23 @@ struct AppRouterTests {
         #expect(!router.removeLast())
     }
 
+    @Test @MainActor
+    func restoresAnUnlockedBackStackAndRejectsLockedFinancialState() {
+        let unlocked = AppSession(state: .authenticatedUnlocked)
+        let unlockedRouter = AppRouter(session: unlocked)
+        let restored: [AppRoute] = [.income, .netWorth(category: "property")]
+
+        #expect(unlockedRouter.restore(restored))
+        #expect(unlockedRouter.path == restored)
+
+        let locked = AppSession(state: .authenticatedLocked)
+        let lockedRouter = AppRouter(session: locked)
+        #expect(!lockedRouter.restore(restored))
+        #expect(lockedRouter.path.isEmpty)
+        #expect(lockedRouter.restore([.settings]))
+        #expect(lockedRouter.path == [.settings])
+    }
+
     private var financialRoutes: [AppRoute] {
         [
             .dashboard,

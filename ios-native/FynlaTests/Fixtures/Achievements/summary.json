@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "data": {
+    "achievements": [
+      {
+        "key": "level",
+        "title": "Reached Builder",
+        "description": "Your current planning level.",
+        "earned": true,
+        "earned_at": "2026-07-17T09:30:00Z"
+      },
+      {
+        "key": "streak",
+        "title": "3-day check-in streak",
+        "description": "Check in three days in a row.",
+        "earned": false,
+        "earned_at": null
+      }
+    ],
+    "completed": [
+      {
+        "id": "action-2",
+        "title": "Review your pension contribution",
+        "module": "retirement",
+        "completed_at": "2026-07-18T10:00:00Z"
+      },
+      {
+        "id": "action-1",
+        "title": "Build your emergency fund",
+        "module": "savings",
+        "completed_at": "2026-07-17T10:00:00Z"
+      }
+    ],
+    "completed_total": 3,
+    "milestones": [
+      {
+        "key": "action:0:1",
+        "title": "You completed your first action.",
+        "achieved": true,
+        "achieved_at": "2026-07-18T10:00:00Z"
+      }
+    ],
+    "upcoming": [
+      {
+        "group": "Savings",
+        "title": "Emergency fund covering three months of spending",
+        "steps": "Top up your easy-access savings.",
+        "route": "m-savings"
+      }
+    ]
+  }
+}

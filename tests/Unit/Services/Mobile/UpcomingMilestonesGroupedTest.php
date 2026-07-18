@@ -173,6 +173,7 @@ it('serves the cursor over the API', function () {
 
     $this->getJson('/api/gamification/activity')
         ->assertOk()
+        ->assertJsonPath('data.0.id', (string) PointAward::query()->latest('id')->value('id'))
         ->assertJsonPath('data.0.label', 'Added your first pension')
         ->assertJsonPath('next_cursor', null);
 });

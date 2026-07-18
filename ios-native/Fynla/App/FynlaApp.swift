@@ -8,6 +8,8 @@ struct FynlaApp: App {
     @State private var authenticationCoordinator: AuthenticationCoordinator
     @State private var privacyLockController: PrivacyLockController
     @State private var subscriptionModel: SubscriptionModel
+    @State private var dashboardModel: DashboardModel
+    @State private var achievementsModel: AchievementsModel
     private let dependencies: AppDependencies
     private let authenticationClient: APIAuthClient
     private let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -117,6 +119,36 @@ struct FynlaApp: App {
         let appleSubscriptionManager: any AppleSubscriptionManaging =
             SystemAppleSubscriptionManager()
         #endif
+        #if FYNLA_UI_TESTING
+        let dashboardModel = uiTestMode == nil
+            ? DashboardModel(
+                client: LiveDashboardClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : DashboardUITestComposition.model()
+        #else
+        let dashboardModel = DashboardModel(
+            client: LiveDashboardClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        #endif
+        #if FYNLA_UI_TESTING
+        let achievementsModel = uiTestMode == nil
+            ? AchievementsModel(
+                client: LiveAchievementsClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : AchievementsUITestComposition.model()
+        #else
+        let achievementsModel = AchievementsModel(
+            client: LiveAchievementsClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        #endif
         self.dependencies = authenticatedDependencies
         self.appleSubscriptionManager = appleSubscriptionManager
         _session = State(initialValue: session)
@@ -124,6 +156,8 @@ struct FynlaApp: App {
         _authenticationCoordinator = State(initialValue: coordinator)
         _privacyLockController = State(initialValue: privacyLockController)
         _subscriptionModel = State(initialValue: subscriptionModel)
+        _dashboardModel = State(initialValue: dashboardModel)
+        _achievementsModel = State(initialValue: achievementsModel)
     }
 
     var body: some Scene {
@@ -151,6 +185,8 @@ struct FynlaApp: App {
             session: session,
             privacyLockController: privacyLockController,
             subscriptionModel: subscriptionModel,
+            dashboardModel: dashboardModel,
+            achievementsModel: achievementsModel,
             appleSubscriptionManager: appleSubscriptionManager,
             registrationActions: registrationActions,
             loginActions: loginActions,
