@@ -41,6 +41,7 @@ class User extends Authenticatable
         'mfa_secret',
         'mfa_recovery_codes',
         'password',
+        'apple_app_account_token',
         'last_active_at',
         'last_seen_at',
     ];
@@ -59,6 +60,7 @@ class User extends Authenticatable
         'mfa_enabled',       // Auth state — set individually by MFAService
         'mfa_secret',         // Auth secret — set individually by MFAService
         'remember_token',
+        'apple_app_account_token',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -78,6 +80,7 @@ class User extends Authenticatable
         'locked_until',
         'last_failed_login_at',
         'national_insurance_number',
+        'apple_app_account_token',
     ];
 
     /**
@@ -218,6 +221,16 @@ class User extends Authenticatable
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function premiumEntitlements(): HasMany
+    {
+        return $this->hasMany(PremiumEntitlement::class);
+    }
+
+    public function appleTransactions(): HasMany
+    {
+        return $this->hasMany(AppleTransaction::class);
     }
 
     /**

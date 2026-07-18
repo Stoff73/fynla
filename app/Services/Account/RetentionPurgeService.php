@@ -140,6 +140,7 @@ class RetentionPurgeService
                 'mfa_confirmed_at' => null,
                 'mfa_enabled' => false,
                 'remember_token' => null,
+                'apple_app_account_token' => null,
                 // Relationships
                 'spouse_id' => null,
                 'household_id' => null,
@@ -342,6 +343,8 @@ class RetentionPurgeService
 
             // ── Subscription / Billing ──
             // NB: data_retention_email_log and renewal_reminder_log are intentionally
+            'apple_transactions',
+            'premium_entitlements',
             'payments',
             'subscriptions',
         ];
