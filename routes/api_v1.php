@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,6 +60,10 @@ Route::prefix('/native/auth')->middleware('native.client')->group(function () {
         Route::delete('/session', [NativeSessionController::class, 'destroy']);
     });
 });
+
+Route::get('/native/storekit/account-token', AppAccountTokenController::class)
+    ->middleware(['native.client', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.storekit.account-token');
 
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {

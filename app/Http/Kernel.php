@@ -13,6 +13,7 @@ use App\Http\Middleware\CaptureNativeDeviceLabel;
 use App\Http\Middleware\CheckFeatureAccess;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\EncryptCookies;
+use App\Http\Middleware\EnsureActiveNativeSession;
 use App\Http\Middleware\EnsureFullEstateAccess;
 use App\Http\Middleware\EnsureFullHolisticAccess;
 use App\Http\Middleware\EnsureMFAVerified;
@@ -134,6 +135,7 @@ class Kernel extends HttpKernel
         'permission' => HasPermission::class,
         'identify.mobile' => IdentifyMobileClient::class,
         'native.client' => IdentifyNativeClient::class,
+        'native.session' => EnsureActiveNativeSession::class,
         'etag' => ETagResponse::class,
         'advisor' => AdvisorMiddleware::class,
         'advisor.impersonate' => AdvisorImpersonationMiddleware::class,
