@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "expenditure": {
+      "monthly_expenditure": 1800,
+      "annual_expenditure": 21600
+    }
+  }
+}

@@ -7,6 +7,7 @@ struct AppRootView: View {
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
     let incomeModel: IncomeModel
+    let expenditureModel: ExpenditureModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -22,6 +23,7 @@ struct AppRootView: View {
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
         incomeModel: IncomeModel,
+        expenditureModel: ExpenditureModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -38,6 +40,7 @@ struct AppRootView: View {
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
         self.incomeModel = incomeModel
+        self.expenditureModel = expenditureModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -117,6 +120,7 @@ struct AppRootView: View {
                     dashboardModel: dashboardModel,
                     achievementsModel: achievementsModel,
                     incomeModel: incomeModel,
+                    expenditureModel: expenditureModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -148,6 +152,7 @@ struct AppRootView: View {
                 dashboardModel.stop()
                 achievementsModel.stop()
                 incomeModel.stop()
+                expenditureModel.stop()
                 fynModel.stopAndClear()
                 bugReportModel.reset()
             }
@@ -213,6 +218,7 @@ private struct UnlockedView: View {
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
     let incomeModel: IncomeModel
+    let expenditureModel: ExpenditureModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -237,6 +243,7 @@ private struct UnlockedView: View {
                     subscriptionModel: subscriptionModel,
                     achievementsModel: achievementsModel,
                     incomeModel: incomeModel,
+                    expenditureModel: expenditureModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     privacyLockController: privacyLockController,
@@ -292,6 +299,8 @@ private struct UnlockedView: View {
                         Task { await dashboardModel.refresh() }
                     case .income:
                         Task { await incomeModel.refresh() }
+                    case .expenditure:
+                        Task { await expenditureModel.refresh() }
                     default:
                         break
                     }

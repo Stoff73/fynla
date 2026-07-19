@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "expenditure": {
+      "monthly_expenditure": 0,
+      "annual_expenditure": 0,
+      "categories": {
+        "food_groceries": 0,
+        "transport_fuel": 0,
+        "clothing_personal_care": 0,
+        "entertainment_dining": 0,
+        "childcare": 0,
+        "other_expenditure": 0
+      }
+    }
+  }
+}

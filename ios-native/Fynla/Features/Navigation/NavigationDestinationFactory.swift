@@ -28,6 +28,7 @@ enum NavigationDestinationFactory {
         subscriptionModel: SubscriptionModel,
         achievementsModel: AchievementsModel,
         incomeModel: IncomeModel,
+        expenditureModel: ExpenditureModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
@@ -42,6 +43,12 @@ enum NavigationDestinationFactory {
         case .income:
             IncomeView(
                 model: incomeModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .expenditure:
+            ExpenditureView(
+                model: expenditureModel,
                 onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
