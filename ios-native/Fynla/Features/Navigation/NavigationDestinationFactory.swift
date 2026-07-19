@@ -44,6 +44,7 @@ enum NavigationDestinationFactory {
         privacySettingsModel: PrivacySettingsModel,
         dataExportModel: DataExportModel,
         accountDeletionModel: AccountDeletionModel,
+        pushCoordinator: PushRegistrationCoordinator,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         onOpenFyn: @escaping (String) -> Void,
@@ -178,7 +179,8 @@ enum NavigationDestinationFactory {
                 appleManager: appleManager,
                 privacySettingsModel: privacySettingsModel,
                 dataExportModel: dataExportModel,
-                accountDeletionModel: accountDeletionModel
+                accountDeletionModel: accountDeletionModel,
+                pushCoordinator: pushCoordinator
             )
         case .dashboard, .module:
             StagedNativeDestinationView(title: title(for: route))

@@ -69,6 +69,14 @@ return [
         'project_id' => env('FCM_PROJECT_ID'),
     ],
 
+    'apns' => [
+        'team_id' => env('APNS_TEAM_ID'),
+        'key_id' => env('APNS_KEY_ID'),
+        'bundle_id' => env('APNS_BUNDLE_ID'),
+        'private_key' => env('APNS_PRIVATE_KEY'),
+        'environment' => env('APNS_ENVIRONMENT', 'sandbox'),
+    ],
+
     // GitHub issue creation for in-app bug reports. The token needs only
     // Issues: write on the target repo, lives on the server .env, and is
     // disabled by default so nothing fires until provisioned.

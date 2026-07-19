@@ -8,6 +8,7 @@ struct SettingsView: View {
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
+    let pushCoordinator: PushRegistrationCoordinator
     @State private var browserItem: SettingsBrowserItem?
 
     var body: some View {
@@ -94,10 +95,15 @@ struct SettingsView: View {
             Text("Preferences and data")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
-            settingsRow(
-                title: "Notifications",
-                detail: "Not enabled"
-            )
+            NavigationLink {
+                NotificationSettingsView(coordinator: pushCoordinator)
+            } label: {
+                settingsRow(
+                    title: "Notifications",
+                    detail: notificationDetail
+                )
+            }
+            .buttonStyle(.plain)
             .accessibilityIdentifier("settings.notifications")
             NavigationLink {
                 PrivacySettingsView(
@@ -129,6 +135,15 @@ struct SettingsView: View {
             .accessibilityIdentifier("settings.account-deletion")
         }
         .settingsCard()
+    }
+
+    private var notificationDetail: String {
+        switch pushCoordinator.state {
+        case .notDetermined: "Not enabled"
+        case .denied: "Disabled in iOS Settings"
+        case .provisional: "Quiet notifications"
+        case .authorized: "Enabled"
+        }
     }
 
     private var helpAndLegalCard: some View {

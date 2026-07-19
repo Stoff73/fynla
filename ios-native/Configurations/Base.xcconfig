@@ -12,3 +12,4 @@ INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait
 INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait
 INFOPLIST_KEY_UIUserInterfaceStyle = Light
 ENABLE_USER_SCRIPT_SANDBOXING = YES
+CODE_SIGN_ENTITLEMENTS = Fynla/Fynla.entitlements

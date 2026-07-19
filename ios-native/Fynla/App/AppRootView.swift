@@ -22,6 +22,7 @@ struct AppRootView: View {
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
+    let pushCoordinator: PushRegistrationCoordinator
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -52,6 +53,7 @@ struct AppRootView: View {
         privacySettingsModel: PrivacySettingsModel,
         dataExportModel: DataExportModel,
         accountDeletionModel: AccountDeletionModel,
+        pushCoordinator: PushRegistrationCoordinator,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -83,6 +85,7 @@ struct AppRootView: View {
         self.privacySettingsModel = privacySettingsModel
         self.dataExportModel = dataExportModel
         self.accountDeletionModel = accountDeletionModel
+        self.pushCoordinator = pushCoordinator
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -177,6 +180,7 @@ struct AppRootView: View {
                     privacySettingsModel: privacySettingsModel,
                     dataExportModel: dataExportModel,
                     accountDeletionModel: accountDeletionModel,
+                    pushCoordinator: pushCoordinator,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -195,6 +199,7 @@ struct AppRootView: View {
             }
         }
         .onChange(of: session.state) { _, _ in
+            pushCoordinator.sessionDidChange()
             guard let privacyLockController else { return }
             Task { @MainActor in
                 await privacyLockController.refreshFaceIDOffer()
@@ -202,6 +207,7 @@ struct AppRootView: View {
         }
         .task(id: session.state) {
             if session.state == .authenticatedUnlocked {
+                await pushCoordinator.start()
                 await subscriptionModel.start()
             } else if session.state == .signedOut {
                 subscriptionModel.stop()
@@ -302,6 +308,7 @@ private struct UnlockedView: View {
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
+    let pushCoordinator: PushRegistrationCoordinator
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -341,6 +348,7 @@ private struct UnlockedView: View {
                     privacySettingsModel: privacySettingsModel,
                     dataExportModel: dataExportModel,
                     accountDeletionModel: accountDeletionModel,
+                    pushCoordinator: pushCoordinator,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     onOpenFyn: { prompt in

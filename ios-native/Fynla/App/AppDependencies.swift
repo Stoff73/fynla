@@ -140,6 +140,10 @@ struct AppDependencies: Sendable {
         )
     }
 
+    func makePushDeviceMetadata(osVersion: String) -> PushDeviceMetadata {
+        PushDeviceMetadata(appVersion: appVersion, osVersion: osVersion)
+    }
+
     func authenticatedSession(
         accessTokenProvider: any AccessTokenProviding,
         tokenRefresher: any AccessTokenRefreshing

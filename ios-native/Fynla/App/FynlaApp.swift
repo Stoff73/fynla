@@ -1,7 +1,9 @@
 import SwiftUI
+import UIKit
 
 @main
 struct FynlaApp: App {
+    @UIApplicationDelegateAdaptor(FynlaAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @State private var session: AppSession
     @State private var router: AppRouter
@@ -26,6 +28,7 @@ struct FynlaApp: App {
     @State private var privacySettingsModel: PrivacySettingsModel
     @State private var dataExportModel: DataExportModel
     @State private var accountDeletionModel: AccountDeletionModel
+    @State private var pushCoordinator: PushRegistrationCoordinator
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -50,6 +53,7 @@ struct FynlaApp: App {
         #endif
 
         let session = AppSession(state: initialState)
+        let router = AppRouter(session: session)
         let authClient = dependencies.makeAuthenticationClient()
         self.authenticationClient = authClient
         #if FYNLA_UI_TESTING
@@ -111,6 +115,18 @@ struct FynlaApp: App {
         let authenticatedDependencies = dependencies.authenticatedSession(
             accessTokenProvider: coordinator,
             tokenRefresher: privacyLockController
+        )
+        let pushCoordinator = PushRegistrationCoordinator(
+            system: LiveSystemPushClient(),
+            client: LivePushClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            session: session,
+            router: router,
+            nativeSessionID: { coordinator.credentials?.sessionID },
+            metadata: dependencies.makePushDeviceMetadata(
+                osVersion: "iOS \(UIDevice.current.systemVersion)"
+            )
         )
         let incomeModel = IncomeModel(
             client: LiveIncomeClient(
@@ -216,7 +232,8 @@ struct FynlaApp: App {
         let settingsModel = SettingsModel(
             userProvider: settingsUserProvider,
             privacyLockController: privacyLockController,
-            webBaseURL: dependencies.environment.webBaseURL
+            webBaseURL: dependencies.environment.webBaseURL,
+            beforeSignOut: { await pushCoordinator.unregister() }
         )
         let privacyClient = LivePrivacyClient(
             apiClient: authenticatedDependencies.makeAPIClient()
@@ -248,6 +265,7 @@ struct FynlaApp: App {
                 }
             },
             cleanup: {
+                await pushCoordinator.unregister()
                 await dataExportModel.stop()
                 try? await exportStore.deleteAll()
                 await privacyLockController.signOut()
@@ -323,7 +341,7 @@ struct FynlaApp: App {
         self.dependencies = authenticatedDependencies
         self.appleSubscriptionManager = appleSubscriptionManager
         _session = State(initialValue: session)
-        _router = State(initialValue: AppRouter(session: session))
+        _router = State(initialValue: router)
         _authenticationCoordinator = State(initialValue: coordinator)
         _privacyLockController = State(initialValue: privacyLockController)
         _subscriptionModel = State(initialValue: subscriptionModel)
@@ -345,6 +363,7 @@ struct FynlaApp: App {
         _privacySettingsModel = State(initialValue: privacySettingsModel)
         _dataExportModel = State(initialValue: dataExportModel)
         _accountDeletionModel = State(initialValue: accountDeletionModel)
+        _pushCoordinator = State(initialValue: pushCoordinator)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -392,6 +411,7 @@ struct FynlaApp: App {
             privacySettingsModel: privacySettingsModel,
             dataExportModel: dataExportModel,
             accountDeletionModel: accountDeletionModel,
+            pushCoordinator: pushCoordinator,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
@@ -404,6 +424,9 @@ struct FynlaApp: App {
         )
             .environment(session)
             .environment(router)
+            .task {
+                PushAppDelegateBridge.shared.configure(pushCoordinator)
+            }
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
                 case .background:

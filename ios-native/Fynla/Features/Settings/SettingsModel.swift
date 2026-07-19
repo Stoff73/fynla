@@ -63,14 +63,17 @@ final class SettingsModel {
 
     private let userProvider: @MainActor () -> AuthenticatedUser?
     private let privacyLockController: PrivacyLockController?
+    private let beforeSignOut: @MainActor @Sendable () async -> Void
 
     init(
         userProvider: @escaping @MainActor () -> AuthenticatedUser?,
         privacyLockController: PrivacyLockController?,
-        webBaseURL: URL
+        webBaseURL: URL,
+        beforeSignOut: @escaping @MainActor @Sendable () async -> Void = {}
     ) {
         self.userProvider = userProvider
         self.privacyLockController = privacyLockController
+        self.beforeSignOut = beforeSignOut
         privacyURL = webBaseURL.appending(path: "privacy")
         termsURL = webBaseURL.appending(path: "terms")
         supportURL = webBaseURL.appending(path: "contact")
@@ -129,6 +132,7 @@ final class SettingsModel {
     }
 
     func signOut() async {
+        await beforeSignOut()
         await privacyLockController?.signOut()
     }
 

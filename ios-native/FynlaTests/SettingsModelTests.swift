@@ -64,6 +64,21 @@ struct SettingsModelTests {
         #expect(!model.faceIDEnabled)
     }
 
+    @Test @MainActor
+    func signOutRunsDeviceCleanupBeforeClearingTheLocalSession() async {
+        let cleanup = SettingsCleanupRecorder()
+        let model = SettingsModel(
+            userProvider: { Self.user },
+            privacyLockController: nil,
+            webBaseURL: URL(string: "https://fynla.org")!,
+            beforeSignOut: { await cleanup.record() }
+        )
+
+        await model.signOut()
+
+        #expect(await cleanup.count() == 1)
+    }
+
     private static let user = AuthenticatedUser(
         id: 74,
         firstName: nil,
@@ -86,4 +101,10 @@ struct SettingsModelTests {
             billingManagement: billing
         )
     }
+}
+
+private actor SettingsCleanupRecorder {
+    private var value = 0
+    func record() { value += 1 }
+    func count() -> Int { value }
 }
