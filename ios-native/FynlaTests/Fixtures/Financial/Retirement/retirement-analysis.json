@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "projected_income": 38000,
+    "target_income": 42000,
+    "income_gap": 4000,
+    "years_to_retirement": 20,
+    "total_pension_wealth": 180000,
+    "recommendations": [
+      {
+        "type": "contribution",
+        "title": "Review contributions",
+        "description": "Consider increasing pension contributions to close the projected shortfall."
+      }
+    ]
+  }
+}

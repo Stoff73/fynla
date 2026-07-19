@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "data": {
+    "pension_pot_projection": {
+      "current_value": 180000,
+      "monthly_contribution": 500,
+      "percentile_20_at_retirement": 410000,
+      "median_at_retirement": 520000,
+      "retirement_age": 65,
+      "years_to_retirement": 20,
+      "expected_return": 5,
+      "retirement_age_source": "user_profile",
+      "current_age": 45,
+      "current_age_source": "profile"
+    },
+    "income_drawdown": {
+      "yearly_income": [
+        { "total_income": 37500 }
+      ]
+    }
+  }
+}

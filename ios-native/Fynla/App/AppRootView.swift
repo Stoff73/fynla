@@ -12,6 +12,7 @@ struct AppRootView: View {
     let balanceHistoryModel: BalanceHistoryModel
     let savingsModel: SavingsModel
     let investmentModel: InvestmentModel
+    let retirementModel: RetirementModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -32,6 +33,7 @@ struct AppRootView: View {
         balanceHistoryModel: BalanceHistoryModel,
         savingsModel: SavingsModel,
         investmentModel: InvestmentModel,
+        retirementModel: RetirementModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -53,6 +55,7 @@ struct AppRootView: View {
         self.balanceHistoryModel = balanceHistoryModel
         self.savingsModel = savingsModel
         self.investmentModel = investmentModel
+        self.retirementModel = retirementModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -137,6 +140,7 @@ struct AppRootView: View {
                     balanceHistoryModel: balanceHistoryModel,
                     savingsModel: savingsModel,
                     investmentModel: investmentModel,
+                    retirementModel: retirementModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -173,6 +177,7 @@ struct AppRootView: View {
                 balanceHistoryModel.stop()
                 savingsModel.stop()
                 investmentModel.stop()
+                retirementModel.stop()
                 fynModel.stopAndClear()
                 bugReportModel.reset()
             }
@@ -243,6 +248,7 @@ private struct UnlockedView: View {
     let balanceHistoryModel: BalanceHistoryModel
     let savingsModel: SavingsModel
     let investmentModel: InvestmentModel
+    let retirementModel: RetirementModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -272,6 +278,7 @@ private struct UnlockedView: View {
                     balanceHistoryModel: balanceHistoryModel,
                     savingsModel: savingsModel,
                     investmentModel: investmentModel,
+                    retirementModel: retirementModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     privacyLockController: privacyLockController,
@@ -337,6 +344,8 @@ private struct UnlockedView: View {
                         Task { await savingsModel.refresh() }
                     case .investment:
                         Task { await investmentModel.refresh() }
+                    case .retirement:
+                        Task { await retirementModel.refresh() }
                     default:
                         break
                     }
