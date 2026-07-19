@@ -29,6 +29,7 @@ struct FynlaApp: App {
     @State private var dataExportModel: DataExportModel
     @State private var accountDeletionModel: AccountDeletionModel
     @State private var pushCoordinator: PushRegistrationCoordinator
+    @State private var deepLinkCoordinator: PendingDeepLinkCoordinator
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -127,6 +128,14 @@ struct FynlaApp: App {
             metadata: dependencies.makePushDeviceMetadata(
                 osVersion: "iOS \(UIDevice.current.systemVersion)"
             )
+        )
+        let deepLinkCoordinator = PendingDeepLinkCoordinator(
+            parser: DeepLinkParser(environment: dependencies.environment),
+            session: session,
+            router: router,
+            openExternal: { url in
+                UIApplication.shared.open(url)
+            }
         )
         let incomeModel = IncomeModel(
             client: LiveIncomeClient(
@@ -364,6 +373,7 @@ struct FynlaApp: App {
         _dataExportModel = State(initialValue: dataExportModel)
         _accountDeletionModel = State(initialValue: accountDeletionModel)
         _pushCoordinator = State(initialValue: pushCoordinator)
+        _deepLinkCoordinator = State(initialValue: deepLinkCoordinator)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -412,6 +422,7 @@ struct FynlaApp: App {
             dataExportModel: dataExportModel,
             accountDeletionModel: accountDeletionModel,
             pushCoordinator: pushCoordinator,
+            deepLinkCoordinator: deepLinkCoordinator,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
@@ -426,6 +437,13 @@ struct FynlaApp: App {
             .environment(router)
             .task {
                 PushAppDelegateBridge.shared.configure(pushCoordinator)
+            }
+            .onOpenURL { url in
+                deepLinkCoordinator.receive(url)
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                guard let url = activity.webpageURL else { return }
+                deepLinkCoordinator.receive(url)
             }
             .onChange(of: scenePhase) { _, phase in
                 switch phase {

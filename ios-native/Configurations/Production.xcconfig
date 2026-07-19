@@ -4,3 +4,4 @@ FYNLA_API_BASE_URL = https:/$()/fynla.org
 FYNLA_WEB_BASE_URL = https:/$()/fynla.org
 FYNLA_ENVIRONMENT = production
 APS_ENVIRONMENT = production
+ASSOCIATED_DOMAIN = fynla.org

@@ -23,6 +23,7 @@ struct AppRootView: View {
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
     let pushCoordinator: PushRegistrationCoordinator
+    let deepLinkCoordinator: PendingDeepLinkCoordinator
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -54,6 +55,7 @@ struct AppRootView: View {
         dataExportModel: DataExportModel,
         accountDeletionModel: AccountDeletionModel,
         pushCoordinator: PushRegistrationCoordinator,
+        deepLinkCoordinator: PendingDeepLinkCoordinator,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -86,6 +88,7 @@ struct AppRootView: View {
         self.dataExportModel = dataExportModel
         self.accountDeletionModel = accountDeletionModel
         self.pushCoordinator = pushCoordinator
+        self.deepLinkCoordinator = deepLinkCoordinator
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -200,6 +203,7 @@ struct AppRootView: View {
         }
         .onChange(of: session.state) { _, _ in
             pushCoordinator.sessionDidChange()
+            deepLinkCoordinator.sessionDidChange()
             guard let privacyLockController else { return }
             Task { @MainActor in
                 await privacyLockController.refreshFaceIDOffer()

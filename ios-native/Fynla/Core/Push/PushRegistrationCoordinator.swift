@@ -126,7 +126,7 @@ final class PushRegistrationCoordinator {
     private func deliverPendingRouteIfPossible() {
         guard session.state == .authenticatedUnlocked,
               let pendingRoute,
-              router.navigate(to: pendingRoute)
+              router.open(pendingRoute)
         else { return }
         self.pendingRoute = nil
     }

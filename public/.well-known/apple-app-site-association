@@ -1,9 +1,67 @@
 {
     "applinks": {
         "apps": [],
-        "details": [{
-            "appID": "TEAMID.org.fynla.app",
-            "paths": ["/protection", "/savings", "/investments", "/retirement", "/estate", "/goals", "/net-worth", "/tax", "/dashboard"]
-        }]
+        "details": [
+            {
+                "appIDs": ["99S3M8JLLF.org.fynla.app"],
+                "components": [
+                    { "/": "/admin/*", "exclude": true },
+                    { "/": "/api/*", "exclude": true },
+                    { "/": "/.well-known/*", "exclude": true },
+                    { "/": "/payment*", "exclude": true },
+                    { "/": "/update-payment*", "exclude": true },
+                    { "/": "/webhook*", "exclude": true },
+                    { "/": "/dashboard" },
+                    { "/": "/achievements" },
+                    { "/": "/income" },
+                    { "/": "/expenditure" },
+                    { "/": "/net-worth" },
+                    { "/": "/net-worth/*" },
+                    { "/": "/protection" },
+                    { "/": "/protection/policy/*" },
+                    { "/": "/savings" },
+                    { "/": "/savings/account/*" },
+                    { "/": "/investment" },
+                    { "/": "/investment/account/*" },
+                    { "/": "/retirement" },
+                    { "/": "/retirement/pension/*" },
+                    { "/": "/estate" },
+                    { "/": "/goals" },
+                    { "/": "/tax-strategy" },
+                    { "/": "/holistic-plan" },
+                    { "/": "/settings" }
+                ]
+            },
+            {
+                "appIDs": ["99S3M8JLLF.org.fynla.app.dev"],
+                "components": [
+                    { "/": "/fynla/admin/*", "exclude": true },
+                    { "/": "/fynla/api/*", "exclude": true },
+                    { "/": "/fynla/.well-known/*", "exclude": true },
+                    { "/": "/fynla/payment*", "exclude": true },
+                    { "/": "/fynla/update-payment*", "exclude": true },
+                    { "/": "/fynla/webhook*", "exclude": true },
+                    { "/": "/fynla/dashboard" },
+                    { "/": "/fynla/achievements" },
+                    { "/": "/fynla/income" },
+                    { "/": "/fynla/expenditure" },
+                    { "/": "/fynla/net-worth" },
+                    { "/": "/fynla/net-worth/*" },
+                    { "/": "/fynla/protection" },
+                    { "/": "/fynla/protection/policy/*" },
+                    { "/": "/fynla/savings" },
+                    { "/": "/fynla/savings/account/*" },
+                    { "/": "/fynla/investment" },
+                    { "/": "/fynla/investment/account/*" },
+                    { "/": "/fynla/retirement" },
+                    { "/": "/fynla/retirement/pension/*" },
+                    { "/": "/fynla/estate" },
+                    { "/": "/fynla/goals" },
+                    { "/": "/fynla/tax-strategy" },
+                    { "/": "/fynla/holistic-plan" },
+                    { "/": "/fynla/settings" }
+                ]
+            }
+        ]
     }
 }

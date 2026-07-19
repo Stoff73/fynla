@@ -42,6 +42,13 @@ final class AppRouter {
     }
 
     @discardableResult
+    func open(_ route: AppRoute) -> Bool {
+        guard canNavigate(to: route) else { return false }
+        path = route == .dashboard ? [] : [route]
+        return true
+    }
+
+    @discardableResult
     func removeLast() -> Bool {
         guard !path.isEmpty else { return false }
         path.removeLast()

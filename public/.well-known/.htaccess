@@ -1,0 +1,5 @@
+<IfModule mod_mime.c>
+    <Files "apple-app-site-association">
+        ForceType application/json
+    </Files>
+</IfModule>

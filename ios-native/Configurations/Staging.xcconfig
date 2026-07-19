@@ -4,3 +4,4 @@ FYNLA_API_BASE_URL = https:/$()/csjones.co/fynla
 FYNLA_WEB_BASE_URL = https:/$()/csjones.co/fynla
 FYNLA_ENVIRONMENT = staging
 APS_ENVIRONMENT = development
+ASSOCIATED_DOMAIN = csjones.co
