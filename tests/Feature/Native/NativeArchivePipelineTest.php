@@ -40,6 +40,12 @@ it('provides native-only production build archive and verification scripts', fun
 
     expect("{$directory}/README.md")->toBeFile()
         ->and(base_path('docs/app-store/native-v1-release-checklist.md'))->toBeFile();
+
+    expect(File::get(base_path('ios-native/Configurations/Info.plist')))
+        ->toContain(
+            '<key>NSFaceIDUsageDescription</key>',
+            '<string>Use Face ID to unlock your financial plan.</string>',
+        );
 });
 
 it('accepts only a signed native production archive without forbidden payloads', function (): void {
