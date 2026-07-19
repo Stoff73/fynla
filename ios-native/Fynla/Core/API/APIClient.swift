@@ -75,6 +75,39 @@ actor APIClient {
         )
     }
 
+    func sendData<Value>(_ request: APIRequest<Value>) async throws -> Data {
+        let correlationID = requestID()
+        let accessToken = await tokenProvider.accessToken()
+        var result = try await perform(
+            request,
+            accessToken: accessToken,
+            correlationID: correlationID
+        )
+
+        if result.response.statusCode == 401,
+           request.method.permitsAuthenticationReplay,
+           accessToken != nil,
+           let tokenRefresher,
+           let refreshedToken = try await tokenRefresher.refreshAccessToken()
+        {
+            result = try await perform(
+                request,
+                accessToken: refreshedToken,
+                correlationID: correlationID
+            )
+        }
+
+        guard (200..<300).contains(result.response.statusCode) else {
+            throw mapError(
+                data: result.data,
+                response: result.response,
+                requestID: result.response.value(forHTTPHeaderField: "X-Request-ID")
+                    ?? correlationID
+            )
+        }
+        return result.data
+    }
+
     private func perform<Value>(
         _ request: APIRequest<Value>,
         accessToken: String?,

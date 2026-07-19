@@ -1,0 +1,19 @@
+{
+  "data": {
+    "requested_range": { "from": "2025-07-18", "to": "2026-07-18" },
+    "effective_range": { "from": "2025-07-18", "to": "2026-07-18" },
+    "visibility": { "window_days": null, "label": "Full available history" },
+    "series": [],
+    "totals": [
+      { "date": "2025-07-18", "assets": 580000, "liabilities": 220000, "net_worth": 360000 },
+      { "date": "2026-07-18", "assets": 650000, "liabilities": 210000, "net_worth": 440000 }
+    ],
+    "year_on_year": {
+      "as_at": "2026-07-18",
+      "compared_with": "2025-07-18",
+      "currency": "GBP",
+      "net_worth_change": 80000,
+      "percentage_change": 22.22
+    }
+  }
+}

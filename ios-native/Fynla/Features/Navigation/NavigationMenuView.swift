@@ -32,7 +32,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
         NavigationMenuSection(
             title: "Finances",
             items: [
-                NavigationMenuItem(label: "Net Worth", route: .netWorth(category: nil), isStaged: true),
+                NavigationMenuItem(label: "Net Worth", route: .netWorth(category: nil), isStaged: false),
                 NavigationMenuItem(label: "Savings", route: .savings(accountID: nil), isStaged: true),
                 NavigationMenuItem(label: "Investments", route: .investment(accountID: nil), isStaged: true),
                 NavigationMenuItem(label: "Retirement", route: .retirement(pensionType: nil, id: nil), isStaged: true),

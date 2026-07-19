@@ -9,6 +9,7 @@ enum NavigationDestinationFactory {
         case .income: "Income"
         case .expenditure: "Expenditure"
         case .netWorth: "Net Worth"
+        case .balanceHistory: "Balance History"
         case .protection: "Protection"
         case .savings: "Savings"
         case .investment: "Investments"
@@ -29,6 +30,8 @@ enum NavigationDestinationFactory {
         achievementsModel: AchievementsModel,
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
+        netWorthModel: NetWorthModel,
+        balanceHistoryModel: BalanceHistoryModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
@@ -50,6 +53,27 @@ enum NavigationDestinationFactory {
             ExpenditureView(
                 model: expenditureModel,
                 onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case let .netWorth(category):
+            if let category {
+                NetWorthCategoryView(
+                    categoryKey: category,
+                    model: netWorthModel,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            } else {
+                NetWorthView(
+                    model: netWorthModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case .balanceHistory:
+            BalanceHistoryView(
+                model: balanceHistoryModel,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .settings:

@@ -12,6 +12,8 @@ struct FynlaApp: App {
     @State private var achievementsModel: AchievementsModel
     @State private var incomeModel: IncomeModel
     @State private var expenditureModel: ExpenditureModel
+    @State private var netWorthModel: NetWorthModel
+    @State private var balanceHistoryModel: BalanceHistoryModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -105,6 +107,16 @@ struct FynlaApp: App {
         )
         let expenditureModel = ExpenditureModel(
             client: LiveExpenditureClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        let netWorthModel = NetWorthModel(
+            client: LiveNetWorthClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        let balanceHistoryModel = BalanceHistoryModel(
+            client: LiveBalanceHistoryClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
@@ -211,6 +223,8 @@ struct FynlaApp: App {
         _achievementsModel = State(initialValue: achievementsModel)
         _incomeModel = State(initialValue: incomeModel)
         _expenditureModel = State(initialValue: expenditureModel)
+        _netWorthModel = State(initialValue: netWorthModel)
+        _balanceHistoryModel = State(initialValue: balanceHistoryModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -244,6 +258,8 @@ struct FynlaApp: App {
             achievementsModel: achievementsModel,
             incomeModel: incomeModel,
             expenditureModel: expenditureModel,
+            netWorthModel: netWorthModel,
+            balanceHistoryModel: balanceHistoryModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,

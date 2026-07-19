@@ -7,6 +7,7 @@ enum AppRoute: Hashable, Sendable {
     case income
     case expenditure
     case netWorth(category: String?)
+    case balanceHistory
     case protection(policyType: String?, id: Int?)
     case savings(accountID: Int?)
     case investment(accountID: Int?)
