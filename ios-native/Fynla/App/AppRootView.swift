@@ -21,6 +21,7 @@ struct AppRootView: View {
     let settingsModel: SettingsModel
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
+    let accountDeletionModel: AccountDeletionModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -50,6 +51,7 @@ struct AppRootView: View {
         settingsModel: SettingsModel,
         privacySettingsModel: PrivacySettingsModel,
         dataExportModel: DataExportModel,
+        accountDeletionModel: AccountDeletionModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -80,6 +82,7 @@ struct AppRootView: View {
         self.settingsModel = settingsModel
         self.privacySettingsModel = privacySettingsModel
         self.dataExportModel = dataExportModel
+        self.accountDeletionModel = accountDeletionModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -173,6 +176,7 @@ struct AppRootView: View {
                     settingsModel: settingsModel,
                     privacySettingsModel: privacySettingsModel,
                     dataExportModel: dataExportModel,
+                    accountDeletionModel: accountDeletionModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -217,6 +221,7 @@ struct AppRootView: View {
                 holisticPlanModel.stop()
                 privacySettingsModel.stop()
                 await dataExportModel.stop()
+                accountDeletionModel.reset()
                 fynModel.stopAndClear()
                 bugReportModel.reset()
             }
@@ -296,6 +301,7 @@ private struct UnlockedView: View {
     let settingsModel: SettingsModel
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
+    let accountDeletionModel: AccountDeletionModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -334,6 +340,7 @@ private struct UnlockedView: View {
                     settingsModel: settingsModel,
                     privacySettingsModel: privacySettingsModel,
                     dataExportModel: dataExportModel,
+                    accountDeletionModel: accountDeletionModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     onOpenFyn: { prompt in

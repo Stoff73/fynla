@@ -7,6 +7,7 @@ struct SettingsView: View {
     let appleManager: any AppleSubscriptionManaging
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
+    let accountDeletionModel: AccountDeletionModel
     @State private var browserItem: SettingsBrowserItem?
 
     var body: some View {
@@ -101,7 +102,9 @@ struct SettingsView: View {
             NavigationLink {
                 PrivacySettingsView(
                     model: privacySettingsModel,
-                    dataExportModel: dataExportModel
+                    dataExportModel: dataExportModel,
+                    accountDeletionModel: accountDeletionModel,
+                    appleManager: appleManager
                 )
             } label: {
                 settingsRow(
@@ -111,6 +114,19 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("settings.privacy")
+            NavigationLink {
+                AccountDeletionView(
+                    model: accountDeletionModel,
+                    appleManager: appleManager
+                )
+            } label: {
+                settingsRow(
+                    title: "Delete account",
+                    detail: "Verify and complete deletion in Fynla"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("settings.account-deletion")
         }
         .settingsCard()
     }

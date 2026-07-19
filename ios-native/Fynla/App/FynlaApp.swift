@@ -25,6 +25,7 @@ struct FynlaApp: App {
     @State private var settingsModel: SettingsModel
     @State private var privacySettingsModel: PrivacySettingsModel
     @State private var dataExportModel: DataExportModel
+    @State private var accountDeletionModel: AccountDeletionModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -221,9 +222,36 @@ struct FynlaApp: App {
             apiClient: authenticatedDependencies.makeAPIClient()
         )
         let privacySettingsModel = PrivacySettingsModel(client: privacyClient)
+        let exportStore = TemporaryExportStore()
         let dataExportModel = DataExportModel(
             client: privacyClient,
-            store: TemporaryExportStore()
+            store: exportStore
+        )
+        let accountDeletionSubscriptionAPI = LiveSubscriptionAPI(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        let accountDeletionModel = AccountDeletionModel(
+            client: LiveAccountDeletionClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            loadBillingState: {
+                do {
+                    let entitlement = try await accountDeletionSubscriptionAPI.entitlement()
+                    return switch (entitlement.tier, entitlement.billingManagement) {
+                    case (.premium, .apple): .applePremium
+                    case (.premium, .web): .webPremium
+                    case (.free, _): .free
+                    case (.premium, .none): .unavailable
+                    }
+                } catch {
+                    return .unavailable
+                }
+            },
+            cleanup: {
+                await dataExportModel.stop()
+                try? await exportStore.deleteAll()
+                await privacyLockController.signOut()
+            }
         )
         #if FYNLA_UI_TESTING
         let dashboardModel = uiTestMode == nil
@@ -316,6 +344,7 @@ struct FynlaApp: App {
         _settingsModel = State(initialValue: settingsModel)
         _privacySettingsModel = State(initialValue: privacySettingsModel)
         _dataExportModel = State(initialValue: dataExportModel)
+        _accountDeletionModel = State(initialValue: accountDeletionModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -362,6 +391,7 @@ struct FynlaApp: App {
             settingsModel: settingsModel,
             privacySettingsModel: privacySettingsModel,
             dataExportModel: dataExportModel,
+            accountDeletionModel: accountDeletionModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,

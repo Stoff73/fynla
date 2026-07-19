@@ -51,4 +51,16 @@ actor TemporaryExportStore {
             }
         }
     }
+
+    func deleteAll() throws {
+        guard fileManager.fileExists(atPath: directory.path) else { return }
+        let urls = try fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        for url in urls where url.lastPathComponent.hasPrefix(prefix) {
+            try fileManager.removeItem(at: url)
+        }
+    }
 }

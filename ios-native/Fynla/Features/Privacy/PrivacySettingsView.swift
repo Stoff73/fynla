@@ -3,6 +3,8 @@ import SwiftUI
 struct PrivacySettingsView: View {
     let model: PrivacySettingsModel
     let dataExportModel: DataExportModel
+    let accountDeletionModel: AccountDeletionModel
+    let appleManager: any AppleSubscriptionManaging
 
     var body: some View {
         Group {
@@ -142,6 +144,16 @@ struct PrivacySettingsView: View {
             Text("Deletion is completed in this app with verification and clear retention information.")
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.secondaryText)
+            NavigationLink("Delete account") {
+                AccountDeletionView(
+                    model: accountDeletionModel,
+                    appleManager: appleManager
+                )
+            }
+            .font(FynlaTypography.button)
+            .foregroundStyle(FynlaColor.primaryAction)
+            .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+            .accessibilityIdentifier("privacy.deletion.open")
         }
         .privacyCard()
         .accessibilityIdentifier("privacy.deletion")

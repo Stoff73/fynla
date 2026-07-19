@@ -81,6 +81,20 @@ struct PrivacySettingsTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test
+    func deletionCleanupRemovesEveryAppOwnedTemporaryExport() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "fynla-deletion-export-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let store = TemporaryExportStore(directory: root)
+        let first = try await store.save(Data("one".utf8), format: "json")
+        let second = try await store.save(Data("two".utf8), format: "csv")
+
+        try await store.deleteAll()
+
+        #expect(!FileManager.default.fileExists(atPath: first.path))
+        #expect(!FileManager.default.fileExists(atPath: second.path))
+    }
+
     private func apiClient(_ transport: TestHTTPTransport) -> APIClient {
         APIClient(
             environment: try! AppEnvironment.values([

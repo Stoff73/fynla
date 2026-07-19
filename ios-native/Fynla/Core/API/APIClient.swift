@@ -108,6 +108,24 @@ actor APIClient {
         return result.data
     }
 
+    func sendRawResponse<Value>(
+        _ request: APIRequest<Value>
+    ) async throws -> APIRawResponse {
+        let correlationID = requestID()
+        let accessToken = await tokenProvider.accessToken()
+        let result = try await perform(
+            request,
+            accessToken: accessToken,
+            correlationID: correlationID
+        )
+        return APIRawResponse(
+            statusCode: result.response.statusCode,
+            data: result.data,
+            requestID: result.response.value(forHTTPHeaderField: "X-Request-ID")
+                ?? correlationID
+        )
+    }
+
     private func perform<Value>(
         _ request: APIRequest<Value>,
         accessToken: String?,
@@ -210,6 +228,12 @@ actor APIClient {
 
         return .seconds(max(0, date.timeIntervalSince(now())))
     }
+}
+
+struct APIRawResponse: Sendable {
+    let statusCode: Int
+    let data: Data
+    let requestID: String?
 }
 
 private struct ErrorEnvelope: Decodable, Sendable {
