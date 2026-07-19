@@ -174,7 +174,7 @@ enum NavigationDestinationFactory {
                 appleManager: appleManager,
                 privacyLockController: privacyLockController
             )
-        default:
+        case .dashboard, .module:
             StagedNativeDestinationView(title: title(for: route))
         }
     }
