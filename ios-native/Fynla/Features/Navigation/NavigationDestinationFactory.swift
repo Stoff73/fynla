@@ -39,6 +39,7 @@ enum NavigationDestinationFactory {
         estateModel: EstateModel,
         goalsModel: GoalsModel,
         taxStrategyModel: TaxStrategyModel,
+        holisticPlanModel: HolisticPlanModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
@@ -160,6 +161,11 @@ enum NavigationDestinationFactory {
             TaxStrategyView(
                 model: taxStrategyModel,
                 onRoute: onRoute,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .holisticPlan:
+            HolisticPlanView(
+                model: holisticPlanModel,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .settings:
