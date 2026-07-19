@@ -1,0 +1,11 @@
+{
+  "mode": "teaser",
+  "teaser": {
+    "estimated_liability_gbp": 85000,
+    "headline": "Your estate may have an Inheritance Tax exposure."
+  },
+  "cta": {
+    "label": "Upgrade to Premium to unlock full Estate Planning",
+    "target_tier": "premium"
+  }
+}

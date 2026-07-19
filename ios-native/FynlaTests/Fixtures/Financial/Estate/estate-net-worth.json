@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "net_worth": {
+      "total_assets": 900000,
+      "total_liabilities": 250000,
+      "net_worth": 650000,
+      "asset_composition": [
+        { "type": "property", "value": 650000, "percentage": 72.22, "count": 1 },
+        { "type": "pension", "value": 200000, "percentage": 22.22, "count": 2 },
+        { "type": "cash", "value": 50000, "percentage": 5.56, "count": 2 }
+      ]
+    }
+  }
+}

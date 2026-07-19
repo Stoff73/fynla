@@ -1,0 +1,20 @@
+{
+  "mode": "full",
+  "success": true,
+  "data": {
+    "assets": [],
+    "investment_accounts": [],
+    "liabilities": [],
+    "gifts": [
+      { "id": 51, "gift_type": "cash", "gift_value": 10000 }
+    ],
+    "trusts": [
+      { "id": 52, "trust_name": "Family Trust" }
+    ],
+    "iht_profile": null,
+    "will_info": {
+      "has_will": true,
+      "executor_name": "Alex Example"
+    }
+  }
+}
