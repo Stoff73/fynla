@@ -19,6 +19,7 @@ struct FynlaApp: App {
     @State private var retirementModel: RetirementModel
     @State private var protectionModel: ProtectionModel
     @State private var estateModel: EstateModel
+    @State private var goalsModel: GoalsModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -150,6 +151,11 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        let goalsModel = GoalsModel(
+            client: LiveGoalsClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
         let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -260,6 +266,7 @@ struct FynlaApp: App {
         _retirementModel = State(initialValue: retirementModel)
         _protectionModel = State(initialValue: protectionModel)
         _estateModel = State(initialValue: estateModel)
+        _goalsModel = State(initialValue: goalsModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -300,6 +307,7 @@ struct FynlaApp: App {
             retirementModel: retirementModel,
             protectionModel: protectionModel,
             estateModel: estateModel,
+            goalsModel: goalsModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,

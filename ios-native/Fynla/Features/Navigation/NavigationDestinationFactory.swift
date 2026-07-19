@@ -37,6 +37,7 @@ enum NavigationDestinationFactory {
         retirementModel: RetirementModel,
         protectionModel: ProtectionModel,
         estateModel: EstateModel,
+        goalsModel: GoalsModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
@@ -146,6 +147,12 @@ enum NavigationDestinationFactory {
         case .estate:
             EstateView(
                 model: estateModel,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .goals:
+            GoalsView(
+                model: goalsModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .settings:

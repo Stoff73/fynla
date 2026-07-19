@@ -15,6 +15,7 @@ struct AppRootView: View {
     let retirementModel: RetirementModel
     let protectionModel: ProtectionModel
     let estateModel: EstateModel
+    let goalsModel: GoalsModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -38,6 +39,7 @@ struct AppRootView: View {
         retirementModel: RetirementModel,
         protectionModel: ProtectionModel,
         estateModel: EstateModel,
+        goalsModel: GoalsModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -62,6 +64,7 @@ struct AppRootView: View {
         self.retirementModel = retirementModel
         self.protectionModel = protectionModel
         self.estateModel = estateModel
+        self.goalsModel = goalsModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -149,6 +152,7 @@ struct AppRootView: View {
                     retirementModel: retirementModel,
                     protectionModel: protectionModel,
                     estateModel: estateModel,
+                    goalsModel: goalsModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -188,6 +192,7 @@ struct AppRootView: View {
                 retirementModel.stop()
                 protectionModel.stop()
                 estateModel.stop()
+                goalsModel.stop()
                 fynModel.stopAndClear()
                 bugReportModel.reset()
             }
@@ -261,6 +266,7 @@ private struct UnlockedView: View {
     let retirementModel: RetirementModel
     let protectionModel: ProtectionModel
     let estateModel: EstateModel
+    let goalsModel: GoalsModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -293,6 +299,7 @@ private struct UnlockedView: View {
                     retirementModel: retirementModel,
                     protectionModel: protectionModel,
                     estateModel: estateModel,
+                    goalsModel: goalsModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     privacyLockController: privacyLockController,
@@ -364,6 +371,8 @@ private struct UnlockedView: View {
                         Task { await protectionModel.refresh() }
                     case .estate:
                         Task { await estateModel.refresh() }
+                    case .goals:
+                        Task { await goalsModel.refresh() }
                     default:
                         break
                     }
