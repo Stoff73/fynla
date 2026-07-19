@@ -35,6 +35,7 @@ struct FynlaApp: App {
     private let dependencies: AppDependencies
     private let authenticationClient: APIAuthClient
     private let appleSubscriptionManager: any AppleSubscriptionManaging
+    private let legacyCapacitorCleanup: LegacyCapacitorCleanup
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -349,6 +350,7 @@ struct FynlaApp: App {
         #endif
         self.dependencies = authenticatedDependencies
         self.appleSubscriptionManager = appleSubscriptionManager
+        self.legacyCapacitorCleanup = .live()
         _session = State(initialValue: session)
         _router = State(initialValue: router)
         _authenticationCoordinator = State(initialValue: coordinator)
@@ -402,6 +404,7 @@ struct FynlaApp: App {
         AppRootView(
             session: session,
             privacyLockController: privacyLockController,
+            legacyCapacitorCleanup: legacyCapacitorCleanup,
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,

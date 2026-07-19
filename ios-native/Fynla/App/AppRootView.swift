@@ -3,6 +3,7 @@ import SwiftUI
 struct AppRootView: View {
     let session: AppSession
     let privacyLockController: PrivacyLockController?
+    let legacyCapacitorCleanup: LegacyCapacitorCleanup
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
@@ -35,6 +36,7 @@ struct AppRootView: View {
     init(
         session: AppSession,
         privacyLockController: PrivacyLockController? = nil,
+        legacyCapacitorCleanup: LegacyCapacitorCleanup,
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
@@ -68,6 +70,7 @@ struct AppRootView: View {
     ) {
         self.session = session
         self.privacyLockController = privacyLockController
+        self.legacyCapacitorCleanup = legacyCapacitorCleanup
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
@@ -194,6 +197,7 @@ struct AppRootView: View {
         }
         .preferredColorScheme(.light)
         .task {
+            _ = try? await legacyCapacitorCleanup.runIfNeeded()
             if let privacyLockController {
                 await privacyLockController.completeLaunch()
                 await privacyLockController.refreshFaceIDOffer()
