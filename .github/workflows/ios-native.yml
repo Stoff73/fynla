@@ -36,9 +36,9 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 45
     env:
-      # Xcode 26.5 does not synchronise command-line StoreKit test
-      # configurations (FB22237318). GitHub's macOS 26 image retains 26.4.1.
-      DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
+      # Xcode 26.4 and 26.5 do not synchronise command-line StoreKit test
+      # configurations (FB22237318). GitHub's macOS 26 image retains 26.3.
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
     steps:
       - name: Check out source
@@ -56,12 +56,11 @@ jobs:
           runtime_id="$(
             xcrun simctl list runtimes --json |
               /usr/bin/ruby -rjson -e '
-                # iOS 26.5 does not sync StoreKit test configurations when
-                # xcodebuild runs outside the Xcode IDE (FB22237318).
+                # Match the iOS 26.2 SDK shipped with the pinned Xcode 26.3.
                 runtimes = JSON.parse($stdin.read).fetch("runtimes").select do |runtime|
                   runtime["isAvailable"] &&
                     runtime.fetch("identifier").start_with?("com.apple.CoreSimulator.SimRuntime.iOS-") &&
-                    !runtime.fetch("version").start_with?("26.5")
+                    runtime.fetch("version").start_with?("26.2")
                 end
                 runtime = runtimes.max_by do |candidate|
                   candidate.fetch("version").split(".").map(&:to_i)
