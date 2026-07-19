@@ -33,6 +33,7 @@ enum NavigationDestinationFactory {
         netWorthModel: NetWorthModel,
         balanceHistoryModel: BalanceHistoryModel,
         savingsModel: SavingsModel,
+        investmentModel: InvestmentModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
@@ -87,6 +88,21 @@ enum NavigationDestinationFactory {
             } else {
                 SavingsView(
                     model: savingsModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case let .investment(accountID):
+            if let accountID {
+                InvestmentAccountView(
+                    accountID: accountID,
+                    model: investmentModel,
+                    onOpenFyn: onOpenFyn
+                )
+            } else {
+                InvestmentView(
+                    model: investmentModel,
                     onRoute: onRoute,
                     onOpenFyn: onOpenFyn,
                     onOpenSubscription: { onRoute(.settings) }

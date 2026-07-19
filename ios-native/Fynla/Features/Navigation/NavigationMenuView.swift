@@ -34,7 +34,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
             items: [
                 NavigationMenuItem(label: "Net Worth", route: .netWorth(category: nil), isStaged: false),
                 NavigationMenuItem(label: "Savings", route: .savings(accountID: nil), isStaged: false),
-                NavigationMenuItem(label: "Investments", route: .investment(accountID: nil), isStaged: true),
+                NavigationMenuItem(label: "Investments", route: .investment(accountID: nil), isStaged: false),
                 NavigationMenuItem(label: "Retirement", route: .retirement(pensionType: nil, id: nil), isStaged: true),
             ]
         ),
