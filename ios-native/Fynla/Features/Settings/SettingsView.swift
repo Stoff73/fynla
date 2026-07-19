@@ -5,6 +5,8 @@ struct SettingsView: View {
     let model: SettingsModel
     let subscriptionModel: SubscriptionModel
     let appleManager: any AppleSubscriptionManaging
+    let privacySettingsModel: PrivacySettingsModel
+    let dataExportModel: DataExportModel
     @State private var browserItem: SettingsBrowserItem?
 
     var body: some View {
@@ -96,10 +98,18 @@ struct SettingsView: View {
                 detail: "Not enabled"
             )
             .accessibilityIdentifier("settings.notifications")
-            settingsRow(
-                title: "Privacy and data",
-                detail: "Consent, export and account deletion"
-            )
+            NavigationLink {
+                PrivacySettingsView(
+                    model: privacySettingsModel,
+                    dataExportModel: dataExportModel
+                )
+            } label: {
+                settingsRow(
+                    title: "Privacy and data",
+                    detail: "Consent, export and account deletion"
+                )
+            }
+            .buttonStyle(.plain)
             .accessibilityIdentifier("settings.privacy")
         }
         .settingsCard()

@@ -23,6 +23,8 @@ struct FynlaApp: App {
     @State private var taxStrategyModel: TaxStrategyModel
     @State private var holisticPlanModel: HolisticPlanModel
     @State private var settingsModel: SettingsModel
+    @State private var privacySettingsModel: PrivacySettingsModel
+    @State private var dataExportModel: DataExportModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -215,6 +217,14 @@ struct FynlaApp: App {
             privacyLockController: privacyLockController,
             webBaseURL: dependencies.environment.webBaseURL
         )
+        let privacyClient = LivePrivacyClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        let privacySettingsModel = PrivacySettingsModel(client: privacyClient)
+        let dataExportModel = DataExportModel(
+            client: privacyClient,
+            store: TemporaryExportStore()
+        )
         #if FYNLA_UI_TESTING
         let dashboardModel = uiTestMode == nil
             ? DashboardModel(
@@ -304,6 +314,8 @@ struct FynlaApp: App {
         _taxStrategyModel = State(initialValue: taxStrategyModel)
         _holisticPlanModel = State(initialValue: holisticPlanModel)
         _settingsModel = State(initialValue: settingsModel)
+        _privacySettingsModel = State(initialValue: privacySettingsModel)
+        _dataExportModel = State(initialValue: dataExportModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -348,6 +360,8 @@ struct FynlaApp: App {
             taxStrategyModel: taxStrategyModel,
             holisticPlanModel: holisticPlanModel,
             settingsModel: settingsModel,
+            privacySettingsModel: privacySettingsModel,
+            dataExportModel: dataExportModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,

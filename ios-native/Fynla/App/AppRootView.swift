@@ -19,6 +19,8 @@ struct AppRootView: View {
     let taxStrategyModel: TaxStrategyModel
     let holisticPlanModel: HolisticPlanModel
     let settingsModel: SettingsModel
+    let privacySettingsModel: PrivacySettingsModel
+    let dataExportModel: DataExportModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -46,6 +48,8 @@ struct AppRootView: View {
         taxStrategyModel: TaxStrategyModel,
         holisticPlanModel: HolisticPlanModel,
         settingsModel: SettingsModel,
+        privacySettingsModel: PrivacySettingsModel,
+        dataExportModel: DataExportModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -74,6 +78,8 @@ struct AppRootView: View {
         self.taxStrategyModel = taxStrategyModel
         self.holisticPlanModel = holisticPlanModel
         self.settingsModel = settingsModel
+        self.privacySettingsModel = privacySettingsModel
+        self.dataExportModel = dataExportModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -165,6 +171,8 @@ struct AppRootView: View {
                     taxStrategyModel: taxStrategyModel,
                     holisticPlanModel: holisticPlanModel,
                     settingsModel: settingsModel,
+                    privacySettingsModel: privacySettingsModel,
+                    dataExportModel: dataExportModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -207,6 +215,8 @@ struct AppRootView: View {
                 goalsModel.stop()
                 taxStrategyModel.stop()
                 holisticPlanModel.stop()
+                privacySettingsModel.stop()
+                await dataExportModel.stop()
                 fynModel.stopAndClear()
                 bugReportModel.reset()
             }
@@ -284,6 +294,8 @@ private struct UnlockedView: View {
     let taxStrategyModel: TaxStrategyModel
     let holisticPlanModel: HolisticPlanModel
     let settingsModel: SettingsModel
+    let privacySettingsModel: PrivacySettingsModel
+    let dataExportModel: DataExportModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -320,6 +332,8 @@ private struct UnlockedView: View {
                     taxStrategyModel: taxStrategyModel,
                     holisticPlanModel: holisticPlanModel,
                     settingsModel: settingsModel,
+                    privacySettingsModel: privacySettingsModel,
+                    dataExportModel: dataExportModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     onOpenFyn: { prompt in

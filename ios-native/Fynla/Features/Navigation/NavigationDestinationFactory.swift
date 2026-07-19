@@ -41,6 +41,8 @@ enum NavigationDestinationFactory {
         taxStrategyModel: TaxStrategyModel,
         holisticPlanModel: HolisticPlanModel,
         settingsModel: SettingsModel,
+        privacySettingsModel: PrivacySettingsModel,
+        dataExportModel: DataExportModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         onOpenFyn: @escaping (String) -> Void,
@@ -172,7 +174,9 @@ enum NavigationDestinationFactory {
             SettingsView(
                 model: settingsModel,
                 subscriptionModel: subscriptionModel,
-                appleManager: appleManager
+                appleManager: appleManager,
+                privacySettingsModel: privacySettingsModel,
+                dataExportModel: dataExportModel
             )
         case .dashboard, .module:
             StagedNativeDestinationView(title: title(for: route))
