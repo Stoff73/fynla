@@ -25,7 +25,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
         NavigationMenuSection(
             title: "Cash Management",
             items: [
-                NavigationMenuItem(label: "Income", route: .income, isStaged: true),
+                NavigationMenuItem(label: "Income", route: .income, isStaged: false),
                 NavigationMenuItem(label: "Expenditure", route: .expenditure, isStaged: true),
             ]
         ),

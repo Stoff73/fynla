@@ -27,9 +27,11 @@ enum NavigationDestinationFactory {
         for route: AppRoute,
         subscriptionModel: SubscriptionModel,
         achievementsModel: AchievementsModel,
+        incomeModel: IncomeModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
+        onOpenFyn: @escaping (String) -> Void,
         onRoute: @escaping (AppRoute) -> Void
     ) -> some View {
         switch route {
@@ -37,6 +39,12 @@ enum NavigationDestinationFactory {
             AchievementsView(model: achievementsModel, onRoute: onRoute)
         case .bugReport:
             BugReportView(model: bugReportModel)
+        case .income:
+            IncomeView(
+                model: incomeModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
         case .settings:
             SettingsView(
                 subscriptionModel: subscriptionModel,

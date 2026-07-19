@@ -6,6 +6,7 @@ struct AppRootView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let incomeModel: IncomeModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -20,6 +21,7 @@ struct AppRootView: View {
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
+        incomeModel: IncomeModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -35,6 +37,7 @@ struct AppRootView: View {
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
+        self.incomeModel = incomeModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -113,6 +116,7 @@ struct AppRootView: View {
                     subscriptionModel: subscriptionModel,
                     dashboardModel: dashboardModel,
                     achievementsModel: achievementsModel,
+                    incomeModel: incomeModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -143,6 +147,7 @@ struct AppRootView: View {
                 subscriptionModel.stop()
                 dashboardModel.stop()
                 achievementsModel.stop()
+                incomeModel.stop()
                 fynModel.stopAndClear()
                 bugReportModel.reset()
             }
@@ -207,6 +212,7 @@ private struct UnlockedView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let incomeModel: IncomeModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -221,8 +227,8 @@ private struct UnlockedView: View {
                 onRoute: { route in
                     navigate(to: route)
                 },
-                onOpenFyn: { _ in
-                    presentFyn()
+                onOpenFyn: { prompt in
+                    presentFyn(prompt: prompt)
                 }
             )
             .navigationDestination(for: AppRoute.self) { route in
@@ -230,9 +236,13 @@ private struct UnlockedView: View {
                     for: route,
                     subscriptionModel: subscriptionModel,
                     achievementsModel: achievementsModel,
+                    incomeModel: incomeModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
                     privacyLockController: privacyLockController,
+                    onOpenFyn: { prompt in
+                        presentFyn(prompt: prompt)
+                    },
                     onRoute: navigate
                 )
             }
@@ -277,8 +287,13 @@ private struct UnlockedView: View {
                     navigate(to: route)
                 },
                 onRefreshCurrentScreen: {
-                    if router.path.isEmpty {
+                    switch router.path.last {
+                    case nil, .dashboard:
                         Task { await dashboardModel.refresh() }
+                    case .income:
+                        Task { await incomeModel.refresh() }
+                    default:
+                        break
                     }
                 }
             )
@@ -322,8 +337,13 @@ private struct UnlockedView: View {
         }
     }
 
-    private func presentFyn() {
+    private func presentFyn(prompt: String? = nil) {
         fynModel.currentRoute = mobilePath(for: router.path.last ?? .dashboard)
+        if let prompt,
+           !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            fynModel.draft = prompt
+        }
         isPresentingFyn = true
     }
 

@@ -10,6 +10,7 @@ struct FynlaApp: App {
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
+    @State private var incomeModel: IncomeModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -95,6 +96,11 @@ struct FynlaApp: App {
         let authenticatedDependencies = dependencies.authenticatedSession(
             accessTokenProvider: coordinator,
             tokenRefresher: privacyLockController
+        )
+        let incomeModel = IncomeModel(
+            client: LiveIncomeClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
         )
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
@@ -197,6 +203,7 @@ struct FynlaApp: App {
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
+        _incomeModel = State(initialValue: incomeModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -228,6 +235,7 @@ struct FynlaApp: App {
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,
+            incomeModel: incomeModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
