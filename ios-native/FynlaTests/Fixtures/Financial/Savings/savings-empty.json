@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "accounts": [],
+    "account_count": 0,
+    "account_limit": null,
+    "expenditure_profile": {
+      "total_monthly_expenditure": 0,
+      "total_annual_expenditure": 0
+    },
+    "isa_allowance": null,
+    "emergency_fund_target": {
+      "target_months": 6,
+      "target_amount": 0,
+      "employment_status": null,
+      "rationale": "The standard recommendation is 6 months of essential expenditure."
+    }
+  }
+}
