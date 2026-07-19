@@ -87,14 +87,32 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
 
-      - name: Run unsigned unit and UI tests
-        id: native_tests
+      - name: Run unsigned unit tests
         run: |
           xcodebuild \
             -project ios-native/Fynla.xcodeproj \
             -scheme Fynla-Staging \
             -destination '${{ steps.simulator.outputs.destination }}' \
-            -resultBundlePath '${{ runner.temp }}/FynlaTests.xcresult' \
+            -resultBundlePath '${{ runner.temp }}/FynlaUnitTests.xcresult' \
+            -only-testing:FynlaTests \
+            -parallel-testing-enabled NO \
+            test \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      # The unit target owns the local StoreKit test session. Running the UI
+      # target against the same host app concurrently forces StoreKit into
+      # off-device mode and makes purchases fail before our code is exercised.
+      - name: Run unsigned UI tests
+        run: |
+          xcodebuild \
+            -project ios-native/Fynla.xcodeproj \
+            -scheme Fynla-Staging \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            -resultBundlePath '${{ runner.temp }}/FynlaUITests.xcresult' \
+            -only-testing:FynlaUITests \
+            -parallel-testing-enabled NO \
             test \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -152,7 +170,8 @@ jobs:
         with:
           name: ios-native-xcresults-${{ github.run_id }}
           path: |
-            ${{ runner.temp }}/FynlaTests.xcresult
+            ${{ runner.temp }}/FynlaUnitTests.xcresult
+            ${{ runner.temp }}/FynlaUITests.xcresult
             ${{ runner.temp }}/FynlaHealth.xcresult
           if-no-files-found: ignore
           retention-days: 7

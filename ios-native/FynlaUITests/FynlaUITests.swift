@@ -643,6 +643,24 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 3))
         assertReachable(field, in: app)
         field.tap()
+        let hasKeyboardFocus = NSPredicate(format: "hasKeyboardFocus == true")
+        var focusExpectation = XCTNSPredicateExpectation(
+            predicate: hasKeyboardFocus,
+            object: field
+        )
+        if XCTWaiter.wait(for: [focusExpectation], timeout: 1) != .completed {
+            field.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)
+            ).tap()
+            focusExpectation = XCTNSPredicateExpectation(
+                predicate: hasKeyboardFocus,
+                object: field
+            )
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [focusExpectation], timeout: 2),
+                .completed
+            )
+        }
         field.typeText(value)
     }
 
