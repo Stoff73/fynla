@@ -13,8 +13,8 @@ Governed by the `.claude/skills/social-media-posts/SKILL.md` skill.
 | Item | Where you get it |
 |---|---|
 | Buffer account with Instagram, Facebook, TikTok profiles connected | https://publish.buffer.com/ |
-| Buffer API access token | publish.buffer.com → Settings → Integrations → API |
-| Buffer profile IDs (one per platform) | `curl -H "Authorization: Bearer $TOKEN" https://api.bufferapp.com/1/profiles.json` |
+| Buffer **Personal Key** (Bearer token for the GraphQL API) | https://publish.buffer.com/developers/api |
+| Buffer channel IDs (one per platform) | GraphQL query — see below (Buffer calls them "channels" in v2, they were "profiles" in v1) |
 | GA4 Property ID | analytics.google.com → Admin → Property Settings (looks like `530097849`) |
 | Re-consent Google OAuth | Analytics readonly scope was added — see below |
 
@@ -36,30 +36,54 @@ The refresh token is stored encrypted in `pipeline_oauth_credentials` — replac
 
 ## 2. Buffer setup
 
+Buffer split their API in 2024: the **legacy REST v1** at `api.bufferapp.com/1/*` only
+accepts old-style access tokens, and the **new GraphQL API** at `api.buffer.com/graphql`
+only accepts **Personal Keys**. Fynla targets GraphQL — Personal Keys are the only
+credential you need.
+
 Sign up at https://buffer.com and:
 
 1. **Add each social account** (Instagram Business, Facebook Page, TikTok Business).
-2. **Grab your access token**: Settings → Integrations → API → **Access Token**.
-3. **Get your profile IDs**:
+2. **Create a Personal Key**: https://publish.buffer.com/developers/api → **Personal Key** → **Create**. Copy the token (single-use display).
+3. **Find your organisation ID and channel IDs**. Post to `https://api.buffer.com/graphql`:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" https://api.bufferapp.com/1/profiles.json
+curl -X POST https://api.buffer.com/graphql \
+  -H "Authorization: Bearer YOUR_PERSONAL_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"query { account { organizations { id name channels { id service serviceId name isDisconnected } } } }"}'
 ```
 
-Response has an array of profiles. For each connected platform, note the `id` field (24-char hex) and its `service` value (`instagram`, `facebook`, `tiktok`).
+Response gives every organisation and every channel. For each connected platform, note the channel `id` (24-char hex) alongside its `service` (`instagram`, `facebook`, `tiktok`). Skip anything with `isDisconnected: true`.
 
 4. **Paste into `.env`**:
 
 ```
-BUFFER_ACCESS_TOKEN=1/abcd1234...
-BUFFER_PROFILE_INSTAGRAM=5f9a...
-BUFFER_PROFILE_FACEBOOK=5f9b...
-BUFFER_PROFILE_TIKTOK=5f9c...
+BUFFER_ACCESS_TOKEN=<personal-key>
+BUFFER_PROFILE_INSTAGRAM=<instagram-channel-id>
+BUFFER_PROFILE_FACEBOOK=<facebook-channel-id>
+BUFFER_PROFILE_TIKTOK=<tiktok-channel-id>    # leave blank if TikTok not connected — scheduler skips it
 ```
+
+The env var name still says `BUFFER_PROFILE_*` for backwards compatibility. Buffer's v2 vocabulary calls the same 24-char hex a "channel ID" — same string, different label.
 
 5. `php artisan config:clear`
 
 **Free trial**: 14 days. Costs £15/mo after (Essentials plan) which covers up to 6 channels. If you outgrow it, the `BufferClient` service is designed to be swapped for `PostizClient` (self-hosted OSS) with ~1 day of work.
+
+### Video handling
+
+`BufferClient::schedule()` passes videos to Buffer as a **public URL**, not as a
+multipart upload. The URL points at our own signed clip route
+(`pipeline.clip.download`, 30-day TTL) — Buffer fetches it, transcodes it, and
+schedules the post. This means:
+
+- The clip must remain on the fynla server for the full window between compose and
+  publish. Don't delete `storage/app/social/video/{slug}/clip-*.mp4` until Buffer
+  has confirmed the post as `sent`.
+- If the signed URL expires before Buffer fetches it, the post fails with
+  `Buffer schedule failed (InvalidInputError)`. Regenerate the sheet row to bump
+  the TTL.
 
 ---
 
@@ -174,7 +198,10 @@ Reviewer picks a campaign at approval time — the UtmLinkBuilder switches the d
 | `BUFFER_ACCESS_TOKEN is not set` | Missing / typo in `.env`; `config:clear` after fixing |
 | `GA4 report failed: HTTP 403` | Re-run `pipeline:authorise-google` to re-consent with the analytics.readonly scope |
 | `Pipeline daily cost cap reached` | Expected at £1/day — waits until midnight |
-| Buffer schedule 401 | Access token expired or revoked; regenerate in Buffer settings |
+| `Public API tokens are not accepted for REST API access` (401) | Personal Key hitting the legacy `api.bufferapp.com/1/*` endpoint — you're on an old `BufferClient`; pull latest |
+| Buffer schedule 401 | Personal Key expired or revoked; regenerate at publish.buffer.com/developers/api |
+| `Buffer schedule failed (UnauthorizedError)` | Channel disconnected in Buffer, or channel ID belongs to a different organisation |
+| `Buffer schedule failed (InvalidInputError)` | Video URL 4xx'd — check the signed URL is still in TTL and the file exists |
 | Weekly report has empty data | GA + Buffer both down; check `storage/logs/pipeline*.log` |
 
 ---

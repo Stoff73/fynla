@@ -4,103 +4,188 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Social;
 
+use DateTimeInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Thin wrapper around Buffer's Publishing API v1
- * (https://buffer.com/developers/api).
+ * Buffer GraphQL API v2 client (https://api.buffer.com/graphql).
  *
- * Chosen over direct Instagram/Facebook/TikTok integration because:
- *   - one OAuth flow (Buffer's) covers all connected platforms
- *   - Buffer handles Meta's chunked-upload rules and TikTok's Content
- *     Posting flow for us
- *   - retrieving per-post metrics is one endpoint, not three
+ * Migrated from the legacy REST v1 endpoint because Buffer's new
+ * Personal Keys are rejected on the old endpoint with
+ *   HTTP 401 · "Public API tokens are not accepted for REST API access."
  *
- * If we ever swap to Postiz or direct APIs, this class is the only
- * boundary that changes.
+ * Design:
+ *   - Video is passed as a URL, not a file upload. Callers pass a
+ *     publicly-reachable signed URL (we already generate one for the
+ *     tracker sheet download — same signed route).
+ *   - The public interface (schedule / fetchUpdateMetrics / listProfiles)
+ *     is unchanged from the REST-era client so SchedulePostJob and
+ *     WeeklySocialReport keep working.
+ *   - Config keys are unchanged (pipeline.buffer.access_token /
+ *     .profiles.{platform}). The "profile ID" is now Buffer's
+ *     "channel ID" in v2 vocabulary — same 24-char hex, same lookup.
  */
 class BufferClient
 {
-    private const API_ROOT = 'https://api.bufferapp.com/1';
+    private const GRAPHQL_URL = 'https://api.buffer.com/graphql';
 
-    public function schedule(string $platform, string $text, string $mediaPath, ?\DateTimeInterface $at = null): array
+    /** @return array{data:array{createPost:array<string,mixed>}} */
+    public function schedule(string $platform, string $text, string $videoUrl, ?DateTimeInterface $at = null): array
     {
-        $profileId = $this->profileId($platform);
+        $channelId = $this->channelId($platform);
 
-        $payload = [
+        $input = [
+            'channelId' => $channelId,
             'text' => $text,
-            'profile_ids[]' => $profileId,
-            'shorten' => 'false',
-            'media[link]' => 'https://fynla.org',
+            'assets' => [[
+                'video' => ['url' => $videoUrl],
+            ]],
+            'mode' => $at !== null ? 'customScheduled' : 'shareNow',
+            'schedulingType' => 'automatic',
+            'metadata' => $this->platformMetadata($platform),
         ];
 
         if ($at !== null) {
-            $payload['scheduled_at'] = $at->getTimestamp();
-        } else {
-            $payload['now'] = 'true';
+            $input['dueAt'] = $at->format(DATE_ATOM);
         }
 
-        $response = $this->client()
-            ->asMultipart()
-            ->attach('media[video]', fopen($mediaPath, 'rb'), basename($mediaPath))
-            ->post(self::API_ROOT.'/updates/create.json', $payload);
+        $mutation = <<<'GRAPHQL'
+            mutation CreatePost($input: CreatePostInput!) {
+                createPost(input: $input) {
+                    __typename
+                    ... on PostActionSuccess { post { id status dueAt channelId } }
+                    ... on InvalidInputError { message }
+                    ... on LimitReachedError { message }
+                    ... on UnauthorizedError { message }
+                    ... on NotFoundError { message }
+                    ... on RestProxyError { message code }
+                    ... on UnexpectedError { message }
+                }
+            }
+        GRAPHQL;
 
-        if (! $response->successful()) {
-            Log::channel('pipeline')->error('Buffer schedule failed.', [
-                'status' => $response->status(),
-                'body' => $response->body(),
+        $response = $this->client()->post(self::GRAPHQL_URL, [
+            'query' => $mutation,
+            'variables' => ['input' => $input],
+        ]);
+
+        $data = $response->json();
+        $this->assertGraphqlOk($response, $data, 'schedule');
+
+        $result = $data['data']['createPost'] ?? [];
+        $type = $result['__typename'] ?? null;
+
+        if ($type !== 'PostActionSuccess') {
+            $reason = $result['message'] ?? 'unknown Buffer error';
+            Log::channel('pipeline')->error('Buffer createPost returned error variant.', [
+                'variant' => $type,
+                'message' => $reason,
                 'platform' => $platform,
             ]);
-            throw new RuntimeException('Buffer schedule failed: HTTP '.$response->status().' — '.$response->body());
+            throw new RuntimeException("Buffer schedule failed ({$type}): {$reason}");
         }
 
-        return $response->json();
+        // Preserve legacy shape { updates: [{ id }] } used by SchedulePostJob
+        // to pluck the update ID without knowing about the migration.
+        return [
+            'updates' => [[
+                'id' => $result['post']['id'] ?? null,
+                'status' => $result['post']['status'] ?? null,
+                'dueAt' => $result['post']['dueAt'] ?? null,
+            ]],
+            'raw' => $result,
+        ];
     }
 
     /**
-     * Fetch metrics for a previously-scheduled update.
-     *
-     * @return array<string,mixed>
+     * Fetch normalised metrics for a previously scheduled post.
+     * Returns whatever Buffer surfaces on the post at query time; the
+     * shape mirrors what the REST v1 client returned so
+     * WeeklySocialReport's aggregator keeps its existing summing code.
      */
-    public function fetchUpdateMetrics(string $updateId): array
+    public function fetchUpdateMetrics(string $postId): array
     {
-        $response = $this->client()->get(self::API_ROOT.'/updates/'.$updateId.'/interactions.json');
+        $query = <<<'GRAPHQL'
+            query GetPost($input: PostInput!) {
+                post(input: $input) {
+                    id
+                    status
+                    dueAt
+                    sentAt
+                    text
+                    metadata { __typename }
+                }
+            }
+        GRAPHQL;
 
-        if (! $response->successful()) {
-            Log::channel('pipeline')->warning('Buffer fetchUpdateMetrics failed.', [
+        $response = $this->client()->post(self::GRAPHQL_URL, [
+            'query' => $query,
+            'variables' => ['input' => ['id' => $postId]],
+        ]);
+
+        $data = $response->json();
+        if (! $response->successful() || isset($data['errors'])) {
+            Log::channel('pipeline')->warning('Buffer post metrics fetch failed.', [
+                'post_id' => $postId,
                 'status' => $response->status(),
-                'update_id' => $updateId,
+                'errors' => $data['errors'] ?? null,
             ]);
 
             return [];
         }
 
-        return $response->json('interactions') ?? [];
+        $post = $data['data']['post'] ?? null;
+        if ($post === null) {
+            return [];
+        }
+
+        // Aggregation metrics live on aggregatedPostMetrics, not on the
+        // post object — that's a per-org batch query we'll wire into
+        // WeeklySocialReport separately. For now, return the raw post so
+        // the report can distinguish "posted" from "not posted".
+        return [
+            'status' => $post['status'] ?? null,
+            'sent_at' => $post['sentAt'] ?? null,
+            'due_at' => $post['dueAt'] ?? null,
+        ];
     }
 
     /**
-     * List connected profiles. Used by an admin diagnostic to grab the
-     * BUFFER_PROFILE_* env values on first setup.
+     * List connected channels. Kept for the admin diagnostic + config
+     * bootstrap flow; returns the flat array of channel dicts (matching
+     * the REST-era shape callers expected).
+     *
+     * @return list<array<string,mixed>>
      */
     public function listProfiles(): array
     {
-        $response = $this->client()->get(self::API_ROOT.'/profiles.json');
+        $account = $this->client()->post(self::GRAPHQL_URL, [
+            'query' => 'query { account { organizations { id name } } }',
+        ]);
+        $this->assertGraphqlOk($account, $account->json(), 'listProfiles.account');
 
-        if (! $response->successful()) {
-            throw new RuntimeException('Buffer listProfiles failed: HTTP '.$response->status());
+        $orgId = $account->json('data.account.organizations.0.id');
+        if ($orgId === null) {
+            throw new RuntimeException('Buffer account has no organizations.');
         }
 
-        return $response->json();
+        $channelsResp = $this->client()->post(self::GRAPHQL_URL, [
+            'query' => 'query Q($i:ChannelsInput!){ channels(input:$i){ id service serviceId name isDisconnected } }',
+            'variables' => ['i' => ['organizationId' => $orgId]],
+        ]);
+        $this->assertGraphqlOk($channelsResp, $channelsResp->json(), 'listProfiles.channels');
+
+        return $channelsResp->json('data.channels', []);
     }
 
     private function client(): PendingRequest
     {
         return Http::withToken($this->accessToken())
-            ->timeout((int) config('pipeline.buffer.timeout_seconds', 60))
-            ->retry(2, 1000);
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->timeout((int) config('pipeline.buffer.timeout_seconds', 60));
     }
 
     private function accessToken(): string
@@ -113,13 +198,63 @@ class BufferClient
         return $token;
     }
 
-    private function profileId(string $platform): string
+    private function channelId(string $platform): string
     {
         $id = config('pipeline.buffer.profiles.'.$platform);
         if (! is_string($id) || $id === '') {
-            throw new RuntimeException("BUFFER_PROFILE_".strtoupper($platform)." is not set.");
+            throw new RuntimeException('BUFFER_PROFILE_'.strtoupper($platform).' is not set — this platform is disconnected.');
         }
 
         return $id;
+    }
+
+    /**
+     * Per-platform metadata block. Instagram wants "reel" + shouldShareToFeed;
+     * Facebook takes a plain video with the "reel" type; TikTok wants a title
+     * (title falls back to first N chars of the caption when we don't have
+     * one). Extend as we add channels.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function platformMetadata(string $platform): ?array
+    {
+        return match ($platform) {
+            'instagram' => [
+                'instagram' => [
+                    'type' => 'reel',
+                    'shouldShareToFeed' => true,
+                ],
+            ],
+            'facebook' => [
+                'facebook' => [
+                    'type' => 'reel',
+                ],
+            ],
+            'tiktok' => [
+                'tiktok' => [
+                    'title' => 'Fynla',
+                ],
+            ],
+            default => null,
+        };
+    }
+
+    private function assertGraphqlOk($response, ?array $data, string $context): void
+    {
+        if (! $response->successful()) {
+            Log::channel('pipeline')->error("Buffer GraphQL {$context} HTTP error.", [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new RuntimeException("Buffer GraphQL failed ({$context}): HTTP {$response->status()}");
+        }
+
+        if (is_array($data) && isset($data['errors']) && $data['errors'] !== []) {
+            $first = $data['errors'][0]['message'] ?? 'unknown';
+            Log::channel('pipeline')->error("Buffer GraphQL {$context} errors.", [
+                'errors' => $data['errors'],
+            ]);
+            throw new RuntimeException("Buffer GraphQL failed ({$context}): {$first}");
+        }
     }
 }

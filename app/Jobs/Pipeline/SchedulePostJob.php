@@ -15,6 +15,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 
 /**
@@ -63,6 +64,10 @@ class SchedulePostJob implements ShouldQueue
             return;
         }
 
+        // Buffer's GraphQL API downloads the video from a public URL — pass
+        // our signed clip route (30-day TTL), not the raw file path.
+        $videoUrl = $this->buildSignedClipUrl($post, $clipPath);
+
         $run = PipelineRun::create([
             'pipeline_article_id' => $post->pipeline_article_id,
             'stage' => 'schedule',
@@ -79,7 +84,7 @@ class SchedulePostJob implements ShouldQueue
                 ."\n\n"
                 .implode(' ', (array) $post->hashtags);
 
-            $response = $buffer->schedule($post->platform, $body, $clipPath, $slot->toDateTime());
+            $response = $buffer->schedule($post->platform, $body, $videoUrl, $slot->toDateTime());
 
             $updateId = null;
             foreach ($response['updates'] ?? [] as $u) {
@@ -136,6 +141,28 @@ class SchedulePostJob implements ShouldQueue
         $index = $post->clip_index - 1;
 
         return $paths[$index] ?? null;
+    }
+
+    /**
+     * Build the public signed URL Buffer will download the clip from.
+     * TTL matches the tracker sheet's ({PIPELINE_SIGNED_URL_TTL_DAYS},
+     * default 30 days) so a clip stays fetchable for the full window
+     * between compose and publish.
+     */
+    private function buildSignedClipUrl(PipelinePost $post, string $clipPath): string
+    {
+        $ttlDays = (int) config('pipeline.video.signed_url_ttl_days', 30);
+        $slug = $post->pipelineArticle?->insightArticle?->slug ?? $post->pipelineArticle?->slug;
+
+        if (! is_string($slug) || $slug === '') {
+            throw new \RuntimeException("Cannot build signed URL: article slug missing for post {$post->id}.");
+        }
+
+        return URL::temporarySignedRoute(
+            'pipeline.clip.download',
+            now()->addDays($ttlDays),
+            ['slug' => $slug, 'filename' => basename($clipPath)],
+        );
     }
 
     private function fail(PipelinePost $post, string $reason): void
