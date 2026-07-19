@@ -1,0 +1,78 @@
+{
+  "data": {
+    "tax_year": "2026/27",
+    "calculation_mode": "dual_earner",
+    "user_allowances": [
+      {
+        "key": "isa",
+        "label": "ISA allowance",
+        "amount": 20000,
+        "used": 8000,
+        "remaining": 12000,
+        "utilisation_pct": 40,
+        "available": true,
+        "known": true
+      },
+      {
+        "key": "pension",
+        "label": "Pension annual allowance",
+        "amount": 60000,
+        "used": 60000,
+        "remaining": 0,
+        "utilisation_pct": 100,
+        "available": true,
+        "known": true
+      }
+    ],
+    "spouse_allowances": [
+      {
+        "key": "isa",
+        "label": "ISA allowance",
+        "amount": 20000,
+        "used": 2000,
+        "remaining": 18000,
+        "utilisation_pct": 10,
+        "available": true,
+        "known": true
+      }
+    ],
+    "composed_plan": {
+      "combined_annual_saving": 2450,
+      "items": [
+        {
+          "type": "isa_topup_vs_psa",
+          "title": "Use your ISA allowance",
+          "description": "Move eligible cash into your ISA wrapper.",
+          "category": "individual",
+          "estimated_annual_tax_saved": 450,
+          "recommendation_id": "tax_isa_topup_vs_psa",
+          "completed": false,
+          "completed_at": null,
+          "requires_advice": false
+        },
+        {
+          "type": "household_asset_transfer",
+          "title": "Coordinate allowances as a household",
+          "description": "Review ownership across the household.",
+          "category": "household",
+          "estimated_annual_tax_saved": 2000,
+          "recommendation_id": "tax_household_asset_transfer",
+          "completed": false,
+          "completed_at": null,
+          "requires_advice": true
+        },
+        {
+          "type": "bed_and_isa",
+          "title": "Complete Bed and ISA",
+          "description": "This action has been completed.",
+          "category": "individual",
+          "estimated_annual_tax_saved": 300,
+          "recommendation_id": "tax_bed_and_isa",
+          "completed": true,
+          "completed_at": "2026-07-18T10:00:00Z",
+          "requires_advice": false
+        }
+      ]
+    }
+  }
+}

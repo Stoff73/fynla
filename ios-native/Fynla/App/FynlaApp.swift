@@ -20,6 +20,7 @@ struct FynlaApp: App {
     @State private var protectionModel: ProtectionModel
     @State private var estateModel: EstateModel
     @State private var goalsModel: GoalsModel
+    @State private var taxStrategyModel: TaxStrategyModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -156,6 +157,11 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        let taxStrategyModel = TaxStrategyModel(
+            client: LiveTaxStrategyClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
         let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -267,6 +273,7 @@ struct FynlaApp: App {
         _protectionModel = State(initialValue: protectionModel)
         _estateModel = State(initialValue: estateModel)
         _goalsModel = State(initialValue: goalsModel)
+        _taxStrategyModel = State(initialValue: taxStrategyModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -308,6 +315,7 @@ struct FynlaApp: App {
             protectionModel: protectionModel,
             estateModel: estateModel,
             goalsModel: goalsModel,
+            taxStrategyModel: taxStrategyModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,

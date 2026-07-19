@@ -49,7 +49,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
             title: "Planning",
             items: [
                 NavigationMenuItem(label: "Goals", route: .goals, isStaged: false),
-                NavigationMenuItem(label: "Tax Strategy", route: .taxStrategy, isStaged: true),
+                NavigationMenuItem(label: "Tax Strategy", route: .taxStrategy, isStaged: false),
                 NavigationMenuItem(label: "Holistic Plan", route: .holisticPlan, isStaged: true),
             ]
         ),
