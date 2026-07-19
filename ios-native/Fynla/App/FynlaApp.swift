@@ -22,6 +22,7 @@ struct FynlaApp: App {
     @State private var goalsModel: GoalsModel
     @State private var taxStrategyModel: TaxStrategyModel
     @State private var holisticPlanModel: HolisticPlanModel
+    @State private var settingsModel: SettingsModel
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
@@ -194,6 +195,27 @@ struct FynlaApp: App {
             SystemAppleSubscriptionManager()
         #endif
         #if FYNLA_UI_TESTING
+        let settingsUserProvider: @MainActor () -> AuthenticatedUser? = {
+            if uiTestMode == nil { return coordinator.authenticatedUser }
+            return AuthenticatedUser(
+                id: 101,
+                firstName: "Example",
+                surname: "User",
+                name: "Example User",
+                email: "example@example.test"
+            )
+        }
+        #else
+        let settingsUserProvider: @MainActor () -> AuthenticatedUser? = {
+            coordinator.authenticatedUser
+        }
+        #endif
+        let settingsModel = SettingsModel(
+            userProvider: settingsUserProvider,
+            privacyLockController: privacyLockController,
+            webBaseURL: dependencies.environment.webBaseURL
+        )
+        #if FYNLA_UI_TESTING
         let dashboardModel = uiTestMode == nil
             ? DashboardModel(
                 client: LiveDashboardClient(
@@ -281,6 +303,7 @@ struct FynlaApp: App {
         _goalsModel = State(initialValue: goalsModel)
         _taxStrategyModel = State(initialValue: taxStrategyModel)
         _holisticPlanModel = State(initialValue: holisticPlanModel)
+        _settingsModel = State(initialValue: settingsModel)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
     }
@@ -324,6 +347,7 @@ struct FynlaApp: App {
             goalsModel: goalsModel,
             taxStrategyModel: taxStrategyModel,
             holisticPlanModel: holisticPlanModel,
+            settingsModel: settingsModel,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,

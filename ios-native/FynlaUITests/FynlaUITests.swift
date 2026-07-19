@@ -195,6 +195,53 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsShowsAccountFreePlanAndFaceIDOff() throws {
+        let app = openSettings(mode: "subscription-free")
+
+        XCTAssertEqual(app.staticTexts["settings.account.name"].label, "Example User")
+        XCTAssertEqual(app.staticTexts["settings.account.email"].label, "example@example.test")
+        XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Free")
+        XCTAssertEqual(app.switches["settings.face-id"].value as? String, "0")
+        XCTAssertTrue(app.buttons["app.unlocked.lock"].isHittable)
+        XCTAssertTrue(app.buttons["app.unlocked.sign-out"].isHittable)
+    }
+
+    @MainActor
+    func testSettingsPreservesAppleAndWebBillingWording() throws {
+        let apple = openSettings(mode: "subscription-apple-premium")
+        XCTAssertTrue(
+            apple.staticTexts["settings.plan.detail"].label.contains("App Store")
+        )
+        apple.terminate()
+
+        let web = openSettings(mode: "subscription-web-premium")
+        XCTAssertTrue(
+            web.staticTexts["settings.plan.detail"].label.contains("website")
+        )
+    }
+
+    @MainActor
+    func testSettingsUnavailablePlanAndSignOutRemainUsable() throws {
+        let app = openSettings(mode: "subscription-unavailable")
+
+        XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Unavailable")
+        app.buttons["app.unlocked.sign-out"].tap()
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testSettingsShowsEnabledFaceIDAfterProtectedUnlock() throws {
+        let app = app(mode: "face-id-unlock-success")
+        app.launch()
+        XCTAssertTrue(app.buttons["app.locked.unlock"].waitForExistence(timeout: 3))
+        app.buttons["app.locked.unlock"].tap()
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+        app.buttons["app.unlocked.settings"].tap()
+
+        XCTAssertEqual(app.switches["settings.face-id"].value as? String, "1")
+    }
+
+    @MainActor
     func testFaceIDOptInIsReachableAfterFullAuthentication() throws {
         let app = app(mode: "face-id-opt-in")
         app.launch()
@@ -731,13 +778,20 @@ final class FynlaUITests: XCTestCase {
 
     @MainActor
     private func openSubscription(mode: String) -> XCUIApplication {
+        let app = openSettings(mode: mode)
+        XCTAssertTrue(app.buttons["settings.premium"].waitForExistence(timeout: 3))
+        app.buttons["settings.premium"].tap()
+        XCTAssertTrue(element("subscription.screen", in: app).waitForExistence(timeout: 3))
+        return app
+    }
+
+    @MainActor
+    private func openSettings(mode: String) -> XCUIApplication {
         let app = app(mode: mode)
         app.launch()
         XCTAssertTrue(app.buttons["app.unlocked.settings"].waitForExistence(timeout: 3))
         app.buttons["app.unlocked.settings"].tap()
-        XCTAssertTrue(app.buttons["settings.premium"].waitForExistence(timeout: 3))
-        app.buttons["settings.premium"].tap()
-        XCTAssertTrue(element("subscription.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("settings.screen", in: app).waitForExistence(timeout: 3))
         return app
     }
 }

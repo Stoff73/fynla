@@ -18,6 +18,7 @@ struct AppRootView: View {
     let goalsModel: GoalsModel
     let taxStrategyModel: TaxStrategyModel
     let holisticPlanModel: HolisticPlanModel
+    let settingsModel: SettingsModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -44,6 +45,7 @@ struct AppRootView: View {
         goalsModel: GoalsModel,
         taxStrategyModel: TaxStrategyModel,
         holisticPlanModel: HolisticPlanModel,
+        settingsModel: SettingsModel,
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
@@ -71,6 +73,7 @@ struct AppRootView: View {
         self.goalsModel = goalsModel
         self.taxStrategyModel = taxStrategyModel
         self.holisticPlanModel = holisticPlanModel
+        self.settingsModel = settingsModel
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
@@ -161,6 +164,7 @@ struct AppRootView: View {
                     goalsModel: goalsModel,
                     taxStrategyModel: taxStrategyModel,
                     holisticPlanModel: holisticPlanModel,
+                    settingsModel: settingsModel,
                     fynModel: fynModel,
                     bugReportModel: bugReportModel,
                     appleSubscriptionManager: appleSubscriptionManager
@@ -279,6 +283,7 @@ private struct UnlockedView: View {
     let goalsModel: GoalsModel
     let taxStrategyModel: TaxStrategyModel
     let holisticPlanModel: HolisticPlanModel
+    let settingsModel: SettingsModel
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -314,9 +319,9 @@ private struct UnlockedView: View {
                     goalsModel: goalsModel,
                     taxStrategyModel: taxStrategyModel,
                     holisticPlanModel: holisticPlanModel,
+                    settingsModel: settingsModel,
                     bugReportModel: bugReportModel,
                     appleManager: appleSubscriptionManager,
-                    privacyLockController: privacyLockController,
                     onOpenFyn: { prompt in
                         presentFyn(prompt: prompt)
                     },

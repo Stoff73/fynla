@@ -440,6 +440,23 @@ struct PrivacyLockControllerTests {
     }
 
     @Test @MainActor
+    func disablingFaceIDDeletesOnlyLocalPersistenceAndKeepsTheServerSession() async throws {
+        let harness = try await makeAuthenticatedHarness(biometry: .faceID)
+        await harness.controller.refreshFaceIDOffer()
+        try await harness.controller.enableFaceID()
+        await harness.events.clear()
+
+        try await harness.controller.disableFaceID()
+
+        #expect(await harness.events.values() == ["keychain.delete"])
+        #expect(harness.session.state == .authenticatedUnlocked)
+        #expect(harness.coordinator.credentials == credentials(1))
+        #expect(harness.coordinator.refreshPersistence == .memoryOnly)
+        #expect(!(await harness.preference.isFaceIDEnabled()))
+        #expect(!harness.controller.canUnlockWithFaceID)
+    }
+
+    @Test @MainActor
     func signOutIsBestEffortAndAlwaysClearsServerLocalAndFeatureState() async throws {
         let harness = try await makeAuthenticatedHarness(
             biometry: .faceID,
