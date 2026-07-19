@@ -1168,6 +1168,13 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pi
 
     // Stage 5 — Cross-env sync credential health check
     Route::get('sync-status', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineSyncStatusController::class, 'index']);
+
+    // Stage 3.5 — Clip approval queue (between Stage 3 clip gen and Stage 4 compose)
+    Route::get('clip-approvals', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'index']);
+    Route::get('clip-approvals/{approval}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'show']);
+    Route::post('clip-approvals/{approval}/approve', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'approve']);
+    Route::post('clip-approvals/{approval}/reject', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'reject']);
+    Route::post('clip-approvals/article/{pipelineArticleId}/approve-all', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'approveAll']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)

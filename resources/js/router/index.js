@@ -132,6 +132,7 @@ const PostApprovalQueue = () => import('@/views/Admin/Pipeline/PostApprovalQueue
 const PipelineArticleManager = () => import('@/views/Admin/Pipeline/ArticleManager.vue');
 const PipelineArticleEditor = () => import('@/views/Admin/Pipeline/ArticleEditor.vue');
 const PipelinePublisherManager = () => import('@/views/Admin/Pipeline/PublisherManager.vue');
+const PipelineClipApprovalQueue = () => import('@/views/Admin/Pipeline/ClipApprovalQueue.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -1135,6 +1136,12 @@ const routes = [
     path: '/admin/pipeline/publishers',
     name: 'AdminPipelinePublishers',
     component: PipelinePublisherManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/clips',
+    name: 'AdminPipelineClipApprovals',
+    component: PipelineClipApprovalQueue,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

@@ -69,6 +69,19 @@ Route::get('/pipeline/clips/{slug}/{filename}', [\App\Http\Controllers\Pipeline\
     ->where('slug', '[a-z0-9-]{1,80}')
     ->where('filename', 'clip-[0-9]{1,3}\.mp4');
 
+// Marketing pipeline — magic-link clip approval from the approval email.
+// 48-char single-use tokens with a 48-hour TTL are the auth (no login required).
+Route::get('/pipeline/clips/approve/{token}', [\App\Http\Controllers\Pipeline\ClipApprovalActionController::class, 'approve'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.approve');
+Route::get('/pipeline/clips/reject/{token}', [\App\Http\Controllers\Pipeline\ClipApprovalActionController::class, 'reject'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.reject');
+Route::get('/pipeline/clips/approve-all/{pipelineArticleId}/{token}', [\App\Http\Controllers\Pipeline\ClipApprovalActionController::class, 'approveAll'])
+    ->where('pipelineArticleId', '[0-9]+')
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.approve-all');
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');

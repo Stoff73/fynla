@@ -72,6 +72,43 @@ The pipeline queue processes jobs one at a time by default. On SiteGround shared
 
 ---
 
+## Stage 3.5 — Clip approval gate
+
+Between clip generation (Stage 3) and post composition (Stage 4) there's an
+approval gate. Marketing must approve each generated clip before it feeds
+into Stage 4, or it auto-approves N minutes before the scheduled post.
+
+### Flow
+
+1. `ProcessVideoJob` renders clips → creates one `pipeline_clip_approvals`
+   row per clip → emails `ClipsAwaitingApprovalMail` to marketing@fynla.org
+2. The email shows, per clip:
+   - Signed download / preview link
+   - The **day, date and time** the post using this clip will land
+     (computed from `PostScheduler::nextSlot` across platforms)
+   - **Approve** and **Reject** buttons — one click, no login required
+     (48-char magic tokens, single-use, 48-hour TTL)
+   - An **Approve all** button at the top
+3. Marketing can also review at `http://localhost:8000/admin/pipeline/clips`
+   — grouped by article, embedded video preview, per-clip Approve/Reject
+4. `pipeline:auto-approve-clips` (every 5 min) silently promotes any
+   remaining `pending` clip to `auto_approved` when we're within
+   `PIPELINE_CLIP_AUTO_APPROVE_MINUTES` (default 10) of its scheduled slot
+5. When every clip on an article is decided (approved / auto_approved) AND
+   none rejected, `ComposePostsJob` fires and Stage 4 takes over. A single
+   rejection blocks composition until Stage 3 regenerates the clip.
+
+### Env keys
+
+```
+PIPELINE_CLIP_APPROVAL_ENABLED=true      # master switch (default true)
+PIPELINE_CLIP_AUTO_APPROVE_MINUTES=10    # minutes before scheduled_at
+PIPELINE_CLIP_AUTO_APPROVE_CRON_MINUTES=5
+```
+
+To bypass the gate entirely (old direct-compose path):
+`PIPELINE_CLIP_APPROVAL_ENABLED=false`
+
 ## Cost cap
 
 Unified across all AI vendors (Anthropic today, others tomorrow):

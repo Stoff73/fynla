@@ -158,6 +158,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Clip Approval (Stage 3.5 — gate before Stage 4 composition)
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, ProcessVideoJob doesn't hand clips straight to
+    | ComposePostsJob — it creates ClipApproval rows, sends
+    | ClipsAwaitingApprovalMail to marketing, and waits. Marketing can
+    | approve/reject via the /admin/pipeline/clips queue OR one-click
+    | via magic links in the email.
+    |
+    | Anything still `pending` when we're within `auto_approve_minutes_before_post`
+    | of the scheduled post time is silently auto-approved by the
+    | pipeline:auto-approve-clips cron. Default: 10 min before.
+    |
+    */
+
+    'clip_approval' => [
+        'enabled' => env('PIPELINE_CLIP_APPROVAL_ENABLED', true),
+        'auto_approve_minutes_before_post' => (int) env('PIPELINE_CLIP_AUTO_APPROVE_MINUTES', 10),
+        'auto_approve_cron_frequency_minutes' => (int) env('PIPELINE_CLIP_AUTO_APPROVE_CRON_MINUTES', 5),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Social (Stage 4 — posting + reporting)
     |--------------------------------------------------------------------------
     |

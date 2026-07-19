@@ -168,18 +168,39 @@ class ProcessVideoJob implements ShouldQueue
                 ],
             ]);
 
-            Mail::to((string) config('pipeline.notifications.script_ready_to'))
-                ->queue(new ClipsReadyForReviewMail($article->fresh(), $insight, $signedUrls));
-
-            Log::channel('pipeline')->info('Video clips generated + delivered.', [
+            Log::channel('pipeline')->info('Video clips generated.', [
                 'pipeline_article_id' => $article->id,
                 'clip_count' => count($clipPaths),
             ]);
 
-            // Stage 4 handoff — compose social posts if the pipeline is configured
-            // to auto-compose after clips render.
-            if (config('pipeline.social.compose_after_render')) {
-                \App\Jobs\Pipeline\ComposePostsJob::dispatch($article->fresh());
+            // Stage 3.5 / Stage 4 handoff. Three shapes:
+            //   1. clip_approval.enabled = true → approval gate: create
+            //      ClipApproval rows, send ClipsAwaitingApprovalMail,
+            //      ComposePostsJob fires only when all clips are decided
+            //      (approved, auto_approved, or one rejected → blocked).
+            //   2. clip_approval.enabled = false + social.compose_after_render
+            //      = true → old direct-compose path (kept for regression).
+            //   3. clip_approval.enabled = false + compose_after_render =
+            //      false → clips rendered but nothing dispatched; marketing
+            //      handles composition manually via tinker.
+            if (config('pipeline.clip_approval.enabled', true)) {
+                $approvals = app(\App\Services\Pipeline\ClipApprovalService::class)
+                    ->createForArticle($article->fresh());
+
+                Mail::to((string) config('pipeline.notifications.script_ready_to'))
+                    ->queue(new \App\Mail\Pipeline\ClipsAwaitingApprovalMail(
+                        $article->fresh(),
+                        $insight,
+                        $approvals,
+                        $signedUrls,
+                    ));
+            } else {
+                Mail::to((string) config('pipeline.notifications.script_ready_to'))
+                    ->queue(new ClipsReadyForReviewMail($article->fresh(), $insight, $signedUrls));
+
+                if (config('pipeline.social.compose_after_render')) {
+                    \App\Jobs\Pipeline\ComposePostsJob::dispatch($article->fresh());
+                }
             }
         } catch (Throwable $e) {
             $run->update([

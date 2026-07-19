@@ -46,6 +46,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('pipeline:audit-social-videos')
             ->cron('0 8 1 1,4,7,10 *');
 
+        // Stage 3.5 — auto-approve clip approvals near their scheduled post time.
+        $schedule->command('pipeline:auto-approve-clips')
+            ->cron('*/'.((int) config('pipeline.clip_approval.auto_approve_cron_frequency_minutes', 5)).' * * * *');
+
         // Stage 4 — social scheduling + reporting.
         $schedule->command('pipeline:schedule-ready-posts')->hourly();
         $schedule->command('pipeline:recalculate-optimal-times')->weeklyOn(1, '06:00');
