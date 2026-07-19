@@ -35,6 +35,7 @@ enum NavigationDestinationFactory {
         savingsModel: SavingsModel,
         investmentModel: InvestmentModel,
         retirementModel: RetirementModel,
+        protectionModel: ProtectionModel,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         privacyLockController: PrivacyLockController?,
@@ -120,6 +121,22 @@ enum NavigationDestinationFactory {
             } else {
                 RetirementView(
                     model: retirementModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case let .protection(policyType, policyID):
+            if let policyType, let policyID {
+                ProtectionPolicyView(
+                    policyTypeKey: policyType,
+                    policyID: policyID,
+                    model: protectionModel,
+                    onOpenFyn: onOpenFyn
+                )
+            } else {
+                ProtectionView(
+                    model: protectionModel,
                     onRoute: onRoute,
                     onOpenFyn: onOpenFyn,
                     onOpenSubscription: { onRoute(.settings) }

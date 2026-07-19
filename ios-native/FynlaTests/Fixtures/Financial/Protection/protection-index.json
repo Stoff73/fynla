@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "data": {
+    "profile": {
+      "id": 1,
+      "annual_income": 60000,
+      "mortgage_balance": 200000,
+      "other_debts": 10000,
+      "number_of_dependents": 2,
+      "has_no_policies": false
+    },
+    "policies": {
+      "life_insurance": [
+        {
+          "id": 41,
+          "policy_type": "level_term",
+          "provider": "Example Life",
+          "policy_number": "LIFE-41",
+          "sum_assured": 250000,
+          "premium_amount": 35,
+          "premium_frequency": "monthly",
+          "policy_start_date": "2024-01-01",
+          "policy_end_date": "2044-01-01",
+          "policy_term_years": 20,
+          "in_trust": true,
+          "is_mortgage_protection": false,
+          "beneficiaries": "Family"
+        }
+      ],
+      "critical_illness": [],
+      "income_protection": [
+        {
+          "id": 42,
+          "provider": "Example Income",
+          "policy_number": "IP-42",
+          "benefit_amount": 2500,
+          "benefit_frequency": "monthly",
+          "deferred_period_weeks": 13,
+          "benefit_period_months": 24,
+          "premium_amount": 28,
+          "premium_frequency": "monthly",
+          "occupation_class": "Professional",
+          "policy_start_date": "2025-01-01",
+          "policy_end_date": null,
+          "policy_term_years": 15
+        }
+      ],
+      "disability": [],
+      "sickness_illness": []
+    }
+  }
+}

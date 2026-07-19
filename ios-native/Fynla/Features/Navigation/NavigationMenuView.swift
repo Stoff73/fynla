@@ -41,7 +41,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
         NavigationMenuSection(
             title: "Family",
             items: [
-                NavigationMenuItem(label: "Protection", route: .protection(policyType: nil, id: nil), isStaged: true),
+                NavigationMenuItem(label: "Protection", route: .protection(policyType: nil, id: nil), isStaged: false),
                 NavigationMenuItem(label: "Estate Planning", route: .estate, isStaged: true),
             ]
         ),
