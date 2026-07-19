@@ -4,6 +4,7 @@ struct AppRootView: View {
     let session: AppSession
     let privacyLockController: PrivacyLockController?
     let legacyCapacitorCleanup: LegacyCapacitorCleanup
+    let nativeVersionPolicyModel: NativeVersionPolicyModel
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
@@ -37,6 +38,7 @@ struct AppRootView: View {
         session: AppSession,
         privacyLockController: PrivacyLockController? = nil,
         legacyCapacitorCleanup: LegacyCapacitorCleanup,
+        nativeVersionPolicyModel: NativeVersionPolicyModel,
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
@@ -71,6 +73,7 @@ struct AppRootView: View {
         self.session = session
         self.privacyLockController = privacyLockController
         self.legacyCapacitorCleanup = legacyCapacitorCleanup
+        self.nativeVersionPolicyModel = nativeVersionPolicyModel
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
@@ -165,32 +168,48 @@ struct AppRootView: View {
                     LockedView(message: "Unlock to view your financial plan.")
                 }
             case .authenticatedUnlocked:
-                UnlockedView(
-                    privacyLockController: privacyLockController,
-                    subscriptionModel: subscriptionModel,
-                    dashboardModel: dashboardModel,
-                    achievementsModel: achievementsModel,
-                    incomeModel: incomeModel,
-                    expenditureModel: expenditureModel,
-                    netWorthModel: netWorthModel,
-                    balanceHistoryModel: balanceHistoryModel,
-                    savingsModel: savingsModel,
-                    investmentModel: investmentModel,
-                    retirementModel: retirementModel,
-                    protectionModel: protectionModel,
-                    estateModel: estateModel,
-                    goalsModel: goalsModel,
-                    taxStrategyModel: taxStrategyModel,
-                    holisticPlanModel: holisticPlanModel,
-                    settingsModel: settingsModel,
-                    privacySettingsModel: privacySettingsModel,
-                    dataExportModel: dataExportModel,
-                    accountDeletionModel: accountDeletionModel,
-                    pushCoordinator: pushCoordinator,
-                    fynModel: fynModel,
-                    bugReportModel: bugReportModel,
-                    appleSubscriptionManager: appleSubscriptionManager
-                )
+                switch nativeVersionPolicyModel.state {
+                case .checking:
+                    LoadingView(message: "Checking this version of Fynla…")
+                case .supported:
+                    UnlockedView(
+                        privacyLockController: privacyLockController,
+                        subscriptionModel: subscriptionModel,
+                        dashboardModel: dashboardModel,
+                        achievementsModel: achievementsModel,
+                        incomeModel: incomeModel,
+                        expenditureModel: expenditureModel,
+                        netWorthModel: netWorthModel,
+                        balanceHistoryModel: balanceHistoryModel,
+                        savingsModel: savingsModel,
+                        investmentModel: investmentModel,
+                        retirementModel: retirementModel,
+                        protectionModel: protectionModel,
+                        estateModel: estateModel,
+                        goalsModel: goalsModel,
+                        taxStrategyModel: taxStrategyModel,
+                        holisticPlanModel: holisticPlanModel,
+                        settingsModel: settingsModel,
+                        privacySettingsModel: privacySettingsModel,
+                        dataExportModel: dataExportModel,
+                        accountDeletionModel: accountDeletionModel,
+                        pushCoordinator: pushCoordinator,
+                        fynModel: fynModel,
+                        bugReportModel: bugReportModel,
+                        appleSubscriptionManager: appleSubscriptionManager
+                    )
+                case let .updateRequired(requirement, appStoreURL):
+                    NativeUpdateRequiredView(
+                        requirement: requirement,
+                        appStoreURL: appStoreURL
+                    )
+                case .unavailable:
+                    ErrorView(
+                        message: "Fynla couldn't verify this app version. Check your connection and try again."
+                    ) {
+                        Task { await nativeVersionPolicyModel.validate() }
+                    }
+                }
             case .deletingAccount:
                 LockedView(message: "Updating your account securely…")
             }
@@ -215,9 +234,11 @@ struct AppRootView: View {
         }
         .task(id: session.state) {
             if session.state == .authenticatedUnlocked {
+                guard await nativeVersionPolicyModel.validate() else { return }
                 await pushCoordinator.start()
                 await subscriptionModel.start()
             } else if session.state == .signedOut {
+                nativeVersionPolicyModel.reset()
                 subscriptionModel.stop()
                 dashboardModel.stop()
                 achievementsModel.stop()
@@ -244,6 +265,7 @@ struct AppRootView: View {
             if let privacyLockController,
                privacyLockController.shouldOfferFaceID,
                session.state == .authenticatedUnlocked,
+               nativeVersionPolicyModel.state == .supported,
                !privacyLockController.isPrivacyCovered
             {
                 ZStack {

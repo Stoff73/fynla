@@ -36,6 +36,7 @@ struct NativeEntitlement: Decodable, Sendable, Equatable {
 
 protocol SubscriptionAPI: Sendable {
     func entitlement() async throws -> NativeEntitlement
+    func authorizePurchase() async throws -> Bool
     func appAccountToken() async throws -> UUID
     func acknowledge(_ transaction: SignedStoreTransaction) async throws -> Bool
     func reconcile(originalTransactionID: String) async throws
@@ -63,15 +64,21 @@ final class SubscriptionModel {
 
     private let api: any SubscriptionAPI
     private let storeKit: any StoreKitClient
+    private let purchaseEnabled: @MainActor () -> Bool
     private var availableProducts: [StoreProduct] = []
     private var processingTransactionIDs: Set<UInt64> = []
     private var processedTransactionIDs: Set<UInt64> = []
     private var updateTask: Task<Void, Never>?
     private var loadGeneration = 0
 
-    init(api: any SubscriptionAPI, storeKit: any StoreKitClient) {
+    init(
+        api: any SubscriptionAPI,
+        storeKit: any StoreKitClient,
+        purchaseEnabled: @escaping @MainActor () -> Bool = { true }
+    ) {
         self.api = api
         self.storeKit = storeKit
+        self.purchaseEnabled = purchaseEnabled
     }
 
     var selectedProduct: StoreProduct? {
@@ -83,8 +90,10 @@ final class SubscriptionModel {
 
     var canPurchase: Bool {
         guard case let .free(_, _, isPending) = state else { return false }
-        return !isPending && !isPurchasing && !isRestoring
+        return isPurchaseEnabled && !isPending && !isPurchasing && !isRestoring
     }
+
+    var isPurchaseEnabled: Bool { purchaseEnabled() }
 
     func start() async {
         if updateTask == nil {
@@ -176,6 +185,10 @@ final class SubscriptionModel {
         defer { isPurchasing = false }
 
         do {
+            guard try await api.authorizePurchase() else {
+                message = "New App Store purchases are temporarily unavailable. You can still restore an existing purchase."
+                return
+            }
             let token = try await api.appAccountToken()
             let outcome = try await storeKit.purchase(
                 selectedProduct.id,

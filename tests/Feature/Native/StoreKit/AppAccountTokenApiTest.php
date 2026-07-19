@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Kernel;
+use App\Http\Middleware\EnforceNativeVersion;
 use App\Http\Middleware\EnsureActiveNativeSession;
 use App\Http\Middleware\IdentifyNativeClient;
 use App\Models\NativeDeviceSession;
@@ -71,8 +72,10 @@ it('registers the account token route with native client authentication and acti
 
     expect($route->getActionName())
         ->toBe('App\\Http\\Controllers\\Api\\V1\\Native\\StoreKit\\AppAccountTokenController')
-        ->and($route->gatherMiddleware())->toContain('native.client', 'auth:sanctum', 'native.session')
+        ->and($route->gatherMiddleware())->toContain('native.client', 'native.version', 'auth:sanctum', 'native.session')
         ->and(array_search('native.client', $route->gatherMiddleware(), true))
+        ->toBeLessThan(array_search('native.version', $route->gatherMiddleware(), true))
+        ->and(array_search('native.version', $route->gatherMiddleware(), true))
         ->toBeLessThan(array_search('auth:sanctum', $route->gatherMiddleware(), true))
         ->and(array_search('auth:sanctum', $route->gatherMiddleware(), true))
         ->toBeLessThan(array_search('native.session', $route->gatherMiddleware(), true));
@@ -82,6 +85,7 @@ it('adds native priority around Laravel authentication without changing the defa
     $priority = app(Kernel::class)->getMiddlewarePriority();
     $withoutNative = array_values(array_filter($priority, fn (string $middleware): bool => ! in_array($middleware, [
         EnsureActiveNativeSession::class,
+        EnforceNativeVersion::class,
         IdentifyNativeClient::class,
     ], true)));
 
@@ -98,6 +102,8 @@ it('adds native priority around Laravel authentication without changing the defa
         SubstituteBindings::class,
         Authorize::class,
     ])->and(array_search(IdentifyNativeClient::class, $priority, true))
+        ->toBeLessThan(array_search(EnforceNativeVersion::class, $priority, true))
+        ->and(array_search(EnforceNativeVersion::class, $priority, true))
         ->toBeLessThan(array_search(AuthenticatesRequests::class, $priority, true))
         ->and(array_search(AuthenticatesRequests::class, $priority, true))
         ->toBeLessThan(array_search(EnsureActiveNativeSession::class, $priority, true));

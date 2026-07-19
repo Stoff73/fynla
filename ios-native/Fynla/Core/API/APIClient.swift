@@ -199,8 +199,22 @@ actor APIClient {
             return .conflict(message: body?.message)
         case 422:
             return .validation(body?.errors ?? [:])
-        case 426:
-            return .upgradeRequired(message: body?.message ?? "Upgrade required.")
+        case 426 where body?.error == "native_update_required":
+            guard let message = body?.message,
+                  let minimumVersion = body?.minimumVersion,
+                  let minimumBuild = body?.minimumBuild,
+                  let appStoreURL = body?.appStoreURL
+            else {
+                return .server(status: response.statusCode, requestID: requestID)
+            }
+            return .nativeUpdateRequired(
+                NativeUpdateRequirement(
+                    message: message,
+                    minimumVersion: minimumVersion,
+                    minimumBuild: minimumBuild,
+                    appStoreURL: appStoreURL
+                )
+            )
         case 429:
             return .rateLimited(retryAfter: retryAfter(from: response))
         default:
@@ -240,6 +254,18 @@ private struct ErrorEnvelope: Decodable, Sendable {
     let error: String?
     let message: String?
     let errors: [String: [String]]?
+    let minimumVersion: String?
+    let minimumBuild: Int?
+    let appStoreURL: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case error
+        case message
+        case errors
+        case minimumVersion = "minimum_version"
+        case minimumBuild = "minimum_build"
+        case appStoreURL = "app_store_url"
+    }
 }
 
 private extension URLError.Code {

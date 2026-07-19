@@ -77,7 +77,7 @@ final class SavingsModel {
             state = .upgradeRequired(message: message)
         case let .server(_, requestID), let .decoding(requestID):
             state = .failed(requestID: requestID)
-        case .validation, .forbidden, .rateLimited, .conflict:
+        case .validation, .forbidden, .nativeUpdateRequired, .rateLimited, .conflict:
             state = .failed(requestID: nil)
         }
     }
@@ -88,7 +88,7 @@ final class SavingsModel {
             accountState = .offline
         case .unauthenticated:
             accountState = .unauthenticated
-        case .forbidden, .upgradeRequired:
+        case .forbidden, .upgradeRequired, .nativeUpdateRequired:
             accountState = .forbidden
         case let .server(status, requestID):
             accountState = status == 404 ? .notFound : .failed(requestID: requestID)

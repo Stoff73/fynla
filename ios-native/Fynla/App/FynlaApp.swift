@@ -9,6 +9,7 @@ struct FynlaApp: App {
     @State private var router: AppRouter
     @State private var authenticationCoordinator: AuthenticationCoordinator
     @State private var privacyLockController: PrivacyLockController
+    @State private var nativeVersionPolicyModel: NativeVersionPolicyModel
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
@@ -118,6 +119,26 @@ struct FynlaApp: App {
             accessTokenProvider: coordinator,
             tokenRefresher: privacyLockController
         )
+        #if FYNLA_UI_TESTING
+        let nativeVersionPolicyClient: any NativeVersionPolicyClient =
+            uiTestMode == nil
+                ? LiveNativeVersionPolicyClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+                : StaticNativeVersionPolicyClient(
+                    runtimePolicy: NativeRuntimePolicy(
+                        storeKitPurchaseEnabled: true
+                    )
+                )
+        #else
+        let nativeVersionPolicyClient: any NativeVersionPolicyClient =
+            LiveNativeVersionPolicyClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        #endif
+        let nativeVersionPolicyModel = NativeVersionPolicyModel(
+            client: nativeVersionPolicyClient
+        )
         let pushCoordinator = PushRegistrationCoordinator(
             system: LiveSystemPushClient(),
             client: LivePushClient(
@@ -209,7 +230,10 @@ struct FynlaApp: App {
                 api: LiveSubscriptionAPI(
                     apiClient: authenticatedDependencies.makeAPIClient()
                 ),
-                storeKit: SystemStoreKitClient()
+                storeKit: SystemStoreKitClient(),
+                purchaseEnabled: {
+                    nativeVersionPolicyModel.storeKitPurchaseEnabled
+                }
             )
             appleSubscriptionManager = SystemAppleSubscriptionManager()
         }
@@ -218,7 +242,10 @@ struct FynlaApp: App {
             api: LiveSubscriptionAPI(
                 apiClient: authenticatedDependencies.makeAPIClient()
             ),
-            storeKit: SystemStoreKitClient()
+            storeKit: SystemStoreKitClient(),
+            purchaseEnabled: {
+                nativeVersionPolicyModel.storeKitPurchaseEnabled
+            }
         )
         let appleSubscriptionManager: any AppleSubscriptionManaging =
             SystemAppleSubscriptionManager()
@@ -355,6 +382,7 @@ struct FynlaApp: App {
         _router = State(initialValue: router)
         _authenticationCoordinator = State(initialValue: coordinator)
         _privacyLockController = State(initialValue: privacyLockController)
+        _nativeVersionPolicyModel = State(initialValue: nativeVersionPolicyModel)
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
@@ -405,6 +433,7 @@ struct FynlaApp: App {
             session: session,
             privacyLockController: privacyLockController,
             legacyCapacitorCleanup: legacyCapacitorCleanup,
+            nativeVersionPolicyModel: nativeVersionPolicyModel,
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,

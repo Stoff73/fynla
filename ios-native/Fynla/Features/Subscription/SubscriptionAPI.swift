@@ -17,6 +17,16 @@ struct LiveSubscriptionAPI: SubscriptionAPI {
         return response.entitlement
     }
 
+    func authorizePurchase() async throws -> Bool {
+        let response = try await apiClient.send(
+            APIRequest<PurchaseAuthorizationResponse>(
+                path: "api/v1/native/storekit/purchase-authorization",
+                method: .get
+            )
+        )
+        return response.enabled
+    }
+
     func appAccountToken() async throws -> UUID {
         let response = try await apiClient.send(
             APIRequest<AppAccountTokenResponse>(
@@ -62,6 +72,10 @@ struct LiveSubscriptionAPI: SubscriptionAPI {
 
 private struct EntitlementResponse: Decodable, Sendable {
     let entitlement: NativeEntitlement
+}
+
+private struct PurchaseAuthorizationResponse: Decodable, Sendable {
+    let enabled: Bool
 }
 
 private struct AppAccountTokenResponse: Decodable, Sendable {

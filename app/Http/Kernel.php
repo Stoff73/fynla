@@ -13,6 +13,7 @@ use App\Http\Middleware\CaptureNativeDeviceLabel;
 use App\Http\Middleware\CheckFeatureAccess;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\EncryptCookies;
+use App\Http\Middleware\EnforceNativeVersion;
 use App\Http\Middleware\EnsureActiveNativeSession;
 use App\Http\Middleware\EnsureFullEstateAccess;
 use App\Http\Middleware\EnsureFullHolisticAccess;
@@ -75,6 +76,7 @@ class Kernel extends HttpKernel
         StartSession::class,
         ShareErrorsFromSession::class,
         IdentifyNativeClient::class,
+        EnforceNativeVersion::class,
         AuthenticatesRequests::class,
         EnsureActiveNativeSession::class,
         ThrottleRequests::class,
@@ -160,6 +162,7 @@ class Kernel extends HttpKernel
         'permission' => HasPermission::class,
         'identify.mobile' => IdentifyMobileClient::class,
         'native.client' => IdentifyNativeClient::class,
+        'native.version' => EnforceNativeVersion::class,
         'native.session' => EnsureActiveNativeSession::class,
         'etag' => ETagResponse::class,
         'advisor' => AdvisorMiddleware::class,

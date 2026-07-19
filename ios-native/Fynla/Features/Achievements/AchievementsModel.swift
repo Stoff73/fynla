@@ -155,6 +155,7 @@ final class AchievementsModel {
         case .validation,
              .forbidden,
              .upgradeRequired,
+             .nativeUpdateRequired,
              .rateLimited,
              .conflict:
             state = .failed(requestID: nil)

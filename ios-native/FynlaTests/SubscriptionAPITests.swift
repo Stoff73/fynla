@@ -13,6 +13,10 @@ struct SubscriptionAPITests {
             ),
             .response(
                 status: 200,
+                body: Data(#"{"success":true,"data":{"enabled":true}}"#.utf8)
+            ),
+            .response(
+                status: 200,
                 body: Data(#"{"success":true,"data":{"app_account_token":"19659a36-8e55-4f95-98cb-3f5d61f489aa"}}"#.utf8)
             ),
             .response(
@@ -39,6 +43,7 @@ struct SubscriptionAPITests {
         let api = LiveSubscriptionAPI(apiClient: client)
 
         #expect(try await api.entitlement().tier == .free)
+        #expect(try await api.authorizePurchase())
         #expect(
             try await api.appAccountToken()
                 == UUID(uuidString: "19659A36-8E55-4F95-98CB-3F5D61F489AA")
@@ -58,19 +63,20 @@ struct SubscriptionAPITests {
         try await api.reconcile(originalTransactionID: "40")
 
         let requests = await transport.requests()
-        #expect(requests.map { $0.httpMethod } == ["GET", "GET", "POST", "POST"])
+        #expect(requests.map { $0.httpMethod } == ["GET", "GET", "GET", "POST", "POST"])
         #expect(requests.map { $0.url?.path } == [
             "/fynla/api/v1/native/entitlement",
+            "/fynla/api/v1/native/storekit/purchase-authorization",
             "/fynla/api/v1/native/storekit/account-token",
             "/fynla/api/v1/native/storekit/transactions",
             "/fynla/api/v1/native/storekit/reconcile",
         ])
         #expect(
-            requests[2].httpBody
+            requests[3].httpBody
                 == Data(#"{"signed_transaction":"header.payload.signature"}"#.utf8)
         )
         #expect(
-            requests[3].httpBody
+            requests[4].httpBody
                 == Data(#"{"original_transaction_id":"40"}"#.utf8)
         )
         #expect(requests.allSatisfy {
