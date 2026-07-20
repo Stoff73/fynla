@@ -1,5 +1,10 @@
 import SwiftUI
 
+// Transcribes /m's Goals page (resources/mobile/views/modules/Goals.vue):
+// gradient page hero, Edit details pill, on-track hero card, overall-progress
+// card with the status bar, and per-goal blocks (name/type, status pill,
+// progress bar, amounts + time remaining, EDIT action). Goal add/edit run
+// through Fyn with /m's exact prompts. Whole-pound amounts.
 struct GoalsView: View {
     let model: GoalsModel
     let onOpenFyn: (String) -> Void
@@ -9,7 +14,7 @@ struct GoalsView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                DashboardLoadingView(message: "Loading your goals…")
             case let .loaded(snapshot):
                 content(snapshot)
             case let .offline(previous):
@@ -24,8 +29,6 @@ struct GoalsView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Goals")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("goals.screen")
     }
@@ -35,182 +38,285 @@ struct GoalsView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text("Goals and life events")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("Your financial milestones and how they're tracking")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Goals and life events",
+                    subtitle: "Your financial milestones and how they're tracking"
+                )
+
+                MobilePageActions(editDetails: {
+                    onOpenFyn(
+                        FynEditIntent.message(
+                            updateScope: "goals",
+                            addPhrase: "I'd like to add a new goal.",
+                            names: snapshot.goals.map { Optional($0.displayName) }
+                        )
+                    )
+                })
+
+                Group {
+                    if offline {
+                        offlineNotice
+                    }
+
+                    heroCard(snapshot)
+
+                    if totalGoals(snapshot) > 0 {
+                        overallCard(snapshot)
+                    }
+
+                    goalsCard(snapshot)
                 }
-                if offline { offlineNotice }
-                hero(snapshot)
-                if let overview = snapshot.overview, overview.totalGoals > 0 {
-                    overallProgress(overview)
-                }
-                goalsCard(snapshot.goals)
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
-    private func hero(_ snapshot: GoalsSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+    // m-hero: "Goals on track" X of Y + saved sub-line.
+    private func heroCard(_ snapshot: GoalsSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Goals on track")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            if let overview = snapshot.overview {
-                Text("\(overview.onTrackCount) of \(overview.totalGoals)")
-                    .font(FynlaTypography.pageTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
-                    .accessibilityIdentifier("goals.on-track")
-                Text(
-                    overview.totalGoals == 0
-                        ? "No goals set yet."
-                        : "\(MoneyFormatter.gbp(overview.totalCurrent)) of \(MoneyFormatter.gbp(overview.totalTarget)) saved so far."
-                )
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            } else {
-                Text("Unavailable")
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                Text("Goal totals are unavailable right now; your individual goals are still shown below.")
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
-            }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+            Text("\(onTrackCount(snapshot)) of \(totalGoals(snapshot))")
+                .font(.system(size: 28, weight: .heavy))
+                .foregroundStyle(FynlaColor.Token.horizon600.color)
+                .accessibilityIdentifier("goals.on-track")
+            Text(savedLabel(snapshot))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func overallProgress(_ overview: GoalsOverview) -> some View {
-        let progress = min(
-            max(NSDecimalNumber(decimal: overview.overallProgress).doubleValue / 100, 0),
-            1
-        )
-        return VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Overall progress")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
+    // Overall progress: mts-allow head/bar/foot with the status colour.
+    private func overallCard(_ snapshot: GoalsSnapshot) -> some View {
+        let progress = overallProgress(snapshot)
+        let status = status(forPercent: Double(progress))
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Overall progress".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .padding(.bottom, 4)
+
             HStack(alignment: .firstTextBaseline) {
                 Text("Saved towards your goals")
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.primaryText)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
                 Spacer()
-                Text("of \(MoneyFormatter.gbp(overview.totalTarget))")
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                Text("of \(MoneyFormatter.gbpWhole(totalTarget(snapshot)))")
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
-            ProgressView(value: progress)
-                .tint(FynlaColor.focus)
+
+            statusBar(fill: Double(min(progress, 100)) / 100, color: status.color)
+
             HStack(alignment: .firstTextBaseline) {
-                Text("\(MoneyFormatter.percentage(overview.overallProgress)) complete")
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.primaryText)
+                Text("\(progress)% complete")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(status.color)
                 Spacer()
-                Text("\(MoneyFormatter.gbp(overview.totalCurrent)) saved")
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                Text("\(MoneyFormatter.gbpWhole(totalCurrent(snapshot))) saved")
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityIdentifier("goals.overall-progress")
     }
 
-    private func goalsCard(_ goals: [FinancialGoal]) -> some View {
+    private func goalsCard(_ snapshot: GoalsSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Your goals")
-                    .font(FynlaTypography.sectionTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
+                Text("Your goals".uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(FynlaColor.Token.horizon400.color)
                 Spacer()
-                Button("Add goal") {
+                Button {
                     onOpenFyn("I'd like to add a new goal.")
+                } label: {
+                    Text("Add goal".uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
                 }
-                .font(FynlaTypography.button)
-                .foregroundStyle(FynlaColor.primaryAction)
                 .accessibilityIdentifier("goals.add")
             }
-            .padding(.bottom, FynlaSpacing.small)
+            .padding(.bottom, 6)
 
-            if goals.isEmpty {
+            if snapshot.goals.isEmpty {
                 Text("You haven't set any goals yet.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.vertical, FynlaSpacing.small)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .padding(.vertical, 8)
             } else {
-                ForEach(goals) { goal in
-                    goalRow(goal)
+                ForEach(snapshot.goals) { goal in
+                    goalBlock(goal, showsDivider: goal.id != snapshot.goals.last?.id)
                 }
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func goalRow(_ goal: FinancialGoal) -> some View {
-        let progress = min(
-            max(NSDecimalNumber(decimal: goal.progressPercentage).doubleValue / 100, 0),
-            1
-        )
-        return VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-            HStack(alignment: .top, spacing: FynlaSpacing.small) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+    // mg-goal: name/type + status pill head, status bar, amounts/remaining
+    // foot, EDIT action.
+    private func goalBlock(_ goal: FinancialGoal, showsDivider: Bool) -> some View {
+        let status = status(for: goal)
+        let pct = NSDecimalNumber(decimal: goal.progressPercentage).doubleValue
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(goal.displayName)
-                        .font(FynlaTypography.heading)
-                        .foregroundStyle(FynlaColor.primaryText)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
                     Text(goal.typeLabel)
-                        .font(FynlaTypography.caption)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
                 }
                 Spacer()
-                Text(goal.statusLabel)
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(goal.isOnTrack ? FynlaColor.focus : FynlaColor.primaryAction)
+                Text(statusLabel(goal))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(status.color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(status.color.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
-            ProgressView(value: progress)
-                .tint(goal.isOnTrack ? FynlaColor.focus : FynlaColor.primaryAction)
+
+            statusBar(fill: min(max(pct / 100, 0), 1), color: status.color)
+                .padding(.vertical, 2)
+
             HStack(alignment: .firstTextBaseline) {
-                Text("\(MoneyFormatter.gbp(goal.currentAmount)) of \(MoneyFormatter.gbp(goal.targetAmount))")
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.primaryText)
+                Text("\(MoneyFormatter.gbpWhole(goal.currentAmount)) of \(MoneyFormatter.gbpWhole(goal.targetAmount))")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
                 Spacer()
                 Text(goal.remainingLabel)
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
-            HStack {
-                Spacer()
-                Button("Edit") {
-                    onOpenFyn("I'd like to update my \"\(goal.displayName)\" goal.")
-                }
-                .font(FynlaTypography.button)
-                .foregroundStyle(FynlaColor.primaryAction)
-                .accessibilityIdentifier("goals.edit.\(goal.id)")
+
+            Button {
+                onOpenFyn("I'd like to update my \"\(goal.displayName)\" goal.")
+            } label: {
+                Text("Edit".uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
+            }
+            .padding(.top, 2)
+            .accessibilityIdentifier("goals.edit.\(goal.id)")
+        }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                FynlaColor.Token.horizon100.color.frame(height: 1)
             }
         }
-        .padding(.vertical, FynlaSpacing.medium)
-        .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("goals.goal.\(goal.id)")
+    }
+
+    // /m statusOf(): complete/on-track spring; else violet ≥50%, raspberry.
+    private enum GoalStatus {
+        case spring, violet, raspberry
+
+        var color: Color {
+            switch self {
+            case .spring: FynlaColor.Token.spring500.color
+            case .violet: FynlaColor.Token.violet500.color
+            case .raspberry: FynlaColor.Token.raspberry500.color
+            }
+        }
+    }
+
+    private func status(for goal: FinancialGoal) -> GoalStatus {
+        let pct = NSDecimalNumber(decimal: goal.progressPercentage).doubleValue
+        if pct >= 100 || goal.status == "completed" { return .spring }
+        if goal.isOnTrack { return .spring }
+        return pct >= 50 ? .violet : .raspberry
+    }
+
+    private func statusLabel(_ goal: FinancialGoal) -> String {
+        let pct = NSDecimalNumber(decimal: goal.progressPercentage).doubleValue
+        if pct >= 100 || goal.status == "completed" { return "Complete" }
+        return goal.isOnTrack ? "On track" : "Behind"
+    }
+
+    private func status(forPercent pct: Double) -> GoalStatus {
+        if pct >= 100 { return .spring }
+        if pct >= 50 { return .violet }
+        return .raspberry
+    }
+
+    private func statusBar(fill: Double, color: Color) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(FynlaColor.Token.horizon200.color)
+                Capsule()
+                    .fill(color)
+                    .frame(width: proxy.size.width * min(max(fill, 0), 1))
+            }
+        }
+        .frame(height: 6)
+    }
+
+    private func totalGoals(_ snapshot: GoalsSnapshot) -> Int {
+        snapshot.overview?.totalGoals ?? snapshot.goals.count
+    }
+
+    private func onTrackCount(_ snapshot: GoalsSnapshot) -> Int {
+        snapshot.overview?.onTrackCount ?? snapshot.goals.filter(\.isOnTrack).count
+    }
+
+    private func totalTarget(_ snapshot: GoalsSnapshot) -> Decimal {
+        snapshot.overview?.totalTarget
+            ?? snapshot.goals.reduce(0) { $0 + $1.targetAmount }
+    }
+
+    private func totalCurrent(_ snapshot: GoalsSnapshot) -> Decimal {
+        snapshot.overview?.totalCurrent
+            ?? snapshot.goals.reduce(0) { $0 + $1.currentAmount }
+    }
+
+    private func overallProgress(_ snapshot: GoalsSnapshot) -> Int {
+        if let progress = snapshot.overview?.overallProgress {
+            return Int(NSDecimalNumber(decimal: progress).doubleValue.rounded())
+        }
+        let target = totalTarget(snapshot)
+        guard target > 0 else { return 0 }
+        let ratio = NSDecimalNumber(decimal: totalCurrent(snapshot) / target).doubleValue
+        return Int((ratio * 100).rounded())
+    }
+
+    private func savedLabel(_ snapshot: GoalsSnapshot) -> String {
+        guard totalGoals(snapshot) > 0 else { return "No goals set yet." }
+        return "\(MoneyFormatter.gbpWhole(totalCurrent(snapshot))) of \(MoneyFormatter.gbpWhole(totalTarget(snapshot))) saved so far."
     }
 
     private var offlineNotice: some View {
         Text("You're offline. Showing your last loaded goals.")
-            .font(FynlaTypography.bodySmall)
-            .foregroundStyle(FynlaColor.primaryText)
-            .padding(FynlaSpacing.medium)
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FynlaColor.Token.savannah100.color)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .accessibilityIdentifier("goals.offline")
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {
