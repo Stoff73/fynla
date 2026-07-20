@@ -1,5 +1,10 @@
 import SwiftUI
 
+// Transcribes /m's Net Worth page (resources/mobile/views/modules/
+// NetWorth.vue): gradient page hero, "Edit details" pill, net-worth hero card
+// with the assets/liabilities line, Defined Benefit note, balance-history
+// card, tappable asset category rows and the liabilities row. Whole-pound
+// amounts as /m's formatCurrency.
 struct NetWorthView: View {
     let model: NetWorthModel
     let onRoute: (AppRoute) -> Void
@@ -10,7 +15,7 @@ struct NetWorthView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                DashboardLoadingView(message: "Loading your net worth…")
             case let .loaded(snapshot):
                 content(snapshot)
             case let .offline(previous):
@@ -28,8 +33,6 @@ struct NetWorthView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Net Worth")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("net-worth.screen")
     }
@@ -39,187 +42,205 @@ struct NetWorthView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text("Net Worth")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("Everything you own, less what you owe")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-
-                if offline {
-                    offlineNotice
-                }
-
-                hero(snapshot.overview)
-
-                if snapshot.overview.hasDBPensions {
-                    Text("Defined Benefit pensions are excluded from net worth — they provide a guaranteed income rather than accessible capital.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                        .accessibilityIdentifier("net-worth.db-note")
-                }
-
-                historyCard
-                assetCard(snapshot.assetCategories)
-                liabilityCard(snapshot.overview.totalLiabilities)
-
-                Button("Update net worth with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "assets and liabilities",
-                            addPhrase: "I'd like to add an asset or liability.",
-                            names: snapshot.assetCategories.map(\.title)
-                        )
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: FynlaSpacing.minimumInteractiveTarget
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Net Worth",
+                    subtitle: "Everything you own, less what you owe"
                 )
-                .accessibilityIdentifier("net-worth.edit-with-fyn")
+
+                MobilePageActions(editDetails: {
+                    onOpenFyn("What would you like to update?")
+                })
+
+                Group {
+                    if offline {
+                        offlineNotice
+                    }
+
+                    heroCard(snapshot.overview)
+
+                    if snapshot.overview.hasDBPensions {
+                        Text("Defined Benefit pensions are excluded from net worth — they provide a guaranteed income rather than accessible capital.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(FynlaColor.Token.neutral600.color)
+                            .padding(.horizontal, 4)
+                            .accessibilityIdentifier("net-worth.db-note")
+                    }
+
+                    historyCard
+                    assetCard(snapshot.assetCategories)
+                    liabilityCard(snapshot.overview.totalLiabilities)
+                }
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
-    private func hero(_ overview: NetWorthOverview) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+    // m-hero: label + big metric + assets/liabilities sub-line.
+    private func heroCard(_ overview: NetWorthOverview) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Total net worth")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(overview.netWorth)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+            Text(MoneyFormatter.gbpWhole(overview.netWorth))
+                .font(.system(size: 28, weight: .heavy))
+                .foregroundStyle(FynlaColor.Token.horizon600.color)
                 .accessibilityIdentifier("net-worth.total")
-            Text("\(MoneyFormatter.gbp(overview.totalAssets)) in assets, less \(MoneyFormatter.gbp(overview.totalLiabilities)) of liabilities.")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
+            Text("\(MoneyFormatter.gbpWhole(overview.totalAssets)) in assets, less \(MoneyFormatter.gbpWhole(overview.totalLiabilities)) of liabilities.")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // mnw-history: title + meta left, uppercase raspberry action right.
     private var historyCard: some View {
-        HStack(alignment: .center, spacing: FynlaSpacing.medium) {
-            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Balance history")
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.primaryText)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
                 Text("Track how your recorded balances change over time.")
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
-            Spacer(minLength: FynlaSpacing.small)
-            Button("View") { onRoute(.balanceHistory) }
-                .font(FynlaTypography.button)
-                .foregroundStyle(FynlaColor.primaryAction)
-                .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("net-worth.balance-history")
+            Spacer(minLength: 8)
+            Button {
+                onRoute(.balanceHistory)
+            } label: {
+                Text("View balance history".uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
+            }
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("net-worth.balance-history")
         }
-        .padding(FynlaSpacing.standard)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .padding(16)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func assetCard(
         _ categories: [NetWorthAssetCategorySummary]
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Assets")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .padding(.bottom, FynlaSpacing.small)
+            Text("Assets".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .padding(.bottom, 6)
 
             if categories.isEmpty {
                 Text("No assets recorded yet.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.vertical, FynlaSpacing.small)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .padding(.vertical, 8)
             } else {
                 ForEach(categories) { category in
-                    Button {
+                    categoryRow(
+                        title: category.title,
+                        meta: "\(category.count) \(category.count == 1 ? "item" : "items"), \(category.percentageOfAssets)% of assets",
+                        value: MoneyFormatter.gbpWhole(category.totalValue),
+                        valueIsDebt: false,
+                        showsDivider: category.id != categories.last?.id
+                    ) {
                         onRoute(.netWorth(category: category.id.rawValue))
-                    } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.medium) {
-                            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
-                                Text(category.title)
-                                    .font(FynlaTypography.heading)
-                                    .foregroundStyle(FynlaColor.primaryText)
-                                Text("\(category.count) \(category.count == 1 ? "item" : "items"), \(category.percentageOfAssets)% of assets")
-                                    .font(FynlaTypography.caption)
-                                    .foregroundStyle(FynlaColor.secondaryText)
-                            }
-                            Spacer(minLength: FynlaSpacing.small)
-                            VStack(alignment: .trailing, spacing: FynlaSpacing.micro) {
-                                Text(MoneyFormatter.gbp(category.totalValue))
-                                    .font(FynlaTypography.heading)
-                                    .foregroundStyle(FynlaColor.primaryText)
-                                Text("View")
-                                    .font(FynlaTypography.caption)
-                                    .foregroundStyle(FynlaColor.primaryAction)
-                            }
-                        }
-                        .padding(.vertical, FynlaSpacing.medium)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .overlay(alignment: .bottom) { Divider() }
                     .accessibilityIdentifier("net-worth.category.\(category.id.rawValue)")
                 }
             }
         }
-        .padding(FynlaSpacing.standard)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func liabilityCard(_ total: Decimal) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Liabilities")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-            Button {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Liabilities".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .padding(.bottom, 6)
+
+            categoryRow(
+                title: "Liabilities",
+                meta: "Mortgages, loans and other debts",
+                value: MoneyFormatter.gbpWhole(total),
+                valueIsDebt: true,
+                showsDivider: false
+            ) {
                 onRoute(.netWorth(category: NetWorthCategory.liabilities.rawValue))
-            } label: {
-                HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.medium) {
-                    VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
-                        Text("Liabilities")
-                            .font(FynlaTypography.heading)
-                            .foregroundStyle(FynlaColor.primaryText)
-                        Text("Mortgages, loans and other debts")
-                            .font(FynlaTypography.caption)
-                            .foregroundStyle(FynlaColor.secondaryText)
-                    }
-                    Spacer(minLength: FynlaSpacing.small)
-                    Text(MoneyFormatter.gbp(total))
-                        .font(FynlaTypography.heading)
-                        .foregroundStyle(FynlaColor.primaryAction)
-                }
-                .padding(.vertical, FynlaSpacing.small)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .accessibilityIdentifier("net-worth.category.liabilities")
         }
-        .padding(FynlaSpacing.standard)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // mnw-cat: name + meta left; value + uppercase VIEW right; hairline below.
+    private func categoryRow(
+        title: String,
+        meta: String,
+        value: String,
+        valueIsDebt: Bool,
+        showsDivider: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    Text(meta)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(
+                            valueIsDebt
+                                ? FynlaColor.Token.raspberry500.color
+                                : FynlaColor.Token.horizon500.color
+                        )
+                    Text("View".uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                }
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                FynlaColor.Token.horizon200.color.frame(height: 1)
+            }
+        }
     }
 
     private var offlineNotice: some View {
         Text("You're offline. Showing your last loaded net worth.")
-            .font(FynlaTypography.bodySmall)
-            .foregroundStyle(FynlaColor.primaryText)
-            .padding(FynlaSpacing.medium)
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FynlaColor.Token.savannah100.color)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .accessibilityIdentifier("net-worth.offline")
     }
 
