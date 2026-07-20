@@ -47,21 +47,19 @@
 - Create: '/private/tmp/fynla-org-migration-20260720/tool-versions.txt'
 - Create: '/private/tmp/fynla-org-migration-20260720/source-local-status.txt'
 - Read: '/Users/CSJ/Desktop/fynla/.git/config'
-- Read: '/Users/CSJ/Desktop/fynlaBrain/.git/config'
 
 **Interfaces:**
 - Consumes: approved design commit '282289c' and an authenticated GitHub CLI session for 'Stoff73'.
 - Produces: a clean disposable root, supported tools and a recorded source checkpoint.
 
-- [ ] **Step 1: Verify the planning worktree and both source repositories are safe**
+- [ ] **Step 1: Verify the planning worktree and code source repository are safe**
 
 ~~~bash
 /usr/bin/git -C /Users/CSJ/Desktop/fynla status --short --branch
 /usr/bin/git -C /Users/CSJ/Desktop/fynla/.worktrees/fynla-org-repository-migration status --short --branch
-/usr/bin/git -C /Users/CSJ/Desktop/fynlaBrain status --short --branch
 ~~~
 
-Expected: both Fynla worktrees have no unstaged or staged changes; the migration branch contains the approved design and this plan. If 'fynlaBrain' is dirty, stop before reconciliation and preserve its changes.
+Expected: both Fynla worktrees have no unstaged or staged changes; the migration branch contains the approved design and this plan. The local '/Users/CSJ/Desktop/fynlaBrain' Obsidian folder is intentionally not treated as a Git checkout; Task 2 uses a fresh clone of its existing 'Fynla/fynlaBrain' mirror.
 
 - [ ] **Step 2: Create the disposable root without deleting earlier evidence**
 
@@ -129,19 +127,21 @@ Expected: both files exist, contain no tokens and identify the exact tools/sourc
 - Create: '/private/tmp/fynla-org-migration-20260720/knowledge_manifest.py'
 - Create: '/private/tmp/fynla-org-migration-20260720/knowledge-main.tsv'
 - Create: '/private/tmp/fynla-org-migration-20260720/knowledge-dev.tsv'
+- Create: '/private/tmp/fynla-org-migration-20260720/vault-import/' as a temporary clone of 'Fynla/fynlaBrain'
 - Potentially create: '/private/tmp/fynla-org-migration-20260720/vault-import/Imports/Fynla Code Repository/**'
 - Potentially modify: 'Fynla/fynlaBrain' through branch 'codex/fynla-code-repository-import'
 
 **Interfaces:**
-- Consumes: tracked 'main' and 'dev' trees and clean 'fynlaBrain'.
+- Consumes: tracked 'main' and 'dev' trees and a fresh clone of the existing central 'Fynla/fynlaBrain' mirror.
 - Produces: TSV proof that every cleanup candidate is already present or losslessly copied into the vault.
 
-- [ ] **Step 1: Export both source tips without modifying the source**
+- [ ] **Step 1: Clone the central vault mirror and export both source tips**
 
 ~~~bash
-/usr/bin/git -C /Users/CSJ/Desktop/fynlaBrain fetch origin
-test "$(/usr/bin/git -C /Users/CSJ/Desktop/fynlaBrain rev-parse HEAD)" = \
-  "$(/usr/bin/git -C /Users/CSJ/Desktop/fynlaBrain rev-parse origin/main)"
+/usr/bin/git clone https://github.com/Fynla/fynlaBrain.git \
+  /private/tmp/fynla-org-migration-20260720/vault-import
+/usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import \
+  checkout -b codex/fynla-code-repository-import origin/main
 mkdir -p /private/tmp/fynla-org-migration-20260720/source-main
 mkdir -p /private/tmp/fynla-org-migration-20260720/source-dev
 /usr/bin/git -C /Users/CSJ/Desktop/fynla archive main \
@@ -150,7 +150,7 @@ mkdir -p /private/tmp/fynla-org-migration-20260720/source-dev
   | tar -x -C /private/tmp/fynla-org-migration-20260720/source-dev
 ~~~
 
-Expected: the local vault exactly matches central 'origin/main'; both export directories contain tracked branch-tip files and no '.git' directory. Stop if the vault differs so unpushed knowledge is never mistaken for centralised knowledge.
+Expected: 'vault-import' is a clean temporary clone of central 'Fynla/fynlaBrain' on the import branch; both exports contain tracked branch-tip files and no '.git' directory. The plain local Obsidian folder is not modified or assumed to contain Git metadata.
 
 - [ ] **Step 2: Create the deterministic hash/copy utility**
 
@@ -261,46 +261,40 @@ if __name__ == '__main__':
 python3 -m py_compile /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py
 python3 /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py \
   --source /private/tmp/fynla-org-migration-20260720/source-main \
-  --vault /Users/CSJ/Desktop/fynlaBrain \
+  --vault /private/tmp/fynla-org-migration-20260720/vault-import \
   --output /private/tmp/fynla-org-migration-20260720/knowledge-main.tsv || test $? -eq 2
 python3 /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py \
   --source /private/tmp/fynla-org-migration-20260720/source-dev \
-  --vault /Users/CSJ/Desktop/fynlaBrain \
+  --vault /private/tmp/fynla-org-migration-20260720/vault-import \
   --output /private/tmp/fynla-org-migration-20260720/knowledge-dev.tsv || test $? -eq 2
 ~~~
 
 Expected: compilation passes; each run prints file and unresolved counts. Exit 2 means copies are required, not data loss.
 
-- [ ] **Step 4: Create an isolated vault import only when required**
+- [ ] **Step 4: Confirm the temporary vault clone remains isolated and clean before copying**
 
 ~~~bash
-if rg -q $'\tcopy_required\t' \
-  /private/tmp/fynla-org-migration-20260720/knowledge-main.tsv \
-  /private/tmp/fynla-org-migration-20260720/knowledge-dev.tsv; then
-  /usr/bin/git -C /Users/CSJ/Desktop/fynlaBrain fetch origin
-  /usr/bin/git -C /Users/CSJ/Desktop/fynlaBrain worktree add \
-    /private/tmp/fynla-org-migration-20260720/vault-import \
-    -b codex/fynla-code-repository-import origin/main
-fi
+/usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import \
+  status --short --branch
+/usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import \
+  remote -v
 ~~~
 
-Expected: no action when all content exists; otherwise a clean vault worktree is created from 'origin/main'.
+Expected: the import branch is clean and its only configured origin is 'Fynla/fynlaBrain'.
 
 - [ ] **Step 5: Copy only hash-missing content and regenerate proof**
 
 ~~~bash
-if test -d /private/tmp/fynla-org-migration-20260720/vault-import; then
-  python3 /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py \
-    --source /private/tmp/fynla-org-migration-20260720/source-main \
-    --vault /private/tmp/fynla-org-migration-20260720/vault-import \
-    --output /private/tmp/fynla-org-migration-20260720/knowledge-main.tsv \
-    --copy-missing
-  python3 /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py \
-    --source /private/tmp/fynla-org-migration-20260720/source-dev \
-    --vault /private/tmp/fynla-org-migration-20260720/vault-import \
-    --output /private/tmp/fynla-org-migration-20260720/knowledge-dev.tsv \
-    --copy-missing
-fi
+python3 /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py \
+  --source /private/tmp/fynla-org-migration-20260720/source-main \
+  --vault /private/tmp/fynla-org-migration-20260720/vault-import \
+  --output /private/tmp/fynla-org-migration-20260720/knowledge-main.tsv \
+  --copy-missing
+python3 /private/tmp/fynla-org-migration-20260720/knowledge_manifest.py \
+  --source /private/tmp/fynla-org-migration-20260720/source-dev \
+  --vault /private/tmp/fynla-org-migration-20260720/vault-import \
+  --output /private/tmp/fynla-org-migration-20260720/knowledge-dev.tsv \
+  --copy-missing
 ! rg -q $'\tcopy_required\t' \
   /private/tmp/fynla-org-migration-20260720/knowledge-main.tsv \
   /private/tmp/fynla-org-migration-20260720/knowledge-dev.tsv
@@ -311,8 +305,7 @@ Expected: only 'verified_in_fynlaBrain' or 'copied_to_fynlaBrain'; differing ver
 - [ ] **Step 6: Publish any vault additions before code-tree deletion**
 
 ~~~bash
-if test -d /private/tmp/fynla-org-migration-20260720/vault-import && \
-   test -n "$(/usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import status --porcelain)"; then
+if test -n "$(/usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import status --porcelain)"; then
   /usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import \
     add 'Imports/Fynla Code Repository'
   /usr/bin/git -C /private/tmp/fynla-org-migration-20260720/vault-import \
