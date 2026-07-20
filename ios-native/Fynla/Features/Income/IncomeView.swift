@@ -1,5 +1,9 @@
 import SwiftUI
 
+// Transcribes /m's Income page (resources/mobile/views/Income.vue): gradient
+// page hero, "Edit details" pill, total-income hero card, per-source rows
+// (employment detail line under the label), optional spouse card. Whole-pound
+// amounts as /m's formatCurrency.
 struct IncomeView: View {
     let model: IncomeModel
     let onOpenFyn: (String) -> Void
@@ -9,7 +13,7 @@ struct IncomeView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                DashboardLoadingView(message: "Loading your income…")
             case let .loaded(summary):
                 content(summary)
             case let .offline(previous):
@@ -27,8 +31,6 @@ struct IncomeView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Income")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("income.screen")
     }
@@ -38,69 +40,57 @@ struct IncomeView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text("Income")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("Your income")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(title: "Income", subtitle: "Your income")
 
-                if offline {
-                    offlineNotice
-                }
+                MobilePageActions(editDetails: {
+                    onOpenFyn("What would you like to update?")
+                })
 
-                hero(summary.user.total)
-                incomeCard(
-                    title: "Your income",
-                    emptyMessage: "No income recorded yet.",
-                    sources: summary.user
-                )
+                Group {
+                    if offline {
+                        offlineNotice
+                    }
 
-                if let spouse = summary.spouse {
+                    heroCard(summary.user.total)
+
                     incomeCard(
-                        title: "Your spouse's income",
-                        emptyMessage: "No spouse income recorded yet.",
-                        sources: spouse
+                        title: "Your income",
+                        emptyMessage: "No income recorded yet.",
+                        sources: summary.user
                     )
-                }
 
-                Button("Update income with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "income",
-                            addPhrase: "I'd like to add my income.",
-                            names: summary.user.nonZeroSources.map(\.title)
+                    if let spouse = summary.spouse {
+                        incomeCard(
+                            title: "Your spouse's income",
+                            emptyMessage: "No spouse income recorded yet.",
+                            sources: spouse
                         )
-                    )
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: FynlaSpacing.minimumInteractiveTarget
-                )
-                .accessibilityIdentifier("income.edit-with-fyn")
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
-    private func hero(_ total: Decimal) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+    // m-hero: label + big metric.
+    private func heroCard(_ total: Decimal) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Your total annual income")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(total)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+            Text(MoneyFormatter.gbpWhole(total))
+                .font(.system(size: 28, weight: .heavy))
+                .foregroundStyle(FynlaColor.Token.horizon600.color)
                 .accessibilityIdentifier("income.total")
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func incomeCard(
@@ -109,49 +99,56 @@ struct IncomeView: View {
         sources: IncomeSources
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .padding(.bottom, FynlaSpacing.small)
+            Text(title.uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .padding(.bottom, 6)
 
             if sources.nonZeroSources.isEmpty {
                 Text(emptyMessage)
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.vertical, FynlaSpacing.small)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .padding(.vertical, 8)
             } else {
                 ForEach(sources.nonZeroSources) { row in
-                    incomeRow(row)
+                    incomeRow(
+                        row,
+                        isLast: row.id == sources.nonZeroSources.last?.id
+                    )
                 }
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func incomeRow(_ row: IncomeSourceRow) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.medium) {
-            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+    // inc-row: bold label (+ small detail beneath), amount right, hairline
+    // between rows.
+    private func incomeRow(_ row: IncomeSourceRow, isLast: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(row.title)
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.primaryText)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
                 if let detail = row.detail {
                     Text(detail)
-                        .font(FynlaTypography.caption)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
                 }
             }
-            Spacer(minLength: FynlaSpacing.small)
-            Text(MoneyFormatter.gbp(row.amount))
-                .font(FynlaTypography.body)
-                .foregroundStyle(FynlaColor.secondaryText)
-                .multilineTextAlignment(.trailing)
+            Spacer(minLength: 8)
+            Text(MoneyFormatter.gbpWhole(row.amount))
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.neutral600.color)
         }
-        .padding(.vertical, FynlaSpacing.medium)
+        .padding(.vertical, 10)
         .overlay(alignment: .bottom) {
-            Divider()
+            if !isLast {
+                FynlaColor.Token.horizon100.color.frame(height: 1)
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("income.source.\(row.id.rawValue)")
@@ -159,12 +156,12 @@ struct IncomeView: View {
 
     private var offlineNotice: some View {
         Text("You're offline. Showing your last loaded income.")
-            .font(FynlaTypography.bodySmall)
-            .foregroundStyle(FynlaColor.primaryText)
-            .padding(FynlaSpacing.medium)
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FynlaColor.Token.savannah100.color)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .accessibilityIdentifier("income.offline")
     }
 

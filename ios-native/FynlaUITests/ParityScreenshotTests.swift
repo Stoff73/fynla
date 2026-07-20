@@ -42,6 +42,23 @@ final class ParityScreenshotTests: XCTestCase {
         fyn.tap()
         _ = app.buttons["fyn.close"].waitForExistence(timeout: 5)
         attach(app, name: "05-fyn")
+
+        app.buttons["fyn.close"].tap()
+
+        _ = menu.waitForExistence(timeout: 5)
+        menu.tap()
+        let income = app.buttons["navigation.income"]
+        XCTAssertTrue(income.waitForExistence(timeout: 3))
+        income.tap()
+        _ = app.otherElements["income.screen"].waitForExistence(timeout: 5)
+        attach(app, name: "06-income")
+
+        menu.tap()
+        let expenditure = app.buttons["navigation.expenditure"]
+        XCTAssertTrue(expenditure.waitForExistence(timeout: 3))
+        expenditure.tap()
+        _ = app.otherElements["expenditure.screen"].waitForExistence(timeout: 5)
+        attach(app, name: "07-expenditure")
     }
 
     @MainActor

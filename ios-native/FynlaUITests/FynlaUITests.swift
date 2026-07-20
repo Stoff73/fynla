@@ -83,7 +83,8 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(
             element("achievements.screen", in: app).waitForExistence(timeout: 3)
         )
-        XCTAssertTrue(app.staticTexts["Achievements"].exists)
+        // /m titles this page "Your progress" (Achievements.vue).
+        XCTAssertTrue(app.staticTexts["Your progress"].waitForExistence(timeout: 3))
     }
 
     @MainActor

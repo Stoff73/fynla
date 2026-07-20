@@ -1,113 +1,38 @@
 import SwiftUI
 
 // Transcribes /m's dashboard (resources/mobile/views/Dashboard.vue +
-// dashboard.css): fixed gradient header with hamburger + greeting, gradient
-// hero carrying the level card and milestone nudge, the LEVEL UP callout with
+// dashboard.css): gradient hero carrying the level card and milestone nudge
+// (continuing the shell header's shared gradient), the LEVEL UP callout with
 // the focus carousel, Today's insight, the finances grid, and the milestone
-// toast. The shared 135° horizon→raspberry gradient spans header + hero
-// (--grad-span 22rem = 352pt) so the two read as one at rest.
+// toast. The fixed hamburger + greeting app bar lives in the shell.
 struct DashboardView: View {
     let model: DashboardModel
-    let greetingName: () -> String?
     let shareClient: any ShareContentClient
-    let onOpenMenu: () -> Void
     let onRoute: (AppRoute) -> Void
     let onOpenFyn: (String?) -> Void
 
     @State private var dismissedMilestoneIDs: Set<String> = []
     @State private var shareContent: ShareContent?
 
-    private let gradientSpan: CGFloat = 352
-    private let headerContentHeight: CGFloat = 72
-
-    private var sharedGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                FynlaColor.Token.horizon500.color,
-                FynlaColor.Token.raspberry500.color,
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
     var body: some View {
-        GeometryReader { geo in
-            let safeTop = geo.safeAreaInsets.top
-            VStack(spacing: 0) {
-                header(safeTop: safeTop)
-                content(safeTop: safeTop)
+        content
+            .background(FynlaColor.pageBackground)
+            .task { await model.load() }
+            .sheet(item: $shareContent) { content in
+                ShareContentSheet(content: content)
             }
-            .ignoresSafeArea(edges: .top)
-        }
-        .background(FynlaColor.pageBackground)
-        .task { await model.load() }
-        .sheet(item: $shareContent) { content in
-            ShareContentSheet(content: content)
-        }
-    }
-
-    // Fixed gradient app bar (md-header): translucent circular hamburger +
-    // white greeting. Paints the top slice of the shared gradient.
-    private func header(safeTop: CGFloat) -> some View {
-        HStack(spacing: 12) {
-            Button(action: onOpenMenu) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.18))
-                    .clipShape(Circle())
-            }
-            .accessibilityLabel("Open menu")
-            .accessibilityIdentifier("navigation.open")
-
-            Text(greeting)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("dashboard.greeting")
-
-            Color.clear.frame(width: 44, height: 44)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, safeTop + 14)
-        .padding(.bottom, 14)
-        .background(alignment: .top) {
-            // Clipped to the header visually, but the oversized rectangle
-            // would still swallow taps over the hero below without
-            // allowsHitTesting(false).
-            Rectangle()
-                .fill(sharedGradient)
-                .frame(height: gradientSpan)
-                .allowsHitTesting(false)
-        }
-        .clipped()
-        .zIndex(10)
-    }
-
-    // Time-of-day greeting, mirroring /m's computed greeting.
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let part = hour < 12 ? "morning" : (hour < 18 ? "afternoon" : "evening")
-        if let name = greetingName(), !name.isEmpty {
-            return "Good \(part), \(name)"
-        }
-        return "Good \(part), there"
     }
 
     @ViewBuilder
-    private func content(safeTop: CGFloat) -> some View {
+    private var content: some View {
         switch model.state {
         case .idle, .loading:
             DashboardLoadingView()
         case let .loaded(snapshot):
-            dashboard(snapshot, safeTop: safeTop)
+            dashboard(snapshot)
         case let .offline(previous):
             if let previous {
-                dashboard(previous, safeTop: safeTop, offline: true)
+                dashboard(previous, offline: true)
             } else {
                 DashboardErrorView(
                     message: "You're offline. Reconnect to load your dashboard."
@@ -129,12 +54,11 @@ struct DashboardView: View {
 
     private func dashboard(
         _ snapshot: DashboardSnapshot,
-        safeTop: CGFloat,
         offline: Bool = false
     ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                hero(snapshot, safeTop: safeTop)
+                hero(snapshot)
 
                 Group {
                     if offline {
@@ -215,7 +139,7 @@ struct DashboardView: View {
     // capped at --grad-span) ends well above the card's lower half, the
     // milestone nudge overlaps the card just under the wheel, and the callout
     // below compensates with a 128pt top margin.
-    private func hero(_ snapshot: DashboardSnapshot, safeTop: CGFloat) -> some View {
+    private func hero(_ snapshot: DashboardSnapshot) -> some View {
         VStack(spacing: 0) {
             LevelWheelCard(level: snapshot.level) {
                 onRoute(.achievements)
@@ -233,21 +157,7 @@ struct DashboardView: View {
         .padding(.top, 16)
         .padding(.bottom, 24)
         .frame(maxWidth: .infinity)
-        .background {
-            // Slice [headerHeight, gradientSpan) of the shared gradient fills
-            // the hero box; the card's visual overflow below the box sits on
-            // eggshell. Clipped so the offset slice never paints over the
-            // header above.
-            Color.clear
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(sharedGradient)
-                        .frame(height: gradientSpan)
-                        .offset(y: -(headerContentHeight + safeTop))
-                }
-                .clipped()
-                .allowsHitTesting(false)
-        }
+        .background { MobileChromeGradientSlice() }
     }
 
     // Today's insight (md-insight): plain-text white card.

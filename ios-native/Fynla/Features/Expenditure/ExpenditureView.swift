@@ -1,5 +1,8 @@
 import SwiftUI
 
+// Transcribes /m's Expenditure page (resources/mobile/views/Expenditure.vue):
+// gradient page hero, "Edit details" pill, monthly hero card with the annual
+// line, per-category rows. Whole-pound amounts as /m's formatCurrency.
 struct ExpenditureView: View {
     let model: ExpenditureModel
     let onOpenFyn: (String) -> Void
@@ -9,7 +12,7 @@ struct ExpenditureView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                DashboardLoadingView(message: "Loading your expenditure…")
             case let .loaded(summary):
                 content(summary)
             case let .offline(previous):
@@ -27,8 +30,6 @@ struct ExpenditureView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Expenditure")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("expenditure.screen")
     }
@@ -38,110 +39,107 @@ struct ExpenditureView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text("Expenditure")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("What you spend each month")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-
-                if offline {
-                    offlineNotice
-                }
-
-                hero(summary)
-
-                if let rows = summary.categories?.nonZeroRows,
-                   !rows.isEmpty
-                {
-                    categoryCard(rows)
-                }
-
-                Button("Update expenditure with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "expenditure",
-                            addPhrase: "I'd like to add my expenditure.",
-                            names: summary.categories?.nonZeroRows.map(\.title) ?? []
-                        )
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: FynlaSpacing.minimumInteractiveTarget
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Expenditure",
+                    subtitle: "What you spend each month"
                 )
-                .accessibilityIdentifier("expenditure.edit-with-fyn")
+
+                MobilePageActions(editDetails: {
+                    onOpenFyn("What would you like to update?")
+                })
+
+                Group {
+                    if offline {
+                        offlineNotice
+                    }
+
+                    heroCard(summary)
+
+                    if let rows = summary.categories?.nonZeroRows,
+                       !rows.isEmpty
+                    {
+                        categoryCard(rows)
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
-    private func hero(_ summary: ExpenditureSummary) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+    // m-hero: label + big metric + annual sub-line.
+    private func heroCard(_ summary: ExpenditureSummary) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Monthly expenditure")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(summary.monthly)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+            Text(MoneyFormatter.gbpWhole(summary.monthly ?? 0))
+                .font(.system(size: 28, weight: .heavy))
+                .foregroundStyle(FynlaColor.Token.horizon600.color)
                 .accessibilityIdentifier("expenditure.monthly")
-            Text(annualText(summary.annual))
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
+            Text(annualText(summary))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
                 .accessibilityIdentifier("expenditure.annual")
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func categoryCard(_ rows: [ExpenditureCategoryRow]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Where it goes each month")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .padding(.bottom, FynlaSpacing.small)
+            Text("Where it goes each month".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .padding(.bottom, 6)
 
             ForEach(rows) { row in
-                HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.medium) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(row.title)
-                        .font(FynlaTypography.heading)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Spacer(minLength: FynlaSpacing.small)
-                    Text(MoneyFormatter.gbp(row.amount))
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    Spacer(minLength: 8)
+                    Text(MoneyFormatter.gbpWhole(row.amount))
+                        .font(.system(size: 14))
+                        .foregroundStyle(FynlaColor.Token.neutral600.color)
                 }
-                .padding(.vertical, FynlaSpacing.medium)
-                .overlay(alignment: .bottom) { Divider() }
+                .padding(.vertical, 10)
+                .overlay(alignment: .bottom) {
+                    if row.id != rows.last?.id {
+                        FynlaColor.Token.horizon100.color.frame(height: 1)
+                    }
+                }
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("expenditure.category.\(row.id.rawValue)")
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func annualText(_ annual: Decimal?) -> String {
-        annual.map { "\(MoneyFormatter.gbp($0)) a year" }
-            ?? "Annual total unavailable"
+    // /m: "{annual} a year", falling back to monthly × 12 when the server
+    // omits the annual figure (Expenditure.vue's annual computed).
+    private func annualText(_ summary: ExpenditureSummary) -> String {
+        let value = summary.annual ?? (summary.monthly ?? 0) * 12
+        return "\(MoneyFormatter.gbpWhole(value)) a year"
     }
 
     private var offlineNotice: some View {
         Text("You're offline. Showing your last loaded expenditure.")
-            .font(FynlaTypography.bodySmall)
-            .foregroundStyle(FynlaColor.primaryText)
-            .padding(FynlaSpacing.medium)
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FynlaColor.Token.savannah100.color)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .accessibilityIdentifier("expenditure.offline")
     }
 

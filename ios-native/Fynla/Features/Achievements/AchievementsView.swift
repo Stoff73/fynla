@@ -5,6 +5,7 @@ struct AchievementsView: View {
     let model: AchievementsModel
     let onRoute: (AppRoute) -> Void
     @State private var selectedTab: AchievementsTab = .achievements
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -52,6 +53,16 @@ struct AchievementsView: View {
     private var loadedContent: some View {
         if let content = model.content {
             ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                // /m: MobileChrome title "Your progress" + subtitle, with a
+                // Back pill and no Edit details (Achievements.vue).
+                MobilePageHero(
+                    title: "Your progress",
+                    subtitle: "Achievements you've earned and milestones you've reached"
+                )
+
+                MobilePageActions(onBack: { dismiss() })
+
                 LazyVStack(alignment: .leading, spacing: FynlaSpacing.large) {
                     if model.state == .offline {
                         Text("You're offline. Showing your last loaded progress.")
@@ -61,15 +72,6 @@ struct AchievementsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(FynlaColor.Token.savannah100.color)
                             .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-                    }
-
-                    VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                        Text("Your progress")
-                            .font(FynlaTypography.pageTitle)
-                            .foregroundStyle(FynlaColor.primaryText)
-                        Text("Achievements you've earned and milestones you've reached")
-                            .font(FynlaTypography.body)
-                            .foregroundStyle(FynlaColor.secondaryText)
                     }
 
                     tabSelector
@@ -91,6 +93,9 @@ struct AchievementsView: View {
                     }
                 }
                 .padding(FynlaSpacing.standard)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+                }
             }
             .refreshable { await model.refresh() }
         } else {

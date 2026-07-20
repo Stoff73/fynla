@@ -360,16 +360,86 @@ private struct UnlockedView: View {
     @State private var pendingFynRoute: AppRoute?
 
     var body: some View {
+        VStack(spacing: 0) {
+            shellHeader
+            navigationContent
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("app.unlocked")
+        .fullScreenCover(isPresented: $isPresentingFyn) {
+            fynCover
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            fynDock
+        }
+        .overlay {
+            drawerOverlay
+        }
+    }
+
+    // Fixed gradient app bar (md-header): shared by every screen — the
+    // hamburger and greeting travel with the shell, exactly as /m's
+    // MobileChrome renders them on every page. The background paints the top
+    // slice of the shared gradient, extended up under the status bar and
+    // clipped exactly at the header's bottom edge.
+    private var shellHeader: some View {
+        HStack(spacing: 12) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    isPresentingMenu = true
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.18))
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Open menu")
+            .accessibilityIdentifier("navigation.open")
+
+            Text(greeting)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("dashboard.greeting")
+
+            Color.clear.frame(width: 44, height: 44)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(alignment: .top) {
+            GeometryReader { geo in
+                let safeTop = geo.frame(in: .global).minY
+                Rectangle()
+                    .fill(MobileChromeMetrics.sharedGradient)
+                    .frame(height: MobileChromeMetrics.gradientSpan)
+                    .frame(height: safeTop + geo.size.height, alignment: .top)
+                    .clipped()
+                    .offset(y: -safeTop)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    // Time-of-day greeting, mirroring /m's computed greeting.
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let part = hour < 12 ? "morning" : (hour < 18 ? "afternoon" : "evening")
+        if let name = settingsModel.greetingFirstName, !name.isEmpty {
+            return "Good \(part), \(name)"
+        }
+        return "Good \(part), there"
+    }
+
+    private var navigationContent: some View {
         NavigationStack(path: navigationPath) {
             DashboardView(
                 model: dashboardModel,
-                greetingName: { settingsModel.greetingFirstName },
                 shareClient: shareClient,
-                onOpenMenu: {
-                    withAnimation(.easeInOut(duration: 0.28)) {
-                        isPresentingMenu = true
-                    }
-                },
                 onRoute: { route in
                     navigate(to: route)
                 },
@@ -407,67 +477,63 @@ private struct UnlockedView: View {
                     },
                     onRoute: navigate
                 )
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("app.unlocked")
-        }
-        .fullScreenCover(isPresented: $isPresentingFyn) {
-            FynView(
-                model: fynModel,
-                onClose: { isPresentingFyn = false },
-                onRoute: { route in
-                    pendingFynRoute = route
-                    isPresentingFyn = false
-                },
-                onRefreshCurrentScreen: {
-                    switch router.path.last {
-                    case nil, .dashboard:
-                        Task { await dashboardModel.refresh() }
-                    case .income:
-                        Task { await incomeModel.refresh() }
-                    case .expenditure:
-                        Task { await expenditureModel.refresh() }
-                    case .netWorth:
-                        Task { await netWorthModel.refresh() }
-                    case .balanceHistory:
-                        Task { await balanceHistoryModel.refresh() }
-                    case .savings:
-                        Task { await savingsModel.refresh() }
-                    case .investment:
-                        Task { await investmentModel.refresh() }
-                    case .retirement:
-                        Task { await retirementModel.refresh() }
-                    case .protection:
-                        Task { await protectionModel.refresh() }
-                    case .estate:
-                        Task { await estateModel.refresh() }
-                    case .goals:
-                        Task { await goalsModel.refresh() }
-                    case .taxStrategy:
-                        Task { await taxStrategyModel.refresh() }
-                    case .holisticPlan:
-                        Task { await holisticPlanModel.refresh() }
-                    default:
-                        break
-                    }
-                },
-                onReportProblem: {
-                    pendingFynRoute = .bugReport
-                    isPresentingFyn = false
-                }
-            )
-            .onDisappear {
-                if let route = pendingFynRoute {
-                    pendingFynRoute = nil
-                    navigate(to: route)
-                }
+                // /m has no system navigation bar anywhere — the shell header
+                // (hamburger + greeting) and per-page hero replace it.
+                .toolbar(.hidden, for: .navigationBar)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            fynDock
-        }
-        .overlay {
-            drawerOverlay
+    }
+
+    private var fynCover: some View {
+        FynView(
+            model: fynModel,
+            onClose: { isPresentingFyn = false },
+            onRoute: { route in
+                pendingFynRoute = route
+                isPresentingFyn = false
+            },
+            onRefreshCurrentScreen: {
+                switch router.path.last {
+                case nil, .dashboard:
+                    Task { await dashboardModel.refresh() }
+                case .income:
+                    Task { await incomeModel.refresh() }
+                case .expenditure:
+                    Task { await expenditureModel.refresh() }
+                case .netWorth:
+                    Task { await netWorthModel.refresh() }
+                case .balanceHistory:
+                    Task { await balanceHistoryModel.refresh() }
+                case .savings:
+                    Task { await savingsModel.refresh() }
+                case .investment:
+                    Task { await investmentModel.refresh() }
+                case .retirement:
+                    Task { await retirementModel.refresh() }
+                case .protection:
+                    Task { await protectionModel.refresh() }
+                case .estate:
+                    Task { await estateModel.refresh() }
+                case .goals:
+                    Task { await goalsModel.refresh() }
+                case .taxStrategy:
+                    Task { await taxStrategyModel.refresh() }
+                case .holisticPlan:
+                    Task { await holisticPlanModel.refresh() }
+                default:
+                    break
+                }
+            },
+            onReportProblem: {
+                pendingFynRoute = .bugReport
+                isPresentingFyn = false
+            }
+        )
+        .onDisappear {
+            if let route = pendingFynRoute {
+                pendingFynRoute = nil
+                navigate(to: route)
+            }
         }
     }
 
