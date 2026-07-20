@@ -157,6 +157,9 @@ struct DashboardView: View {
                                 onRoute(route(forPath: action.action.payload))
                             case .fynCapture:
                                 onOpenFyn(action.action.payload)
+                            case .unknown:
+                                // /m ignores unrecognised action kinds.
+                                break
                             }
                         },
                         onComplete: { action in

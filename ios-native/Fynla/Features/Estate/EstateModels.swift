@@ -8,6 +8,13 @@ struct EstateSnapshot: Sendable, Equatable {
 enum EstateMode: String, Decodable, Sendable, Equatable {
     case teaser
     case full
+
+    // Unknown server modes fall to the teaser floor instead of failing the
+    // whole estate decode (/m's template just skips unmatched branches).
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .teaser
+    }
 }
 
 struct EstateIndexResponse: Decodable, Sendable, Equatable {

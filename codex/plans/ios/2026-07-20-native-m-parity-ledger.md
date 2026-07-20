@@ -119,3 +119,18 @@ Note: items P0-1…P0-6 were written against the migration contract's
 direction. The native code transcribes `/m`'s own display-layer computed
 properties; making them server-side would change `/m` too and is a
 backend/`/m` decision, not a native one.
+
+## 2026-07-20 evening — audit P1 dispositions
+
+| # | Audit item | Disposition |
+|---|-----------|-------------|
+| P1-1 | `verify-project.sh` always exits 1; no CI invokes it | **FIXED.** Legacy-dependency greps now match real dependencies only (`import Capacitor/WebKit` — with `LegacyCapacitorCleanup.swift` as the sanctioned WebKit exception — and pod/Capacitor SDK artefacts in project files). Script verified exit-0 locally; wired into `.github/workflows/ios-native.yml` as the first step after checkout. |
+| P1-2 | Strict enum decoding kills whole screens | **FIXED.** `DashboardModuleStatus`→`.unavailable`, `DashboardAlertSeverity`→`.info`, `DashboardActionType`→`.recommendation` (matches `/m`'s `=== 'unlock'` else-branch), `DashboardActionKind`→new `.unknown` (tap is a no-op, as `/m`), `EstateMode`→`.teaser`. Unit-covered (`unknownEnumValuesDecodeToSafeFallbacks`). |
+| P1-3 | Retirement silent failures (`try?` analysis/projections) | **SPLIT.** Analyze failure is silent on `/m` too (`Retirement.vue` only sets `analysisReady` on success) — KEEP. Projections failure now shows `/m`'s exact copy "Projections are not available right now." (`snapshot.projections == nil` ⇔ fetch failed); success-with-no-pot keeps "No projection available yet.". |
+| P1-4 | Data-export permanent spinner after 6 polls | **FIXED.** New `DataExportState.stillPreparing` + retry card ("taking longer than expected"); unit-covered with a never-completing stub. |
+| P1-5 | Write 401s never refresh the token | **FIXED.** Mutating requests still never replay, but a 401 now triggers one token refresh so the user's immediate retry succeeds. Contract test renamed and updated (`neverReplaysWritesAfter401ButRefreshesForTheNextAttempt`). |
+| P1-6 | Balance-history keyed on magic `windowDays == 90` | **KEEP — /m parity.** `BalanceHistory.vue:85` is literally `window_days === 90` (`isFreeWindow`). |
+| P1-7 | "ISA allowance used / of £20,000" reads broken | **KEEP — /m parity.** `Savings.vue:109-110` renders the same split row (label left, "of £X" right). |
+| P1-8 | Money format app-wide | **SWEEP ITEM (new).** `/m` modules share `formatCurrency` with `maximumFractionDigits: 0` (whole pounds) while native module screens use 2-dp `MoneyFormatter.gbp` — align per screen during the module sweep. |
+| P1-9 | Diagnostics layer dead code | **DEFERRED with note.** Where to `record()` is a design decision (candidates: API failures, decode fallbacks); not user-facing. |
+| P1-10 | `.module` route dev stub; legacy `SubscriptionPlanSeeder` plans | **SWEEP / backend-cleanup notes.** |

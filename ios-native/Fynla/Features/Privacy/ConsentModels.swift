@@ -82,6 +82,9 @@ enum DataExportState: Sendable, Equatable {
     case requesting
     case processing(DataExportStatus)
     case ready(DataExportStatus)
+    // Polling exhausted while the server still reports processing — the user
+    // gets an honest message and a retry, not a permanent spinner.
+    case stillPreparing
     case expired
     case rateLimited
     case failed

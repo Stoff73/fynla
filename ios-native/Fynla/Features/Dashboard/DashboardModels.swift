@@ -4,6 +4,13 @@ enum DashboardModuleStatus: String, Decodable, Sendable, Equatable {
     case active
     case notConfigured = "not_configured"
     case unavailable
+
+    // Unknown server values must not kill the dashboard decode (/m's JS is
+    // naturally tolerant of new strings).
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unavailable
+    }
 }
 
 struct DashboardModuleSummary: Decodable, Sendable, Equatable {
@@ -132,6 +139,11 @@ enum DashboardAlertSeverity: String, Decodable, Sendable, Equatable {
     case critical
     case important
     case info
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .info
+    }
 }
 
 struct DashboardAlert: Decodable, Sendable, Equatable, Identifiable {
@@ -155,11 +167,25 @@ struct DashboardAlert: Decodable, Sendable, Equatable, Identifiable {
 enum DashboardActionType: String, Decodable, Sendable, Equatable {
     case recommendation
     case unlock
+
+    // /m renders anything that isn't 'unlock' as a recommendation row.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .recommendation
+    }
 }
 
 enum DashboardActionKind: String, Decodable, Sendable, Equatable {
     case navigate
     case fynCapture = "fyn_capture"
+    // /m ignores taps on kinds it doesn't recognise; unknown decodes here so
+    // one new server kind can't fail the whole dashboard.
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unknown
+    }
 }
 
 struct DashboardActionDestination: Decodable, Sendable, Equatable {

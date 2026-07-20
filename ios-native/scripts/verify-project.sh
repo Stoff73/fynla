@@ -53,9 +53,13 @@ if grep -R -E 'DEVELOPMENT_TEAM[[:space:]]*=' "$NATIVE" --include='*.pbxproj' --
   exit 1
 fi
 
-if grep -R -E '^[[:space:]]*import[[:space:]]+Capacitor|WKWebView' \
-    "$NATIVE" --include='*.swift' \
-  || grep -R -E 'Capacitor|CocoaPods' \
+# Forbidden legacy DEPENDENCIES only: importing Capacitor/WebKit, or pod /
+# Capacitor SDK build artefacts. LegacyCapacitorCleanup is the sanctioned
+# exception — it imports WebKit precisely to delete the legacy app's
+# WKWebView data during migration.
+if grep -R -E '^[[:space:]]*import[[:space:]]+(Capacitor|WebKit)' \
+    "$NATIVE" --include='*.swift' --exclude='LegacyCapacitorCleanup.swift' \
+  || grep -R -E 'Pods/|CocoaPods|Capacitor\.framework|CapacitorCordova' \
     "$NATIVE" --include='*.pbxproj' --include='*.xcconfig'; then
   echo 'native target contains a forbidden legacy dependency' >&2
   exit 1

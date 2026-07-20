@@ -49,7 +49,10 @@ final class DataExportModel {
                     return
                 }
                 state = .processing(status)
-                guard attempt + 1 < maximumPollAttempts else { return }
+                guard attempt + 1 < maximumPollAttempts else {
+                    state = .stillPreparing
+                    return
+                }
                 let seconds = min(8, 1 << min(attempt, 3))
                 await wait(.seconds(seconds))
                 status = try await client.exportStatus()

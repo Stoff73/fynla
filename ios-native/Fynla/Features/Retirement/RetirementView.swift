@@ -49,7 +49,7 @@ struct RetirementView: View {
                 hero(snapshot)
                 pensionsCard(snapshot)
                 overviewCard(snapshot)
-                projectionCard(snapshot.projections?.pensionPotProjection)
+                projectionCard(snapshot.projections)
                 recommendationsCard(snapshot.analysis?.recommendations ?? [])
                 Button("Update pensions with Fyn") {
                     onOpenFyn(
@@ -191,9 +191,9 @@ struct RetirementView: View {
         }
     }
 
-    private func projectionCard(_ projection: RetirementPotProjection?) -> some View {
+    private func projectionCard(_ projections: RetirementProjections?) -> some View {
         detailCard("Pension pot projection") {
-            if let projection {
+            if let projection = projections?.pensionPotProjection {
                 detailRow("Current pot value", money(projection.currentValue))
                 detailRow("Monthly contributions", money(projection.monthlyContribution))
                 detailRow("Projected at retirement", money(projection.percentile20AtRetirement))
@@ -202,6 +202,12 @@ struct RetirementView: View {
                     .font(FynlaTypography.caption)
                     .foregroundStyle(FynlaColor.secondaryText)
                     .padding(.top, FynlaSpacing.xSmall)
+            } else if projections == nil {
+                // The projections fetch failed — /m's copy for this state.
+                Text("Projections are not available right now.")
+                    .font(FynlaTypography.body)
+                    .foregroundStyle(FynlaColor.secondaryText)
+                    .accessibilityIdentifier("retirement.projections-unavailable")
             } else {
                 Text("No projection available yet.")
                     .font(FynlaTypography.body)

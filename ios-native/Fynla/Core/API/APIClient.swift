@@ -64,6 +64,15 @@ actor APIClient {
                 accessToken: refreshedToken,
                 correlationID: correlationID
             )
+        } else if result.response.statusCode == 401,
+                  !request.method.permitsAuthenticationReplay,
+                  accessToken != nil,
+                  let tokenRefresher
+        {
+            // Mutating requests are never replayed, but refreshing here means
+            // the user's immediate retry succeeds instead of failing again on
+            // the lapsed token.
+            _ = try? await tokenRefresher.refreshAccessToken()
         }
 
         return try decode(

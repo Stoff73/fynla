@@ -81,6 +81,23 @@ struct PrivacySettingsTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test @MainActor
+    func exportPollExhaustionSurfacesStillPreparingNotAPermanentSpinner() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "fynla-export-timeout-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let model = DataExportModel(
+            client: NeverCompletingPrivacyClientStub(),
+            store: TemporaryExportStore(directory: root),
+            maximumPollAttempts: 3,
+            wait: { _ in }
+        )
+
+        await model.requestExport()
+
+        #expect(model.state == .stillPreparing)
+        #expect(model.shareURL == nil)
+    }
+
     @Test
     func deletionCleanupRemovesEveryAppOwnedTemporaryExport() async throws {
         let root = FileManager.default.temporaryDirectory
@@ -163,6 +180,19 @@ private actor ExportPrivacyClientStub: PrivacyClient {
     }
     func downloadExport(id: Int) async throws -> Data { Data("{\"account\":{}}".utf8) }
     func statusChecks() -> Int { checks }
+}
+
+private actor NeverCompletingPrivacyClientStub: PrivacyClient {
+    func loadConsents() async throws -> ConsentSnapshot { throw StubError.unused }
+    func loadConsentHistory() async throws -> ConsentHistory { throw StubError.unused }
+    func updateConsents(_ values: [String: Bool]) async throws -> ConsentSnapshot { throw StubError.unused }
+    func requestExport(format: String) async throws -> DataExportStatus {
+        DataExportStatus(exportID: 92, status: "processing", format: "json", expiresAt: nil, isDownloadable: nil)
+    }
+    func exportStatus() async throws -> DataExportStatus {
+        DataExportStatus(exportID: 92, status: "processing", format: "json", expiresAt: nil, isDownloadable: nil)
+    }
+    func downloadExport(id: Int) async throws -> Data { throw StubError.unused }
 }
 
 private enum StubError: Error { case unused }

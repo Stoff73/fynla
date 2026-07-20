@@ -52,6 +52,8 @@ struct DataExportView: View {
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.primaryText)
                 .accessibilityIdentifier("privacy.export.ready")
+        case .stillPreparing:
+            retryCard("Your export is taking longer than expected. Try again in a few minutes.")
         case .expired:
             retryCard("This export has expired. Request a new copy.")
         case .rateLimited:
