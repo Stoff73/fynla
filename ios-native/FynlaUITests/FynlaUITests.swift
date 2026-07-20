@@ -68,17 +68,17 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
-    func testNativeMenuOpensAchievementsWithoutLeavingTheApp() throws {
+    func testLevelWheelOpensAchievementsWithoutLeavingTheApp() throws {
+        // Mirrors /m: achievements open from the level wheel — the drawer has
+        // no Achievements entry.
         let app = app(mode: "unlocked")
         app.launch()
 
-        let menu = app.buttons["navigation.open"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 3))
-        menu.tap()
-
-        let achievements = app.buttons["navigation.achievements"]
-        XCTAssertTrue(achievements.waitForExistence(timeout: 3))
-        achievements.tap()
+        let level = app.buttons["dashboard.level"]
+        XCTAssertTrue(level.waitForExistence(timeout: 3))
+        // Tap the wheel zone: the card's centre is covered by the overlapping
+        // milestone nudge (faithful to /m's -9rem layout).
+        level.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
 
         XCTAssertTrue(
             element("achievements.screen", in: app).waitForExistence(timeout: 3)
@@ -109,23 +109,36 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "unlocked")
         app.launch()
 
-        let menu = app.buttons["navigation.open"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 3))
-        menu.tap()
+        // Mirrors /m: Report a problem lives in the Fyn chat header, not the
+        // drawer.
+        let openFyn = app.buttons["fyn.open"]
+        XCTAssertTrue(openFyn.waitForExistence(timeout: 3))
+        openFyn.tap()
 
-        let reportProblem = app.buttons["navigation.report-a-problem"]
+        let reportProblem = app.buttons["fyn.report"]
         XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
         reportProblem.tap()
 
-        let description = app.textFields["bug-report.description"]
+        let description = app.textViews["bug-report.description"]
         XCTAssertTrue(description.waitForExistence(timeout: 3))
         description.tap()
         description.typeText("The native dashboard did not refresh.")
+        // Dismiss the keyboard (it covers the review button on small devices).
+        app.buttons["bug-report.keyboard-done"].tap()
         app.buttons["bug-report.review"].tap()
 
         XCTAssertTrue(app.staticTexts["Technical details included"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Conversation text, financial values, network contents, passwords, tokens and purchase signatures are not attached."].exists)
-        app.buttons["bug-report.submit"].tap()
+        // The review metadata rows push the submit button below the fold on
+        // small devices — scroll until it is genuinely hittable (not covered
+        // by the Fyn dock).
+        let submit = app.buttons["bug-report.submit"]
+        var submitScrolls = 0
+        while !submit.isHittable, submitScrolls < 4 {
+            app.swipeUp()
+            submitScrolls += 1
+        }
+        submit.tap()
 
         XCTAssertTrue(
             element("bug-report.submitted", in: app).waitForExistence(timeout: 3)
@@ -264,7 +277,9 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["app.locked.unlock"].waitForExistence(timeout: 3))
         app.buttons["app.locked.unlock"].tap()
         XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
-        app.buttons["app.unlocked.settings"].tap()
+        app.buttons["navigation.open"].tap()
+        XCTAssertTrue(app.buttons["navigation.settings"].waitForExistence(timeout: 3))
+        app.buttons["navigation.settings"].tap()
 
         XCTAssertEqual(app.switches["settings.face-id"].value as? String, "1")
     }
@@ -851,8 +866,10 @@ final class FynlaUITests: XCTestCase {
     private func openSettings(mode: String) -> XCUIApplication {
         let app = app(mode: mode)
         app.launch()
-        XCTAssertTrue(app.buttons["app.unlocked.settings"].waitForExistence(timeout: 3))
-        app.buttons["app.unlocked.settings"].tap()
+        XCTAssertTrue(app.buttons["navigation.open"].waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        XCTAssertTrue(app.buttons["navigation.settings"].waitForExistence(timeout: 3))
+        app.buttons["navigation.settings"].tap()
         XCTAssertTrue(element("settings.screen", in: app).waitForExistence(timeout: 3))
         return app
     }

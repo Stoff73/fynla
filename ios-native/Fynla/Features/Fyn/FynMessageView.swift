@@ -14,17 +14,25 @@ struct FynMessageView: View {
                 if message.role == .user { Spacer(minLength: FynlaSpacing.large) }
                 VStack(alignment: .leading, spacing: FynlaSpacing.small) {
                     Text(markdownText)
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.primaryText)
+                        .font(.system(size: 15))
+                        .foregroundStyle(FynlaColor.Token.horizon600.color)
                         .textSelection(.enabled)
                     deliveryText
                     if let capture = message.capture {
                         FynCaptureConfirmationView(capture: capture)
                     }
                 }
-                .padding(FynlaSpacing.medium)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .background(messageBackground)
-                .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    // /m's Fyn bubbles carry a hairline border (md-fyn__msg--fyn).
+                    if message.role == .fyn {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(FynlaColor.Token.horizon100.color, lineWidth: 1)
+                    }
+                }
                 if message.role == .fyn { Spacer(minLength: FynlaSpacing.large) }
             }
 
@@ -41,7 +49,7 @@ struct FynMessageView: View {
     private var messageBackground: Color {
         message.role == .user
             ? FynlaColor.Token.horizon200.color.opacity(0.35)
-            : FynlaColor.surface
+            : Color.white
     }
 
     @ViewBuilder

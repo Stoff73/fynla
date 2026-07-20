@@ -29,6 +29,8 @@ struct AppRootView: View {
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
+    let shareClient: any ShareContentClient
+    private let webBaseURL: URL
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
     @State private var passwordResetModel: PasswordResetModel
@@ -63,6 +65,7 @@ struct AppRootView: View {
         fynModel: FynConversationModel,
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
+        shareClient: any ShareContentClient,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
         passwordResetActions: PasswordResetActions,
@@ -98,6 +101,8 @@ struct AppRootView: View {
         self.fynModel = fynModel
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
+        self.shareClient = shareClient
+        self.webBaseURL = webBaseURL
         _registrationModel = State(
             initialValue: RegistrationModel(
                 actions: registrationActions,
@@ -196,7 +201,9 @@ struct AppRootView: View {
                         pushCoordinator: pushCoordinator,
                         fynModel: fynModel,
                         bugReportModel: bugReportModel,
-                        appleSubscriptionManager: appleSubscriptionManager
+                        appleSubscriptionManager: appleSubscriptionManager,
+                        shareClient: shareClient,
+                        webBaseURL: webBaseURL
                     )
                 case let .updateRequired(requirement, appStoreURL):
                     NativeUpdateRequiredView(
@@ -343,15 +350,26 @@ private struct UnlockedView: View {
     let fynModel: FynConversationModel
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
+    let shareClient: any ShareContentClient
+    let webBaseURL: URL
     @Environment(AppRouter.self) private var router
     @State private var isPresentingMenu = false
     @State private var isPresentingFyn = false
+    // Route requested from inside the Fyn cover — applied only once the cover
+    // has fully dismissed, so the push never races the dismissal transaction.
+    @State private var pendingFynRoute: AppRoute?
 
     var body: some View {
         NavigationStack(path: navigationPath) {
             DashboardView(
                 model: dashboardModel,
                 greetingName: { settingsModel.greetingFirstName },
+                shareClient: shareClient,
+                onOpenMenu: {
+                    withAnimation(.easeInOut(duration: 0.28)) {
+                        isPresentingMenu = true
+                    }
+                },
                 onRoute: { route in
                     navigate(to: route)
                 },
@@ -359,6 +377,7 @@ private struct UnlockedView: View {
                     presentFyn(prompt: prompt)
                 }
             )
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppRoute.self) { route in
                 NavigationDestinationFactory.destination(
                     for: route,
@@ -389,55 +408,16 @@ private struct UnlockedView: View {
                     onRoute: navigate
                 )
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Menu") {
-                        isPresentingMenu = true
-                    }
-                    .font(FynlaTypography.button)
-                    .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
-                    .accessibilityIdentifier("navigation.open")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings") {
-                        navigate(to: .settings)
-                    }
-                    .font(FynlaTypography.button)
-                    .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
-                    .accessibilityIdentifier("app.unlocked.settings")
-                }
-            }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("app.unlocked")
         }
-        .sheet(isPresented: $isPresentingMenu) {
-            NavigationMenuView(
-                includeStagedDestinations: isDevelopmentBuild,
-                account: settingsModel.account,
-                shareURL: URL(string: "https://fynla.org")!,
-                onSelect: { route in
-                    isPresentingMenu = false
-                    navigate(to: route)
-                },
-                onLock: {
-                    isPresentingMenu = false
-                    settingsModel.lock()
-                },
-                onSignOut: {
-                    isPresentingMenu = false
-                    Task { await settingsModel.signOut() }
-                },
-                onDismiss: {
-                    isPresentingMenu = false
-                }
-            )
-        }
-        .sheet(isPresented: $isPresentingFyn) {
+        .fullScreenCover(isPresented: $isPresentingFyn) {
             FynView(
                 model: fynModel,
                 onClose: { isPresentingFyn = false },
                 onRoute: { route in
+                    pendingFynRoute = route
                     isPresentingFyn = false
-                    navigate(to: route)
                 },
                 onRefreshCurrentScreen: {
                     switch router.path.last {
@@ -470,46 +450,118 @@ private struct UnlockedView: View {
                     default:
                         break
                     }
+                },
+                onReportProblem: {
+                    pendingFynRoute = .bugReport
+                    isPresentingFyn = false
                 }
             )
-        }
-        .safeAreaInset(edge: .bottom) {
-            // Docked Fyn bar mirroring /m's md-fyn-dock (text-only: the /m
-            // avatar is a mascot image, which stays banned as an inline icon).
-            Button {
-                presentFyn()
-            } label: {
-                HStack(spacing: FynlaSpacing.medium) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Fyn")
-                            .font(FynlaTypography.bodySmall.weight(.bold))
-                            .foregroundStyle(FynlaColor.primaryText)
-                        Text("Your financial companion")
-                            .font(FynlaTypography.caption)
-                            .foregroundStyle(FynlaColor.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(FynlaColor.primaryAction)
-                        .accessibilityHidden(true)
+            .onDisappear {
+                if let route = pendingFynRoute {
+                    pendingFynRoute = nil
+                    navigate(to: route)
                 }
-                .padding(.horizontal, FynlaSpacing.standard)
-                .padding(.vertical, FynlaSpacing.medium)
-                .background(FynlaColor.surface)
-                .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.cardCornerRadius, style: .continuous))
-                .shadow(
-                    color: FynlaColor.Token.horizon500.color.opacity(0.16),
-                    radius: 10,
-                    y: 4
-                )
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, FynlaSpacing.standard)
-            .padding(.vertical, FynlaSpacing.small)
-            .accessibilityLabel("Chat with Fyn")
-            .accessibilityIdentifier("fyn.open")
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            fynDock
+        }
+        .overlay {
+            drawerOverlay
+        }
+    }
+
+    // Docked Fyn bar transcribing /m's md-fyn-dock: full-width white bar flush
+    // to the bottom edge, Fyn avatar, name + status, circled up-chevron.
+    private var fynDock: some View {
+        Button {
+            presentFyn()
+        } label: {
+            HStack(spacing: 10) {
+                Image("FynAvatar")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 36, height: 36)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Fyn")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon600.color)
+                    Text("Your financial companion")
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.horizon400.color)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon600.color)
+                    .frame(width: 36, height: 36)
+                    .background(FynlaColor.Token.horizon100.color)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.white)
+            .overlay(alignment: .top) {
+                FynlaColor.Token.lightGray.color.frame(height: 1)
+            }
+            .shadow(color: .black.opacity(0.08), radius: 8, y: -4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Chat with Fyn")
+        .accessibilityIdentifier("fyn.open")
+    }
+
+    // Left slide-in drawer + dimmed backdrop transcribing /m's md-drawer
+    // (86% width capped at 320, white panel, backdrop tap closes).
+    @ViewBuilder
+    private var drawerOverlay: some View {
+        ZStack(alignment: .leading) {
+            if isPresentingMenu {
+                Color(red: 15 / 255, green: 23 / 255, blue: 42 / 255)
+                    .opacity(0.55)
+                    .ignoresSafeArea()
+                    .onTapGesture { closeMenu() }
+                    .transition(.opacity)
+                    .accessibilityIdentifier("navigation.backdrop")
+
+                GeometryReader { geo in
+                    NavigationMenuView(
+                        account: settingsModel.account,
+                        activeRoute: router.path.last ?? .dashboard,
+                        adminURL: webBaseURL.appendingPathComponent("admin"),
+                        shareClient: shareClient,
+                        onSelect: { route in
+                            closeMenu()
+                            navigate(to: route)
+                        },
+                        onLock: {
+                            closeMenu()
+                            settingsModel.lock()
+                        },
+                        onSignOut: {
+                            closeMenu()
+                            Task { await settingsModel.signOut() }
+                        },
+                        onDismiss: { closeMenu() }
+                    )
+                    .frame(width: min(320, geo.size.width * 0.86))
+                    .frame(maxHeight: .infinity)
+                    .shadow(color: .black.opacity(0.2), radius: 14, x: 8)
+                }
+                .transition(.move(edge: .leading))
+            }
+        }
+        .animation(.easeInOut(duration: 0.28), value: isPresentingMenu)
+    }
+
+    private func closeMenu() {
+        withAnimation(.easeInOut(duration: 0.28)) {
+            isPresentingMenu = false
         }
     }
 
@@ -566,13 +618,5 @@ private struct UnlockedView: View {
         case .settings: "/settings"
         case .module: "/dashboard"
         }
-    }
-
-    private var isDevelopmentBuild: Bool {
-#if DEBUG
-        true
-#else
-        false
-#endif
     }
 }

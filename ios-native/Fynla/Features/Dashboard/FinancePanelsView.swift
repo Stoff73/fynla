@@ -1,9 +1,11 @@
 import SwiftUI
 
-// Mirrors /m's "Your finances" panel grid (finances() in Dashboard.vue):
-// five tinted panels with a small donut or bar visual, headline value and
-// caption. All derivations are display-only mappings of server figures,
-// matching /m's computed exactly.
+// Transcribes /m's "Your finances" grid (md-panels in Dashboard.vue +
+// dashboard.css): 2-up centred tiles with a soft per-tone gradient tint, a
+// donut (conic pie with white inner) or progress-bar visual on top, then the
+// uppercase label with a small glyph, headline value and caption. All value
+// derivations are display-only mappings of server figures, matching /m's
+// finances() computed exactly.
 struct FinancePanel: Identifiable {
     enum Tone {
         case horizon
@@ -20,13 +22,14 @@ struct FinancePanel: Identifiable {
             }
         }
 
-        var background: Color {
-            switch self {
-            case .horizon: FynlaColor.Token.horizon100.color
-            case .raspberry: FynlaColor.Token.raspberry100.color
-            case .spring: FynlaColor.Token.spring100.color
-            case .violet: FynlaColor.Token.violet500.color.opacity(0.12)
-            }
+        // md-panel--{tone}: 135° gradient tint of the accent (12–14% → 2%).
+        var background: LinearGradient {
+            let strength: Double = self == .horizon ? 0.12 : 0.14
+            return LinearGradient(
+                colors: [accent.opacity(strength), accent.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 
@@ -37,6 +40,7 @@ struct FinancePanel: Identifiable {
 
     let id: String
     let label: String
+    let icon: String
     let tone: Tone
     let value: String
     let caption: String
@@ -47,7 +51,7 @@ struct FinancePanel: Identifiable {
     // Builds the /m panel list from the dashboard snapshot.
     static func panels(from snapshot: DashboardSnapshot) -> [FinancePanel] {
         func money(_ value: Decimal?) -> String {
-            MoneyFormatter.gbp(value ?? 0)
+            MoneyFormatter.gbpWhole(value ?? 0)
         }
         func double(_ value: Decimal?) -> Double {
             NSDecimalNumber(decimal: value ?? 0).doubleValue
@@ -97,6 +101,7 @@ struct FinancePanel: Identifiable {
             FinancePanel(
                 id: "net_worth",
                 label: "Net worth",
+                icon: "chart.bar",
                 tone: .horizon,
                 value: money(netWorth.total),
                 caption: money(assets) + " assets",
@@ -107,6 +112,7 @@ struct FinancePanel: Identifiable {
             FinancePanel(
                 id: "protection",
                 label: "Protection",
+                icon: "checkmark.shield",
                 tone: .raspberry,
                 value: money(protectionValue),
                 caption: hasCover ? "Cover in place" : "Add your cover",
@@ -121,6 +127,7 @@ struct FinancePanel: Identifiable {
             FinancePanel(
                 id: "savings",
                 label: "Savings",
+                icon: "creditcard",
                 tone: .spring,
                 value: money(savings.totalSavings),
                 caption: savingsCaption,
@@ -135,6 +142,7 @@ struct FinancePanel: Identifiable {
             FinancePanel(
                 id: "retirement",
                 label: "Retirement",
+                icon: "clock",
                 tone: .violet,
                 value: money(retirementValue),
                 caption: target > 0
@@ -151,6 +159,7 @@ struct FinancePanel: Identifiable {
             FinancePanel(
                 id: "investment",
                 label: "Investment",
+                icon: "chart.line.uptrend.xyaxis",
                 tone: .horizon,
                 value: money(investmentValue),
                 caption: investmentValue > 0
@@ -176,20 +185,20 @@ struct FinancePanelsView: View {
     private var widePanels: [FinancePanel] { panels.filter(\.wide) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Your finances")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon600.color)
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: FynlaSpacing.medium),
-                    GridItem(.flexible(), spacing: FynlaSpacing.medium),
-                ],
-                spacing: FynlaSpacing.medium
-            ) {
-                ForEach(narrowPanels) { panel in
-                    panelCard(panel)
+            // Eager 2-up rows (not LazyVGrid): five fixed tiles need no
+            // laziness, and offscreen tiles stay in the accessibility tree.
+            VStack(spacing: 10) {
+                ForEach(Array(stride(from: 0, to: narrowPanels.count, by: 2)), id: \.self) { start in
+                    HStack(alignment: .top, spacing: 10) {
+                        ForEach(narrowPanels[start..<min(start + 2, narrowPanels.count)]) { panel in
+                            panelCard(panel)
+                        }
+                    }
                 }
             }
 
@@ -197,6 +206,7 @@ struct FinancePanelsView: View {
                 panelCard(panel)
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dashboard.finances")
     }
 
@@ -204,25 +214,35 @@ struct FinancePanelsView: View {
         Button {
             onRoute(panel.route)
         } label: {
-            VStack(alignment: .leading, spacing: FynlaSpacing.medium) {
+            VStack(spacing: 10) {
                 visual(panel)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(panel.label)
-                        .font(FynlaTypography.caption.weight(.semibold))
-                        .foregroundStyle(FynlaColor.secondaryText)
+                VStack(spacing: 2) {
+                    HStack(spacing: 5) {
+                        Image(systemName: panel.icon)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(FynlaColor.Token.horizon400.color)
+                            .accessibilityHidden(true)
+                        Text(panel.label.uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .kerning(0.4)
+                            .foregroundStyle(FynlaColor.Token.horizon400.color)
+                    }
                     Text(panel.value)
-                        .font(FynlaTypography.heading)
-                        .foregroundStyle(FynlaColor.primaryText)
+                        .font(.system(size: 18, weight: .heavy))
+                        .foregroundStyle(FynlaColor.Token.horizon600.color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     Text(panel.caption)
-                        .font(FynlaTypography.caption)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                        .font(.system(size: 11))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                        .lineLimit(1)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(FynlaSpacing.standard)
+            .frame(maxWidth: .infinity)
+            .padding(14)
             .background(panel.tone.background)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
@@ -234,51 +254,78 @@ struct FinancePanelsView: View {
     private func visual(_ panel: FinancePanel) -> some View {
         switch panel.visual {
         case let .donut(progress, number, caption):
-            HStack(spacing: FynlaSpacing.medium) {
-                ZStack {
-                    Circle()
-                        .stroke(panel.tone.accent.opacity(0.25), lineWidth: 6)
-                    Circle()
-                        .trim(from: 0, to: min(max(progress, 0), 1))
-                        .stroke(
-                            panel.tone.accent,
-                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                }
-                .frame(width: 44, height: 44)
-
-                VStack(alignment: .leading, spacing: 0) {
+            ZStack {
+                Circle()
+                    .fill(FynlaColor.Token.horizon100.color)
+                PieWedge(progress: min(max(progress, 0), 1))
+                    .fill(panel.tone.accent)
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 52, height: 52)
+                VStack(spacing: 1) {
                     Text(number)
-                        .font(FynlaTypography.bodySmall.weight(.bold))
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text(caption)
-                        .font(FynlaTypography.caption)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(FynlaColor.Token.horizon600.color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text(caption.uppercased())
+                        .font(.system(size: 8, weight: .semibold))
+                        .kerning(0.3)
+                        .foregroundStyle(FynlaColor.Token.horizon400.color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                 }
+                .frame(width: 50)
             }
+            .frame(width: 68, height: 68)
             .accessibilityHidden(true)
         case let .bar(fill, value, unit):
-            VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
+            VStack(spacing: 6) {
+                ZStack(alignment: .leading) {
+                    GeometryReader { proxy in
                         Capsule()
-                            .fill(panel.tone.accent.opacity(0.25))
+                            .fill(FynlaColor.Token.horizon100.color)
                         Capsule()
                             .fill(panel.tone.accent)
                             .frame(width: proxy.size.width * min(max(fill, 0), 1))
                     }
                 }
                 .frame(height: 8)
+                .padding(.horizontal, 8)
 
                 (
-                    Text(value).fontWeight(.bold)
+                    Text(value)
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundColor(FynlaColor.Token.horizon600.color)
                     + Text(unit.isEmpty ? "" : " \(unit)")
+                        .font(.system(size: 11))
+                        .foregroundColor(FynlaColor.Token.horizon500.color)
                 )
-                .font(FynlaTypography.caption)
-                .foregroundStyle(FynlaColor.primaryText)
+                .lineLimit(1)
             }
+            .padding(.top, 4)
             .accessibilityHidden(true)
         }
+    }
+}
+
+// Filled pie wedge from 12 o'clock, matching /m's conic-gradient donut fill.
+private struct PieWedge: Shape {
+    let progress: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard progress > 0 else { return path }
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        path.move(to: center)
+        path.addArc(
+            center: center,
+            radius: min(rect.width, rect.height) / 2,
+            startAngle: .degrees(-90),
+            endAngle: .degrees(-90 + 360 * progress),
+            clockwise: false
+        )
+        path.closeSubpath()
+        return path
     }
 }

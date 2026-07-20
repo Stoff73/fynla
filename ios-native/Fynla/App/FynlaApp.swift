@@ -37,6 +37,7 @@ struct FynlaApp: App {
     private let authenticationClient: APIAuthClient
     private let appleSubscriptionManager: any AppleSubscriptionManaging
     private let legacyCapacitorCleanup: LegacyCapacitorCleanup
+    private let shareClient: any ShareContentClient
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -406,6 +407,9 @@ struct FynlaApp: App {
         _deepLinkCoordinator = State(initialValue: deepLinkCoordinator)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
+        shareClient = LiveShareContentClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
     }
 
     var body: some Scene {
@@ -458,6 +462,7 @@ struct FynlaApp: App {
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
+            shareClient: shareClient,
             registrationActions: registrationActions,
             loginActions: loginActions,
             passwordResetActions: passwordResetActions,

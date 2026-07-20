@@ -4,8 +4,10 @@ import Observation
 struct SettingsAccount: Sendable, Equatable {
     let name: String
     let email: String
+    let isAdmin: Bool
 
     init(user: AuthenticatedUser) {
+        isAdmin = user.isAdmin ?? false
         let components = [user.firstName, user.surname]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }

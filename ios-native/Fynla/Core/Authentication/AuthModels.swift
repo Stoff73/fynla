@@ -136,6 +136,24 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
     let surname: String?
     let name: String?
     let email: String
+    // Gates the drawer's Admin section, mirroring /m's store.user?.is_admin.
+    let isAdmin: Bool?
+
+    init(
+        id: Int,
+        firstName: String?,
+        surname: String?,
+        name: String?,
+        email: String,
+        isAdmin: Bool? = nil
+    ) {
+        self.id = id
+        self.firstName = firstName
+        self.surname = surname
+        self.name = name
+        self.email = email
+        self.isAdmin = isAdmin
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -143,6 +161,7 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         case surname
         case name
         case email
+        case isAdmin = "is_admin"
     }
 }
 

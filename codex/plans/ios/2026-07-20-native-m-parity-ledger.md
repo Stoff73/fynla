@@ -69,3 +69,34 @@ alerts decoded-not-rendered; "Estimated IHT" copy; Estate full-mode thinner
 than `/m`; `.module` route dev-stub screen.
 
 ## Settings / Privacy / Subscription — BY-PLAN (Package 7), content sweep OPEN
+
+## 2026-07-20 evening — CSJ "wrong path" answer + true-/m rebuild (this session)
+
+CSJ direction: the native screens MUST match `/m` in look and functionality —
+it is a copy task; write it in Swift and make sure the APIs connect. The delta
+had stayed too big because screens were rebuilt from summaries of `/m` rather
+than transcribed from `resources/mobile/` source and verified against the LIVE
+`/m` rendering (csjones). This pass transcribed directly and verified against
+real `/m` screenshots side-by-side on the open simulator.
+
+| # | Axis | Item | Disposition |
+|---|------|------|-------------|
+| E1 | Design | Shell chrome: gradient app bar (translucent circular hamburger + white greeting) painting the top slice of the shared 352pt 135° horizon500→raspberry500 gradient; left slide-in drawer (86% ≤320pt, backdrop rgba(15,23,42,.55)); full-width white Fyn dock flush to the bottom (avatar image, name/status, circled up-chevron, hairline top border); Fyn overlay as full-screen slide-up. Old toolbar "Menu"/"Settings" text buttons deleted. | **FIXED** |
+| E2 | Design | Drawer transcribes `/m` md-drawer exactly: name/email head + eggshell circular close, uppercase group labels, 20pt icons, LightBlue100 active pill, raspberry Sign out. Invented Achievements/"Report a problem" menu entries removed (achievements = level wheel/"See all actions"; report = Fyn header, both as on `/m`). Settings + Lock kept in the account section as native necessities. Admin section gated on the new `is_admin` decode (opens web admin). | **FIXED** |
+| E3 | Design | Level card: 140pt wheel (horizon100 track / raspberry arc, 100pt horizon600 inner "LEVEL n"), translucent blurred white card; `/m` box model reproduced literally (card −144 bottom margin, nudge +8 overlapping under the wheel, callout +128 top margin, gradient capped at span) — verified against live `/m` (nudge really does overlap the card). | **FIXED** |
+| E4 | Design | LEVEL UP callout: raspberry gradient top (LEVEL UP 26/900 + percentile copy), LightPink50 lower half, eggshell focus cards (active raspberry border/copy, locked LightGray + LOCKED pill), white circular arrows + raspberry capsule dots, `/m` action rows (52pt check zone + LIGHT hairline divider — live `/m` shows light grey, not the CSS-fallback dark; done = savannah100 + spring; unlock = dotted horizon300 + grey key; raspberry bulb/chevron; dismiss X zone). | **FIXED** |
+| E5 | Design | Finances grid: centred tiles, per-tone 135° gradient tints, 68pt conic pie donut with 52pt white inner (num + uppercase cap), bar variant, uppercase 11pt labels with small glyphs, whole-pound values (`gbpWhole` matching `/m` fmt()); eager rows (no LazyVGrid). | **FIXED** |
+| E6 | Design | `/m` Fyn surface: header (avatar, companion status, Report a problem, circular X), white fyn bubbles with horizon100 hairline, raspberry-outline reply pills (wrap layout), composer (avatar + "Ask Fyn anything..." bordered input + raspberry send square). Native "Do not include passwords…" disclaimer removed (not on `/m`); Stop-streaming control kept in the send slot (native necessity, `/m` has none). User-bubble styling left as light horizon fill — `/m` defines no user style; verify on a live capture turn during the sweep. | **FIXED** |
+| E7 | Functionality | Share endpoints wired: drawer "Share Fynla" → GET `/api/v1/mobile/share/app_referral`; milestone toast Share → `share/{share_type}` — native share sheet presents server copy (was hardcoded strings). | **FIXED** |
+| E8 | Functionality | REGRESSION FOUND + FIXED: the header's clipped 352pt gradient background remained hit-testable over the hero — the level wheel and milestone nudge were dead tap zones. `allowsHitTesting(false)` on both phantom gradient layers; level-wheel → Achievements journey verified green. | **FIXED** |
+| E9 | Functionality | Fyn cover dismiss-then-navigate race: routes requested inside the cover (Report a problem, fyn navigation) now apply in `onDisappear`, so the push no longer lands under a lingering modal. | **FIXED** |
+| E10 | Functionality | Dock clearance: `/m` pages end with md-bottom-pad (5rem) clearing the dock. Dashboard tail set to 80pt; BugReport given the same (its submit button was unreachable under the dock on SE) + keyboard Done toolbar. **Sweep note: every pushed module screen needs the same 80pt bottom clearance.** | **FIXED here; sweep item for module screens** |
+| E11 | Design | Fyn dock avatar ported (Image asset `FynAvatar` from `/m`'s Fynla-Fyn-Icon.png) per CSJ's "design must match /m" direction — supersedes D7-S3's flag. Also used in the Fyn header + composer as on `/m`. | **FIXED (CSJ-directed)** |
+| E12 | States | `/m`-only surfaces observed live and NOT ported this pass: onboarding "Finish your personalised tax plan with Fyn" nudge + KYC unlock bubble (needs native onboarding-state plumbing — sweep); GamificationCelebration fireworks (D8 stands); csjones-only floating bug-report FAB (env-specific, do not port). Dashboard alerts section (native invention, not on `/m`) REMOVED. | **OPEN (sweep) / alerts removal FIXED** |
+
+Verification: unit suite green except the 6 pre-existing local StoreKit reds;
+journey UI tests green (shell fixtures, level-wheel→achievements,
+Fyn conversation, Fyn→report-a-problem full submit, drawer→settings Face ID);
+ParityScreenshotTests harness captures side-by-sides; live `/m` reference
+screenshots taken on csjones (login + MFA via tinker) for header/hero/callout/
+drawer/Fyn and matched.

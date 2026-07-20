@@ -5,6 +5,7 @@ struct FynView: View {
     let onClose: () -> Void
     let onRoute: (AppRoute) -> Void
     let onRefreshCurrentScreen: () -> Void
+    let onReportProblem: () -> Void
     @State private var announcedMessageID: String?
 
     var body: some View {
@@ -12,7 +13,6 @@ struct FynView: View {
             header
             Divider()
             transcript
-            Divider()
             FynComposerView(model: model)
         }
         .background(FynlaColor.pageBackground)
@@ -29,27 +29,50 @@ struct FynView: View {
             model.clearCloseAndRefresh()
             onClose()
         }
-        .accessibilityIdentifier("fyn.screen")
     }
 
+    // Transcribes /m's md-fyn__head: avatar + name/status left, "Report a
+    // problem" text button + circular close right, on a white bar.
     private var header: some View {
-        HStack(spacing: FynlaSpacing.standard) {
-            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+        HStack(spacing: 10) {
+            Image("FynAvatar")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 36, height: 36)
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Fyn")
-                    .font(FynlaTypography.sectionTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
-                Text("Your financial planning assistant")
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon600.color)
+                Text("Your financial companion")
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.horizon400.color)
+                    .lineLimit(2)
             }
-            Spacer()
-            Button("Close", action: onClose)
-                .font(FynlaTypography.button)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button("Report a problem", action: onReportProblem)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
                 .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("fyn.close")
+                .accessibilityIdentifier("fyn.report")
+
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon600.color)
+                    .frame(width: 44, height: 44)
+                    .background(FynlaColor.Token.horizon100.color)
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Close Fyn chat")
+            .accessibilityIdentifier("fyn.close")
         }
-        .padding(.horizontal, FynlaSpacing.standard)
-        .padding(.vertical, FynlaSpacing.small)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.white)
     }
 
     private var transcript: some View {
@@ -99,6 +122,9 @@ struct FynView: View {
                     }
                 }
             }
+            // Screen identifier lives on the scroll container — the pattern
+            // that keeps sibling header buttons' identifiers resolvable.
+            .accessibilityIdentifier("fyn.screen")
         }
     }
 
