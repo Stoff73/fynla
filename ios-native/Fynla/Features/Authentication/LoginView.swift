@@ -96,8 +96,13 @@ struct LoginView: View {
             VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
                 VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
                     fieldLabel("Email address")
-                    TextField("you@example.com", text: $model.email)
-                        .fynlaEmailInput()
+                    TextField(
+                        "",
+                        text: $model.email,
+                        prompt: Text("you@example.com")
+                            .foregroundStyle(FynlaColor.secondaryText.opacity(0.6))
+                    )
+                    .fynlaEmailInput()
                         .fynlaAuthField(
                             identifier: "login.email",
                             isFocused: focusedField == .email,
@@ -109,8 +114,13 @@ struct LoginView: View {
 
                 VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
                     fieldLabel("Password")
-                    SecureField("••••••••", text: $password)
-                        .fynlaCurrentPasswordInput()
+                    SecureField(
+                        "",
+                        text: $password,
+                        prompt: Text("••••••••")
+                            .foregroundStyle(FynlaColor.secondaryText.opacity(0.6))
+                    )
+                    .fynlaCurrentPasswordInput()
                         .fynlaAuthField(
                             identifier: "login.password",
                             isFocused: focusedField == .password,
