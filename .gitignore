@@ -73,6 +73,7 @@ ios/App/Pods/
 ios/App/App/public/
 
 .superpowers/
+.worktrees/
 
 # Local dev script
 dev.sh
