@@ -74,39 +74,55 @@ struct PrivacySettingsView: View {
         .privacyCard()
     }
 
+    // Consent presentation follows the settled contract: the required
+    // consents (and AI features) are agreed at registration via the privacy
+    // policy and have NO in-app toggle — they render as a statement of record.
+    // Marketing is the one revocable preference.
     private func consentCard(_ snapshot: ConsentSnapshot) -> some View {
         VStack(alignment: .leading, spacing: FynlaSpacing.medium) {
             Text("Consent choices")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
-            ForEach(Self.consentDefinitions, id: \.type) { definition in
-                let record = snapshot.consents[definition.type]
-                Toggle(
-                    isOn: Binding(
-                        get: { record?.consented == true },
-                        set: { value in
-                            Task {
-                                await model.setConsent(
-                                    type: definition.type,
-                                    consented: value
-                                )
-                            }
-                        }
-                    )
-                ) {
-                    VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
-                        Text(definition.label)
-                            .font(FynlaTypography.heading)
-                            .foregroundStyle(FynlaColor.primaryText)
-                        Text(definition.requirement)
-                            .font(FynlaTypography.caption)
-                            .foregroundStyle(FynlaColor.secondaryText)
-                    }
+            ForEach(Self.requiredConsents, id: \.type) { definition in
+                VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+                    Text(definition.label)
+                        .font(FynlaTypography.heading)
+                        .foregroundStyle(FynlaColor.primaryText)
+                    Text("Agreed at registration")
+                        .font(FynlaTypography.caption)
+                        .foregroundStyle(FynlaColor.secondaryText)
                 }
-                .tint(FynlaColor.focus)
-                .disabled(model.updatingType != nil)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("privacy.consent.\(definition.type)")
             }
+
+            Toggle(
+                isOn: Binding(
+                    get: { snapshot.consents["marketing"]?.consented == true },
+                    set: { value in
+                        Task {
+                            await model.setConsent(
+                                type: "marketing",
+                                consented: value
+                            )
+                        }
+                    }
+                )
+            ) {
+                VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+                    Text("Marketing messages")
+                        .font(FynlaTypography.heading)
+                        .foregroundStyle(FynlaColor.primaryText)
+                    Text("Optional")
+                        .font(FynlaTypography.caption)
+                        .foregroundStyle(FynlaColor.secondaryText)
+                }
+            }
+            .tint(FynlaColor.focus)
+            .disabled(model.updatingType != nil)
+            .accessibilityIdentifier("privacy.consent.marketing")
+
             if model.updateFailed {
                 Text("Your consent choice was not saved. Please try again.")
                     .font(FynlaTypography.bodySmall)
@@ -166,12 +182,10 @@ struct PrivacySettingsView: View {
         )
     }
 
-    private static let consentDefinitions = [
-        (type: "terms", label: "Terms of service", requirement: "Required"),
-        (type: "privacy", label: "Privacy policy", requirement: "Required"),
-        (type: "data_processing", label: "Data processing", requirement: "Required"),
-        (type: "ai_chat", label: "Artificial intelligence features", requirement: "Optional"),
-        (type: "marketing", label: "Marketing messages", requirement: "Optional"),
+    private static let requiredConsents = [
+        (type: "terms", label: "Terms of service"),
+        (type: "privacy", label: "Privacy policy"),
+        (type: "data_processing", label: "Data processing"),
     ]
 }
 

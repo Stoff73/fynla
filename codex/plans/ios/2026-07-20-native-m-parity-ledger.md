@@ -100,3 +100,22 @@ Fyn conversation, Fyn→report-a-problem full submit, drawer→settings Face ID)
 ParityScreenshotTests harness captures side-by-sides; live `/m` reference
 screenshots taken on csjones (login + MFA via tinker) for header/hero/callout/
 drawer/Fyn and matched.
+
+## 2026-07-20 evening — audit P0 dispositions under the copy-/m ruling
+
+| # | Audit item | Disposition |
+|---|-----------|-------------|
+| P0-1 | Savings interest computed in Swift (`SavingsAccountView`) | **KEEP — /m parity.** `/m` computes the identical figures client-side: `SavingsAccount.vue:119-123` (`annualInterest = balance × rate / 100`, `monthlyInterest = annual / 12`). |
+| P0-2 | Emergency runway computed client-side (`SavingsView`) | **KEEP — /m parity.** `Savings.vue` `runwayMonths()` = `totalCash / monthlyExpenditure`, same rounding (`runwayLabel`). The server's `emergency_fund_months` feeds the dashboard tile, not this screen — same as `/m`. |
+| P0-3 | DC monthly contribution from percentages × salary (`RetirementModels`) | **KEEP — /m parity.** `RetirementPensionDetail.vue:190-199` derives it identically, commented "Mirrors RetirementProjectionService". |
+| P0-4 | Income gap recomputed client-side (`RetirementModels`) | **KEEP — /m parity.** `Retirement.vue:186-190` computes `targetIncome − projectedIncome` client-side with the same analysis/profile fallbacks. |
+| P0-5 | Protection annual premium ×12/×4 incl. unknown→×12 (`ProtectionModels`) | **KEEP — /m parity.** `ProtectionPolicy.vue:203-209` has the same switch INCLUDING `default: amount * 12`. The "weekly understated" quirk exists on `/m` too — fixing it is a `/m`+native change, out of native scope. |
+| P0-6 | Hardcoded 35 National Insurance years fallback (`RetirementPensionView`) | **KEEP — /m parity.** `RetirementPensionDetail.vue:96` renders `pension.ni_years_required || 35` — the same fallback. |
+| P0-7 | AI-chat consent toggle + required consents as live switches (`PrivacySettingsView`) | **FIXED.** The ai_chat toggle is deleted (settled contract: consent at registration, NO UI toggle); terms/privacy/data-processing render as display-only "Agreed at registration" rows; marketing remains the single revocable toggle. Privacy tests green. |
+| P0-8 | "Estimated IHT" on the dashboard estate card | **ALREADY FIXED** — died with `ModuleSummaryView` in the dashboard rebuild; no occurrence remains in `ios-native`. |
+
+Note: items P0-1…P0-6 were written against the migration contract's
+"no financial calcs in Swift" before CSJ's 2026-07-20 five-axis copy-/m
+direction. The native code transcribes `/m`'s own display-layer computed
+properties; making them server-side would change `/m` too and is a
+backend/`/m` decision, not a native one.
