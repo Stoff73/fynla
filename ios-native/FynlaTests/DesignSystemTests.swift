@@ -120,10 +120,11 @@ struct DesignSystemTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         // Symbols sanctioned by the CSJ-directed /m design match (2026-07-20):
-        // the Fyn dock chevron mirrors /m's md-fyn-dock arrow. ErrorView stays
-        // symbol-free.
+        // the Fyn dock chevron mirrors /m's md-fyn-dock arrow and the shell
+        // hamburger mirrors /m's md-hamburger (both in the shared shell).
+        // ErrorView stays symbol-free.
         let sanctioned: [String: Set<String>] = [
-            "Fynla/App/AppRootView.swift": ["chevron.up"],
+            "Fynla/App/AppRootView.swift": ["chevron.up", "line.3.horizontal"],
             "Fynla/Core/DesignSystem/ErrorView.swift": [],
         ]
 
