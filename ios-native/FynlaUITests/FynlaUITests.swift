@@ -522,12 +522,26 @@ final class FynlaUITests: XCTestCase {
         app.launch()
         submitValidLogin(in: app)
 
+        XCTAssertTrue(
+            app.otherElements["login.verification.modal"].waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Enter Verification Code"].exists)
+        XCTAssertTrue(app.images["login.verification.icon"].exists)
+        XCTAssertTrue(
+            app.staticTexts["Didn't receive the email? Check your spam folder."].exists
+        )
+        for index in 0..<6 {
+            XCTAssertTrue(
+                app.otherElements["login.verification.digit.\(index)"].exists,
+                "Missing verification digit box \(index + 1)"
+            )
+        }
+
         let resend = app.buttons["login.verification.resend"]
         XCTAssertTrue(resend.waitForExistence(timeout: 3))
         resend.tap()
         XCTAssertTrue(app.staticTexts["login.message"].waitForExistence(timeout: 3))
         type("123456", into: "login.verification.code", in: app)
-        app.buttons["login.verification.submit"].tap()
 
         XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
     }
