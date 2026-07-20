@@ -42,6 +42,21 @@ struct NativeVersionPolicyTests {
         #expect(await transport.requests().first?.url?.path == "/fynla/api/v1/native/health")
     }
 
+    @Test
+    func treatsTheCurrentBackendHealthPayloadAsPurchasesDisabled() async throws {
+        let transport = TestHTTPTransport([
+            .response(
+                status: 200,
+                body: Data(#"{"success":true,"data":{"api_version":"v1"}}"#.utf8)
+            ),
+        ])
+        let client = LiveNativeVersionPolicyClient(apiClient: apiClient(transport))
+
+        let policy = try await client.policy()
+
+        #expect(policy == NativeRuntimePolicy(storeKitPurchaseEnabled: false))
+    }
+
     @Test @MainActor
     func modelBlocksWithAValidatedAppStoreURLWhenUpdateIsRequired() async {
         let requirement = NativeUpdateRequirement(

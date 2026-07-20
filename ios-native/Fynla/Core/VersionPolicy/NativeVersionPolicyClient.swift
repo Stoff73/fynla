@@ -23,7 +23,7 @@ struct LiveNativeVersionPolicyClient: NativeVersionPolicyClient {
             )
         )
         return NativeRuntimePolicy(
-            storeKitPurchaseEnabled: response.storeKitPurchaseEnabled
+            storeKitPurchaseEnabled: response.storeKitPurchaseEnabled ?? false
         )
     }
 }
@@ -38,7 +38,7 @@ struct StaticNativeVersionPolicyClient: NativeVersionPolicyClient {
 
 private struct NativeHealthResponse: Decodable, Sendable {
     let apiVersion: String
-    let storeKitPurchaseEnabled: Bool
+    let storeKitPurchaseEnabled: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case apiVersion = "api_version"
