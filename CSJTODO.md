@@ -1,6 +1,18 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-16 — Native Swift programme Package 1 Tasks 1–13 are checkpointed in PRs #622–#628. Task 13's canonical repository contract is in draft PR #628; vault publication and remote schema removal remain blocked by the required csjones and production read-only audits.*
+*Last updated: 2026-07-20 — context-clear wrap, session 1. iOS audit + /m-parity remediation on the pkg7 branch; local commits unpushed pending CSJ's answer on what "wrong path" referred to.*
+
+## 2026-07-20 — iOS audit + /m parity remediation (session dissolved, see handover)
+
+- [ ] **Blocking question for CSJ:** CSJ said the iOS parity work went "on the wrong path" — next session must ask what was wrong BEFORE resuming. Local pkg7 commits are unpushed pending that answer (undo = `git reset --hard origin/codex/ios-package7-platform-release` in `/Users/CSJ/Desktop/fynla-ios-package7`).
+- [x] Full iOS audit report → `July/July20Updates/ios-audit-report-2026-07-20.md` (delta + remediation list).
+- [x] Local commits on pkg7 branch (UNPUSHED): pkg4-tip merge; login rebuilt to /m; dashboard/menu/Fyn-dock rebuilt to /m; Lock/Sign-out restored; placeholder tint; Apple webhook named rate limiter. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` (on the branch).
+- [ ] P0 remaining: 5 client-side financial calcs; 35 National Insurance years fallback; consent toggles (delete ai_chat toggle, required consents display-only).
+- [ ] P1 remaining: verify-project.sh into CI; enum decode tolerance; Retirement silent failures; export poll timeout; write-path 401 refresh; diagnostics wiring; balance-history magic values; minor copy fixes.
+- [ ] Module-by-module /m parity sweep (detail/functionality/states/intent/design) for all remaining screens.
+- [ ] Webhook limiter Pest test (code committed; test deleted — blocked by worktree .env/bridge venv gap).
+- [ ] Ledger decisions for CSJ: Fyn dock avatar (mascot ban vs /m match); level-up fireworks + Fyn nudges (ledger D8).
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (pre-existing; green in CI). Nothing deployed anywhere.
 
 ## 2026-07-15 — Native Swift programme Package 1
 
