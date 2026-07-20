@@ -134,3 +134,13 @@ backend/`/m` decision, not a native one.
 | P1-8 | Money format app-wide | **SWEEP ITEM (new).** `/m` modules share `formatCurrency` with `maximumFractionDigits: 0` (whole pounds) while native module screens use 2-dp `MoneyFormatter.gbp` — align per screen during the module sweep. |
 | P1-9 | Diagnostics layer dead code | **DEFERRED with note.** Where to `record()` is a design decision (candidates: API failures, decode fallbacks); not user-facing. |
 | P1-10 | `.module` route dev stub; legacy `SubscriptionPlanSeeder` plans | **SWEEP / backend-cleanup notes.** |
+
+## 2026-07-20 late evening — module sweep, block 1 (chrome + Cash Management + Achievements)
+
+| Item | Disposition |
+|------|-------------|
+| Shared MobileChrome shell | **DONE.** The shell owns /m's fixed gradient app bar (hamburger + greeting) on every screen; system navigation bars hidden app-wide (as /m); dock + drawer persist across pushes. `MobileChromeScaffold` provides the gradient metrics, self-anchoring slice, `MobilePageHero` and `MobilePageActions` (Back / Edit details pills). Two shell layouts were tried and rejected on evidence (GeometryReader+ignoresSafeArea broke stack hit-testing; safeAreaInset header broke scroll insets) — plain VStack shell verified correct. |
+| Income | **DONE.** Transcribed from Income.vue: hero card + per-source rows (employment detail), whole pounds, Edit details generic prompt, £-coin loader, dock clearance. /m's spouse-verify query-param view (`?section=spouse`) has no native counterpart (onboarding-verify plumbing) — sweep note. |
+| Expenditure | **DONE.** Transcribed from Expenditure.vue: monthly hero + annual line (with /m's ×12 fallback), category rows, whole pounds. |
+| Achievements | **HEADER DONE.** /m "Your progress" hero + Back pill; tabs/content sweep still open. |
+| Known gaps carried forward | (a) Page hero should persist across loading/error states as /m's MobileChrome does — currently state views replace it. (b) `ScreenStateView`/`ErrorView` are stock-styled (system-blue buttons) — restyle to /m's error card + raspberry "Try again". (c) Income/Expenditure UI-test compositions are unstubbed (screens show the error state in fixture mode) — visual content verification needs stubs or a live staging login. (d) Remaining 10+ screens per the sweep list. |
