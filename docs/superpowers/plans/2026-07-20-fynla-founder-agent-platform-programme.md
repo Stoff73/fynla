@@ -109,7 +109,7 @@ Gate: production enablement requires Chris's infrastructure/security approval pl
 
 ## Programme control tasks
 
-### Task P1: Establish company-owned external prerequisites
+### Task 1: Establish company-owned external prerequisites
 
 **Files:**
 - Create during execution: `docs/runbooks/external-prerequisites.md` in `fynla-founder-platform`
@@ -189,7 +189,7 @@ git add docs/runbooks/external-prerequisites.md docs/runbooks/access-register.ya
 git commit -m "docs: record founder platform ownership"
 ```
 
-### Task P2: Run phase gates in order
+### Task 2: Run phase gates in order
 
 **Files:**
 - Create during execution: `docs/runbooks/release-gates.md` in `fynla-founder-platform`
