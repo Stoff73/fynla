@@ -133,6 +133,7 @@ struct SubscriptionManagementView: View {
             }
             .accessibilityIdentifier("subscription.restore")
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(
             isPending ? "subscription.pending" : "subscription.free"
         )
@@ -166,6 +167,7 @@ struct SubscriptionManagementView: View {
             }
             .accessibilityIdentifier("subscription.manage-apple")
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("subscription.apple-premium")
     }
 
@@ -191,6 +193,7 @@ struct SubscriptionManagementView: View {
             .background(FynlaColor.Token.savannah100.color)
             .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("subscription.web-premium")
     }
 

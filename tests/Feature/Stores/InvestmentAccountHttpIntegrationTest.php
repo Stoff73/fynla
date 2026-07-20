@@ -13,7 +13,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'premium']);
+    $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 
@@ -73,7 +73,7 @@ it('updates an investment account via PUT', function () {
 });
 
 it('clears joint_owner_id when switching a joint account to individual via PUT', function () {
-    $spouse = User::factory()->create(['tier' => 'premium']);
+    $spouse = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
@@ -174,7 +174,7 @@ it('returns 403 with structured payload when free-tier investment cap is exceede
 });
 
 it('rejects update from non-owner (404)', function () {
-    $other = User::factory()->create(['tier' => 'premium']);
+    $other = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $other->id,
         'ownership_type' => 'individual',
@@ -191,7 +191,7 @@ it('rejects update from non-owner (404)', function () {
 });
 
 it('rejects delete from non-owner (404)', function () {
-    $other = User::factory()->create(['tier' => 'premium']);
+    $other = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $other->id,
         'ownership_type' => 'individual',

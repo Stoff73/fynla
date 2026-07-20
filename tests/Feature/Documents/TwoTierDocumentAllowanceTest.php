@@ -29,7 +29,7 @@ it('blocks Free uploads immediately and points to Premium', function () {
 });
 
 it('allows Premium document counts without a count ceiling', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     Document::factory(20)->create([
         'user_id' => $user->id,
         'file_size' => 1024,
@@ -39,7 +39,7 @@ it('allows Premium document counts without a count ceiling', function () {
 });
 
 it('enforces Premium storage without offering a nonexistent higher tier', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     Document::factory()->create([
         'user_id' => $user->id,
         'file_size' => 1024 * 1024 * 1024,

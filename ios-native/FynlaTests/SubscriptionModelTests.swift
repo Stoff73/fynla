@@ -266,7 +266,10 @@ struct SubscriptionModelTests {
         #expect(model.state.isPending)
 
         store.sendUpdate(transaction)
-        await eventually { await finish.count == 1 }
+        await eventually {
+            await finish.count == 1
+                && model.state == .applePremium(.applePremium)
+        }
 
         #expect(model.state == .applePremium(.applePremium))
         #expect(await store.purchaseCount() == 1)
@@ -394,7 +397,10 @@ struct SubscriptionModelTests {
         await model.start()
 
         store.sendUpdate(transaction)
-        await eventually { await finish.count == 1 }
+        await eventually {
+            await finish.count == 1
+                && model.state == .applePremium(.applePremium)
+        }
 
         #expect(model.state == .applePremium(.applePremium))
         #expect(await api.acknowledgedJWS() == ["update.header.payload"])
@@ -766,8 +772,9 @@ private extension SubscriptionUIState {
     }
 }
 
+@MainActor
 private func eventually(
-    _ condition: @escaping @Sendable () async -> Bool
+    _ condition: @escaping @MainActor @Sendable () async -> Bool
 ) async {
     for _ in 0..<100 where !(await condition()) {
         await Task.yield()

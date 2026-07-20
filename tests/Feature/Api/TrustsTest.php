@@ -16,7 +16,7 @@ use Laravel\Sanctum\Sanctum;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
-    $this->user = User::factory()->create(['tier' => 'premium']);
+    $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $this->household = Household::factory()->create();
     Sanctum::actingAs($this->user);
 });

@@ -20,7 +20,7 @@ beforeEach(function () {
 });
 
 it('snapshots investment values on canonical store create and material update', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(InvestmentAccountStore::class);
 
     $account = $store->create([
@@ -49,7 +49,7 @@ it('snapshots investment values on canonical store create and material update', 
 });
 
 it('snapshots investment updates through web CRUD and Fyn', function () {
-    $user = User::factory()->create(['tier' => 'premium', 'is_preview_user' => false]);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium', 'is_preview_user' => false]);
     $account = app(InvestmentAccountStore::class)->create([
         'account_name' => 'Web portfolio',
         'account_type' => 'gia',

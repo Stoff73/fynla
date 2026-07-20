@@ -116,7 +116,7 @@ function canonicalSnapshot(SavingsAccount $a): array
 }
 
 it('persists field-identical canonical rows for the same NON-ISA account via form, fyn and upload', function () {
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false, 'tier' => 'premium']);
     $normaliser = new SavingsAccountNormaliser;
     $store = app(SavingsStore::class);
 
@@ -211,7 +211,7 @@ it('persists field-identical canonical rows for the same INDIVIDUAL CASH-ISA acc
     // Premium required: this test creates 4 savings accounts (3 cross-ingest parity
     // rows + 1 isa_subscription_amount vocabulary-asymmetry fixture). A free user
     // is capped at 3 by DbTierGate (PR 3); Premium is unlimited.
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false, 'tier' => 'premium']);
     $normaliser = new SavingsAccountNormaliser;
     $store = app(SavingsStore::class);
 
