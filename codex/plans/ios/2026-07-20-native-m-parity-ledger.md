@@ -144,3 +144,14 @@ backend/`/m` decision, not a native one.
 | Expenditure | **DONE.** Transcribed from Expenditure.vue: monthly hero + annual line (with /m's ×12 fallback), category rows, whole pounds. |
 | Achievements | **HEADER DONE.** /m "Your progress" hero + Back pill; tabs/content sweep still open. |
 | Known gaps carried forward | (a) Page hero should persist across loading/error states as /m's MobileChrome does — currently state views replace it. (b) `ScreenStateView`/`ErrorView` are stock-styled (system-blue buttons) — restyle to /m's error card + raspberry "Try again". (c) Income/Expenditure UI-test compositions are unstubbed (screens show the error state in fixture mode) — visual content verification needs stubs or a live staging login. (d) Remaining 10+ screens per the sweep list. |
+
+## 2026-07-20 night — CSJ direction: milestone banners never obscure the level hero
+
+Supersedes the E3 note that transcribed /m's nudge-overlaps-card box model.
+CSJ ruled the overlap wrong on BOTH surfaces: the "Next milestone" nudge now
+flows BELOW the level card (9rem top margin clearing the card's -9rem
+overflow; callout clearance margin applies only when no nudge is present),
+and the "Milestone reached" toast floats below the card (top 25rem) instead
+of over the wheel. Implemented in /m source (dashboard.css + Dashboard.vue,
+main repo, needs build+deploy) and native (DashboardView), native verified by
+manual fixture launch screenshot + journey suite.

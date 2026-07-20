@@ -98,8 +98,9 @@ struct DashboardView: View {
                         completingActionIDs: model.completingActionIDs
                     )
                     // /m's md-callout margin-top clears the level card's
-                    // downward overflow past the hero box.
-                    .padding(.top, 128)
+                    // downward overflow past the hero box — needed only when
+                    // no milestone nudge already provides that clearance.
+                    .padding(.top, snapshot.nextMilestone == nil ? 128 : 0)
 
                     if let actionMessage = model.actionMessage {
                         Text(actionMessage)
@@ -136,9 +137,11 @@ struct DashboardView: View {
 
     // Gradient hero (md-scroll-hero): transcribes /m's box model — the level
     // card carries a -144 bottom margin so the hero box (and its gradient,
-    // capped at --grad-span) ends well above the card's lower half, the
-    // milestone nudge overlaps the card just under the wheel, and the callout
-    // below compensates with a 128pt top margin.
+    // capped at --grad-span) ends well above the card's lower half. The
+    // milestone nudge sits BELOW the card (a 152pt top margin clears the
+    // card's overflow — the level hero must never be obscured, CSJ
+    // 2026-07-20); the callout's clearance margin applies only when no nudge
+    // is present.
     private func hero(_ snapshot: DashboardSnapshot) -> some View {
         VStack(spacing: 0) {
             LevelWheelCard(level: snapshot.level) {
@@ -150,7 +153,7 @@ struct DashboardView: View {
                 NextMilestoneView(milestone: milestone) {
                     onRoute(route(forMilestone: milestone.route))
                 }
-                .padding(.top, 8)
+                .padding(.top, 152)
             }
         }
         .padding(.horizontal, 16)
@@ -233,7 +236,9 @@ struct DashboardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .shadow(color: FynlaColor.Token.spring500.color.opacity(0.32), radius: 12, y: 8)
         .padding(.horizontal, 16)
-        .padding(.top, 44)
+        // Floats BELOW the level card — the level hero must never be
+        // obscured (CSJ 2026-07-20; mirrors /m's md-milestone top 25rem).
+        .padding(.top, 308)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dashboard.milestone-toast")
     }
