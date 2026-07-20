@@ -1,6 +1,6 @@
 # Fynla - UK Financial Planning System
 
-A comprehensive financial planning web application designed for UK individuals and families, covering seven integrated modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination. Features an AI-powered chat assistant, unified financial plans with PDF export, and a complete design system.
+A comprehensive financial planning web application designed for UK individuals and families, covering seven integrated modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination. Features an AI-powered chat assistant (Fyn), unified financial plans with PDF export, a complete design system, a mobile web pathway (`/m`), and a native SwiftUI iOS client in development (Packages 1–3 of 7 merged; 4–7 in review).
 
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red?logo=laravel)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green?logo=vue.js)
@@ -15,7 +15,7 @@ A comprehensive financial planning web application designed for UK individuals a
 | Metric | Count |
 |--------|-------|
 | Vue Components | 675 |
-| PHP Services | 443 |
+| PHP Services | 445 |
 | PHP Controllers | 127 |
 | Eloquent Models | 132 |
 | API Endpoints | 600+ |

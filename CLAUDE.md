@@ -8,10 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 676 |
-| PHP Services | 405 |
-| Controllers | 124 |
-| Models | 130 |
+| Vue Components | 675 |
+| PHP Services | 445 |
+| Controllers | 127 |
+| Models | 132 |
 | Vuex Stores | 35 |
 | Agents | 9 |
 
@@ -340,6 +340,8 @@ Step-by-step build + deploy commands for both environments live in **`deploy/DEP
 - Credentials live only in each server's `.env` (gitignored) — never in the repo or chat.
 
 ## Mobile App (Capacitor iOS)
+
+**Status 2026-07-20 — the native SwiftUI app (third client) is the successor in flight.** Packages 1–3 (API readiness/contract freeze, SwiftUI foundation, native auth + Face ID) are merged to `dev`; Packages 4–7 (StoreKit/entitlements, dashboard + Fyn, financial modules, platform/release) are the open PR chain #634 → #636 → #635 → #637. The pkg7 branch (worktree `/Users/CSJ/Desktop/fynla-ios-package7`) additionally carries the 2026-07-20 audit remediation and the CSJ-directed **/m-parity rework** (every native screen must match `/m` on detail, functionality, states, intent, and design — dispositions in `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` on that branch). Nothing native has shipped; the Capacitor target below remains the legacy shipped app until Package 7 replaces it, and `/m` stays permanent regardless (Rule 19).
 
 Full conventions in `resources/js/CLAUDE.md` (Mobile section) + the `mobile_capacitor_patterns.md` memory. Load-bearing essentials:
 
