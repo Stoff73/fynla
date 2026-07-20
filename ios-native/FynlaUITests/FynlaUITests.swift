@@ -16,6 +16,34 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testLiveDevLoginVerificationReachesDashboard() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let email = environment["FYNLA_LIVE_EMAIL"],
+              let password = environment["FYNLA_LIVE_PASSWORD"],
+              let verificationCode = environment["FYNLA_LIVE_VERIFICATION_CODE"]
+        else {
+            throw XCTSkip("Live dev acceptance credentials were not supplied.")
+        }
+
+        let app = XCUIApplication()
+        app.launch()
+        type(email, into: "login.email", in: app)
+        type(password, into: "login.password", in: app, secure: true)
+        app.buttons["login.submit"].tap()
+
+        XCTAssertTrue(
+            app.otherElements["login.verification.step"]
+                .waitForExistence(timeout: 20)
+        )
+        Thread.sleep(forTimeInterval: 15)
+        type(verificationCode, into: "login.verification.code", in: app)
+        app.buttons["login.verification.submit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 30))
+        XCTAssertTrue(element("dashboard.screen", in: app).waitForExistence(timeout: 30))
+    }
+
+    @MainActor
     func testSignedOutShellUsesTheOfflineUITestComposition() throws {
         let app = app(mode: "signed-out")
         app.launch()
@@ -523,10 +551,11 @@ final class FynlaUITests: XCTestCase {
         submitValidLogin(in: app)
 
         XCTAssertTrue(
-            app.otherElements["login.verification.modal"].waitForExistence(timeout: 3)
+            app.otherElements["login.verification.step"].waitForExistence(timeout: 3)
         )
-        XCTAssertTrue(app.staticTexts["Enter Verification Code"].exists)
-        XCTAssertTrue(app.images["login.verification.icon"].exists)
+        XCTAssertTrue(app.staticTexts["Enter verification code"].exists)
+        XCTAssertTrue(app.buttons["login.verification.submit"].exists)
+        XCTAssertTrue(app.buttons["login.verification.cancel"].exists)
         XCTAssertTrue(
             app.staticTexts["Didn't receive the email? Check your spam folder."].exists
         )
@@ -542,6 +571,7 @@ final class FynlaUITests: XCTestCase {
         resend.tap()
         XCTAssertTrue(app.staticTexts["login.message"].waitForExistence(timeout: 3))
         type("123456", into: "login.verification.code", in: app)
+        app.buttons["login.verification.submit"].tap()
 
         XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
     }

@@ -4,11 +4,21 @@ struct FocusAreasView: View {
     let areas: [DashboardFocusArea]
     let onAction: (DashboardAction) -> Void
     let onComplete: (DashboardAction) -> Void
+    let onViewAll: (String) -> Void
+    let onSeeAllActions: () -> Void
     let completingActionIDs: Set<String>
     @State private var selection: String?
+    // Mirrors /m: skipped recommendations hide for the session only and
+    // reappear once no other recommendations remain on the card.
+    @State private var skippedIDs: Set<String> = []
 
     private var selectedArea: DashboardFocusArea? {
         areas.first { $0.key == selection } ?? areas.first
+    }
+
+    private func visibleActions(in area: DashboardFocusArea) -> [DashboardAction] {
+        let remaining = area.actions.filter { !skippedIDs.contains($0.id) }
+        return remaining.isEmpty ? area.actions : remaining
     }
 
     var body: some View {
@@ -66,7 +76,7 @@ struct FocusAreasView: View {
                                 .foregroundStyle(FynlaColor.secondaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         } else {
-                            ForEach(selectedArea.actions) { action in
+                            ForEach(visibleActions(in: selectedArea)) { action in
                                 VStack(alignment: .leading, spacing: FynlaSpacing.small) {
                                     Button {
                                         onAction(action)
@@ -93,17 +103,45 @@ struct FocusAreasView: View {
                                     )
 
                                     if action.type == .recommendation {
-                                        Button("Mark complete") {
-                                            onComplete(action)
+                                        HStack(spacing: FynlaSpacing.standard) {
+                                            Button("Mark complete") {
+                                                onComplete(action)
+                                            }
+                                            .font(FynlaTypography.button)
+                                            .disabled(completingActionIDs.contains(action.id))
+                                            .accessibilityIdentifier("dashboard.action.\(action.id).complete")
+
+                                            Button("Skip for now") {
+                                                skippedIDs.insert(action.id)
+                                            }
+                                            .font(FynlaTypography.button)
+                                            .foregroundStyle(FynlaColor.secondaryText)
+                                            .accessibilityLabel("Skip this recommendation for now")
+                                            .accessibilityIdentifier("dashboard.action.\(action.id).skip")
                                         }
-                                        .font(FynlaTypography.button)
-                                        .disabled(completingActionIDs.contains(action.id))
-                                        .accessibilityIdentifier("dashboard.action.\(action.id).complete")
                                     }
                                 }
                                 .padding(.vertical, FynlaSpacing.small)
                             }
                         }
+
+                        if !selectedArea.locked, selectedArea.key != "top" {
+                            Button("View all \(selectedArea.label.lowercased())") {
+                                onViewAll(selectedArea.key)
+                            }
+                            .font(FynlaTypography.button)
+                            .foregroundStyle(FynlaColor.primaryAction)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("dashboard.focus-areas.view-all")
+                        }
+
+                        Button("See all actions") {
+                            onSeeAllActions()
+                        }
+                        .font(FynlaTypography.button)
+                        .foregroundStyle(FynlaColor.primaryAction)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("dashboard.focus-areas.see-all")
                     }
                     .padding(FynlaSpacing.standard)
                     .background(FynlaColor.surface)

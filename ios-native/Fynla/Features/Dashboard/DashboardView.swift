@@ -95,6 +95,12 @@ struct DashboardView: View {
                     onComplete: { action in
                         Task { await model.complete(action) }
                     },
+                    onViewAll: { key in
+                        onRoute(route(forPath: key))
+                    },
+                    onSeeAllActions: {
+                        onRoute(.achievements)
+                    },
                     completingActionIDs: model.completingActionIDs
                 )
 

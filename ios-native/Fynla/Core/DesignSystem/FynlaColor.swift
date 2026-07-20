@@ -6,6 +6,8 @@ enum FynlaColor {
         case eggshell500 = "Eggshell500"
         case horizon200 = "Horizon200"
         case horizon500 = "Horizon500"
+        case loginGradientMid = "LoginGradientMid"
+        case loginGradientBottom = "LoginGradientBottom"
         case neutral500 = "Neutral500"
         case raspberry100 = "Raspberry100"
         case raspberry500 = "Raspberry500"

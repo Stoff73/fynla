@@ -11,6 +11,8 @@ struct DesignSystemTests {
             "Eggshell500",
             "Horizon200",
             "Horizon500",
+            "LoginGradientMid",
+            "LoginGradientBottom",
             "Neutral500",
             "Raspberry100",
             "Raspberry500",
