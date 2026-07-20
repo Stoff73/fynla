@@ -281,6 +281,7 @@ struct AppRootView: View {
             if privacyLockController?.isPrivacyCovered == true {
                 FynlaColor.Token.horizon500.color
                     .ignoresSafeArea()
+                    .accessibilityElement(children: .contain)
                     .accessibilityLabel("Fynla content hidden")
                     .accessibilityIdentifier("privacy-lock.cover")
             }
@@ -350,6 +351,7 @@ private struct UnlockedView: View {
         NavigationStack(path: navigationPath) {
             DashboardView(
                 model: dashboardModel,
+                greetingName: { settingsModel.greetingFirstName },
                 onRoute: { route in
                     navigate(to: route)
                 },
@@ -410,9 +412,19 @@ private struct UnlockedView: View {
         .sheet(isPresented: $isPresentingMenu) {
             NavigationMenuView(
                 includeStagedDestinations: isDevelopmentBuild,
+                account: settingsModel.account,
+                shareURL: URL(string: "https://fynla.org")!,
                 onSelect: { route in
                     isPresentingMenu = false
                     navigate(to: route)
+                },
+                onLock: {
+                    isPresentingMenu = false
+                    settingsModel.lock()
+                },
+                onSignOut: {
+                    isPresentingMenu = false
+                    Task { await settingsModel.signOut() }
                 },
                 onDismiss: {
                     isPresentingMenu = false
@@ -462,18 +474,42 @@ private struct UnlockedView: View {
             )
         }
         .safeAreaInset(edge: .bottom) {
-            Button("Ask Fyn") { presentFyn() }
-                .font(FynlaTypography.button)
-                .foregroundStyle(.white)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: FynlaSpacing.minimumInteractiveTarget
-                )
-                .background(FynlaColor.Token.horizon500.color)
+            // Docked Fyn bar mirroring /m's md-fyn-dock (text-only: the /m
+            // avatar is a mascot image, which stays banned as an inline icon).
+            Button {
+                presentFyn()
+            } label: {
+                HStack(spacing: FynlaSpacing.medium) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Fyn")
+                            .font(FynlaTypography.bodySmall.weight(.bold))
+                            .foregroundStyle(FynlaColor.primaryText)
+                        Text("Your financial companion")
+                            .font(FynlaTypography.caption)
+                            .foregroundStyle(FynlaColor.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(FynlaColor.primaryAction)
+                        .accessibilityHidden(true)
+                }
                 .padding(.horizontal, FynlaSpacing.standard)
-                .padding(.vertical, FynlaSpacing.small)
-                .background(FynlaColor.pageBackground)
-                .accessibilityIdentifier("fyn.open")
+                .padding(.vertical, FynlaSpacing.medium)
+                .background(FynlaColor.surface)
+                .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.cardCornerRadius, style: .continuous))
+                .shadow(
+                    color: FynlaColor.Token.horizon500.color.opacity(0.16),
+                    radius: 10,
+                    y: 4
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, FynlaSpacing.standard)
+            .padding(.vertical, FynlaSpacing.small)
+            .accessibilityLabel("Chat with Fyn")
+            .accessibilityIdentifier("fyn.open")
         }
     }
 

@@ -1,72 +1,62 @@
 import SwiftUI
 
+// Mirrors /m's level card (md-level in Dashboard.vue): centred progress wheel
+// above the copy, translucent white card sitting on the gradient hero, the
+// whole card tappable through to Achievements.
 struct LevelProgressView: View {
     let level: DashboardLevel
-    let percentile: Int
 
     private var drawingProgress: Double {
         min(max(Double(level.progressPercent), 0), 100) / 100
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-            HStack(alignment: .center, spacing: FynlaSpacing.standard) {
-                ZStack {
-                    Circle()
-                        .stroke(FynlaColor.Token.horizon200.color, lineWidth: 9)
-                    Circle()
-                        .trim(from: 0, to: drawingProgress)
-                        .stroke(
-                            FynlaColor.primaryAction,
-                            style: StrokeStyle(lineWidth: 9, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                    VStack(spacing: 0) {
-                        Text("Level")
-                            .font(FynlaTypography.caption)
-                        Text(level.level.formatted())
-                            .font(FynlaTypography.sectionTitle)
-                    }
-                    .foregroundStyle(FynlaColor.primaryText)
+        VStack(spacing: FynlaSpacing.standard) {
+            ZStack {
+                Circle()
+                    .stroke(FynlaColor.Token.horizon200.color, lineWidth: 9)
+                Circle()
+                    .trim(from: 0, to: drawingProgress)
+                    .stroke(
+                        FynlaColor.primaryAction,
+                        style: StrokeStyle(lineWidth: 9, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 0) {
+                    Text("Level")
+                        .font(FynlaTypography.caption)
+                    Text(level.level.formatted())
+                        .font(FynlaTypography.sectionTitle)
                 }
-                .frame(width: 104, height: 104)
-                .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-                    Text("\(level.actionsCompleted) of \(level.actionsTotal) actions to your next level")
-                        .font(FynlaTypography.heading)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    if let nextLevelName = level.nextLevelName {
-                        Text("Complete actions to reach \(nextLevelName).")
-                            .font(FynlaTypography.bodySmall)
-                            .foregroundStyle(FynlaColor.secondaryText)
-                    }
-                }
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(
-                "Level \(level.level), \(level.actionsCompleted) of \(level.actionsTotal) actions complete"
-            )
-            .accessibilityValue("\(level.progressPercent) percent to the next level")
-
-            Text("You're ahead of \(percentile)% of people")
-                .font(FynlaTypography.heading)
                 .foregroundStyle(FynlaColor.primaryText)
-                .accessibilityLabel("You're ahead of \(percentile) percent of people")
+            }
+            .frame(width: 104, height: 104)
+            .accessibilityHidden(true)
+
+            VStack(spacing: FynlaSpacing.xSmall) {
+                Text("\(level.actionsCompleted) of \(level.actionsTotal) actions to your next level")
+                    .font(FynlaTypography.heading)
+                    .foregroundStyle(FynlaColor.primaryText)
+                    .multilineTextAlignment(.center)
+                (
+                    Text("Complete actions to reach ")
+                    + Text("Level \(level.level + 1)").fontWeight(.bold)
+                    + Text(".")
+                )
+                .font(FynlaTypography.bodySmall)
+                .foregroundStyle(FynlaColor.secondaryText)
+                .multilineTextAlignment(.center)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .padding(FynlaSpacing.standard)
-        .background(
-            LinearGradient(
-                colors: [
-                    FynlaColor.Token.raspberry100.color,
-                    FynlaColor.Token.savannah100.color,
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        .background(FynlaColor.surface.opacity(0.88))
+        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.cardCornerRadius, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Level \(level.level), \(level.actionsCompleted) of \(level.actionsTotal) actions complete"
         )
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .accessibilityValue("\(level.progressPercent) percent to the next level")
         .accessibilityIdentifier("dashboard.level")
     }
 }

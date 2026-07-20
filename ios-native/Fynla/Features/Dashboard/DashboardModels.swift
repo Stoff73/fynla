@@ -124,6 +124,7 @@ struct DashboardNetWorthBreakdown: Decodable, Sendable, Equatable {
 
 struct DashboardNetWorth: Decodable, Sendable, Equatable {
     let total: Decimal
+    let trend: Decimal?
     let breakdown: DashboardNetWorthBreakdown
 }
 

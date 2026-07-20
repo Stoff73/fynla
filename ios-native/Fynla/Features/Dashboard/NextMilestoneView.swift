@@ -16,11 +16,7 @@ struct NextMilestoneView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FynlaSpacing.standard)
-            .background(FynlaColor.surface)
-            .overlay {
-                RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius)
-                    .stroke(FynlaColor.Token.horizon200.color)
-            }
+            .background(FynlaColor.surface.opacity(0.88))
             .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
         }
         .buttonStyle(.plain)

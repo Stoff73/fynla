@@ -9,6 +9,7 @@ struct DesignSystemTests {
         #expect(FynlaColor.Token.allCases.map(\.assetName) == [
             "Eggshell50",
             "Eggshell500",
+            "Horizon100",
             "Horizon200",
             "Horizon500",
             "LoginGradientMid",
@@ -20,6 +21,8 @@ struct DesignSystemTests {
             "Raspberry700",
             "Raspberry800",
             "Savannah100",
+            "Spring100",
+            "Spring500",
             "Violet500",
         ])
         #expect(FynlaColor.primaryActionToken == .raspberry500)
@@ -98,25 +101,34 @@ struct DesignSystemTests {
     }
 
     @Test
-    func shellAndErrorViewsContainNoDecorativeSystemSymbols() throws {
+    func shellAndErrorViewsUseOnlySanctionedSystemSymbols() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .resolvingSymlinksInPath()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let sourcePaths = [
-            "Fynla/App/AppRootView.swift",
-            "Fynla/Core/DesignSystem/ErrorView.swift",
+        // Symbols sanctioned by the CSJ-directed /m design match (2026-07-20):
+        // the Fyn dock chevron mirrors /m's md-fyn-dock arrow. ErrorView stays
+        // symbol-free.
+        let sanctioned: [String: Set<String>] = [
+            "Fynla/App/AppRootView.swift": ["chevron.up"],
+            "Fynla/Core/DesignSystem/ErrorView.swift": [],
         ]
 
-        for sourcePath in sourcePaths {
+        for (sourcePath, allowed) in sanctioned {
             let source = try String(
                 contentsOf: nativeRoot.appending(path: sourcePath),
                 encoding: .utf8
             )
-            #expect(
-                !source.contains("Image(systemName:"),
-                "Decorative SF Symbol found in \(sourcePath)"
-            )
+            let found = source
+                .components(separatedBy: "Image(systemName: \"")
+                .dropFirst()
+                .compactMap { $0.components(separatedBy: "\"").first }
+            for symbol in found {
+                #expect(
+                    allowed.contains(symbol),
+                    "Unsanctioned SF Symbol \(symbol) found in \(sourcePath)"
+                )
+            }
         }
     }
 
@@ -140,8 +152,11 @@ extension DesignSystemTests {
         let expected: [FynlaColor.Token: (CGFloat, CGFloat, CGFloat, CGFloat)] = [
             .eggshell50: (1, 1, 1, 1),
             .eggshell500: (0.968627, 0.964706, 0.956863, 1),
+            .horizon100: (0.945098, 0.960784, 0.976471, 1),
             .horizon200: (0.886275, 0.909804, 0.941176, 1),
             .horizon500: (0.121569, 0.164706, 0.266667, 1),
+            .loginGradientMid: (0.172549, 0.141176, 0.4, 1),
+            .loginGradientBottom: (0.615686, 0.203922, 0.415686, 1),
             .neutral500: (0.443137, 0.443137, 0.443137, 1),
             .raspberry100: (0.988235, 0.905882, 0.952941, 1),
             .raspberry500: (0.909804, 0.243137, 0.427451, 1),
@@ -149,6 +164,8 @@ extension DesignSystemTests {
             .raspberry700: (0.745098, 0.094118, 0.364706, 1),
             .raspberry800: (0.615686, 0.090196, 0.301961, 1),
             .savannah100: (0.992157, 0.980392, 0.968627, 1),
+            .spring100: (0.819608, 0.980392, 0.898039, 1),
+            .spring500: (0.125490, 0.705882, 0.525490, 1),
             .violet500: (0.345098, 0.329412, 0.901961, 1),
         ]
 

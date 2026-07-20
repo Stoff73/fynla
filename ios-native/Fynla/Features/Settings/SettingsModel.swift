@@ -51,6 +51,18 @@ enum SettingsPlan: Sendable, Equatable {
 @Observable
 final class SettingsModel {
     private(set) var account: SettingsAccount?
+
+    // First name for the dashboard greeting, mirroring /m's store.user usage.
+    var greetingFirstName: String? {
+        let user = userProvider()
+        if let first = user?.firstName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !first.isEmpty {
+            return first
+        }
+        let name = user?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name?.split(separator: " ").first.map(String.init)
+    }
+
     private(set) var plan: SettingsPlan = .loading
     private(set) var faceIDEnabled = false
     private(set) var canEnableFaceID = false

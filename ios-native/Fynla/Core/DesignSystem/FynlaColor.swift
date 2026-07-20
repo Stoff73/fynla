@@ -4,6 +4,7 @@ enum FynlaColor {
     enum Token: String, CaseIterable, Sendable {
         case eggshell50 = "Eggshell50"
         case eggshell500 = "Eggshell500"
+        case horizon100 = "Horizon100"
         case horizon200 = "Horizon200"
         case horizon500 = "Horizon500"
         case loginGradientMid = "LoginGradientMid"
@@ -15,6 +16,8 @@ enum FynlaColor {
         case raspberry700 = "Raspberry700"
         case raspberry800 = "Raspberry800"
         case savannah100 = "Savannah100"
+        case spring100 = "Spring100"
+        case spring500 = "Spring500"
         case violet500 = "Violet500"
 
         var assetName: String { rawValue }
@@ -27,6 +30,7 @@ enum FynlaColor {
     static let pageBackgroundToken = Token.eggshell500
     static let surfaceToken = Token.eggshell50
     static let focusToken = Token.violet500
+    static let successToken = Token.spring500
 
     static var primaryAction: Color { primaryActionToken.color }
     static var primaryText: Color { primaryTextToken.color }
@@ -34,4 +38,5 @@ enum FynlaColor {
     static var pageBackground: Color { pageBackgroundToken.color }
     static var surface: Color { surfaceToken.color }
     static var focus: Color { focusToken.color }
+    static var success: Color { successToken.color }
 }

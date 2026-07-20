@@ -520,16 +520,34 @@ struct PrivacyLockControllerTests {
             encoding: .utf8
         )
 
+        let menu = try String(
+            contentsOf: (FileManager.default.fileExists(atPath: repositoryFeatureRoot.path)
+                ? repositoryRoot.appending(path: "Fynla/Features/Navigation/NavigationMenuView.swift")
+                : hostRoot.appending(path: "NavigationMenuView.swift")),
+            encoding: .utf8
+        )
+        let settings = try String(
+            contentsOf: (FileManager.default.fileExists(atPath: repositoryFeatureRoot.path)
+                ? repositoryRoot.appending(path: "Fynla/Features/Settings/SettingsModel.swift")
+                : hostRoot.appending(path: "SettingsModel.swift")),
+            encoding: .utf8
+        )
+
         #expect(optIn.contains("face-id.opt-in.enable"))
         #expect(optIn.contains("face-id.opt-in.not-now"))
         #expect(locked.contains("app.locked.unlock"))
         #expect(locked.contains("app.locked.sign-in-another-way"))
         #expect(appRoot.contains("privacy-lock.cover"))
         #expect(appRoot.contains("FynlaColor.Token.horizon500"))
-        #expect(appRoot.contains("app.unlocked.lock"))
-        #expect(appRoot.contains("app.unlocked.sign-out"))
-        #expect(appRoot.contains("privacyLockController.lock()"))
-        #expect(appRoot.contains("await privacyLockController.signOut()"))
+        // Lock and sign out moved into the drawer menu (2026-07-20 /m parity):
+        // the shell wires them through SettingsModel, which owns the
+        // PrivacyLockController calls.
+        #expect(menu.contains("navigation.lock"))
+        #expect(menu.contains("navigation.sign-out"))
+        #expect(appRoot.contains("settingsModel.lock()"))
+        #expect(appRoot.contains("await settingsModel.signOut()"))
+        #expect(settings.contains("privacyLockController?.lock()"))
+        #expect(settings.contains("await privacyLockController?.signOut()"))
         #expect(appRoot.contains("accessibilityElement(children: .contain)"))
     }
 
