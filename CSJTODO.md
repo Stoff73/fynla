@@ -1,9 +1,21 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-21 — session 2. **/m-parity sweep COMPLETE** on pkg7
-(pushed through `432f8b9`): every remaining screen + sub-page transcribed, and
-CSJ's three directives executed — Fyn avatar always allowed (Rule 15 amended),
-level-up fireworks and onboarding/KYC nudges built matching /m (D8 resolved).*
+*Last updated: 2026-07-21 — context-clear wrap, session 2. Everything asked
+today is DONE: /m-parity sweep complete; CSJ directives (avatar rule,
+fireworks, nudges) executed; better-in-the-app Fyn bubble live on csjones;
+SaveTax campaign live E2E green on web AND native (2 real defects fixed);
+**TestFlight build 1.0(1) of Fynla Dev uploaded and VALID — CSJ invited as
+internal tester**. Handover: July/July21Updates/handover-2026-07-21-session-2-clear.md.*
+
+## 2026-07-21 — session 2 (all delivered)
+
+- [x] Better-in-the-app Fyn bubble at the campaign terminal (Pest-pinned, deployed to csjones, seen live).
+- [x] SaveTax campaign E2E: /m funnel → register → onboarding → synthesis → tax strategy; native login pull-through with real amounts; fireworks fired live.
+- [x] Fixed: tolerant native API decoding (string decimals + {}-null — Savings/Retirement were undecodable live); pension rows whole-pound.
+- [x] TestFlight: bundle org.fynla.app.dev registered (+Push/Assoc Domains), distribution cert G4DATT2CZB + App Store profile via API, build uploaded, internal group + CSJ invite. Guide: ios-native/TESTFLIGHT.md.
+- [ ] **CSJ: install the TestFlight build** (invite emailed to c.jones@csjones.co) and report.
+- [ ] **NOTE: csjones now runs `codex/savetax-allowance-ctas`** (dev merged in at eec2a1a), not `dev`.
+- [ ] Debt noted: keychain password in TESTFLIGHT.md (rotate before prod flow); code-relay script scratchpad-only; framed{} duplicated 18×; TolerantDecoding non-optional string-token gap.
 
 ## 2026-07-21 — /m-parity sweep (session 2: COMPLETE)
 
