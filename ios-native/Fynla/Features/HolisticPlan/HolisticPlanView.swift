@@ -15,7 +15,7 @@ struct HolisticPlanView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                DashboardLoadingView(message: "Loading your holistic plan…")
+                framed { DashboardLoadingView(message: "Loading your holistic plan…") }
             case let .loaded(plan):
                 content(plan)
             case let .offline(previous):
@@ -322,12 +322,30 @@ struct HolisticPlanView: View {
             .accessibilityIdentifier("holistic-plan.offline")
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Holistic Plan",
+                    subtitle: "Your whole plan, ranked against what you can afford"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil,
-            openSubscription: state.canUpgrade ? onOpenSubscription : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil,
+                openSubscription: state.canUpgrade ? onOpenSubscription : nil
+            )
+        }
     }
 }
 

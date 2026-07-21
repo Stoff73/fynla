@@ -16,7 +16,7 @@ struct BalanceHistoryView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                DashboardLoadingView(message: "Loading your balance history…")
+                framed { DashboardLoadingView(message: "Loading your balance history…") }
             case let .loaded(history):
                 content(history)
             case let .offline(previous):
@@ -310,11 +310,29 @@ struct BalanceHistoryView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Balance history",
+                    subtitle: "How your recorded balances have changed"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil,
-            openSubscription: state.canUpgrade ? onOpenSubscription : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil,
+                openSubscription: state.canUpgrade ? onOpenSubscription : nil
+            )
+        }
     }
 }

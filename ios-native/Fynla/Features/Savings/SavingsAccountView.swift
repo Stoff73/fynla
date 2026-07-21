@@ -15,7 +15,7 @@ struct SavingsAccountView: View {
         Group {
             switch model.accountState {
             case .idle, .loading:
-                DashboardLoadingView(message: "Loading this account…")
+                framed { DashboardLoadingView(message: "Loading this account…") }
             case let .loaded(account):
                 content(account)
             case .offline:
@@ -23,9 +23,9 @@ struct SavingsAccountView: View {
             case .unauthenticated:
                 stateView(.unauthenticated)
             case .forbidden:
-                ScreenStateView(state: .empty(message: "You don't have access to this account."))
+                framed { ScreenStateView(state: .empty(message: "You don't have access to this account.")) }
             case .notFound:
-                ScreenStateView(state: .empty(message: "This savings account could not be found."))
+                framed { ScreenStateView(state: .empty(message: "This savings account could not be found.")) }
             case let .failed(requestID):
                 stateView(.failed(requestID: requestID))
             }
@@ -261,10 +261,28 @@ struct SavingsAccountView: View {
         return "\(years) \(years == 1 ? "year" : "years"), \(remainder) \(remainder == 1 ? "month" : "months")"
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Savings and emergency fund",
+                    subtitle: "Your cash, emergency-fund runway and ISA allowance"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.loadAccount(id: accountID) } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.loadAccount(id: accountID) } } : nil
+            )
+        }
     }
 }

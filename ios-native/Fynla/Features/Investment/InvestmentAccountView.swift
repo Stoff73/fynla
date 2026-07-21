@@ -15,12 +15,12 @@ struct InvestmentAccountView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                DashboardLoadingView(message: "Loading this account…")
+                framed { DashboardLoadingView(message: "Loading this account…") }
             case .loaded:
                 if let account = model.account(id: accountID) {
                     content(account)
                 } else {
-                    ScreenStateView(state: .empty(message: "We could not find that account."))
+                    framed { ScreenStateView(state: .empty(message: "We could not find that account.")) }
                 }
             case let .offline(previous):
                 if let account = previous?.accounts.first(where: { $0.id == accountID }) {
@@ -210,10 +210,28 @@ struct InvestmentAccountView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Investments",
+                    subtitle: "Your investment accounts, holdings and allowances"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil
+            )
+        }
     }
 }

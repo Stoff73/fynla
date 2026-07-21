@@ -11,25 +11,29 @@ struct AchievementsView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                DashboardLoadingView(message: "Loading your progress…")
+                framed { DashboardLoadingView(message: "Loading your progress…") }
             case .loaded:
                 loadedContent
             case .offline:
                 if model.content == nil {
-                    ScreenStateView(
-                        state: .offline,
-                        retry: { Task { await model.load() } }
-                    )
+                    framed {
+                        ScreenStateView(
+                            state: .offline,
+                            retry: { Task { await model.load() } }
+                        )
+                    }
                 } else {
                     loadedContent
                 }
             case .unauthenticated:
-                ScreenStateView(state: .unauthenticated)
+                framed { ScreenStateView(state: .unauthenticated) }
             case let .failed(requestID):
-                ScreenStateView(
-                    state: .failed(requestID: requestID),
-                    retry: { Task { await model.load() } }
-                )
+                framed {
+                    ScreenStateView(
+                        state: .failed(requestID: requestID),
+                        retry: { Task { await model.load() } }
+                    )
+                }
             }
         }
         .background(FynlaColor.pageBackground)
@@ -454,6 +458,22 @@ struct AchievementsView: View {
         output.timeZone = TimeZone(secondsFromGMT: 0)
         output.dateFormat = "dd/MM/yyyy"
         return output.string(from: date)
+    }
+
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Your progress",
+                    subtitle: "Achievements you've earned and milestones you've reached"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
     }
 }
 

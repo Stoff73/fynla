@@ -15,7 +15,7 @@ struct ProtectionView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                DashboardLoadingView(message: "Loading your protection position…")
+                framed { DashboardLoadingView(message: "Loading your protection position…") }
             case let .loaded(snapshot):
                 content(snapshot)
             case let .offline(previous):
@@ -274,11 +274,29 @@ struct ProtectionView: View {
             .accessibilityIdentifier("protection.offline")
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Protection",
+                    subtitle: "Your insurance cover and the gaps that remain"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil,
-            openSubscription: state.canUpgrade ? onOpenSubscription : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil,
+                openSubscription: state.canUpgrade ? onOpenSubscription : nil
+            )
+        }
     }
 }

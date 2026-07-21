@@ -212,3 +212,9 @@ manual fixture launch screenshot + journey suite.
 | Item | Disposition |
 |------|-------------|
 | User chat-bubble style | **VERIFIED against live /m and matched.** dashboard.css defines only `.md-fyn__msg--fyn` — there is NO `--user` rule. Computed-style probe on csjones (logged-in john, live Fyn overlay): user messages render full-width, LEFT-aligned, transparent background, no border-radius/padding on the wrapper, body colour #1F2A44 at 15px/400. Native `FynMessageView` previously invented a right-aligned grey user bubble — now renders user turns as /m does (plain left-aligned text, Fyn bubbles keep the white card + horizon100 hairline). If CSJ prefers a styled user bubble, add the CSS to /m FIRST, then mirror natively (both surfaces, Rule 19). |
+
+## 2026-07-21 — sweep item 5 (hero persistence across loading/error states) — DONE
+
+| Item | Disposition |
+|------|-------------|
+| Hero persistence | **DONE across all 18 converted screens.** Each screen gained a private `framed { }` wrapper (page-specific MobilePageHero + dock clearance) around every loading `DashboardLoadingView`, every `stateView(...)` error/offline/upgrade screen, and every inline `.empty`/not-found `ScreenStateView` — so the gradient hero band now persists during loading and error, as /m's MobileChrome does. Per /m, the Back/Edit pills stay hidden during loading (`md-page-actions` has `v-if="!loading"`); they are also omitted on error frames (the /m error card carries its own Try-again). |

@@ -19,7 +19,7 @@ struct RetirementPensionView: View {
             if let type = RetirementPensionType(rawValue: pensionType) {
                 stateContent(type)
             } else {
-                ScreenStateView(state: .empty(message: "This pension type is unavailable."))
+                framed { ScreenStateView(state: .empty(message: "This pension type is unavailable.")) }
             }
         }
         .background(FynlaColor.pageBackground)
@@ -36,7 +36,7 @@ struct RetirementPensionView: View {
     private func stateContent(_ type: RetirementPensionType) -> some View {
         switch model.state {
         case .idle, .loading:
-            DashboardLoadingView(message: "Loading this pension…")
+            framed { DashboardLoadingView(message: "Loading this pension…") }
         case let .loaded(snapshot):
             pensionContent(type, snapshot: snapshot)
         case let .offline(previous):
@@ -246,7 +246,7 @@ struct RetirementPensionView: View {
     }
 
     private var notFound: some View {
-        ScreenStateView(state: .empty(message: "Pension not found."))
+        framed { ScreenStateView(state: .empty(message: "Pension not found.")) }
     }
 
     private func dcSchemeType(_ value: String?) -> String {
@@ -293,10 +293,28 @@ struct RetirementPensionView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Retirement",
+                    subtitle: "Your projected retirement income, pensions and projections"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil
+            )
+        }
     }
 }

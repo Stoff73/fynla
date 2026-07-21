@@ -30,7 +30,7 @@ struct ProtectionPolicyView: View {
     private func stateContent(_ type: ProtectionPolicyType) -> some View {
         switch model.state {
         case .idle, .loading:
-            DashboardLoadingView(message: "Loading this policy…")
+            framed { DashboardLoadingView(message: "Loading this policy…") }
         case let .loaded(snapshot):
             if let policy = snapshot.policy(type: type, id: policyID) {
                 content(type, policy: policy)
@@ -286,7 +286,7 @@ struct ProtectionPolicyView: View {
     }
 
     private var notFound: some View {
-        ScreenStateView(state: .empty(message: "We could not find that policy."))
+        framed { ScreenStateView(state: .empty(message: "We could not find that policy.")) }
     }
 
     private var offlineNotice: some View {
@@ -299,10 +299,28 @@ struct ProtectionPolicyView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Protection",
+                    subtitle: "Your insurance cover and the gaps that remain"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil
+            )
+        }
     }
 }

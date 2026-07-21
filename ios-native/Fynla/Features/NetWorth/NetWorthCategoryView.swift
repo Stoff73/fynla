@@ -18,9 +18,11 @@ struct NetWorthCategoryView: View {
             if let category = NetWorthCategory(rawValue: categoryKey) {
                 loadedState(category)
             } else {
-                ScreenStateView(
-                    state: .empty(message: "This net worth category is unavailable.")
-                )
+                framed {
+                    ScreenStateView(
+                        state: .empty(message: "This net worth category is unavailable.")
+                    )
+                }
             }
         }
         .background(FynlaColor.pageBackground)
@@ -32,7 +34,7 @@ struct NetWorthCategoryView: View {
     private func loadedState(_ category: NetWorthCategory) -> some View {
         switch model.state {
         case .idle, .loading:
-            DashboardLoadingView(message: "Loading your accounts…")
+            framed { DashboardLoadingView(message: "Loading your accounts…") }
         case let .loaded(snapshot):
             content(category, snapshot: snapshot)
         case let .offline(previous):
@@ -283,12 +285,30 @@ struct NetWorthCategoryView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Net Worth",
+                    subtitle: "Everything you own, less what you owe"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil,
-            openSubscription: state.canUpgrade ? onOpenSubscription : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil,
+                openSubscription: state.canUpgrade ? onOpenSubscription : nil
+            )
+        }
     }
 }
 
