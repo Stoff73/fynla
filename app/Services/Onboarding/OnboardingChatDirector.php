@@ -5485,8 +5485,18 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        /** @var array<string, array{message: string, content_offset: int, tier_limit: bool}> $pendingWriteFailures */
+        /** @var array<string, array{message: string, content_offset: int, tier_limit: bool, tool: string}> $pendingWriteFailures */
         $pendingWriteFailures = [];
+
+        // Raw tool-call arguments from every gate-blocked (clarification_required)
+        // LLM attempt this turn, keyed by tool name. The deterministic gap-fill
+        // below merges these onto its own extracted fields (LLM input as base,
+        // extractor fills only missing keys — see
+        // AssetCaptureEntityExtractor::mergeWithLlmInput) so a call the LLM
+        // otherwise got right except for a dropped ownership_type can still be
+        // rescued (live conversation 164).
+        /** @var array<string, list<array<string, mixed>>> $llmClarificationInputs */
+        $llmClarificationInputs = [];
 
         /** @var list<array<string, mixed>> $presentationActions */
         $presentationActions = [];
@@ -5577,6 +5587,16 @@ PROMPT;
                     $toolCallId = $tool.':'.(++$writeResultSequence);
                 }
 
+                // The LLM's own arguments for a gate-blocked attempt — remembered
+                // so the deterministic gap-fill below can retry with them as its
+                // base (see AssetCaptureEntityExtractor::mergeWithLlmInput).
+                if ($explicitFailure && ($result['error_type'] ?? null) === 'clarification_required' && $tool !== '__unknown__') {
+                    $rawInput = (array) ($event['input'] ?? []);
+                    if ($rawInput !== []) {
+                        $llmClarificationInputs[$tool][] = $rawInput;
+                    }
+                }
+
                 if (! $explicitFailure && $landed === true) {
                     continue;
                 }
@@ -5590,6 +5610,7 @@ PROMPT;
                             : 'The information could not be saved.',
                         'content_offset' => $retryContentOffset ?? count($contentEvents),
                         'tier_limit' => ($result['reason'] ?? null) === 'tier_limit_reached',
+                        'tool' => $tool,
                     ];
                 }
 
@@ -5611,6 +5632,49 @@ PROMPT;
             }
 
             yield $event;
+        }
+
+        // Deterministic multi-entity gap-fill runs BEFORE the write-failure
+        // resolution below (rather than after, as it did previously) so a
+        // gate-blocked LLM tool call that the gap-fill goes on to rescue —
+        // merged with the LLM's own correct fields, see
+        // AssetCaptureEntityExtractor::mergeWithLlmInput — never surfaces as
+        // "I couldn't save that" once the record has, in fact, just been
+        // saved (live conversation 164).
+        /** @var list<string> $gapFilledTools */
+        $gapFilledTools = [];
+        foreach ($this->emitGapFillFromCaptureContext(
+            $user,
+            $conversation,
+            $context,
+            $message,
+            $llmEmittedFills,
+            $llmClarificationInputs,
+        ) as $gapFillEvent) {
+            if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+                $recordsCreated[] = [
+                    'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
+                    'id' => $gapFillEvent['entity_id'] ?? null,
+                    'name' => (string) ($gapFillEvent['name'] ?? ''),
+                ];
+                $gapFilledTools[] = (string) ($gapFillEvent['tool'] ?? '');
+            }
+
+            yield $gapFillEvent;
+        }
+
+        // A tool the gap-fill just rescued is no longer an unresolved
+        // failure — drop its pending entry before deciding what failure
+        // text (if any) to surface. Per-tool granularity (not per-entity):
+        // sufficient for the single-entity interruption-retry flow this
+        // fixes (AssetCaptureEntityExtractor's own class doc: "under-filling
+        // is the acceptable degradation").
+        if ($gapFilledTools !== []) {
+            foreach ($pendingWriteFailures as $failedToolCallId => $failure) {
+                if (in_array($failure['tool'] ?? null, $gapFilledTools, true)) {
+                    unset($pendingWriteFailures[$failedToolCallId]);
+                }
+            }
         }
 
         if ($pendingWriteFailures !== []) {
@@ -5697,14 +5761,6 @@ PROMPT;
                 ['inline' => true],
             );
         }
-
-        yield from $this->emitGapFillFromCaptureContext(
-            $user,
-            $conversation,
-            $context,
-            $message,
-            $llmEmittedFills,
-        );
 
         // Emit a single closing capture_complete event so AiChatPanel.vue can
         // render the rich record-card bubble (one card per record) instead of
@@ -5815,6 +5871,7 @@ PROMPT;
      * skipped rather than aborting the turn.
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @param  array<string, list<array<string, mixed>>>  $llmClarificationInputs  raw tool-call arguments from gate-blocked LLM attempts this turn, keyed by tool name
      * @return \Generator<array<string, mixed>>
      */
     private function emitGapFillFromCaptureContext(
@@ -5823,11 +5880,12 @@ PROMPT;
         CaptureContext $context,
         string $message,
         array $llmEmittedFills,
+        array $llmClarificationInputs = [],
     ): \Generator {
         $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
 
         foreach ($focuses as $focus) {
-            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills);
+            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs);
         }
     }
 
@@ -5836,6 +5894,7 @@ PROMPT;
      * entities the LLM dropped.
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @param  array<string, list<array<string, mixed>>>  $llmClarificationInputs  raw tool-call arguments from gate-blocked LLM attempts this turn, keyed by tool name
      * @return \Generator<array<string, mixed>>
      */
     private function runExtractorForFocus(
@@ -5844,6 +5903,7 @@ PROMPT;
         string $focus,
         string $message,
         array $llmEmittedFills,
+        array $llmClarificationInputs = [],
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($focus);
         if ($tool === null) {
@@ -5853,6 +5913,11 @@ PROMPT;
         try {
             $extracted = $this->entityExtractor->extractForFocus($focus, $message);
             $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills, $user);
+            // Merge precedence: the LLM's own gate-blocked arguments are the
+            // base (institution/balance/account_type already reached the gate
+            // unmodified), the extractor only fills keys the LLM's call left
+            // unset — chiefly ownership_type (live conversation 164).
+            $missing = $this->entityExtractor->mergeWithLlmInput($focus, $missing, $llmClarificationInputs[$tool] ?? []);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Inline-capture gap-fill extraction failed', [
                 'user_id' => $user->id,
@@ -5919,6 +5984,22 @@ PROMPT;
                     'fields' => $result['fields'] ?? [],
                     'mode' => $result['mode'] ?? 'create',
                     'entity_id' => $result['entity_id'] ?? null,
+                ];
+            }
+
+            // A direct-write handler (e.g. handleCreateSavingsAccount)
+            // returns `created: true` on success. Surfacing this lets
+            // handleInlineCapture fold a gap-fill rescue into the same
+            // capture_complete summary and drop a matching pending write
+            // failure that the LLM's own attempt on this tool left behind
+            // (see the pendingWriteFailures/$gapFilledTools cleanup there).
+            if (($result['created'] ?? false) === true) {
+                yield [
+                    'type' => 'entity_created',
+                    'entity_type' => (string) ($result['entity_type'] ?? ''),
+                    'entity_id' => $result['entity_id'] ?? null,
+                    'name' => (string) ($result['name'] ?? ''),
+                    'tool' => $tool,
                 ];
             }
 

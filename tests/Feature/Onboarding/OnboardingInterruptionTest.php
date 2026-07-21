@@ -14,6 +14,7 @@ use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fyn\FynStreamHarness;
@@ -264,6 +265,72 @@ it('routes the missing-detail reply into inline capture as the merged message an
 
     // The walk resumed — its current step was re-emitted after the
     // successful capture.
+    expect(collect($received)->where('type', 'quick_replies'))->not->toBeEmpty();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+});
+
+// ── Fix: deterministic ownership gap-fill rescues gate-blocked captures
+// (live conversation 164, user 271) ─────────────────────────────────────
+//
+// grok called create_savings_account with institution/account_type/balance/
+// interest_rate but NO ownership_type on FOUR consecutive turns, even after
+// the user stated ownership explicitly — the model pattern-locks on its own
+// prior failing tool call. CaptureAccuracyGate correctly blocked every
+// attempt (missing ownership_type). AssetCaptureEntityExtractor now parses
+// ownership from the user's own words and the gap-fill merges it onto the
+// LLM's otherwise-correct fields, so the retry the LLM itself still gets
+// wrong is rescued deterministically.
+
+it('rescues a gate-blocked create_savings_account via deterministic ownership gap-fill when the model omits ownership_type again on the retry', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    [$user, $conversation] = interruptionUser();
+
+    // Turn 1: user volunteers a savings account mid-onboarding. Pure
+    // classifier path (handleInformationInterruption) — no LLM call.
+    driveDirector($user, $conversation, 'I have £15,000 in a Halifax savings account at 4.1% interest');
+
+    // Simulate having already been asked once for ownership — skips the
+    // "Yes, save it" acceptance turn (irrelevant to the mechanism under
+    // test, and it would otherwise add an unrelated "yes, save it" segment
+    // to CaptureAccuracyGate's multi-turn evidence window).
+    $user->refresh();
+    $context = $user->onboarding_fyn_context;
+    $context['pending_interruption_store']['awaiting_detail'] = true;
+    $user->onboarding_fyn_context = $context;
+    $user->save();
+
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);
+
+    // Turn 2: the user answers with explicit individual-ownership wording.
+    // The model pattern-locks on its own prior failing tool call and OMITS
+    // ownership_type AGAIN — the deterministic gap-fill must rescue it by
+    // merging the extractor's ownership_type onto the LLM's own (otherwise
+    // correct) institution/balance/interest_rate fields.
+    FynStreamHarness::fake()
+        ->toolTurn('create_savings_account', [
+            'account_name' => 'Halifax Savings Account',
+            'account_type' => 'easy_access',
+            'institution' => 'Halifax',
+            'current_balance' => 15000.0,
+            'interest_rate' => 4.1,
+        ])
+        ->textTurn('Understood.')
+        ->bind();
+
+    $received = driveDirector($user->refresh(), $conversation, "Yes, it's owned individually by me");
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account)->not->toBeNull()
+        ->and($account->institution)->toBe('Halifax')
+        ->and((float) $account->current_balance)->toEqual(15000.0)
+        ->and($account->ownership_type)->toBe('individual');
+
+    // The pending flag is consumed (not re-armed) — the rescued write is
+    // never mistaken for a still-unresolved clarification.
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+
+    // The walk resumed — its current step was re-emitted.
     expect(collect($received)->where('type', 'quick_replies'))->not->toBeEmpty();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
