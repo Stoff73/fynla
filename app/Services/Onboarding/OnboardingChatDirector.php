@@ -21,8 +21,10 @@ use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\QueryClassifier;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\WriteIntentClassifier;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -86,6 +88,8 @@ final class OnboardingChatDirector
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly FynLoop $fynLoop,
         private readonly ProceduralVersionHolder $proceduralVersions,
+        private readonly QueryClassifier $queryClassifier,
+        private readonly WriteIntentClassifier $writeIntentClassifier,
     ) {}
 
     /**
@@ -284,6 +288,15 @@ final class OnboardingChatDirector
         $interpretation = $this->interpretAnswer($state, $message);
 
         if (! $interpretation['ok']) {
+            $interruption = $this->handleInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $currentRoute
+            );
+            if ($interruption !== null) {
+                yield from $interruption;
+
+                return;
+            }
+
             // Can't parse the answer — re-ask without advancing.
             yield [
                 'type' => 'content',
@@ -1388,6 +1401,59 @@ final class OnboardingChatDirector
             'captured_value' => $parsed,
             'answer_for_transition' => $message,
         ];
+    }
+
+    /**
+     * Interruption intelligence (CSJ 2026-07-21): free text that failed
+     * interpretation at a capture step is not noise — classify it and respond.
+     * Returns null when nothing matched, so the caller's existing retry fires.
+     */
+    private function handleInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $currentRoute = null
+    ): ?\Generator {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            $primary = $this->queryClassifier->classify($message, $currentRoute)['primary'] ?? null;
+
+            return $this->handleQuestionInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $primary, $currentRoute
+            );
+        }
+
+        if ($this->writeIntentClassifier->classify($message) !== null) {
+            return $this->handleInformationInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $currentRoute
+            );
+        }
+
+        return null;
+    }
+
+    private function handleQuestionInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $primary,
+        ?string $currentRoute
+    ): ?\Generator {
+        return null; // Task 3 / Task 4
+    }
+
+    private function handleInformationInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $currentRoute
+    ): ?\Generator {
+        return null; // Task 2
     }
 
     private function retryTextForParser(string $parser): string
