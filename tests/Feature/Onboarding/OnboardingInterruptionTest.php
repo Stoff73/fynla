@@ -109,4 +109,5 @@ it('accepting the store offer routes the original message through inline capture
     // acknowledgement was voiced by the inline-capture turn.
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
     expect($texts)->not->toContain("didn't catch that");
+    expect(collect($received)->where('type', 'tool_use')->pluck('tool'))->toContain('create_savings_account');
 });
