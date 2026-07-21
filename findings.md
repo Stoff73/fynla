@@ -1,5 +1,16 @@
 # Findings — seeded 2026-05-19 (SP3 mobile-iframe scaffold)
 
+## 2026-07-18 — Native Swift Package 3 handoff
+
+- Package 3 being green does not mean `/m` is fully ported. Packages 4–7 own entitlements/StoreKit, dashboard/Fyn, every financial screen, and platform/release responsibilities respectively.
+- Laravel remains the API implementation; native Swift consumes typed contracts. Do not plan an API rewrite in Swift.
+- A SwiftUI root view's `onDisappear` can fire during a legitimate authenticated-state transition. Cancelling the in-flight authentication action there reverted successful login/restoration flows to sign-in on clean iOS 26.5. The fixed boundary clears secrets on ordinary disappearance and cancels only explicit departures.
+- Parent accessibility identifiers can propagate to SwiftUI descendants on newer iOS versions. Stable UI tests should identify actionable descendants directly and avoid assigning a root identifier that replaces every child identifier.
+- Local CoreSimulator/XCTest worker materialisation can fail while a clean GitHub Xcode runner remains healthy. Keep the local limitation honest and use clean-runner evidence rather than weakening UI tests.
+- Package 3 PR #633 is current with `origin/dev` at the handover point (19 ahead, 0 behind), all current-head workflows green, and Save Tax untouched in the primary checkout.
+- Browser law: installed Google Chrome via connector only; never Chromium or the in-app browser. If disconnected, defer the browser gate and continue independent implementation.
+- User-approved PR structure: Packages 4, 5, 6 and 7 each have a separate branch and PR. Package 6's five waves are independently closed within one Package 6 PR rather than split into five package-level PRs.
+
 ## Resolved gotchas
 - **Auth is Bearer-token, not session-cookie.** `/api/auth/login` returns `requires_verification` at TOP LEVEL with `data:{challenge_token,email}` nested; `/api/auth/verify-code` → `data.access_token`. The original spec/plan wrongly described cookie auth and nested `requires_verification` — corrected in plan commit `664c9c6b` (caught in Task 5 code review; would have broken login entirely).
 - **`SecurityHeaders` sets `X-Frame-Options: DENY` globally** with no `frame-ancestors`. Task 3 scopes `SAMEORIGIN` + `frame-ancestors 'self'` to `/m` and `/m/app*` only — the spec's confirmed HIGH risk, real.

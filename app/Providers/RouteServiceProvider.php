@@ -131,6 +131,20 @@ class RouteServiceProvider extends ServiceProvider
             });
         });
 
+        RateLimiter::for('native-session', function (Request $request) {
+            $key = $request->user() === null
+                ? 'ip:'.$request->ip()
+                : 'user:'.$request->user()->getAuthIdentifier();
+
+            return Limit::perMinute(10)->by($key)->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'native_session_rate_limited',
+                    'message' => 'Too many native session attempts. Please try again later.',
+                ], 429);
+            });
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

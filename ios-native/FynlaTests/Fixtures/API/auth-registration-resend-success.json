@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "message": "Verification code sent",
+  "data": {
+    "can_resend": true
+  }
+}

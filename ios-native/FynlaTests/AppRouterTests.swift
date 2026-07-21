@@ -11,6 +11,8 @@ struct AppRouterTests {
             .authenticating,
             .verificationRequired,
             .multiFactorRequired,
+            .restorationRequired,
+            .passwordChangeRequired,
             .authenticatedLocked,
             .deletingAccount,
         ]
@@ -54,6 +56,17 @@ struct AppRouterTests {
         let router = AppRouter(session: session)
 
         #expect(!router.navigate(to: .settings))
+        #expect(router.path.isEmpty)
+    }
+
+    @Test @MainActor
+    func passwordChangeGateRejectsEveryRouteIncludingSettings() {
+        let session = AppSession(state: .passwordChangeRequired)
+        let router = AppRouter(session: session)
+
+        for route in financialRoutes + [.settings] {
+            #expect(!router.navigate(to: route))
+        }
         #expect(router.path.isEmpty)
     }
 

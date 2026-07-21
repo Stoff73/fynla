@@ -1,0 +1,10 @@
+{
+  "token": "bootstrap-restored-example",
+  "user": {
+    "id": 101,
+    "email": "example@example.test",
+    "first_name": "Example",
+    "surname": "User"
+  },
+  "redirect_to": "/dashboard?openPricing=1"
+}

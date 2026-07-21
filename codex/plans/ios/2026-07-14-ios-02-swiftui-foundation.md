@@ -332,4 +332,6 @@ The final whole-branch review then closed three cross-task gaps: the live URLSes
 - [x] No private response caching or body logging exists.
 - [x] The new target contains no Capacitor, CocoaPods or `WKWebView` dependency.
 - [x] Existing Capacitor and `/m` files are unchanged.
-- [ ] CSJ approves the native shell before Package 3 account UI expands it.
+- [x] CSJ approves the native shell before Package 3 account UI expands it.
+
+Recorded 2026-07-17: CSJ directed the programme to align the parallel Save Tax branch with `dev` and move on to Package 3, explicitly clearing the remaining native-shell product gate.

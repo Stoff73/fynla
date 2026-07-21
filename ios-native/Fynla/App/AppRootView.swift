@@ -2,26 +2,159 @@ import SwiftUI
 
 struct AppRootView: View {
     let session: AppSession
+    let privacyLockController: PrivacyLockController?
+    @State private var registrationModel: RegistrationModel
+    @State private var loginModel: LoginModel
+    @State private var passwordResetModel: PasswordResetModel
+    @State private var isPresentingPasswordReset: Bool
+
+    init(
+        session: AppSession,
+        privacyLockController: PrivacyLockController? = nil,
+        registrationActions: RegistrationActions,
+        loginActions: LoginActions,
+        passwordResetActions: PasswordResetActions,
+        webBaseURL: URL,
+        initiallyPresentsRegistration: Bool = false,
+        initiallyPresentsPasswordReset: Bool = false
+    ) {
+        self.session = session
+        self.privacyLockController = privacyLockController
+        _registrationModel = State(
+            initialValue: RegistrationModel(
+                actions: registrationActions,
+                webBaseURL: webBaseURL,
+                isPresentingRegistration: initiallyPresentsRegistration
+            )
+        )
+        _loginModel = State(initialValue: LoginModel(actions: loginActions))
+        _passwordResetModel = State(
+            initialValue: PasswordResetModel(actions: passwordResetActions)
+        )
+        _isPresentingPasswordReset = State(
+            initialValue: initiallyPresentsPasswordReset
+        )
+    }
 
     var body: some View {
         Group {
             switch session.state {
             case .launching:
                 LaunchingView()
-            case .signedOut,
-                 .authenticating,
-                 .verificationRequired,
-                 .multiFactorRequired:
-                SignedOutView(state: session.state)
+            case .signedOut:
+                if registrationModel.isPresentingRegistration {
+                    RegistrationView(model: registrationModel)
+                } else if isPresentingPasswordReset {
+                    passwordResetView
+                } else {
+                    loginView
+                }
+            case .authenticating:
+                if registrationModel.isPresentingRegistration {
+                    RegistrationView(model: registrationModel)
+                } else {
+                    loginView
+                }
+            case .verificationRequired:
+                if registrationModel.challenge != nil {
+                    VerificationCodeView(model: registrationModel)
+                } else {
+                    loginView
+                }
+            case .multiFactorRequired:
+                MultiFactorView(model: loginModel)
+            case .restorationRequired:
+                RestoreAccountFlow(model: loginModel)
+            case .passwordChangeRequired:
+                LockedView(message: "Change your password to continue.")
             case .authenticatedLocked:
-                LockedView(message: "Unlock to view your financial plan.")
+                if let privacyLockController {
+                    LockedView(
+                        message: "Unlock to view your financial plan.",
+                        isUnlocking: privacyLockController.isUnlocking,
+                        failure: privacyLockController.lastUnlockFailure,
+                        unlock: privacyLockController.canUnlockWithFaceID
+                            ? { @MainActor @Sendable in
+                                Task { @MainActor in
+                                    await privacyLockController.unlock()
+                                }
+                            }
+                            : nil,
+                        signInAnotherWay: {
+                            Task { @MainActor in
+                                await privacyLockController.signInAnotherWay()
+                            }
+                        }
+                    )
+                } else {
+                    LockedView(message: "Unlock to view your financial plan.")
+                }
             case .authenticatedUnlocked:
-                UnlockedView()
+                UnlockedView(privacyLockController: privacyLockController)
             case .deletingAccount:
                 LockedView(message: "Updating your account securely…")
             }
         }
         .preferredColorScheme(.light)
+        .task {
+            if let privacyLockController {
+                await privacyLockController.completeLaunch()
+                await privacyLockController.refreshFaceIDOffer()
+            } else {
+                session.completeLaunch(hasAuthenticatedSession: false)
+            }
+        }
+        .onChange(of: session.state) { _, _ in
+            guard let privacyLockController else { return }
+            Task { @MainActor in
+                await privacyLockController.refreshFaceIDOffer()
+            }
+        }
+        .overlay {
+            if let privacyLockController,
+               privacyLockController.shouldOfferFaceID,
+               session.state == .authenticatedUnlocked,
+               !privacyLockController.isPrivacyCovered
+            {
+                ZStack {
+                    FynlaColor.Token.horizon500.color.opacity(0.45)
+                        .ignoresSafeArea()
+                    FaceIDOptInView(controller: privacyLockController)
+                        .padding(FynlaSpacing.standard)
+                }
+                .accessibilityIdentifier("face-id.opt-in.cover")
+            }
+        }
+        .overlay {
+            if privacyLockController?.isPrivacyCovered == true {
+                FynlaColor.Token.horizon500.color
+                    .ignoresSafeArea()
+                    .accessibilityLabel("Fynla content hidden")
+                    .accessibilityIdentifier("privacy-lock.cover")
+            }
+        }
+    }
+
+    private var loginView: some View {
+        LoginView(
+            model: loginModel,
+            createAccount: {
+                isPresentingPasswordReset = false
+                registrationModel.presentRegistration()
+            },
+            forgotPassword: {
+                isPresentingPasswordReset = true
+            }
+        )
+    }
+
+    private var passwordResetView: some View {
+        PasswordResetFlow(
+            model: passwordResetModel,
+            onDismiss: {
+                isPresentingPasswordReset = false
+            }
+        )
     }
 }
 
@@ -32,68 +165,39 @@ private struct LaunchingView: View {
     }
 }
 
-private struct SignedOutView: View {
-    let state: AppSession.State
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Fynla")
-                .font(.title.bold())
-            Text(message)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("auth.signedOut")
-    }
-
-    private var message: String {
-        switch state {
-        case .signedOut:
-            "Sign in to continue."
-        case .authenticating:
-            "Signing in securely…"
-        case .verificationRequired:
-            "Verify your email to continue."
-        case .multiFactorRequired:
-            "Confirm your identity to continue."
-        case .launching,
-             .authenticatedLocked,
-             .authenticatedUnlocked,
-             .deletingAccount:
-            "Sign in to continue."
-        }
-    }
-}
-
-private struct LockedView: View {
-    let message: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Fynla is locked")
-                .font(.title.bold())
-            Text(message)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("app.locked")
-    }
-}
-
 private struct UnlockedView: View {
+    let privacyLockController: PrivacyLockController?
+
     var body: some View {
         VStack(spacing: 12) {
             Text("Fynla")
                 .font(.title.bold())
             Text("Your secure workspace is ready.")
                 .foregroundStyle(.secondary)
+            if let privacyLockController {
+                FynlaButton(
+                    "Lock",
+                    variant: .secondary,
+                    accessibilityLabel: "Lock Fynla"
+                ) {
+                    privacyLockController.lock()
+                }
+                .accessibilityIdentifier("app.unlocked.lock")
+
+                FynlaButton(
+                    "Sign out",
+                    variant: .secondary,
+                    accessibilityLabel: "Sign out of Fynla"
+                ) {
+                    Task { @MainActor in
+                        await privacyLockController.signOut()
+                    }
+                }
+                .accessibilityIdentifier("app.unlocked.sign-out")
+            }
         }
         .padding()
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("app.unlocked")
     }
 }

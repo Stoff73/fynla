@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Mobile\MobileDashboardController;
 use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
+use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -46,6 +47,18 @@ Route::middleware(['auth:sanctum', 'native.client'])
             'data' => ['api_version' => 'v1'],
         ]))->name('api.v1.native.health');
     });
+
+Route::prefix('/native/auth')->middleware('native.client')->group(function () {
+    Route::post('/session/refresh', [NativeSessionController::class, 'refresh'])
+        ->middleware('throttle:native-session');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/session/exchange', [NativeSessionController::class, 'exchange'])
+            ->middleware('throttle:native-session');
+        Route::get('/session', [NativeSessionController::class, 'show']);
+        Route::delete('/session', [NativeSessionController::class, 'destroy']);
+    });
+});
 
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
