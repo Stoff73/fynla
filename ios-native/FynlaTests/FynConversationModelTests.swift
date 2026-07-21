@@ -92,6 +92,37 @@ struct FynConversationModelTests {
         #expect(model.takeNavigation() == nil)
     }
 
+    @Test
+    func midFlowOpenFiresResumeOncePerSessionThenLoadsTranscript() async throws {
+        // /m parity: session entry fires the director's resume action (fresh
+        // pruned welcome-back), dock reopens are transcript-only, and a
+        // sign-out (stopAndClear) re-arms it for the next session.
+        let greeting = try transcript(messages: [
+            (id: 900, role: "assistant", content: "Welcome back, Chris."),
+        ])
+        let client = ScriptedFynClient(
+            transcripts: [greeting, greeting, greeting],
+            inProgressConversationID: "63"
+        )
+        let model = FynConversationModel(
+            client: client,
+            currentRoute: "/dashboard",
+            makeID: { "gesture-3" }
+        )
+
+        await model.open()
+        #expect(await client.actionsRecorded() == ["resume"])
+        #expect(model.messages.map(\.text) == ["Welcome back, Chris."])
+        #expect(model.phase == .idle)
+
+        await model.open()
+        #expect(await client.actionsRecorded() == ["resume"])
+
+        model.stopAndClear()
+        await model.open()
+        #expect(await client.actionsRecorded() == ["resume", "resume"])
+    }
+
     private func transcript(
         messages: [(id: Int, role: String, content: String)]
     ) throws -> FynTranscript {
@@ -136,21 +167,28 @@ private actor ScriptedFynClient: FynClient {
     private var queuedOutcomes: [QueuedOutcome]
     private var sends = 0
     private var queuedStreams = 0
+    private let inProgressConversationID: String?
+    private var actions: [String] = []
 
     init(
         transcripts: [FynTranscript],
         sendOutcomes: [SendOutcome] = [],
-        queuedOutcomes: [QueuedOutcome] = []
+        queuedOutcomes: [QueuedOutcome] = [],
+        inProgressConversationID: String? = nil
     ) {
         self.transcripts = transcripts
         self.sendOutcomes = sendOutcomes
         self.queuedOutcomes = queuedOutcomes
+        self.inProgressConversationID = inProgressConversationID
     }
 
     func onboardingStatus() async throws -> FynOnboardingStatus {
-        try JSONDecoder().decode(
+        let json = inProgressConversationID.map {
+            #"{"in_progress":true,"current_step":"path_choice","conversation_id":\#($0)}"#
+        } ?? #"{"in_progress":false}"#
+        return try JSONDecoder().decode(
             FynOnboardingStatus.self,
-            from: Data(#"{"in_progress":false}"#.utf8)
+            from: Data(json.utf8)
         )
     }
 
@@ -210,11 +248,13 @@ private actor ScriptedFynClient: FynClient {
         conversationID: String,
         action: String
     ) async throws -> AsyncThrowingStream<FynEvent, Error> {
-        stream([])
+        actions.append(action)
+        return stream([])
     }
 
     func sendCount() -> Int { sends }
     func queuedCount() -> Int { queuedStreams }
+    func actionsRecorded() -> [String] { actions }
 
     private nonisolated func stream(
         _ events: [FynEvent]
