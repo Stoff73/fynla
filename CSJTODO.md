@@ -1,16 +1,19 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-21 — context-clear wrap, session 1. /m-parity sweep in
-flight on pkg7 (10 screens done, pushed through f277af4); NEXT JOBS = the
-"Left in the Sweep" list in July/July21Updates/handover-2026-07-21-session-1-clear.md.*
+*Last updated: 2026-07-21 — session 2. **/m-parity sweep COMPLETE** on pkg7
+(pushed through `432f8b9`): every remaining screen + sub-page transcribed, and
+CSJ's three directives executed — Fyn avatar always allowed (Rule 15 amended),
+level-up fireworks and onboarding/KYC nudges built matching /m (D8 resolved).*
 
-## 2026-07-21 — /m-parity sweep (context-clear; continue from handover)
+## 2026-07-21 — /m-parity sweep (session 2: COMPLETE)
 
-- [ ] **NEXT: "Left in the Sweep"** (full detail + method in the handover): Tax Strategy → Holistic Plan → six sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history) → Achievements tab content → hero-persistence across loading/error states → Income/Expenditure fixture stubs → onboarding nudge + fireworks → user chat-bubble check → diagnostics wiring / .module stub.
+- [x] **"Left in the Sweep" — ALL DONE, pushed to pkg7:** Tax Strategy, Holistic Plan, all six sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history), Achievements tab content, hero persistence across loading/error states (all 18 screens), Income/Expenditure fixture stubs, user chat-bubble corrected to /m (no user-bubble CSS — verified live), `.module` dev stub removed. Bug found+fixed while looping: Settings Sign out sat under the Fyn dock on small phones.
+- [x] **CSJ directives 2026-07-21 executed:** Rule 15 amended — the Fyn character is ALWAYS allowed everywhere (committed on both branches; never re-raise). Level-up fireworks transcribed from /m's GamificationCelebration (shell + in-chat surfaces; ack matches /m's instant non-fatal contract). Onboarding "Finish your personalised tax plan with Fyn" nudge + KYC unlock bubble transcribed from /m Dashboard.vue. All screenshot-verified; journeys + parity + unit suites green.
 - [x] Shell chrome + dashboard + drawer + Fyn transcribed from /m; milestone banners moved below the level card (BOTH surfaces — CSJ direction); dark m-hero correction across all converted screens.
 - [x] Module screens transcribed: Income, Expenditure, Net Worth, Savings, Investments, Protection, Goals, Estate, Retirement (+ Achievements header).
 - [x] Audit P0s/P1s: consent no-toggle fix; six client-side-calc items = /m-parity KEEPs (evidenced); tolerant enum decodes; export timeout; write-401 refresh; verify-project.sh fixed + in CI; webhook limiter Pest test green.
 - [ ] **/m milestone-banner fix awaits CSJ build + deploy to csjones** (main repo commit 2772831 on codex/savetax-allowance-ctas).
+- [ ] Remaining deferred (engineering-internal): diagnostics wiring (P1-9 design call); legacy SubscriptionPlanSeeder note (backend). csjones-only bug-report FAB deliberately not ported.
 - [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (green in CI) — don't chase.
 
 
