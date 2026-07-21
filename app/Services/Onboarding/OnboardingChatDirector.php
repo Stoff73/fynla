@@ -1528,11 +1528,12 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Task 3 stub — a holistic-level question mid-onboarding is deferred
-     * rather than answered inline (a full orchestrateAnalysis call is too
-     * heavy to run mid-walk). Task 4 replaces this with the real deferral
-     * flow (acknowledge + offer to answer after onboarding); for now it
-     * just re-emits the current step so the walk isn't interrupted.
+     * A holistic-level question mid-onboarding is deferred rather than
+     * answered inline (a full orchestrateAnalysis call is too heavy to run
+     * mid-walk). Park it on the conversation's `deferred_questions`
+     * metadata, voice a promise to come back to it, then re-emit the
+     * current step so the walk isn't interrupted. Task 5 consumes
+     * `deferred_questions` at the completion terminals.
      */
     private function deferQuestion(
         User $user,
@@ -1541,6 +1542,19 @@ final class OnboardingChatDirector
         array $state,
         string $message
     ): \Generator {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $deferred = $metadata['deferred_questions'] ?? [];
+        $deferred[] = ['question' => $message, 'state_id' => $currentStateId];
+        $metadata['deferred_questions'] = $deferred;
+        $conversation->update(['metadata' => $metadata]);
+
+        $promise = "Good question — that one deserves a proper answer, so I'll come back to it once your setup is done and I can see the full picture.";
+        $saved = $this->saveMessage($conversation, 'assistant', $promise, [
+            'metadata' => ['onboarding_step' => $currentStateId],
+        ]);
+
+        yield ['type' => 'content', 'text' => $promise];
+        yield ['type' => 'done', 'message_id' => $saved->id];
         yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
 

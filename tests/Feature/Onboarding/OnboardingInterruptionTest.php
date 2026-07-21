@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\AI\QueryClassifier;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -12,6 +13,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Fyn\FynStreamHarness;
 
 uses(RefreshDatabase::class);
+
+afterEach(function () {
+    Mockery::close();
+});
 
 /**
  * Scripts the shared FynLoop advice turn with one text answer.
@@ -163,4 +168,51 @@ it('answers a module-level question inline from data then resumes the walk', fun
     expect($quickRepliesIndex)->not->toBeFalse();
     expect($quickRepliesIndex)->toBeGreaterThan($contentIndex);
     expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(1);
+});
+
+it('defers a holistic question with a promise and parks it on the conversation', function () {
+    [$user, $conversation] = interruptionUser();
+
+    $received = driveDirector($user, $conversation, 'How is my financial health?');
+
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->toContain('once your setup is done');
+
+    $conversation->refresh();
+    expect($conversation->metadata['deferred_questions'][0]['question'] ?? null)
+        ->toBe('How is my financial health?');
+    expect($conversation->metadata['deferred_questions'][0]['state_id'] ?? null)
+        ->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    // Never clobber the resume-lookup pivot already on the conversation.
+    expect($conversation->metadata['source'] ?? null)->toBe('fyn_onboarding');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+
+    // The walk's current question is re-emitted after the promise.
+    expect(collect($received)->where('type', 'quick_replies')->count())->toBeGreaterThan(0);
+});
+
+it('falls through to the plain retry when a question-shaped message does not classify', function () {
+    // QueryClassifier::classify() always returns a string `primary`
+    // (defaulting to `general`), so no real phrasing drives the
+    // `$primary === null` branch in handleQuestionInterruption — mock it
+    // directly, the same pattern AdviceFynHandoffErrorTest and
+    // AssistantHonestyOnWriteFailureTest use to force this exact shape.
+    $classifier = Mockery::mock(QueryClassifier::class);
+    $classifier->shouldReceive('classify')->andReturn(['primary' => null, 'related' => []]);
+    app()->instance(QueryClassifier::class, $classifier);
+
+    [$user, $conversation] = interruptionUser();
+
+    $received = driveDirector($user, $conversation, 'why though?');
+
+    $texts = collect($received)->where('type', 'content')->pluck('text');
+    expect($texts->first(fn ($t) => str_contains($t, "didn't catch that")))->not->toBeNull();
+
+    $conversation->refresh();
+    expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
+
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
