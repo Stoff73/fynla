@@ -242,6 +242,14 @@ it('raises deferred questions at the classic completion terminal and clears them
     expect($raise)->not->toBeNull();
     expect($raise['bubbles'][0]['label'])->toBe('How healthy are my overall finances?');
 
+    // Event-ordering assertion: raise quick_replies must come before celebration content.
+    $types = collect($received)->pluck('type');
+    $raiseIndex = collect($received)->search(fn ($e) => ($e['type'] ?? null) === 'quick_replies' && str_contains($e['prompt_text'] ?? '', 'Earlier you asked'));
+    $celebrationIndex = $types->search('content');
+    expect($raiseIndex)->not->toBeFalse();
+    expect($celebrationIndex)->not->toBeFalse();
+    expect($raiseIndex)->toBeLessThan($celebrationIndex);
+
     $conversation->refresh();
     expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
 
