@@ -13,7 +13,7 @@ struct RetirementSnapshot: Sendable, Equatable {
                 pensionID: $0.id,
                 name: $0.displayName,
                 typeLabel: "Defined Contribution",
-                valueLabel: MoneyFormatter.gbp($0.currentFundValue)
+                valueLabel: MoneyFormatter.gbpWhole($0.currentFundValue)
             )
         }
         result += index.dbPensions.map {
@@ -23,7 +23,7 @@ struct RetirementSnapshot: Sendable, Equatable {
                 pensionID: $0.id,
                 name: $0.displayName,
                 typeLabel: "Defined Benefit",
-                valueLabel: "\(MoneyFormatter.gbp($0.accruedAnnualPension)) a year"
+                valueLabel: "\(MoneyFormatter.gbpWhole($0.accruedAnnualPension)) a year"
             )
         }
         if let state = index.statePension {
@@ -33,7 +33,7 @@ struct RetirementSnapshot: Sendable, Equatable {
                 pensionID: state.id,
                 name: "State Pension",
                 typeLabel: "State Pension",
-                valueLabel: "\(MoneyFormatter.gbp(state.annualForecast)) a year"
+                valueLabel: "\(MoneyFormatter.gbpWhole(state.annualForecast)) a year"
             ))
         }
         return result
