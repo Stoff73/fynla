@@ -2322,7 +2322,7 @@ final class OnboardingChatDirector
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
         }
@@ -2392,7 +2392,7 @@ final class OnboardingChatDirector
                 return;
             }
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
         }
@@ -2503,14 +2503,34 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Emit a retry turn for a failed grouped_extract. The retry text is
-     * saved as a real assistant message (so it survives the frontend's
-     * streamingText finally block that clears unflushed text), then a
-     * content + done event are yielded to close the turn cleanly. The
+     * Emit a retry turn for a failed grouped_extract. Site C hook (Task 6) —
+     * tries the same interruption intelligence Site A uses before falling
+     * back to the blind scripted retry: a question or volunteered write
+     * intent buried in an unparseable grouped-extract reply gets answered or
+     * offered a store, exactly as it would mid-walk. Only when
+     * handleInterruption declines (the message is neither a question nor a
+     * classified write intent) does the retry text below fire. The retry
+     * text is saved as a real assistant message (so it survives the
+     * frontend's streamingText finally block that clears unflushed text),
+     * then a content + done event are yielded to close the turn cleanly. The
      * user stays on the current state so they can try again.
      */
-    private function emitRetry(AiConversation $conversation, array $state, string $currentStateId): \Generator
-    {
+    private function emitRetry(
+        AiConversation $conversation,
+        array $state,
+        string $currentStateId,
+        User $user,
+        string $userMessage
+    ): \Generator {
+        $interruption = $this->handleInterruption(
+            $user, $conversation, $currentStateId, $state, $userMessage
+        );
+        if ($interruption !== null) {
+            yield from $interruption;
+
+            return;
+        }
+
         $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
 
         $message = $this->saveMessage($conversation, 'assistant', $retryText, [

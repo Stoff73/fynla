@@ -279,7 +279,22 @@ describe('delegated capture turn answers a question (A1)', function () {
 });
 
 describe('grouped_extract turn answers a question before re-asking (A1)', function () {
-    it('emits the answer and the scripted retry when a question yields no extraction', function () {
+    // Onboarding Interruption Intelligence Task 6 — emitRetry now tries
+    // handleInterruption before falling back to the blind scripted
+    // retry_text (OnboardingChatDirector.php ~line 2518). A question-shaped
+    // no-capture reply at a grouped_extract step is routed through the same
+    // interruption dispatcher Site A uses, so retry_text is no longer
+    // reached for these two cases — it is superseded by the interruption's
+    // own advice-mode answer plus a re-emitted live grouped_extract prompt.
+    // driveCaptureTurn's mock returns the identical scripted $events on
+    // every chatWithPromptOverride call (it has no notion of "call N"), so
+    // the interruption's advice call here replays the SAME prose as the
+    // extraction turn's own A1-buffered answer — a test-harness artifact,
+    // not production behaviour (a real interruption advice call sources
+    // genuinely different text from the read-only advice engine, which is
+    // legitimately allowed to quote the user's own figures — unlike the A1
+    // off-script filter, which governs only the capture model's own prose).
+    it('emits the answer and re-emits the live prompt via the interruption dispatcher when a question yields no extraction', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -294,7 +309,8 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
         ]);
 
         // Model answers the question but emits no onboarding_field_captured —
-        // the no-capture path fires emitRetry.
+        // the no-capture path falls into emitRetry, which now tries
+        // handleInterruption first.
         $received = driveCaptureTurn($user, $conversation, 'what do you mean by marital status?', [
             ['type' => 'content', 'text' => 'Marital status means whether you are single, married, or in a civil partnership. It affects allowances you can share.'],
             ['type' => 'done', 'message_id' => 1],
@@ -306,13 +322,18 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
         );
         $joined = implode(' | ', $contentTexts);
 
-        // Both the answer AND the scripted retry are present.
+        // The answer is present (from the A1 buffer, replayed again by the
+        // interruption's own advice call) and the blind retry_text never
+        // fires — the interruption dispatcher answered instead.
         $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
         expect($joined)->toContain('Marital status means whether you are single')
-            ->and($joined)->toContain($retry);
+            ->and($joined)->not->toContain($retry);
+
+        // The walk stayed on the grouped-extract step — no blind advance.
+        expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 
-    it('strips personal figures from a grouped_extract answer but keeps the retry', function () {
+    it('strips personal figures from the grouped_extract turn own A1 answer but keeps the retry', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -334,15 +355,22 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             ['type' => 'done', 'message_id' => 1],
         ]);
 
-        $contentTexts = array_column(
+        $contentTexts = array_values(array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
-        );
-        $joined = implode(' | ', $contentTexts);
+        ));
 
+        // The FIRST content event is the grouped_extract turn's own A1
+        // buffer — filterOffScriptContent(allowAnswer: true) still strips
+        // the user's personal figure from it.
+        expect($contentTexts[0] ?? '')->toContain('Your income sets which tax band applies.')
+            ->and($contentTexts[0] ?? '')->not->toContain('£110,000');
+
+        // The blind retry_text is superseded — the interruption dispatcher
+        // answered instead (see describe-block note on the mock-reuse
+        // artifact for why its own answer is unfiltered here).
         $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($joined)->toContain('Your income sets which tax band applies.')
-            ->and($joined)->not->toContain('£110,000')
-            ->and($joined)->toContain($retry);
+        $joined = implode(' | ', $contentTexts);
+        expect($joined)->not->toContain($retry);
     });
 });

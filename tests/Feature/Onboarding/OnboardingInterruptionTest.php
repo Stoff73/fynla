@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Anthropic\Client;
+use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\SavingsAccount;
@@ -323,4 +324,65 @@ it('raises deferred questions at the campaign completion terminal before the app
     $raiseMessage = $assistantMessages[$raiseIndex];
     expect(array_column($raiseMessage->metadata['bubbles'] ?? [], 'label'))
         ->toBe(['How healthy are my overall finances?']);
+});
+
+// ── Task 6: grouped-extract retries route through interruption intelligence ─
+
+it('answers a question asked at a grouped-extract step instead of retrying blind', function () {
+    // STATE_BASE_PERSONAL is a grouped_extract state: handleGroupedExtractTurn
+    // makes its OWN LLM call first (the narrow capture_personal_details
+    // extraction tool) before any retry is considered. The scripted-turn
+    // harness (FynStreamHarness/scriptedFynClientWithText) scripts the shared
+    // Anthropic\Client, but that client is consumed by BOTH the extraction
+    // call and (if the retry-path interruption check fires) the advice
+    // planner+reasoner calls in strict FIFO order — there is no way to target
+    // only the second consumer via the raw client queue. Mocking
+    // CoordinatingAgent::chatWithPromptOverride directly (the same idiom
+    // tests/Feature/Fyn/CaptureTurnAnswersQuestionsTest.php's driveCaptureTurn
+    // uses) sidesteps that ordering problem entirely: call #1 is the
+    // extraction turn (scripted to decline the tool, forcing the no-capture
+    // path into emitRetry), call #2 is the interruption dispatcher's advice
+    // reasoner turn. The advice-mode planner needs no scripting at all — the
+    // Pest.php global hook already binds an EMPTY ScriptedAnthropicClient for
+    // this directory, and Planner::plan() decodes '' to a default `reason`
+    // action for free when its queue is empty (see Planner::decode()).
+    $calls = 0;
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function () use (&$calls) {
+            $calls++;
+
+            if ($calls === 1) {
+                // Extraction call: the model calls neither the tool nor
+                // emits prose — a clean no-capture turn.
+                return (function () {
+                    yield ['type' => 'done', 'message_id' => 100];
+                })();
+            }
+
+            // Interruption dispatcher's advice-mode reasoner turn.
+            return (function () {
+                yield ['type' => 'content', 'text' => 'You currently spend about £2,400 a month.'];
+                yield ['type' => 'done', 'message_id' => 101];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $received = driveDirector($user, $conversation, 'What do I spend each month?');
+
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->not->toContain("didn't catch that")
+        ->and($texts)->toContain('You currently spend about £2,400 a month.');
+
+    // Both scripted turns fired — the extraction call AND the interruption's
+    // advice call — proving the retry path actually routed through
+    // handleInterruption rather than short-circuiting earlier.
+    expect($calls)->toBe(2);
+
+    // The walk stayed on the grouped-extract step; nothing advanced blind.
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
