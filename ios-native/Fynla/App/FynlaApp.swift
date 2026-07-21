@@ -225,11 +225,21 @@ struct FynlaApp: App {
             )
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let holisticPlanModel = uiTestMode == nil
+            ? HolisticPlanModel(
+                client: LiveHolisticPlanClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : HolisticPlanUITestComposition.model()
+        #else
         let holisticPlanModel = HolisticPlanModel(
             client: LiveHolisticPlanClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
         let appleSubscriptionManager: any AppleSubscriptionManaging

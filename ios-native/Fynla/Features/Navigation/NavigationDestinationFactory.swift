@@ -174,6 +174,7 @@ enum NavigationDestinationFactory {
         case .holisticPlan:
             HolisticPlanView(
                 model: holisticPlanModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .settings:

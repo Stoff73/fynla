@@ -85,6 +85,16 @@ final class ParityScreenshotTests: XCTestCase {
         app.swipeUp()
         app.swipeUp()
         attach(app, name: "11-tax-strategy-bottom")
+
+        menu.tap()
+        let holisticPlan = app.buttons["navigation.holistic-plan"]
+        XCTAssertTrue(holisticPlan.waitForExistence(timeout: 3))
+        holisticPlan.tap()
+        _ = app.otherElements["holistic-plan.effective-surplus"].waitForExistence(timeout: 5)
+        attach(app, name: "12-holistic-plan-top")
+
+        app.swipeUp()
+        attach(app, name: "13-holistic-plan-bottom")
     }
 
     @MainActor
