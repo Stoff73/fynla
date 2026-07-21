@@ -228,6 +228,40 @@ final class OnboardingChatDirector
             // re-captures and re-runs the confirm check.
         }
 
+        // Interruption store-offer resolution (pending_interruption_store parked by
+        // handleInformationInterruption). The user is answering "want me to save
+        // that now?" — handle it before any normal turn routing.
+        if (isset($context['pending_interruption_store'])) {
+            $pending = $context['pending_interruption_store'];
+            $reply = mb_strtolower(trim($message));
+
+            unset($context['pending_interruption_store']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if (str_starts_with($reply, 'yes')) {
+                $captureContext = CaptureContext::fromArray([
+                    'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
+                    'entity_types' => [$pending['intent']['entity_type'] ?? 'savings_account'],
+                    'fields_needed' => $pending['intent']['fields_needed'] ?? [],
+                ]);
+                yield from $this->handleInlineCapture(
+                    $user, $conversation, (string) $pending['message'], $captureContext, $currentRoute
+                );
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
+            if (str_starts_with($reply, 'not now') || str_starts_with($reply, 'no')) {
+                yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+            // Anything else: the user moved on — fall through to normal routing.
+        }
+
         // Phase 4e — stamp the active onboarding workflow procedure version onto
         // the turn so persistEpisode can bind it onto the episode. Recorded only
         // when the corpus actually supplies the workflow procedure (the merge
@@ -1453,7 +1487,41 @@ final class OnboardingChatDirector
         string $message,
         ?string $currentRoute
     ): ?\Generator {
-        return null; // Task 2
+        $intent = $this->writeIntentClassifier->classify($message);
+        if ($intent === null) {
+            return null;
+        }
+
+        return (function () use ($user, $conversation, $currentStateId, $message, $intent): \Generator {
+            $offer = 'That sounds like something worth saving. Want me to save it to your plan now? We can also come back to it during setup.';
+            $bubbles = [
+                ['id' => 'store_now', 'label' => 'Yes, save it'],
+                ['id' => 'store_later', 'label' => 'Not now'],
+            ];
+
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pending_interruption_store'] = [
+                'message' => $message,
+                'intent' => $intent,
+                'state_id' => $currentStateId,
+            ];
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            $saved = $this->saveMessage($conversation, 'assistant', $offer, [
+                'metadata' => [
+                    'onboarding_step' => $currentStateId,
+                    'bubbles' => $bubbles,
+                ],
+            ]);
+
+            yield [
+                'type' => 'quick_replies',
+                'prompt_text' => $offer,
+                'bubbles' => $bubbles,
+            ];
+            yield ['type' => 'done', 'message_id' => $saved->id];
+        })();
     }
 
     private function retryTextForParser(string $parser): string
