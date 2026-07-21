@@ -41,8 +41,11 @@ struct AchievementsModelTests {
         #expect(model.paginationMessage == nil)
     }
 
+    // /m store.ack() contract: dismissal clears the takeover immediately;
+    // the server acknowledgement is best-effort and non-fatal (an unacked
+    // flag is redelivered by the next status fetch).
     @Test @MainActor
-    func onlyClearsCelebrationAfterBackendAcknowledgement() async throws {
+    func dismissalClearsImmediatelyAndAckFailureIsNonFatal() async throws {
         let client = AchievementsClientStub(
             summary: try summaryFixture(),
             completedPages: [],
@@ -52,19 +55,19 @@ struct AchievementsModelTests {
             status: try fixture("status", as: GamificationStatus.self),
             acknowledgementResults: [
                 .failure(APIError.offline),
-                .success(()),
             ]
         )
         let model = AchievementsModel(client: client)
 
         await model.load()
-        await model.dismissCelebration()
-        #expect(model.content?.pendingCelebration?.level == 3)
-        #expect(model.celebrationMessage != nil)
+        #expect(model.pendingCelebration?.level == 3)
 
         await model.dismissCelebration()
-        #expect(model.content?.pendingCelebration == nil)
-        #expect(model.celebrationMessage == nil)
+        #expect(model.pendingCelebration == nil)
+
+        // The unacked flag comes back on the next status fetch, as /m.
+        await model.refreshCelebration()
+        #expect(model.pendingCelebration?.level == 3)
     }
 
     @Test @MainActor

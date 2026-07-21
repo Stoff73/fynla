@@ -291,13 +291,18 @@ struct FynlaApp: App {
         #if FYNLA_UI_TESTING
         let settingsUserProvider: @MainActor () -> AuthenticatedUser? = {
             if uiTestMode == nil { return coordinator.authenticatedUser }
+            // The nudge capture harness opts into an onboarding-active user
+            // via launch argument; every other mode stays onboarded.
+            let onboardingActive = ProcessInfo.processInfo.arguments
+                .contains("-fynla-onboarding-active")
             return AuthenticatedUser(
                 id: 101,
                 firstName: "Example",
                 surname: "User",
                 name: "Example User",
                 email: "example@example.test",
-                onboardingCompleted: true
+                onboardingCompleted: !onboardingActive,
+                onboardingFynStep: onboardingActive ? "income" : nil
             )
         }
         #else

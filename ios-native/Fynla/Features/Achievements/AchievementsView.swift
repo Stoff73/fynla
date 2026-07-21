@@ -38,11 +38,6 @@ struct AchievementsView: View {
         }
         .background(FynlaColor.pageBackground)
         .task { await model.load() }
-        .overlay {
-            if let celebration = model.content?.pendingCelebration {
-                celebrationView(celebration)
-            }
-        }
         .accessibilityIdentifier("achievements.screen")
     }
 
@@ -375,38 +370,6 @@ struct AchievementsView: View {
         Text(text)
             .font(.system(size: 14))
             .foregroundStyle(FynlaColor.Token.neutral500.color)
-    }
-
-    private func celebrationView(_ celebration: LevelCelebration) -> some View {
-        ZStack {
-            FynlaColor.Token.horizon500.color.opacity(0.45)
-                .ignoresSafeArea()
-            VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                Text("Level \(celebration.level)")
-                    .font(FynlaTypography.pageTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
-                Text("You've reached \(celebration.levelName).")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                if let message = model.celebrationMessage {
-                    Text(message)
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.primaryText)
-                }
-                Button(model.isAcknowledgingCelebration ? "Saving…" : "Continue") {
-                    Task { await model.dismissCelebration() }
-                }
-                .disabled(model.isAcknowledgingCelebration)
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("achievements.celebration.continue")
-            }
-            .padding(FynlaSpacing.large)
-            .background(FynlaColor.surface)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-            .padding(FynlaSpacing.large)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("achievements.celebration")
-        }
     }
 
     private func groupedUpcoming(

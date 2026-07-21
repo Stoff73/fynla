@@ -141,6 +141,10 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
     // Gates the Tax Strategy personalised intro, mirroring /m's
     // store.user.onboarding_completed.
     let onboardingCompleted: Bool?
+    // Drive /m's onboardingActive (onboardingChat mixin): incomplete-or-
+    // campaign users with a non-null step get the onboarding nudge.
+    let onboardingFynStep: String?
+    let activeCampaign: String?
 
     init(
         id: Int,
@@ -149,7 +153,9 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         name: String?,
         email: String,
         isAdmin: Bool? = nil,
-        onboardingCompleted: Bool? = nil
+        onboardingCompleted: Bool? = nil,
+        onboardingFynStep: String? = nil,
+        activeCampaign: String? = nil
     ) {
         self.id = id
         self.firstName = firstName
@@ -158,6 +164,8 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         self.email = email
         self.isAdmin = isAdmin
         self.onboardingCompleted = onboardingCompleted
+        self.onboardingFynStep = onboardingFynStep
+        self.activeCampaign = activeCampaign
     }
 
     enum CodingKeys: String, CodingKey {
@@ -168,6 +176,8 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         case email
         case isAdmin = "is_admin"
         case onboardingCompleted = "onboarding_completed"
+        case onboardingFynStep = "onboarding_fyn_step"
+        case activeCampaign = "active_campaign"
     }
 }
 

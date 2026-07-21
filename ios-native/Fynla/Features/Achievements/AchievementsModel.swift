@@ -7,9 +7,11 @@ final class AchievementsModel {
     private(set) var content: AchievementsContent?
     private(set) var isLoadingMoreCompleted = false
     private(set) var isLoadingMoreActivity = false
-    private(set) var isAcknowledgingCelebration = false
     private(set) var paginationMessage: String?
-    private(set) var celebrationMessage: String?
+    // Shell-level fireworks takeover source (mirrors /m's
+    // store.pendingCelebration): set by load()/refreshCelebration(), cleared
+    // by dismissCelebration().
+    private(set) var pendingCelebration: LevelCelebration?
     private let client: any AchievementsClient
     private var generation = 0
 
@@ -36,9 +38,11 @@ final class AchievementsModel {
                 summary: summary,
                 completedPage: 1,
                 activity: activityPage?.events ?? [],
-                activityNextCursor: activityPage?.nextCursor,
-                pendingCelebration: gamificationStatus?.pendingCelebration
+                activityNextCursor: activityPage?.nextCursor
             )
+            if let gamificationStatus {
+                pendingCelebration = gamificationStatus.pendingCelebration
+            }
             paginationMessage = nil
             state = .loaded
         } catch is CancellationError {
@@ -107,25 +111,19 @@ final class AchievementsModel {
         }
     }
 
+    // /m's store.fetchStatus() equivalent for the dashboard shell — missed
+    // celebrations are delivered on open, without loading the full page.
+    func refreshCelebration() async {
+        guard let status = try? await client.loadStatus() else { return }
+        pendingCelebration = status.pendingCelebration
+    }
+
+    // /m's store.ack(): clear locally first; the server acknowledgement is
+    // best-effort and non-fatal (an unacked flag is simply redelivered by
+    // the next status fetch).
     func dismissCelebration() async {
-        guard var current = content,
-              current.pendingCelebration != nil,
-              !isAcknowledgingCelebration
-        else { return }
-
-        isAcknowledgingCelebration = true
-        celebrationMessage = nil
-        defer { isAcknowledgingCelebration = false }
-
-        do {
-            try await client.acknowledgeCelebration()
-            current.pendingCelebration = nil
-            content = current
-        } catch is CancellationError {
-            return
-        } catch {
-            celebrationMessage = "We could not save that acknowledgement. Please try again."
-        }
+        pendingCelebration = nil
+        try? await client.acknowledgeCelebration()
     }
 
     func stop() {
@@ -133,7 +131,7 @@ final class AchievementsModel {
         state = .idle
         content = nil
         paginationMessage = nil
-        celebrationMessage = nil
+        pendingCelebration = nil
     }
 
     private func optionalActivity() async -> AchievementsActivityPage? {

@@ -358,6 +358,9 @@ private struct UnlockedView: View {
     // Route requested from inside the Fyn cover — applied only once the cover
     // has fully dismissed, so the push never races the dismissal transaction.
     @State private var pendingFynRoute: AppRoute?
+    // /m nudge dismissals are session-scoped (Dashboard.vue data flags).
+    @State private var nudgeDismissed = false
+    @State private var unlockBubbleDismissed = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -372,8 +375,116 @@ private struct UnlockedView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             fynDock
         }
+        .overlay(alignment: .bottom) {
+            // md-fyn-nudge — the onboarding "finish your tax plan" pill, else
+            // the KYC unlock pill, floating just above the docked Fyn bar.
+            fynNudges
+        }
         .overlay {
             drawerOverlay
+        }
+        .overlay {
+            // Level-up fireworks takeover (missed celebrations delivered by
+            // the status fetch, as /m's dashboard fetchStatus does).
+            if let celebration = achievementsModel.pendingCelebration {
+                GamificationCelebrationView(
+                    level: celebration.level,
+                    levelName: celebration.levelName,
+                    nextActions: celebration.nextActions ?? [],
+                    onDismiss: {
+                        Task { await achievementsModel.dismissCelebration() }
+                    }
+                )
+            }
+        }
+        .task { await achievementsModel.refreshCelebration() }
+    }
+
+    // /m Dashboard.vue nudges: onboardingActive shows the horizon-500
+    // "Finish your personalised tax plan with Fyn" pill ("Later" dismisses
+    // for the session); otherwise a KYC-gated top unlock action offers
+    // "<meta> — Fyn can help" ("Not now"), opening Fyn pre-seeded with the
+    // module's capture prompt.
+    @ViewBuilder
+    private var fynNudges: some View {
+        if settingsModel.onboardingActive, !nudgeDismissed {
+            nudgePill(
+                text: "Finish your personalised tax plan with Fyn",
+                dismissLabel: "Later",
+                identifier: "dashboard.fyn-nudge",
+                onOpen: { presentFyn() },
+                onDismiss: { nudgeDismissed = true }
+            )
+        } else if !settingsModel.onboardingActive,
+                  !unlockBubbleDismissed,
+                  let unlock = topUnlockAction
+        {
+            nudgePill(
+                text: "\(unlock.meta) — Fyn can help",
+                dismissLabel: "Not now",
+                identifier: "dashboard.unlock-nudge",
+                onOpen: { presentFyn(prompt: capturePrompt(for: unlock.module)) },
+                onDismiss: { unlockBubbleDismissed = true }
+            )
+        }
+    }
+
+    private func nudgePill(
+        text: String,
+        dismissLabel: String,
+        identifier: String,
+        onOpen: @escaping () -> Void,
+        onDismiss: @escaping () -> Void
+    ) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Button(action: onOpen) {
+                Text(text)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .accessibilityIdentifier(identifier)
+            Button(action: onDismiss) {
+                Text(dismissLabel)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(4)
+            }
+            .accessibilityIdentifier("\(identifier).dismiss")
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(FynlaColor.Token.horizon500.color)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: FynlaColor.Token.horizon500.color.opacity(0.25), radius: 10, y: 6)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+
+    // /m topUnlock: the first locked area's unlock action, else the first
+    // area's first unlock action.
+    private var topUnlockAction: DashboardAction? {
+        guard let areas = dashboardModel.snapshot?.focusAreas else { return nil }
+        for area in areas where area.locked {
+            if let first = area.actions.first, first.type == .unlock {
+                return first
+            }
+        }
+        return areas.first?.actions.first(where: { $0.type == .unlock })
+    }
+
+    // /m Dashboard.vue openFynForCapture prompts.
+    private func capturePrompt(for module: String) -> String {
+        switch module {
+        case "protection": "Help me add my protection cover details"
+        case "savings": "Help me add my savings details"
+        case "investment": "Help me add my investment details"
+        case "retirement": "Help me add my pension details"
+        case "estate": "Help me add my estate planning details"
+        case "goals": "Help me set a financial goal"
+        case "tax": "Help me complete my tax strategy details"
+        default: "Help me add my financial details"
         }
     }
 
@@ -527,6 +638,9 @@ private struct UnlockedView: View {
             onReportProblem: {
                 pendingFynRoute = .bugReport
                 isPresentingFyn = false
+            },
+            onAckLevelUp: {
+                Task { await achievementsModel.dismissCelebration() }
             }
         )
         .onDisappear {

@@ -6,7 +6,9 @@ struct FynView: View {
     let onRoute: (AppRoute) -> Void
     let onRefreshCurrentScreen: () -> Void
     let onReportProblem: () -> Void
+    let onAckLevelUp: () -> Void
     @State private var announcedMessageID: String?
+    @State private var dismissedLevelUp: FynLevelUp?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,6 +30,25 @@ struct FynView: View {
             onRefreshCurrentScreen()
             model.clearCloseAndRefresh()
             onClose()
+        }
+        .overlay {
+            // /m: a level_up frame after Fyn's reply triggers the shared
+            // fireworks takeover over the chat (queueCelebration → z-60 over
+            // the overlay). Dismiss acks the server flag as store.ack() does.
+            if let levelUp = model.levelUp,
+               !model.phase.isBusy,
+               dismissedLevelUp != levelUp
+            {
+                GamificationCelebrationView(
+                    level: levelUp.level,
+                    levelName: levelUp.levelName,
+                    nextActions: levelUp.nextActions,
+                    onDismiss: {
+                        dismissedLevelUp = levelUp
+                        onAckLevelUp()
+                    }
+                )
+            }
         }
     }
 
@@ -94,21 +115,6 @@ struct FynView: View {
                         .accessibilitySortPriority(
                             message.id == announcedMessageID ? 1 : 0
                         )
-                    }
-
-                    if let levelUp = model.levelUp, !model.phase.isBusy {
-                        VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                            Text("Level \(levelUp.level)")
-                                .font(FynlaTypography.heading)
-                            Text("You've reached \(levelUp.levelName).")
-                                .font(FynlaTypography.bodySmall)
-                        }
-                        .foregroundStyle(FynlaColor.primaryText)
-                        .padding(FynlaSpacing.medium)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(FynlaColor.Token.horizon200.color.opacity(0.25))
-                        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-                        .accessibilityIdentifier("fyn.level-up")
                     }
 
                     statusView

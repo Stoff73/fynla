@@ -70,6 +70,14 @@ final class SettingsModel {
         userProvider()?.onboardingCompleted == true
     }
 
+    // /m onboardingChat.onboardingActive: explicitly-incomplete or
+    // campaign-re-entry users with a non-null onboarding step.
+    var onboardingActive: Bool {
+        guard let user = userProvider() else { return false }
+        return (user.onboardingCompleted == false || user.activeCampaign != nil)
+            && user.onboardingFynStep != nil
+    }
+
     private(set) var plan: SettingsPlan = .loading
     private(set) var faceIDEnabled = false
     private(set) var canEnableFaceID = false

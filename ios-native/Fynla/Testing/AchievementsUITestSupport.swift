@@ -1,4 +1,6 @@
 #if FYNLA_UI_TESTING
+import Foundation
+
 @MainActor
 enum AchievementsUITestComposition {
     static func model() -> AchievementsModel {
@@ -63,7 +65,18 @@ private struct AchievementsUITestClient: AchievementsClient {
     }
 
     func loadStatus() async throws -> GamificationStatus {
-        GamificationStatus(pendingCelebration: nil)
+        // The fireworks capture harness opts in via launch argument so the
+        // takeover never covers the ordinary journey tests.
+        if ProcessInfo.processInfo.arguments.contains("-fynla-pending-celebration") {
+            return GamificationStatus(
+                pendingCelebration: LevelCelebration(
+                    level: 3,
+                    levelName: "Builder",
+                    nextActions: ["Add your first savings account"]
+                )
+            )
+        }
+        return GamificationStatus(pendingCelebration: nil)
     }
 
     func acknowledgeCelebration() async throws {}
