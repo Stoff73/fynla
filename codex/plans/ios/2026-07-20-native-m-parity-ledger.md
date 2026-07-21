@@ -155,3 +155,17 @@ and the "Milestone reached" toast floats below the card (top 25rem) instead
 of over the wheel. Implemented in /m source (dashboard.css + Dashboard.vue,
 main repo, needs build+deploy) and native (DashboardView), native verified by
 manual fixture launch screenshot + journey suite.
+
+## 2026-07-21 — module sweep, block 2 (Net Worth → Retirement) + dark hero correction
+
+| Item | Disposition |
+|------|-------------|
+| Net Worth | **DONE** — category rows, balance-history card, DB note, liabilities row (raspberry value). |
+| Savings | **DONE** — account/ISA rows (spring emergency-fund tag, rate), cap head + Upgrade, status-coloured runway + ISA allowance bars per /m thresholds. |
+| Investments | **DONE** — risk row, violet ISA tag, holdings meta, cap head + Upgrade. |
+| Protection | **DONE** — severity-tagged gaps (Low/Medium violet on light blue, High white on raspberry), " p.a." detail, /m empty copy; native-only recommendations card REMOVED (not on /m). |
+| Goals | **DONE** — on-track hero, overall-progress card, status pills/bars per /m's exact thresholds, ADD GOAL/EDIT via Fyn with /m's prompts. |
+| Estate | **DONE** — teaser (liability hero + Premium note + Compare plans pill) and full mode (breakdown with bordered net-estate total, coloured will status); Edit pill wired via the factory. |
+| Retirement | **DONE** — dark hero with target/surplus split (spring-400/raspberry-300), pension rows, Overview + projection rows with the /m age-source note, bordered recommendation cards. |
+| **Dark m-hero correction** | style.css truth: `.m-hero` = horizon-500 card, white 44pt/900 metric, light label/sub. Shared `MobileHeroCard` adopted across all converted screens (the earlier white heroes were wrong). Section labels corrected to neutral500 (#6B7280 on /m). Raspberry300 token added. |
+| Still open | Tax Strategy, Holistic Plan, sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history), Achievements content, hero-persistence across loading/error states, Income/Expenditure fixture stubs, onboarding nudge + fireworks, user chat-bubble check. |
