@@ -59,6 +59,39 @@ it('emits a welcome-back greeting with Continue / Something else bubbles on resu
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
 });
 
+it('persists the Continue / Something else bubbles on the welcome-back greeting', function () {
+    // Regression: the greeting's bubbles rode only in the live SSE stream, so
+    // any transcript-only render (/m dock remount, the native app) showed a
+    // welcome-back with no way to respond. The persisted row must carry the
+    // same metadata.bubbles + action_bubbles every other onboarding turn does.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'first_name' => 'Chris',
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PATH_CHOICE,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    foreach (app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'resume') as $_) {
+        // drain the generator
+    }
+
+    $greeting = $conversation->messages()
+        ->where('metadata->is_resume_greeting', true)
+        ->first();
+
+    expect($greeting)->not->toBeNull();
+    expect($greeting->metadata['action_bubbles'] ?? false)->toBeTrue();
+    expect(array_column($greeting->metadata['bubbles'] ?? [], 'id'))
+        ->toBe(['continue', 'something_else']);
+});
+
 it('keeps only the latest welcome-back greeting across repeated resumes', function () {
     // Regression: the web resume flow calls action=resume on every chat open.
     // Without pruning, each call persisted a new welcome-back, so the mobile

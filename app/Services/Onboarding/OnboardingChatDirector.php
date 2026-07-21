@@ -488,10 +488,20 @@ final class OnboardingChatDirector
             ->where('metadata->is_resume_greeting', true)
             ->delete();
 
+        // Persist the bubbles with the greeting (same metadata.bubbles pattern
+        // as every other onboarding turn) so a transcript-only render — the /m
+        // dock remount and the native app — still offers Continue / Something
+        // else. Without this the stored greeting is a dead end: the choices
+        // existed only in the live SSE stream.
         $message = $this->saveMessage($conversation, 'assistant', $greeting, [
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_resume_greeting' => true,
+                'bubbles' => [
+                    ['id' => 'continue', 'label' => 'Continue'],
+                    ['id' => 'something_else', 'label' => 'Something else'],
+                ],
+                'action_bubbles' => true,
             ],
         ]);
 
