@@ -95,6 +95,22 @@ final class ParityScreenshotTests: XCTestCase {
 
         app.swipeUp()
         attach(app, name: "13-holistic-plan-bottom")
+
+        menu.tap()
+        let dashboard = app.buttons["navigation.dashboard"]
+        XCTAssertTrue(dashboard.waitForExistence(timeout: 3))
+        dashboard.tap()
+        let level = app.buttons["dashboard.level"]
+        XCTAssertTrue(level.waitForExistence(timeout: 5))
+        level.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+        XCTAssertTrue(app.buttons["achievements.tab.achievements"].waitForExistence(timeout: 5))
+        attach(app, name: "14-achievements-tab")
+
+        app.buttons["achievements.tab.milestones"].tap()
+        attach(app, name: "15-milestones-tab")
+
+        app.buttons["achievements.tab.history"].tap()
+        attach(app, name: "16-history-tab")
     }
 
     @MainActor

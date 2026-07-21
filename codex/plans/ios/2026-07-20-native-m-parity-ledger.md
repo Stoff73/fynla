@@ -199,3 +199,10 @@ manual fixture launch screenshot + journey suite.
 | NetWorthCategory | **DONE** — dark total hero + item-count sub, Items/Breakdown rows (15/700, raspberry liability values, horizon-200 hairlines), wrapping field chips (rounded business ownership %). |
 | BalanceHistory | **DONE** — visibility line, Free 90-day card (windowDays==90 kept, P1-6; violet border on savannah), dark latest hero, signed year-on-year (spring/raspberry-600, one-decimal %), chart in CHART_COLORS[0]/[1]/[3] (horizon/spring/raspberry), premium export card (native prepare+share flow retained, /m button styling). Positive year-on-year change previously rendered in body colour — now spring-600 as /m. |
 | Sub-page pattern | All six: MobilePageHero + Back (`dismiss()`) / Edit-details pills (generic /m prompt), MobileDetailHeader, coin loader, whole pounds (em-dash null), 80pt dock clearance. Native-only "Update … with Fyn" bottom buttons removed everywhere (the Edit pill is the /m affordance). |
+
+## 2026-07-21 — module sweep, block 5 (Achievements tab content)
+
+| Item | Disposition |
+|------|-------------|
+| Achievements tabs | **DONE** — /m ma-* transcription: white tab card (14/700 neutral500 on horizon100 + horizon200 border; active white on horizon500), ma-badge styling (earned = spring border + 8% tint + spring-600 status; unearned = savannah at 0.55 opacity), uppercase section labels, dd/mm/yyyy dates, Show-more as full-width raspberry m-btn, History as hairline label/date rows with an onAppear infinite-scroll sentinel (/m's IntersectionObserver equivalent), coin loader + /m-styled state cards. Verified via 3 new parity captures (tabs 14–16). |
+| Level-up celebration overlay | **KEPT (native acknowledgement flow).** Serves the server's pending-celebration state; the /m fireworks skin remains deferred under ledger D8. |

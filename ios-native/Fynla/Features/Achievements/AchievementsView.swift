@@ -11,35 +11,28 @@ struct AchievementsView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                LoadingView(message: "Loading your progress…")
+                DashboardLoadingView(message: "Loading your progress…")
             case .loaded:
                 loadedContent
             case .offline:
                 if model.content == nil {
-                    ErrorView(
-                        title: "You're offline",
-                        message: "Reconnect to load your progress."
-                    ) {
-                        Task { await model.load() }
-                    }
+                    ScreenStateView(
+                        state: .offline,
+                        retry: { Task { await model.load() } }
+                    )
                 } else {
                     loadedContent
                 }
             case .unauthenticated:
-                ErrorView(
-                    title: "Please sign in again",
-                    message: "Your secure session has expired.",
-                    retryTitle: nil
-                )
+                ScreenStateView(state: .unauthenticated)
             case let .failed(requestID):
-                ErrorView(message: failureMessage(requestID)) {
-                    Task { await model.load() }
-                }
+                ScreenStateView(
+                    state: .failed(requestID: requestID),
+                    retry: { Task { await model.load() } }
+                )
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Achievements")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .overlay {
             if let celebration = model.content?.pendingCelebration {
@@ -103,34 +96,49 @@ struct AchievementsView: View {
         }
     }
 
+    // ma-tabs — white card holding the three tab buttons: 14/700 neutral500
+    // on horizon100 with a horizon200 border; active = white on horizon500.
     private var tabSelector: some View {
-        HStack(spacing: FynlaSpacing.small) {
+        HStack(spacing: 8) {
             ForEach(AchievementsTab.allCases) { tab in
                 tabButton(tab)
             }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Progress sections")
     }
 
     private func tabButton(_ tab: AchievementsTab) -> some View {
         let isSelected = selectedTab == tab
-        let foreground: Color = isSelected ? .white : FynlaColor.primaryText
-        let background = isSelected
-            ? FynlaColor.Token.horizon500.color
-            : FynlaColor.Token.eggshell50.color
 
         return Button(tab.title) {
             selectedTab = tab
         }
-        .font(FynlaTypography.button)
-        .foregroundStyle(foreground)
+        .font(.system(size: 14, weight: .bold))
+        .foregroundStyle(isSelected ? .white : FynlaColor.Token.neutral500.color)
         .frame(
             maxWidth: .infinity,
             minHeight: FynlaSpacing.minimumInteractiveTarget
         )
-        .background(background)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(
+            isSelected
+                ? FynlaColor.Token.horizon500.color
+                : FynlaColor.Token.horizon100.color
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(
+                    isSelected
+                        ? FynlaColor.Token.horizon500.color
+                        : FynlaColor.Token.horizon200.color,
+                    lineWidth: 1
+                )
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("achievements.tab.\(tab.id)")
     }
@@ -140,18 +148,20 @@ struct AchievementsView: View {
         if !content.summary.completed.isEmpty {
             progressCard(title: "Done") {
                 ForEach(content.summary.completed) { action in
-                    progressRow(
+                    badgeRow(
                         title: action.title,
-                        detail: datedLabel("Done", action.completedAt),
-                        prominent: true
+                        status: datedLabel("Done", action.completedAt),
+                        earned: true
                     )
                 }
                 if content.summary.completed.count < content.summary.completedTotal {
-                    Button(model.isLoadingMoreCompleted ? "Loading…" : "Show more") {
+                    fullWidthButton(
+                        model.isLoadingMoreCompleted ? "Loading…" : "Show more"
+                    ) {
                         Task { await model.loadMoreCompleted() }
                     }
                     .disabled(model.isLoadingMoreCompleted)
-                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 2)
                     .accessibilityIdentifier("achievements.completed.more")
                 }
             }
@@ -162,13 +172,13 @@ struct AchievementsView: View {
                 emptyText("No achievements yet — keep building your plan to earn your first.")
             } else {
                 ForEach(content.summary.achievements) { badge in
-                    progressRow(
+                    badgeRow(
                         title: badge.title,
                         description: badge.description,
-                        detail: badge.earned
+                        status: badge.earned
                             ? datedLabel("Earned", badge.earnedAt)
                             : "Not yet earned",
-                        prominent: badge.earned
+                        earned: badge.earned
                     )
                 }
             }
@@ -180,21 +190,24 @@ struct AchievementsView: View {
         if !content.summary.upcoming.isEmpty {
             progressCard(title: "Next up") {
                 ForEach(groupedUpcoming(content.summary.upcoming), id: \.group) { section in
-                    Text(section.group)
-                        .font(FynlaTypography.caption)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                        .textCase(.uppercase)
+                    // ma-group — uppercase 12/700 group heading.
+                    Text(section.group.uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                        .padding(.top, 4)
                     ForEach(section.items) { item in
+                        // ma-badge--link — tappable, muted (not yet earned).
                         Button {
                             if let route = appRoute(for: item.route) {
                                 onRoute(route)
                             }
                         } label: {
-                            progressRowContent(
+                            badgeContent(
                                 title: item.title,
                                 description: item.steps,
-                                detail: nil,
-                                prominent: false
+                                status: nil,
+                                earned: false
                             )
                         }
                         .buttonStyle(.plain)
@@ -208,38 +221,57 @@ struct AchievementsView: View {
                 emptyText("No milestones reached yet — keep building your plan.")
             } else {
                 ForEach(content.summary.milestones) { milestone in
-                    progressRow(
+                    badgeRow(
                         title: milestone.title,
-                        detail: milestone.achieved
+                        status: milestone.achieved
                             ? datedLabel("Reached", milestone.achievedAt)
                             : "Not yet reached",
-                        prominent: milestone.achieved
+                        earned: milestone.achieved
                     )
                 }
             }
         }
     }
 
+    // ma-history — hairline-separated label/date rows; the trailing sentinel
+    // loads the next ledger page as it scrolls into view (/m's
+    // IntersectionObserver equivalent).
     @ViewBuilder
     private func history(_ content: AchievementsContent) -> some View {
         progressCard(title: "Your activity") {
             if content.activity.isEmpty {
                 emptyText("Nothing here yet — your answers, records, and completed actions will show up as you go.")
             } else {
-                ForEach(content.activity) { activity in
-                    progressRow(
-                        title: activity.label,
-                        detail: formattedDate(activity.occurredAt),
-                        prominent: true
-                    )
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(content.activity.enumerated()), id: \.offset) { index, activity in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(activity.label)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(FynlaColor.Token.horizon500.color)
+                            Spacer(minLength: 8)
+                            Text(formattedDate(activity.occurredAt))
+                                .font(.system(size: 12))
+                                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                                .lineLimit(1)
+                        }
+                        .padding(.vertical, 10)
+                        .overlay(alignment: .bottom) {
+                            if index != content.activity.count - 1 {
+                                FynlaColor.Token.horizon100.color.frame(height: 1)
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
                 }
                 if content.activityNextCursor != nil {
-                    Button(model.isLoadingMoreActivity ? "Loading…" : "Show more activity") {
-                        Task { await model.loadMoreActivity() }
-                    }
-                    .disabled(model.isLoadingMoreActivity)
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("achievements.activity.more")
+                    Text(model.isLoadingMoreActivity ? "Loading more…" : "")
+                        .font(.system(size: 14))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                        .frame(maxWidth: .infinity, minHeight: 24)
+                        .onAppear {
+                            Task { await model.loadMoreActivity() }
+                        }
+                        .accessibilityIdentifier("achievements.activity.more")
                 }
             }
         }
@@ -249,67 +281,96 @@ struct AchievementsView: View {
         title: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title.uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
             content()
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func progressRow(
+    // ma-badge — earned prominent (spring border + tint), unearned muted.
+    private func badgeRow(
         title: String,
         description: String? = nil,
-        detail: String?,
-        prominent: Bool
+        status: String?,
+        earned: Bool
     ) -> some View {
-        progressRowContent(
+        badgeContent(
             title: title,
             description: description,
-            detail: detail,
-            prominent: prominent
+            status: status,
+            earned: earned
         )
     }
 
-    private func progressRowContent(
+    private func badgeContent(
         title: String,
         description: String?,
-        detail: String?,
-        prominent: Bool
+        status: String?,
+        earned: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
-            if let description {
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon500.color)
+            if let description, !description.isEmpty {
                 Text(description)
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                    .font(.system(size: 13))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
-            if let detail, !detail.isEmpty {
-                Text(detail)
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+            if let status, !status.isEmpty {
+                Text(status)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(
+                        earned
+                            ? FynlaColor.Token.spring600.color
+                            : FynlaColor.Token.neutral500.color
+                    )
             }
         }
-        .padding(FynlaSpacing.medium)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            prominent
-                ? FynlaColor.Token.horizon200.color.opacity(0.25)
+            earned
+                ? FynlaColor.Token.spring500.color.opacity(0.08)
                 : FynlaColor.Token.savannah100.color
         )
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(
+                    earned
+                        ? FynlaColor.Token.spring500.color
+                        : FynlaColor.Token.horizon200.color,
+                    lineWidth: 1
+                )
+        )
+        .opacity(earned ? 1 : 0.55)
+    }
+
+    // m-btn — full-width raspberry.
+    private func fullWidthButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(14)
+                .background(FynlaColor.Token.raspberry500.color)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 
     private func emptyText(_ text: String) -> some View {
         Text(text)
-            .font(FynlaTypography.body)
-            .foregroundStyle(FynlaColor.secondaryText)
+            .font(.system(size: 14))
+            .foregroundStyle(FynlaColor.Token.neutral500.color)
     }
 
     private func celebrationView(_ celebration: LevelCelebration) -> some View {
@@ -379,24 +440,20 @@ struct AchievementsView: View {
         return date.isEmpty ? prefix : "\(prefix) \(date)"
     }
 
+    // /m formatDate: toLocaleDateString('en-GB') — dd/mm/yyyy.
     private func formattedDate(_ value: String?) -> String {
-        guard let value,
-              let date = ISO8601DateFormatter().date(from: value)
-        else { return "" }
-        return date.formatted(
-            Date.FormatStyle()
-                .day()
-                .month(.abbreviated)
-                .year()
-                .locale(Locale(identifier: "en_GB"))
-        )
-    }
-
-    private func failureMessage(_ requestID: String?) -> String {
-        guard let requestID else {
-            return "We could not load your progress. Please try again."
+        guard let value else { return "" }
+        let plain = ISO8601DateFormatter()
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = plain.date(from: value) ?? fractional.date(from: value) else {
+            return ""
         }
-        return "We could not load your progress. Reference: \(requestID)"
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "en_GB")
+        output.timeZone = TimeZone(secondsFromGMT: 0)
+        output.dateFormat = "dd/MM/yyyy"
+        return output.string(from: date)
     }
 }
 
