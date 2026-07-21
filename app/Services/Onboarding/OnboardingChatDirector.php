@@ -1605,9 +1605,16 @@ final class OnboardingChatDirector
             $user->onboarding_fyn_context = $context;
             $user->save();
 
+            // No onboarding_step here on purpose: CoordinatingAgent::
+            // recentUserMessageEvidence treats any assistant message carrying
+            // onboarding_step (that isn't a capture failure or resume greeting)
+            // as the evidence-window boundary. The offer is a transient
+            // interruption prompt — stamping it as a step turn cut the user's
+            // original entity sentence out of CaptureAccuracyGate's evidence,
+            // so ownership could never be confirmed against the entity (live
+            // conversation 164 infinite clarification loop).
             $saved = $this->saveMessage($conversation, 'assistant', $offer, [
                 'metadata' => [
-                    'onboarding_step' => $currentStateId,
                     'bubbles' => $bubbles,
                 ],
             ]);
