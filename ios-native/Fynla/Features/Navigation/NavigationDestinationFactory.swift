@@ -153,6 +153,7 @@ enum NavigationDestinationFactory {
         case .estate:
             EstateView(
                 model: estateModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .goals:
