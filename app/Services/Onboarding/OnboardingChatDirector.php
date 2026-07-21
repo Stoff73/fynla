@@ -233,24 +233,36 @@ final class OnboardingChatDirector
         // Interruption store-offer resolution (pending_interruption_store parked by
         // handleInformationInterruption). The user is answering "want me to save
         // that now?" — handle it before any normal turn routing.
+        //
+        // The awaiting_detail check runs BEFORE the yes/no matching. Once the
+        // capture turn has voiced a clarifying question (re-armed below via
+        // resolvePendingInterruptionCapture), the user's next reply IS the
+        // missing detail regardless of its wording — it must not be
+        // misrouted into the plain accept branch just because it happens to
+        // start with "yes" (e.g. "Yes, individually owned by me").
         if (isset($context['pending_interruption_store'])) {
             $pending = $context['pending_interruption_store'];
             $reply = mb_strtolower(trim($message));
+            $awaitingDetail = ($pending['awaiting_detail'] ?? false) === true;
 
             unset($context['pending_interruption_store']);
             $user->onboarding_fyn_context = $context;
             $user->save();
 
-            if (str_starts_with($reply, 'yes')) {
-                $captureContext = CaptureContext::fromArray([
-                    'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
-                    'entity_types' => [$pending['intent']['entity_type'] ?? 'savings_account'],
-                    'fields_needed' => $pending['intent']['fields_needed'] ?? [],
-                ]);
-                yield from $this->handleInlineCapture(
-                    $user, $conversation, (string) $pending['message'], $captureContext, $currentRoute
+            if ($awaitingDetail) {
+                $merged = "Original capture details: {$pending['message']}\n"
+                    ."Requested missing details: {$message}";
+                yield from $this->resolvePendingInterruptionCapture(
+                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute
                 );
-                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
+            if (str_starts_with($reply, 'yes')) {
+                yield from $this->resolvePendingInterruptionCapture(
+                    $user, $conversation, $currentStateId, $state, (string) $pending['message'], $pending, $currentRoute
+                );
 
                 return;
             }
@@ -1607,6 +1619,59 @@ final class OnboardingChatDirector
             ];
             yield ['type' => 'done', 'message_id' => $saved->id];
         })();
+    }
+
+    /**
+     * Run handleInlineCapture for a pending interruption-store message, then
+     * decide whether to re-arm pending_interruption_store (the capture turn
+     * is still asking a clarifying question — e.g. CaptureAccuracyGate
+     * blocked the write pending ownership) or resume the current walk step.
+     * Shared by the plain "yes" accept and the awaiting_detail merged-reply
+     * resolution above so the two paths cannot drift and a clarification
+     * question is never buried under the walk's re-prompt (live msg 19433).
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $pending
+     */
+    private function resolvePendingInterruptionCapture(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $captureMessage,
+        array $pending,
+        ?string $currentRoute
+    ): \Generator {
+        $captureContext = CaptureContext::fromArray([
+            'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
+            'entity_types' => [$pending['intent']['entity_type'] ?? 'savings_account'],
+            'fields_needed' => $pending['intent']['fields_needed'] ?? [],
+        ]);
+        yield from $this->handleInlineCapture(
+            $user, $conversation, $captureMessage, $captureContext, $currentRoute
+        );
+
+        $latestAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first(['content']);
+
+        if ($latestAssistant !== null
+            && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pending_interruption_store'] = [
+                'message' => $captureMessage,
+                'intent' => $pending['intent'],
+                'state_id' => $pending['state_id'],
+                'awaiting_detail' => true,
+            ];
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
 
     private function retryTextForParser(string $parser): string

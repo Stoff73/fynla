@@ -78,6 +78,61 @@ function driveDirector(User $user, AiConversation $conversation, string $message
     return $received;
 }
 
+/**
+ * Scripts CoordinatingAgent::chatWithPromptOverride directly — the same
+ * idiom tests/Feature/Fyn/CaptureTurnAnswersQuestionsTest.php's
+ * driveCaptureTurn uses for the delegated/grouped_extract capture turns.
+ * handleInlineCapture (the store-offer "yes" / awaiting_detail path) drives
+ * the identical entry point via FynLoop::stream(), so the mock applies here
+ * unchanged.
+ *
+ * Unlike the plain mock in CaptureTurnAnswersQuestionsTest.php, this variant
+ * ALSO persists a real assistant AiMessage row for every non-empty content
+ * event — mirroring what the real chatWithPromptOverride implementation
+ * does — because OnboardingChatDirector::resolvePendingInterruptionCapture
+ * inspects "the latest assistant message" in the conversation to decide
+ * whether to re-arm pending_interruption_store. Without a persisted row that
+ * lookup would silently fall back to a stale earlier message.
+ *
+ * @param  list<array<string, mixed>>  $events
+ * @return array{events: list<array<string, mixed>>, captured_message: ?string}
+ */
+function driveDirectorWithScriptedCaptureTurn(User $user, AiConversation $conversation, string $message, array $events): array
+{
+    $capturedMessage = null;
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (
+            User $userArg,
+            AiConversation $conversationArg,
+            string $messageArg,
+            ?string $currentRoute = null,
+            ?string $systemPromptOverride = null,
+            ?array $allowedTools = null,
+            bool $persistUserMessage = true,
+            ?array $toolsListOverride = null,
+            ?string $personaOverride = null,
+            ?string $providerOverride = null,
+        ) use (&$capturedMessage, $events, $conversation) {
+            $capturedMessage = $messageArg;
+            foreach ($events as $event) {
+                if (($event['type'] ?? null) === 'content' && trim((string) ($event['text'] ?? '')) !== '') {
+                    $conversation->messages()->create([
+                        'role' => 'assistant',
+                        'content' => $event['text'],
+                    ]);
+                }
+                yield $event;
+            }
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    $received = driveDirector($user, $conversation, $message);
+
+    return ['events' => $received, 'captured_message' => $capturedMessage];
+}
+
 it('still emits the plain retry for unclassifiable free text', function () {
     [$user, $conversation] = interruptionUser();
 
@@ -142,6 +197,75 @@ it('accepting the store offer routes the original message through inline capture
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
     expect($texts)->not->toContain("didn't catch that");
     expect(collect($received)->where('type', 'tool_use')->pluck('tool'))->toContain('create_savings_account');
+});
+
+// ── Fix: store-offer clarification loops back into inline capture instead
+// of dead-ending (live conversation 164, msg 19433) ────────────────────────
+
+it('re-arms the store offer with awaiting_detail when the capture turn asks for a missing detail instead of burying it under the walk step', function () {
+    [$user, $conversation] = interruptionUser();
+    driveDirector($user, $conversation, 'I have a Cash ISA with Barclays with £30,000 in it');
+
+    $clarification = 'I need to confirm ownership before I can save this — is it individually owned by you?';
+    $result = driveDirectorWithScriptedCaptureTurn($user->refresh(), $conversation, 'Yes, save it', [
+        ['type' => 'content', 'text' => $clarification],
+        ['type' => 'done', 'message_id' => 999],
+    ]);
+    $received = $result['events'];
+
+    // The clarification question is passed straight through as the live
+    // question — it must not be buried under a re-emitted walk step.
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->toContain('individually owned');
+    expect(collect($received)->where('type', 'quick_replies'))->toBeEmpty();
+
+    $user->refresh();
+    $pending = $user->onboarding_fyn_context['pending_interruption_store'] ?? null;
+    expect($pending)->not->toBeNull();
+    expect($pending['awaiting_detail'] ?? null)->toBeTrue();
+    expect($pending['message'] ?? null)->toBe('I have a Cash ISA with Barclays with £30,000 in it');
+    expect($pending['state_id'] ?? null)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+
+    // The walk step pointer itself never moved.
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+});
+
+it('routes the missing-detail reply into inline capture as the merged message and resumes the walk once the capture turn succeeds', function () {
+    [$user, $conversation] = interruptionUser();
+    driveDirector($user, $conversation, 'I have a Cash ISA with Barclays with £30,000 in it');
+
+    $clarification = 'I need to confirm ownership before I can save this — is it individually owned by you?';
+    driveDirectorWithScriptedCaptureTurn($user->refresh(), $conversation, 'Yes, save it', [
+        ['type' => 'content', 'text' => $clarification],
+        ['type' => 'done', 'message_id' => 999],
+    ]);
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store']['awaiting_detail'] ?? null)->toBeTrue();
+
+    // This time the capture turn succeeds — no further clarification.
+    $result = driveDirectorWithScriptedCaptureTurn($user->refresh(), $conversation, 'Yes, individually owned by me', [
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'complete'],
+        ['type' => 'content', 'text' => 'Recorded — Cash ISA with Barclays.'],
+        ['type' => 'done', 'message_id' => 1000],
+    ]);
+    $received = $result['events'];
+
+    // handleInlineCapture ran with the merged message, not the bare detail
+    // reply — the exact format the delegated-turn merge machinery uses
+    // (mergeUnresolvedCaptureMessage / captureResponseRequestsClarification).
+    expect($result['captured_message'])->toBe(
+        "Original capture details: I have a Cash ISA with Barclays with £30,000 in it\n"
+        .'Requested missing details: Yes, individually owned by me'
+    );
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+
+    // The walk resumed — its current step was re-emitted after the
+    // successful capture.
+    expect(collect($received)->where('type', 'quick_replies'))->not->toBeEmpty();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
 
 it('answers a module-level question inline from data then resumes the walk', function () {
