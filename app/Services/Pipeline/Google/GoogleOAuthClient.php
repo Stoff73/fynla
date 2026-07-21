@@ -36,14 +36,16 @@ class GoogleOAuthClient
     private const USERINFO_ENDPOINT = 'https://openidconnect.googleapis.com/v1/userinfo';
 
     /**
-     * Google API scopes we request. Drive scope covers file create + share;
-     * Sheets scope covers row read/write. Both are the narrow, file-scoped
-     * variants — the app never sees files the user hasn't handed us.
+     * Google API scopes we request. `drive` (full read/write) is needed
+     * because Stage 5 has to see .docx files the user drops into the
+     * Articles/ folder manually — `drive.file` only exposes files the
+     * app itself created, which excludes user uploads. Sheets scope
+     * covers tracker row read/write.
      *
      * @var list<string>
      */
     public const SCOPES = [
-        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/drive',
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/analytics.readonly',
         'openid',

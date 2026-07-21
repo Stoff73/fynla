@@ -68,6 +68,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('pipeline:detect-new-articles')
             ->dailyAt(config('pipeline.detect_schedule', '07:00'));
 
+        // CMS DocumentArticles → same script pipeline.
+        $schedule->command('pipeline:detect-new-document-articles')
+            ->dailyAt(config('pipeline.detect_schedule', '07:00'));
+
         $schedule->command('pipeline:detect-new-videos')
             ->dailyAt(config('pipeline.video.detect_schedule', '07:30'));
 

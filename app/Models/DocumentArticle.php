@@ -24,6 +24,7 @@ class DocumentArticle extends Model
         'cover_image_path',
         'html_body',
         'status',
+        'pipeline_campaign_id',
         'published_at',
         'imported_by',
         'original_filename',
@@ -37,6 +38,11 @@ class DocumentArticle extends Model
     public function importer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'imported_by');
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Pipeline\PipelineCampaign::class, 'pipeline_campaign_id');
     }
 
     public function scopePublished(Builder $query): Builder

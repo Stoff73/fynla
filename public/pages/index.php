@@ -1,6 +1,5 @@
 <?php
 
-use App\Services\Marketing\PensionEstimateService;
 use App\Services\Marketing\SaveTaxEstimateService;
 
 // Headline "save tax" figure for the How-Fyn-can-help teaser. Uses the same
@@ -20,28 +19,6 @@ try {
     }
 } catch (Throwable $e) {
     $homeSaveTaxFigure = null;
-}
-
-// Headline projected-pot figure for the pension-check teaser. Uses a
-// representative default persona — full-time employment, basic-rate income
-// (up to £50,270), age 40s, one workplace pension, pot £25k–£100k, no spouse —
-// the median-ish profile for the UK working population. All tax thresholds
-// come from TaxConfigService via PensionEstimateService — never hard-coded.
-$pensioncheckFigure = null;
-try {
-    $homePensionEstimate = app(PensionEstimateService::class)->estimate([
-        'employment' => 'full-time',
-        'income' => 'upto_50270',
-        'age' => '40s',
-        'pensions' => ['workplace'],
-        'pot' => '25k_100k',
-        'spouse' => 'no',
-    ]);
-    if (! empty($homePensionEstimate['projected_pot'])) {
-        $pensioncheckFigure = '£'.number_format((int) $homePensionEstimate['projected_pot']);
-    }
-} catch (Throwable $e) {
-    $pensioncheckFigure = null;
 }
 ?>
 <!DOCTYPE html>
@@ -251,21 +228,19 @@ try {
         <!-- Save-tax highlight — headline saving + CTA into the savetax funnel.
              The figure counts up to its value when scrolled into view (JS). -->
         <div class="feature-savetax">
-          <p class="feature-savetax__headline">A representative Save Tax estimate</p>
+          <p class="feature-savetax__headline">You could save tax today</p>
+          <?php if ($homeSaveTaxFigure) { ?>
+            <p
+              class="feature-savetax__figure"
+              id="savetax-counter"
+              data-count-to="<?= (int) ($homeSaveTaxEstimate['savings_total'] ?? 0) ?>"
+              data-count-prefix="£"
+            >£0</p>
+          <?php } ?>
           <p class="feature-savetax__sub">
-            <?php if ($homeSaveTaxFigure) { ?>An average estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
+            <?php if ($homeSaveTaxFigure) { ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php } ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
           </p>
           <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
-        </div>
-
-        <!-- Pension-check highlight — representative projected pot + CTA into the funnel. -->
-        <div class="feature-pensioncheck">
-          <p class="feature-pensioncheck__headline">Where is your pension heading?</p>
-          <?php if ($pensioncheckFigure) { ?>
-            <span class="feature-pensioncheck__figure" id="pensioncheck-figure"><?= htmlspecialchars($pensioncheckFigure, ENT_QUOTES) ?></span>
-          <?php } ?>
-          <p class="feature-pensioncheck__sub">Answer six quick questions — no account needed — and see the pot you're on course for.</p>
-          <a href="/pensioncheck" class="feature-pensioncheck__cta">Check my pension</a>
         </div>
 
         <h3 class="feature-grid__subheading">Other ways Fyn can help you</h3>

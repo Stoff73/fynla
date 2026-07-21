@@ -54,10 +54,9 @@ class ComposePostsJob implements ShouldQueue
         UtmLinkBuilder $links,
     ): void {
         $article = $this->pipelineArticle->fresh();
-        $insight = $article->insightArticle;
 
-        if ($insight === null) {
-            $this->fail($article, 'Insight article no longer exists.');
+        if (! $article->hasSource()) {
+            $this->fail($article, 'Source article no longer exists.');
 
             return;
         }

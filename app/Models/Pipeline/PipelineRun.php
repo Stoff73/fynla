@@ -9,6 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PipelineRun extends Model
 {
+    // Renamed from `pipeline_runs` to avoid a collision with dev's own
+    // `pipeline_runs` table (App\Models\PipelineRun) discovered when the
+    // marketing branch merged 1,727 commits of dev. Dev's table keeps the
+    // canonical name; the marketing content pipeline uses this prefixed one.
+    protected $table = 'marketing_pipeline_runs';
+
     protected $guarded = ['id'];
 
     protected $casts = [

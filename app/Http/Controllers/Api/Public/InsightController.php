@@ -105,6 +105,6 @@ class InsightController extends Controller
             $docQuery->published();
         }
 
-        return new DocumentArticleAsInsightResource($docQuery->firstOrFail());
+        return new DocumentArticleAsInsightResource($docQuery->with('campaign')->firstOrFail());
     }
 }

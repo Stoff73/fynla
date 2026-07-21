@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs\Pipeline;
 
-use App\Mail\Pipeline\ScriptReadyForReviewMail;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
 use App\Services\Pipeline\Google\GoogleDriveService;
@@ -16,7 +15,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
@@ -64,9 +62,23 @@ class ProcessInsightArticleJob implements ShouldQueue
             return;
         }
 
+        // The article may be sourced from a native InsightArticle or from the
+        // DocumentArticle CMS. Resolve a common shape for the script step.
         $insightArticle = $article->insightArticle;
-        if ($insightArticle === null) {
-            $this->fail($article, 'Insight article no longer exists.');
+        $documentArticle = $article->documentArticle;
+
+        if ($insightArticle !== null) {
+            $title = (string) $insightArticle->title;
+            $slug = (string) $insightArticle->slug;
+            $publishedAt = $insightArticle->published_at;
+            $bodyText = null; // generator flattens body_blocks itself
+        } elseif ($documentArticle !== null) {
+            $title = (string) $documentArticle->title;
+            $slug = (string) $documentArticle->slug;
+            $publishedAt = $documentArticle->published_at;
+            $bodyText = $generator->plainTextFromHtml((string) $documentArticle->html_body);
+        } else {
+            $this->fail($article, 'Source article no longer exists.');
 
             return;
         }
@@ -79,16 +91,18 @@ class ProcessInsightArticleJob implements ShouldQueue
             'status' => 'running',
             'started_at' => now(),
             'metadata' => [
-                'insight_article_id' => $insightArticle->id,
-                'insight_article_slug' => $insightArticle->slug,
+                'source_type' => $insightArticle !== null ? 'insight' : 'document',
+                'source_slug' => $slug,
             ],
         ]);
 
         try {
-            $result = $generator->generate($insightArticle);
+            $result = $insightArticle !== null
+                ? $generator->generate($insightArticle)
+                : $generator->generateFromContent($title, $publishedAt, (string) $bodyText);
 
-            $markdown = $this->renderMarkdown($insightArticle, $result['data']);
-            $docTitle = 'Script — '.$insightArticle->title;
+            $markdown = $this->renderMarkdown($title, $slug, $publishedAt, $result['data']);
+            $docTitle = 'Script — '.$title;
 
             $uploaded = $drive->uploadMarkdownAsGoogleDoc($docTitle, $markdown);
 
@@ -97,8 +111,8 @@ class ProcessInsightArticleJob implements ShouldQueue
             if (is_string($sheetId) && $sheetId !== '') {
                 $sheetRow = $sheets->appendRow($sheetId, [
                     now()->toIso8601String(),
-                    $insightArticle->slug,
-                    $insightArticle->title,
+                    $slug,
+                    $title,
                     $uploaded['webViewLink'],
                     'Script Ready',
                     '',
@@ -130,12 +144,14 @@ class ProcessInsightArticleJob implements ShouldQueue
                 ]),
             ]);
 
-            Mail::to((string) config('pipeline.notifications.script_ready_to'))
-                ->queue(new ScriptReadyForReviewMail($article->fresh(), $insightArticle));
+            // The script does not require review/approval — it is generated and
+            // uploaded straight to the Marketing Automation Drive folder above.
+            // No notification email is sent (per product decision: the article
+            // formatting is the human gate, the script is not).
 
-            Log::channel('pipeline')->info('Script generated and delivered.', [
+            Log::channel('pipeline')->info('Script generated and delivered to Drive.', [
                 'pipeline_article_id' => $article->id,
-                'insight_article_id' => $insightArticle->id,
+                'source_slug' => $slug,
                 'cost_gbp' => $result['cost_gbp'],
             ]);
         } catch (Throwable $e) {
@@ -153,7 +169,7 @@ class ProcessInsightArticleJob implements ShouldQueue
 
             Log::channel('pipeline')->error('Script generation failed.', [
                 'pipeline_article_id' => $article->id,
-                'insight_article_id' => $insightArticle->id,
+                'source_slug' => $slug,
                 'error' => $e->getMessage(),
             ]);
 
@@ -180,12 +196,17 @@ class ProcessInsightArticleJob implements ShouldQueue
         ]);
     }
 
-    private function renderMarkdown(\App\Models\Insights\InsightArticle $article, array $script): string
+    private function renderMarkdown(string $title, string $slug, ?\DateTimeInterface $publishedAt, array $script): string
     {
+        $publishedLabel = $publishedAt !== null
+            ? \Illuminate\Support\Carbon::instance(\Illuminate\Support\Carbon::parse($publishedAt))->toFormattedDateString()
+            : 'unknown date';
+        $articleUrl = $this->articleUrl($slug);
+
         return <<<MD
         # {$script['title']}
 
-        _Draft video script generated from [{$article->title}]({$this->articleUrl($article->slug)}) on {$article->published_at?->toFormattedDateString()}._
+        _Draft video script generated from [{$title}]({$articleUrl}) on {$publishedLabel}._
 
         ---
 
@@ -211,7 +232,7 @@ class ProcessInsightArticleJob implements ShouldQueue
 
         ---
 
-        _Source article: {$this->articleUrl($article->slug)}_
+        _Source article: {$articleUrl}_
         MD;
     }
 

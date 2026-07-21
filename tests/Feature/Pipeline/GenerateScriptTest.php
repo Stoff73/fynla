@@ -110,10 +110,9 @@ it('runs the full happy path: script → drive → sheet → email', function ()
 
     expect(PipelineRun::where('stage', 'script')->where('status', 'success')->count())->toBe(1);
 
-    Mail::assertQueued(ScriptReadyForReviewMail::class, function ($mail) use ($pipelineArticle) {
-        return $mail->hasTo('marketing@fynla.org')
-            && $mail->pipelineArticle->is($pipelineArticle);
-    });
+    // The script no longer requires review — it is uploaded straight to Drive
+    // with no notification email (see ProcessInsightArticleJob).
+    Mail::assertNotQueued(ScriptReadyForReviewMail::class);
 });
 
 it('marks the article failed and records the error when Anthropic returns invalid JSON', function () {

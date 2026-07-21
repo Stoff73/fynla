@@ -35,7 +35,22 @@ class VideoScriptGeneratorService
      */
     public function generate(InsightArticle $article): array
     {
-        $userMessage = $this->buildUserMessage($article);
+        return $this->generateFromContent(
+            (string) $article->title,
+            $article->published_at,
+            $this->flattenBody($article),
+        );
+    }
+
+    /**
+     * Source-agnostic script generation. Native InsightArticles flatten their
+     * body_blocks; DocumentArticles pass html_body through plainTextFromHtml().
+     *
+     * @return array{data:array<string,mixed>,model:string,prompt_version:string,cost_gbp:float,usage:array<string,int>}
+     */
+    public function generateFromContent(string $title, ?\DateTimeInterface $publishedAt, string $bodyText): array
+    {
+        $userMessage = $this->buildUserMessage($title, $publishedAt, $bodyText);
 
         $completion = $this->anthropic->complete(
             $this->prompt->systemBlocks(),
@@ -62,14 +77,32 @@ class VideoScriptGeneratorService
         ];
     }
 
-    private function buildUserMessage(InsightArticle $article): string
+    /**
+     * Reduce a sanitised HTML body (DocumentArticle) to plain prose for the
+     * script prompt.
+     */
+    public function plainTextFromHtml(string $html): string
     {
-        $bodyText = $this->flattenBody($article);
+        // Turn block-level closers into line breaks so paragraphs/headings stay
+        // separated once tags are stripped.
+        $spaced = preg_replace('/<\/(p|h[1-6]|li|div|blockquote)>/i', "\n\n", $html) ?? $html;
+        $decoded = html_entity_decode(strip_tags($spaced), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $decoded = preg_replace('/[ \t]+/', ' ', $decoded) ?? $decoded;   // collapse spaces, keep newlines
+        $decoded = preg_replace('/\n{3,}/', "\n\n", $decoded) ?? $decoded; // squeeze blank runs
+
+        return trim($decoded);
+    }
+
+    private function buildUserMessage(string $title, ?\DateTimeInterface $publishedAt, string $bodyText): string
+    {
+        $date = $publishedAt !== null
+            ? \Illuminate\Support\Carbon::instance(\Illuminate\Support\Carbon::parse($publishedAt))->toFormattedDateString()
+            : 'unknown date';
 
         return sprintf(
             "Source article title: %s\n\nSource article published on: %s\n\nSource article body (plain text):\n\n%s\n\nProduce the JSON described in your system prompt.",
-            $article->title,
-            optional($article->published_at)->toFormattedDateString() ?? 'unknown date',
+            $title,
+            $date,
             $bodyText
         );
     }

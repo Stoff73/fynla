@@ -1325,6 +1325,24 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin/cms/pages',
+    name: 'admin.cms.pages',
+    component: () => import('@/views/Admin/Cms/PagesManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/cms/emails',
+    name: 'admin.cms.emails',
+    component: () => import('@/views/Admin/Cms/EmailsComingSoon.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/campaigns',
+    name: 'admin.campaigns',
+    component: () => import('@/views/Admin/Campaigns/CampaignManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/news-subscribers',
     name: 'AdminNewsSubscribers',
     component: NewsSubscribersPage,

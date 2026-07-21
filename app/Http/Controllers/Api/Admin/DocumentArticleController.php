@@ -28,7 +28,7 @@ class DocumentArticleController extends Controller
 
     public function show(DocumentArticle $document): JsonResponse
     {
-        $document->load('importer:id,first_name,surname,email');
+        $document->load('importer:id,first_name,surname,email', 'campaign');
 
         return response()->json(['data' => $document]);
     }

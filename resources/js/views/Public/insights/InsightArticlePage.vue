@@ -94,6 +94,23 @@
         ></div>
         <ArticleBlockRenderer v-else :blocks="article.body_blocks || []" />
       </div>
+
+      <!-- Bottom call-to-action. A linked campaign overrides the default
+           register prompt with the campaign's heading/button + landing page. -->
+      <aside v-if="article.cta" class="mt-12 rounded-xl bg-horizon-500 text-white p-8 sm:p-10 text-center">
+        <h2 class="text-2xl sm:text-3xl font-black mb-2" style="letter-spacing:-0.02em;">
+          {{ article.cta.heading }}
+        </h2>
+        <p class="text-horizon-100 mb-6 max-w-xl mx-auto leading-relaxed">
+          {{ article.cta.subheading }}
+        </p>
+        <a
+          :href="article.cta.url"
+          class="inline-block px-6 py-3 bg-raspberry-500 hover:bg-raspberry-600 text-white rounded-lg font-semibold transition-colors"
+        >
+          {{ article.cta.button_text }}
+        </a>
+      </aside>
     </article>
 
     <div v-else class="max-w-4xl mx-auto px-4 py-20 text-center">

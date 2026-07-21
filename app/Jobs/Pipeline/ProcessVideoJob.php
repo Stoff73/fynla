@@ -70,10 +70,9 @@ class ProcessVideoJob implements ShouldQueue
         VideoCropService $cropper,
     ): void {
         $article = $this->pipelineArticle->fresh();
-        $insight = $article->insightArticle;
 
-        if ($insight === null) {
-            $this->fail($article, 'Insight article no longer exists.');
+        if (! $article->hasSource()) {
+            $this->fail($article, 'Source article no longer exists.');
 
             return;
         }
@@ -87,7 +86,7 @@ class ProcessVideoJob implements ShouldQueue
             return;
         }
 
-        $slug = $insight->slug;
+        $slug = $article->sourceSlug();
         $sourceDir = storage_path('app/social/source');
         $sourcePath = $sourceDir.DIRECTORY_SEPARATOR.$slug.'.mp4';
         $clipsDir = storage_path("app/social/video/{$slug}");
@@ -148,7 +147,7 @@ class ProcessVideoJob implements ShouldQueue
                     $sheets->appendRow($sheetId, [
                         now()->toIso8601String(),
                         $slug,
-                        $insight->title,
+                        $article->sourceTitle(),
                         $article->script_drive_url,
                         'Video Ready',
                         $article->source_video_drive_url,

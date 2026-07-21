@@ -1,17 +1,20 @@
 <template>
     <AppLayout>
-        <div class="space-y-8">
-            <header>
-                <h1 class="text-3xl font-black text-horizon-700">CMS Upload</h1>
-                <p class="text-horizon-500 mt-1">Drop a Word document to create a new article.</p>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <AdminNav />
+            <CmsSubNav />
+            <header class="mb-6">
+                <h1 class="text-3xl font-black text-horizon-500" style="letter-spacing:-0.02em;">Articles</h1>
+                <p class="text-neutral-500 mt-1">Drop a Word document to create a new article, then edit and publish it.</p>
             </header>
 
             <DropZone
+                class="mb-8"
                 @imported="onImported"
                 @error="onError"
             />
 
-            <div v-if="errorMessage" class="bg-raspberry-50 border border-raspberry-200 text-raspberry-700 rounded p-4">
+            <div v-if="errorMessage" class="bg-raspberry-50 border border-raspberry-200 text-raspberry-700 rounded p-4 mb-8">
                 {{ errorMessage }}
             </div>
 
@@ -78,10 +81,12 @@
 import { mapActions, mapState } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DropZone from '@/components/Admin/Documents/DropZone.vue';
+import AdminNav from '@/components/Admin/AdminNav.vue';
+import CmsSubNav from '@/components/Admin/CmsSubNav.vue';
 
 export default {
     name: 'DocumentListPage',
-    components: { AppLayout, DropZone },
+    components: { AppLayout, DropZone, AdminNav, CmsSubNav },
     data() {
         return { errorMessage: '' };
     },

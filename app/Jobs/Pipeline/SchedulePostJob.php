@@ -152,7 +152,7 @@ class SchedulePostJob implements ShouldQueue
     private function buildSignedClipUrl(PipelinePost $post, string $clipPath): string
     {
         $ttlDays = (int) config('pipeline.video.signed_url_ttl_days', 30);
-        $slug = $post->pipelineArticle?->insightArticle?->slug ?? $post->pipelineArticle?->slug;
+        $slug = $post->pipelineArticle?->sourceSlug();
 
         if (! is_string($slug) || $slug === '') {
             throw new \RuntimeException("Cannot build signed URL: article slug missing for post {$post->id}.");

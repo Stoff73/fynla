@@ -38,6 +38,13 @@ class DocumentArticleImporter
         $sanitisedHtml = $this->sanitiser->sanitise($html);
         $this->validatePlaceholders($sanitisedHtml, $imageBlobs);
 
+        // Summary/meta description: take the first real paragraph of the
+        // article, capped at 100 words. Only when the document itself did not
+        // carry an explicit description property.
+        if (($merged['description'] ?? null) === null || trim((string) $merged['description']) === '') {
+            $merged['description'] = $this->firstParagraphSummary($sanitisedHtml);
+        }
+
         $hash = hash_file('sha256', $docxFile->getRealPath());
 
         return DB::transaction(function () use (
@@ -118,6 +125,31 @@ class DocumentArticleImporter
         $name = pathinfo($docx->getClientOriginalName(), PATHINFO_FILENAME);
 
         return $name !== '' ? $name : 'Untitled document';
+    }
+
+    /**
+     * The article summary: the first non-empty paragraph, stripped of markup
+     * and capped at 100 words. Returns null when the body has no paragraph
+     * text to summarise.
+     */
+    private function firstParagraphSummary(string $html): ?string
+    {
+        if (preg_match_all('/<p\b[^>]*>(.*?)<\/p>/is', $html, $matches)) {
+            foreach ($matches[1] as $paragraph) {
+                $text = trim(html_entity_decode(strip_tags($paragraph), ENT_QUOTES | ENT_HTML5));
+                if ($text === '') {
+                    continue;
+                }
+                $words = preg_split('/\s+/', $text) ?: [];
+                if (count($words) > 100) {
+                    return implode(' ', array_slice($words, 0, 100)).'…';
+                }
+
+                return $text;
+            }
+        }
+
+        return null;
     }
 
     /**

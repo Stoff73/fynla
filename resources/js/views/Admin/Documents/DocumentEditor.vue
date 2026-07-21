@@ -49,9 +49,28 @@
 
             <CoverImagePicker v-model="form.cover_image_path" :html-body="form.html_body" />
 
+            <div class="border border-horizon-200 rounded p-3">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-sm font-bold text-horizon-700">Campaign</label>
+                    <router-link to="/admin/campaigns" class="text-xs text-raspberry-500 hover:text-raspberry-700 font-semibold">+ New campaign</router-link>
+                </div>
+                <select v-model="form.pipeline_campaign_id" class="w-full border border-horizon-200 rounded px-3 py-2 text-sm">
+                    <option :value="null">— None (default Register CTA) —</option>
+                    <option v-for="c in campaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+                <p class="text-xs text-horizon-500 mt-1">Linking a campaign swaps the article's bottom call-to-action for the campaign's landing page.</p>
+            </div>
+
             <div class="flex flex-wrap gap-3 pt-4 border-t border-horizon-200">
                 <button class="bg-horizon-700 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-horizon-800" @click="save">Save</button>
                 <button class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500" @click="openPreview">Preview</button>
+                <a
+                    v-if="article.status === 'published'"
+                    :href="`/insights/${form.slug}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500 inline-flex items-center"
+                >Open live ↗</a>
                 <button
                     v-if="article.status !== 'published'"
                     class="bg-raspberry-500 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-raspberry-600"
@@ -97,6 +116,7 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CoverImagePicker from '@/components/Admin/Documents/CoverImagePicker.vue';
+import pipelineCampaignsService from '@/services/pipelineCampaignsService';
 
 export default {
     name: 'DocumentEditor',
@@ -112,7 +132,9 @@ export default {
                 author_byline: '',
                 cover_image_path: null,
                 html_body: '',
+                pipeline_campaign_id: null,
             },
+            campaigns: [],
             editor: null,
             successMessage: '',
             errorMessage: '',
@@ -127,6 +149,7 @@ export default {
         await this.get(id);
         this.hydrateForm();
         this.mountEditor();
+        this.loadCampaigns();
     },
     beforeUnmount() {
         if (this.editor) this.editor.destroy();
@@ -144,7 +167,18 @@ export default {
                 author_byline: this.article.author_byline || '',
                 cover_image_path: this.article.cover_image_path,
                 html_body: this.article.html_body || '',
+                pipeline_campaign_id: this.article.pipeline_campaign_id ?? this.article.campaign?.id ?? null,
             };
+        },
+        async loadCampaigns() {
+            try {
+                const res = await pipelineCampaignsService.list();
+                // The endpoint returns a paginator: { data: { data: [...] } }.
+                const body = res?.data;
+                this.campaigns = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
+            } catch (e) {
+                this.campaigns = [];
+            }
         },
         mountEditor() {
             this.editor = new Editor({

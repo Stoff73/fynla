@@ -67,16 +67,21 @@ class DetectNewVideos extends Command
                 continue;
             }
 
-            $article = InsightArticle::where('slug', $slug)->first();
-            if ($article === null) {
-                $this->line("  · <fg=gray>skip</> {$file['name']} (no InsightArticle with slug '{$slug}')");
-
-                continue;
+            // Resolve the pipeline article by slug from either CMS: native
+            // InsightArticles or the DocumentArticle (browser-upload) CMS.
+            $pipelineArticle = null;
+            $insight = InsightArticle::where('slug', $slug)->first();
+            if ($insight !== null) {
+                $pipelineArticle = PipelineArticle::where('insight_article_id', $insight->id)->first();
+            } else {
+                $doc = \App\Models\DocumentArticle::where('slug', $slug)->first();
+                if ($doc !== null) {
+                    $pipelineArticle = PipelineArticle::where('document_article_id', $doc->id)->first();
+                }
             }
 
-            $pipelineArticle = PipelineArticle::where('insight_article_id', $article->id)->first();
             if ($pipelineArticle === null) {
-                $this->line("  · <fg=gray>skip</> {$slug}.mp4 (article not in pipeline — script not generated yet)");
+                $this->line("  · <fg=gray>skip</> {$slug}.mp4 (no pipeline article for slug '{$slug}' — published & script generated?)");
 
                 continue;
             }
