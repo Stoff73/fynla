@@ -142,6 +142,9 @@ struct MobileHeroCard<Extra: View>: View {
 struct MobileDetailCard: View {
     let title: String
     let rows: [(key: String, value: String)]
+    // Key font size varies per /m page's scoped CSS (m-detail-key 14,
+    // mid-row__key 13) — match each source file.
+    var keyFontSize: CGFloat = 14
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -153,7 +156,7 @@ struct MobileDetailCard: View {
             ForEach(rows.indices, id: \.self) { index in
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(rows[index].key)
-                        .font(.system(size: 14))
+                        .font(.system(size: keyFontSize))
                         .foregroundStyle(FynlaColor.Token.neutral500.color)
                     Spacer(minLength: 8)
                     Text(rows[index].value)
