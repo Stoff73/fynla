@@ -160,6 +160,22 @@ struct FynlaApp: App {
                 UIApplication.shared.open(url)
             }
         )
+        #if FYNLA_UI_TESTING
+        let incomeModel = uiTestMode == nil
+            ? IncomeModel(
+                client: LiveIncomeClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : IncomeUITestComposition.model()
+        let expenditureModel = uiTestMode == nil
+            ? ExpenditureModel(
+                client: LiveExpenditureClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ExpenditureUITestComposition.model()
+        #else
         let incomeModel = IncomeModel(
             client: LiveIncomeClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -170,6 +186,7 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let netWorthModel = NetWorthModel(
             client: LiveNetWorthClient(
                 apiClient: authenticatedDependencies.makeAPIClient()

@@ -218,3 +218,11 @@ manual fixture launch screenshot + journey suite.
 | Item | Disposition |
 |------|-------------|
 | Hero persistence | **DONE across all 18 converted screens.** Each screen gained a private `framed { }` wrapper (page-specific MobilePageHero + dock clearance) around every loading `DashboardLoadingView`, every `stateView(...)` error/offline/upgrade screen, and every inline `.empty`/not-found `ScreenStateView` — so the gradient hero band now persists during loading and error, as /m's MobileChrome does. Per /m, the Back/Edit pills stay hidden during loading (`md-page-actions` has `v-if="!loading"`); they are also omitted on error frames (the /m error card carries its own Try-again). |
+
+## 2026-07-21 — sweep items 6 + 9 (fixture stubs; .module stub removal)
+
+| Item | Disposition |
+|------|-------------|
+| Income/Expenditure fixture stubs | **DONE.** `IncomeUITestComposition` / `ExpenditureUITestComposition` (employment detail + dividend/interest rows; monthly/annual + category rows) wired in the unlocked composition so the capture harness shows content instead of error states. |
+| `.module` route dev stub | **REMOVED.** `AppRoute.module(String)` was constructed nowhere in the app (deep links, push routing and dashboard actions all map to concrete routes) — only a unit-test list referenced it. Case deleted from AppRouter, AppRootView path mapping, NavigationDestinationFactory title/destination, and AppRouterTests. `StagedNativeDestinationView` remains only for the unreachable `.dashboard` destination case (the dashboard renders in the shell, never pushed). |
+| Remaining deferred (unchanged) | Diagnostics wiring (P1-9 — design decision on where to `record()`); legacy SubscriptionPlanSeeder note (backend, not iOS); onboarding "Finish your tax plan" nudge + KYC bubble and GamificationCelebration fireworks (ledger D8 — CSJ decisions, not built without direction). |

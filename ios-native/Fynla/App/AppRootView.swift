@@ -682,7 +682,6 @@ private struct UnlockedView: View {
         case .holisticPlan: "/holistic-plan"
         case .bugReport: "/report-a-problem"
         case .settings: "/settings"
-        case .module: "/dashboard"
         }
     }
 }

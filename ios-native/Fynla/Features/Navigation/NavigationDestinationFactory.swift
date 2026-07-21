@@ -5,7 +5,6 @@ enum NavigationDestinationFactory {
         switch route {
         case .dashboard: "Dashboard"
         case .achievements: "Achievements"
-        case let .module(slug): slug.replacingOccurrences(of: "-", with: " ").capitalized
         case .income: "Income"
         case .expenditure: "Expenditure"
         case .netWorth: "Net Worth"
@@ -188,7 +187,7 @@ enum NavigationDestinationFactory {
                 accountDeletionModel: accountDeletionModel,
                 pushCoordinator: pushCoordinator
             )
-        case .dashboard, .module:
+        case .dashboard:
             StagedNativeDestinationView(title: title(for: route))
         }
     }
