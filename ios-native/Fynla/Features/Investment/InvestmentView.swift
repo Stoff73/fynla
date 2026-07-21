@@ -76,24 +76,14 @@ struct InvestmentView: View {
         .refreshable { await model.refresh() }
     }
 
-    // m-hero: label + big metric + account-count sub-line.
+    // m-hero: dark card with the big metric + account-count sub-line.
     private func heroCard(_ snapshot: InvestmentSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Total portfolio value")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text(MoneyFormatter.gbpWhole(snapshot.totalValue))
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("investment.total-value")
-            Text(accountCountLabel(snapshot.accounts.count))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Total portfolio value",
+            metric: MoneyFormatter.gbpWhole(snapshot.totalValue),
+            sub: accountCountLabel(snapshot.accounts.count)
+        )
+        .accessibilityIdentifier("investment.total-value")
     }
 
     // mi-row: attitude-to-risk key/value.
@@ -102,7 +92,7 @@ struct InvestmentView: View {
             Text("Risk profile".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 4)
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("Attitude to risk")
@@ -127,7 +117,7 @@ struct InvestmentView: View {
                 Text("Investment accounts".uppercased())
                     .font(.system(size: 12, weight: .bold))
                     .kerning(0.5)
-                    .foregroundStyle(FynlaColor.Token.horizon400.color)
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
                 Spacer()
                 if let limit = snapshot.accountLimit {
                     HStack(spacing: 8) {

@@ -76,21 +76,13 @@ struct IncomeView: View {
         .refreshable { await model.refresh() }
     }
 
-    // m-hero: label + big metric.
+    // m-hero: dark card with the big metric.
     private func heroCard(_ total: Decimal) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Your total annual income")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text(MoneyFormatter.gbpWhole(total))
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("income.total")
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Your total annual income",
+            metric: MoneyFormatter.gbpWhole(total)
+        )
+        .accessibilityIdentifier("income.total")
     }
 
     private func incomeCard(
@@ -102,7 +94,7 @@ struct IncomeView: View {
             Text(title.uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             if sources.nonZeroSources.isEmpty {

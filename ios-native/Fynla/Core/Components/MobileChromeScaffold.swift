@@ -75,6 +75,62 @@ struct MobilePageHero: View {
     }
 }
 
+// /m's m-hero card: dark horizon-500 card with a light label, white 44pt/900
+// metric (optional suffix like "a year"), light sub-line and an optional
+// extra slot (e.g. Retirement's target/surplus split).
+struct MobileHeroCard<Extra: View>: View {
+    let label: String
+    let metric: String
+    var metricSuffix: String?
+    var sub: String?
+    @ViewBuilder var extra: Extra
+
+    init(
+        label: String,
+        metric: String,
+        metricSuffix: String? = nil,
+        sub: String? = nil,
+        @ViewBuilder extra: () -> Extra = { EmptyView() }
+    ) {
+        self.label = label
+        self.metric = metric
+        self.metricSuffix = metricSuffix
+        self.sub = sub
+        self.extra = extra()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.78))
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(metric)
+                    .font(.system(size: 44, weight: .black))
+                    .kerning(-0.5)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if let metricSuffix {
+                    Text(metricSuffix)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            if let sub, !sub.isEmpty {
+                Text(sub)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            extra
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FynlaColor.Token.horizon500.color)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
 // md-page-actions: Back pill (sub-pages) + "Edit details" pill that opens Fyn
 // pre-asked with the page's holdings.
 struct MobilePageActions: View {

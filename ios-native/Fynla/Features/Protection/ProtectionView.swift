@@ -74,24 +74,14 @@ struct ProtectionView: View {
         .refreshable { await model.refresh() }
     }
 
-    // m-hero: label + big metric + policy-count sub-line.
+    // m-hero: dark card with the big metric + policy-count sub-line.
     private func heroCard(_ snapshot: ProtectionSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Total lump-sum cover")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text(MoneyFormatter.gbpWhole(snapshot.totalLumpSumCover ?? 0))
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("protection.total-cover")
-            Text(heroSubtitle(snapshot))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Total lump-sum cover",
+            metric: MoneyFormatter.gbpWhole(snapshot.totalLumpSumCover ?? 0),
+            sub: heroSubtitle(snapshot)
+        )
+        .accessibilityIdentifier("protection.total-cover")
     }
 
     // mp-gap rows: label + severity tag head, raspberry shortfall + detail foot.
@@ -100,7 +90,7 @@ struct ProtectionView: View {
             Text("Coverage gaps".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             if gaps.isEmpty {
@@ -165,7 +155,7 @@ struct ProtectionView: View {
             Text("Policies".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             if policies.isEmpty {

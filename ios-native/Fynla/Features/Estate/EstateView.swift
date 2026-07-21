@@ -71,19 +71,11 @@ struct EstateView: View {
     // Teaser (Free): liability hero + Premium note + Compare plans pill.
     @ViewBuilder
     private func teaser(_ index: EstateIndexResponse) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Estimated Inheritance Tax liability")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text(MoneyFormatter.gbpWhole(index.teaser?.estimatedLiability ?? 0))
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("estate.teaser.liability")
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Estimated Inheritance Tax liability",
+            metric: MoneyFormatter.gbpWhole(index.teaser?.estimatedLiability ?? 0)
+        )
+        .accessibilityIdentifier("estate.teaser.liability")
 
         VStack(alignment: .leading, spacing: 12) {
             if let headline = index.teaser?.headline, !headline.isEmpty {
@@ -118,22 +110,12 @@ struct EstateView: View {
     @ViewBuilder
     private func fullEstate(_ snapshot: EstateSnapshot) -> some View {
         if let netWorth = snapshot.netWorth {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Estimated estate value")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FynlaColor.Token.horizon400.color)
-                Text(MoneyFormatter.gbpWhole(netWorth.netWorth))
-                    .font(.system(size: 28, weight: .heavy))
-                    .foregroundStyle(FynlaColor.Token.horizon600.color)
-                    .accessibilityIdentifier("estate.net-estate")
-                Text("\(MoneyFormatter.gbpWhole(netWorth.totalAssets)) in assets, less \(MoneyFormatter.gbpWhole(netWorth.totalLiabilities)) of liabilities.")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(FynlaColor.Token.horizon400.color)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            MobileHeroCard(
+                label: "Estimated estate value",
+                metric: MoneyFormatter.gbpWhole(netWorth.netWorth),
+                sub: "\(MoneyFormatter.gbpWhole(netWorth.totalAssets)) in assets, less \(MoneyFormatter.gbpWhole(netWorth.totalLiabilities)) of liabilities."
+            )
+            .accessibilityIdentifier("estate.net-estate")
 
             breakdownCard(netWorth)
         } else {
@@ -154,7 +136,7 @@ struct EstateView: View {
             Text("Estate breakdown".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             ForEach(netWorth.assetComposition) { component in
@@ -177,7 +159,7 @@ struct EstateView: View {
             Text("Estate planning".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             let gifts = data?.gifts.count ?? 0

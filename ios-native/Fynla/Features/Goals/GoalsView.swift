@@ -75,24 +75,14 @@ struct GoalsView: View {
         .refreshable { await model.refresh() }
     }
 
-    // m-hero: "Goals on track" X of Y + saved sub-line.
+    // m-hero: dark card with "X of Y" + saved sub-line.
     private func heroCard(_ snapshot: GoalsSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Goals on track")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text("\(onTrackCount(snapshot)) of \(totalGoals(snapshot))")
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("goals.on-track")
-            Text(savedLabel(snapshot))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Goals on track",
+            metric: "\(onTrackCount(snapshot)) of \(totalGoals(snapshot))",
+            sub: savedLabel(snapshot)
+        )
+        .accessibilityIdentifier("goals.on-track")
     }
 
     // Overall progress: mts-allow head/bar/foot with the status colour.
@@ -103,7 +93,7 @@ struct GoalsView: View {
             Text("Overall progress".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 4)
 
             HStack(alignment: .firstTextBaseline) {
@@ -141,7 +131,7 @@ struct GoalsView: View {
                 Text("Your goals".uppercased())
                     .font(.system(size: 12, weight: .bold))
                     .kerning(0.5)
-                    .foregroundStyle(FynlaColor.Token.horizon400.color)
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
                 Spacer()
                 Button {
                     onOpenFyn("I'd like to add a new goal.")

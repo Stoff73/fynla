@@ -79,24 +79,14 @@ struct NetWorthView: View {
         .refreshable { await model.refresh() }
     }
 
-    // m-hero: label + big metric + assets/liabilities sub-line.
+    // m-hero: dark card with the big metric + assets/liabilities sub-line.
     private func heroCard(_ overview: NetWorthOverview) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Total net worth")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text(MoneyFormatter.gbpWhole(overview.netWorth))
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("net-worth.total")
-            Text("\(MoneyFormatter.gbpWhole(overview.totalAssets)) in assets, less \(MoneyFormatter.gbpWhole(overview.totalLiabilities)) of liabilities.")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Total net worth",
+            metric: MoneyFormatter.gbpWhole(overview.netWorth),
+            sub: "\(MoneyFormatter.gbpWhole(overview.totalAssets)) in assets, less \(MoneyFormatter.gbpWhole(overview.totalLiabilities)) of liabilities."
+        )
+        .accessibilityIdentifier("net-worth.total")
     }
 
     // mnw-history: title + meta left, uppercase raspberry action right.
@@ -134,7 +124,7 @@ struct NetWorthView: View {
             Text("Assets".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             if categories.isEmpty {
@@ -168,7 +158,7 @@ struct NetWorthView: View {
             Text("Liabilities".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             categoryRow(

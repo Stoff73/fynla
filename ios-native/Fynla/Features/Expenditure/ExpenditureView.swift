@@ -70,25 +70,14 @@ struct ExpenditureView: View {
         .refreshable { await model.refresh() }
     }
 
-    // m-hero: label + big metric + annual sub-line.
+    // m-hero: dark card with the big metric + annual sub-line.
     private func heroCard(_ summary: ExpenditureSummary) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Monthly expenditure")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-            Text(MoneyFormatter.gbpWhole(summary.monthly ?? 0))
-                .font(.system(size: 28, weight: .heavy))
-                .foregroundStyle(FynlaColor.Token.horizon600.color)
-                .accessibilityIdentifier("expenditure.monthly")
-            Text(annualText(summary))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
-                .accessibilityIdentifier("expenditure.annual")
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        MobileHeroCard(
+            label: "Monthly expenditure",
+            metric: MoneyFormatter.gbpWhole(summary.monthly ?? 0),
+            sub: annualText(summary)
+        )
+        .accessibilityIdentifier("expenditure.monthly")
     }
 
     private func categoryCard(_ rows: [ExpenditureCategoryRow]) -> some View {
@@ -96,7 +85,7 @@ struct ExpenditureView: View {
             Text("Where it goes each month".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.horizon400.color)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 6)
 
             ForEach(rows) { row in

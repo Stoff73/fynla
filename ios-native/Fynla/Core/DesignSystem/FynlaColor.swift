@@ -23,6 +23,7 @@ enum FynlaColor {
         case neutral500 = "Neutral500"
         case neutral600 = "Neutral600"
         case raspberry100 = "Raspberry100"
+        case raspberry300 = "Raspberry300"
         case raspberry400 = "Raspberry400"
         case raspberry500 = "Raspberry500"
         case raspberry600 = "Raspberry600"
