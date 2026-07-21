@@ -2,15 +2,21 @@
 
 declare(strict_types=1);
 
+use Anthropic\Client;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Models\UserConsent;
 use App\Services\AI\QueryClassifier;
+use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fyn\FynStreamHarness;
+use Tests\Support\Fyn\ScriptedAnthropicClient;
 
 uses(RefreshDatabase::class);
 
@@ -215,4 +221,98 @@ it('falls through to the plain retry when a question-shaped message does not cla
 
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+});
+
+// ── Task 5: deferred questions raised at both completion terminals ─────────
+
+it('raises deferred questions at the classic completion terminal and clears them', function () {
+    [$user, $conversation] = interruptionUser();
+    $conversation->update(['metadata' => array_merge($conversation->metadata ?? [], [
+        'deferred_questions' => [['question' => 'How healthy are my overall finances?', 'state_id' => 'path_choice']],
+    ])]);
+
+    $received = [];
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'emitDoneTurn');
+    foreach ($method->invoke(app(OnboardingChatDirector::class), $user, $conversation) as $event) {
+        $received[] = $event;
+    }
+
+    $raise = collect($received)->where('type', 'quick_replies')
+        ->first(fn ($e) => str_contains($e['prompt_text'] ?? '', 'Earlier you asked'));
+    expect($raise)->not->toBeNull();
+    expect($raise['bubbles'][0]['label'])->toBe('How healthy are my overall finances?');
+
+    $conversation->refresh();
+    expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
+
+    // The persisted raise message keeps its bubbles for transcript renders.
+    $persisted = $conversation->messages()->where('content', 'like', 'Earlier you asked%')->first();
+    expect(array_column($persisted->metadata['bubbles'] ?? [], 'label'))
+        ->toBe(['How healthy are my overall finances?']);
+});
+
+it('raises deferred questions at the campaign completion terminal before the app note and celebration', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'active_campaign' => 'pensioncheck',
+        'onboarding_fyn_step' => 'campaign_synthesis',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_selection' => 'pensioncheck',
+    ]);
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'metadata' => [
+            'source' => 'fyn_onboarding',
+            'campaign' => 'pensioncheck',
+            'deferred_questions' => [['question' => 'How healthy are my overall finances?', 'state_id' => 'base_work']],
+        ],
+    ]);
+
+    Cache::put('ai_provider', 'anthropic');
+    app()->instance(Client::class, new ScriptedAnthropicClient([]));
+
+    // Any non-empty message at campaign_synthesis advances via
+    // interpretAnswer (free_text, no parser) → getNextStateId →
+    // emitTerminalNavigationTurn — mirrors CampaignReentryExitTest's drive.
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['message' => 'ok']);
+
+    $response->assertOk();
+    $response->streamedContent();
+
+    $conversation->refresh();
+    expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
+    // Never clobber the resume-lookup pivot already on the conversation.
+    expect($conversation->metadata['source'] ?? null)->toBe('fyn_onboarding');
+
+    $assistantMessages = AiMessage::where('conversation_id', $conversation->id)
+        ->where('role', 'assistant')
+        ->orderBy('id')
+        ->get(['content', 'metadata']);
+
+    $raiseIndex = $assistantMessages->search(
+        fn (AiMessage $m): bool => str_contains($m->content, 'Earlier you asked')
+    );
+    $appNoteIndex = $assistantMessages->search(
+        fn (AiMessage $m): bool => str_contains($m->content, 'even better in the app')
+    );
+    $celebrationIndex = $assistantMessages->search(
+        fn (AiMessage $m): bool => str_contains($m->content, 'pension picture')
+    );
+
+    expect($raiseIndex)->not->toBeFalse();
+    expect($appNoteIndex)->not->toBeFalse();
+    expect($celebrationIndex)->not->toBeFalse();
+    // Ordering contract: deferred raise → app note → celebration/route last.
+    expect($raiseIndex)->toBeLessThan($appNoteIndex);
+    expect($appNoteIndex)->toBeLessThan($celebrationIndex);
+
+    $raiseMessage = $assistantMessages[$raiseIndex];
+    expect(array_column($raiseMessage->metadata['bubbles'] ?? [], 'label'))
+        ->toBe(['How healthy are my overall finances?']);
 });

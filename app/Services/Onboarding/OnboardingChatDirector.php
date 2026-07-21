@@ -1554,6 +1554,12 @@ final class OnboardingChatDirector
         ]);
 
         yield ['type' => 'content', 'text' => $promise];
+
+        // Mid-stream done: finalises this message only; the stream ends when
+        // the generator exhausts (consumers treat done per-message, not
+        // per-turn) — verified safe: the controller only ends the SSE stream
+        // once this generator itself exhausts, and web/`/m`/native all treat
+        // `done` as a per-message finaliser, not a stream terminator.
         yield ['type' => 'done', 'message_id' => $saved->id];
         yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
@@ -4508,6 +4514,53 @@ PROMPT;
         return ['id' => $id, 'label' => $label, 'route' => $route];
     }
 
+    /**
+     * Raise any holistic questions parked by `deferQuestion` mid-walk, once
+     * the walk is done and the full picture is available. Shared by both
+     * completion terminals (`emitDoneTurn`, `emitTerminalNavigationTurn`) —
+     * ordering contract pinned by CampaignReentryExitTest: deferred raise →
+     * app note → celebration/route bubble last, so the tappable route bubble
+     * stays the latest turn. Clears `deferred_questions` from the conversation
+     * metadata after emitting, preserving every other key (`source` is the
+     * resume-lookup pivot and must survive).
+     */
+    private function emitDeferredQuestions(AiConversation $conversation): \Generator
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $deferred = $metadata['deferred_questions'] ?? [];
+        if ($deferred === []) {
+            return;
+        }
+
+        unset($metadata['deferred_questions']);
+        $conversation->update(['metadata' => $metadata]);
+
+        $bubbles = [];
+        foreach (array_values($deferred) as $i => $entry) {
+            $bubbles[] = [
+                'id' => 'deferred_'.$i,
+                'label' => mb_substr((string) ($entry['question'] ?? ''), 0, 60),
+            ];
+        }
+
+        $prompt = 'Earlier you asked me something — want to pick that up now that your plan is set up?';
+        $saved = $this->saveMessage($conversation, 'assistant', $prompt, [
+            'metadata' => ['bubbles' => $bubbles],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $prompt,
+            'bubbles' => $bubbles,
+        ];
+
+        // Mid-stream done: finalises this message only; the stream ends when
+        // the generator exhausts (consumers treat done per-message, not
+        // per-turn) — see the matching note on deferQuestion's mid-stream
+        // done for the same reasoning.
+        yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
     private function emitTerminalNavigationTurn(
         User $user,
         AiConversation $conversation,
@@ -4522,6 +4575,8 @@ PROMPT;
         $selection = $user->onboarding_fyn_selection ?? '';
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        yield from $this->emitDeferredQuestions($conversation);
 
         // CSJ direction 2026-07-21: before the celebration lands, tell the
         // completing user the experience is better in the app — its own Fyn
@@ -5090,6 +5145,8 @@ PROMPT;
 
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_DONE) ?? [];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        yield from $this->emitDeferredQuestions($conversation);
 
         yield ['type' => 'content', 'text' => $celebration];
 
