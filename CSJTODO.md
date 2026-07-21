@@ -1,6 +1,18 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-20 — context-clear wrap, session 1. iOS audit + /m-parity remediation on the pkg7 branch; local commits unpushed pending CSJ's answer on what "wrong path" referred to.*
+*Last updated: 2026-07-21 — context-clear wrap, session 1. /m-parity sweep in
+flight on pkg7 (10 screens done, pushed through f277af4); NEXT JOBS = the
+"Left in the Sweep" list in July/July21Updates/handover-2026-07-21-session-1-clear.md.*
+
+## 2026-07-21 — /m-parity sweep (context-clear; continue from handover)
+
+- [ ] **NEXT: "Left in the Sweep"** (full detail + method in the handover): Tax Strategy → Holistic Plan → six sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history) → Achievements tab content → hero-persistence across loading/error states → Income/Expenditure fixture stubs → onboarding nudge + fireworks → user chat-bubble check → diagnostics wiring / .module stub.
+- [x] Shell chrome + dashboard + drawer + Fyn transcribed from /m; milestone banners moved below the level card (BOTH surfaces — CSJ direction); dark m-hero correction across all converted screens.
+- [x] Module screens transcribed: Income, Expenditure, Net Worth, Savings, Investments, Protection, Goals, Estate, Retirement (+ Achievements header).
+- [x] Audit P0s/P1s: consent no-toggle fix; six client-side-calc items = /m-parity KEEPs (evidenced); tolerant enum decodes; export timeout; write-401 refresh; verify-project.sh fixed + in CI; webhook limiter Pest test green.
+- [ ] **/m milestone-banner fix awaits CSJ build + deploy to csjones** (main repo commit 2772831 on codex/savetax-allowance-ctas).
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (green in CI) — don't chase.
+
 
 ## 2026-07-20 — iOS audit + /m parity remediation (session dissolved, see handover)
 
