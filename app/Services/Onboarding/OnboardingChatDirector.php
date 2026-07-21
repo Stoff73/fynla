@@ -4300,6 +4300,26 @@ PROMPT;
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
 
+        // CSJ direction 2026-07-21: before the celebration lands, tell the
+        // completing user the experience is better in the app — its own Fyn
+        // bubble (both surfaces open a fresh bubble per quick_replies frame),
+        // ahead of the celebration so the route bubble stays the latest
+        // (tappable) turn.
+        $appNote = "By the way — the Fynla experience is even better in the app. Everything you've just set up will be there the moment you sign in.";
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $appNote,
+            'bubbles' => [],
+        ];
+
+        $this->saveMessage(
+            $conversation,
+            'assistant',
+            $appNote,
+            ['metadata' => ['onboarding_step' => $stateId]]
+        );
+
         // The user taps a button to view their plan rather than being
         // auto-navigated, so the celebration message lands first. The
         // route-carrying bubble navigates on tap (handled in the /m chooseBubble

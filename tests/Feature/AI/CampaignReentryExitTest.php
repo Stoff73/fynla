@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Anthropic\Client;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\OnboardingProgress;
 use App\Models\PointAward;
 use App\Models\User;
@@ -178,6 +179,22 @@ it('clears active_campaign and marks onboarding complete when a fresh user hits 
     // Normal completion path fires (fresh user, not previously completed).
     expect($user->onboarding_completed)->toBeTrue();
     expect($user->onboarding_completed_at)->not->toBeNull();
+
+    // CSJ direction 2026-07-21: the terminal turn voices the app note as its
+    // own persisted Fyn bubble ahead of the celebration message.
+    $assistantMessages = AiMessage::where('conversation_id', $conv->id)
+        ->where('role', 'assistant')
+        ->orderBy('id')
+        ->pluck('content');
+    $appNoteIndex = $assistantMessages->search(
+        fn (string $content): bool => str_contains($content, 'even better in the app')
+    );
+    $celebrationIndex = $assistantMessages->search(
+        fn (string $content): bool => str_contains($content, 'pension picture')
+    );
+    expect($appNoteIndex)->not->toBeFalse();
+    expect($celebrationIndex)->not->toBeFalse();
+    expect($appNoteIndex)->toBeLessThan($celebrationIndex);
 });
 
 // ── Test 3: something_else pause clears active_campaign ──────────────────────
