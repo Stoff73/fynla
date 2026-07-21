@@ -1,0 +1,51 @@
+[
+  {
+    "key": "default",
+    "campaign_url": null,
+    "use_article_url_when_default": true,
+    "title": "Article fallback",
+    "topic_keywords": [],
+    "description": "Fallback used when no campaign topic confidently matches the article (confidence below LANDING_PAGE_CONFIDENCE_THRESHOLD). Routes to the article itself: https://fynla.org/insights/{article-slug}.",
+    "is_default": true
+  },
+  {
+    "key": "pensions",
+    "campaign_url": "https://fynla.org/biggerpension",
+    "title": "Bigger Pension",
+    "topic_keywords": ["pension", "SIPP", "annual allowance", "lifetime allowance", "retirement", "drawdown", "auto-enrolment", "employer contribution"],
+    "description": "Campaign page for pension-related content — boosting retirement contributions and using allowances effectively.",
+    "is_default": false
+  },
+  {
+    "key": "save-tax",
+    "campaign_url": "https://fynla.org/savetax",
+    "title": "Save Tax",
+    "topic_keywords": ["tax", "income tax", "capital gains", "CGT", "personal allowance", "dividend allowance", "national insurance", "self-assessment", "tax efficient", "marriage allowance"],
+    "description": "Campaign page for tax-saving content — allowances, reliefs, and legal optimisation strategies.",
+    "is_default": false
+  },
+  {
+    "key": "mortgages",
+    "campaign_url": "https://fynla.org/paymortgage",
+    "title": "Pay Mortgage",
+    "topic_keywords": ["mortgage", "remortgage", "fixed rate", "variable rate", "first time buyer", "stamp duty", "LTV", "overpay", "early repayment"],
+    "description": "Campaign page for mortgage content — buying, remortgaging, and paying off a mortgage faster.",
+    "is_default": false
+  },
+  {
+    "key": "wealth",
+    "campaign_url": "https://fynla.org/wealth",
+    "title": "Build Wealth",
+    "topic_keywords": ["investing", "ISA", "stocks and shares ISA", "lifetime ISA", "shares", "ETF", "fund", "dividend", "compound", "FTSE", "diversification", "portfolio", "wealth"],
+    "description": "Campaign page for investing and wealth-building content — ISAs, stocks, ETFs, long-term wealth strategies.",
+    "is_default": false
+  },
+  {
+    "key": "debt",
+    "campaign_url": "https://fynla.org/managedebt",
+    "title": "Manage Debt",
+    "topic_keywords": ["debt", "credit card", "loan", "overdraft", "payday loan", "consolidation", "balance transfer", "snowball", "avalanche", "interest"],
+    "description": "Campaign page for debt management content — credit cards, loans, getting out of debt strategically.",
+    "is_default": false
+  }
+]

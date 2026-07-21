@@ -308,7 +308,7 @@ describe('WillDocumentService', function () {
             ]);
 
             expect(fn () => $this->service->markComplete($doc))
-                ->toThrow(\RuntimeException::class);
+                ->toThrow(RuntimeException::class);
         });
     });
 
@@ -356,7 +356,7 @@ describe('WillDocumentService', function () {
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             expect(fn () => $this->service->generateMirrorWill($doc))
-                ->toThrow(\RuntimeException::class, 'no spouse found');
+                ->toThrow(RuntimeException::class, 'no spouse found');
         });
     });
 

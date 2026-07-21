@@ -1,0 +1,92 @@
+id: savings_3x_mixed
+category: 03-multi-entity
+description: |
+  Onboarding asset_capture turn (NOT advice). User dictates three
+  savings accounts of three different types in a single message.
+  Dispatches to OnboardingChatDirector::handleUserMessage; AdviceFyn
+  / KYC bypassed.
+
+  Tests recall (3/3), cross-entity consistency (correct account_type
+  per provider), value accuracy (£5,000 / £15,000 / £2,000), and
+  zero fabrication.
+
+input:
+  turns:
+    - user: "I've got £5,000 in a Nationwide easy access, £15,000 in a HSBC cash ISA, and £2,000 in a Marcus regular saver."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: false
+    onboarding_fyn_step: asset_capture
+
+expected_classification_shape:
+  primary: data_entry
+  related: []
+  modules: []
+
+expected_response_mode: factual
+expected_engine_call_level: factual
+expected_kyc_state: bypass
+
+expected_tool_calls:
+  - tool: create_savings_account
+    args: { provider: Nationwide, account_type: easy_access, balance: 5000 }
+    required: true
+    result_path: success
+  - tool: create_savings_account
+    args: { provider: HSBC, account_type: cash_isa, balance: 15000 }
+    required: true
+    result_path: success
+  - tool: create_savings_account
+    args: { provider: Marcus, account_type: regular_saver, balance: 2000 }
+    required: true
+    result_path: success
+
+expected_sse_events:
+  must_contain_types: [tool_use, entity_created, content, done]
+  must_emit_exactly_once:
+    - done
+  must_emit_exactly:
+    entity_created: 3
+    tool_use: 3
+  must_not_emit:
+    - persona_state_change
+    - handoff
+
+expected_db_writes:
+  savings_accounts: 3
+expected_db_writes_persistent: true
+
+forbidden_outputs:
+  - "I'm not sure what you said"
+  - "For regulated advice personal to your circumstances"   # INV-2.3.3 — capture-mode does NOT signpost
+
+forbidden_tools:
+  - create_protection_policy
+  - create_investment_account
+  - create_pension
+  - delegate_to_capture
+
+eval_focus:
+  module: savings
+  expected_entity_count: 3
+  recall_floor: 95
+  precision_floor: 95
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms:
+  anthropic:
+    happy: 9000
+  xai:
+    happy: 19000
+
+tags:
+  - regression-band-0
+  - capture-mode
+  - savings
+  - multi-entity
+  - mixed-account-types

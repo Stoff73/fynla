@@ -7,6 +7,7 @@ namespace Tests\Feature\Api;
 use App\Models\Property;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,11 @@ class PropertyControllerTest extends TestCase
     {
         parent::setUp();
         $this->seed(TaxConfigurationSeeder::class);
-        $this->user = User::factory()->create();
+        // SP1 Pass 4 PR 2: PropertyStore tier-cap check resolves the user's
+        // tier from tier_configurations. Without this seed, the inner
+        // firstOrFail() bubbles up as ModelNotFoundException → 404.
+        $this->seed(TierConfigurationSeeder::class);
+        $this->user = User::factory()->create(['tier' => 'premium']);
         $this->token = $this->user->createToken('test-token')->plainTextToken;
     }
 
@@ -344,6 +349,103 @@ class PropertyControllerTest extends TestCase
             'user_id' => $this->user->id,
             'property_type' => 'buy_to_let',
             'monthly_rental_income' => 1200,
+        ]);
+    }
+
+    public function test_does_not_500_when_country_arrives_null_on_create(): void
+    {
+        $propertyData = [
+            'property_type' => 'main_residence',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'address_line_1' => '1 Default Lane',
+            'city' => 'London',
+            'postcode' => 'SW1A 1AA',
+            'current_value' => 400000,
+            'country' => null,
+        ];
+
+        $response = $this->withToken($this->token)
+            ->postJson('/api/properties', $propertyData);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('properties', [
+            'user_id' => $this->user->id,
+            'address_line_1' => '1 Default Lane',
+            'country' => 'United Kingdom',
+        ]);
+    }
+
+    public function test_does_not_500_when_country_arrives_empty_string_on_create(): void
+    {
+        $propertyData = [
+            'property_type' => 'main_residence',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'address_line_1' => '2 Default Lane',
+            'city' => 'London',
+            'postcode' => 'SW1A 1AA',
+            'current_value' => 400000,
+            'country' => '',
+        ];
+
+        $response = $this->withToken($this->token)
+            ->postJson('/api/properties', $propertyData);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('properties', [
+            'user_id' => $this->user->id,
+            'address_line_1' => '2 Default Lane',
+            'country' => 'United Kingdom',
+        ]);
+    }
+
+    public function test_preserves_explicitly_supplied_country_on_create(): void
+    {
+        $propertyData = [
+            'property_type' => 'secondary_residence',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'address_line_1' => '5 Rue de Test',
+            'city' => 'Paris',
+            'current_value' => 600000,
+            'country' => 'France',
+        ];
+
+        $response = $this->withToken($this->token)
+            ->postJson('/api/properties', $propertyData);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('properties', [
+            'user_id' => $this->user->id,
+            'address_line_1' => '5 Rue de Test',
+            'country' => 'France',
+        ]);
+    }
+
+    public function test_does_not_500_when_country_arrives_null_on_update(): void
+    {
+        $property = Property::factory()->create([
+            'user_id' => $this->user->id,
+            'country' => 'United Kingdom',
+            'current_value' => 300000,
+        ]);
+
+        $response = $this->withToken($this->token)
+            ->putJson("/api/properties/{$property->id}", [
+                'current_value' => 320000,
+                'country' => null,
+            ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('properties', [
+            'id' => $property->id,
+            'country' => 'United Kingdom',
+            'current_value' => 320000,
         ]);
     }
 }

@@ -109,7 +109,7 @@
       >
         <button
           class="btn btn-outline btn-danger"
-          @click="revokeAllOtherSessions"
+          @click="openRevokeAllModal"
         >
           Revoke All Other Sessions
         </button>
@@ -140,26 +140,11 @@
         <h2 class="section-title">Security Tips</h2>
       </div>
       <ul class="tips-list">
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Use a unique password for your Fynla account
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Enable two-factor authentication for additional security
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Review your active sessions regularly
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Never share your login credentials with anyone
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Log out when using shared devices
-        </li>
+        <li>Use a unique password for your Fynla account</li>
+        <li>Enable two-factor authentication for additional security</li>
+        <li>Review your active sessions regularly</li>
+        <li>Never share your login credentials with anyone</li>
+        <li>Log out when using shared devices</li>
       </ul>
     </div>
 
@@ -209,6 +194,57 @@
             @click="disableMFA"
           >
             Disable MFA
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showRevokeAllModal"
+      class="modal-overlay"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Revoke All Other Sessions</h3>
+        </div>
+        <div class="modal-body">
+          <p>
+            This will sign you out on every other device. Your current session will stay active.
+            Are you sure you want to continue?
+          </p>
+          <div class="form-group">
+            <label for="revoke-all-password">Enter your password to confirm:</label>
+            <input
+              id="revoke-all-password"
+              v-model="revokeAllPassword"
+              type="password"
+              class="form-input"
+              placeholder="Your password"
+              :disabled="revokingAll"
+              @keydown.enter="revokeAllOtherSessions"
+            >
+            <p
+              v-if="revokeAllError"
+              class="mt-2 text-sm text-raspberry-600"
+            >
+              {{ revokeAllError }}
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-outline"
+            :disabled="revokingAll"
+            @click="closeRevokeAllModal"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-danger"
+            :disabled="!revokeAllPassword || revokingAll"
+            @click="revokeAllOtherSessions"
+          >
+            {{ revokingAll ? 'Revoking…' : 'Revoke All Other Sessions' }}
           </button>
         </div>
       </div>
@@ -295,7 +331,11 @@ export default {
       showMFASetupModal: false,
       showDisableMFAModal: false,
       showChangePasswordModal: false,
+      showRevokeAllModal: false,
       disablePassword: '',
+      revokeAllPassword: '',
+      revokeAllError: '',
+      revokingAll: false,
       passwordForm: {
         current_password: '',
         new_password: '',
@@ -368,13 +408,40 @@ export default {
         this.$toast?.error?.(error.response?.data?.message || 'Failed to revoke session.');
       }
     },
+    openRevokeAllModal() {
+      this.revokeAllPassword = '';
+      this.revokeAllError = '';
+      this.revokingAll = false;
+      this.showRevokeAllModal = true;
+    },
+    closeRevokeAllModal() {
+      if (this.revokingAll) return;
+      this.showRevokeAllModal = false;
+      this.revokeAllPassword = '';
+      this.revokeAllError = '';
+    },
     async revokeAllOtherSessions() {
+      if (!this.revokeAllPassword || this.revokingAll) return;
+      this.revokingAll = true;
+      this.revokeAllError = '';
       try {
-        await api.delete('/auth/sessions/others/all');
-        this.sessions = this.sessions.filter((s) => s.is_current);
+        await api.delete('/auth/sessions/others/all', {
+          data: { current_password: this.revokeAllPassword },
+        });
+        await this.loadSessions();
+        this.showRevokeAllModal = false;
+        this.revokeAllPassword = '';
         this.$toast?.success?.('All other sessions have been revoked.');
       } catch (error) {
-        this.$toast?.error?.(error.response?.data?.message || 'Failed to revoke sessions.');
+        const status = error.response?.status;
+        const message = error.response?.data?.message;
+        if (status === 422) {
+          this.revokeAllError = message || 'Current password is incorrect.';
+        } else {
+          this.revokeAllError = message || 'Failed to revoke sessions. Please try again.';
+        }
+      } finally {
+        this.revokingAll = false;
       }
     },
     async changePassword() {
@@ -503,16 +570,10 @@ export default {
 }
 
 .tips-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 0.5rem 0;
   @apply text-spring-800;
-}
-
-.tip-icon.check {
-  @apply text-spring-500;
-  font-weight: bold;
+  list-style: disc;
+  margin-left: 1.25rem;
 }
 
 /* Modal/button/form styles are in app.css */

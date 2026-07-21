@@ -12,7 +12,32 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## Medium Priority
 
-*No medium priority items at this time.*
+### PR #303 mobile taxConfig migration — untested on real iOS build
+
+**Added:** 2026-05-16
+
+**What:** PR #303 (`mobile-taxconfig-migration`, merged to `dev` 2026-05-16) migrated the last 3 `@/constants/taxConfig` importers in `resources/js/mobile/` to the `taxConfig` Vuex store. It was browser-verified only on dev-served `/m/*` routes and a plain production `npm run build` — it was **NOT** run through `./deploy/mobile/build-ios.sh` (`npx cap sync ios`) and **NOT** verified on an iOS simulator or device.
+
+**Risk:** The Capacitor WKWebView wrapper exercises the same Vue components but a different asset/MIME path. Per CLAUDE.md mobile section + `feedback_ios_testing_checklist`, mobile-touching changes must pass the full iOS build chain before reaching csjones/main.
+
+**Files involved:**
+- `resources/js/mobile/views/RetirementDetail.vue`
+- `resources/js/mobile/views/EstateDetail.vue`
+- `resources/js/mobile/views/LearnHub.vue`
+- `resources/js/mobile/views/LearnTopicDetail.vue`
+- `resources/js/mobile/learn/learnTopics.js`
+
+**Action required when mobile work resumes (sub-project 3 — mobile-first surface):** Run `./deploy/mobile/build-ios.sh`, open `ios/App/App.xcworkspace`, and verify on the simulator/device:
+- `/m/learn` + `/m/learn/pensions` — dynamic tax values (£60,000 AA, State Pension weekly, active tax year) interpolate correctly
+- `/m/module/retirement` — Annual allowance accordion falls through to `taxConfig.pensionAnnualAllowance`
+- `/m/module/estate` — `nrb`/`rnrb` resolve via `taxConfig` store
+- Zero console errors, no blank screen, no `'image/png' is not a valid JavaScript MIME type'`
+
+Block sub-project 3 acceptance until this is green on a real iOS build.
+
+---
+
+*No other medium priority items at this time.*
 
 ---
 

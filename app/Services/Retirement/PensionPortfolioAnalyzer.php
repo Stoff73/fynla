@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
+use App\Models\User;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\SimpleAssetAllocationOptimizer;
+use App\Services\Stores\PensionStore;
 use Illuminate\Support\Collection;
 
 /**
@@ -33,13 +34,12 @@ class PensionPortfolioAnalyzer
      */
     public function analyze(int $userId, ?int $dcPensionId = null): array
     {
-        // Get DC pensions with holdings
-        $query = DCPension::where('user_id', $userId);
-        if ($dcPensionId) {
-            $query->where('id', $dcPensionId);
-        }
+        $user = User::findOrFail($userId);
+        $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc')->load('holdings');
 
-        $dcPensions = $query->with('holdings')->get();
+        if ($dcPensionId) {
+            $dcPensions = $dcPensions->where('id', $dcPensionId);
+        }
 
         // Filter pensions that have holdings
         $pensionsWithHoldings = $dcPensions->filter(function ($pension) {

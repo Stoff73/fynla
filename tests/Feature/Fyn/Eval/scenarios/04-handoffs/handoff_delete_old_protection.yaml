@@ -1,0 +1,90 @@
+id: handoff_delete_old_protection
+category: 04-handoffs
+description: |
+  Post-onboarding inline-capture handoff for a DELETE — user wants to
+  cancel an existing life insurance policy. delete_record is two-phase:
+  (1) first call returns confirmation_token + preview_message — DOES NOT
+  delete; (2) second call with the matching token actually deletes.
+  This scenario captures phase 1 (preview); phase 2 is a separate
+  scenario (handoff_delete_old_protection_confirm) deferred to S1.7.
+
+  Asserts:
+    - delete_record called WITHOUT confirmation_token on this turn.
+    - life_insurance_policies row count UNCHANGED (still 1).
+    - Tool result includes confirmation_token (64 chars) and preview_message.
+    - Assistant text echoes preview_message and asks the user to confirm.
+    - No persona_state_change / capturing-pill SSE.
+
+input:
+  turns:
+    - user: "Cancel my Aviva life insurance policy."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: true
+  protection_policies:
+    - { provider: Aviva, policy_type_group: life, sum_assured: 200000, monthly_premium: 18 }
+
+expected_classifications:
+  - data_entry
+
+expected_internal_tool_calls:
+  - tool: delegate_to_capture
+    args: { entity_types: [life_insurance] }
+
+expected_tool_calls:
+  - tool: delete_record
+    args: { entity_type: life_insurance }
+    args_absent: [confirmation_token]
+
+expected_tool_result_contains:
+  - confirmation_token
+  - preview_message
+
+expected_sse_events:
+  - { type: tool_use, name: delete_record }
+  - { type: tool_result }
+  - { type: content }
+  - { type: done }
+
+forbidden_sse_events:
+  - persona_state_change
+  - quick_replies
+  - entity_deleted
+
+expected_db_writes:
+  protection_policies: 1
+  note: "Phase 1 returns preview only — DB unchanged."
+
+forbidden_outputs:
+  - "I've cancelled"
+  - "I've deleted"
+  - "Done — your policy is removed"
+  - "switching to capture mode"
+
+forbidden_tools:
+  - create_protection_policy
+  - update_record
+
+eval_focus:
+  module: protection
+  expected_entity_count: 0
+  expected_delete_preview_count: 1
+  recall_floor: 100
+  precision_floor: 100
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms: 8000
+
+tags:
+  - regression-band-0
+  - handoff
+  - inline-capture
+  - delete
+  - delete-preview
+  - protection
+  - two-phase-confirmation

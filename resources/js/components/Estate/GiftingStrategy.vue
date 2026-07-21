@@ -40,7 +40,7 @@
         </div>
         <div class="bg-white rounded-lg p-4 border border-light-gray">
           <p class="text-sm text-violet-700 mb-1 font-medium">Annual Exemption</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">£{{ annualExemption.toLocaleString() }}/year</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">£{{ (annualGiftExemption || 0).toLocaleString() }}/year</p>
           <p class="text-xs text-violet-600">Immediately exempt gifts</p>
         </div>
         <div class="bg-white rounded-lg p-4 border border-light-gray">
@@ -460,7 +460,6 @@ import GiftForm from './GiftForm.vue';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
-import { ANNUAL_GIFT_EXEMPTION } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -479,7 +478,6 @@ export default {
       showGiftForm: false,
       currentGift: null,
       formMode: 'create',
-      annualExemption: ANNUAL_GIFT_EXEMPTION,
       successMessage: '',
       errorMessage: '',
       messageTimeout: null,
@@ -498,6 +496,7 @@ export default {
   computed: {
     ...mapState('estate', ['gifts']),
     ...mapGetters('estate', ['giftsWithin7Years', 'giftsWithin7YearsValue']),
+    ...mapGetters('taxConfig', ['annualGiftExemption']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -512,7 +511,7 @@ export default {
     },
 
     formattedAnnualExemption() {
-      return this.formatCurrency(this.annualExemption);
+      return this.formatCurrency(this.annualGiftExemption || 0);
     },
 
     sortedGifts() {

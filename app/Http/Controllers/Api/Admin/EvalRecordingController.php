@@ -1,0 +1,273 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\AiMessage;
+use App\Models\EvalProviderRun;
+use App\Models\EvalRecordingSession;
+use App\Services\Eval\EvalDeltaBuilder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+
+/**
+ * Read-only admin viewer for eval forensic recordings.
+ *
+ * - index: scenario × provider matrix across every recorded session
+ * - show:  one session with both provider runs side-by-side, plus a delta
+ *          report computed against the scenario YAML's expectations
+ * - raw:   the unparsed JSONL fixture file content (lazy-loaded)
+ * - systemPrompt: the assistant message's system_prompt (lazy-loaded)
+ */
+final class EvalRecordingController extends Controller
+{
+    public function __construct(
+        private readonly EvalDeltaBuilder $deltaBuilder,
+    ) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $sessions = EvalRecordingSession::query()
+            ->with(['previewUser:id,email', 'providerRuns:id,eval_recording_session_id,provider,model,duration_ms,sse_event_count,assistant_text,fixture_path,tool_calls,forbidden_hits'])
+            ->orderByDesc('started_at')
+            ->limit((int) $request->query('limit', 200))
+            ->get();
+
+        $rows = $sessions->map(function (EvalRecordingSession $s): array {
+            $runs = $s->providerRuns->map(fn (EvalProviderRun $r) => [
+                'id' => $r->id,
+                'provider' => $r->provider,
+                'model' => $r->model,
+                'duration_ms' => $r->duration_ms,
+                'sse_event_count' => $r->sse_event_count,
+                'response_chars' => mb_strlen((string) $r->assistant_text),
+                'tool_call_count' => is_array($r->tool_calls) ? count($r->tool_calls) : 0,
+                'forbidden_hit_count' => is_array($r->forbidden_hits) ? count($r->forbidden_hits) : 0,
+                'has_fixture' => $r->fixture_path && File::exists($r->fixture_path),
+            ])->values();
+
+            return [
+                'id' => $s->id,
+                'scenario_id' => $s->scenario_id,
+                'status' => $s->status,
+                'fynla_branch' => $s->fynla_branch,
+                'fynla_sha' => $s->fynla_sha,
+                'preview_user' => $s->previewUser ? [
+                    'id' => $s->previewUser->id,
+                    'email' => $s->previewUser->email,
+                ] : null,
+                'started_at' => optional($s->started_at)->toIso8601String(),
+                'completed_at' => optional($s->completed_at)->toIso8601String(),
+                'runs' => $runs,
+            ];
+        })->values();
+
+        return response()->json(['sessions' => $rows]);
+    }
+
+    public function show(int $sessionId): JsonResponse
+    {
+        $session = EvalRecordingSession::with([
+            'previewUser:id,email,first_name,surname,marital_status,onboarding_completed',
+            'providerRuns',
+        ])->findOrFail($sessionId);
+
+        $expected = $this->parseExpectations($session->scenario_yaml);
+        $fullYaml = is_array($expected['_full'] ?? null) ? $expected['_full'] : [];
+        unset($expected['_full']);
+
+        $runs = $session->providerRuns->map(function (EvalProviderRun $r) use ($fullYaml): array {
+            $delta = $this->deltaBuilder->build($r, $fullYaml);
+
+            return [
+                'id' => $r->id,
+                'provider' => $r->provider,
+                'model' => $r->model,
+                'conversation_id' => $r->conversation_id,
+                'duration_ms' => $r->duration_ms,
+                'sse_event_count' => $r->sse_event_count,
+                'sse_event_types' => $r->sse_event_types,
+                'user_message' => $r->user_message,
+                'assistant_text' => $r->assistant_text,
+                'tool_calls' => $r->tool_calls,
+                'forbidden_hits' => $r->forbidden_hits,
+                'db_writes_made' => $r->db_writes_made,
+                'engine_trace' => $r->engine_trace,
+                'fixture_path' => $r->fixture_path,
+                'fixture_exists' => $r->fixture_path && File::exists($r->fixture_path),
+                'has_system_prompt' => AiMessage::where('conversation_id', $r->conversation_id)
+                    ->where('role', 'assistant')
+                    ->whereNotNull('system_prompt')
+                    ->exists(),
+                'started_at' => optional($r->started_at)->toIso8601String(),
+                'completed_at' => optional($r->completed_at)->toIso8601String(),
+                'delta' => $delta,
+            ];
+        })->values();
+
+        return response()->json([
+            'session' => [
+                'id' => $session->id,
+                'scenario_id' => $session->scenario_id,
+                'scenario_path' => $session->scenario_path,
+                'scenario_yaml' => $session->scenario_yaml,
+                'persona' => $session->persona,
+                'http_log' => $session->http_log,
+                'status' => $session->status,
+                'fynla_branch' => $session->fynla_branch,
+                'fynla_sha' => $session->fynla_sha,
+                'preview_user' => $session->previewUser,
+                'start_state_snapshot' => $session->start_state_snapshot,
+                'remedial_report' => $session->remedial_report,
+                'started_at' => optional($session->started_at)->toIso8601String(),
+                'completed_at' => optional($session->completed_at)->toIso8601String(),
+            ],
+            'expected' => $expected,
+            'runs' => $runs,
+        ]);
+    }
+
+    /**
+     * Persist the human-authored remedial report for one session. Body shape:
+     *   { "remedial_report": "<markdown text or null>" }
+     * Sending null clears the report.
+     */
+    public function updateReport(int $sessionId, Request $request): JsonResponse
+    {
+        $session = EvalRecordingSession::findOrFail($sessionId);
+
+        $validated = $request->validate([
+            'remedial_report' => 'nullable|string|max:65535',
+        ]);
+
+        $session->remedial_report = $validated['remedial_report'] ?? null;
+        $session->save();
+
+        return response()->json([
+            'session_id' => $session->id,
+            'remedial_report' => $session->remedial_report,
+        ]);
+    }
+
+    public function rawFixture(int $runId): JsonResponse
+    {
+        $run = EvalProviderRun::findOrFail($runId);
+        if (! $run->fixture_path || ! File::exists($run->fixture_path)) {
+            return response()->json([
+                'fixture_path' => $run->fixture_path,
+                'exists' => false,
+                'content' => null,
+            ]);
+        }
+
+        return response()->json([
+            'fixture_path' => $run->fixture_path,
+            'exists' => true,
+            'bytes' => File::size($run->fixture_path),
+            'content' => File::get($run->fixture_path),
+        ]);
+    }
+
+    public function systemPrompt(int $runId): JsonResponse
+    {
+        $run = EvalProviderRun::findOrFail($runId);
+        $message = AiMessage::where('conversation_id', $run->conversation_id)
+            ->where('role', 'assistant')
+            ->whereNotNull('system_prompt')
+            ->orderByDesc('id')
+            ->first();
+
+        return response()->json([
+            'run_id' => $runId,
+            'conversation_id' => $run->conversation_id,
+            'system_prompt' => $message?->system_prompt,
+            'system_prompt_length' => $message?->system_prompt ? mb_strlen($message->system_prompt) : 0,
+            'input_tokens' => $message?->input_tokens,
+            'output_tokens' => $message?->output_tokens,
+        ]);
+    }
+
+    /**
+     * Build the expected payload the frontend's "Question asked & expected
+     * response" panel reads (`selectedSession.expected.X`). Returns the
+     * legacy keys (`tool_calls`, `forbidden_tools`, `timing_budget_ms`,
+     * etc.) so the existing Vue components keep rendering, AND the full
+     * parsed scenario under `_full` so EvalDeltaBuilder can read the
+     * new-shape keys (expected_classification_shape, expected_response_mode,
+     * etc.). `show()` strips `_full` before serialising the response — it
+     * is a builder-only key, never visible over the wire.
+     *
+     * The session's `scenario_yaml` column stores JSON text after the
+     * Task 11 / Task 13 cutover; the column name is preserved for backward
+     * compatibility with existing rows, but the contents are JSON.
+     */
+    private function parseExpectations(?string $scenarioJson): array
+    {
+        if (! is_string($scenarioJson) || $scenarioJson === '') {
+            return [];
+        }
+
+        $parsed = json_decode($scenarioJson, true);
+
+        if (! is_array($parsed)) {
+            return [];
+        }
+
+        $turns = $parsed['input']['turns'] ?? [];
+        $userMessage = '';
+        if (is_array($turns) && isset($turns[0]['user'])) {
+            $userMessage = (string) $turns[0]['user'];
+        }
+
+        // Legacy `classifications` — derive from new shape when present so
+        // the frontend's classification chips still populate.
+        $classifications = $parsed['expected_classifications'] ?? null;
+        if ($classifications === null && isset($parsed['expected_classification_shape']['primary'])) {
+            $shape = $parsed['expected_classification_shape'];
+            $classifications = array_values(array_filter(array_merge(
+                [$shape['primary']],
+                is_array($shape['related'] ?? null) ? $shape['related'] : [],
+            )));
+        }
+        $classifications = is_array($classifications) ? $classifications : [];
+
+        // Legacy `sse_events` — derive a flat list of {type: T} from the new
+        // structural rules block so the frontend has something to render.
+        $sseEvents = $parsed['expected_sse_events'] ?? null;
+        if (is_array($sseEvents) && ! array_is_list($sseEvents)) {
+            // New structural shape — convert must_contain_types to legacy list.
+            $types = $sseEvents['must_contain_types'] ?? [];
+            $sseEvents = is_array($types)
+                ? array_map(fn ($t) => ['type' => (string) $t], $types)
+                : [];
+        }
+        $sseEvents = is_array($sseEvents) ? $sseEvents : [];
+
+        // Legacy `timing_budget_ms` — int passthrough; if the new
+        // per-provider per-path map, expose null so the panel hides cleanly
+        // (rendering `[object Object]ms` would look broken).
+        $timingBudgetMs = $parsed['timing_budget_ms'] ?? null;
+        if (is_array($timingBudgetMs)) {
+            $timingBudgetMs = null;
+        }
+
+        return [
+            'description' => trim((string) ($parsed['description'] ?? '')),
+            'user_message' => $userMessage,
+            'classifications' => $classifications,
+            'tool_calls' => $parsed['expected_tool_calls'] ?? [],
+            'sse_events' => $sseEvents,
+            'advice_response' => $parsed['expected_advice_response'] ?? null,
+            'forbidden_outputs' => $parsed['forbidden_outputs'] ?? [],
+            'forbidden_tools' => $parsed['forbidden_tools'] ?? [],
+            'timing_budget_ms' => $timingBudgetMs,
+            'tags' => $parsed['tags'] ?? [],
+            // Full parsed YAML for EvalDeltaBuilder — reads new-shape keys
+            // (expected_classification_shape, expected_response_mode, etc.).
+            '_full' => $parsed,
+        ];
+    }
+}

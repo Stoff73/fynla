@@ -1,0 +1,82 @@
+id: handoff_add_savings_account
+category: 04-handoffs
+description: |
+  Post-onboarding inline-capture handoff (advice → capture → advice).
+  User in advice mode dictates a NEW savings account; AdviceFyn detects
+  write intent and emits the internal `delegate_to_capture` tool;
+  OnboardingChatDirector::handleInlineCapture invokes
+  `create_savings_account` direct-write handler; control returns to
+  AdviceFyn for the closing acknowledgement.
+
+  Asserts the canonical-contract invariants:
+    - Zero `persona_state_change` SSE events reach the frontend.
+    - Zero capturing-pill renders.
+    - Zero `quick_replies` on the handoff turn.
+    - Input placeholder text invariant.
+    - The synthetic `handoff` SSE event is consumed by AdviceFyn::wrapStream
+      and never reaches the frontend (INV-2.4.1).
+
+input:
+  turns:
+    - user: "I just opened a Marcus easy-access savings account with £3,000 in it."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: true
+  savings_accounts:
+    - { provider: HSBC, account_type: easy_access, balance: 8000 }
+
+expected_classifications:
+  - data_entry
+
+expected_internal_tool_calls:
+  - tool: delegate_to_capture
+    args: { entity_types: [savings_account] }
+
+expected_tool_calls:
+  - tool: create_savings_account
+    args: { provider: Marcus, account_type: easy_access, balance: 3000 }
+
+expected_sse_events:
+  - { type: tool_use, name: create_savings_account }
+  - { type: entity_created, entity_type: savings_account }
+  - { type: content }
+  - { type: done }
+
+forbidden_sse_events:
+  - persona_state_change
+  - quick_replies
+
+expected_db_writes:
+  savings_accounts: 2
+
+forbidden_outputs:
+  - "switching to capture mode"
+  - "let me hand you over"
+  - "I'll need you to fill in"
+
+forbidden_tools:
+  - update_record
+  - delete_record
+  - create_protection_policy
+  - create_pension
+
+eval_focus:
+  module: savings
+  expected_entity_count: 1
+  recall_floor: 100
+  precision_floor: 100
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms: 8000
+
+tags:
+  - regression-band-0
+  - handoff
+  - inline-capture
+  - add
+  - savings

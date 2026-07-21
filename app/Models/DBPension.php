@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class DBPension extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'pension';
+    }
 
     protected $table = 'db_pensions';
 
@@ -35,6 +41,11 @@ class DBPension extends Model
         'spouse_pension_percent',
         'lump_sum_entitlement',
         'inflation_protection',
+        // SP1 Pass 3 / PR 6 — derived columns
+        'projected_annual_pension_at_nra_gbp',
+        'projected_annual_pension_at_nra_gbp_calculated_at',
+        'spouse_pension_projected_gbp',
+        'spouse_pension_projected_gbp_calculated_at',
     ];
 
     protected $casts = [
@@ -44,6 +55,11 @@ class DBPension extends Model
         'normal_retirement_age' => 'integer',
         'spouse_pension_percent' => 'decimal:2',
         'lump_sum_entitlement' => 'decimal:2',
+        // SP1 Pass 3 / PR 6 — derived columns
+        'projected_annual_pension_at_nra_gbp' => 'decimal:2',
+        'projected_annual_pension_at_nra_gbp_calculated_at' => 'datetime',
+        'spouse_pension_projected_gbp' => 'decimal:2',
+        'spouse_pension_projected_gbp_calculated_at' => 'datetime',
     ];
 
     /**

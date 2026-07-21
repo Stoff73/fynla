@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\SavingsAccount;
+use App\Models\User;
+use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\SavingsAccount>
+ * @extends Factory<SavingsAccount>
  */
 class SavingsAccountFactory extends Factory
 {
@@ -19,7 +22,7 @@ class SavingsAccountFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'account_type' => fake()->randomElement(['easy_access', 'notice', 'fixed_rate']),
             'institution' => fake()->company(),
             'account_number' => fake()->numerify('########'),
@@ -33,5 +36,31 @@ class SavingsAccountFactory extends Factory
             'isa_subscription_year' => null,
             'isa_subscription_amount' => null,
         ];
+    }
+
+    public function joint(?User $partner = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'ownership_type' => 'joint',
+            'joint_owner_id' => $partner?->id ?? User::factory(),
+            'ownership_percentage' => 50.00,
+            // Joint ISAs do not exist in UK law — never combine isa() with joint().
+            'is_isa' => false,
+        ]);
+    }
+
+    public function isa(): static
+    {
+        return $this->state(fn () => [
+            'account_type' => 'cash_isa',
+            'is_isa' => true,
+            'isa_type' => 'cash',
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
+            'isa_subscription_amount' => fake()->randomFloat(2, 1000, 20000),
+            // Explicit: ISAs are individual-only.
+            'ownership_type' => 'individual',
+            'joint_owner_id' => null,
+            'ownership_percentage' => 100.00,
+        ]);
     }
 }

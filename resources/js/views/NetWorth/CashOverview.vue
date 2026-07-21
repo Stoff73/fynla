@@ -1,6 +1,6 @@
 <template>
   <div class="cash-overview module-gradient">
-    <ModuleStatusBar />
+      <ModuleStatusBar />
     <!-- Account Detail View (when account selected) -->
     <SavingsAccountDetailInline
       v-if="selectedAccount"
@@ -251,11 +251,16 @@
           </div>
         </div>
 
-        <!-- Open Banking Card -->
-        <div class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
-          <div class="flex items-center gap-2.5 mb-4">
-            <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
-            <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
+        <!-- Open Banking Card — shown only when the Premium affordance flag is true. -->
+        <div v-if="openApiAffordance" class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
+              <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
+            </div>
+            <button disabled class="px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-100 border border-neutral-200 rounded-lg cursor-not-allowed">
+              Connect via Open Banking — coming soon
+            </button>
           </div>
           <p class="text-sm text-neutral-500 mb-4">
             Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
@@ -308,7 +313,18 @@
         @close="closeAccountModal"
       />
     </Teleport>
-  </div>
+
+    <!-- Tier count-cap reached -->
+    <Teleport to="body">
+      <LimitReachedModal
+        :show="showLimitModal"
+        entity-label="cash accounts"
+        :cap="tierCountCap('savings_account') || 0"
+        :tier-label="tierLabel"
+        @close="showLimitModal = false"
+      />
+    </Teleport>
+    </div>
 </template>
 
 <script>
@@ -316,6 +332,8 @@ import { mapState, mapActions, mapGetters } from 'vuex';
 import estateService from '@/services/estateService';
 import userProfileService from '@/services/userProfileService';
 import currencyMixin from '@/mixins/currencyMixin';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import AccountSummaryPanel from '@/components/Cash/AccountSummaryPanel.vue';
 import CashInsightsPanel from '@/components/Cash/CashInsightsPanel.vue';
 import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
@@ -334,9 +352,10 @@ export default {
     SaveAccountModal,
     SavingsAccountDetailInline,
     ModuleStatusBar,
+    LimitReachedModal,
   },
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, tierLimitMixin],
 
   data() {
     return {
@@ -344,6 +363,7 @@ export default {
       creditCardsLoading: false,
       selectedAccount: null,
       showAccountModal: false,
+      showLimitModal: false,
       editingAccount: null,
       defaultAccountType: '',
       // Financial commitments from user profile API
@@ -358,6 +378,7 @@ export default {
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
+    ...mapGetters('auth', ['openApiAffordance']),
 
     // Filter accounts by type for real users view
     currentAccounts() {
@@ -500,13 +521,13 @@ export default {
   },
 
   async mounted() {
+    await this.loadAllData();
+
     // Check for pendingFill that was set before this component mounted
     const fill = this.$store.state.aiFormFill?.pendingFill;
     if (fill && fill.entityType === 'savings_account' && fill.mode !== 'edit') {
       this.openAddAccountModal('');
     }
-
-    await this.loadAllData();
   },
 
   methods: {
@@ -602,6 +623,14 @@ export default {
     },
 
     openAddAccountModal(accountType) {
+      // All cash products (current / savings / ISA / NS&I) count against the
+      // single `savings_account` cap. At cap, show the upgrade modal instead of
+      // an add form that would fail server-side. Preview users bypass (their
+      // writes are intercepted separately).
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('savings_account', this.accounts.length)) {
+        this.showLimitModal = true;
+        return;
+      }
       this.editingAccount = null;
       this.defaultAccountType = accountType;
       this.showAccountModal = true;

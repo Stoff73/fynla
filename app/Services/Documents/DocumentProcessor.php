@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Documents;
 
+use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Document;
+use App\Models\DocumentExtraction;
 use App\Models\DocumentExtractionLog;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Documents\FieldMappers\DBPensionMapper;
 use App\Services\Documents\FieldMappers\DCPensionMapper;
@@ -15,6 +21,15 @@ use App\Services\Documents\FieldMappers\FieldMapperInterface;
 use App\Services\Documents\FieldMappers\InvestmentAccountMapper;
 use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
 use App\Services\Documents\FieldMappers\ProtectionMapper;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -275,10 +290,10 @@ class DocumentProcessor
                         $sheet['content'],
                     );
 
-                    $extraction = \App\Models\DocumentExtraction::create([
+                    $extraction = DocumentExtraction::create([
                         'document_id' => $document->id,
                         'extraction_version' => 1,
-                        'model_used' => config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning'),
+                        'model_used' => config('services.xai.vision_model', 'grok-4.3'),
                         'raw_response' => json_encode($extracted),
                         'extracted_fields' => $extracted,
                         'field_confidence' => $extracted['confidence'] ?? [],
@@ -375,9 +390,18 @@ class DocumentProcessor
                         $accountData['user_id'] = $user->id;
 
                         if ($category === 'investment_holdings') {
-                            $account = InvestmentAccount::create($accountData);
+                            $account = app(InvestmentAccountStore::class)->create(
+                                app(InvestmentAccountNormaliser::class)->fromUpload($accountData, $user),
+                                $user,
+                                IngestSource::UPLOAD
+                            );
                         } else {
-                            $account = DCPension::create($accountData);
+                            $canonical = app(PensionNormaliser::class)->fromUploadDc($accountData);
+                            $account = app(PensionStore::class)->createDc(
+                                $canonical,
+                                $user,
+                                IngestSource::UPLOAD
+                            );
                         }
                     }
 
@@ -394,8 +418,11 @@ class DocumentProcessor
                 } elseif ($category === 'cash_savings') {
                     $mapper = new FieldMappers\SavingsAccountMapper;
                     $mapped = $mapper->map($sheet['account'] ?? []);
-                    $mapped['user_id'] = $user->id;
-                    $model = \App\Models\SavingsAccount::create($mapped);
+                    $model = app(SavingsStore::class)->create(
+                        app(SavingsAccountNormaliser::class)->fromUpload($mapped),
+                        $user,
+                        IngestSource::UPLOAD
+                    );
                     $results[] = [
                         'sheet_name' => $sheet['sheet_name'],
                         'category' => $category,
@@ -406,8 +433,12 @@ class DocumentProcessor
                     $mapper = new FieldMappers\PropertyMapper;
                     foreach ($sheet['properties'] ?? [$sheet['account'] ?? []] as $propertyData) {
                         $mapped = $mapper->map($propertyData);
-                        $mapped['user_id'] = $user->id;
-                        $model = \App\Models\Property::create($mapped);
+                        $canonical = app(PropertyNormaliser::class)->fromUpload($mapped);
+                        $model = app(PropertyStore::class)->create(
+                            $canonical,
+                            $user,
+                            IngestSource::UPLOAD
+                        );
                         $results[] = [
                             'sheet_name' => $sheet['sheet_name'],
                             'category' => $category,
@@ -466,13 +497,13 @@ class DocumentProcessor
     private function registerMappers(): void
     {
         $this->mappers = [
-            \App\Models\DCPension::class => new DCPensionMapper,
-            \App\Models\DBPension::class => new DBPensionMapper,
-            \App\Models\LifeInsurancePolicy::class => new LifeInsuranceMapper,
-            \App\Models\Investment\InvestmentAccount::class => new InvestmentAccountMapper,
-            \App\Models\Property::class => new FieldMappers\PropertyMapper,
-            \App\Models\SavingsAccount::class => new FieldMappers\SavingsAccountMapper,
-            \App\Models\Mortgage::class => new FieldMappers\MortgageMapper,
+            DCPension::class => new DCPensionMapper,
+            DBPension::class => new DBPensionMapper,
+            LifeInsurancePolicy::class => new LifeInsuranceMapper,
+            InvestmentAccount::class => new InvestmentAccountMapper,
+            Property::class => new FieldMappers\PropertyMapper,
+            SavingsAccount::class => new FieldMappers\SavingsAccountMapper,
+            Mortgage::class => new FieldMappers\MortgageMapper,
         ];
     }
 }

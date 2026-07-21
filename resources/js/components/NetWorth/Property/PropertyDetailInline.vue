@@ -140,7 +140,9 @@
                       <dd class="text-sm font-medium text-horizon-500">{{ property.ownership_percentage }}%</dd>
                     </div>
                     <div v-if="jointOwnerDisplayName" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                      <dt class="text-sm text-neutral-500">{{ jointOwnerDisplayName }}:</dt>
+                      <dt class="text-sm text-neutral-500">
+                        {{ jointOwnerDisplayName }}<span v-if="jointOwnerDeactivated" class="ml-1 text-xs text-neutral-400">(Deactivated)</span>:
+                      </dt>
                       <dd class="text-sm font-medium text-horizon-500">{{ jointOwnerPercentage }}%</dd>
                     </div>
                   </template>
@@ -385,7 +387,9 @@
                       </div>
                       <div v-if="isSharedOwnership && (mortgage.joint_owner_name || jointOwnerDisplayName)" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Joint Owner:</dt>
-                        <dd class="text-sm font-medium text-horizon-500">{{ mortgage.joint_owner_name || jointOwnerDisplayName }}</dd>
+                        <dd class="text-sm font-medium text-horizon-500">
+                          {{ mortgage.joint_owner_name || jointOwnerDisplayName }}<span v-if="jointOwnerDeactivated" class="ml-1 text-xs text-neutral-400">(Deactivated)</span>
+                        </dd>
                       </div>
                     </dl>
                   </div>
@@ -615,6 +619,10 @@ export default {
       if (!this.property) return null;
       // Return the joint owner name if set (either from linked user or free text)
       return this.property.joint_owner_name || null;
+    },
+
+    jointOwnerDeactivated() {
+      return !!this.property?.joint_owner_deactivated;
     },
 
     jointOwnerPercentage() {

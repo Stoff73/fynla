@@ -3,7 +3,12 @@ import api from './api';
 const insightsService = {
   // Public
   async list({ category } = {}) {
-    const params = {};
+    // `_t` makes the URL unique per request so an upstream proxy that
+    // ignores Cache-Control: private (SiteGround edge has been observed
+    // serving a stale text/html response for /api/insights on csjones)
+    // misses cache and the SPA always sees the live JSON. Backend
+    // ignores unknown query params.
+    const params = { _t: Date.now() };
     if (category) params.category = category;
     return (await api.get('/insights', { params })).data;
   },

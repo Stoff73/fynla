@@ -144,7 +144,7 @@ Blocks element interaction in preview mode. Adds disabled state, tooltip, and cl
 
 ## Layouts
 
-- **AppLayout** - Authenticated pages: Navbar, TrialCountdownBanner, PreviewBanner, content slot (`max-w-7xl`), Footer, InfoGuidePanel
+- **AppLayout** - Authenticated pages: Navbar, PreviewBanner, content slot (`max-w-7xl`), Footer, InfoGuidePanel
 - **PublicLayout** - Public pages: navigation, login/register buttons, footer
 
 ## Mobile App (Capacitor)

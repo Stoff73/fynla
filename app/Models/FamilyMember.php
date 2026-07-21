@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -48,6 +49,15 @@ class FamilyMember extends Model
     ];
 
     /**
+     * Append the computed age so it always appears in toArray / toJson output.
+     * Without this, API consumers and tests that expect `family_member.age`
+     * see nothing even when date_of_birth is populated correctly (B-3).
+     *
+     * @var list<string>
+     */
+    protected $appends = ['age'];
+
+    /**
      * Get the user that owns this family member record.
      */
     public function user(): BelongsTo
@@ -69,6 +79,20 @@ class FamilyMember extends Model
     public function linkedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'linked_user_id');
+    }
+
+    /**
+     * B-3 — computed age from date_of_birth. Returns null when DOB is
+     * missing. Uses diffInYears (not floor(diffInMonths/12)) so leap
+     * years and month boundaries work correctly.
+     */
+    public function getAgeAttribute(): ?int
+    {
+        if ($this->date_of_birth === null) {
+            return null;
+        }
+
+        return (int) $this->date_of_birth->diffInYears(now());
     }
 
     /**
@@ -97,7 +121,7 @@ class FamilyMember extends Model
                 }
                 try {
                     return Crypt::decryptString($value);
-                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                } catch (DecryptException $e) {
                     return $value;
                 }
             },

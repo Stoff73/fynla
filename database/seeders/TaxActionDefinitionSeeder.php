@@ -10,8 +10,11 @@ use Illuminate\Database\Seeder;
 /**
  * Seed the tax_action_definitions table with all action types.
  *
- * Seeds 5 agent-sourced tax optimisation action definitions.
- * Uses updateOrCreate on `key` for idempotency.
+ * Seeds 5 agent-sourced tax optimisation action definitions (disabled — orphaned
+ * TaxActionDefinitionService has zero callers) and 20 strategy-registry metadata
+ * rows (source='strategy') linking to the June Tax/Strategies classes. Priorities
+ * follow the canonical catalogue (fynlaBrain April30Updates/savetax-strategy-catalogue.md).
+ * Uses updateOrCreate for idempotency.
  *
  * Run: php artisan db:seed --class=TaxActionDefinitionSeeder --force
  */
@@ -19,6 +22,7 @@ class TaxActionDefinitionSeeder extends Seeder
 {
     public function run(): void
     {
+        // ── Legacy agent-sourced definitions (orphaned TaxActionDefinitionService) ──
         $definitions = $this->getDefinitions();
 
         foreach ($definitions as $definition) {
@@ -27,6 +31,227 @@ class TaxActionDefinitionSeeder extends Seeder
                 $definition
             );
         }
+
+        // ── Catalogue metadata for the June strategy registry (source: 'strategy') ──
+        // One row per distinct StrategyRecommendation::type emitted by the
+        // Tax/Strategies classes. The strategy class remains the quantifier; this
+        // row carries admin-visible metadata (claim tier, data requirements,
+        // sequencing) consumed by the plan composer. Priorities follow the
+        // canonical catalogue (fynlaBrain April30Updates/savetax-strategy-catalogue.md).
+        foreach ($this->strategyMetadata() as $meta) {
+            TaxActionDefinition::updateOrCreate(
+                ['strategy_type' => $meta['strategy_type']],
+                $meta + [
+                    'key' => 'strategy_'.$meta['strategy_type'],
+                    'source' => 'strategy',
+                    'title_template' => $meta['strategy_type'],   // display copy comes from the strategy DTO
+                    'description_template' => 'Computed by the '.$meta['strategy_type'].' strategy.',
+                    'scope' => 'portfolio',
+                    'is_enabled' => true,
+                    'sort_order' => 100,
+                    'trigger_config' => [],   // strategy classes are self-triggering; no agent-side config needed
+                ]
+            );
+        }
+
+        // The March 'agent' evaluators duplicate the strategy registry and their
+        // service (TaxActionDefinitionService) is orphaned — disable, don't delete.
+        TaxActionDefinition::where('source', 'agent')->update(['is_enabled' => false]);
+    }
+
+    private function strategyMetadata(): array
+    {
+        return [
+            // ── A. Income-band driven (single-user) ──────────────────────
+
+            [
+                'strategy_type' => 'pa_taper_rescue',
+                'category' => 'income_band',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'additional_rate_avoidance',
+                'category' => 'income_band',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'salary_sacrifice_ni',
+                'category' => 'income_band',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['employment_status', 'annual_income', 'workplace_pension'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            // ── B. Allowance harvesting (single-user) ─────────────────────
+
+            [
+                'strategy_type' => 'isa_topup_vs_psa',
+                'category' => 'allowance',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['savings_balances', 'isa_subscriptions_ytd'],
+                'sequencing' => ['do_before' => ['savings_to_spouse'], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'bed_and_isa',
+                'category' => 'allowance',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['gia_holdings', 'isa_subscriptions_ytd', 'annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'dividend_allowance_harvest',
+                'category' => 'allowance',
+                'priority' => 'low',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['dividend_income', 'gia_holdings'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'pension_aa_carry_forward',
+                'category' => 'allowance',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['pension_input_history', 'annual_income', 'pension_contributions'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'gift_aid_higher_rate_relief',
+                'category' => 'allowance',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['charitable_giving', 'annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            // ── C. Household / spouse strategies ─────────────────────────
+
+            [
+                'strategy_type' => 'marriage_allowance_transfer',
+                'category' => 'household',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['marital_status', 'annual_income', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'savings_to_spouse',
+                'category' => 'household',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split']],
+            ],
+
+            [
+                'strategy_type' => 'isa_topup_spouse',
+                'category' => 'household',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['marital_status', 'isa_subscriptions_ytd', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'gia_to_spouse',
+                'category' => 'household',
+                'priority' => 'high',
+                'claim_tier' => 'judgement',
+                'required_data' => ['marital_status', 'gia_holdings', 'dividend_income', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'gia_rebalance',
+                'category' => 'household',
+                'priority' => 'high',
+                'claim_tier' => 'judgement',
+                'required_data' => ['marital_status', 'gia_holdings', 'dividend_income', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'isa_coordination',
+                'category' => 'household',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['marital_status', 'isa_subscriptions_ytd', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'non_earner_spouse_pension',
+                'category' => 'household',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['marital_status', 'spouse_income', 'pension_contributions'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'joint_savings_psa_split',
+                'category' => 'household',
+                'priority' => 'low',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['savings_to_spouse']],
+            ],
+
+            // ── D. Warning strategies ──────────────────────────────────────
+
+            [
+                'strategy_type' => 'tapered_annual_allowance',
+                'category' => 'warning',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['annual_income', 'dividend_income', 'pension_contributions', 'workplace_pension'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            // ── E. Lifecycle / dependant strategies ───────────────────────
+
+            [
+                'strategy_type' => 'lifetime_isa',
+                'category' => 'lifecycle',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['date_of_birth', 'savings_balances', 'isa_subscriptions_ytd'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'junior_isa',
+                'category' => 'lifecycle',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['date_of_birth'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'junior_pension',
+                'category' => 'lifecycle',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['date_of_birth'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+        ];
     }
 
     private function getDefinitions(): array

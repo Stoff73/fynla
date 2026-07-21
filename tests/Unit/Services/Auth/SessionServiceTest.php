@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Auth\SessionService;
+use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\TransientToken;
 
 beforeEach(function () {
     $this->sessionService = new SessionService;
@@ -185,12 +187,55 @@ describe('cleanupOrphanedSessions', function () {
 
         // Disable FK checks, set token_id to a non-existent value, re-enable FK checks
         // This simulates an orphaned session without cascading deletes
-        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         $session->update(['token_id' => 999999]);
-        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $count = $this->sessionService->cleanupOrphanedSessions();
 
         expect($count)->toBe(1);
+    });
+});
+
+describe('updateCurrentSessionActivity', function () {
+    it('refreshes last_activity_at on the matching session row for a PAT', function () {
+        $token = $this->user->createToken('test-token');
+        $accessToken = $token->accessToken;
+        $session = UserSession::createForToken($this->user, $accessToken);
+        UserSession::where('id', $session->id)->update(['last_activity_at' => now()->subHours(2)]);
+
+        $this->user->withAccessToken($accessToken);
+        $before = UserSession::find($session->id)->last_activity_at;
+
+        $this->sessionService->updateCurrentSessionActivity($this->user);
+
+        $after = UserSession::find($session->id)->last_activity_at;
+        expect($after->greaterThan($before))->toBeTrue()
+            ->and($after->diffInSeconds(now()))->toBeLessThan(5);
+    });
+
+    it('silently no-ops when current token is a TransientToken (stateful SPA auth)', function () {
+        $this->user->withAccessToken(new TransientToken);
+
+        // Must not throw "Undefined property: TransientToken::\$id"
+        $this->sessionService->updateCurrentSessionActivity($this->user);
+
+        expect(true)->toBeTrue();
+    });
+
+    it('silently no-ops when user has no current access token', function () {
+        $this->sessionService->updateCurrentSessionActivity($this->user);
+
+        expect(true)->toBeTrue();
+    });
+
+    it('silently no-ops when no session row matches the current token', function () {
+        $token = $this->user->createToken('test-token');
+        $this->user->withAccessToken($token->accessToken);
+
+        // No UserSession row created for this token
+        $this->sessionService->updateCurrentSessionActivity($this->user);
+
+        expect(UserSession::where('user_id', $this->user->id)->count())->toBe(0);
     });
 });

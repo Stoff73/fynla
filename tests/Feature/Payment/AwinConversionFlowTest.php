@@ -7,6 +7,9 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\RevolutService;
+use Database\Seeders\RolesPermissionsSeeder;
+use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
@@ -15,9 +18,9 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
-    $this->seed(\Database\Seeders\SubscriptionPlanSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 
     config()->set('awin.enabled', true);
     config()->set('awin.merchant_id', '126105');
@@ -42,7 +45,7 @@ function mockRevolutForCreateOrder(): void
     app()->instance(RevolutService::class, $mock);
 }
 
-function mockRevolutForConfirm(string $orderId): void
+function mockRevolutForConfirm(string $orderId, int $amount = 1499): void
 {
     $mock = Mockery::mock(RevolutService::class);
     $mock->shouldReceive('getOrder')
@@ -51,7 +54,7 @@ function mockRevolutForConfirm(string $orderId): void
             'id' => $orderId,
             'state' => 'completed',
             'capture_mode' => 'automatic',
-            'amount' => 1099,
+            'amount' => $amount,
             'currency' => 'GBP',
         ]);
     app()->instance(RevolutService::class, $mock);
@@ -66,11 +69,11 @@ describe('createOrder captures Awin attribution', function () {
         mockRevolutForCreateOrder();
         $user = User::factory()->create(['revolut_customer_id' => 'cust_123']);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'click-ref-xyz')
             ->postJson('/api/payment/create-order', [
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
             ]);
 
@@ -86,9 +89,9 @@ describe('createOrder captures Awin attribution', function () {
         mockRevolutForCreateOrder();
         $user = User::factory()->create(['revolut_customer_id' => 'cust_123']);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/create-order', [
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
             ])->assertOk();
 
@@ -106,9 +109,9 @@ describe('createOrder captures Awin attribution', function () {
             'status' => 'completed',
         ]);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/create-order', [
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
             ])->assertOk();
 
@@ -124,11 +127,11 @@ describe('createOrder captures Awin attribution', function () {
         mockRevolutForCreateOrder();
         $user = User::factory()->create(['revolut_customer_id' => 'cust_123']);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'should-be-ignored')
             ->postJson('/api/payment/create-order', [
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
             ])->assertOk();
 
@@ -145,11 +148,11 @@ describe('createOrder captures Awin attribution', function () {
             'is_admin' => true,
         ]);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'should-be-ignored')
             ->postJson('/api/payment/create-order', [
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
             ])->assertOk();
 
@@ -166,10 +169,10 @@ describe('confirmPayment dispatches the conversion job', function () {
         $user = User::factory()->create();
         $subscription = Subscription::create([
             'user_id' => $user->id,
-            'plan' => 'standard',
+            'plan' => 'premium',
             'billing_cycle' => 'monthly',
             'status' => 'active',
-            'amount' => 1099,
+            'amount' => 1499,
             'current_period_start' => now(),
             'current_period_end' => now()->addMonth(),
         ]);
@@ -179,11 +182,11 @@ describe('confirmPayment dispatches the conversion job', function () {
             'subscription_id' => $subscription->id,
             'user_id' => $user->id,
             'revolut_order_id' => $orderId,
-            'amount' => 1099,
+            'amount' => 1499,
             'currency' => 'GBP',
             'status' => 'pending',
-            'description' => 'Standard Monthly',
-            'plan_slug' => 'standard',
+            'description' => 'Premium Monthly',
+            'plan_slug' => 'premium',
             'billing_cycle' => 'monthly',
             'discount_amount' => 0,
             'revolut_payment_data' => ['state' => 'pending', 'id' => $orderId],
@@ -191,7 +194,7 @@ describe('confirmPayment dispatches the conversion job', function () {
             'awin_customer_acquisition' => 'new',
         ]);
 
-        mockRevolutForConfirm($orderId);
+        mockRevolutForConfirm($orderId, (int) $payment->amount);
 
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/confirm', ['order_id' => $orderId])
@@ -209,10 +212,10 @@ describe('confirmPayment dispatches the conversion job', function () {
         $user = User::factory()->create();
         $subscription = Subscription::create([
             'user_id' => $user->id,
-            'plan' => 'standard',
+            'plan' => 'premium',
             'billing_cycle' => 'monthly',
             'status' => 'active',
-            'amount' => 1099,
+            'amount' => 1499,
             'current_period_start' => now(),
             'current_period_end' => now()->addMonth(),
         ]);
@@ -222,11 +225,11 @@ describe('confirmPayment dispatches the conversion job', function () {
             'subscription_id' => $subscription->id,
             'user_id' => $user->id,
             'revolut_order_id' => $orderId,
-            'amount' => 1099,
+            'amount' => 1499,
             'currency' => 'GBP',
             'status' => 'pending',
-            'description' => 'Standard Monthly',
-            'plan_slug' => 'standard',
+            'description' => 'Premium Monthly',
+            'plan_slug' => 'premium',
             'billing_cycle' => 'monthly',
             'discount_amount' => 0,
             'revolut_payment_data' => ['state' => 'pending', 'id' => $orderId],
@@ -247,10 +250,10 @@ describe('confirmPayment dispatches the conversion job', function () {
         $user = User::factory()->create(['is_admin' => true]);
         $subscription = Subscription::create([
             'user_id' => $user->id,
-            'plan' => 'standard',
+            'plan' => 'premium',
             'billing_cycle' => 'monthly',
             'status' => 'active',
-            'amount' => 1099,
+            'amount' => 1499,
             'current_period_start' => now(),
             'current_period_end' => now()->addMonth(),
         ]);
@@ -260,11 +263,11 @@ describe('confirmPayment dispatches the conversion job', function () {
             'subscription_id' => $subscription->id,
             'user_id' => $user->id,
             'revolut_order_id' => $orderId,
-            'amount' => 1099,
+            'amount' => 1499,
             'currency' => 'GBP',
             'status' => 'pending',
-            'description' => 'Standard Monthly',
-            'plan_slug' => 'standard',
+            'description' => 'Premium Monthly',
+            'plan_slug' => 'premium',
             'billing_cycle' => 'monthly',
             'discount_amount' => 0,
             'revolut_payment_data' => ['state' => 'pending', 'id' => $orderId],
@@ -294,7 +297,7 @@ describe('end-to-end: createOrder → confirmPayment → Awin S2S', function () 
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'e2e-test-click')
             ->postJson('/api/payment/create-order', [
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
             ]);
 
@@ -306,7 +309,7 @@ describe('end-to-end: createOrder → confirmPayment → Awin S2S', function () 
         expect($payment->awin_customer_acquisition)->toBe('new');
 
         // Step 2: confirmPayment — fires the job (sync) → hits Http fake
-        mockRevolutForConfirm($orderId);
+        mockRevolutForConfirm($orderId, (int) $payment->amount);
 
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/confirm', ['order_id' => $orderId])
@@ -318,9 +321,9 @@ describe('end-to-end: createOrder → confirmPayment → Awin S2S', function () 
 
             return str_starts_with($request->url(), 'https://www.awin1.com/sread.php')
                 && $data['merchant'] === '126105'
-                && $data['amount'] === '10.99'
+                && $data['amount'] === '6.99'
                 && $data['ref'] === "FYN-PAY-{$payment->id}"
-                && $data['parts'] === 'SUB:10.99'
+                && $data['parts'] === 'SUB:6.99'
                 && $data['customeracquisition'] === 'new'
                 && $data['cks'] === 'e2e-test-click';
         });

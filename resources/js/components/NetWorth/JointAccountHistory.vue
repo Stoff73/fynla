@@ -373,8 +373,8 @@ export default {
 }
 
 .log-type.type-savings {
-  @apply bg-indigo-100;
-  @apply text-indigo-700;
+  @apply bg-violet-100;
+  @apply text-violet-700;
 }
 
 .log-action {

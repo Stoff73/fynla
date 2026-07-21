@@ -6,8 +6,8 @@ namespace App\Services\Retirement;
 
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -130,7 +130,7 @@ class PensionContributionOptimizer
 
         // Only subtract state pension if user retires at or after state pension age
         $userId = $profile->user_id;
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
         $statePensionAge = $statePension ? ($statePension->state_pension_age ?? 67) : 67;
         $retiresBeforeSPA = $profile->target_retirement_age < $statePensionAge;
 
@@ -208,8 +208,10 @@ class PensionContributionOptimizer
      */
     public function checkEmployerMatch(DCPension $pension): array
     {
-        $employeeContribution = (float) $pension->employee_contribution_percent ?? 0.0;
-        $employerContribution = (float) $pension->employer_contribution_percent ?? 0.0;
+        // Null-coalesce first, then cast — `(float) $x ?? 0.0` is dead-coalesce
+        // because (float) never returns null. REVIEW.md §4 High #25.
+        $employeeContribution = (float) ($pension->employee_contribution_percent ?? 0.0);
+        $employerContribution = (float) ($pension->employer_contribution_percent ?? 0.0);
 
         // Common employer match scenarios
         // Use configured employer match threshold
@@ -458,7 +460,11 @@ class PensionContributionOptimizer
         $total = 0.0;
 
         foreach ($pensions as $pension) {
-            $monthlyContribution = (float) $pension->monthly_contribution_amount ?? 0.0;
+            // Parens matter: `(float) $x ?? 0.0` is parsed as `((float) $x) ?? 0.0`,
+            // and `(float)` never returns null — so the `?? 0.0` branch is dead.
+            // Null-coalesce first, then cast, so the fallback actually fires for
+            // null monthly_contribution_amount. REVIEW.md §4 High #25.
+            $monthlyContribution = (float) ($pension->monthly_contribution_amount ?? 0.0);
             $total += $monthlyContribution * 12;
         }
 

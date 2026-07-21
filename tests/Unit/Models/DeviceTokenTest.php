@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 use App\Models\DeviceToken;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 describe('DeviceToken', function () {
     it('belongs to a user', function () {
@@ -40,7 +43,7 @@ describe('DeviceToken', function () {
             'last_used_at' => '2026-03-10 12:00:00',
         ]);
 
-        expect($token->last_used_at)->toBeInstanceOf(\Illuminate\Support\Carbon::class);
+        expect($token->last_used_at)->toBeInstanceOf(Carbon::class);
     });
 
     it('enforces unique user_id + device_id constraint', function () {
@@ -50,6 +53,6 @@ describe('DeviceToken', function () {
         expect(fn () => DeviceToken::factory()->create([
             'user_id' => $user->id,
             'device_id' => 'device-1',
-        ]))->toThrow(\Illuminate\Database\QueryException::class);
+        ]))->toThrow(QueryException::class);
     });
 });

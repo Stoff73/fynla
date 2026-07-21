@@ -48,8 +48,8 @@
         </div>
 
         <div class="bg-savannah-100 rounded-lg p-4">
-          <p class="text-sm text-purple-700">Interest Rate</p>
-          <p class="text-xl font-bold text-purple-900">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</p>
+          <p class="text-sm text-violet-700">Interest Rate</p>
+          <p class="text-xl font-bold text-violet-900">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</p>
         </div>
 
         <div class="bg-savannah-100 rounded-lg p-4">

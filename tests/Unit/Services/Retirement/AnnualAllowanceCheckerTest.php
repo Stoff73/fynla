@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Mock TaxConfigService
@@ -80,7 +84,9 @@ it('returns zero carry forward when no prior year data is entered', function () 
 });
 
 it('checks MPAA status when not triggered', function () {
-    $mpaaStatus = $this->checker->checkMPAA(1);
+    $user = User::factory()->create();
+
+    $mpaaStatus = $this->checker->checkMPAA($user->id);
 
     expect($mpaaStatus)->toHaveKeys(['is_triggered', 'mpaa_amount', 'message'])
         ->and($mpaaStatus['is_triggered'])->toBeFalse()

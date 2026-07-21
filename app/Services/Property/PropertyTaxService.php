@@ -213,9 +213,13 @@ class PropertyTaxService
         $personalAllowance = $incomeTaxConfig['personal_allowance'];
         $bands = $incomeTaxConfig['bands'];
 
-        // Calculate absolute thresholds
-        $basicRateThreshold = $personalAllowance + $bands[0]['max'];
-        $higherRateThreshold = $personalAllowance + $bands[1]['max'];
+        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
+        // The legacy `PA + bands[1].max` was wrong because bands[1].max stores the absolute
+        // £125,140 additional-rate threshold rather than a band width. Audit finding #5.
+        $basicRateThreshold = (float) ($incomeTaxConfig['higher_rate_threshold']
+            ?? ($personalAllowance + $bands[0]['max']));
+        $higherRateThreshold = (float) ($incomeTaxConfig['additional_rate_threshold']
+            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max'])));
 
         $marginalTaxRate = 0;
         if ($totalIncome > $higherRateThreshold) {

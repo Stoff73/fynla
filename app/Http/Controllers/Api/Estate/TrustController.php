@@ -12,6 +12,7 @@ use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\TrustService;
@@ -197,7 +198,7 @@ class TrustController extends Controller
         }
 
         // Use the simplified IHT calculation service
-        $spouse = ($user->marital_status === 'married' && $user->spouse_id) ? \App\Models\User::find($user->spouse_id) : null;
+        $spouse = ($user->marital_status === 'married' && $user->spouse_id) ? User::find($user->spouse_id) : null;
         $dataSharingEnabled = $spouse && $user->hasAcceptedSpousePermission();
 
         $ihtCalculation = $this->ihtCalculationService->calculate($user, $spouse, $dataSharingEnabled);

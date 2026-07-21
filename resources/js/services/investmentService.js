@@ -1,4 +1,5 @@
 import api from './api';
+import logger from '@/utils/logger';
 
 /**
  * Investment Module API Service
@@ -87,7 +88,7 @@ const investmentService = {
             const response = await api.post('/investment/accounts', accountData);
             return response.data;
         } catch (error) {
-            console.error('Account creation failed:', error.response?.data);
+            logger.error('investmentService', 'Account creation failed:', error.response?.data);
             throw error;
         }
     },
@@ -145,7 +146,7 @@ const investmentService = {
             const response = await api.post('/investment/holdings', holdingData);
             return response.data;
         } catch (error) {
-            console.error('Holding creation failed:', error.response?.data);
+            logger.error('investmentService', 'Holding creation failed:', error.response?.data);
             throw error;
         }
     },

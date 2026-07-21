@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\GatesEstateAccess;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
@@ -13,18 +15,21 @@ use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IHTController extends Controller
 {
+    use GatesEstateAccess;
     use SanitizedErrorResponse;
 
     public function __construct(
         private readonly IHTCalculationService $ihtCalculationService,
         private readonly EstateAssetAggregatorService $assetAggregator,
         private readonly TaxConfigService $taxConfig,
-        private readonly IHTFormattingService $formattingService
+        private readonly IHTFormattingService $formattingService,
+        private readonly TeaserGate $teaserGate,
     ) {}
 
     /**
@@ -36,6 +41,9 @@ class IHTController extends Controller
     public function calculateIHT(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        // Full-only sub-route: spec §10.2 / SP2 PR7.
+        $this->requireFullEstate($user);
 
         try {
             // Determine user scenario
@@ -188,6 +196,9 @@ class IHTController extends Controller
     {
         $user = $request->user();
 
+        // Full-only sub-route: defence-in-depth server gate (spec §10.2 / SP2 PR7).
+        $this->requireFullEstate($user);
+
         $validated = $request->validate([
             'marital_status' => ['nullable', 'string', 'in:single,married,widowed,divorced'],
             'has_spouse' => ['nullable', 'boolean'],
@@ -197,7 +208,7 @@ class IHTController extends Controller
             'charitable_giving_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        $profile = \App\Models\Estate\IHTProfile::updateOrCreate(
+        $profile = IHTProfile::updateOrCreate(
             ['user_id' => $user->id],
             $validated
         );

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
+use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
@@ -103,7 +104,7 @@ class CoverageGapAnalyzer
         Collection $disabilityPolicies,
         Collection $sicknessIllnessPolicies,
         ?ProtectionProfile $profile = null,
-        ?\App\Models\User $user = null
+        ?User $user = null
     ): array {
         $lifeCoverage = $lifePolicies->sum('sum_assured');
         $criticalIllnessCoverage = $criticalIllnessPolicies->sum('sum_assured');

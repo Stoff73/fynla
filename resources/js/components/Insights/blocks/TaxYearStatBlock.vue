@@ -9,16 +9,16 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import * as taxConfig from '@/constants/taxConfig';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 const STAT_MAP = {
-  isa_annual_allowance: { source: 'ISA_ANNUAL_ALLOWANCE', format: 'currency' },
-  personal_allowance: { source: 'PERSONAL_ALLOWANCE', format: 'currency' },
-  pension_annual_allowance: { source: 'PENSION_ANNUAL_ALLOWANCE', format: 'currency' },
-  iht_nil_rate_band: { source: 'IHT_NIL_RATE_BAND', format: 'currency' },
-  cgt_annual_allowance: { source: 'CGT_ANNUAL_ALLOWANCE', format: 'currency' },
+  isa_annual_allowance: { getter: 'isaAnnualAllowance', format: 'currency' },
+  personal_allowance: { getter: 'personalAllowance', format: 'currency' },
+  pension_annual_allowance: { getter: 'pensionAnnualAllowance', format: 'currency' },
+  iht_nil_rate_band: { getter: 'ihtNilRateBand', format: 'currency' },
+  cgt_annual_allowance: { getter: 'cgtAnnualAllowance', format: 'currency' },
 };
 
 export default {
@@ -26,11 +26,18 @@ export default {
   mixins: [currencyMixin],
   props: { block: { type: Object, required: true } },
   computed: {
+    ...mapGetters('taxConfig', [
+      'isaAnnualAllowance',
+      'personalAllowance',
+      'pensionAnnualAllowance',
+      'ihtNilRateBand',
+      'cgtAnnualAllowance',
+    ]),
     currentTaxYear() { return getCurrentTaxYear(); },
     formattedValue() {
       const mapping = STAT_MAP[this.block.stat_key];
       if (!mapping) return '—';
-      const value = taxConfig[mapping.source];
+      const value = this[mapping.getter];
       if (value == null) return '—';
       return mapping.format === 'currency' ? this.formatCurrency(value) : value;
     },

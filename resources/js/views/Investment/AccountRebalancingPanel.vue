@@ -91,10 +91,11 @@
         <h3 class="text-lg font-semibold text-horizon-500 mb-4">Allocation Drift</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div class="text-center p-4 rounded-lg" :class="driftStatusBgClass">
-            <p class="text-sm text-neutral-500 mb-1">Drift Score</p>
+            <p class="text-sm text-neutral-500 mb-1">Average drift from target</p>
             <p class="text-3xl font-bold" :class="driftStatusClass">
               {{ rebalancingData.drift_analysis.drift_score.toFixed(1) }}%
             </p>
+            <p class="text-xs text-neutral-500 mt-1">across all holdings</p>
           </div>
           <div class="text-center p-4 bg-savannah-100 rounded-lg">
             <p class="text-sm text-neutral-500 mb-1">Maximum Drift</p>
@@ -204,7 +205,7 @@
           <div class="text-center p-4 bg-spring-50 rounded-lg border border-spring-200">
             <p class="text-sm text-neutral-500 mb-1">Allowance Used</p>
             <p class="text-2xl font-bold text-spring-600">{{ formatCurrency(rebalancingData.cgt_analysis.allowance_used) }}</p>
-            <p class="text-xs text-neutral-500">of £{{ cgtAnnualAllowance.toLocaleString() }} annual allowance</p>
+            <p class="text-xs text-neutral-500">of £{{ (cgtAnnualAllowance || 0).toLocaleString() }} annual allowance</p>
           </div>
           <div class="text-center p-4 rounded-lg border" :class="rebalancingData.cgt_analysis.cgt_liability > 0 ? 'bg-raspberry-50 border-raspberry-200' : 'bg-savannah-100 border-light-gray'">
             <p class="text-sm text-neutral-500 mb-1">Capital Gains Tax Liability</p>
@@ -260,9 +261,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import rebalancingService from '@/services/rebalancingService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CGT_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -279,7 +280,6 @@ export default {
 
   data() {
     return {
-      cgtAnnualAllowance: CGT_ANNUAL_ALLOWANCE,
       loading: false,
       error: null,
       rebalancingData: null,
@@ -297,6 +297,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['cgtAnnualAllowance']),
+
     // Risk profile computed properties
     riskProfile() {
       return this.rebalancingData?.risk_profile || {};

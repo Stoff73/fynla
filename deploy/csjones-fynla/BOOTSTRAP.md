@@ -2,7 +2,7 @@
 
 This is the **first-time setup** for the dev environment at `https://csjones.co/fynla`. Run this once to stand up the dev site; every subsequent deploy is just upload + migrate + clear cache (see `deploy/README.md` for the ongoing flow).
 
-**Ongoing dev deploys:** after bootstrap, use the standard `./deploy/csjones-fynla/build.sh` → upload `public/build/` → SSH clear-cache flow. This guide is for the one-time standing-up.
+**Ongoing dev deploys:** after bootstrap, csjones is a real git checkout tracking `origin/dev`. The flow is: build SPA locally → upload `public/build/` → SSH in → `git pull origin dev` → cache:clear. See CLAUDE.md § "Deploying to dev (csjones.co/fynla)" for the full step list. This guide is for the one-time standing-up.
 
 **Pre-requisite:** The `dev` branch must exist and be pushed to `origin`. See the root `README.md` / `CLAUDE.md` for the branch workflow.
 
@@ -181,8 +181,12 @@ php artisan migrate --force
 # Seed the database (tax config, preview personas, test users, etc.)
 php artisan db:seed --force
 
-# Link storage so uploads are accessible via /fynla/storage/...
-php artisan storage:link
+# DO NOT run `php artisan storage:link` on csjones.
+# SiteGround Apache 403s the resulting symlink regardless of FollowSymLinks
+# settings. Storage requests are served by the Laravel `/storage/{path}` route
+# in `routes/web.php` instead — it streams from `Storage::disk('public')`.
+# (Local dev and fynla.org production use the symlink fine; only csjones is
+# affected. The Laravel route is a no-op fallback when the symlink works.)
 
 # Build the autoloader and caches for speed
 php artisan optimize
@@ -325,15 +329,61 @@ Save. Verify the next day that scheduled commands have fired (e.g. `trial_remind
 
 ---
 
-## 12. You're done
+## 12. Convert csjones into a git checkout (do this once at the end of bootstrap)
 
-Dev env is live. Going forward:
+After the rsync upload in §4 the server has the source files but no working `.git`. Convert it into a real checkout so future deploys are `git pull` instead of rsync. This eliminates the source-tree drift that the rsync flow accumulates.
 
-1. Feature work → feature branch → PR to `dev`
-2. Merge `dev` locally
-3. `./deploy/csjones-fynla/build.sh` → upload `public/build/` + changed PHP files
-4. SSH → `php artisan migrate --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize`
-5. Test on `https://csjones.co/fynla`
-6. When ready for production: `dev → main` merge → production deploy via `./deploy/fynla-org/build.sh`
+```bash
+# Still SSH'd into ~/www/csjones.co/fynla-app
+rm -f .git                                    # remove any stale gitfile/dir
+git init -b dev
+git remote add origin https://github.com/Stoff73/fynla.git
+git fetch --depth=1 origin dev                # shallow — full history not needed on the server
+git update-ref refs/heads/dev FETCH_HEAD
+git symbolic-ref HEAD refs/heads/dev
+git reset --hard origin/dev                   # overwrites tracked files with origin/dev versions
+git branch --set-upstream-to=origin/dev dev
 
-See `CLAUDE.md § Deployment` for the ongoing flow.
+# Restore the dev /fynla/ .htaccess (reset overwrote it with the production root template)
+cp deploy/csjones-fynla/.htaccess public/.htaccess
+git update-index --skip-worktree public/.htaccess  # so future `git pull` never overwrites it again
+
+# Verify
+git status                                    # should only show env-specific untracked files
+git log -1 --oneline                          # should show origin/dev's tip
+```
+
+After this, the only env-specific files outside git are:
+- `.env` (gitignored)
+- `public/.htaccess` (tracked but skip-worktree — the dev `/fynla/` template is canonical)
+- `public/build/` (gitignored — uploaded manually after each local build)
+- `public/storage` (intentionally absent — Laravel route handles storage requests)
+
+Future deploys are just:
+
+```bash
+# locally
+git checkout dev && git pull && ./deploy/csjones-fynla/build.sh
+# upload public/build/ to ~/www/csjones.co/fynla-app/public/build/
+
+# on csjones
+ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
+cd ~/www/csjones.co/fynla-app
+git pull origin dev
+php artisan migrate --force
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
+```
+
+If the dev `.htaccess` template (`deploy/csjones-fynla/.htaccess`) changes upstream and you want it live, copy it manually after `git pull`:
+
+```bash
+cp deploy/csjones-fynla/.htaccess public/.htaccess
+```
+
+(The skip-worktree flag means `git pull` will never bring in changes to `public/.htaccess` automatically. This is a feature, not a bug — it stops the production root template from clobbering the dev subdirectory template.)
+
+---
+
+## 13. You're done
+
+Dev env is live and now drift-resistant. See `CLAUDE.md § Deployment` for the canonical ongoing flow.

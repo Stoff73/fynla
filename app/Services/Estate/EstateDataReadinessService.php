@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Events\Eval\GateChecked;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
 use App\Models\LetterToSpouse;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 
 /**
  * Data readiness gate for the Estate Planning module.
@@ -19,6 +21,10 @@ use App\Models\User;
  */
 class EstateDataReadinessService
 {
+    public function __construct(
+        private readonly MortgageStore $mortgageStore,
+    ) {}
+
     /**
      * Assess the data readiness of a user for estate planning analysis.
      *
@@ -45,6 +51,18 @@ class EstateDataReadinessService
         $passedCount = count(array_filter($checks, fn (array $check): bool => $check['passed']));
         $totalCount = count($checks);
         $completenessPercent = $totalCount > 0 ? (int) round(($passedCount / $totalCount) * 100) : 0;
+
+        event(new GateChecked(
+            gate: 'data_readiness',
+            module: 'estate',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         return [
             'can_proceed' => $canProceed,
@@ -190,8 +208,9 @@ class EstateDataReadinessService
      */
     private function checkLiabilities(User $user): array
     {
+        // Mortgages primary-only via MortgageStore — matches pre-PR-5a $user->mortgages() HasMany semantics
         $hasLiabilities = $user->liabilities()->exists()
-            || $user->mortgages()->exists();
+            || $this->mortgageStore->forUserPrimaryOnly($user)->isNotEmpty();
 
         return [
             'key' => 'liabilities',

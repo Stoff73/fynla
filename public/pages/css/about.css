@@ -1,0 +1,184 @@
+/**
+ * Fynla public pages — about page stylesheet
+ *
+ * Page-specific styles for public/pages/about.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ * CTA band styles live in global.css MODULE STYLES.
+ */
+
+/* ===================================================================
+   SHARED INNER WRAPPER — used by multiple about sections
+   =================================================================== */
+.about-mission__inner,
+.about-why__inner,
+.about-what__inner,
+.about-values__inner,
+.about-founders__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+}
+
+/* ===================================================================
+   HERO  [.about-hero]
+   Critical rules above the fold live in the inline <style> in about.php.
+   =================================================================== */
+
+/* ===================================================================
+   MISSION SECTION  [.about-mission]
+   =================================================================== */
+.about-mission { background: var(--eggshell-500); padding: 4rem 0; }
+.about-mission__heading {
+  font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 1.5rem;
+}
+.about-mission__body {
+  display: flex; flex-direction: column; gap: 1.5rem;
+  font-size: 1.125rem; color: var(--neutral-500); line-height: 1.625;
+  margin-bottom: 2.5rem;
+}
+
+/* Mission quote */
+.about-mission__quote {
+  background: var(--light-pink-100); border-radius: var(--radius-2xl);
+  padding: 2.5rem 2rem; text-align: center;
+}
+.about-mission__quote-text {
+  font-size: clamp(1.25rem, 4vw, 2rem); font-weight: 600;
+  color: var(--horizon-500); font-style: italic; line-height: 1.625;
+}
+.about-mission__quote-mark {
+  /* Large decorative quote marks — Georgia serif for typographic character */
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(3rem, 10vw, 6rem);
+  color: var(--raspberry-500); opacity: 0.25;
+  font-style: normal; line-height: 0.5;
+}
+.about-mission__quote-mark--open  { vertical-align: -0.15em; margin-right: 0.05em; }
+.about-mission__quote-mark--close { vertical-align: -0.5em;  margin-left:  0.05em; }
+
+/* ===================================================================
+   WHY WE BUILT THIS  [.about-why]
+   =================================================================== */
+.about-why { background: var(--horizon-500); padding: 4rem 0; }
+.about-why__heading {
+  font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 700;
+  color: var(--white); margin-bottom: 1.5rem;
+}
+.about-why__body {
+  display: flex; flex-direction: column; gap: 1.5rem;
+  font-size: 1.125rem; color: var(--white-70); line-height: 1.625;
+}
+
+/* ===================================================================
+   WHAT FYNLA DOES  [.about-what]
+   =================================================================== */
+.about-what { background: var(--eggshell-500); padding: 4rem 0; }
+.about-what__heading {
+  font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 1.5rem;
+}
+.about-what__body {
+  display: flex; flex-direction: column; gap: 1.5rem;
+  font-size: 1.125rem; color: var(--neutral-500); line-height: 1.625;
+}
+
+/* ===================================================================
+   VALUES SECTION  [.about-values]
+   =================================================================== */
+.about-values { background: var(--light-pink-100); padding: 4rem 0; }
+.about-values__heading {
+  font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 2rem;
+}
+
+.values-grid {
+  display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem;
+}
+.value-card {
+  background: var(--white); border-radius: var(--radius-xl);
+  padding: 1.5rem; box-shadow: var(--shadow-sm);
+}
+.value-card__title {
+  font-size: 1.25rem; font-weight: 600; color: var(--horizon-500); margin-bottom: 0.5rem;
+}
+.value-card__body { font-size: 1rem; color: var(--neutral-500); line-height: 1.5; }
+
+.about-values__more {
+  font-size: 1.125rem; color: var(--neutral-500); line-height: 1.625;
+}
+
+/* ===================================================================
+   FOUNDERS SECTION  [.about-founders]
+   =================================================================== */
+.about-founders {
+  /* matches Vue's slate-800/slate-900 gradient — mapped to horizon palette */
+  background: linear-gradient(to bottom, var(--horizon-600), var(--horizon-700));
+  padding: 5rem 0; overflow: hidden;
+  position: relative;
+}
+.about-founders__header { text-align: center; margin-bottom: 4rem; }
+.about-founders__heading {
+  font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 700; color: var(--white);
+}
+
+.founders-grid {
+  display: grid; grid-template-columns: 1fr; gap: 3rem;
+}
+
+/* ── Founder card ────────────────────────────────────────────── */
+.founder-card {
+  background: var(--white-8); border: 1px solid var(--white-12);
+  border-radius: var(--radius-2xl); padding: 2rem;
+}
+.founder-card__portrait {
+  display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;
+}
+.founder-card__img {
+  width: 8rem; height: 8rem; border-radius: var(--radius-full);
+  object-fit: cover; border: 4px solid var(--white-20);
+  margin-bottom: 1rem;
+}
+.founder-card__name {
+  font-size: 1.5rem; font-weight: 700; color: var(--white); text-align: center;
+}
+.founder-card__role {
+  font-weight: 500; text-align: center; margin-top: 0.25rem;
+}
+.founder-card__role--violet { color: var(--violet-500); }
+.founder-card__role--spring { color: var(--spring-500); }
+
+/* Metadata definition list */
+.founder-card__meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.founder-card__meta-label {
+  font-size: 0.875rem; font-weight: 500; color: var(--horizon-400);
+}
+.founder-card__meta-value {
+  font-size: 0.875rem; color: var(--horizon-300); margin-top: 0.125rem;
+}
+
+/* Bio text */
+.founder-card__bio {
+  display: flex; flex-direction: column; gap: 1rem;
+  font-size: 0.9375rem; color: var(--horizon-300); line-height: 1.625;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 768px) {
+  .values-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .about-mission__inner,
+  .about-why__inner,
+  .about-what__inner,
+  .about-values__inner,
+  .about-founders__inner {
+    padding-left: 2rem; padding-right: 2rem;
+  }
+  .founders-grid { grid-template-columns: repeat(2, 1fr); }
+  .about-mission__quote { padding: 2.5rem 4rem; }
+}

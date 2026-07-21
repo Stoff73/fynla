@@ -43,11 +43,6 @@ class CheckFeatureAccess
             $user->load('subscription');
         }
 
-        // Trial users get full access to all features
-        if ($user->onTrial()) {
-            return $next($request);
-        }
-
         // Determine user's tier position
         $userPlan = $user->subscription?->plan ?? 'student';
         $userTier = array_search($userPlan, self::PLAN_ORDER, true);

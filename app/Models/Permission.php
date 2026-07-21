@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -78,7 +79,7 @@ class Permission extends Model
     /**
      * Get all permissions in a category
      */
-    public static function inCategory(string $category): \Illuminate\Database\Eloquent\Collection
+    public static function inCategory(string $category): Collection
     {
         return self::where('category', $category)->get();
     }

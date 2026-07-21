@@ -215,8 +215,8 @@ export default {
 }
 
 .type-personal_loan {
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-secured_loan {
@@ -225,8 +225,8 @@ export default {
 }
 
 .type-business_loan {
-  @apply bg-purple-100;
-  @apply text-purple-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-hire_purchase {

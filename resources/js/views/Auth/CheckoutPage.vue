@@ -61,7 +61,7 @@
                     </span>
                   </div>
                   <p v-if="isUpgrade" class="text-caption text-neutral-500 mt-1">
-                    Prorated difference until your next renewal
+                    Prorated difference for the rest of your current access period
                   </p>
                 </div>
               </div>
@@ -115,6 +115,9 @@
             <!-- Payment Error -->
             <div v-if="paymentError" class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-4 mb-4">
               <p class="text-body-sm text-raspberry-600">{{ paymentError }}</p>
+              <button @click="reinitializeCheckout" class="mt-2 text-sm text-raspberry-700 underline hover:no-underline">
+                Try again
+              </button>
             </div>
 
             <!-- Widget Container -->
@@ -127,8 +130,7 @@
               </h2>
               <div ref="checkoutContainer" class="min-h-[300px] revolut-checkout-container"></div>
               <p class="text-caption text-neutral-500 mt-3 text-center">
-                Your subscription will automatically renew each {{ billingCycle === 'monthly' ? 'month' : 'year' }}.
-                You can cancel at any time from your profile.
+                This is a one-time payment. Your Premium access period will appear in subscription settings.
               </p>
             </div>
 
@@ -283,6 +285,8 @@ export default {
 
     planDisplayName() {
       if (!this.plan) return '';
+      // Prefer the resolved display_name from the tier store / plan data.
+      if (this.planData && this.planData.name) return this.planData.name;
       return this.plan.charAt(0).toUpperCase() + this.plan.slice(1);
     },
 
@@ -354,9 +358,30 @@ export default {
   methods: {
     async fetchPlanData() {
       try {
-        const response = await api.get('/payment/plans');
-        const plans = response.data.plans || [];
-        this.planData = plans.find(p => p.slug === this.plan) || null;
+        const TIER_KEYS = ['free', 'premium'];
+        if (TIER_KEYS.includes(this.plan)) {
+          // Tier-based plan: resolve display name + price from the tier store.
+          const response = await api.get('/pricing-config');
+          // PricingConfigController returns { data: [...tiers] }.
+          const tiers = response.data.data || response.data.tiers || [];
+          const tier = tiers.find(t => t.tier === this.plan) || null;
+          if (tier) {
+            // Adapt to the shape planPrice / displayPrice computed props expect.
+            this.planData = {
+              slug: tier.tier,
+              monthly_price: tier.price_monthly_pence,
+              yearly_price: tier.price_annual_pence,
+              launch_monthly_price: null,
+              launch_yearly_price: null,
+              name: tier.display_name,
+            };
+          }
+        } else {
+          // Legacy plan: resolve from /payment/plans as before.
+          const response = await api.get('/payment/plans');
+          const plans = response.data.plans || [];
+          this.planData = plans.find(p => p.slug === this.plan) || null;
+        }
       } catch {
         // Non-critical — price just shows "..."
       }
@@ -397,17 +422,45 @@ export default {
             if (discountCode) {
               payload.discount_code = discountCode;
             }
-            const response = await api.post(endpoint, payload);
-            // Store the internal UUID for confirmPayment call
-            // CRITICAL: onSuccess's orderId is the TOKEN, not the UUID
-            this.revolutOrderId = response.data.order_id;
-            // Store upgrade details for display
-            if (this.isUpgrade && response.data.upgrade_amount) {
-              this.upgradeAmount = response.data.upgrade_amount;
-              this.monthsRemaining = response.data.months_remaining;
+
+            // Retry transient server/network failures here: api.js does not
+            // retry POSTs, and an unhandled rejection leaves the user stranded
+            // on the widget's spinner with no feedback. A brief backend blip
+            // should recover silently rather than failing the payment.
+            const maxAttempts = 3;
+            let lastError = null;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              try {
+                const response = await api.post(endpoint, payload);
+                this.paymentError = null;
+                // Store the internal UUID for confirmPayment call
+                // CRITICAL: onSuccess's orderId is the TOKEN, not the UUID
+                this.revolutOrderId = response.data.order_id;
+                // Store upgrade details for display
+                if (this.isUpgrade && response.data.upgrade_amount) {
+                  this.upgradeAmount = response.data.upgrade_amount;
+                  this.monthsRemaining = response.data.months_remaining;
+                }
+                // Return token to widget as { publicId }
+                return { publicId: response.data.token };
+              } catch (err) {
+                lastError = err;
+                const status = err.status ?? err.response?.status ?? null;
+                const transient = status === null || status >= 500 || status === 429;
+                if (attempt < maxAttempts && transient) {
+                  await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                  continue;
+                }
+                break;
+              }
             }
-            // Return token to widget as { publicId }
-            return { publicId: response.data.token };
+
+            // All attempts failed — surface a clear, recoverable error (with a
+            // "Try again" action) instead of an infinite spinner in the widget.
+            this.paymentError = lastError?.message
+              || 'We could not start your payment. Please try again.';
+            logger.error('create-order failed', lastError);
+            throw lastError || new Error('create-order failed');
           },
           onSuccess: () => {
             // orderId in callback is the ORDER TOKEN (not UUID) per Revolut docs
@@ -497,8 +550,10 @@ export default {
           return;
         } catch (err) {
           const state = err.response?.data?.state;
-          // If Revolut state hasn't settled yet, wait and retry
-          if (attempt < maxRetries && (state === 'pending' || state === 'processing' || err.response?.status === 400)) {
+          const status = err.status ?? err.response?.status ?? null;
+          // Retry while Revolut's state is still settling, or on a transient
+          // server/network failure (api.js does not retry this POST).
+          if (attempt < maxRetries && (state === 'pending' || state === 'processing' || status === 400 || status >= 500 || status === null)) {
             await new Promise(resolve => setTimeout(resolve, delayMs));
             continue;
           }

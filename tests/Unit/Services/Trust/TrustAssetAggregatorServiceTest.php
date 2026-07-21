@@ -8,10 +8,11 @@ use App\Models\Estate\Trust;
 use App\Models\Household;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\Trust\TrustAssetAggregatorService;
 
 beforeEach(function () {
-    $this->service = new TrustAssetAggregatorService;
+    $this->service = new TrustAssetAggregatorService(app(PropertyStore::class));
     $this->user = User::factory()->create();
     $this->household = Household::factory()->create();
     $this->trust = Trust::factory()->create([

@@ -21,7 +21,7 @@ class IsAdmin
      * Uses PermissionService::isAdmin() for unified admin determination,
      * checking both the is_admin boolean and RBAC admin role.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {

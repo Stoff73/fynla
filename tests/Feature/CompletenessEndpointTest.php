@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ProtectionProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 
@@ -10,7 +11,7 @@ describe('GET /api/life-stage/completeness', function () {
     it('returns completeness structure for authenticated user', function () {
         $user = User::factory()->create(['life_stage' => 'university']);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk()
             ->assertJsonStructure([
@@ -39,7 +40,7 @@ describe('GET /api/life-stage/completeness', function () {
             'employment_status' => null,
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk();
 
@@ -64,7 +65,7 @@ describe('GET /api/life-stage/completeness', function () {
         // Add a savings account — savings has_data should be true
         SavingsAccount::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk();
 
@@ -86,12 +87,15 @@ describe('GET /api/life-stage/completeness', function () {
             'employment_status' => 'employed',
         ]);
 
-        $response = $this->actingAs($user)
+        // Protection blocks on a protection profile too (cover needs live there).
+        ProtectionProfile::factory()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk();
 
         $protection = $response->json('data.modules.protection');
-        // Protection needs: date_of_birth, income, marital_status — all present
+        // Protection needs: date_of_birth, income, marital_status, protection profile — all present
         expect($protection['can_advise'])->toBeTrue();
         expect($protection['missing'])->toBeEmpty();
     });
@@ -99,7 +103,7 @@ describe('GET /api/life-stage/completeness', function () {
     it('returns correct life_stage in response', function () {
         $user = User::factory()->create(['life_stage' => 'peak']);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk();
 
@@ -120,7 +124,7 @@ describe('GET /api/life-stage/completeness', function () {
 
         SavingsAccount::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/life-stage/completeness')
             ->assertOk();
 

@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\DBPension;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DBPension>
+ * @extends Factory<DBPension>
  */
 class DBPensionFactory extends Factory
 {
-    protected $model = \App\Models\DBPension::class;
+    protected $model = DBPension::class;
 
     /**
      * Define the model's default state.
@@ -21,7 +23,7 @@ class DBPensionFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'scheme_name' => fake()->randomElement([
                 'NHS Pension Scheme',
                 'Teachers\' Pension',

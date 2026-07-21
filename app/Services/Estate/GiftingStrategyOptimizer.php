@@ -289,7 +289,7 @@ class GiftingStrategyOptimizer
         // CLT attracts immediate lifetime rate charge, then potentially full rate on death within 7 years
         // Amount needed to reduce estate to eliminate remaining IHT
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $cltRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
+        $cltRate = $this->taxConfig->getCLTLifetimeRate();
         $targetGiftAmount = $remainingIHTLiability / $ihtRate;
 
         // CLT immediate charge

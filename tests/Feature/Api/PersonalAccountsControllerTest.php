@@ -7,10 +7,11 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\PersonalAccount;
 use App\Models\Property;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
     // Ensure TaxConfiguration exists for the PersonalAccountsService tax calculations
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 
     // Create a household
     $this->household = Household::factory()->create();
@@ -59,8 +60,7 @@ describe('GET /api/user/personal-accounts', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -147,8 +147,7 @@ describe('POST /api/user/personal-accounts/calculate', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -219,8 +218,7 @@ describe('POST /api/user/personal-accounts/line-item', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -300,8 +298,7 @@ describe('PUT /api/user/personal-accounts/line-item/{id}', function () {
             'user_id' => $this->user->id,
         ]);
 
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -362,8 +359,7 @@ describe('DELETE /api/user/personal-accounts/line-item/{id}', function () {
             'user_id' => $this->user->id,
         ]);
 
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',

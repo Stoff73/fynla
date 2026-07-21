@@ -56,11 +56,6 @@ export default {
           sub: `${this.conversionRate}% conversion`,
         },
         {
-          label: 'On Trial',
-          value: this.data.on_trial ?? 0,
-          sub: null,
-        },
-        {
           label: 'Never Paid',
           value: this.data.never_paid ?? 0,
           sub: `${this.neverPaidPercent}% of total`,

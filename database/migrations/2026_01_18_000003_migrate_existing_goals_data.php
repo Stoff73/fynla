@@ -132,10 +132,20 @@ return new class extends Migration
 
     /**
      * Reverse the migrations.
+     *
+     * Intentionally a no-op. This is a data migration, not a schema change.
+     * The previous implementation truncated the entire `goals` table, which
+     * destroyed every goal row created after this migration ran — silently,
+     * with no warning to the operator running `migrate:rollback`. The
+     * original `savings_goals` and `investment_goals` tables remain in place
+     * (they are not dropped here) so rolling back this migration without
+     * touching `goals` leaves data intact and the schema consistent.
+     *
+     * Audit reference: May/May12Updates/review-database.md §MIG-01.
      */
     public function down(): void
     {
-        // Simply truncate the goals table - the original tables are preserved
-        DB::table('goals')->truncate();
+        // No-op: cannot safely reverse a data migration without destroying
+        // unrelated rows. See docblock above.
     }
 };

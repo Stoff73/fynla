@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Goal;
 use App\Models\GoalContribution;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
 
@@ -109,7 +110,7 @@ it('does not create contribution when non-balance savings field changes', functi
 // InvestmentAccountGoalObserver tests
 
 it('creates automatic contribution when linked investment account value increases', function () {
-    $account = \App\Models\Investment\InvestmentAccount::factory()->create([
+    $account = InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 20000.00,
     ]);
@@ -136,7 +137,7 @@ it('creates automatic contribution when linked investment account value increase
 });
 
 it('does not create contribution when investment value decreases', function () {
-    $account = \App\Models\Investment\InvestmentAccount::factory()->create([
+    $account = InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 20000.00,
     ]);

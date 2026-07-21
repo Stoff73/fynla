@@ -75,8 +75,7 @@ describe('GET /api/user/family-members', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -125,8 +124,7 @@ describe('GET /api/user/family-members/{id}', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -213,8 +211,7 @@ describe('POST /api/user/family-members', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -285,8 +282,7 @@ describe('PUT /api/user/family-members/{id}', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
@@ -344,8 +340,7 @@ describe('DELETE /api/user/family-members/{id}', function () {
     });
 
     it('requires authentication', function () {
-        // Create a new test instance without authentication
-        $this->app = $this->createApplication();
+        $this->actingAsGuest();
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',

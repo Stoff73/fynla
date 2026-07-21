@@ -263,7 +263,7 @@
                   </div>
                   <div class="detail-row">
                     <span class="detail-label">Your Share ({{ investment.ownership_percentage || 50 }}%)</span>
-                    <span class="detail-value text-purple-600">{{ formatCurrency(investment.current_value * ((investment.ownership_percentage || 50) / 100)) }}</span>
+                    <span class="detail-value text-violet-600">{{ formatCurrency(investment.current_value * ((investment.ownership_percentage || 50) / 100)) }}</span>
                   </div>
                 </div>
 
@@ -346,7 +346,7 @@
 
                 <div v-if="savings.ownership_type === 'joint'" class="detail-row">
                   <span class="detail-label">Your Share ({{ savings.ownership_percentage }}%)</span>
-                  <span class="detail-value text-purple-600">{{ formatCurrency(savings.current_balance) }}</span>
+                  <span class="detail-value text-violet-600">{{ formatCurrency(savings.current_balance) }}</span>
                 </div>
 
                 <div v-if="savings.interest_rate > 0" class="detail-row">
@@ -1135,8 +1135,8 @@ export default {
       const classes = {
         isa: 'bg-spring-100 text-spring-800',
         gia: 'bg-violet-100 text-violet-800',
-        sipp: 'bg-purple-100 text-purple-800',
-        pension: 'bg-purple-100 text-purple-800',
+        sipp: 'bg-violet-100 text-violet-800',
+        pension: 'bg-violet-100 text-violet-800',
         nsi: 'bg-violet-100 text-violet-800',
         onshore_bond: 'bg-spring-100 text-spring-800',
         offshore_bond: 'bg-spring-100 text-spring-800',
@@ -1197,7 +1197,7 @@ export default {
     const getOwnershipBadgeClass = (type) => {
       const classes = {
         individual: 'bg-savannah-100 text-horizon-500',
-        joint: 'bg-purple-100 text-purple-800',
+        joint: 'bg-violet-100 text-violet-800',
         trust: 'bg-violet-100 text-violet-800',
       };
       return classes[type] || 'bg-savannah-100 text-horizon-500';
@@ -1330,8 +1330,8 @@ export default {
 }
 
 .badge-db {
-  @apply bg-purple-100;
-  @apply text-purple-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-state {

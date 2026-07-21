@@ -12,8 +12,9 @@
  */
 
 import api from '../../services/api';
-import { getToken, removeToken, setToken as storageSetToken, setItem, getItem, removeItem, isNativePlatform } from '../../services/tokenStorage';
+import { getToken, removeToken, setToken as storageSetToken, setItem, getItem, removeItem } from '../../services/tokenStorage';
 import logger from '../../utils/logger';
+import { withBase } from '../../utils/basePath';
 
 // Import full persona data from JSON files
 import youngFamilyData from '../../data/personas/young_family.json';
@@ -258,15 +259,12 @@ const actions = {
 
                 // Use SPA navigation to preserve in-memory state (token, user)
                 const router = window.__appRouter;
-                if (router && isNativePlatform()) {
-                    logger.info('[Preview] SPA navigate to /m/home');
-                    router.push('/m/home');
-                } else if (router) {
+                if (router) {
                     logger.info('[Preview] SPA navigate to /dashboard');
                     router.push('/dashboard');
                 } else {
                     logger.info('[Preview] Fallback navigate to /dashboard');
-                    window.location.href = '/dashboard';
+                    window.location.href = withBase('/dashboard');
                 }
 
                 return response.data;
@@ -314,9 +312,7 @@ const actions = {
 
                 // Use SPA navigation to preserve in-memory state
                 const router = window.__appRouter;
-                if (router && isNativePlatform()) {
-                    router.replace({ path: '/m/home', query: { _t: Date.now() } });
-                } else if (router) {
+                if (router) {
                     router.replace({ path: '/dashboard', query: { _t: Date.now() } });
                 } else {
                     window.location.reload();
@@ -401,13 +397,8 @@ const actions = {
             logger.info('[Preview] Restored real user token');
         }
 
-        // On native, use SPA navigation; on web, redirect to referrer
-        const router = window.__appRouter;
-        if (router && isNativePlatform()) {
-            router.push('/m/login');
-        } else {
-            window.location.href = referrer;
-        }
+        // Redirect to referrer
+        window.location.href = referrer;
     },
 };
 

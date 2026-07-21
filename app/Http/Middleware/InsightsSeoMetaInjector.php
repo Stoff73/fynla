@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Services\Insights\InsightSeoService;
 use Closure;
@@ -24,12 +25,24 @@ class InsightsSeoMetaInjector
         }
 
         $article = InsightArticle::where('slug', $slug)->published()->first();
-        if (! $article || $article->is_bespoke) {
+
+        if ($article && $article->is_bespoke) {
             return $next($request);
         }
 
-        $meta = $this->seo->metaTags($article);
-        $jsonLd = $this->seo->jsonLd($article);
+        if ($article) {
+            $meta = $this->seo->metaTags($article);
+            $jsonLd = $this->seo->jsonLd($article);
+        } else {
+            // Fall back to CMS-imported document articles. Drafts are skipped
+            // (preview is admin-only and bypasses public SEO injection).
+            $doc = DocumentArticle::where('slug', $slug)->published()->first();
+            if (! $doc) {
+                return $next($request);
+            }
+            $meta = $this->seo->metaTagsForDocument($doc);
+            $jsonLd = $this->seo->jsonLdForDocument($doc);
+        }
 
         $rendered = $this->renderMeta($meta, $jsonLd);
 

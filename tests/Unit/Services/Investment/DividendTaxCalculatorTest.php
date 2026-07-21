@@ -131,4 +131,46 @@ describe('DividendTaxCalculator', function () {
         $tax = $this->calculator->calculate(20000, 0);
         expect($tax)->toBe(1706.25);
     });
+
+    it('preserves PA via pension and shifts more dividends into the basic band', function () {
+        // £40k salary, £75k dividends, £10k pension.
+        // ANI = £115k − £10k = £105k → PA reduced by £2,500 → PA = £10,070.
+        // basicBandCeiling = £10,070 + £37,700 = £47,770.
+        // taxableDividends = £75,000 − £500 = £74,500.
+        // Non-dividend £40k < basicBandCeiling, so dividends start in basic band.
+        //   basic: £47,770 − £40k = £7,770 space; £7,770 × 0.0875 = £679.875
+        //   higher: £74,500 − £7,770 = £66,730; £66,730 × 0.3375 = £22,521.375
+        // Total = £23,201.25. Pre-fix value was £24,451.25 (gross taper, PA = £5,070).
+        $tax = $this->calculator->calculate(
+            dividendIncome: 75000,
+            nonDividendIncome: 40000,
+            pensionContributions: 10000,
+        );
+        expect($tax)->toBe(23201.25);
+    });
+
+    it('preserves PA via Gift Aid and shifts more dividends into the basic band', function () {
+        // £40k salary, £75k dividends, £8k cash Gift Aid (gross £10k).
+        // ANI = £115k − £10k = £105k → PA = £10,070 → basicBandCeiling = £47,770.
+        // (Same arithmetic as the pension case above — both deductions adjust ANI
+        // by the same amount.)
+        $tax = $this->calculator->calculate(
+            dividendIncome: 75000,
+            nonDividendIncome: 40000,
+            giftAidGross: 10000,
+        );
+        expect($tax)->toBe(23201.25);
+    });
+
+    it('still tapers PA on gross income when deductions are zero (backwards compat)', function () {
+        // £40k salary, £75k dividends, no deductions.
+        // ANI = gross = £115k → PA reduced by £7,500 → PA = £5,070.
+        // basicBandCeiling = £42,770.
+        // taxableDividends = £74,500.
+        //   basic: £42,770 − £40k = £2,770; £2,770 × 0.0875 = £242.375
+        //   higher: £71,730 × 0.3375 = £24,208.875
+        // Total = £24,451.25.
+        $tax = $this->calculator->calculate(75000, 40000);
+        expect($tax)->toBe(24451.25);
+    });
 });

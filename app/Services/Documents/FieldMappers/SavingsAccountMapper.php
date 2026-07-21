@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Documents\FieldMappers;
 
+use App\Models\SavingsAccount;
+
 class SavingsAccountMapper extends AbstractFieldMapper
 {
     protected array $fieldMappings = [
@@ -35,7 +37,7 @@ class SavingsAccountMapper extends AbstractFieldMapper
 
     public function getModelClass(): string
     {
-        return \App\Models\SavingsAccount::class;
+        return SavingsAccount::class;
     }
 
     public function getSubtype(): string

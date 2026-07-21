@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Models\DiscountCode;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -99,11 +100,11 @@ class PaymentConfirmation extends Mailable
         return [];
     }
 
-    private function describeDiscount(\App\Models\DiscountCode $discount): string
+    private function describeDiscount(DiscountCode $discount): string
     {
         return match ($discount->type) {
             'percentage' => "{$discount->value}% off",
-            'fixed_amount' => '£' . number_format($discount->value / 100, 2) . ' off',
+            'fixed_amount' => '£'.number_format($discount->value / 100, 2).' off',
             default => 'Discount applied',
         };
     }

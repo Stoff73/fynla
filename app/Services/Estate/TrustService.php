@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Constants\TaxDefaults;
-use App\Models\ActuarialLifeTable;
 use App\Models\Estate\Trust;
+use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\TaxConfigService;
+use App\Services\Trust\IHTPeriodicChargeCalculator;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class TrustService
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly ActuarialLifeTableStore $actuarialStore,
+        private readonly IHTPeriodicChargeCalculator $periodicChargeCalculator,
     ) {}
 
     /**
@@ -54,25 +57,20 @@ class TrustService
             ];
         }
 
-        $trustsConfig = $this->taxConfig->getTrusts();
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = $ihtConfig['nil_rate_band'];
 
-        // Get max periodic charge rate from trusts config (defaults to 6%)
-        $maxRate = $trustsConfig['periodic_charges']['max_rate'] ?? 0.06;
-
-        // Simplified calculation - in practice this is complex
-        // Rate is up to 6% based on how much trust exceeds NRB
         $trustValue = (float) $trust->current_value;
         $excessOverNRB = max(0, $trustValue - $nrb);
 
-        // Effective rate calculation (simplified)
-        // If trust value is zero, avoid division by zero
-        $effectiveRate = $trustValue > 0
-            ? min($maxRate, ($excessOverNRB / $trustValue) * 0.06)
-            : 0;
+        // Charge = (value above NRB) × periodic charge rate. Delegates to the
+        // canonical IHTPeriodicChargeCalculator kernel so the rate is sourced
+        // from TaxConfigService (6% fallback) — the single source of truth
+        // shared with the date-gated charge calculation.
+        $chargeAmount = $this->periodicChargeCalculator->estimateChargeOnValue($trustValue, (float) $nrb);
 
-        $chargeAmount = $trustValue * $effectiveRate;
+        // Blended effective rate on total trust value (charge ÷ value).
+        $effectiveRate = $trustValue > 0 ? $chargeAmount / $trustValue : 0;
 
         return [
             'charge_amount' => round($chargeAmount, 2),
@@ -168,7 +166,7 @@ class TrustService
             $basicRate = (float) ($this->taxConfig->getIncomeTax()['bands'][0]['rate'] ?? 0.20);
             $incomeTaxRates = $trustsConfig['income_tax']['interest_in_possession'] ?? [
                 'standard_rate' => $basicRate,
-                'dividend_rate' => 0.0875,
+                'dividend_rate' => TaxDefaults::DIVIDEND_BASIC_RATE,
             ];
         } elseif ($incomeTaxTreatment === 'beneficiary' || $trustType === 'bare') {
             // Bare trusts - taxed as beneficiary's income
@@ -342,13 +340,13 @@ class TrustService
     {
         // Use actuarial tables when gender is available
         if ($gender) {
-            $actuarialExpectancy = ActuarialLifeTable::where('gender', $gender)
-                ->where('age', '<=', $age)
-                ->where('table_year', '2020-2022')
-                ->orderBy('age', 'desc')
-                ->value('life_expectancy_years');
+            $actuarialExpectancy = $this->actuarialStore->forCohort($gender, '2020-2022')
+                ->filter(fn ($row) => $row->age <= $age)
+                ->sortByDesc('age')
+                ->first()
+                ?->life_expectancy_years;
 
-            $lifeExpectancy = $actuarialExpectancy
+            $lifeExpectancy = $actuarialExpectancy !== null
                 ? max(5, (int) ceil((float) $actuarialExpectancy))
                 : max(5, 90 - $age);
         } else {

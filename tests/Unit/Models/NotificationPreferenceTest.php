@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Models\NotificationPreference;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 describe('NotificationPreference', function () {
     it('belongs to a user', function () {
@@ -48,27 +50,29 @@ describe('NotificationPreference', function () {
 
         expect(fn () => NotificationPreference::factory()->create([
             'user_id' => $user->id,
-        ]))->toThrow(\Illuminate\Database\QueryException::class);
+        ]))->toThrow(QueryException::class);
     });
 
-    it('has all 5 lifecycle email preference columns defaulting to true', function () {
+    it('has the paid lifecycle email preferences defaulting to true', function () {
         $user = User::factory()->create();
         $prefs = NotificationPreference::getOrCreateForUser($user->id);
 
-        expect($prefs->lifecycle_empty_trialer)->toBeTrue();
-        expect($prefs->lifecycle_engaged_trialer)->toBeTrue();
-        expect($prefs->lifecycle_cancelled_trialer)->toBeTrue();
-        expect($prefs->lifecycle_churned_subscriber)->toBeTrue();
-        expect($prefs->lifecycle_lapsed_subscriber)->toBeTrue();
+        expect($prefs->lifecycle_churned_subscriber)->toBeTrue()
+            ->and($prefs->lifecycle_lapsed_subscriber)->toBeTrue()
+            ->and($prefs->getFillable())->not->toContain(
+                'lifecycle_empty_trialer',
+                'lifecycle_engaged_trialer',
+                'lifecycle_cancelled_trialer',
+            );
     });
 
     it('allows updating individual lifecycle preferences', function () {
         $user = User::factory()->create();
         $prefs = NotificationPreference::getOrCreateForUser($user->id);
 
-        $prefs->update(['lifecycle_engaged_trialer' => false]);
+        $prefs->update(['lifecycle_lapsed_subscriber' => false]);
 
-        expect($prefs->fresh()->lifecycle_engaged_trialer)->toBeFalse();
-        expect($prefs->fresh()->lifecycle_empty_trialer)->toBeTrue();
+        expect($prefs->fresh()->lifecycle_lapsed_subscriber)->toBeFalse();
+        expect($prefs->fresh()->lifecycle_churned_subscriber)->toBeTrue();
     });
 });

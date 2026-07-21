@@ -341,8 +341,8 @@ export default {
 }
 
 .badge-gia {
-  @apply bg-purple-100;
-  @apply text-purple-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-savings {

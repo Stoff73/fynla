@@ -238,6 +238,15 @@
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               Sign in
             </router-link>
+            <template v-if="!isAuthenticated">
+              <span class="mx-1 text-horizon-300" aria-hidden="true">/</span>
+              <router-link
+                to="/register"
+                class="text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+              >
+                Register
+              </router-link>
+            </template>
           </div>
 
           <!-- Mobile menu button -->
@@ -333,6 +342,7 @@
 
           <router-link to="/pricing" class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500" @click="mobileMenuOpen = false">Pricing</router-link>
           <router-link to="/login" class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500" @click="mobileMenuOpen = false">Sign in</router-link>
+          <router-link v-if="!isAuthenticated" to="/register" class="block pl-3 pr-4 py-2 text-base font-medium text-raspberry-500 hover:bg-savannah-100 hover:text-raspberry-600" @click="mobileMenuOpen = false">Register</router-link>
         </div>
       </div>
     </nav>
@@ -477,6 +487,7 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAuthenticated']),
     ...mapGetters('preview', ['availablePersonas']),
+    ...mapGetters('taxConfig', { taxConfigLoaded: 'isLoaded' }),
     userName() {
       return this.$store.state.auth.user?.first_name || 'Account';
     },
@@ -533,6 +544,15 @@ export default {
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
     this.checkDemoQuery();
+
+    // Hydrate the shared taxConfig store from the public endpoint so
+    // unauthenticated pages mounted under PublicLayout (CalculatorsPage etc.)
+    // get live UK rates instead of falling back to hardcoded constants.
+    // App.vue already dispatches the auth-gated fetchConfig for logged-in
+    // users — skip the public fetch when it has already populated the store.
+    if (!this.taxConfigLoaded) {
+      this.$store.dispatch('taxConfig/fetchPublicConfig').catch(() => {});
+    }
   },
 
   beforeUnmount() {

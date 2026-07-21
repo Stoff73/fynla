@@ -1,0 +1,122 @@
+# Fynla — Base "default" campaign (reverse-engineered from existing OnboardingStateMachine).
+# Schema: April/April24Updates/spec/campaign-schema-draft.md
+#
+# This file describes the BASE flow. For v1, base STATE_* constants stay in PHP
+# (OnboardingStateMachine::states()); this file is a thin descriptor that:
+#   - registers "default" so users with NULL campaign_id resolve cleanly,
+#   - documents the dashboard / fyn_agent / proactive defaults for everyone,
+#   - declares the path_choice surface (where campaign bubbles plug in).
+#
+# Migrating individual base states from PHP into the steps[] array here is a
+# follow-up exercise (Q2 in schema-draft §15). Not required for v1.
+
+campaign:
+  id: default
+  display_name: "Standard onboarding"
+  description: |
+    Base flow used when a user has no campaign assignment.
+    Drives the existing journey-vs-focus path-choice and the deterministic
+    state machine in OnboardingStateMachine.php.
+  status: active
+  version: "1.0.0"
+  owner: "Stoff73"
+  created_at: 2026-04-15T00:00:00Z
+
+entry:
+  triggers: [manual]
+  # diverges_from points at the very first state — "default" IS the base flow.
+  diverges_from: base:STATE_PATH_CHOICE
+
+onboarding:
+  # For v1, the heavy lifting stays in PHP. We declare path_choice here so the
+  # registry can document where campaign bubbles attach.
+  steps:
+    - id: path-choice
+      turn_type: bubbles
+      prompt_text: "How would you like to start, {first_name}?"
+      bubbles:
+        - id: journey
+          label: "Tell me about your life stage"
+          description: "I'll ask a few questions and tailor things to where you are."
+          next: base:STATE_JOURNEY_SELECTION
+        - id: focus
+          label: "Pick a financial topic"
+          description: "Start with savings, investments, retirement, or another area."
+          next: base:STATE_FOCUS_SELECTION
+        # Campaign bubbles are inserted at runtime by CampaignRegistry, in the
+        # order declared by each active campaign's entry.bubble.order.
+      capture_field: users.onboarding_fyn_path
+      # On selection, persistCapture writes the bubble id (journey|focus|<campaign-id>)
+      # to users.onboarding_fyn_path. Existing PHP behaviour preserved.
+
+    # All other base states (journey_selection, focus_selection, base_personal,
+    # base_spouse, base_dependants, base_employment, base_work, base_retirement_date,
+    # base_expenditure, profile_review_*, asset_capture, add_more, done) live in
+    # OnboardingStateMachine::states(). Cross-reference via base:STATE_*.
+
+dashboard:
+  # Existing default dashboard. Card IDs match Dashboard.vue conditional renders.
+  cards:
+    - net-worth
+    - protection
+    - cash-savings
+    - investments
+    - retirement
+    - estate
+    - tax-allowances
+    - goals
+    - life-timeline
+  hero_metric: net-worth
+  hide_modules: []
+  inserts: []
+
+fyn_agent:
+  priority_topics: []
+  deprioritise: []
+  regulatory_disclosures:
+    - general_guidance_not_advice
+  memory_seed: ""
+
+proactive_insights:
+  triggers:
+    # Default observer-driven insights everyone gets, regardless of campaign.
+    - kind: observer
+      model: User
+      event: saved
+      when: { column_changed: annual_employment_income }
+      prompt_template: default_income_change_acknowledgement
+      priority: low
+      throttle: { per_user_per: 60d }
+
+    - kind: scheduled
+      cadence: yearly
+      anchor: tax_year_start
+      offset: -7d
+      prompt_template: default_tax_year_rollover
+      priority: medium
+      throttle: { per_user_per: 365d }
+
+post_onboarding:
+  terminal_state: base:STATE_DONE
+  congratulation_text: |
+    That's the foundation in place, {first_name}. From here you can explore
+    any module from the side nav, or ask me about your situation.
+  next_steps:
+    - id: explore-dashboard
+      label: "See your dashboard"
+      target: route:/dashboard
+      priority: 1
+    - id: ask-fyn
+      label: "Ask Fyn about your finances"
+      target: chat-opener:default_post_onboarding_intro
+      priority: 2
+
+constraints:
+  personas:
+    enabled: [young_family, peak_earners, entrepreneur, young_saver, retired_couple, student]
+    disabled: []
+  segments:
+    require: []
+    forbid: []
+  exclusive: true
+  # No expiry — this is the base flow.

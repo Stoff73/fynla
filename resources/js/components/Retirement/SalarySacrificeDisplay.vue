@@ -140,6 +140,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PERSONAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'SalarySacrificeDisplay',
@@ -242,7 +243,7 @@ export default {
           );
         }
 
-        const personalAllowance = this.analysis?.personal_allowance || 12570;
+        const personalAllowance = this.analysis?.personal_allowance || PERSONAL_ALLOWANCE;
         const reducedSalary = salary - sacrifice;
         if (reducedSalary < personalAllowance) {
           warnings.push(

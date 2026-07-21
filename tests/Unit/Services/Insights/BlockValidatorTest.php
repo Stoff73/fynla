@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Services\Insights\BlockValidator;
 
-beforeEach(fn () => $this->validator = new BlockValidator());
+beforeEach(fn () => $this->validator = new BlockValidator);
 
 it('passes valid blocks', function () {
     $blocks = [

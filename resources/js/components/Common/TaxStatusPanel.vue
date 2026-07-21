@@ -2,7 +2,7 @@
   <div class="tax-status-panel bg-white rounded-lg shadow-md p-6">
     <!-- Loading State -->
     <div v-if="loading" class="flex flex-col items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600"></div>
       <p class="mt-4 text-neutral-500">Loading tax information...</p>
     </div>
 
@@ -25,7 +25,7 @@
           <h3 class="text-lg font-semibold text-horizon-500">Tax Treatment</h3>
           <p class="text-sm text-neutral-500">{{ taxInfo.product_type_label }}</p>
         </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-violet-100 text-violet-800">
           Tax Year {{ taxInfo.tax_year }}
         </span>
       </div>
@@ -68,7 +68,7 @@
           <span class="text-neutral-500">Tax-Deferred</span>
         </div>
         <div class="flex items-center gap-1">
-          <span class="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-xs font-bold">&#8595;</span>
+          <span class="w-4 h-4 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-xs font-bold">&#8595;</span>
           <span class="text-neutral-500">Relief Available</span>
         </div>
       </div>
@@ -173,7 +173,7 @@ export default {
         exempt: 'border-spring-200 bg-spring-50',
         taxable: 'border-violet-200 bg-violet-50',
         deferred: 'border-violet-200 bg-violet-50',
-        relief: 'border-purple-200 bg-purple-50',
+        relief: 'border-violet-200 bg-violet-50',
         limit: 'border-light-gray bg-savannah-100',
       };
       return classes[status] || 'border-light-gray bg-savannah-100';
@@ -184,7 +184,7 @@ export default {
         exempt: 'bg-spring-100 text-spring-600',
         taxable: 'bg-violet-100 text-violet-600',
         deferred: 'bg-violet-100 text-violet-600',
-        relief: 'bg-purple-100 text-purple-600',
+        relief: 'bg-violet-100 text-violet-600',
         limit: 'bg-savannah-100 text-neutral-500',
       };
       return classes[status] || 'bg-savannah-100 text-neutral-500';

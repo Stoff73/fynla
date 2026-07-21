@@ -1,0 +1,381 @@
+{
+  "id": "student",
+  "life_stage": "university",
+  "name": "Janice Taylor",
+  "tagline": "University student building early financial habits",
+  "description": "A 21-year-old second-year Economics student at a Russell Group university. Living in shared student accommodation, working part-time alongside studies. Starting to build savings with a Cash ISA and Lifetime ISA for a future first home.",
+  "netWorthRange": "£33k - £34k",
+  "focus": "Student loan, first savings, financial literacy",
+
+  "user": {
+    "first_name": "Janice",
+    "last_name": "Taylor",
+    "email": "janice.taylor@example.com",
+    "date_of_birth": "2004-08-12",
+    "age": 21,
+    "gender": "female",
+    "marital_status": "single",
+    "annual_income": 9000,
+    "employment_status": "part_time",
+    "employer_name": null,
+    "occupation": "University Student (Part-time Retail)",
+    "target_retirement_age": 67,
+    "target_retirement_income": 20000,
+    "monthly_expenditure": 750,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "undergraduate",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "Room 12, 45 Elm Road",
+      "city": "Bristol",
+      "postcode": "BS8 1TH"
+    },
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
+    }
+  },
+
+  "spouse": null,
+
+  "family_members": [],
+
+  "properties": [],
+
+  "mortgages": [],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Janice's Cash ISA",
+      "provider_name": "Monzo",
+      "account_type": "cash_isa",
+      "current_balance": 1200,
+      "interest_rate": 3.9,
+      "is_isa": true,
+      "isa_subscription_current_year": 600,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 30,
+      "notes": "Cash ISA for accessible savings with tax-free interest"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "Lifetime ISA",
+      "provider_name": "Moneybox",
+      "account_type": "lisa",
+      "current_value": 400,
+      "annual_contribution": 400,
+      "monthly_contribution_amount": 25,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 400,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 0,
+      "risk_preference": "lower_medium",
+      "has_custom_risk": false,
+      "notes": "Lifetime ISA for first home deposit. 25% government bonus on contributions up to 4,000 per year.",
+      "holdings": [
+        {
+          "holding_name": "Moneybox Global Shares Fund",
+          "ticker": null,
+          "isin": "GB00BF0SWL52",
+          "asset_type": "fund",
+          "units": 3.2,
+          "initial_unit_cost": 100.00,
+          "current_unit_price": 103.78,
+          "current_value": 332,
+          "allocation_percentage": 83,
+          "annual_fee": 0.35
+        },
+        {
+          "holding_name": "Moneybox UK Shares Fund",
+          "ticker": null,
+          "isin": "GB00BF0SWK46",
+          "asset_type": "fund",
+          "units": 0.68,
+          "initial_unit_cost": 95.00,
+          "current_unit_price": 100.00,
+          "current_value": 68,
+          "allocation_percentage": 17,
+          "annual_fee": 0.30
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [],
+
+  "db_pensions": [],
+
+  "state_pension": null,
+
+  "life_insurance_policies": [],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "student_loan",
+      "liability_name": "Student Loan Plan 5",
+      "current_balance": 35000,
+      "original_amount": 35000,
+      "interest_rate": 7.3,
+      "monthly_payment": 0,
+      "start_date": "2023-09-01",
+      "end_date": null,
+      "lender_name": "Student Loans Company",
+      "notes": "Plan 5 loan - repay 9% of earnings above 25,000 per year. No repayments while studying. Written off after 40 years."
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [],
+
+  "expenditure": {
+    "total_monthly": 750,
+    "categories": {
+      "rent": 350,
+      "utilities": 60,
+      "food_groceries": 180,
+      "transport_fuel": 40,
+      "subscriptions": 25,
+      "entertainment_dining": 60,
+      "other_expenditure": 35
+    }
+  },
+
+  "key_concerns": [
+    "How will my student loan repayments work after I graduate?",
+    "When should I start a pension — straight after university?",
+    "Is a Lifetime ISA the best way to save for my first home?",
+    "What should my financial life look like by age 30?"
+  ],
+
+  "highlights": {
+    "protection_gaps": [
+      "No life insurance - no dependents, not needed at this stage",
+      "No income protection - minimal income, student status",
+      "No pension - will begin with first graduate role"
+    ],
+    "net_worth_range": "-34k to -33k",
+    "primary_focus": "Student loan awareness, first savings habits, Lifetime ISA for first home"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "lower_medium",
+    "notes": "Very young with long investment horizon but limited income and experience. Conservative approach appropriate for now, with scope to increase risk tolerance as earnings grow."
+  },
+
+  "will": {
+    "has_will": false,
+    "spouse_primary_beneficiary": false,
+    "spouse_bequest_percentage": 0,
+    "executor_name": null,
+    "executor_notes": null,
+    "will_last_updated": null,
+    "bequests": []
+  },
+
+  "goals": [
+    {
+      "goal_name": "Start Lifetime ISA for First Home",
+      "goal_type": "property_purchase",
+      "description": "Build Lifetime ISA contributions towards first home deposit. Aiming to contribute the full 4,000 per year to maximise the 25% government bonus.",
+      "target_amount": 4000,
+      "current_amount": 400,
+      "target_date": "2027-04-05",
+      "start_date": "2025-09-01",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": true,
+      "monthly_contribution": 25,
+      "contribution_streak": 5,
+      "longest_streak": 5,
+      "last_contribution_date": "2026-02-01",
+      "ownership_type": "individual",
+      "property_location": "Bristol",
+      "is_first_time_buyer": true,
+      "estimated_property_price": 250000,
+      "deposit_percentage": 10
+    },
+    {
+      "goal_name": "Build Emergency Fund",
+      "goal_type": "emergency_fund",
+      "description": "Build 3 months of living expenses as a safety net for after graduation",
+      "target_amount": 2250,
+      "current_amount": 200,
+      "target_date": "2027-09-01",
+      "start_date": "2025-10-01",
+      "assigned_module": "savings",
+      "priority": "medium",
+      "is_essential": true,
+      "monthly_contribution": 30,
+      "contribution_streak": 4,
+      "longest_streak": 4,
+      "last_contribution_date": "2026-02-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Graduate with a Financial Plan",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Financial Planning",
+      "description": "Have a clear financial plan in place before graduating — understanding student loan repayments, pension options, and a savings strategy for the first year of work.",
+      "target_amount": 0,
+      "current_amount": 0,
+      "target_date": "2027-07-01",
+      "start_date": "2026-01-01",
+      "assigned_module": "savings",
+      "priority": "medium",
+      "is_essential": false,
+      "monthly_contribution": 0,
+      "contribution_streak": 0,
+      "longest_streak": 0,
+      "last_contribution_date": null,
+      "ownership_type": "individual"
+    }
+  ],
+
+  "recent_transactions": [
+    {
+      "date": "2026-02-26",
+      "description": "Part-time wages - Campus Coffee",
+      "amount": 385.00,
+      "type": "credit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-25",
+      "description": "Rent - 45 Elm Road",
+      "amount": -350.00,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-24",
+      "description": "Tesco Express",
+      "amount": -18.45,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-22",
+      "description": "Spotify Premium (Student)",
+      "amount": -5.99,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-20",
+      "description": "Transfer to Cash ISA",
+      "amount": -30.00,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-20",
+      "description": "Monthly deposit",
+      "amount": 30.00,
+      "type": "credit",
+      "account": "Cash ISA"
+    },
+    {
+      "date": "2026-02-18",
+      "description": "Transfer to Lifetime ISA",
+      "amount": -25.00,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-18",
+      "description": "Monthly contribution",
+      "amount": 25.00,
+      "type": "credit",
+      "account": "Lifetime ISA"
+    },
+    {
+      "date": "2026-02-15",
+      "description": "Maintenance Loan instalment",
+      "amount": 1342.00,
+      "type": "credit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-14",
+      "description": "Aldi",
+      "amount": -24.30,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-12",
+      "description": "First Bus - weekly pass",
+      "amount": -12.50,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-10",
+      "description": "Amazon - textbook",
+      "amount": -32.99,
+      "type": "debit",
+      "account": "Current Account"
+    }
+  ],
+
+  "life_events": [
+    {
+      "event_name": "Graduation",
+      "event_type": "custom_expense",
+      "description": "Complete Economics degree from university",
+      "amount": 0,
+      "impact_type": "expense",
+      "expected_date": "2027-07-01",
+      "certainty": "likely",
+      "show_in_projection": false,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "First Graduate Job",
+      "event_type": "custom_income",
+      "description": "Start first graduate role with expected salary around 28,000",
+      "amount": 28000,
+      "impact_type": "income",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Start Pension Contributions",
+      "event_type": "custom_expense",
+      "description": "Begin workplace pension contributions through auto-enrolment with first employer",
+      "amount": 0,
+      "impact_type": "expense",
+      "expected_date": "2027-10-01",
+      "certainty": "likely",
+      "show_in_projection": false,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    }
+  ]
+}

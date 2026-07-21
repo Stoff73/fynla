@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Analytics;
 
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
 use App\Services\Investment\Utilities\StatisticalFunctions;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\InvestmentAccountStore;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -18,7 +19,8 @@ class HoldingsDataExtractor
 {
     public function __construct(
         private StatisticalFunctions $stats,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -38,14 +40,20 @@ class HoldingsDataExtractor
      */
     public function extractForUser(int $userId, ?array $accountIds = null): array
     {
-        // Get user's investment accounts
-        $query = InvestmentAccount::where('user_id', $userId)->with('holdings');
+        // Get user's investment accounts (primary-only — matches pre-PR-5a where('user_id') semantics)
+        $user = User::find($userId);
+        if (! $user) {
+            return [
+                'success' => false,
+                'message' => 'User not found',
+                'data' => null,
+            ];
+        }
+        $accounts = $this->investmentAccountStore->forUserPrimaryOnly($user)->load('holdings');
 
         if ($accountIds) {
-            $query->whereIn('id', $accountIds);
+            $accounts = $accounts->whereIn('id', $accountIds);
         }
-
-        $accounts = $query->get();
 
         if ($accounts->isEmpty()) {
             return [
@@ -154,10 +162,12 @@ class HoldingsDataExtractor
             $expectedReturn = $this->stats->mean($holding->historical_returns);
         }
         // Method 2: Calculate from purchase price to current price
+        // Holding casts return decimal strings — cast to float at the
+        // boundary before numeric helpers with strict signatures.
         elseif ($holding->purchase_price && $holding->current_price && $holding->purchase_date) {
             $capitalReturn = $this->calculateAnnualizedReturn(
-                $holding->purchase_price,
-                $holding->current_price,
+                (float) $holding->purchase_price,
+                (float) $holding->current_price,
                 $holding->purchase_date
             );
             $expectedReturn = $capitalReturn;
@@ -169,7 +179,7 @@ class HoldingsDataExtractor
 
         // Add dividend yield if available
         if ($holding->dividend_yield) {
-            $expectedReturn += $holding->dividend_yield;
+            $expectedReturn += (float) $holding->dividend_yield;
         }
 
         // Ensure return is reasonable (between -50% and +100%)

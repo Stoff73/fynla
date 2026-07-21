@@ -12,6 +12,7 @@ use App\Notifications\GiftExemptionNotification;
 use App\Notifications\TrustAnniversaryNotification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -280,7 +281,7 @@ class SendEstateAlerts extends Command
         }
 
         try {
-            $user->notify(new class($taxYearLabel) extends \Illuminate\Notifications\Notification
+            $user->notify(new class($taxYearLabel) extends Notification
             {
                 public function __construct(private readonly string $taxYear) {}
 

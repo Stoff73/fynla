@@ -5,6 +5,15 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Estate\Asset;
+use App\Models\Estate\Gift;
+use App\Models\Estate\IHTProfile;
+use App\Models\Estate\LastingPowerOfAttorney;
+use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
+use App\Models\Investment\InvestmentAccount;
+use App\Traits\Auditable;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +25,25 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use Auditable, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+
+    /**
+     * High-frequency columns excluded from audit logging — these change on
+     * almost every request and would drown the audit table. Identity / billing /
+     * privilege / lifecycle changes still get audited via the trait defaults.
+     */
+    protected $auditExcludeFields = [
+        'last_login_at',
+        'last_failed_login_at',
+        'locked_until',
+        'failed_login_count',
+        'remember_token',
+        'mfa_secret',
+        'mfa_recovery_codes',
+        'password',
+        'last_active_at',
+        'last_seen_at',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +54,10 @@ class User extends Authenticatable
         'id',
         'is_admin',
         'is_preview_user',
+        'is_advisor',        // Privilege flag — set only via markAsAdvisor()
+        'email_verified_at', // Verification state — never from request input
+        'mfa_enabled',       // Auth state — set individually by MFAService
+        'mfa_secret',         // Auth secret — set individually by MFAService
         'remember_token',
         'created_at',
         'updated_at',
@@ -126,6 +157,8 @@ class User extends Authenticatable
         'onboarding_started_at' => 'datetime',
         'onboarding_completed_at' => 'datetime',
         'onboarding_asset_flags' => 'array',
+        'onboarding_fyn_context' => 'array',
+        'funnel_answers' => 'array',
         'journey_states' => 'array',
         'journey_selections' => 'array',
         'life_stage_completed_steps' => 'array',
@@ -139,10 +172,14 @@ class User extends Authenticatable
         'info_guide_enabled' => 'boolean',
         // Dashboard preferences
         'dashboard_widget_order' => 'array',
-        // Subscription fields
-        'trial_ends_at' => 'datetime',
         // Lifecycle email e2e testing
         'is_lifecycle_test_user' => 'boolean',
+        // SaveTax campaign — household tax-strategy
+        'marriage_allowance_eligible' => 'boolean',
+        // Account deletion lifecycle
+        'deletion_scheduled_for' => 'datetime',
+        'restored_at' => 'datetime',
+        'purge_eligible_at' => 'datetime',
     ];
 
     /**
@@ -165,7 +202,12 @@ class User extends Authenticatable
      */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)->latestOfMany();
+    }
+
+    public function deletionReminderLog()
+    {
+        return $this->hasMany(AccountDeletionReminderLog::class);
     }
 
     /**
@@ -208,16 +250,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is currently on a trial.
-     */
-    public function onTrial(): bool
-    {
-        $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
-
-        return $subscription && $subscription->isTrialing();
-    }
-
-    /**
      * Check if user has an active (paid) plan.
      */
     public function hasActivePlan(): bool
@@ -225,16 +257,6 @@ class User extends Authenticatable
         $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
 
         return $subscription && $subscription->isActive();
-    }
-
-    /**
-     * Get number of days remaining in trial.
-     */
-    public function trialDaysRemaining(): int
-    {
-        $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
-
-        return $subscription ? $subscription->daysLeftInTrial() : 0;
     }
 
     /**
@@ -438,7 +460,7 @@ class User extends Authenticatable
      */
     public function liabilities(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Liability::class);
+        return $this->hasMany(Liability::class);
     }
 
     /**
@@ -446,7 +468,7 @@ class User extends Authenticatable
      */
     public function trusts(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Trust::class);
+        return $this->hasMany(Trust::class);
     }
 
     /**
@@ -454,7 +476,7 @@ class User extends Authenticatable
      */
     public function ihtProfile(): HasOne
     {
-        return $this->hasOne(\App\Models\Estate\IHTProfile::class);
+        return $this->hasOne(IHTProfile::class);
     }
 
     /**
@@ -462,7 +484,7 @@ class User extends Authenticatable
      */
     public function assets(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Asset::class);
+        return $this->hasMany(Asset::class);
     }
 
     /**
@@ -470,7 +492,7 @@ class User extends Authenticatable
      */
     public function gifts(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Gift::class);
+        return $this->hasMany(Gift::class);
     }
 
     /**
@@ -478,7 +500,7 @@ class User extends Authenticatable
      */
     public function lastingPowersOfAttorney(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\LastingPowerOfAttorney::class);
+        return $this->hasMany(LastingPowerOfAttorney::class);
     }
 
     /**
@@ -518,7 +540,7 @@ class User extends Authenticatable
      */
     public function investmentAccounts(): HasMany
     {
-        return $this->hasMany(\App\Models\Investment\InvestmentAccount::class);
+        return $this->hasMany(InvestmentAccount::class);
     }
 
     /**
@@ -583,6 +605,19 @@ class User extends Authenticatable
     public function expenditureProfile(): HasOne
     {
         return $this->hasOne(ExpenditureProfile::class);
+    }
+
+    /**
+     * SaveTax campaign — household tax-strategy inputs (spouse data).
+     */
+    public function taxStrategyHouseholdInput(): HasOne
+    {
+        return $this->hasOne(TaxStrategyHouseholdInput::class);
+    }
+
+    public function gamification(): HasOne
+    {
+        return $this->hasOne(UserGamification::class);
     }
 
     /**
@@ -677,8 +712,8 @@ class User extends Authenticatable
             return null;
         }
 
-        $arrivalDate = \Carbon\Carbon::parse($this->uk_arrival_date);
-        $now = \Carbon\Carbon::now();
+        $arrivalDate = Carbon::parse($this->uk_arrival_date);
+        $now = Carbon::now();
 
         return $arrivalDate->diffInYears($now);
     }
@@ -754,5 +789,37 @@ class User extends Authenticatable
         }
 
         return 'Domicile status not set. Please update your profile.';
+    }
+
+    /**
+     * Account is scheduled for deletion but not yet executed.
+     */
+    public function isScheduledForDeletion(): bool
+    {
+        return $this->deletion_scheduled_for !== null
+            && $this->deleted_at === null;
+    }
+
+    /**
+     * Account is currently in the deleted state and within the retention window
+     * (i.e. data still on disk and the row is soft-deleted, not legacy-purged).
+     */
+    public function canBeRestored(): bool
+    {
+        return $this->trashed()
+            && $this->deletion_reason !== 'legacy_purged'
+            && ($this->purge_eligible_at === null || $this->purge_eligible_at->isFuture());
+    }
+
+    /**
+     * Promote this user to advisor. Replaces the DB::table()->update workaround
+     * used by AdvisorClientSeeder and exposes a semantic entry point for any
+     * future advisor-onboarding flow.
+     */
+    public function markAsAdvisor(): bool
+    {
+        $this->is_advisor = true;
+
+        return $this->save();
     }
 }

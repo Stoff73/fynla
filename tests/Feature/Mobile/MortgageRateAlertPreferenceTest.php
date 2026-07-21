@@ -9,7 +9,7 @@ describe('Mortgage Rate Alert Preference', function () {
     it('returns mortgage_rate_alerts in preferences response', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/notifications/preferences');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/notifications/preferences');
 
         $response->assertOk()
             ->assertJsonPath('data.mortgage_rate_alerts', true);
@@ -18,7 +18,7 @@ describe('Mortgage Rate Alert Preference', function () {
     it('can update mortgage_rate_alerts preference', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->putJson('/api/v1/mobile/notifications/preferences', [
+        $response = $this->actingAs($user, 'sanctum')->putJson('/api/v1/mobile/notifications/preferences', [
             'mortgage_rate_alerts' => false,
         ]);
 

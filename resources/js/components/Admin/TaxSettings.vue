@@ -2827,26 +2827,28 @@ export default {
         if (pet.taper_relief && Array.isArray(pet.taper_relief)) {
           const reliefSchedule = pet.taper_relief;
 
-          // Check that years are in ascending order
+          // Bands are stored as { min_years, max_years, tax_rate } — check the
+          // bands are in ascending order by their starting year.
           for (let i = 1; i < reliefSchedule.length; i++) {
-            if (reliefSchedule[i].years <= reliefSchedule[i - 1].years) {
-              errors.push('Potentially Exempt Transfer taper relief years must be in ascending order');
+            if (reliefSchedule[i].min_years <= reliefSchedule[i - 1].min_years) {
+              errors.push('Potentially Exempt Transfer taper relief bands must be in ascending order');
               break;
             }
           }
 
-          // Check that the last year matches years_to_exemption
+          // The final band is the fully-exempt band; its starting year marks the
+          // point gifts become exempt and must match years_to_exemption.
           if (reliefSchedule.length > 0) {
-            const lastYear = reliefSchedule[reliefSchedule.length - 1].years;
-            if (lastYear !== yearsToExemption) {
+            const lastBandStart = reliefSchedule[reliefSchedule.length - 1].min_years;
+            if (lastBandStart !== yearsToExemption) {
               errors.push(`Potentially Exempt Transfer taper relief schedule must end at ${yearsToExemption} years (years to exemption)`);
             }
           }
 
-          // Validate rates are between 0-1
+          // Validate tax rates are between 0-1
           reliefSchedule.forEach((relief, i) => {
-            if (relief.rate < 0 || relief.rate > 1) {
-              errors.push(`Potentially Exempt Transfer taper relief year ${relief.years} rate must be between 0 and 1`);
+            if (relief.tax_rate < 0 || relief.tax_rate > 1) {
+              errors.push(`Potentially Exempt Transfer taper relief band ${i + 1} rate must be between 0 and 1`);
             }
           });
         }
@@ -2880,6 +2882,15 @@ export default {
             inheritance_tax: this.editableConfig.inheritance_tax,
             gifting_exemptions: this.editableConfig.gifting_exemptions,
             stamp_duty: this.editableConfig.stamp_duty,
+            // R1.5 (B2-A) — the five sections below were silently dropped
+            // by an earlier version of this method, so users could edit
+            // their values, see a success toast, reload, and find their
+            // edits gone. Keep these in the payload.
+            savings: this.editableConfig.savings,
+            investment: this.editableConfig.investment,
+            protection: this.editableConfig.protection,
+            benefits: this.editableConfig.benefits,
+            assumptions: this.editableConfig.assumptions,
           }
         });
 
@@ -2933,9 +2944,9 @@ export default {
         if (response.data.success) {
           this.successMessage = `Active tax year switched to ${selectedConfig?.tax_year}`;
           await this.loadData();
-          // Refresh the global tax year cache so every bound component
-          // (dashboard, allowance cards, etc.) re-renders with the new year.
-          this.$store.dispatch('taxConfig/fetchActive').catch(() => {});
+          // Refresh the full tax-config snapshot so every bound component
+          // (dashboard, allowance cards, etc.) re-renders with the new year's values.
+          this.$store.dispatch('taxConfig/fetchConfig').catch(() => {});
         } else {
           this.error = response.data.message || 'Failed to switch active tax year';
           event.target.value = this.activeConfigId;

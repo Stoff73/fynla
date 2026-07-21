@@ -1,0 +1,19 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Events\Mortgage;
+
+use App\Models\Mortgage;
+use App\Models\User;
+use App\Services\Stores\IngestSource;
+
+class MortgageDeleted
+{
+    public function __construct(
+        public readonly Mortgage $entity,
+        public readonly User $user,
+        public readonly IngestSource $source,
+        public readonly bool $force = false,
+    ) {}
+}

@@ -7,11 +7,15 @@ use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
@@ -22,11 +26,11 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $this->assetAggregator = new CrossModuleAssetAggregator;
+    $this->assetAggregator = app(CrossModuleAssetAggregator::class);
     $taxConfigService = app(TaxConfigService::class);
     $this->taxCalculator = new UKTaxCalculator($taxConfigService);
-    $this->childBenefitService = new ChildBenefitService($taxConfigService);
-    $this->service = new UserProfileService($this->assetAggregator, $this->taxCalculator, $this->childBenefitService);
+    $this->childBenefitService = new ChildBenefitService($taxConfigService, new IncomeDefinitionsService($taxConfigService, app(PropertyStore::class)));
+    $this->service = new UserProfileService($this->assetAggregator, $this->taxCalculator, $this->childBenefitService, app(PropertyStore::class), app(MortgageStore::class));
     $this->user = User::factory()->create();
 });
 
@@ -151,7 +155,7 @@ it('calculates individual property expenses correctly', function () {
     ]);
 
     // Create mortgage for the property
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => Property::first()->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 450.00,
@@ -196,7 +200,7 @@ it('splits joint property expenses by ownership percentage', function () {
         'monthly_contents_insurance' => 0.00,
     ]);
 
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => Property::first()->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 900.00, // Full amount; user gets 50% = 450
@@ -244,7 +248,7 @@ it('uses first mortgage on property (service takes first mortgage only)', functi
     ]);
 
     // Service only takes first mortgage
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 800.00,
@@ -453,7 +457,7 @@ it('calculates total commitments across all categories', function () {
         'ownership_type' => 'individual',
         'monthly_council_tax' => 200.00,
     ]);
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 800.00,
@@ -494,7 +498,7 @@ it('splits joint property values by ownership percentage', function () {
         'joint_owner_id' => $spouse->id,
         'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
     ]);
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
@@ -529,7 +533,7 @@ it('handles mixed individual and joint commitments correctly', function () {
         'joint_owner_id' => $spouse->id,
         'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
     ]);
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
@@ -580,6 +584,26 @@ it('handles null monthly payment values gracefully', function () {
     // Should not include liabilities without monthly payment
     expect($result['commitments']['liabilities'])->toBeEmpty()
         ->and($result['totals']['liabilities'])->toBe(0);
+});
+
+it('applies tenants-in-common liability shares to both owners', function () {
+    $spouse = User::factory()->create();
+    $liability = Liability::factory()->create([
+        'user_id' => $this->user->id,
+        'joint_owner_id' => $spouse->id,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 60,
+        'liability_type' => 'personal_loan',
+        'monthly_payment' => 1000,
+    ]);
+
+    $primary = $this->service->getFinancialCommitments($this->user);
+    $secondary = $this->service->getFinancialCommitments($spouse);
+
+    expect($primary['commitments']['liabilities'][0]['monthly_amount'])->toBe(600.0)
+        ->and($secondary['commitments']['liabilities'][0]['monthly_amount'])->toBe(400.0)
+        ->and($primary['commitments']['liabilities'][0]['is_joint'])->toBeTrue()
+        ->and($liability->ownership_type)->toBe('tenants_in_common');
 });
 
 it('handles zero monthly payment values', function () {

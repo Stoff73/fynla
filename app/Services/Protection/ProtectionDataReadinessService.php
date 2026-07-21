@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Protection;
 
+use App\Events\Eval\GateChecked;
 use App\Models\LifeEvent;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 
 class ProtectionDataReadinessService
 {
@@ -17,6 +19,10 @@ class ProtectionDataReadinessService
     private const LEVEL_WARNING = 'warning';
 
     private const LEVEL_INFO = 'info';
+
+    public function __construct(
+        private readonly MortgageStore $mortgageStore,
+    ) {}
 
     /**
      * Assess data readiness for the Protection module.
@@ -52,9 +58,22 @@ class ProtectionDataReadinessService
 
         $passedCount = count(array_filter($checks, fn (array $c) => $c['passed']));
         $totalChecks = count($checks);
+        $canProceed = count($blocking) === 0;
+
+        event(new GateChecked(
+            gate: 'data_readiness',
+            module: 'protection',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         return [
-            'can_proceed' => count($blocking) === 0,
+            'can_proceed' => $canProceed,
             'blocking' => $blocking,
             'warnings' => $warnings,
             'info' => $info,
@@ -94,6 +113,16 @@ class ProtectionDataReadinessService
                 passed: $user->marital_status !== null,
                 message: 'Marital status is required to determine household protection needs.',
                 formLink: '/profile/personal',
+            ),
+            $this->check(
+                key: 'protection_profile',
+                level: self::LEVEL_BLOCKING,
+                // Protection needs (dependants, cover target, employer benefits)
+                // are held on the protection profile; the analysis cannot compute
+                // a coverage gap without it. Mirrors ProtectionAgent::analyze().
+                passed: ($user->relationLoaded('protectionProfile') ? $user->protectionProfile : $user->protectionProfile()->first()) !== null,
+                message: 'Set up your protection details so we can assess your cover needs and gaps.',
+                formLink: '/protection',
             ),
         ];
     }
@@ -226,6 +255,7 @@ class ProtectionDataReadinessService
             || ($user->annual_self_employment_income ?? 0) > 0
             || ($user->annual_rental_income ?? 0) > 0
             || ($user->annual_dividend_income ?? 0) > 0
+            || ($user->annual_interest_income ?? 0) > 0
             || ($user->annual_other_income ?? 0) > 0
             || ($user->annual_trust_income ?? 0) > 0;
     }
@@ -341,7 +371,7 @@ class ProtectionDataReadinessService
         if (! $hasLiabilities) {
             $hasLiabilities = $user->relationLoaded('mortgages')
                 ? $user->mortgages->isNotEmpty()
-                : $user->mortgages()->exists();
+                : $this->mortgageStore->forUserPrimaryOnly($user)->isNotEmpty();
         }
 
         return $hasLiabilities;

@@ -4,7 +4,7 @@
   Variables:
     $number     string|int   e.g. 3
     $label      string       e.g. "Days remaining"
-    $subtext    string|null  e.g. "Your free trial ends on 18 April 2026"
+    $subtext    string|null  e.g. "Your Premium access ends on 18 April 2026"
     $outerBg    string       Outer <td> bg. Default #ffffff.
 --}}
 @php

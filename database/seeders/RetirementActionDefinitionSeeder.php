@@ -19,7 +19,7 @@ class RetirementActionDefinitionSeeder extends Seeder
 {
     public function run(): void
     {
-        $definitions = $this->getDefinitions();
+        $definitions = array_merge($this->getDefinitions(), $this->getStrategyDefinitions());
 
         foreach ($definitions as $definition) {
             RetirementActionDefinition::updateOrCreate(
@@ -27,6 +27,67 @@ class RetirementActionDefinitionSeeder extends Seeder
                 $definition
             );
         }
+    }
+
+    /**
+     * source='strategy' catalogue rows for the cross-module plan composer.
+     * strategy_type matches the slugs RetirementRecommendationAdapter emits;
+     * required_data keys are drawn from ModuleAvailabilityProvider::forModule('retirement').
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getStrategyDefinitions(): array
+    {
+        $rows = [
+            [
+                'strategy_type' => 'increase_pension_contribution',
+                'category' => 'Contribution_increase',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['dc_pension_exists'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'salary_sacrifice_pension',
+                'category' => 'Salary Sacrifice',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['dc_pension_exists'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'carry_forward_unused_allowance',
+                'category' => 'Tax Planning',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['pension_input_history'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'plan_retirement_income',
+                'category' => 'Retirement Planning',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['retirement_age_set'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+        ];
+
+        return array_map(static function (array $row): array {
+            return array_merge([
+                'key' => 'strategy_'.$row['strategy_type'],
+                'source' => 'strategy',
+                'title_template' => $row['strategy_type'],
+                'description_template' => 'Computed by the retirement plan source.',
+                'action_template' => null,
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'contribution',
+                'trigger_config' => [],
+                'is_enabled' => true,
+                'sort_order' => 100,
+                'notes' => 'Strategy catalogue row for the cross-module plan composer.',
+            ], $row);
+        }, $rows);
     }
 
     private function getDefinitions(): array

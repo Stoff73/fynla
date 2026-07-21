@@ -8,6 +8,7 @@ use App\Models\Goal;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Settings\AssumptionsService;
+use App\Services\Stores\MortgageStore;
 use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
@@ -39,7 +40,8 @@ class GoalsProjectionService
         private readonly NetWorthService $netWorthService,
         private readonly LifeEventService $lifeEventService,
         private readonly AssumptionsService $assumptionsService,
-        private readonly UKTaxCalculator $taxCalculator
+        private readonly UKTaxCalculator $taxCalculator,
+        private readonly MortgageStore $mortgageStore
     ) {}
 
     /**
@@ -260,10 +262,10 @@ class GoalsProjectionService
      */
     private function getMortgageParameters(User $user, bool $household): array
     {
-        $mortgages = $user->mortgages ?? collect();
+        $mortgages = $this->mortgageStore->forUserPrimaryOnly($user);
 
         if ($household && $user->spouse) {
-            $spouseMortgages = $user->spouse->mortgages ?? collect();
+            $spouseMortgages = $this->mortgageStore->forUserPrimaryOnly($user->spouse);
             $mortgages = $mortgages->merge($spouseMortgages);
         }
 

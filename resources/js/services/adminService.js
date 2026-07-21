@@ -123,10 +123,6 @@ export default {
     return api.get('/admin/user-metrics/snapshot');
   },
 
-  getUserMetricsTrials() {
-    return api.get('/admin/user-metrics/trials');
-  },
-
   getUserMetricsPlans() {
     return api.get('/admin/user-metrics/plans');
   },

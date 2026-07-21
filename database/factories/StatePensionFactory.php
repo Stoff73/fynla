@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\StatePension;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\StatePension>
+ * @extends Factory<StatePension>
  */
 class StatePensionFactory extends Factory
 {
-    protected $model = \App\Models\StatePension::class;
+    protected $model = StatePension::class;
 
     /**
      * Define the model's default state.
@@ -38,7 +40,7 @@ class StatePensionFactory extends Factory
         }
 
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'ni_years_completed' => $niYearsCompleted,
             'ni_years_required' => $niYearsRequired,
             'state_pension_forecast_annual' => round($statePensionForecast, 2),

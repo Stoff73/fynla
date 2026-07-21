@@ -21,11 +21,11 @@
             </div>
           </div>
           <div>
-            <h5 class="text-sm font-semibold text-neutral-500 mb-2">Fee Efficiency Score</h5>
-            <p class="text-4xl font-bold" :class="getEfficiencyColour(data.efficiency_score)">
-              {{ formatPercentage(data.efficiency_score || 0) }}%
+            <h5 class="text-sm font-semibold text-neutral-500 mb-2">Fee efficiency</h5>
+            <p class="text-2xl font-semibold mb-1" :class="getEfficiencyColour(data.efficiency_score)">
+              {{ getEfficiencyLabel(data.efficiency_score) }}
             </p>
-            <p class="text-sm text-neutral-500 mt-2">{{ getEfficiencyLabel(data.efficiency_score) }}</p>
+            <p class="text-sm text-neutral-500">Compared to portfolios of similar size and mix</p>
           </div>
         </div>
       </div>

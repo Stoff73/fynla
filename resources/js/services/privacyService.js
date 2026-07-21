@@ -18,8 +18,7 @@ const privacyService = {
    */
   async updateConsent(consentType, granted) {
     const response = await api.put('/auth/gdpr/consents', {
-      consent_type: consentType,
-      granted,
+      consents: { [consentType]: granted },
     });
     return response.data;
   },
@@ -102,6 +101,16 @@ const privacyService = {
       session_token: sessionToken,
       confirmation,
     });
+    return response.data;
+  },
+
+  /**
+   * Cancel a scheduled (grace-period) account deletion before it executes.
+   * Clears `deletion_scheduled_for` on the user record.
+   * @returns {Promise}
+   */
+  async cancelScheduledDeletion() {
+    const response = await api.post('/auth/gdpr/erasure/cancel-scheduled');
     return response.data;
   },
 };

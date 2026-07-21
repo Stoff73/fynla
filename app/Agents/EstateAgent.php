@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\TaxDefaults;
+use App\Events\Eval\EngineCalled;
 use App\Models\Estate\Will;
 use App\Models\Goal;
 use App\Models\LifeInsurancePolicy;
@@ -57,272 +58,347 @@ class EstateAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
-        // Load user once with all needed relationships (avoids duplicate query)
-        $user = User::with([
-            'ihtProfile',
-            'assets',
-            'properties',
-            'liabilities',
-            'mortgages',
-            'spouse',
-            'familyMembers',
-            'trusts',
-            'gifts',
-        ])->find($userId);
+        $analyzeStart = microtime(true);
+        $result = (function () use ($userId): array {
+            // Load user once with all needed relationships (avoids duplicate query)
+            $user = User::with([
+                'ihtProfile',
+                'assets',
+                'properties',
+                'liabilities',
+                'mortgages',
+                'spouse',
+                'familyMembers',
+                'trusts',
+                'gifts',
+            ])->find($userId);
 
-        if (! $user) {
-            return $this->response(false, 'User not found', []);
-        }
-
-        // Data readiness gate — return early if blocking checks fail
-        $readiness = $this->readinessService->assess($user);
-        if (! $readiness['can_proceed']) {
-            return $this->response(true, 'Readiness check incomplete', [
-                'can_proceed' => false,
-                'readiness_checks' => $readiness,
-                'summary' => null,
-                'asset_breakdown' => null,
-                'iht_calculation' => null,
-                'trust_recommendations' => null,
-                'gifting_opportunities' => null,
-                'trust_wish_triggers' => null,
-                'charitable_analysis' => null,
-                'will_review_status' => null,
-                'life_cover' => null,
-                'pension_amendment' => null,
-                'goal_liquidity' => null,
-                'profile' => null,
-            ]);
-        }
-
-        $cacheKey = "estate_analysis_{$userId}";
-        $cacheTags = ['estate', 'user_'.$userId];
-
-        return $this->remember($cacheKey, function () use ($user, $userId) {
-
-            // Load all life insurance policies in a single query and filter in-memory
-            $allLifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
-            $lifePoliciesInTrust = $allLifePolicies->where('in_trust', true);
-            $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => ! $p->in_trust);
-
-            $spouseLifeCoverInTrust = 0;
-            if ($user->spouse) {
-                $spouseLifeCoverInTrust = LifeInsurancePolicy::where('user_id', $user->spouse->id)
-                    ->where('in_trust', true)
-                    ->sum('sum_assured');
+            if (! $user) {
+                return $this->response(false, 'User not found', []);
             }
 
-            // Aggregate all estate assets into summary
-            $assetSummary = $this->buildAssetSummary($user);
-
-            // Calculate IHT (include spouse data when married and linked)
-            $ihtCalculation = null;
-            $ihtLiability = 0;
-            $effectiveTaxRate = 0;
-
-            try {
-                $spouse = $user->spouse;
-                $dataSharingEnabled = $spouse !== null;
-                $ihtCalculation = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
-                $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
-                $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
-            } catch (\Exception $e) {
-                report($e);
-                // Continue without IHT calculation
+            // Data readiness gate — return early if blocking checks fail
+            $readiness = $this->readinessService->assess($user);
+            if (! $readiness['can_proceed']) {
+                return $this->response(true, 'Readiness check incomplete', [
+                    'can_proceed' => false,
+                    'readiness_checks' => $readiness,
+                    'summary' => null,
+                    'asset_breakdown' => null,
+                    'iht_calculation' => null,
+                    'trust_recommendations' => null,
+                    'gifting_opportunities' => null,
+                    'trust_wish_triggers' => null,
+                    'charitable_analysis' => null,
+                    'will_review_status' => null,
+                    'life_cover' => null,
+                    'pension_amendment' => null,
+                    'goal_liquidity' => null,
+                    'profile' => null,
+                ]);
             }
 
-            // Get trust recommendations
-            $trustRecommendations = [];
-            if ($user->ihtProfile) {
+            $cacheKey = "estate_analysis_{$userId}";
+            $cacheTags = ['estate', 'user_'.$userId];
+
+            return $this->remember($cacheKey, function () use ($user, $userId) {
+
+                // Load all life insurance policies in a single query and filter in-memory
+                $allLifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
+                $lifePoliciesInTrust = $allLifePolicies->where('in_trust', true);
+                $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => ! $p->in_trust);
+
+                $spouseLifeCoverInTrust = 0;
+                if ($user->spouse) {
+                    $spouseLifeCoverInTrust = LifeInsurancePolicy::where('user_id', $user->spouse->id)
+                        ->where('in_trust', true)
+                        ->sum('sum_assured');
+                }
+
+                // Aggregate all estate assets into summary
+                $assetSummary = $this->buildAssetSummary($user);
+
+                // Calculate IHT (include spouse data when married and linked)
+                $ihtCalculation = null;
+                $ihtLiability = 0;
+                $effectiveTaxRate = 0;
+
                 try {
-                    $assets = $this->assetAggregator->gatherUserAssets($user);
-                    $trustRecommendations = $this->trustStrategyService->generatePersonalizedTrustStrategy(
-                        $assets,
+                    $spouse = $user->spouse;
+                    $dataSharingEnabled = $spouse !== null;
+                    $ihtCalculation = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
+                    $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
+                    $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
+                } catch (\Exception $e) {
+                    report($e);
+                    // Continue without IHT calculation
+                }
+
+                // Get trust recommendations
+                $trustRecommendations = [];
+                if ($user->ihtProfile) {
+                    try {
+                        $assets = $this->assetAggregator->gatherUserAssets($user);
+                        $trustRecommendations = $this->trustStrategyService->generatePersonalizedTrustStrategy(
+                            $assets,
+                            $ihtLiability,
+                            $user->ihtProfile,
+                            $user
+                        );
+                    } catch (\Throwable $e) {
+                        report($e);
+                        // Continue without trust recommendations
+                    }
+                }
+
+                // Get gifting opportunities
+                $giftingOpportunities = [];
+                try {
+                    $currentAge = $user->date_of_birth
+                        ? (int) $user->date_of_birth->diffInYears(now())
+                        : self::DEFAULT_CURRENT_AGE;
+                    $lifeExpectancy = $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY;
+                    $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
+                    $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
+                    $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
+
+                    $giftingOpportunities = $this->giftingOptimizer->calculateOptimalGiftingStrategy(
+                        $assetSummary['net_estate'] ?? 0,
                         $ihtLiability,
-                        $user->ihtProfile,
-                        $user
+                        $yearsUntilDeath,
+                        $user,
+                        $nrb,
+                        $rnrb
                     );
                 } catch (\Throwable $e) {
                     report($e);
-                    // Continue without trust recommendations
+                    // Continue without gifting opportunities
                 }
-            }
 
-            // Get gifting opportunities
-            $giftingOpportunities = [];
-            try {
-                $currentAge = $user->date_of_birth
-                    ? (int) $user->date_of_birth->diffInYears(now())
-                    : self::DEFAULT_CURRENT_AGE;
-                $lifeExpectancy = $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY;
-                $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
-                $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
-                $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
-
-                $giftingOpportunities = $this->giftingOptimizer->calculateOptimalGiftingStrategy(
-                    $assetSummary['net_estate'] ?? 0,
-                    $ihtLiability,
-                    $yearsUntilDeath,
-                    $user,
-                    $nrb,
-                    $rnrb
-                );
-            } catch (\Throwable $e) {
-                report($e);
-                // Continue without gifting opportunities
-            }
-
-            // Check will for trust-triggering wishes
-            $trustWishTriggers = [];
-            try {
-                $will = Will::where('user_id', $userId)->with('bequests')->first();
-                if ($will) {
-                    $trustWishTriggers = $this->willAnalysisService->detectTrustTriggeringWishes($will);
-                }
-            } catch (\Throwable $e) {
-                report($e);
-                // Continue without wish triggers
-            }
-
-            // Analyze charitable bequests
-            $charitableAnalysis = [];
-            try {
-                $netEstate = $assetSummary['net_estate'] ?? 0;
-                $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($user, $netEstate);
-            } catch (\Throwable $e) {
-                report($e);
-                // Continue without charitable analysis
-            }
-
-            // Will review status
-            $willReviewStatus = null;
-            if (isset($will) && $will) {
-                $lastReviewed = $will->last_reviewed_date ?? $will->will_last_updated;
-                $willReviewStatus = [
-                    'has_will' => (bool) $will->has_will,
-                    'last_reviewed_date' => $lastReviewed?->format('Y-m-d'),
-                    'is_stale' => $lastReviewed ? $lastReviewed->lt(now()->subYears(3)) : true,
-                ];
-            }
-
-            // Calculate current age and life expectancy context
-            $currentAge = $user->date_of_birth ?
-                (int) $user->date_of_birth->diffInYears(now()) : self::DEFAULT_CURRENT_AGE;
-
-            // Assess existing life insurance policies for IHT planning suitability
-            $policyAssessment = [];
-            if ($allLifePolicies->isNotEmpty()) {
+                // Check will for trust-triggering wishes
+                $trustWishTriggers = [];
                 try {
-                    $policyAssessment = $this->lifeCoverCalculator->assessExistingPolicies($allLifePolicies, $user);
+                    $will = Will::where('user_id', $userId)->with('bequests')->first();
+                    if ($will) {
+                        $trustWishTriggers = $this->willAnalysisService->detectTrustTriggeringWishes($will);
+                    }
                 } catch (\Throwable $e) {
                     report($e);
-                    // Continue without policy assessment
+                    // Continue without wish triggers
                 }
-            }
 
-            // Extract pension amendment from IHT calculation (already computed)
-            $pensionAmendment = $ihtCalculation['pension_amendment'] ?? ['amendment_warning' => false];
+                // Analyze charitable bequests
+                $charitableAnalysis = [];
+                try {
+                    $netEstate = $assetSummary['net_estate'] ?? 0;
+                    $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($user, $netEstate);
+                } catch (\Throwable $e) {
+                    report($e);
+                    // Continue without charitable analysis
+                }
 
-            // Build itemised asset list for granular decision traces
-            $gatheredAssets = $this->assetAggregator->gatherUserAssets($user);
-            $itemisedAssets = $gatheredAssets->map(fn ($a) => [
-                'name' => $a->asset_name ?? 'Unknown',
-                'type' => $a->asset_type ?? 'unknown',
-                'value' => round((float) ($a->current_value ?? 0), 2),
-                'full_value' => round((float) ($a->full_value ?? $a->current_value ?? 0), 2),
-                'ownership_type' => $a->ownership_type ?? 'individual',
-                'is_iht_exempt' => $a->is_iht_exempt ?? false,
-            ])->values()->toArray();
+                // Will review status
+                $willReviewStatus = null;
+                if (isset($will) && $will) {
+                    $lastReviewed = $will->last_reviewed_date ?? $will->will_last_updated;
+                    $willReviewStatus = [
+                        'has_will' => (bool) $will->has_will,
+                        'last_reviewed_date' => $lastReviewed?->format('Y-m-d'),
+                        'is_stale' => $lastReviewed ? $lastReviewed->lt(now()->subYears(3)) : true,
+                    ];
+                }
 
-            // Build itemised life policy list
-            $itemisedPolicies = $allLifePolicies->map(fn ($p) => [
-                'provider' => $p->provider ?? 'Unknown provider',
-                'policy_type' => $p->policy_type ?? 'life',
-                'sum_assured' => (float) ($p->sum_assured ?? 0),
-                'in_trust' => (bool) ($p->in_trust ?? false),
-            ])->values()->toArray();
+                // Calculate current age and life expectancy context
+                $currentAge = $user->date_of_birth ?
+                    (int) $user->date_of_birth->diffInYears(now()) : self::DEFAULT_CURRENT_AGE;
 
-            // Build gift summary
-            $giftSummary = $user->gifts->map(fn ($g) => [
-                'recipient' => $g->recipient ?? 'Unknown',
-                'gift_type' => $g->gift_type ?? 'unknown',
-                'gift_value' => (float) ($g->gift_value ?? 0),
-                'gift_date' => $g->gift_date?->format('Y-m-d'),
-            ])->values()->toArray();
+                // Assess existing life insurance policies for IHT planning suitability
+                $policyAssessment = [];
+                if ($allLifePolicies->isNotEmpty()) {
+                    try {
+                        $policyAssessment = $this->lifeCoverCalculator->assessExistingPolicies($allLifePolicies, $user);
+                    } catch (\Throwable $e) {
+                        report($e);
+                        // Continue without policy assessment
+                    }
+                }
 
-            // Build trust summary
-            $trustSummary = $user->trusts->map(fn ($t) => [
-                'trust_name' => $t->trust_name ?? 'Unnamed trust',
-                'trust_type' => $t->trust_type ?? 'unknown',
-                'current_value' => (float) ($t->current_value ?? 0),
-            ])->values()->toArray();
+                // Extract pension amendment from IHT calculation (already computed)
+                $pensionAmendment = $ihtCalculation['pension_amendment'] ?? ['amendment_warning' => false];
 
-            // Goal liquidity risk — outstanding goal funding that may compete with estate liquidity
-            $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
-            $goalLiquidity = [
-                'total_outstanding' => round($activeGoals->sum(fn ($g) => max(0, (float) $g->target_amount - (float) $g->current_amount)), 2),
-                'goals' => $activeGoals->map(fn ($g) => [
-                    'name' => $g->goal_name,
-                    'outstanding' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
-                ])->filter(fn ($g) => $g['outstanding'] > 0)->values()->toArray(),
+                // Build itemised asset list for granular decision traces
+                $gatheredAssets = $this->assetAggregator->gatherUserAssets($user);
+                $itemisedAssets = $gatheredAssets->map(fn ($a) => [
+                    'name' => $a->asset_name ?? 'Unknown',
+                    'type' => $a->asset_type ?? 'unknown',
+                    'value' => round((float) ($a->current_value ?? 0), 2),
+                    'full_value' => round((float) ($a->full_value ?? $a->current_value ?? 0), 2),
+                    'ownership_type' => $a->ownership_type ?? 'individual',
+                    'is_iht_exempt' => $a->is_iht_exempt ?? false,
+                ])->values()->toArray();
+
+                // Build itemised life policy list
+                $itemisedPolicies = $allLifePolicies->map(fn ($p) => [
+                    'provider' => $p->provider ?? 'Unknown provider',
+                    'policy_type' => $p->policy_type ?? 'life',
+                    'sum_assured' => (float) ($p->sum_assured ?? 0),
+                    'in_trust' => (bool) ($p->in_trust ?? false),
+                ])->values()->toArray();
+
+                // Build gift summary
+                $giftSummary = $user->gifts->map(fn ($g) => [
+                    'recipient' => $g->recipient ?? 'Unknown',
+                    'gift_type' => $g->gift_type ?? 'unknown',
+                    'gift_value' => (float) ($g->gift_value ?? 0),
+                    'gift_date' => $g->gift_date?->format('Y-m-d'),
+                ])->values()->toArray();
+
+                // Build trust summary
+                $trustSummary = $user->trusts->map(fn ($t) => [
+                    'trust_name' => $t->trust_name ?? 'Unnamed trust',
+                    'trust_type' => $t->trust_type ?? 'unknown',
+                    'current_value' => (float) ($t->current_value ?? 0),
+                ])->values()->toArray();
+
+                // Goal liquidity risk — outstanding goal funding that may compete with estate liquidity
+                $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
+                $goalLiquidity = [
+                    'total_outstanding' => round($activeGoals->sum(fn ($g) => max(0, (float) $g->target_amount - (float) $g->current_amount)), 2),
+                    'goals' => $activeGoals->map(fn ($g) => [
+                        'name' => $g->goal_name,
+                        'outstanding' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
+                    ])->filter(fn ($g) => $g['outstanding'] > 0)->values()->toArray(),
+                ];
+
+                // Build user context for recommendation traces
+                $userContext = [
+                    'first_name' => $user->first_name ?? 'User',
+                    'surname' => $user->surname ?? '',
+                    'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+                    'marital_status' => $user->marital_status ?? 'unknown',
+                    'spouse_first_name' => $user->spouse?->first_name,
+                    'spouse_surname' => $user->spouse?->surname,
+                    'itemised_assets' => $itemisedAssets,
+                    'itemised_policies' => $itemisedPolicies,
+                    'gift_summary' => $giftSummary,
+                    'trust_summary' => $trustSummary,
+                    'has_will' => isset($will) && $will && $will->has_will,
+                    'will_executor' => isset($will) ? ($will->executor_name ?? null) : null,
+                ];
+
+                // S1.6.b — structured gap list for the LLM.
+                $missingForQualityAdvice = $this->findMissingForQualityAdvice(
+                    $user,
+                    $assetSummary,
+                    $allLifePolicies,
+                    $will ?? null,
+                );
+
+                return $this->response(
+                    true,
+                    'Estate analysis completed successfully.',
+                    [
+                        'summary' => [
+                            'gross_estate' => $assetSummary['gross_estate'] ?? 0,
+                            'net_estate' => $assetSummary['net_estate'] ?? 0,
+                            'total_liabilities' => $assetSummary['total_liabilities'] ?? 0,
+                            'iht_liability' => $ihtLiability,
+                            'effective_tax_rate' => round($effectiveTaxRate, 2),
+                        ],
+                        'asset_breakdown' => $assetSummary['breakdown'] ?? [],
+                        'iht_calculation' => $ihtCalculation,
+                        'trust_recommendations' => $trustRecommendations,
+                        'gifting_opportunities' => $giftingOpportunities,
+                        'trust_wish_triggers' => $trustWishTriggers,
+                        'charitable_analysis' => $charitableAnalysis,
+                        'will_review_status' => $willReviewStatus,
+                        'life_cover' => [
+                            'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
+                            'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
+                            'total_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured') + $spouseLifeCoverInTrust,
+                            'total_cover_not_in_trust' => (float) $lifePoliciesNotInTrust->sum('sum_assured'),
+                            'policy_count' => $lifePoliciesInTrust->count(),
+                            'policies_not_in_trust_count' => $lifePoliciesNotInTrust->count(),
+                            'policy_assessment' => $policyAssessment,
+                        ],
+                        'pension_amendment' => $pensionAmendment,
+                        'goal_liquidity' => $goalLiquidity,
+                        'profile' => [
+                            'current_age' => $currentAge,
+                            'life_expectancy' => $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY,
+                            'marital_status' => $user->marital_status,
+                            'has_dependents' => ($user->familyMembers()->where('relationship', 'child')->count() > 0),
+                            'has_spouse' => $user->spouse !== null,
+                        ],
+                        'user_context' => $userContext,
+                        'missing_for_quality_advice' => $missingForQualityAdvice,
+                    ]
+                );
+            }, null, $cacheTags);
+        })();
+
+        $resultPath = match (true) {
+            isset($result['success']) && $result['success'] === false => 'success_false',
+            isset($result['data']['can_proceed']) && $result['data']['can_proceed'] === false => 'readiness_blocked',
+            default => 'happy',
+        };
+        event(new EngineCalled(
+            engine: 'estate_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(
+        User $user,
+        array $assetSummary,
+        $lifePolicies,
+        $will,
+    ): array {
+        $gaps = [];
+
+        if (($assetSummary['gross_estate'] ?? 0) <= 0) {
+            $gaps[] = [
+                'field' => 'estate_assets',
+                'why' => 'No estate assets recorded — Inheritance Tax liability cannot be calculated.',
+                'severity' => 'blocking',
             ];
+        }
 
-            // Build user context for recommendation traces
-            $userContext = [
-                'first_name' => $user->first_name ?? 'User',
-                'surname' => $user->surname ?? '',
-                'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
-                'marital_status' => $user->marital_status ?? 'unknown',
-                'spouse_first_name' => $user->spouse?->first_name,
-                'spouse_surname' => $user->spouse?->surname,
-                'itemised_assets' => $itemisedAssets,
-                'itemised_policies' => $itemisedPolicies,
-                'gift_summary' => $giftSummary,
-                'trust_summary' => $trustSummary,
-                'has_will' => isset($will) && $will && $will->has_will,
-                'will_executor' => isset($will) ? ($will->executor_name ?? null) : null,
+        if ($user->marital_status === 'married' && $user->spouse === null) {
+            $gaps[] = [
+                'field' => 'spouse_link',
+                'why' => 'Spouse exemption and the transferable Nil Rate Band depend on the spouse profile being linked.',
+                'severity' => 'soft',
             ];
+        }
 
-            return $this->response(
-                true,
-                'Estate analysis completed successfully.',
-                [
-                    'summary' => [
-                        'gross_estate' => $assetSummary['gross_estate'] ?? 0,
-                        'net_estate' => $assetSummary['net_estate'] ?? 0,
-                        'total_liabilities' => $assetSummary['total_liabilities'] ?? 0,
-                        'iht_liability' => $ihtLiability,
-                        'effective_tax_rate' => round($effectiveTaxRate, 2),
-                    ],
-                    'asset_breakdown' => $assetSummary['breakdown'] ?? [],
-                    'iht_calculation' => $ihtCalculation,
-                    'trust_recommendations' => $trustRecommendations,
-                    'gifting_opportunities' => $giftingOpportunities,
-                    'trust_wish_triggers' => $trustWishTriggers,
-                    'charitable_analysis' => $charitableAnalysis,
-                    'will_review_status' => $willReviewStatus,
-                    'life_cover' => [
-                        'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
-                        'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
-                        'total_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured') + $spouseLifeCoverInTrust,
-                        'total_cover_not_in_trust' => (float) $lifePoliciesNotInTrust->sum('sum_assured'),
-                        'policy_count' => $lifePoliciesInTrust->count(),
-                        'policies_not_in_trust_count' => $lifePoliciesNotInTrust->count(),
-                        'policy_assessment' => $policyAssessment,
-                    ],
-                    'pension_amendment' => $pensionAmendment,
-                    'goal_liquidity' => $goalLiquidity,
-                    'profile' => [
-                        'current_age' => $currentAge,
-                        'life_expectancy' => $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY,
-                        'marital_status' => $user->marital_status,
-                        'has_dependents' => ($user->familyMembers()->where('relationship', 'child')->count() > 0),
-                        'has_spouse' => $user->spouse !== null,
-                    ],
-                    'user_context' => $userContext,
-                ]
-            );
-        }, null, $cacheTags);
+        if ($will === null || ! ($will->has_will ?? false)) {
+            $gaps[] = [
+                'field' => 'will',
+                'why' => 'Without a recorded Will, executor, beneficiaries, and bequest structure cannot be assessed.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($lifePolicies->isEmpty() && ($assetSummary['gross_estate'] ?? 0) > $this->taxConfig->getInheritanceTax()['nil_rate_band']) {
+            $gaps[] = [
+                'field' => 'life_cover',
+                'why' => 'Estate exceeds the Nil Rate Band but no life cover is recorded — a written-in-trust policy is a common Inheritance Tax mitigation route.',
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**
@@ -339,220 +415,236 @@ class EstateAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
-        if (! isset($analysisData['data'])) {
-            return $this->response(
-                false,
-                'Analysis data is incomplete. Please run analysis first.',
-                []
-            );
-        }
-
-        $recommendations = [];
-        $data = $analysisData['data'];
-        $ihtLiability = $data['summary']['iht_liability'] ?? 0;
-        $netEstate = $data['summary']['net_estate'] ?? 0;
-        $grossEstate = $data['summary']['gross_estate'] ?? 0;
-        $totalLiabilities = $data['summary']['total_liabilities'] ?? 0;
-        $currentAge = $data['profile']['current_age'] ?? 50;
-        $lifeExpectancy = $data['profile']['life_expectancy'] ?? self::DEFAULT_LIFE_EXPECTANCY;
-        $charitableAnalysis = $data['charitable_analysis'] ?? [];
-        $trustWishTriggers = $data['trust_wish_triggers'] ?? [];
-        $ihtCalc = $data['iht_calculation'] ?? [];
-
-        // Build estate context from analysis data for granular traces
-        $ctx = $this->buildEstateContext($data);
-
-        // Only generate mitigation recommendations if there's an IHT liability
-        if ($ihtLiability > 0) {
-            $remainingLiability = $ihtLiability;
-
-            // STEP 1: Charitable Bequest Check (Rate Reduction)
-            $step1Result = $this->step1CharitableBequestCheck($charitableAnalysis, $ihtLiability, $ctx);
-            if ($step1Result) {
-                $recommendations[] = $step1Result;
+        $start = microtime(true);
+        $result = (function () use ($analysisData): array {
+            if (! isset($analysisData['data'])) {
+                return $this->response(
+                    false,
+                    'Analysis data is incomplete. Please run analysis first.',
+                    []
+                );
             }
 
-            // STEP 2: Liquidity & Affordability Assessment
-            $liquidityData = $this->step2LiquidityAssessment($data, $ctx);
-            if ($liquidityData['recommendation']) {
-                $recommendations[] = $liquidityData['recommendation'];
-            }
+            $recommendations = [];
+            $data = $analysisData['data'];
+            $ihtLiability = $data['summary']['iht_liability'] ?? 0;
+            $netEstate = $data['summary']['net_estate'] ?? 0;
+            $grossEstate = $data['summary']['gross_estate'] ?? 0;
+            $totalLiabilities = $data['summary']['total_liabilities'] ?? 0;
+            $currentAge = $data['profile']['current_age'] ?? 50;
+            $lifeExpectancy = $data['profile']['life_expectancy'] ?? self::DEFAULT_LIFE_EXPECTANCY;
+            $charitableAnalysis = $data['charitable_analysis'] ?? [];
+            $trustWishTriggers = $data['trust_wish_triggers'] ?? [];
+            $ihtCalc = $data['iht_calculation'] ?? [];
 
-            // STEP 3: Check Existing Life Cover
-            $lifeCoverData = $this->step3ExistingLifeCover($data, $ctx);
-            if ($lifeCoverData['usable_cover'] > 0) {
-                $remainingLiability = max(0, $remainingLiability - $lifeCoverData['usable_cover']);
-            }
-            if ($lifeCoverData['recommendation']) {
-                $recommendations[] = $lifeCoverData['recommendation'];
-            }
-            if ($lifeCoverData['trust_placement_recommendation'] ?? null) {
-                $recommendations[] = $lifeCoverData['trust_placement_recommendation'];
-            }
+            // Build estate context from analysis data for granular traces
+            $ctx = $this->buildEstateContext($data);
 
-            // STEP 4: Annual Gifting Strategy (First Resort)
-            if ($remainingLiability > 0) {
-                $annualGiftingResult = $this->step4AnnualGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy, $ctx);
-                if ($annualGiftingResult['recommendation']) {
-                    $recommendations[] = $annualGiftingResult['recommendation'];
+            // Only generate mitigation recommendations if there's an IHT liability
+            if ($ihtLiability > 0) {
+                $remainingLiability = $ihtLiability;
+
+                // STEP 1: Charitable Bequest Check (Rate Reduction)
+                $step1Result = $this->step1CharitableBequestCheck($charitableAnalysis, $ihtLiability, $ctx);
+                if ($step1Result) {
+                    $recommendations[] = $step1Result;
                 }
-                $remainingLiability = max(0, $remainingLiability - $annualGiftingResult['potential_savings']);
-            }
 
-            // STEP 5: Life Cover Strategy (Second Resort) - Only if age <= 50
-            if ($remainingLiability > 0 && $currentAge <= 50) {
-                $lifeCoverStrategyResult = $this->step5LifeCoverStrategy($remainingLiability, $liquidityData, $ctx);
-                if ($lifeCoverStrategyResult['recommendation']) {
-                    $recommendations[] = $lifeCoverStrategyResult['recommendation'];
+                // STEP 2: Liquidity & Affordability Assessment
+                $liquidityData = $this->step2LiquidityAssessment($data, $ctx);
+                if ($liquidityData['recommendation']) {
+                    $recommendations[] = $liquidityData['recommendation'];
                 }
-                $remainingLiability = max(0, $remainingLiability - $lifeCoverStrategyResult['cover_amount']);
-            }
 
-            // STEP 6: PET Gifting Strategy (Third Resort)
-            if ($remainingLiability > 0) {
-                $petResult = $this->step6PETGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy, $ctx);
-                if ($petResult['recommendation']) {
-                    $recommendations[] = $petResult['recommendation'];
+                // STEP 3: Check Existing Life Cover
+                $lifeCoverData = $this->step3ExistingLifeCover($data, $ctx);
+                if ($lifeCoverData['usable_cover'] > 0) {
+                    $remainingLiability = max(0, $remainingLiability - $lifeCoverData['usable_cover']);
                 }
-                $remainingLiability = max(0, $remainingLiability - $petResult['potential_savings']);
-            }
+                if ($lifeCoverData['recommendation']) {
+                    $recommendations[] = $lifeCoverData['recommendation'];
+                }
+                if ($lifeCoverData['trust_placement_recommendation'] ?? null) {
+                    $recommendations[] = $lifeCoverData['trust_placement_recommendation'];
+                }
 
-            // STEP 7: CLT into Trust (Last Resort ONLY)
-            if ($remainingLiability > 0) {
-                $cltResult = $this->step7CLTIntoTrust($remainingLiability, $ctx);
-                if ($cltResult['recommendation']) {
-                    $recommendations[] = $cltResult['recommendation'];
+                // STEP 4: Annual Gifting Strategy (First Resort)
+                if ($remainingLiability > 0) {
+                    $annualGiftingResult = $this->step4AnnualGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy, $ctx);
+                    if ($annualGiftingResult['recommendation']) {
+                        $recommendations[] = $annualGiftingResult['recommendation'];
+                    }
+                    $remainingLiability = max(0, $remainingLiability - $annualGiftingResult['potential_savings']);
+                }
+
+                // STEP 5: Life Cover Strategy (Second Resort) - Only if age <= 50
+                if ($remainingLiability > 0 && $currentAge <= 50) {
+                    $lifeCoverStrategyResult = $this->step5LifeCoverStrategy($remainingLiability, $liquidityData, $ctx);
+                    if ($lifeCoverStrategyResult['recommendation']) {
+                        $recommendations[] = $lifeCoverStrategyResult['recommendation'];
+                    }
+                    $remainingLiability = max(0, $remainingLiability - $lifeCoverStrategyResult['cover_amount']);
+                }
+
+                // STEP 6: PET Gifting Strategy (Third Resort)
+                if ($remainingLiability > 0) {
+                    $petResult = $this->step6PETGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy, $ctx);
+                    if ($petResult['recommendation']) {
+                        $recommendations[] = $petResult['recommendation'];
+                    }
+                    $remainingLiability = max(0, $remainingLiability - $petResult['potential_savings']);
+                }
+
+                // STEP 7: CLT into Trust (Last Resort ONLY)
+                if ($remainingLiability > 0) {
+                    $cltResult = $this->step7CLTIntoTrust($remainingLiability, $ctx);
+                    if ($cltResult['recommendation']) {
+                        $recommendations[] = $cltResult['recommendation'];
+                    }
                 }
             }
-        }
 
-        // Trust wish triggers from will analysis
-        if (! empty($trustWishTriggers)) {
-            $triggerCount = count($trustWishTriggers);
-            $trustWishTrace = $this->buildEstateContextTrace($ctx);
-            $trustWishTrace[] = [
-                'question' => 'Do any wishes in '.$ctx['first_name'].'\'s will require trust structures to implement?',
-                'data_field' => 'Trust-triggering wishes identified',
-                'data_value' => (string) $triggerCount.' '.($triggerCount === 1 ? 'wish' : 'wishes'),
-                'threshold' => '0 wishes',
-                'passed' => false,
-                'explanation' => $triggerCount.' '.($triggerCount === 1 ? 'wish' : 'wishes')
-                    .' in '.$ctx['first_name'].'\'s will may require formal trust arrangements to ensure they are carried out as intended.'
-                    .($ctx['will_executor'] ? ' Current executor: '.$ctx['will_executor'].'.' : ''),
-            ];
-
-            // Add trust context if existing trusts are recorded
-            if (! empty($ctx['trust_summary_text'])) {
+            // Trust wish triggers from will analysis
+            if (! empty($trustWishTriggers)) {
+                $triggerCount = count($trustWishTriggers);
+                $trustWishTrace = $this->buildEstateContextTrace($ctx);
                 $trustWishTrace[] = [
-                    'question' => 'Are there existing trust structures that could accommodate these wishes?',
-                    'data_field' => 'Existing trusts',
-                    'data_value' => $ctx['trust_summary_text'],
-                    'threshold' => 'Review existing trusts before creating new ones',
-                    'passed' => true,
-                    'explanation' => 'Existing trust structures should be reviewed to determine if they can accommodate the wishes before establishing new trusts.',
+                    'question' => 'Do any wishes in '.$ctx['first_name'].'\'s will require trust structures to implement?',
+                    'data_field' => 'Trust-triggering wishes identified',
+                    'data_value' => (string) $triggerCount.' '.($triggerCount === 1 ? 'wish' : 'wishes'),
+                    'threshold' => '0 wishes',
+                    'passed' => false,
+                    'explanation' => $triggerCount.' '.($triggerCount === 1 ? 'wish' : 'wishes')
+                        .' in '.$ctx['first_name'].'\'s will may require formal trust arrangements to ensure they are carried out as intended.'
+                        .($ctx['will_executor'] ? ' Current executor: '.$ctx['will_executor'].'.' : ''),
                 ];
-            }
 
-            $recommendations[] = [
-                'category' => 'will_trust_setup',
-                'priority' => 'medium',
-                'step' => 0,
-                'title' => 'Will Wishes Require Trust Structures',
-                'description' => $triggerCount.' wishes in '.$ctx['first_name'].'\'s will may require trust arrangements',
-                'actions' => array_map(fn ($t) => $t['recommendation'], array_slice($trustWishTriggers, 0, 3)),
-                'details' => $trustWishTriggers,
-                'decision_trace' => $trustWishTrace,
-            ];
-        }
+                // Add trust context if existing trusts are recorded
+                if (! empty($ctx['trust_summary_text'])) {
+                    $trustWishTrace[] = [
+                        'question' => 'Are there existing trust structures that could accommodate these wishes?',
+                        'data_field' => 'Existing trusts',
+                        'data_value' => $ctx['trust_summary_text'],
+                        'threshold' => 'Review existing trusts before creating new ones',
+                        'passed' => true,
+                        'explanation' => 'Existing trust structures should be reviewed to determine if they can accommodate the wishes before establishing new trusts.',
+                    ];
+                }
 
-        // Stale will warning
-        $willReviewStatus = $data['will_review_status'] ?? null;
-        if ($willReviewStatus && $willReviewStatus['has_will']) {
-            $isStale = $willReviewStatus['is_stale'] ?? false;
-            $lastReviewed = $willReviewStatus['last_reviewed_date'] ?? 'Not recorded';
-
-            $staleWillTrace = $this->buildEstateContextTrace($ctx);
-            $staleWillTrace[] = [
-                'question' => 'Has '.$ctx['first_name'].'\'s will been reviewed within the last 3 years?',
-                'data_field' => 'Last will review date',
-                'data_value' => $lastReviewed,
-                'threshold' => 'Within the last 3 years',
-                'passed' => ! $isStale,
-                'explanation' => ! $isStale
-                    ? $ctx['first_name'].'\'s will has been reviewed recently and is up to date.'
-                    : $ctx['first_name'].'\'s will has not been reviewed in over 3 years.'
-                        .($ctx['will_executor'] ? ' Executor: '.$ctx['will_executor'].'.' : '')
-                        .' It is recommended to review your will every 3-5 years or after significant life events.',
-            ];
-
-            if ($isStale) {
                 $recommendations[] = [
-                    'category' => 'will_review',
+                    'category' => 'will_trust_setup',
                     'priority' => 'medium',
                     'step' => 0,
-                    'title' => 'Will Review Recommended',
-                    'description' => $ctx['first_name'].'\'s will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.',
-                    'actions' => [
-                        'Schedule a review with your solicitor',
-                        'Check that your executor details are still correct',
-                        'Ensure your beneficiaries reflect your current wishes',
-                    ],
-                    'last_reviewed_date' => $lastReviewed,
-                    'decision_trace' => $staleWillTrace,
+                    'title' => 'Will Wishes Require Trust Structures',
+                    'description' => $triggerCount.' wishes in '.$ctx['first_name'].'\'s will may require trust arrangements',
+                    'actions' => array_map(fn ($t) => $t['recommendation'], array_slice($trustWishTriggers, 0, 3)),
+                    'details' => $trustWishTriggers,
+                    'decision_trace' => $trustWishTrace,
                 ];
             }
-        }
 
-        // Recommend completing missing data only when we lack essentials for a meaningful calculation
-        $hasDob = ($data['profile']['current_age'] ?? self::DEFAULT_CURRENT_AGE) !== self::DEFAULT_CURRENT_AGE;
-        if ($grossEstate <= 0 || ! $hasDob) {
-            $missingDataTrace = [];
+            // Stale will warning
+            $willReviewStatus = $data['will_review_status'] ?? null;
+            if ($willReviewStatus && $willReviewStatus['has_will']) {
+                $isStale = $willReviewStatus['is_stale'] ?? false;
+                $lastReviewed = $willReviewStatus['last_reviewed_date'] ?? 'Not recorded';
 
-            $missingDataTrace[] = [
-                'question' => 'Is '.$ctx['first_name'].'\'s date of birth recorded for life expectancy calculations?',
-                'data_field' => 'Date of birth',
-                'data_value' => $hasDob ? 'Recorded (age '.$currentAge.')' : 'Not recorded',
-                'threshold' => 'Must be recorded',
-                'passed' => $hasDob,
-                'explanation' => $hasDob
-                    ? $ctx['first_name'].'\'s date of birth is recorded (age '.$currentAge.'), enabling accurate life expectancy and gifting strategy calculations.'
-                    : 'Without '.$ctx['first_name'].'\'s date of birth, we cannot calculate life expectancy or determine optimal gifting timelines.',
-            ];
+                $staleWillTrace = $this->buildEstateContextTrace($ctx);
+                $staleWillTrace[] = [
+                    'question' => 'Has '.$ctx['first_name'].'\'s will been reviewed within the last 3 years?',
+                    'data_field' => 'Last will review date',
+                    'data_value' => $lastReviewed,
+                    'threshold' => 'Within the last 3 years',
+                    'passed' => ! $isStale,
+                    'explanation' => ! $isStale
+                        ? $ctx['first_name'].'\'s will has been reviewed recently and is up to date.'
+                        : $ctx['first_name'].'\'s will has not been reviewed in over 3 years.'
+                            .($ctx['will_executor'] ? ' Executor: '.$ctx['will_executor'].'.' : '')
+                            .' It is recommended to review your will every 3-5 years or after significant life events.',
+                ];
 
-            $missingDataTrace[] = [
-                'question' => 'Does '.$ctx['first_name'].' have at least one asset recorded in their estate?',
-                'data_field' => 'Gross estate value',
-                'data_value' => '£'.number_format($grossEstate, 0),
-                'threshold' => 'Greater than £0',
-                'passed' => $grossEstate > 0,
-                'explanation' => $grossEstate > 0
-                    ? $ctx['first_name'].'\'s estate assets total £'.number_format($grossEstate, 0).', enabling Inheritance Tax calculations.'
-                    : 'No assets have been recorded for '.$ctx['first_name'].'. We need at least one asset (property, savings, or investment) to calculate the Inheritance Tax position.',
-            ];
+                if ($isStale) {
+                    $recommendations[] = [
+                        'category' => 'will_review',
+                        'priority' => 'medium',
+                        'step' => 0,
+                        'title' => 'Will Review Recommended',
+                        'description' => $ctx['first_name'].'\'s will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.',
+                        'actions' => [
+                            'Schedule a review with your solicitor',
+                            'Check that your executor details are still correct',
+                            'Ensure your beneficiaries reflect your current wishes',
+                        ],
+                        'last_reviewed_date' => $lastReviewed,
+                        'decision_trace' => $staleWillTrace,
+                    ];
+                }
+            }
 
-            $recommendations[] = [
-                'category' => 'planning',
-                'priority' => 'high',
-                'step' => 0,
-                'title' => 'Add Your Estate Data',
-                'description' => 'We need '.$ctx['first_name'].'\'s date of birth and at least one asset (property, savings, or investment) to calculate the Inheritance Tax position accurately.',
-                'actions' => array_filter([
-                    ! $hasDob ? 'Add your date of birth in your profile' : null,
-                    $grossEstate <= 0 ? 'Add your assets (properties, savings, investments)' : null,
-                    'Consider writing or updating your will',
-                ]),
-                'decision_trace' => $missingDataTrace,
-            ];
-        }
+            // Recommend completing missing data only when we lack essentials for a meaningful calculation
+            $hasDob = ($data['profile']['current_age'] ?? self::DEFAULT_CURRENT_AGE) !== self::DEFAULT_CURRENT_AGE;
+            if ($grossEstate <= 0 || ! $hasDob) {
+                $missingDataTrace = [];
 
-        return $this->response(
-            true,
-            'Recommendations generated successfully.',
-            [
-                'recommendations' => $recommendations,
-                'mitigation_steps_applied' => count(array_filter($recommendations, fn ($r) => ($r['step'] ?? 0) > 0)),
-            ]
-        );
+                $missingDataTrace[] = [
+                    'question' => 'Is '.$ctx['first_name'].'\'s date of birth recorded for life expectancy calculations?',
+                    'data_field' => 'Date of birth',
+                    'data_value' => $hasDob ? 'Recorded (age '.$currentAge.')' : 'Not recorded',
+                    'threshold' => 'Must be recorded',
+                    'passed' => $hasDob,
+                    'explanation' => $hasDob
+                        ? $ctx['first_name'].'\'s date of birth is recorded (age '.$currentAge.'), enabling accurate life expectancy and gifting strategy calculations.'
+                        : 'Without '.$ctx['first_name'].'\'s date of birth, we cannot calculate life expectancy or determine optimal gifting timelines.',
+                ];
+
+                $missingDataTrace[] = [
+                    'question' => 'Does '.$ctx['first_name'].' have at least one asset recorded in their estate?',
+                    'data_field' => 'Gross estate value',
+                    'data_value' => '£'.number_format($grossEstate, 0),
+                    'threshold' => 'Greater than £0',
+                    'passed' => $grossEstate > 0,
+                    'explanation' => $grossEstate > 0
+                        ? $ctx['first_name'].'\'s estate assets total £'.number_format($grossEstate, 0).', enabling Inheritance Tax calculations.'
+                        : 'No assets have been recorded for '.$ctx['first_name'].'. We need at least one asset (property, savings, or investment) to calculate the Inheritance Tax position.',
+                ];
+
+                $recommendations[] = [
+                    'category' => 'planning',
+                    'priority' => 'high',
+                    'step' => 0,
+                    'title' => 'Add Your Estate Data',
+                    'description' => 'We need '.$ctx['first_name'].'\'s date of birth and at least one asset (property, savings, or investment) to calculate the Inheritance Tax position accurately.',
+                    'actions' => array_filter([
+                        ! $hasDob ? 'Add your date of birth in your profile' : null,
+                        $grossEstate <= 0 ? 'Add your assets (properties, savings, investments)' : null,
+                        'Consider writing or updating your will',
+                    ]),
+                    'decision_trace' => $missingDataTrace,
+                ];
+            }
+
+            return $this->response(
+                true,
+                'Recommendations generated successfully.',
+                [
+                    'recommendations' => $recommendations,
+                    'mitigation_steps_applied' => count(array_filter($recommendations, fn ($r) => ($r['step'] ?? 0) > 0)),
+                ]
+            );
+        })();
+
+        event(new EngineCalled(
+            engine: 'estate_recommendation',
+            params: [],
+            resultSummary: [
+                'result_path' => (isset($result['success']) && $result['success'] === false) ? 'success_false' : 'happy',
+                'keys_returned' => array_keys($result),
+            ],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**

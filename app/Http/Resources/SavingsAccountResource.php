@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\SavingsAccount;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\SavingsAccount
+ * @mixin SavingsAccount
  */
 class SavingsAccountResource extends JsonResource
 {
@@ -30,6 +31,7 @@ class SavingsAccountResource extends JsonResource
             'access_type' => $this->access_type,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'country' => $this->country,
             'is_emergency_fund' => $this->is_emergency_fund,
             'include_in_retirement' => $this->include_in_retirement,
@@ -70,8 +72,8 @@ class SavingsAccountResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'beneficiary' => $this->whenLoaded('beneficiary'),
 
             // Links

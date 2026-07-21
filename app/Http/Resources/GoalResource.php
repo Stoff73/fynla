@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Goal;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Goal
+ * @mixin Goal
  */
 class GoalResource extends JsonResource
 {
@@ -59,6 +60,7 @@ class GoalResource extends JsonResource
             // Ownership
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
 
             // Property-specific fields
             'property_location' => $this->when(
@@ -91,8 +93,8 @@ class GoalResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'contributions' => GoalContributionResource::collection($this->whenLoaded('contributions')),
             'linked_savings_account' => $this->whenLoaded('linkedSavingsAccount', fn () => new SavingsAccountResource($this->linkedSavingsAccount)),
 

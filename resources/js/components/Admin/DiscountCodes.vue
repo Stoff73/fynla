@@ -234,22 +234,20 @@ export default {
     },
 
     typeLabel(type) {
-      return { percentage: 'Percentage', fixed_amount: 'Fixed Amount', trial_extension: 'Trial Extension' }[type] || type;
+      return { percentage: 'Percentage', fixed_amount: 'Fixed Amount' }[type] || 'Retired';
     },
 
     typeBadgeClass(type) {
       return {
         percentage: 'bg-violet-100 text-violet-800',
         fixed_amount: 'bg-horizon-100 text-horizon-700',
-        trial_extension: 'bg-spring-100 text-spring-800',
       }[type] || 'bg-neutral-100 text-neutral-600';
     },
 
     formatValue(code) {
       if (code.type === 'percentage') return `${code.value}%`;
       if (code.type === 'fixed_amount') return `\u00A3${(code.value / 100).toFixed(2)}`;
-      if (code.type === 'trial_extension') return `${code.value} days`;
-      return code.value;
+      return 'Unavailable';
     },
 
     formatPeriod(code) {

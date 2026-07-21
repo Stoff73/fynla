@@ -3,115 +3,100 @@ import { mount } from '@vue/test-utils';
 import RecommendationCard from '@/components/Protection/RecommendationCard.vue';
 
 describe('RecommendationCard', () => {
-  const mockRecommendation = {
+  const recommendation = {
     priority: 'high',
-    category: 'life_insurance',
-    action: 'Increase Life Insurance Coverage',
-    rationale: 'Your current coverage does not adequately protect your family.',
-    impact: 'Provides financial security for your dependents.',
+    category: 'Life Insurance',
+    action: 'Increase Life Insurance Cover',
+    rationale: 'Your current cover leaves a financial shortfall for your family.',
+    impact: 'Reduces the identified family protection shortfall.',
     estimated_cost: 50,
+    personalised_context: ['Your outstanding mortgage is not fully covered.'],
+    details: 'Review the amount and term with a regulated adviser.',
   };
 
-  it('renders all recommendation fields', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: mockRecommendation,
-      },
-    });
-
-    expect(wrapper.text()).toContain('Increase Life Insurance Coverage');
-    expect(wrapper.text()).toContain('Your current coverage does not adequately protect your family.');
-    expect(wrapper.text()).toContain('Provides financial security for your dependents.');
-    expect(wrapper.text()).toContain('50');
+  const mountCard = (value = recommendation) => mount(RecommendationCard, {
+    props: { recommendation: value },
   });
 
-  it('displays priority badge with correct color (high = red)', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: { ...mockRecommendation, priority: 'high' },
-      },
-    });
+  it('renders the actionable summary while collapsed', () => {
+    const wrapper = mountCard();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/high/i);
-    expect(html).toMatch(/bg-red|text-red/);
+    expect(wrapper.text()).toContain('HIGH');
+    expect(wrapper.text()).toContain('Life Insurance');
+    expect(wrapper.text()).toContain('Increase Life Insurance Cover');
+    expect(wrapper.text()).toContain(recommendation.rationale);
+    expect(wrapper.vm.isExpanded).toBe(false);
   });
 
-  it('displays priority badge with correct color (medium = orange)', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: { ...mockRecommendation, priority: 'medium' },
-      },
-    });
+  it.each([
+    ['high', 'bg-raspberry-500', 'border-raspberry-300'],
+    ['medium', 'bg-violet-500', 'border-violet-300'],
+    ['low', 'bg-spring-500', 'border-spring-300'],
+  ])('uses the canonical palette for %s priority', (priority, badge, border) => {
+    const wrapper = mountCard({ ...recommendation, priority });
 
-    const html = wrapper.html();
-    expect(html).toMatch(/medium/i);
-    expect(html).toMatch(/bg-orange|bg-yellow|text-orange|text-yellow/);
+    expect(wrapper.vm.priorityBadgeClass).toContain(badge);
+    expect(wrapper.vm.borderColourClass).toBe(border);
   });
 
-  it('displays priority badge with correct color (low = blue)', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: { ...mockRecommendation, priority: 'low' },
-      },
-    });
+  it('expands from the card header to show supporting detail', async () => {
+    const wrapper = mountCard();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/low/i);
-    expect(html).toMatch(/bg-blue|text-blue/);
+    await wrapper.find('.p-4.cursor-pointer').trigger('click');
+
+    expect(wrapper.vm.isExpanded).toBe(true);
+    expect(wrapper.text()).toContain('Expected Impact');
+    expect(wrapper.text()).toContain(recommendation.impact);
   });
 
-  it('is expandable to show more details', async () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: mockRecommendation,
-      },
-    });
+  it('formats the estimated monthly cost with pence', async () => {
+    const wrapper = mountCard({ ...recommendation, estimated_cost: 125.5 });
 
-    // Check if there's an expand button or toggle
-    const expandButton = wrapper.find('[data-testid="expand-button"]');
-    if (expandButton.exists()) {
-      const initialHeight = wrapper.element.scrollHeight;
-      await expandButton.trigger('click');
+    await wrapper.find('.p-4.cursor-pointer').trigger('click');
 
-      // After expansion, more content should be visible
-      const expandedHeight = wrapper.element.scrollHeight;
-      expect(expandedHeight >= initialHeight).toBe(true);
-    }
+    expect(wrapper.text()).toContain('£125.50');
+    expect(wrapper.text()).toContain('per month');
   });
 
-  it('displays estimated cost with currency symbol', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: { ...mockRecommendation, estimated_cost: 125.50 },
-      },
-    });
+  it('shows personalised context only when a non-empty list is supplied', async () => {
+    const wrapper = mountCard();
+    const withoutContext = mountCard({ ...recommendation, personalised_context: [] });
 
-    const text = wrapper.text();
-    expect(text).toMatch(/£.*125|125.*£/);
+    await wrapper.find('.p-4.cursor-pointer').trigger('click');
+    await withoutContext.find('.p-4.cursor-pointer').trigger('click');
+
+    expect(wrapper.text()).toContain('Why this matters for you');
+    expect(wrapper.text()).toContain('Your outstanding mortgage is not fully covered.');
+    expect(withoutContext.text()).not.toContain('Why this matters for you');
   });
 
-  it('formats category name properly', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: mockRecommendation,
-      },
-    });
+  it('shows optional additional details after expansion', async () => {
+    const wrapper = mountCard();
 
-    const text = wrapper.text();
-    // Should convert life_insurance to "Life Insurance" or similar
-    expect(text).toMatch(/life.*insurance/i);
+    await wrapper.find('.p-4.cursor-pointer').trigger('click');
+
+    expect(wrapper.text()).toContain('Additional Details');
+    expect(wrapper.text()).toContain(recommendation.details);
   });
 
-  it('has "Mark as Done" button', () => {
-    const wrapper = mount(RecommendationCard, {
-      props: {
-        recommendation: mockRecommendation,
-      },
-    });
+  it('emits mark-done from the expanded action', async () => {
+    const wrapper = mountCard();
+    await wrapper.find('.p-4.cursor-pointer').trigger('click');
+    const button = wrapper.findAll('button').find(item => item.text() === 'Mark as Done');
 
-    const buttons = wrapper.findAll('button');
-    const markDoneButton = buttons.find(btn => btn.text().match(/mark.*done/i));
-    expect(markDoneButton).toBeDefined();
+    await button.trigger('click');
+
+    expect(wrapper.emitted('mark-done')).toEqual([[]]);
+  });
+
+  it('can collapse again using the disclosure control', async () => {
+    const wrapper = mountCard();
+    const disclosure = wrapper.find('.ml-4');
+
+    await disclosure.trigger('click');
+    expect(wrapper.vm.isExpanded).toBe(true);
+    await disclosure.trigger('click');
+
+    expect(wrapper.vm.isExpanded).toBe(false);
   });
 });

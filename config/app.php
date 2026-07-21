@@ -1,5 +1,10 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\EvalServiceProvider;
+use App\Providers\EventServiceProvider;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,6 +37,24 @@ return [
     'env' => env('APP_ENV', 'production'),
 
     'payment_enabled' => env('PAYMENT_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI Audit HMAC Key (S0.12)
+    |--------------------------------------------------------------------------
+    |
+    | Secret used to HMAC-sign `ai_audit_events.row_hash`. A chain dump alone
+    | is not enough to forge new rows — an attacker also needs this key. Falls
+    | back to APP_KEY when AI_AUDIT_HMAC_KEY is unset so local dev still works,
+    | but production MUST set a dedicated secret.
+    |
+    */
+
+    // M19 — fail loud rather than silently falling back to a constant
+    // literal. AuditChainService throws RuntimeException when this is empty,
+    // so a misconfigured deploy is detected on the first audit-write attempt
+    // instead of corrupting the chain with a forgeable hardcoded key.
+    'ai_audit_hmac_key' => env('AI_AUDIT_HMAC_KEY', env('APP_KEY', '')),
 
     /*
     |--------------------------------------------------------------------------
@@ -165,11 +188,12 @@ return [
         /*
          * Application Service Providers...
          */
-        App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class,
+        AppServiceProvider::class,
+        AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
-        App\Providers\RouteServiceProvider::class,
+        EvalServiceProvider::class,
+        EventServiceProvider::class,
+        RouteServiceProvider::class,
     ])->toArray(),
 
     /*

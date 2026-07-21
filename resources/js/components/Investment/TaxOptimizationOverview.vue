@@ -102,61 +102,29 @@
         </div>
       </div>
 
-      <!-- Tax Efficiency Breakdown -->
+      <!-- Tax Efficiency Breakdown (descriptive — Rule #13: no scores) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Efficiency Components -->
         <div class="bg-white border border-light-gray rounded-lg p-6">
-          <h4 class="text-md font-semibold text-horizon-500 mb-4">Efficiency Breakdown</h4>
-          <div class="space-y-3">
-            <div>
-              <div class="flex justify-between text-sm mb-1">
-                <span class="text-neutral-500">ISA Utilization</span>
-                <span class="font-medium">{{ getComponentScore('isa') }}%</span>
-              </div>
-              <div class="w-full bg-savannah-200 rounded-full h-2">
-                <div
-                  class="bg-raspberry-500 h-2 rounded-full"
-                  :style="{ width: getComponentScore('isa') + '%' }"
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-1">
-                <span class="text-neutral-500">Loss Management</span>
-                <span class="font-medium">{{ getComponentScore('cgt') }}%</span>
-              </div>
-              <div class="w-full bg-savannah-200 rounded-full h-2">
-                <div
-                  class="bg-raspberry-500 h-2 rounded-full"
-                  :style="{ width: getComponentScore('cgt') + '%' }"
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-1">
-                <span class="text-neutral-500">Dividend Efficiency</span>
-                <span class="font-medium">{{ getComponentScore('dividend') }}%</span>
-              </div>
-              <div class="w-full bg-savannah-200 rounded-full h-2">
-                <div
-                  class="bg-violet-600 h-2 rounded-full"
-                  :style="{ width: getComponentScore('dividend') + '%' }"
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-1">
-                <span class="text-neutral-500">Asset Location</span>
-                <span class="font-medium">{{ getComponentScore('location') }}%</span>
-              </div>
-              <div class="w-full bg-savannah-200 rounded-full h-2">
-                <div
-                  class="bg-spring-600 h-2 rounded-full"
-                  :style="{ width: getComponentScore('location') + '%' }"
-                ></div>
-              </div>
-            </div>
-          </div>
+          <h4 class="text-md font-semibold text-horizon-500 mb-4">What we look at</h4>
+          <ul class="space-y-3 text-sm text-neutral-500">
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-raspberry-500 mt-1.5 mr-3 flex-shrink-0"></span>
+              <span><strong class="text-horizon-500">ISA usage —</strong> how much of your £20,000 annual ISA allowance has been used this tax year, across all wrappers</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-raspberry-500 mt-1.5 mr-3 flex-shrink-0"></span>
+              <span><strong class="text-horizon-500">Loss management —</strong> whether realised CGT losses have been used to offset gains within the current and four prior tax years</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-violet-600 mt-1.5 mr-3 flex-shrink-0"></span>
+              <span><strong class="text-horizon-500">Dividend treatment —</strong> whether dividend-paying holdings sit in tax-sheltered wrappers ahead of the £500 dividend allowance limit</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-spring-600 mt-1.5 mr-3 flex-shrink-0"></span>
+              <span><strong class="text-horizon-500">Asset location —</strong> whether high-tax-drag holdings (interest-bearing bonds, income funds) sit in tax-sheltered accounts rather than general investment accounts</span>
+            </li>
+          </ul>
         </div>
 
         <!-- Summary Stats -->

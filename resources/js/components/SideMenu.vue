@@ -69,29 +69,30 @@
         <SideMenuSection label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
           <SideMenuItem icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-          <SideMenuItem icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('standard')" requiredPlan="Standard" @navigate="closeMobile" />
-          <SideMenuItem icon="credit-card" label="Liabilities" to="/net-worth/liabilities" :collapsed="effectiveCollapsed" :active="isLiabilitiesActive" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('standard')" requiredPlan="Standard" @navigate="closeMobile" />
-          <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('standard')" requiredPlan="Standard" @navigate="closeMobile" />
+          <SideMenuItem icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="credit-card" label="Liabilities" to="/net-worth/liabilities" :collapsed="effectiveCollapsed" :active="isLiabilitiesActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-          <SideMenuItem icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('standard')" requiredPlan="Standard" @navigate="closeMobile" />
+          <SideMenuItem icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Family (has spouse) / Admin (no spouse) -->
         <SideMenuSection :label="hasSpouse ? 'Family' : 'Personal Affairs'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
           <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-          <SideMenuItem icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('pro')" requiredPlan="Pro" @navigate="closeMobile" />
-          <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('standard')" requiredPlan="Standard" @navigate="closeMobile" />
-          <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('pro')" requiredPlan="Pro" @navigate="closeMobile" />
-          <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('pro')" requiredPlan="Pro" @navigate="closeMobile" />
-          <SideMenuItem icon="key" label="Power of Attorney" to="/estate/power-of-attorney" :collapsed="effectiveCollapsed" :active="isLpaActive" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('pro')" requiredPlan="Pro" @navigate="closeMobile" />
+          <SideMenuItem icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="key" label="Power of Attorney" to="/estate/power-of-attorney" :collapsed="effectiveCollapsed" :active="isLpaActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Planning -->
         <SideMenuSection label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
-          <SideMenuItem icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('pro')" requiredPlan="Pro" @navigate="closeMobile" />
+          <SideMenuItem icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="calculator" label="Tax Strategy" :collapsed="effectiveCollapsed" :active="isActive('/tax-strategy')" :active-colour="currentStage ? stageColour : ''" @action="openTaxStrategy" />
           <SideMenuItem icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-          <SideMenuItem icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" :active-colour="currentStage ? stageColour : ''" :locked="isLocked('standard')" requiredPlan="Standard" @navigate="closeMobile" />
+          <SideMenuItem icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isGoalsOverviewActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="calendar" label="Life Events" :to="{ path: '/goals', query: { tab: 'events' } }" :collapsed="effectiveCollapsed" :active="isGoalsEventsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -108,10 +109,9 @@
         </SideMenuSection>
       </div>
 
-      <!-- Upgrade / Sign Up link -->
-      <div v-if="showUpgradeLink" class="border-t border-light-gray p-2 flex-shrink-0">
+      <!-- Sign Up link (preview personas only — converts to registration) -->
+      <div v-if="isPreviewMode" class="border-t border-light-gray p-2 flex-shrink-0">
         <router-link
-          v-if="isPreviewMode"
           to="/register"
           class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
@@ -123,18 +123,6 @@
           </svg>
           <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Sign Up Now</span>
         </router-link>
-        <button
-          v-else
-          class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
-          :class="effectiveCollapsed ? 'justify-center' : ''"
-          :title="effectiveCollapsed ? (subscriptionData && subscriptionData.status === 'trialing' ? 'Choose a Plan' : 'Upgrade Now') : ''"
-          @click="$emit('open-plan-modal'); closeMobile()"
-        >
-          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ subscriptionData && subscriptionData.status === 'trialing' ? 'Choose a Plan' : 'Upgrade Now' }}</span>
-        </button>
       </div>
 
       <!-- Account + Logout -->
@@ -182,7 +170,6 @@ import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
 
 import logger from '@/utils/logger';
-import { hasFeatureAccess } from '@/constants/featureGating';
 export default {
   name: 'SideMenu',
 
@@ -207,7 +194,7 @@ export default {
     },
   },
 
-  emits: ['toggle', 'update:mobileOpen', 'open-plan-modal'],
+  emits: ['toggle', 'update:mobileOpen'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -462,6 +449,24 @@ export default {
       closeMobile();
     };
 
+    // Tax Strategy nav: if the user has finished onboarding their personalised
+    // plan exists, so go straight to the page. If not, resume the tax-plan
+    // capture in Fyn instead (the onboarding / savetax campaign) — opening the
+    // dock lets AiChatPanel.onOpen pick the conversation back up via
+    // onboarding_fyn_step rather than dropping them on an empty page.
+    const openTaxStrategy = () => {
+      closeMobile();
+      const user = store.getters['auth/currentUser'];
+      if (user && user.onboarding_completed) {
+        if (route.path !== '/tax-strategy') {
+          router.push('/tax-strategy');
+        }
+      } else {
+        store.dispatch('aiChat/open');
+        window.dispatchEvent(new Event('fyn-open-chat'));
+      }
+    };
+
     const handleLogout = async () => {
       closeMobile();
       try {
@@ -486,27 +491,11 @@ export default {
     };
 
     // Subscription data for upgrade button visibility (from AppLayout prop)
-    // Only filter plans for active paid subscribers — trial users see all plans
+    // Only filter plans for active paid subscribers.
     const currentPlanSlug = computed(() => {
-      if (!props.subscriptionData || props.subscriptionData.status !== 'active') return null;
+      if (!props.subscriptionData || props.subscriptionData.subscription_status !== 'active') return null;
       return props.subscriptionData.plan;
     });
-    const showUpgradeLink = computed(() => {
-      if (isPreviewMode.value) return true; // Shows "Sign Up Now"
-      if (!props.subscriptionData) return false;
-      if (props.subscriptionData.plan === 'pro') return false;
-      return true;
-    });
-
-    // Feature gating: determine effective plan for sidebar gating
-    const userPlan = computed(() => {
-      if (isPreviewMode.value) return 'pro';
-      if (!props.subscriptionData) return 'pro'; // No data = payments disabled, show all
-      if (props.subscriptionData.status === 'trialing') return 'pro';
-      return props.subscriptionData.plan || 'student';
-    });
-
-    const isLocked = (requiredTier) => !hasFeatureAccess(userPlan.value, requiredTier);
 
     onMounted(() => {
       document.addEventListener('keydown', handleKeydown);
@@ -571,12 +560,10 @@ export default {
       toggleCollapsed,
       closeMobile,
       openBugReport,
+      openTaxStrategy,
       handleLogout,
       isPreviewMode,
-      showUpgradeLink,
       currentPlanSlug,
-      userPlan,
-      isLocked,
     };
   },
 };

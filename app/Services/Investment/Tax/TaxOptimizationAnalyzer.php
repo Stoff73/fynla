@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Investment\Tax;
 
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
+use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -46,7 +47,10 @@ class TaxOptimizationAnalyzer
             ->with('holdings')
             ->get();
 
-        $savingsAccounts = SavingsAccount::where('user_id', $userId)->get();
+        $user = User::find($userId);
+        $savingsAccounts = $user
+            ? app(SavingsStore::class)->forUser($user)->where('user_id', $userId)
+            : collect();
 
         if ($investmentAccounts->isEmpty() && $savingsAccounts->isEmpty()) {
             return [

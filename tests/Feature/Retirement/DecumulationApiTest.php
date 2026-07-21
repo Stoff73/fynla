@@ -33,7 +33,7 @@ describe('Decumulation API', function () {
                 'current_fund_value' => 300000,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/retirement/decumulation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/retirement/decumulation-analysis');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -72,7 +72,7 @@ describe('Decumulation API', function () {
         it('returns failure when no retirement profile exists', function () {
             $user = User::factory()->create();
 
-            $response = $this->actingAs($user)->getJson('/api/retirement/decumulation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/retirement/decumulation-analysis');
 
             $response->assertOk()
                 ->assertJson([
@@ -92,7 +92,7 @@ describe('Decumulation API', function () {
                 'current_fund_value' => 0,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/retirement/decumulation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/retirement/decumulation-analysis');
 
             $response->assertOk()
                 ->assertJson([
@@ -113,7 +113,7 @@ describe('Decumulation API', function () {
                 'current_fund_value' => 200000,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/retirement/decumulation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/retirement/decumulation-analysis');
 
             $response->assertOk()
                 ->assertJson(['success' => true]);

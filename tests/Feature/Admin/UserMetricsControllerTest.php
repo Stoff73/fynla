@@ -41,7 +41,6 @@ describe('UserMetricsController', function () {
                 ->assertJsonStructure([
                     'total_registered',
                     'active_subscribers',
-                    'on_trial',
                     'never_paid',
                 ]);
 
@@ -63,58 +62,25 @@ describe('UserMetricsController', function () {
         });
     });
 
-    describe('trials endpoint', function () {
-        it('returns trial breakdown for admin user', function () {
-            // Create a trialing subscription
-            $user = User::factory()->create(['is_preview_user' => false]);
-            Subscription::factory()->trialing()->create([
-                'user_id' => $user->id,
-                'trial_ends_at' => now()->addDays(5),
-            ]);
-
-            $response = $this->withToken($this->adminToken)
-                ->getJson('/api/admin/user-metrics/trials');
-
-            $response->assertOk()
-                ->assertJsonStructure([
-                    'four_plus_days',
-                    'three_days',
-                    'two_days',
-                    'one_day',
-                    'expiring_today',
-                    'expired',
-                ]);
-
-            expect($response->json('four_plus_days'))->toBeGreaterThanOrEqual(1);
-        });
-
-        it('returns 403 for non-admin user', function () {
-            $response = $this->withToken($this->regularToken)
-                ->getJson('/api/admin/user-metrics/trials');
-
-            $response->assertStatus(403);
-        });
-    });
-
     describe('plans endpoint', function () {
         it('returns plan breakdown for admin user', function () {
             // Create active subscriptions
             $user1 = User::factory()->create(['is_preview_user' => false]);
             Subscription::factory()->create([
                 'user_id' => $user1->id,
-                'plan' => 'standard',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
                 'status' => 'active',
-                'amount' => 1099,
+                'amount' => 699,
             ]);
 
             $user2 = User::factory()->create(['is_preview_user' => false]);
             Subscription::factory()->create([
                 'user_id' => $user2->id,
-                'plan' => 'pro',
+                'plan' => 'premium',
                 'billing_cycle' => 'yearly',
                 'status' => 'active',
-                'amount' => 20000,
+                'amount' => 5999,
             ]);
 
             $response = $this->withToken($this->adminToken)
@@ -124,7 +90,7 @@ describe('UserMetricsController', function () {
 
             $data = $response->json();
             expect($data)->toBeArray();
-            expect(count($data))->toBe(4); // student, standard, family, pro
+            expect(count($data))->toBe(1);
 
             // Verify structure of each plan entry
             foreach ($data as $plan) {
@@ -138,15 +104,12 @@ describe('UserMetricsController', function () {
                 ]);
             }
 
-            // Find standard plan and verify it has our subscription
-            $standardPlan = collect($data)->firstWhere('plan', 'standard');
-            expect($standardPlan['monthly'])->toBe(1);
-            expect($standardPlan['monthly_revenue'])->toBe(1099);
-
-            // Find pro plan and verify
-            $proPlan = collect($data)->firstWhere('plan', 'pro');
-            expect($proPlan['yearly'])->toBe(1);
-            expect($proPlan['yearly_revenue'])->toBe(20000);
+            $premiumPlan = collect($data)->firstWhere('plan', 'premium');
+            expect($premiumPlan['total'])->toBe(2)
+                ->and($premiumPlan['monthly'])->toBe(1)
+                ->and($premiumPlan['monthly_revenue'])->toBe(699)
+                ->and($premiumPlan['yearly'])->toBe(1)
+                ->and($premiumPlan['yearly_revenue'])->toBe(5999);
         });
 
         it('returns 403 for non-admin user', function () {
@@ -175,7 +138,6 @@ describe('UserMetricsController', function () {
                     'registrations',
                     'conversions',
                     'cancellations',
-                    'trial_expired',
                     'revenue',
                 ]);
             }

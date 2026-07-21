@@ -22,7 +22,9 @@ class MortgageServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mortgageService = new MortgageService;
+        // SP1 Pass 5 PR 4: MortgageService now has constructor DI for MortgageStore.
+        // Resolve via the container so the dependency is injected.
+        $this->mortgageService = app(MortgageService::class);
         $this->user = User::factory()->create();
     }
 

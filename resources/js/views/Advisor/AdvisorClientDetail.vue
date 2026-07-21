@@ -202,6 +202,11 @@
           </div>
         </div>
       </div>
+
+      <!-- Session Log -->
+      <div class="mt-6">
+        <ClientSessionLog :client-id="clientId" />
+      </div>
     </div>
   </div>
 </template>
@@ -209,6 +214,8 @@
 <script>
 import { mapGetters } from 'vuex';
 import ClientModuleDots from '@/components/Advisor/ClientModuleDots.vue';
+import ClientSessionLog from '@/components/Advisor/ClientSessionLog.vue';
+import { CHART_COLORS } from '@/constants/designSystem';
 import { getRelativeTime, formatDateLong } from '@/utils/dateFormatter';
 import advisorService from '@/services/advisorService';
 
@@ -217,6 +224,7 @@ export default {
 
   components: {
     ClientModuleDots,
+    ClientSessionLog,
   },
 
   data() {
@@ -285,7 +293,7 @@ export default {
           // ignore parse error
         }
       }
-      const colours = ['#5854E6', '#E83E6D', '#20B486', '#E6C9A8', '#6C83BC', '#1F2A44'];
+      const colours = CHART_COLORS;
       return colours[(client.client_id || 0) % colours.length];
     },
 

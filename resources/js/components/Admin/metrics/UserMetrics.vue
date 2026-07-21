@@ -4,7 +4,7 @@
     <div class="mb-6">
       <h1 class="text-2xl font-black text-horizon-500">User Metrics</h1>
       <p class="text-sm text-neutral-500 mt-1">
-        Real-time overview of registrations, trials, subscriptions, and engagement
+        Real-time overview of registrations, subscriptions, and engagement
       </p>
     </div>
 
@@ -29,9 +29,6 @@
     <div v-else class="space-y-6">
       <!-- Snapshot Cards -->
       <SnapshotCards v-if="snapshot" :data="snapshot" />
-
-      <!-- Trial Breakdown -->
-      <TrialBreakdown v-if="trials" :data="trials" />
 
       <!-- Plan Breakdown -->
       <PlanBreakdown v-if="plans && plans.length" :data="plans" />
@@ -82,7 +79,6 @@
 <script>
 import adminService from '@/services/adminService';
 import SnapshotCards from './SnapshotCards.vue';
-import TrialBreakdown from './TrialBreakdown.vue';
 import PlanBreakdown from './PlanBreakdown.vue';
 import ActivityCharts from './ActivityCharts.vue';
 import ActivityTable from './ActivityTable.vue';
@@ -100,7 +96,6 @@ export default {
 
   components: {
     SnapshotCards,
-    TrialBreakdown,
     PlanBreakdown,
     ActivityCharts,
     ActivityTable,
@@ -112,7 +107,6 @@ export default {
       activityLoading: false,
       error: null,
       snapshot: null,
-      trials: null,
       plans: null,
       activity: null,
       engagement: null,
@@ -137,16 +131,14 @@ export default {
       this.error = null;
 
       try {
-        const [snapshotRes, trialsRes, plansRes, activityRes, engagementRes] = await Promise.all([
+        const [snapshotRes, plansRes, activityRes, engagementRes] = await Promise.all([
           adminService.getUserMetricsSnapshot(),
-          adminService.getUserMetricsTrials(),
           adminService.getUserMetricsPlans(),
           adminService.getUserMetricsActivity(this.activePeriod, DEFAULT_RANGES[this.activePeriod]),
           adminService.getUserMetricsEngagement(),
         ]);
 
         this.snapshot = snapshotRes.data;
-        this.trials = trialsRes.data;
         this.plans = plansRes.data;
         this.activity = Array.isArray(activityRes.data) ? activityRes.data : [];
         this.engagement = engagementRes.data;
@@ -165,7 +157,7 @@ export default {
       try {
         const response = await adminService.getUserMetricsActivity(period, DEFAULT_RANGES[period]);
         this.activity = Array.isArray(response.data) ? response.data : [];
-      } catch (err) {
+      } catch {
         // Keep existing data on period change failure
       } finally {
         this.activityLoading = false;

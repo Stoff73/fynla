@@ -194,10 +194,6 @@ const mutations = {
   setError(state, error) {
     state.error = error;
   },
-
-  clearError(state) {
-    state.error = null;
-  },
 };
 
 export default {

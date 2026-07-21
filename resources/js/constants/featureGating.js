@@ -16,6 +16,9 @@ export const FEATURE_TIER_MAP = {
     '/net-worth/business': 'standard',
     '/planning/what-if': 'standard',
 
+    // Family+
+    '/settings/family': 'family',
+
     // Pro
     '/estate': 'pro',
     '/estate/will-builder': 'pro',
@@ -23,16 +26,6 @@ export const FEATURE_TIER_MAP = {
     '/estate/power-of-attorney': 'pro',
     '/estate/lpa': 'pro',
     '/holistic-plan': 'pro',
-};
-
-/**
- * Human-readable plan names for tooltip display.
- */
-export const PLAN_LABELS = {
-    student: 'Student',
-    standard: 'Standard',
-    family: 'Family',
-    pro: 'Pro',
 };
 
 /**

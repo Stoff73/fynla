@@ -4,19 +4,29 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Services\Stores\ActuarialLifeTableStore;
+use App\Services\Stores\IngestSource;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class ActuarialLifeTablesSeeder extends Seeder
 {
     /**
-     * Seed the actuarial life tables with UK ONS National Life Tables data (2020-2022)
+     * Seed the actuarial life tables with UK ONS National Life Tables data (2020-2022).
      *
-     * Source: Office for National Statistics - National Life Tables UK 2020-2022
+     * Re-runnable: looks up existing rows by (age, gender, table_year, table_source)
+     * via ActuarialLifeTableStore::findByCohortAndAge and calls update() if present,
+     * else create(). Preserves the canonical store-and-event contract (SP1 Pass 2 §12).
+     *
+     * Source: Office for National Statistics — National Life Tables UK 2020-2022
      * https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies
+     *
+     * To update tables, modify the values below and run:
+     *   php artisan db:seed --class=ActuarialLifeTablesSeeder --force
      */
     public function run(): void
     {
+        $store = app(ActuarialLifeTableStore::class);
+
         $tableYear = '2020-2022';
         $tableSource = 'UK ONS National Life Tables';
 
@@ -47,42 +57,36 @@ class ActuarialLifeTablesSeeder extends Seeder
             [100, 2.0, 0.29579, 2.2, 0.24177],
         ];
 
-        $records = [];
+        $count = 0;
+
         foreach ($data as $row) {
             [$age, $maleLE, $malePD, $femaleLE, $femalePD] = $row;
 
-            // Male record
-            $records[] = [
-                'age' => $age,
-                'gender' => 'male',
-                'life_expectancy_years' => $maleLE,
-                'probability_of_death' => $malePD,
-                'table_year' => $tableYear,
-                'table_source' => $tableSource,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            foreach ([
+                ['gender' => 'male', 'le' => $maleLE, 'pd' => $malePD],
+                ['gender' => 'female', 'le' => $femaleLE, 'pd' => $femalePD],
+            ] as $cohort) {
+                $payload = [
+                    'age' => $age,
+                    'gender' => $cohort['gender'],
+                    'life_expectancy_years' => $cohort['le'],
+                    'probability_of_death' => $cohort['pd'],
+                    'table_year' => $tableYear,
+                    'table_source' => $tableSource,
+                ];
 
-            // Female record
-            $records[] = [
-                'age' => $age,
-                'gender' => 'female',
-                'life_expectancy_years' => $femaleLE,
-                'probability_of_death' => $femalePD,
-                'table_year' => $tableYear,
-                'table_source' => $tableSource,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+                $existing = $store->findByCohortAndAge($age, $cohort['gender'], $tableYear, $tableSource);
+
+                if ($existing) {
+                    $store->update($existing->id, $payload, IngestSource::SEEDER);
+                } else {
+                    $store->create($payload, IngestSource::SEEDER);
+                }
+
+                $count++;
+            }
         }
 
-        // Upsert all records (handles re-seeding without duplicates)
-        DB::table('actuarial_life_tables')->upsert(
-            $records,
-            ['age', 'gender', 'table_year'], // Unique key columns
-            ['life_expectancy_years', 'probability_of_death', 'table_source', 'updated_at'] // Columns to update
-        );
-
-        $this->command->info('✅ Seeded '.count($records).' actuarial life table records (UK ONS 2020-2022)');
+        $this->command->info('✅ Seeded '.$count.' actuarial life table records (UK ONS 2020-2022)');
     }
 }

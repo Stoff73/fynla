@@ -30,7 +30,7 @@
               </p>
             </div>
             <button
-              v-if="!subscriptionLoading && activePlanSlug !== 'pro'"
+              v-if="!subscriptionLoading && showUpgradeEntry"
               @click="showPlanModal = true"
               class="btn-primary"
             >
@@ -43,26 +43,11 @@
               <h3 class="text-body-base font-medium text-horizon-500">Email Notifications</h3>
               <p class="text-body-sm text-neutral-500">Manage your email notification preferences</p>
             </div>
-            <button class="btn-secondary" disabled>
-              Coming Soon
-            </button>
+            <router-link to="/settings/notifications" class="btn-secondary">
+              Manage
+            </router-link>
           </div>
 
-          <div class="flex items-center justify-between py-4">
-            <div>
-              <h3 class="text-body-base font-medium text-raspberry-700">Sign Out</h3>
-              <p class="text-body-sm text-neutral-500">Sign out of your account on this device</p>
-            </div>
-            <button
-              @click="handleSignOut"
-              :disabled="loading"
-              class="btn-danger"
-              :class="{ 'opacity-50 cursor-not-allowed': loading }"
-            >
-              <span v-if="!loading">Sign Out</span>
-              <span v-else>Signing Out...</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -80,21 +65,13 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
-
-import logger from '@/utils/logger';
-
-const PLAN_NAMES = {
-  student: 'Student Plan',
-  standard: 'Standard Plan',
-  family: 'Family Plan',
-  pro: 'Pro Plan',
-};
+import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 
 export default {
   name: 'Settings',
@@ -106,38 +83,27 @@ export default {
   },
 
   setup() {
-    const store = useStore();
     const router = useRouter();
-    const loading = ref(false);
+    const store = useStore();
     const showPlanModal = ref(false);
     const subscriptionData = ref(null);
     const subscriptionLoading = ref(true);
 
-    const activePlanSlug = computed(() => {
-      if (!subscriptionData.value) return null;
-      if (subscriptionData.value.status === 'active') return subscriptionData.value.plan;
-      return null;
-    });
+    const presentation = computed(() => getSubscriptionPresentation(subscriptionData.value));
 
-    const planDisplayName = computed(() => {
-      if (!subscriptionData.value) return 'Free Trial';
-      if (subscriptionData.value.status === 'trialing') {
-        const days = subscriptionData.value.days_remaining;
-        if (days !== undefined && days !== null) {
-          return `Free Trial (${days} ${days === 1 ? 'day' : 'days'} remaining)`;
-        }
-        return 'Free Trial';
-      }
-      if (subscriptionData.value.status === 'active' && subscriptionData.value.plan) {
-        return PLAN_NAMES[subscriptionData.value.plan] || subscriptionData.value.plan;
-      }
-      return 'Free Trial';
-    });
+    const activePlanSlug = computed(() => presentation.value.showUpgrade
+      ? 'free'
+      : subscriptionData.value?.tier || 'free');
+
+    const planDisplayName = computed(() => presentation.value.label);
+
+    const showUpgradeEntry = computed(() => presentation.value.showUpgrade
+      && !store.getters['preview/isPreviewMode']);
 
     const fetchSubscription = async () => {
       subscriptionLoading.value = true;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
       } catch {
         // Silently fail
@@ -146,21 +112,12 @@ export default {
       }
     };
 
-    const handleSignOut = async () => {
-      loading.value = true;
-      try {
-        await store.dispatch('auth/logout');
-        router.push({ name: 'Login' });
-      } catch (error) {
-        logger.error('Sign out error:', error);
-        router.push({ name: 'Login' });
-      }
-    };
-
-    const handlePlanSelect = ({ plan, billingCycle, isUpgrade }) => {
+    const handlePlanSelect = ({ plan, billingCycle }) => {
       showPlanModal.value = false;
-      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      router.push(`/payment/checkout?plan=${plan}&billing=${billingCycle}${upgradeParam}`);
+      router.push({
+        path: '/checkout',
+        query: { plan, cycle: billingCycle },
+      });
     };
 
     onMounted(() => {
@@ -168,12 +125,11 @@ export default {
     });
 
     return {
-      loading,
       showPlanModal,
       subscriptionLoading,
       activePlanSlug,
       planDisplayName,
-      handleSignOut,
+      showUpgradeEntry,
       handlePlanSelect,
     };
   },

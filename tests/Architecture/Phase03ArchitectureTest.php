@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Controller;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 
 /**
  * Phase 03 Architecture Tests
@@ -91,9 +92,17 @@ describe('Phase 03 Architecture Tests', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
             $constructor = $reflection->getConstructor();
 
-            // NetWorthService uses CrossModuleAssetAggregator for cross-module data
+            // NetWorthService injects CrossModuleAssetAggregator (cross-module data)
+            // plus PropertyStore (SP1 Pass 4). Assert the aggregator dependency is
+            // present by type rather than a brittle exact param count, so adding
+            // further injected stores doesn't falsely fail this convention check.
             expect($constructor)->not->toBeNull();
-            expect($constructor->getNumberOfParameters())->toBe(1);
+            expect($constructor->getNumberOfParameters())->toBeGreaterThanOrEqual(1);
+            $paramTypes = array_map(
+                fn ($p) => $p->getType()?->getName(),
+                $constructor->getParameters()
+            );
+            expect($paramTypes)->toContain(CrossModuleAssetAggregator::class);
         });
     });
 
@@ -170,12 +179,13 @@ describe('Phase 03 Architecture Tests', function () {
             $filePath = $reflection->getFileName();
             $contents = file_get_contents($filePath);
 
-            // Should import model classes directly or use CrossModuleAssetAggregator
-            expect($contents)->toContain('use App\Models\Property');
+            // Should import model classes directly or read them via a store/aggregator.
+            // Property is now read through PropertyStore (SP1 Pass 4); the rest remain
+            // direct model imports; cash/mortgage go via CrossModuleAssetAggregator.
+            expect($contents)->toContain('use App\Services\Stores\PropertyStore'); // Property via PropertyStore (SP1 Pass 4)
             expect($contents)->toContain('use App\Models\Investment\InvestmentAccount');
             expect($contents)->toContain('use App\Models\BusinessInterest');
             expect($contents)->toContain('use App\Models\Chattel');
-            // Cash and Mortgage are handled via CrossModuleAssetAggregator
             expect($contents)->toContain('CrossModuleAssetAggregator');
         });
     });

@@ -1,0 +1,1150 @@
+{
+  "id": "peak_earners",
+  "life_stage": "peak",
+  "name": "David & Sarah Mitchell",
+  "tagline": "High earners approaching retirement",
+  "description": "A couple in their late 40s with high incomes, Buy-to-Let property, substantial investments, and complex pension arrangements including Defined Benefit schemes.",
+  "netWorthRange": "£1.5m - £2m",
+  "focus": "Tax efficiency, pension allowances",
+
+  "user": {
+    "first_name": "David",
+    "last_name": "Mitchell",
+    "email": "david.mitchell@example.com",
+    "date_of_birth": "1976-11-08",
+    "age": 48,
+    "gender": "male",
+    "marital_status": "married",
+    "annual_income": 145000,
+    "employment_status": "employed",
+    "employer_name": "Global Finance Corp",
+    "occupation": "Finance Director",
+    "target_retirement_age": 60,
+    "target_retirement_income": 75000,
+    "monthly_expenditure": 2500,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "postgraduate",
+    "has_will": true,
+    "has_lasting_power_of_attorney": true,
+    "address": {
+      "line_1": "The Willows, 15 Chestnut Lane",
+      "city": "Guildford",
+      "county": "Surrey",
+      "postcode": "GU1 4RH"
+    },
+    "annual_charitable_donations": 2400.00,
+    "is_gift_aid": true,
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
+    }
+  },
+
+  "spouse": {
+    "first_name": "Sarah",
+    "last_name": "Mitchell",
+    "date_of_birth": "1978-04-22",
+    "age": 46,
+    "gender": "female",
+    "annual_income": 120000,
+    "employment_status": "employed",
+    "employer_name": "Surrey NHS Trust",
+    "occupation": "GP Partner",
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "postgraduate",
+    "target_retirement_age": 60,
+    "target_retirement_income": 55000
+  },
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "William",
+      "last_name": "Mitchell",
+      "relationship": "child",
+      "date_of_birth": "2007-09-15",
+      "age": 17,
+      "is_dependent": true,
+      "notes": "Year 13, private school"
+    },
+    {
+      "id": 2,
+      "first_name": "Charlotte",
+      "last_name": "Mitchell",
+      "relationship": "child",
+      "date_of_birth": "2010-02-28",
+      "age": 14,
+      "is_dependent": true,
+      "notes": "Year 10, private school"
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "The Willows",
+      "address": "15 Chestnut Lane, Guildford, Surrey, GU1 4RH",
+      "property_type": "main_residence",
+      "current_value": 850000,
+      "purchase_price": 625000,
+      "purchase_date": "2012-04-01",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "is_primary_residence": true,
+      "bedrooms": 5,
+      "estimated_rental_value": 0,
+      "council_tax_band": "G",
+      "monthly_council_tax": 320,
+      "monthly_gas": 95,
+      "monthly_electricity": 70,
+      "monthly_water": 40,
+      "monthly_building_insurance": 45,
+      "monthly_contents_insurance": 30,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 0
+    },
+    {
+      "id": 2,
+      "property_name": "City Centre Flat",
+      "address": "Flat 42, Riverside Apartments, London, SE1 8XX",
+      "property_type": "buy_to_let",
+      "current_value": 425000,
+      "purchase_price": 340000,
+      "purchase_date": "2018-10-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "is_primary_residence": false,
+      "bedrooms": 2,
+      "estimated_rental_value": 1800,
+      "monthly_rental_income": 1800,
+      "council_tax_band": "E",
+      "monthly_council_tax": 0,
+      "monthly_gas": 0,
+      "monthly_electricity": 0,
+      "monthly_water": 0,
+      "monthly_building_insurance": 35,
+      "monthly_contents_insurance": 0,
+      "monthly_service_charge": 285,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 150,
+      "tenant_name": "Mr. & Mrs. Johnson",
+      "lease_start_date": "2024-03-01",
+      "lease_end_date": "2025-02-28"
+    },
+    {
+      "id": 3,
+      "property_name": "Manchester Investment Property",
+      "address": "Unit 12, Victoria Mill, Ancoats, Manchester, M4 6AG",
+      "property_type": "buy_to_let",
+      "current_value": 295000,
+      "purchase_price": 240000,
+      "purchase_date": "2021-09-15",
+      "ownership_type": "tenants_in_common",
+      "ownership_percentage": 40,
+      "joint_owner_name": "Mike Jones",
+      "is_primary_residence": false,
+      "bedrooms": 2,
+      "estimated_rental_value": 1350,
+      "monthly_rental_income": 1350,
+      "council_tax_band": "D",
+      "monthly_council_tax": 0,
+      "monthly_gas": 0,
+      "monthly_electricity": 0,
+      "monthly_water": 0,
+      "monthly_building_insurance": 28,
+      "monthly_contents_insurance": 0,
+      "monthly_service_charge": 195,
+      "monthly_maintenance_reserve": 85,
+      "other_monthly_costs": 120,
+      "tenant_name": "Ms. Rachel Green",
+      "lease_start_date": "2024-06-01",
+      "lease_end_date": "2025-05-31",
+      "notes": "Investment with colleague Mike Jones - David owns 40%, Mike owns 60%"
+    }
+  ],
+
+  "mortgages": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "lender_name": "HSBC",
+      "outstanding_balance": 65000,
+      "original_amount": 450000,
+      "mortgage_type": "repayment",
+      "interest_rate": 4.29,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2027-04-01",
+      "monthly_payment": 550,
+      "remaining_term_months": 156,
+      "mortgage_start_date": "2012-04-01",
+      "ownership_type": "joint",
+      "ownership_percentage": 50
+    },
+    {
+      "id": 2,
+      "property_id": 2,
+      "lender_name": "Barclays",
+      "outstanding_balance": 180000,
+      "original_amount": 272000,
+      "mortgage_type": "interest_only",
+      "interest_rate": 5.19,
+      "rate_type": "tracker",
+      "monthly_payment": 650,
+      "remaining_term_months": 180,
+      "mortgage_start_date": "2018-10-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "notes": "Buy-to-Let mortgage"
+    },
+    {
+      "id": 3,
+      "property_id": 3,
+      "lender_name": "NatWest",
+      "outstanding_balance": 120000,
+      "original_amount": 168000,
+      "mortgage_type": "repayment",
+      "interest_rate": 5.49,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2026-09-15",
+      "monthly_payment": 750,
+      "remaining_term_months": 216,
+      "mortgage_start_date": "2021-09-15",
+      "ownership_type": "tenants_in_common",
+      "ownership_percentage": 40,
+      "joint_owner_name": "Mike Jones",
+      "notes": "Buy-to-Let mortgage - David's 40% share, joint with Mike Jones (60%)"
+    }
+  ],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "David's Current Account",
+      "provider_name": "HSBC",
+      "account_type": "current_account",
+      "current_balance": 25000,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main salary account"
+    },
+    {
+      "id": 2,
+      "account_name": "Sarah's Current Account",
+      "provider_name": "Barclays",
+      "account_type": "current_account",
+      "current_balance": 6280,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "monthly_contribution": 0,
+      "notes": "Sarah's NHS salary account"
+    },
+    {
+      "id": 3,
+      "account_name": "Mitchell Current Account",
+      "provider_name": "Nationwide",
+      "account_type": "current_account",
+      "current_balance": 4500,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 0,
+      "notes": "Household bills and shared expenses"
+    },
+    {
+      "id": 4,
+      "account_name": "David's Cash ISA",
+      "provider_name": "Nationwide",
+      "account_type": "cash_isa",
+      "current_balance": 22500,
+      "interest_rate": 4.25,
+      "is_isa": true,
+      "isa_subscription_current_year": 10000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 833
+    },
+    {
+      "id": 5,
+      "account_name": "Sarah's Cash ISA",
+      "provider_name": "Nationwide",
+      "account_type": "cash_isa",
+      "current_balance": 22500,
+      "interest_rate": 4.25,
+      "is_isa": true,
+      "isa_subscription_current_year": 10000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "monthly_contribution": 833
+    },
+    {
+      "id": 6,
+      "account_name": "Mitchell Premium Bonds",
+      "provider_name": "NS&I",
+      "account_type": "premium_bonds",
+      "current_balance": 50000,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "notes": "Maximum allowed holding"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "David's Stocks & Shares ISA",
+      "provider_name": "Hargreaves Lansdown",
+      "account_type": "isa",
+      "current_value": 95000,
+      "annual_contribution": 10000,
+      "monthly_contribution_amount": 833,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 10000,
+      "planned_lump_sum_amount": 5000,
+      "planned_lump_sum_date": "2026-03-01",
+      "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 0.75,
+      "risk_profile": "adventurous",
+      "risk_preference": "high",
+      "has_custom_risk": true,
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Fundsmith Equity",
+          "ticker": "FUND",
+          "isin": "GB00B41YBW71",
+          "asset_type": "fund",
+          "units": 351,
+          "initial_unit_cost": 85.50,
+          "current_unit_price": 99.86,
+          "current_value": 35051,
+          "allocation_percentage": 36.8,
+          "annual_fee": 0.95
+        },
+        {
+          "id": 2,
+          "holding_name": "Scottish Mortgage IT",
+          "ticker": "SMT",
+          "isin": "GB00BLDYK618",
+          "asset_type": "uk_equity",
+          "units": 2500,
+          "initial_unit_cost": 8.40,
+          "current_unit_price": 10.00,
+          "current_value": 25000,
+          "allocation_percentage": 26.3,
+          "annual_fee": 0.34
+        },
+        {
+          "id": 3,
+          "holding_name": "Vanguard FTSE All-World",
+          "ticker": "VWRL",
+          "isin": "IE00B3RBWM25",
+          "asset_type": "etf",
+          "units": 318,
+          "initial_unit_cost": 93.00,
+          "current_unit_price": 109.99,
+          "current_value": 34977,
+          "allocation_percentage": 36.9,
+          "annual_fee": 0.22
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "account_name": "Sarah's Stocks & Shares ISA",
+      "provider_name": "Hargreaves Lansdown",
+      "account_type": "isa",
+      "current_value": 85000,
+      "annual_contribution": 10000,
+      "monthly_contribution_amount": 833,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 10000,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 0.75,
+      "risk_profile": "balanced",
+      "risk_preference": "medium",
+      "owner": "spouse",
+      "holdings": [
+        {
+          "id": 4,
+          "holding_name": "Vanguard LifeStrategy 80",
+          "ticker": "VGLS80",
+          "isin": "GB00B4PQW151",
+          "asset_type": "fund",
+          "units": 333,
+          "initial_unit_cost": 225.00,
+          "current_unit_price": 255.00,
+          "current_value": 84915,
+          "allocation_percentage": 100,
+          "annual_fee": 0.22
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "account_name": "Joint General Investment Account",
+      "provider_name": "AJ Bell",
+      "account_type": "gia",
+      "current_value": 95000,
+      "annual_contribution": 0,
+      "monthly_contribution_amount": 0,
+      "contribution_frequency": "monthly",
+      "ownership_type": "joint",
+      "platform_fee_percent": 0.25,
+      "advisor_fee_percent": 0.75,
+      "risk_profile": "balanced",
+      "risk_preference": "upper_medium",
+      "holdings": [
+        {
+          "id": 5,
+          "holding_name": "iShares Core MSCI World",
+          "ticker": "SWDA",
+          "isin": "IE00B4L5Y983",
+          "asset_type": "etf",
+          "units": 625,
+          "initial_unit_cost": 68.00,
+          "current_unit_price": 80.00,
+          "current_value": 50000,
+          "allocation_percentage": 52.6,
+          "annual_fee": 0.2
+        },
+        {
+          "id": 6,
+          "holding_name": "Vanguard UK Govt Bond",
+          "ticker": "VGOV",
+          "isin": "IE00B42WWV65",
+          "asset_type": "bond",
+          "units": 1316,
+          "initial_unit_cost": 19.50,
+          "current_unit_price": 19.00,
+          "current_value": 25004,
+          "allocation_percentage": 26.3,
+          "annual_fee": 0.12
+        },
+        {
+          "id": 7,
+          "holding_name": "iShares Physical Gold",
+          "ticker": "SGLN",
+          "isin": "IE00B4ND3602",
+          "asset_type": "alternative",
+          "units": 84,
+          "initial_unit_cost": 195.00,
+          "current_unit_price": 238.00,
+          "current_value": 19992,
+          "allocation_percentage": 21.1,
+          "annual_fee": 0.12
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "account_name": "Venture Capital Trust Holdings",
+      "provider_name": "Various",
+      "account_type": "vct",
+      "current_value": 30000,
+      "annual_contribution": 0,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0,
+      "advisor_fee_percent": 0.75,
+      "risk_preference": "high",
+      "has_custom_risk": true,
+      "notes": "Tax-efficient Venture Capital Trust investments"
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "Global Finance Corp Pension",
+      "provider_name": "Fidelity",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 180000,
+      "employee_contribution_percent": 8,
+      "employer_contribution_percent": 8,
+      "employer_matching_limit": 8,
+      "annual_salary": 145000,
+      "retirement_age": 60,
+      "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "platform_fee_percent": 0.35,
+      "notes": "Employer matches employee contributions 1:1 up to 8% of salary"
+    },
+    {
+      "id": 2,
+      "scheme_name": "David's Self-Invested Personal Pension (SIPP)",
+      "provider_name": "AJ Bell",
+      "pension_type": "sipp",
+      "scheme_type": "sipp",
+      "current_fund_value": 320000,
+      "monthly_contribution_amount": 0,
+      "retirement_age": 60,
+      "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "platform_fee_percent": 0.25,
+      "notes": "Personal contributions plus employer pension scheme transfer",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard Global Equity",
+          "ticker": "VHVG",
+          "isin": "IE00BKX55S42",
+          "asset_type": "fund",
+          "units": 4211,
+          "initial_unit_cost": 32.50,
+          "current_unit_price": 38.00,
+          "current_value": 160018,
+          "allocation_percentage": 50,
+          "annual_fee": 0.23
+        },
+        {
+          "id": 2,
+          "holding_name": "BlackRock Corporate Bond",
+          "ticker": "SLXX",
+          "isin": "IE0032895942",
+          "asset_type": "bond",
+          "units": 800,
+          "initial_unit_cost": 125.00,
+          "current_unit_price": 120.00,
+          "current_value": 96000,
+          "allocation_percentage": 30,
+          "annual_fee": 0.18
+        },
+        {
+          "id": 3,
+          "holding_name": "L&G UK Property",
+          "ticker": "LGUKP",
+          "isin": "GB00BK35DT11",
+          "asset_type": "property",
+          "units": 50000,
+          "initial_unit_cost": 1.35,
+          "current_unit_price": 1.28,
+          "current_value": 64000,
+          "allocation_percentage": 20,
+          "annual_fee": 0.68
+        }
+      ]
+    }
+  ],
+
+  "db_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "NHS Pension Scheme",
+      "pension_type": "public_sector",
+      "accrued_annual_pension": 35000,
+      "normal_retirement_age": 60,
+      "inflation_protection": "cpi",
+      "lump_sum_entitlement": 105000,
+      "spouse_benefit_percentage": 50,
+      "years_of_service": 18,
+      "owner": "spouse",
+      "notes": "Sarah's NHS pension - 2015 scheme"
+    }
+  ],
+
+  "state_pension": {
+    "forecast_weekly_amount": 221.20,
+    "forecast_annual_amount": 11502,
+    "state_pension_age": 67,
+    "qualifying_years": 30,
+    "years_remaining": 8
+  },
+
+  "spouse_state_pension": {
+    "forecast_weekly_amount": 218.39,
+    "forecast_annual_amount": 11356,
+    "state_pension_age": 67,
+    "qualifying_years": 26,
+    "years_remaining": 20
+  },
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "level_term",
+      "provider_name": "Vitality",
+      "sum_assured": 500000,
+      "premium_amount": 85,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2020-01-01",
+      "policy_end_date": "2040-01-01",
+      "in_trust": true,
+      "joint_life": true,
+      "policy_reference": "VIT-LT-456789",
+      "notes": "Family protection - in trust for Inheritance Tax efficiency",
+      "beneficiaries": "Sarah Mitchell (spouse), William Mitchell (child), Charlotte Mitchell (child)"
+    }
+  ],
+
+  "critical_illness_policies": [
+    {
+      "id": 1,
+      "policy_type": "standalone",
+      "provider_name": "Legal & General",
+      "sum_assured": 200000,
+      "premium_amount": 125,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2020-01-01",
+      "policy_end_date": "2040-01-01",
+      "policy_reference": "LG-CI-789123",
+      "notes": "Joint standalone critical illness cover"
+    }
+  ],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [
+    {
+      "owner": "user",
+      "provider_name": "Global Finance Corp Group Scheme",
+      "policy_reference": "GFC-AS-2020-DM",
+      "benefit_amount": 7250,
+      "benefit_frequency": "monthly",
+      "deferred_period_weeks": 13,
+      "benefit_period_months": 24,
+      "premium_amount": 0,
+      "premium_frequency": "monthly",
+      "occupation_class": "1",
+      "coverage_type": "accident_and_sickness",
+      "policy_start_date": "2020-04-01",
+      "policy_term_years": null
+    }
+  ],
+
+  "sickness_illness_policies": [
+    {
+      "owner": "spouse",
+      "provider_name": "NHS Permanent Health Insurance",
+      "policy_reference": "NHS-PHI-SM-2015",
+      "benefit_amount": 3500,
+      "benefit_frequency": "monthly",
+      "deferred_period_weeks": 26,
+      "benefit_period_months": null,
+      "premium_amount": 0,
+      "premium_frequency": "monthly",
+      "conditions_covered": "All sickness and injury conditions",
+      "exclusions": "Pre-existing conditions (first 2 years)",
+      "policy_start_date": "2015-09-01",
+      "policy_term_years": null
+    }
+  ],
+
+  "liabilities": [],
+
+  "gifts": [],
+
+  "trusts": [
+    {
+      "id": 1,
+      "trust_name": "Mitchell Children's Education Trust",
+      "trust_type": "discretionary",
+      "trust_creation_date": "2020-09-01",
+      "initial_value": 150000,
+      "current_value": 185000,
+      "settlor": "David Mitchell",
+      "beneficiaries": "William Mitchell, Charlotte Mitchell",
+      "trustees": "David Mitchell, Sarah Mitchell, Barclays Trustee Services",
+      "purpose": "Education funding for William and Charlotte including university fees, accommodation, and living expenses",
+      "is_relevant_property_trust": true,
+      "is_active": true,
+      "notes": "Set up when William started secondary school. Trustees have discretion to distribute for any educational purpose. Growth of £35k since inception."
+    }
+  ],
+
+  "business_interests": [],
+
+  "chattels": [
+    {
+      "id": 1,
+      "chattel_type": "art",
+      "name": "Contemporary Art Collection",
+      "description": "Collection of contemporary British artists including Damien Hirst lithograph",
+      "current_value": 35000,
+      "purchase_price": 22000,
+      "purchase_date": "2018-06-15",
+      "valuation_date": "2024-09-01",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "notes": "Insured separately. Professional valuation from Christie's."
+    },
+    {
+      "id": 2,
+      "chattel_type": "vehicle",
+      "name": "1967 Jaguar E-Type Series 1",
+      "description": "Fully restored classic car in British Racing Green",
+      "current_value": 85000,
+      "purchase_price": 45000,
+      "purchase_date": "2015-04-20",
+      "valuation_date": "2024-11-15",
+      "make": "Jaguar",
+      "model": "E-Type Series 1 Roadster",
+      "year": 1967,
+      "registration_number": "ABC 123E",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "notes": "Capital Gains Tax exempt - wasting asset. Stored in climate-controlled garage. Member of Jaguar Enthusiasts Club."
+    },
+    {
+      "id": 3,
+      "chattel_type": "jewelry",
+      "name": "Sarah's Engagement Ring",
+      "description": "2.5 carat diamond solitaire in platinum setting",
+      "current_value": 18000,
+      "purchase_price": 12000,
+      "purchase_date": "2004-12-01",
+      "valuation_date": "2024-01-15",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "owner": "spouse",
+      "notes": "Valued for insurance purposes"
+    },
+    {
+      "id": 4,
+      "chattel_type": "antique",
+      "name": "Georgian Writing Desk",
+      "description": "Circa 1780 mahogany bureau with original brass fittings",
+      "current_value": 8500,
+      "purchase_price": 6200,
+      "purchase_date": "2019-03-10",
+      "valuation_date": "2023-08-20",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "notes": "Inherited from Sarah's grandmother, professionally valued"
+    },
+    {
+      "id": 5,
+      "chattel_type": "collectible",
+      "name": "First Edition Book Collection",
+      "description": "Collection of signed first editions including Ian Fleming Bond novels",
+      "current_value": 4500,
+      "purchase_price": 2800,
+      "purchase_date": "2016-09-01",
+      "valuation_date": "2024-06-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "notes": "Below £6,000 Capital Gains Tax threshold"
+    },
+    {
+      "id": 6,
+      "chattel_type": "vehicle",
+      "name": "BMW X5 xDrive40i",
+      "description": "Daily driver - family SUV",
+      "current_value": 42000,
+      "purchase_price": 65000,
+      "purchase_date": "2022-03-01",
+      "valuation_date": "2024-12-01",
+      "make": "BMW",
+      "model": "X5 xDrive40i M Sport",
+      "year": 2022,
+      "registration_number": "DM22 XYZ",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "notes": "Capital Gains Tax exempt - wasting asset. PCP finance ends 2025."
+    }
+  ],
+
+  "expenditure": {
+    "total_monthly": 2500,
+    "categories": {
+      "food_groceries": 450,
+      "transport_fuel": 150,
+      "healthcare_medical": 50,
+      "insurance": 100,
+      "mobile_phones": 50,
+      "internet_tv": 40,
+      "subscriptions": 30,
+      "clothing_personal_care": 100,
+      "entertainment_dining": 100,
+      "holidays_travel": 100,
+      "pets": 0,
+      "childcare": 0,
+      "school_fees": 1000,
+      "school_lunches": 50,
+      "school_extras": 80,
+      "university_fees": 0,
+      "children_activities": 100,
+      "gifts_charity": 50,
+      "regular_savings": 0,
+      "other_expenditure": 0
+    }
+  },
+
+  "key_concerns": [
+    "Are we on track for retirement at 60?",
+    "How do we optimise our tax position with tapered pension allowance?",
+    "Should we pay off the mortgage or invest more?",
+    "What is the best strategy for the Buy-to-Let property?"
+  ],
+
+  "highlights": {
+    "investment_profile": {
+      "portfolio_allocation": "65% equities, 20% bonds, 15% alternatives",
+      "risk_score": 72,
+      "isa_utilisation": "Both maximising annual allowance"
+    },
+    "net_worth_range": "1.5m - 2m",
+    "primary_focus": "Tax efficiency, pension allowances"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "upper_medium",
+    "spouse_risk_level": "medium",
+    "notes": "High earners with substantial wealth, David prefers growth-focused approach while Sarah is more balanced given NHS pension security"
+  },
+
+  "will": {
+    "has_will": true,
+    "spouse_primary_beneficiary": true,
+    "spouse_bequest_percentage": 100,
+    "executor_name": "Sarah Mitchell & Barclays Wealth",
+    "executor_notes": "Mirror wills prepared by Henderson & Co Solicitors. Reviewed after purchase of holiday let property. Life insurance policies held in trust outside estate. Consider updating after children finish university.",
+    "will_last_updated": "2022-03-15",
+    "bequests": [
+      {
+        "beneficiary_name": "William Mitchell",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 50,
+        "priority_order": 2,
+        "conditions": "To receive share at age 25, held in trust until then"
+      },
+      {
+        "beneficiary_name": "Charlotte Mitchell",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 50,
+        "priority_order": 2,
+        "conditions": "To receive share at age 25, held in trust until then"
+      },
+      {
+        "beneficiary_name": "Cancer Research UK",
+        "bequest_type": "specific_amount",
+        "specific_amount": 10000,
+        "priority_order": 1,
+        "conditions": null
+      }
+    ],
+    "spouse_will": {
+      "has_will": true,
+      "spouse_primary_beneficiary": true,
+      "spouse_bequest_percentage": 100,
+      "executor_name": "David Mitchell & Barclays Wealth",
+      "executor_notes": "Mirror will matching David's arrangements. NHS pension has separate death benefits nomination form on file.",
+      "will_last_updated": "2022-03-15",
+      "bequests": [
+        {
+          "beneficiary_name": "William Mitchell",
+          "bequest_type": "percentage",
+          "percentage_of_estate": 50,
+          "priority_order": 2,
+          "conditions": "To receive share at age 25, held in trust until then"
+        },
+        {
+          "beneficiary_name": "Charlotte Mitchell",
+          "bequest_type": "percentage",
+          "percentage_of_estate": 50,
+          "priority_order": 2,
+          "conditions": "To receive share at age 25, held in trust until then"
+        },
+        {
+          "beneficiary_name": "British Heart Foundation",
+          "bequest_type": "specific_amount",
+          "specific_amount": 10000,
+          "priority_order": 1,
+          "conditions": null
+        }
+      ]
+    }
+  },
+
+  "goals": [
+    {
+      "goal_name": "Max Pension Contributions",
+      "goal_type": "retirement",
+      "description": "Maximise annual pension allowance for tax efficiency before retirement",
+      "target_amount": 60000,
+      "current_amount": 45000,
+      "target_date": "2026-04-05",
+      "start_date": "2025-04-06",
+      "assigned_module": "retirement",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 2500,
+      "contribution_streak": 36,
+      "longest_streak": 48,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Drawdown Reserve Fund",
+      "goal_type": "retirement",
+      "description": "Cash reserve to bridge income between early retirement at 58 and state pension at 67, avoiding unnecessary investment drawdowns during market downturns",
+      "target_amount": 50000,
+      "current_amount": 35000,
+      "target_date": "2033-01-01",
+      "start_date": "2023-06-01",
+      "assigned_module": "retirement",
+      "priority": "high",
+      "is_essential": true,
+      "monthly_contribution": 500,
+      "contribution_streak": 30,
+      "longest_streak": 30,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "ISA Wealth Building",
+      "goal_type": "wealth_accumulation",
+      "description": "Max ISA allowances for tax-free growth",
+      "target_amount": 500000,
+      "current_amount": 185000,
+      "target_date": "2035-04-05",
+      "start_date": "2020-04-06",
+      "assigned_module": "investment",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 3333,
+      "contribution_streak": 60,
+      "longest_streak": 60,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Sarah's ISA",
+      "goal_type": "wealth_accumulation",
+      "description": "Max Sarah's ISA allowance annually",
+      "target_amount": 400000,
+      "current_amount": 120000,
+      "target_date": "2035-04-05",
+      "start_date": "2020-04-06",
+      "assigned_module": "investment",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 1667,
+      "contribution_streak": 48,
+      "longest_streak": 60,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual",
+      "owner": "spouse"
+    },
+    {
+      "goal_name": "Pre-Pension Bridge Fund",
+      "goal_type": "wealth_accumulation",
+      "description": "Build investment bridge to cover living costs from age 58 until pensions become accessible at 60",
+      "target_amount": 200000,
+      "current_amount": 95000,
+      "target_date": "2033-01-01",
+      "start_date": "2022-01-01",
+      "assigned_module": "investment",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 1500,
+      "contribution_streak": 36,
+      "longest_streak": 36,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    }
+  ],
+
+  "letter_to_spouse": {
+    "immediate_actions": "1. Contact Sarah Mitchell immediately - she is executor and knows everything\n2. Notify Global Finance Corp HR (020 7946 0123) - death in service benefit of 4x salary\n3. Access our joint Nationwide account for immediate expenses\n4. Contact James Patterson at Hargreaves Lansdown (01onal 234 567890)\n5. File life insurance claim with Vitality - policy VIT-LT-456789 (£500k in trust)\n6. Keep my mobile phone active - it has all authentication apps\n7. Register the death at Guildford Register Office\n8. Obtain at least 12 death certificates (multiple financial accounts)",
+    "executor_name": "Sarah Mitchell & Barclays Wealth",
+    "executor_contact": "sarah.mitchell@nhs.net / Barclays Wealth: 0800 779 9779",
+    "attorney_name": "Henderson & Co Solicitors",
+    "attorney_contact": "01483 562 890 / estates@hendersonlaw.co.uk - Ask for Mr Richard Henderson",
+    "financial_advisor_name": "James Patterson - Hargreaves Lansdown Wealth Advice",
+    "financial_advisor_contact": "01onal 234 567890 / james.patterson@hl.co.uk",
+    "accountant_name": "Graham & Associates Chartered Accountants",
+    "accountant_contact": "01483 445 678 / david.graham@grahamassoc.co.uk",
+    "immediate_funds_access": "Joint Accounts (Accessible Immediately):\n\n• Nationwide Joint Current Account - Approx £4,500\n• Premium Bonds - £50,000 (joint holding, can access immediately)\n\nMy individual accounts will be frozen until probate:\n• HSBC Current Account\n• HSBC savings\n\nCredit card (Amex Platinum) should be cancelled but can be used for funeral expenses first.",
+    "employer_hr_contact": "Global Finance Corp HR: 020 7946 0123 - Ask for Karen Williams",
+    "employer_benefits_info": "Death in service: 4x salary (£580,000)\nGroup life cover: Additional £200,000\nPension: Contact Fidelity for survivor benefits",
+    "password_manager_info": "1Password - Master password is in the safe at home\nEmergency Kit stored in safety deposit box at HSBC Guildford\nBiometric backup: William and Charlotte both have emergency access",
+    "estate_documents_location": "Original will and LPAs: Henderson & Co Solicitors, 45 High Street, Guildford\nCopies at home: Filing cabinet in study, bottom drawer\nLife insurance policy documents: Same drawer, blue folder\nSafe at home: Contains passports, Premium Bonds certificates, house deeds\nSafe combination: Written on card in your bedside drawer",
+    "vehicles_info": "BMW X5 xDrive40i (DM22 XYZ):\n- Joint ownership, PCP ends March 2025\n- BMW Finance: 0800 083 2222\n- Insured with Aviva\n\n1967 Jaguar E-Type (ABC 123E):\n- My name only, fully owned\n- Specialist insurance with Hagerty\n- Keep in climate-controlled garage\n- Worth approximately £85,000\n- May want to keep for William",
+    "valuable_items_info": "Contemporary Art Collection (£35,000):\n- Damien Hirst lithograph plus other pieces\n- Insured separately with Hiscox\n- Professional valuation from Christie's Sept 2024\n- Keep for the children or sell through Christie's\n\nJaguar E-Type (£85,000):\n- Classic car, CGT exempt as wasting asset\n- William has expressed interest in keeping it\n\nSarah's Engagement Ring (£18,000):\n- Yours obviously, recently valued for insurance\n\nGeorgian Writing Desk (£8,500):\n- From your grandmother, keep in family\n\nFirst Edition Book Collection (£4,500):\n- Ian Fleming Bond novels\n- Below CGT threshold\n- Richard at Sotheby's can value if selling",
+    "cryptocurrency_info": "Small holding in Coinbase account:\n- Bitcoin: approx £2,500\n- Ethereum: approx £1,000\nSeed phrase in safety deposit box at HSBC\nCoinbase login in 1Password",
+    "recurring_bills_info": "Council Tax: £320/month - Direct debit from joint account\nUtilities (Gas/Electric): £165/month - Octopus Energy, joint account\nWater: £40/month - Thames Water, joint account\nBroadband: BT - £55/month - my account, switch to your name\nNetflix, Spotify, Times subscription: All on my card, may want to keep\nPrivate school fees: Paid termly, insurance covers if I die\nGym membership: David Lloyd Guildford - cancel",
+    "funeral_preference": "cremation",
+    "funeral_service_details": "Cremation preferred, service at St Nicolas Church in Guildford where we were married. Reception at the rugby club - I was a member for 20 years. No flowers - donations to Cancer Research UK instead. Playing 'You'll Never Walk Alone' at the service is fine (sorry, not sorry).",
+    "obituary_wishes": "Keep it simple. Mention the children, my years at Global Finance Corp, my love of classic cars and rugby. Don't make it too serious - I'd want people laughing not crying. Maybe mention the time I drove the Jag to William's school and accidentally set off the car alarm during the nativity.",
+    "additional_wishes": "Sarah, you've been my best friend for 20 years. Please don't rush into any major decisions - take at least a year before selling the house or making big financial moves. James at Hargreaves will look after you. Make sure the kids know I loved them more than anything. And please, let William have the Jag when he's old enough - he's wanted it since he was 10. I love you all.",
+    "additional_boxes": [
+      {
+        "title": "Manchester Buy-to-Let Property - Mike Jones",
+        "content": "40% share owned with Mike Jones (60%).\nMike has right of first refusal if selling.\nContact: 07700 900123 / mike.jones@email.com\nTenant: Ms Rachel Green, lease ends May 2025\nProperty management: Northwood Manchester"
+      },
+      {
+        "title": "Children's Education Trust",
+        "content": "Mitchell Children's Education Trust - £185,000\nTrustees: Me, you, Barclays Trustee Services\nPurpose: William and Charlotte's university and education costs\nBarclays contact: 0800 779 9779 - reference MT2020\nYou'll need to appoint a replacement trustee"
+      },
+      {
+        "title": "NHS Pension - Sarah's Benefits",
+        "content": "Remember your NHS pension has death benefits too.\nIf I'm still working: Lump sum of 2x salary plus survivor pension\nContact NHS Pensions: 0300 330 1346\nMake sure nomination form is up to date"
+      }
+    ],
+    "spouse_letter": {
+      "immediate_actions": "1. Contact David Mitchell immediately - he is co-executor\n2. Notify Surrey NHS Trust HR (01483 571 122)\n3. Access our joint Nationwide account for immediate expenses\n4. Contact James Patterson at Hargreaves Lansdown\n5. File life insurance claim with Vitality - joint policy\n6. Register the death at Guildford Register Office\n7. Obtain at least 12 death certificates",
+      "executor_name": "David Mitchell & Barclays Wealth",
+      "executor_contact": "david.mitchell@globalfinance.com / Barclays Wealth: 0800 779 9779",
+      "attorney_name": "Henderson & Co Solicitors",
+      "attorney_contact": "01483 562 890 / estates@hendersonlaw.co.uk - Ask for Mr Richard Henderson",
+      "financial_advisor_name": "James Patterson - Hargreaves Lansdown Wealth Advice",
+      "financial_advisor_contact": "01personal 234 567890 / james.patterson@hl.co.uk",
+      "accountant_name": "Graham & Associates Chartered Accountants",
+      "accountant_contact": "01483 445 678 / david.graham@grahamassoc.co.uk",
+      "password_manager_info": "1Password - Master password is in the safe at home\nDavid has the emergency access details",
+      "employer_hr_contact": "Surrey NHS Trust HR: 01483 571 122",
+      "employer_benefits_info": "NHS Pension death benefits: Contact NHS Pensions 0300 330 1346\n50% spouse pension continues to David\nLump sum payment to nominated beneficiary",
+      "vehicles_info": "BMW X5 is joint ownership\nMy personal car: Audi A3 - fully owned",
+      "valuable_items_info": "My engagement ring (£18,000) - to Charlotte\nJewellery collection - split between Charlotte and any future granddaughters\nGeorgian writing desk from grandmother - family heirloom, keep",
+      "funeral_preference": "cremation",
+      "funeral_service_details": "Cremation with service at St Nicolas Church. Reception at home or local venue - intimate gathering. Donations to British Heart Foundation.",
+      "obituary_wishes": "Mention my years as a GP helping the local community, the children, and my passion for gardening.",
+      "additional_wishes": "David, please look after yourself and the children. Don't let William skip university! Make sure Charlotte knows she can do anything she sets her mind to. I love you all so much.",
+      "additional_boxes": [
+        {
+          "title": "NHS Pension Details",
+          "content": "NHS Pension Scheme (2015 scheme)\nMember number: On file with NHS Pensions\nDavid nominated for 50% survivor pension\nLump sum: 3x pensionable salary\nContact: 0300 330 1346"
+        }
+      ]
+    }
+  },
+
+  "life_events": [
+    {
+      "event_name": "Previous Inheritance (David's Aunt)",
+      "event_type": "inheritance",
+      "description": "Inheritance from David's aunt in 2020 - used for investment portfolio",
+      "amount": 45000,
+      "impact_type": "income",
+      "expected_date": "2020-03-15",
+      "certainty": "confirmed",
+      "status": "completed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Parents' Estate (David)",
+      "event_type": "inheritance",
+      "description": "David's parents are in their late 70s with an estate valued at approximately £400k. Expected inheritance to be split with his sister.",
+      "amount": 200000,
+      "impact_type": "income",
+      "expected_date": "2035-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Kitchen & Extension",
+      "event_type": "home_improvement",
+      "description": "Major kitchen renovation and rear extension to add a garden room. Planning permission already granted.",
+      "amount": 85000,
+      "impact_type": "expense",
+      "expected_date": "2027-04-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "William's Wedding Contribution",
+      "event_type": "gift_given",
+      "description": "Contribution towards William's wedding when the time comes",
+      "amount": 25000,
+      "impact_type": "expense",
+      "expected_date": "2030-08-01",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Annual Bonus",
+      "event_type": "bonus",
+      "description": "David's typical annual bonus from Global Finance Corp",
+      "amount": 35000,
+      "impact_type": "income",
+      "expected_date": "2026-04-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Charlotte's University Costs",
+      "event_type": "education_fees",
+      "description": "Charlotte's university tuition and living costs over 3 years (additional to loans)",
+      "amount": 45000,
+      "impact_type": "expense",
+      "expected_date": "2028-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Replace BMW X5",
+      "event_type": "large_purchase",
+      "description": "Replace family car at end of PCP agreement",
+      "amount": 55000,
+      "impact_type": "expense",
+      "expected_date": "2028-03-01",
+      "certainty": "confirmed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Downsizing Property Sale",
+      "event_type": "property_sale",
+      "description": "Sell main residence and downsize to smaller property in retirement",
+      "amount": 350000,
+      "impact_type": "income",
+      "expected_date": "2046-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "World Cruise",
+      "event_type": "large_purchase",
+      "description": "Round-the-world cruise to celebrate 70th birthday",
+      "amount": 45000,
+      "impact_type": "expense",
+      "expected_date": "2046-11-08",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Grandchildren Education Fund",
+      "event_type": "gift_given",
+      "description": "Set up education fund for grandchildren",
+      "amount": 100000,
+      "impact_type": "expense",
+      "expected_date": "2041-01-01",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    }
+  ]
+}

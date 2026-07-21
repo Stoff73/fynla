@@ -416,10 +416,6 @@ const mutations = {
         state.analysis = analysis;
     },
 
-    setRecommendations(state, recommendations) {
-        state.recommendations = recommendations;
-    },
-
     setLifeEvents(state, events) {
         state.lifeEvents = events;
     },

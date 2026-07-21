@@ -97,10 +97,9 @@ export const SUB_NAV_CONFIG = [
   },
   {
     category: 'account',
-    headerTitle: 'My Account',
+    headerTitle: 'Settings',
     tabs: [
-      { label: 'User Profile', to: '/profile', matchPrefixes: ['/profile'] },
-      { label: 'Settings', to: '/settings', matchPrefixes: ['/settings'] },
+      { label: 'Settings', to: '/settings', matchPrefixes: ['/settings', '/profile'] },
     ],
     ctas: {},
   },

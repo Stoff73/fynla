@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Investment\AssetLocation;
 
 use App\Constants\TaxDefaults;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesIncome;
+use Carbon\Carbon;
 
 /**
  * Asset Location Optimizer
@@ -26,7 +27,8 @@ class AssetLocationOptimizer
         private readonly TaxDragCalculator $taxDragCalculator,
         private readonly AccountTypeRecommender $recommender,
         private readonly TaxConfigService $taxConfig,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -56,7 +58,7 @@ class AssetLocationOptimizer
         $recommendations = $this->recommender->generateRecommendations($userId, $userTaxProfile);
 
         // Calculate current vs optimal allocation
-        $allocationAnalysis = $this->analyzeCurrentAllocation($userId);
+        $allocationAnalysis = $this->analyzeCurrentAllocation($user);
 
         // Generate optimization score
         $optimizationScore = $this->calculateOptimizationScore(
@@ -114,7 +116,7 @@ class AssetLocationOptimizer
 
         // Years to retirement (for pension tax drag calculation)
         $age = $user->date_of_birth
-            ? \Carbon\Carbon::parse($user->date_of_birth)->age
+            ? Carbon::parse($user->date_of_birth)->age
             : 45;
         $yearsToRetirement = max(0, 67 - $age);
 
@@ -166,14 +168,12 @@ class AssetLocationOptimizer
     /**
      * Analyze current allocation across account types
      *
-     * @param  int  $userId  User ID
      * @return array Allocation analysis
      */
-    private function analyzeCurrentAllocation(int $userId): array
+    private function analyzeCurrentAllocation(User $user): array
     {
-        $accounts = InvestmentAccount::where('user_id', $userId)
-            ->with('holdings')
-            ->get();
+        // Primary-only — matches pre-PR-5a where('user_id') semantics
+        $accounts = $this->investmentAccountStore->forUserPrimaryOnly($user)->load('holdings');
 
         $allocationByType = [
             'isa' => ['value' => 0, 'holdings_count' => 0],

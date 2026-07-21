@@ -21,12 +21,15 @@ class UserConsent extends Model
 
     public const TYPE_DATA_PROCESSING = 'data_processing';
 
+    public const TYPE_AI_CHAT = 'ai_chat';
+
     // Current versions of each consent type
     public const CURRENT_VERSIONS = [
         self::TYPE_TERMS => 'v1.0',
         self::TYPE_PRIVACY => 'v1.0',
         self::TYPE_MARKETING => 'v1.0',
         self::TYPE_DATA_PROCESSING => 'v1.0',
+        self::TYPE_AI_CHAT => 'v1.0',
     ];
 
     protected $fillable = [

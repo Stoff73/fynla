@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Savings;
 
 use App\Models\SavingsAccount;
-use App\Models\SavingsMarketRate;
+use App\Services\Stores\SavingsMarketRateStore;
+use Illuminate\Support\Collection;
 
 class RateComparator
 {
     public function __construct(
-        private readonly ISATracker $isaTracker
+        private readonly ISATracker $isaTracker,
+        private readonly SavingsMarketRateStore $marketRateStore,
     ) {}
 
     /**
@@ -58,7 +60,7 @@ class RateComparator
     {
         $taxYear = $taxYear ?? $this->isaTracker->getCurrentTaxYear();
 
-        $rates = SavingsMarketRate::where('tax_year', $taxYear)
+        $rates = $this->marketRateStore->forTaxYear($taxYear)
             ->pluck('rate', 'rate_key')
             ->map(fn ($rate) => (float) $rate)
             ->toArray();
@@ -141,7 +143,7 @@ class RateComparator
      * Groups accounts by banking licence group and calculates per-institution totals.
      * Used by FSCSAssessor for FSCS protection analysis.
      */
-    public function getInstitutionExposure(\Illuminate\Support\Collection $accounts): array
+    public function getInstitutionExposure(Collection $accounts): array
     {
         $licenceGroups = config('banking_licence_groups', []);
 

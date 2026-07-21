@@ -124,7 +124,6 @@
 </template>
 
 <script>
-import { TAX_CONFIG } from '@/constants/taxConfig';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { mapGetters, mapState } from 'vuex';
 
@@ -142,6 +141,7 @@ export default {
   computed: {
     ...mapGetters('auth', ['currentUser']),
     ...mapState('netWorth', ['overview']),
+    ...mapGetters('taxConfig', { storeIsaAnnualAllowance: 'isaAnnualAllowance' }),
 
     userAge() {
       const dob = this.currentUser?.date_of_birth;
@@ -162,7 +162,7 @@ export default {
     },
 
     isaAnnualAllowance() {
-      return this.lisaEligible ? 16000 : TAX_CONFIG.ISA_ANNUAL_ALLOWANCE;
+      return this.lisaEligible ? 16000 : this.storeIsaAnnualAllowance;
     },
 
     displayValue() {

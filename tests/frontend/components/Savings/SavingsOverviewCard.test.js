@@ -37,7 +37,7 @@ describe('SavingsOverviewCard', () => {
     const html = wrapper.html();
     expect(wrapper.text()).toContain('7');
     // Should have green color for 6+ months
-    expect(html).toMatch(/text-green|bg-green/);
+    expect(html).toMatch(/text-spring|bg-spring/);
   });
 
   it('displays emergency fund runway with orange color (3-6 months)', () => {
@@ -53,7 +53,7 @@ describe('SavingsOverviewCard', () => {
     const html = wrapper.html();
     expect(wrapper.text()).toContain('4.5');
     // Should have orange/yellow color for 3-6 months
-    expect(html).toMatch(/text-orange|text-yellow|bg-orange|bg-yellow/);
+    expect(html).toMatch(/text-violet|bg-raspberry/);
   });
 
   it('displays emergency fund runway with red color (<3 months)', () => {
@@ -69,7 +69,7 @@ describe('SavingsOverviewCard', () => {
     const html = wrapper.html();
     expect(wrapper.text()).toContain('2');
     // Should have red color for <3 months
-    expect(html).toMatch(/text-red|bg-red/);
+    expect(html).toMatch(/text-raspberry|bg-raspberry/);
   });
 
   it('displays total savings with currency formatting', () => {
@@ -84,7 +84,7 @@ describe('SavingsOverviewCard', () => {
 
     const text = wrapper.text();
     // Should format with commas or abbreviated
-    expect(text).toMatch(/123,456|123\.5K|123K/i);
+    expect(text).toContain('123,457');
   });
 
   it('displays ISA usage percentage', () => {

@@ -41,9 +41,7 @@ return [
     |
     */
 
-    'master_tag_url' => env('AWIN_MASTER_TAG_URL', 'https://www.dwin1.com/126105.js'),
     's2s_base_url' => env('AWIN_S2S_BASE_URL', 'https://www.awin1.com/sread.php'),
-    'fallback_pixel_base' => env('AWIN_FALLBACK_PIXEL_BASE', 'https://www.awin1.com/sread.img'),
 
     /*
     |--------------------------------------------------------------------------
@@ -86,23 +84,5 @@ return [
     */
 
     'http_timeout_seconds' => (int) env('AWIN_HTTP_TIMEOUT_SECONDS', 3),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Excluded Routes
-    |--------------------------------------------------------------------------
-    |
-    | Vue route names where the MasterTag must NOT load. Primarily the
-    | checkout page (Revolut embedded widget) — Awin's own guidance is to
-    | never place their tag on pages that display or process sensitive
-    | payment information.
-    |
-    */
-
-    'excluded_routes' => [
-        'checkout',
-        'auth.checkout',
-        'payment.confirm',
-    ],
 
 ];

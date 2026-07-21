@@ -16,15 +16,26 @@ use App\Models\LoginAttempt;
 use App\Models\PendingRegistration;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserConsent;
 use App\Models\UserSession;
 use App\Services\Audit\AuditService;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
+use App\Services\Auth\RegistrationHandoffService;
 use App\Services\Auth\SessionService;
-use App\Services\Payment\TrialService;
+use App\Services\Gamification\PointsService;
+use App\Services\GDPR\ConsentService;
+use App\Services\LifeStage\LifeStageService;
+use App\Services\Onboarding\FunnelIncomeBand;
+use App\Services\Payment\ReferralService;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -40,7 +51,10 @@ class AuthController extends Controller
         private readonly MFAService $mfaService,
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
-        private readonly TrialService $trialService
+        private readonly ConsentService $consentService,
+        private readonly TierConfigurationStore $tierStore,
+        private readonly TierResolver $tierResolver,
+        private readonly RegistrationHandoffService $registrationHandoff,
     ) {}
 
     /**
@@ -52,6 +66,38 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        $campaignSource = $request->validated('funnel_answers.campaign');
+        $funnelAnswers = $this->stampFunnelIncomeContext($request->validated('funnel_answers'));
+
+        // Trashed-email detection: if a soft-deleted account exists for this email,
+        // surface restorability rather than creating a new pending registration.
+        $existing = User::withTrashed()->where('email', $request->input('email'))->first();
+        if ($existing && $existing->trashed() && $existing->canBeRestored()) {
+            if (is_string($campaignSource)) {
+                return response()->json([
+                    'account_deleted_restorable' => true,
+                    'requires_password_verification' => true,
+                    'handoff_token' => $this->registrationHandoff->issue($existing, 'restoration', $campaignSource),
+                ]);
+            }
+
+            return response()->json([
+                'account_deleted_restorable' => true,
+                'requires_password_verification' => true,
+                'deleted_at' => $existing->deleted_at->toIso8601String(),
+                'deletion_reason' => $existing->deletion_reason,
+                'first_name' => $existing->first_name,
+            ]);
+        }
+
+        if ($existing && $existing->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An account with this email address already exists. Please sign in or reset your password.',
+                'email_exists' => true,
+            ], 422);
+        }
+
         // Check if email is already registered as a verified user
         $existingUser = User::where('email', $request->email)->first();
         if ($existingUser) {
@@ -73,9 +119,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'registration_source' => $request->registration_source ?? null,
             'preview_persona_id' => $request->preview_persona_id ?? null,
-            'plan' => $request->plan ?? null,
-            'billing_cycle' => $request->billing_cycle ?? null,
+            'plan' => $request->validated('plan'),
+            'billing_cycle' => $request->validated('billing_cycle'),
             'referral_code' => $request->referral_code ?? null,
+            'signup_source' => $request->validated('signup_source'),
+            'funnel_answers' => $funnelAnswers,
         ]);
 
         Log::info('Pending registration created', [
@@ -99,15 +147,55 @@ class AuthController extends Controller
             ]);
         }
 
+        $data = [
+            'pending_id' => $pending->id,
+            'email' => $this->maskEmail($pending->email),
+        ];
+        if (is_string($campaignSource)) {
+            $data['handoff_token'] = $this->registrationHandoff->issue($pending, 'verification', $campaignSource);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Please check your email for verification code.',
             'requires_verification' => true,
-            'data' => [
-                'pending_id' => $pending->id,
-                'email' => $this->maskEmail($pending->email),
-            ],
+            'data' => $data,
         ], 201);
+    }
+
+    private function stampFunnelIncomeContext(?array $answers): ?array
+    {
+        if (($answers['campaign'] ?? null) !== 'savetax') {
+            return $answers;
+        }
+
+        foreach (['income' => 'income_context', 'spouseIncome' => 'spouse_income_context'] as $field => $contextField) {
+            $band = $answers[$field] ?? null;
+            if (! is_string($band) || ! FunnelIncomeBand::isKnown($band)) {
+                continue;
+            }
+
+            try {
+                $answers[$contextField] = FunnelIncomeBand::context($band);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return $answers;
+    }
+
+    public function resolveRegistrationHandoff(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'handoff' => ['required', 'string', 'max:4096'],
+        ]);
+
+        try {
+            return response()->json($this->registrationHandoff->resolve($validated['handoff']));
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
     }
 
     /**
@@ -117,7 +205,9 @@ class AuthController extends Controller
     {
         $email = $request->email;
 
-        // Check if account is locked
+        // Apply the same account and IP lockout boundary before checking active
+        // or soft-deleted credentials. Deleted accounts are not a weaker login
+        // surface.
         if ($this->lockoutService->isLocked($email)) {
             $lockoutInfo = $this->lockoutService->getLockoutInfo($email);
 
@@ -126,10 +216,8 @@ class AuthController extends Controller
                 'message' => $lockoutInfo['message'],
                 'locked' => true,
                 'remaining_seconds' => $lockoutInfo['remaining_seconds'],
-            ], 423); // 423 Locked
+            ], 423);
         }
-
-        // Check if IP is blocked
         if ($this->lockoutService->isIpLocked()) {
             return response()->json([
                 'success' => false,
@@ -138,18 +226,41 @@ class AuthController extends Controller
             ], 423);
         }
 
+        // Trashed-user detection: only reveal restorability after correct password
+        $candidate = User::withTrashed()->where('email', $request->input('email'))->first();
+        if ($candidate && $candidate->trashed()) {
+            if (! Hash::check($request->input('password'), $candidate->password)) {
+                $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
+                $this->auditService->logAuth(AuditLog::ACTION_LOGIN_FAILED, $candidate, [
+                    'email' => $email,
+                    'reason' => 'invalid_password',
+                    'method' => 'account_restoration',
+                ]);
+
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+            if (! $candidate->canBeRestored()) {
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+
+            return response()->json([
+                'account_deleted_restorable' => true,
+                'deleted_at' => $candidate->deleted_at->toIso8601String(),
+                'deletion_reason' => $candidate->deletion_reason,
+                'deletion_source' => $candidate->deletion_source,
+                'first_name' => $candidate->first_name,
+                'restoration_token' => $this->issueRestorationToken($candidate),
+            ]);
+        }
+
         // Check if user exists first
         $user = User::where('email', $email)->first();
 
-        // Auto-promote admin users on login if listed in ADMIN_EMAILS
-        if ($user && ! $user->is_admin && in_array($email, config('auth.admin_emails', []), true)) {
-            $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
-            if ($adminRole) {
-                $user->role_id = $adminRole->id;
-                $user->is_admin = true;
-                $user->save();
-            }
-        }
+        // Admin promotion is a deliberate admin action via the /admin/users UI.
+        // The previous ADMIN_EMAILS auto-promote-at-login path was removed
+        // because it allowed an attacker who registered an admin-listed email
+        // to silently gain admin on next login with no review workflow.
+        // Closes REVIEW.md Top-10 #6 / §4 High #15.
 
         if (! $user) {
             // Record failed attempt
@@ -260,7 +371,7 @@ class AuthController extends Controller
         // Audit log
         $this->auditService->logAuth(AuditLog::ACTION_LOGOUT, $user);
 
-        if ($token && $token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+        if ($token && $token instanceof PersonalAccessToken) {
             // Delete the session record first (if exists)
             UserSession::where('token_id', $token->id)->delete();
 
@@ -345,8 +456,34 @@ class AuthController extends Controller
         // Include life stage data completeness so frontend has it immediately
         $dataCompletedSteps = [];
         if ($user->life_stage) {
-            $lifeStageService = app(\App\Services\LifeStage\LifeStageService::class);
+            $lifeStageService = app(LifeStageService::class);
             $dataCompletedSteps = $lifeStageService->getDataCompleteness($user);
+        }
+
+        // SP2 PR8 §14 — per-user tier flags sourced from TierConfigurationStore.
+        // Preview users sit outside tiers; TierResolver resolves them to 'free'.
+        $resolvedTier = $this->tierResolver->resolve($user);
+        try {
+            $tierConfig = $this->tierStore->forTier($resolvedTier);
+            $tierFlags = [
+                'resolved_tier' => $resolvedTier,
+                'capabilities' => $tierConfig->capability_matrix ?? [],
+                'limits' => $tierConfig->count_caps ?? [],
+                'open_api_affordance' => $tierConfig->open_api_affordance,
+                'currency_display_mode' => $tierConfig->currency_display_mode,
+                'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
+            ];
+        } catch (ModelNotFoundException) {
+            // Seeder not yet run — return nulls so the frontend degrades gracefully.
+            // open_api_affordance defaults false (capability-off, not a tier number).
+            $tierFlags = [
+                'resolved_tier' => $resolvedTier,
+                'capabilities' => [],
+                'limits' => [],
+                'open_api_affordance' => false,
+                'currency_display_mode' => null,
+                'snapshot_surfacing_window_days' => null,
+            ];
         }
 
         return response()->json([
@@ -356,6 +493,7 @@ class AuthController extends Controller
                 'role' => $user->role?->name ?? ($user->is_admin ? 'admin' : null),
                 'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
                 'data_completed_steps' => $dataCompletedSteps,
+                'tier_flags' => $tierFlags,
             ],
         ]);
     }
@@ -427,13 +565,15 @@ class AuthController extends Controller
             if (! $pending) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid verification code',
+                    'error' => 'registration_unavailable',
+                    'message' => 'Registration is no longer available. Please register again.',
                 ], 422);
             }
 
             if ($pending->isExpired()) {
                 return response()->json([
                     'success' => false,
+                    'error' => 'registration_unavailable',
                     'message' => 'Verification code has expired. Please register again.',
                 ], 422);
             }
@@ -444,6 +584,7 @@ class AuthController extends Controller
 
                 return response()->json([
                     'success' => false,
+                    'error' => 'registration_unavailable',
                     'message' => 'Too many failed attempts. Please register again.',
                 ], 422);
             }
@@ -457,12 +598,13 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Create the user from pending registration
-            $adminEmails = config('auth.admin_emails', []);
-            $isAdmin = in_array($pending->email, $adminEmails);
-            $role = $isAdmin
-                ? Role::findByName(Role::ROLE_ADMIN)
-                : Role::findByName(Role::ROLE_USER);
+            // Create the user from pending registration. Always assign the
+            // user role and is_admin=false. Admin promotion is a deliberate
+            // action via the /admin/users UI — never granted by email match
+            // at registration time, since an attacker who registered an
+            // admin-listed email would otherwise gain admin without review.
+            // Closes REVIEW.md Top-10 #6 / §4 High #15.
+            $role = Role::findByName(Role::ROLE_USER);
 
             $user = User::create([
                 'first_name' => $pending->first_name,
@@ -472,28 +614,50 @@ class AuthController extends Controller
                 'password' => $pending->password, // Already hashed
                 'role_id' => $role?->id,
                 'referred_by_code' => $pending->referral_code,
+                'signup_source' => $pending->signup_source,
+                'funnel_answers' => $pending->funnel_answers,
             ]);
 
-            // Sync is_admin flag (bypasses guarded)
-            $user->is_admin = $isAdmin;
-            $user->save();
+            // is_admin is intentionally NOT set here. The User model defaults
+            // it to false and admin promotion is granted only via /admin/users.
+
+            // Seed the profile from the /savetax funnel answers so Fyn's
+            // onboarding starts from what the user already told us (employment
+            // + marital status); the income band is confirmed conversationally.
+            app(FunnelAnswersMapper::class)->mapToProfile($user);
 
             Log::info('User created from pending registration', [
                 'user_id' => $user->id,
                 'pending_id' => $pending->id,
             ]);
 
-            // Start trial — use selected plan or default to 'standard'
-            $plan = ($pending->plan && in_array($pending->plan, ['student', 'standard', 'pro']))
-                ? $pending->plan
-                : 'standard';
-            $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
-            $this->trialService->startTrial($user, $plan, $billingCycle);
+            // Pure freemium: new users start on the Free tier immediately.
+            // No trial, no Subscription row — TierResolver resolves tier='free'
+            // to the Free tier and DbTierGate enforces free-tier caps. A
+            // Subscription is created only on first payment (upgrade).
+            $user->update(['tier' => 'free']);
+
+            // Record GDPR consents accepted at registration. The form footer
+            // says "By creating an account, you agree to our Terms of Service
+            // and Privacy Policy" so terms + privacy are explicit. Data
+            // processing is the lawful basis under which the app operates and
+            // is implicit at sign-up. AI chat consent is granted because the
+            // entire post-registration journey (onboarding, advice) is chat-
+            // driven — without it /api/ai-chat/onboarding/start returns 403
+            // and the user is silently locked out of the product. Withdrawing
+            // any of these via /settings continues to flow through the
+            // existing UserConsent::withdraw path (INV-2.10.3 still applies).
+            $this->consentService->recordConsents($user, [
+                UserConsent::TYPE_TERMS => true,
+                UserConsent::TYPE_PRIVACY => true,
+                UserConsent::TYPE_DATA_PROCESSING => true,
+                UserConsent::TYPE_AI_CHAT => true,
+            ]);
 
             // Link referral if user registered with a referral code
             if ($pending->referral_code) {
                 try {
-                    app(\App\Services\Payment\ReferralService::class)
+                    app(ReferralService::class)
                         ->applyReferralOnRegistration($user, $pending->referral_code);
                 } catch (\Exception $e) {
                     Log::error('Failed to link referral on registration', [
@@ -509,12 +673,23 @@ class AuthController extends Controller
                 'method' => 'registration',
             ]);
 
+            $checkoutIntent = $pending->checkoutIntent();
+
             // Delete the pending registration
             $pending->delete();
 
             $authResult = $this->createAuthTokenWithSession($user);
 
-            return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
+            // Gamification: count this as today's login. Preview-safe and
+            // never throws — a failure must not break account creation.
+            app(PointsService::class)->recordLogin($user);
+
+            return $this->buildAuthSuccessResponse(
+                $user,
+                $authResult['token'],
+                'Registration complete',
+                ['checkout_intent' => $checkoutIntent]
+            );
         }
 
         // Handle login verification (existing flow)
@@ -559,6 +734,10 @@ class AuthController extends Controller
 
         $authResult = $this->createAuthTokenWithSession($user);
 
+        // Gamification: record today's login + streak. Preview-safe and never
+        // throws — a failure must not break the login.
+        app(PointsService::class)->recordLogin($user);
+
         return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Verification successful');
     }
 
@@ -590,6 +769,7 @@ class AuthController extends Controller
             if ($pending->isExpired()) {
                 return response()->json([
                     'success' => false,
+                    'error' => 'registration_unavailable',
                     'message' => 'Registration has expired. Please register again.',
                 ], 422);
             }
@@ -773,5 +953,17 @@ class AuthController extends Controller
         }
 
         return null;
+    }
+
+    private function issueRestorationToken(User $user): string
+    {
+        $token = Str::random(64);
+        Cache::put(
+            "restoration_token:{$token}",
+            ['user_id' => $user->id, 'issued_at' => now()->toIso8601String()],
+            now()->addMinutes(5)
+        );
+
+        return $token;
     }
 }

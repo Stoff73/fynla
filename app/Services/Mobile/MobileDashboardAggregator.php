@@ -13,13 +13,14 @@ use App\Agents\SavingsAgent;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
-use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\StructuredLogging;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -42,7 +43,10 @@ class MobileDashboardAggregator
         private readonly RetirementAgent $retirementAgent,
         private readonly EstateAgent $estateAgent,
         private readonly GoalsAgent $goalsAgent,
-        private readonly DashboardAggregator $dashboardAggregator
+        private readonly DashboardAggregator $dashboardAggregator,
+        private readonly SavingsStore $savingsStore,
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -56,6 +60,13 @@ class MobileDashboardAggregator
         return Cache::remember("mobile_dashboard_{$userId}", self::CACHE_TTL, function () use ($userId) {
             $modules = $this->aggregateModules($userId);
             $netWorth = $this->calculateNetWorth($userId);
+
+            $knownPensionValue = (float) ($netWorth['breakdown']['assets']['pensions'] ?? 0);
+            if ($knownPensionValue > 0
+                && (float) ($modules['retirement']['pot_value'] ?? 0) <= 0) {
+                $modules['retirement']['pot_value'] = round($knownPensionValue, 2);
+            }
+
             $alerts = $this->getAlerts($userId);
             $fynInsight = $this->generateFynInsight($modules, $netWorth);
 
@@ -134,8 +145,11 @@ class MobileDashboardAggregator
      */
     private function extractProtectionSummary(array $data, array $raw): array
     {
-        // Handle case where protection profile doesn't exist
-        if (isset($raw['success']) && $raw['success'] === false) {
+        // Handle case where protection profile doesn't exist, or the readiness
+        // gate blocked analysis (agent returns success=true, can_proceed=false,
+        // coverage=null) — treat both as not-configured rather than active-with-0.
+        if ((isset($raw['success']) && $raw['success'] === false)
+            || ($data['can_proceed'] ?? true) === false) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Protection profile not yet set up.',
@@ -163,7 +177,10 @@ class MobileDashboardAggregator
 
         return [
             'status' => 'active',
-            'total_coverage' => round((float) ($coverage['total_life_cover'] ?? 0), 2),
+            // CoverageGapAnalyzer emits 'total_coverage' (life + critical illness);
+            // 'life_coverage' is life-only. The prior 'total_life_cover' key was never
+            // produced, so this card read £0 for every user with cover.
+            'total_coverage' => round((float) ($coverage['total_coverage'] ?? 0), 2),
             'policy_count' => $policyCount,
             'critical_gaps' => $criticalGaps,
             'has_income_protection' => (float) ($coverage['income_protection_coverage'] ?? 0) > 0,
@@ -215,8 +232,10 @@ class MobileDashboardAggregator
      */
     private function extractRetirementSummary(array $data, array $raw): array
     {
-        // Handle case where retirement profile doesn't exist
-        if (isset($raw['success']) && $raw['success'] === false) {
+        // Handle case where retirement profile doesn't exist, or the readiness
+        // gate blocked analysis (success=true, can_proceed=false, summary=null).
+        if ((isset($raw['success']) && $raw['success'] === false)
+            || ($data['can_proceed'] ?? true) === false) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Retirement profile not yet set up.',
@@ -228,6 +247,10 @@ class MobileDashboardAggregator
         return [
             'status' => 'active',
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
+            // Current DC pot value — the card headline. Without this the card fell
+            // back to income_gap, which is 0 whenever target_retirement_income is
+            // unset (never captured at onboarding), so it showed £0 despite a pot.
+            'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
             'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),
@@ -312,8 +335,8 @@ class MobileDashboardAggregator
             $investmentValue = $this->sumUserShares($user->investmentAccounts, $userId);
 
             // Also include joint assets where user is the joint_owner_id
-            $propertyValue += $this->sumJointOwnerShares(Property::class, $userId);
-            $savingsValue += $this->sumJointOwnerShares(SavingsAccount::class, $userId);
+            $propertyValue += $this->sumPropertyJointOwnerShares($user, $userId);
+            $savingsValue += $this->sumSavingsJointOwnerShares($user, $userId);
             $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
 
             $dcPensionValue = (float) $user->dcPensions->sum('current_fund_value');
@@ -330,7 +353,7 @@ class MobileDashboardAggregator
 
             // Calculate liabilities
             $mortgageBalance = $this->sumMortgageShares($user->mortgages, $userId);
-            $mortgageBalance += $this->sumJointMortgageShares($userId);
+            $mortgageBalance += $this->sumMortgageJointOwnerShares($user, $userId);
 
             $liabilityBalance = (float) $user->liabilities->sum('current_balance');
 
@@ -377,7 +400,7 @@ class MobileDashboardAggregator
     /**
      * Sum user's ownership shares for a collection of assets (where user is primary owner).
      *
-     * @param  \Illuminate\Support\Collection  $assets  Collection of asset models
+     * @param  Collection  $assets  Collection of asset models
      * @param  int  $userId  The user ID
      * @return float The total value of user's shares
      */
@@ -412,6 +435,38 @@ class MobileDashboardAggregator
     }
 
     /**
+     * Sum savings joint-owner shares via SavingsStore, filtering to records
+     * where the user is the joint_owner_id (avoids double-counting with
+     * the primary-owner path that reads via $user->savingsAccounts relation).
+     */
+    private function sumSavingsJointOwnerShares(User $user, int $userId): float
+    {
+        $total = 0.0;
+
+        foreach ($this->savingsStore->forUser($user)->filter(fn ($a) => $a->joint_owner_id === $userId) as $account) {
+            $total += $this->calculateUserShare($account, $userId);
+        }
+
+        return $total;
+    }
+
+    /**
+     * Sum property joint-owner shares via PropertyStore, filtering to records
+     * where the user is the joint_owner_id (avoids double-counting with
+     * the primary-owner path that reads via $user->properties relation).
+     */
+    private function sumPropertyJointOwnerShares(User $user, int $userId): float
+    {
+        $total = 0.0;
+
+        foreach ($this->propertyStore->forUser($user)->filter(fn ($p) => $p->joint_owner_id === $userId) as $property) {
+            $total += $this->calculateUserShare($property, $userId);
+        }
+
+        return $total;
+    }
+
+    /**
      * Sum user's share of mortgages (where user is primary owner).
      */
     private function sumMortgageShares($mortgages, int $userId): float
@@ -426,14 +481,15 @@ class MobileDashboardAggregator
     }
 
     /**
-     * Sum user's share of mortgages where user is joint_owner_id.
+     * Sum mortgage joint-owner shares via MortgageStore, filtering to records
+     * where the user is the joint_owner_id (avoids double-counting with
+     * the primary-owner path that reads via $user->mortgages relation).
      */
-    private function sumJointMortgageShares(int $userId): float
+    private function sumMortgageJointOwnerShares(User $user, int $userId): float
     {
-        $mortgages = Mortgage::where('joint_owner_id', $userId)->get();
         $total = 0.0;
 
-        foreach ($mortgages as $mortgage) {
+        foreach ($this->mortgageStore->forUser($user)->filter(fn ($m) => $m->joint_owner_id === $userId) as $mortgage) {
             $total += $this->calculateUserMortgageShare($mortgage, $userId);
         }
 

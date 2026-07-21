@@ -4,12 +4,28 @@ declare(strict_types=1);
 
 namespace App\Services\LifeStage;
 
+use App\Models\Estate\Will;
+use App\Models\ExpenditureProfile;
 use App\Models\User;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 class LifeStageService
 {
+    use ResolvesIncome;
+
     public const VALID_STAGES = ['university', 'early_career', 'mid_career', 'peak', 'retirement'];
+
+    /**
+     * Pension-value threshold (£) at which a mid-career user is considered
+     * to have built enough retirement independence to qualify for the
+     * "peak" life stage even without other markers (married / multiple
+     * properties / independent children).
+     *
+     * Heuristic; not a tax-config value. Promoted from a magic number
+     * during the 2026-05-23 tech-debt audit (B45).
+     */
+    private const PENSION_INDEPENDENT_THRESHOLD = 200000;
 
     /**
      * Set the life stage for a user.
@@ -100,7 +116,7 @@ class LifeStageService
         }
 
         if ($currentStage === 'mid_career' && $age > 48) {
-            if ($this->hasIndependentChildren($user) || $this->hasPensionValueAbove($user, 200000)) {
+            if ($this->hasIndependentChildren($user) || $this->hasPensionValueAbove($user, self::PENSION_INDEPENDENT_THRESHOLD)) {
                 return 'peak';
             }
         }
@@ -355,7 +371,7 @@ class LifeStageService
             'target_retirement_age' => $user->target_retirement_age !== null,
 
             // Income — any source > 0
-            'has_income' => $this->calculateTotalIncome($user) > 0,
+            'has_income' => $this->resolveGrossAnnualIncome($user) > 0,
 
             // Expenditure
             'has_expenditure' => $user->monthly_expenditure > 0 || $this->hasExpenditureProfile($user),
@@ -376,7 +392,7 @@ class LifeStageService
                 || $this->hasProperty($user),
             'has_goals' => $user->goals()->exists(),
             'has_liabilities' => $user->liabilities()->exists(),
-            'has_will' => \App\Models\Estate\Will::where('user_id', $user->id)->exists(),
+            'has_will' => Will::where('user_id', $user->id)->exists(),
             'has_protection' => $user->lifeInsurancePolicies()->exists()
                 || $user->criticalIllnessPolicies()->exists()
                 || $user->incomeProtectionPolicies()->exists(),
@@ -518,24 +534,10 @@ class LifeStageService
     }
 
     /**
-     * Calculate total income from all sources (same as PrerequisiteGateService).
-     */
-    private function calculateTotalIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
-    }
-
-    /**
      * Check if user has an expenditure profile.
      */
     private function hasExpenditureProfile(User $user): bool
     {
-        return \App\Models\ExpenditureProfile::where('user_id', $user->id)->exists();
+        return ExpenditureProfile::where('user_id', $user->id)->exists();
     }
 }

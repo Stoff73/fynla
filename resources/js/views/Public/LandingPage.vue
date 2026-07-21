@@ -19,6 +19,7 @@
         <!-- CTA -->
         <div class="relative z-10 flex flex-col items-start gap-3 mb-0">
           <router-link to="/register" class="px-16 py-2.5 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all" @click="trackGA('cta_click', 'get_started')">Get started</router-link>
+          <a :href="saveTaxUrl" class="px-16 py-2.5 text-lg bg-white text-horizon-500 rounded-button font-medium hover:bg-white/90 transition-all" @click="trackGA('cta_click', 'save_tax')">Save tax</a>
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
             <a href="#meet-fyn" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToMeetFyn">Meet Fyn</a>
             <span class="text-white/40">|</span>
@@ -417,7 +418,19 @@
           </div>
         </div>
 
-        <div class="text-center mt-6">
+        <!-- Latest news banner -->
+        <div v-if="latestNewsArticle" class="max-w-6xl mx-auto mt-4">
+          <router-link
+            :to="'/news/' + latestNewsArticle.slug"
+            class="group flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 hover:shadow-md transition-shadow no-underline"
+          >
+            <span class="flex-shrink-0 text-xs font-bold uppercase tracking-wide text-raspberry-500">Latest news</span>
+            <span class="w-px h-4 bg-light-gray flex-shrink-0"></span>
+            <span class="text-sm text-horizon-500 font-medium truncate group-hover:text-raspberry-500 transition-colors">{{ latestNewsArticle.title }}</span>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-5">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">
             See all insights &rarr;
           </router-link>
@@ -446,7 +459,19 @@
             </div>
           </router-link>
         </div>
-        <div class="text-center mt-6">
+        <!-- Latest news banner -->
+        <div v-if="latestNewsArticle" class="max-w-5xl mx-auto mt-4">
+          <router-link
+            :to="'/news/' + latestNewsArticle.slug"
+            class="group flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 hover:shadow-md transition-shadow no-underline"
+          >
+            <span class="flex-shrink-0 text-xs font-bold uppercase tracking-wide text-raspberry-500">Latest news</span>
+            <span class="w-px h-4 bg-light-gray flex-shrink-0"></span>
+            <span class="text-sm text-horizon-500 font-medium truncate group-hover:text-raspberry-500 transition-colors">{{ latestNewsArticle.title }}</span>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-5">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">See all insights &rarr;</router-link>
         </div>
       </div>
@@ -493,6 +518,7 @@ import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vu
 import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 import logger from '@/utils/logger';
+import newsService from '@/services/newsService';
 
 const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
 
@@ -523,6 +549,7 @@ export default {
       chatInput: '',
       fynDetailsOpen: false,
       videoPlaying: false,
+      latestNewsArticle: null,
     };
   },
 
@@ -530,6 +557,15 @@ export default {
     ...mapGetters('preview', ['availablePersonas']),
     ...mapGetters('insights', { insightsFeatured: 'featured', insightsSupporting: 'supporting' }),
     staticInsights() { return STATIC_INSIGHTS; },
+
+    // /savetax is a server-rendered campaign route, so the CTA must be a
+    // full-page <a href> (not a router-link). Honour VITE_ROUTER_BASE so the
+    // csjones subdirectory deploy (/fynla/) doesn't 404 — mirrors the
+    // base-aware navigation in DataRetentionOverlay.
+    saveTaxUrl() {
+      const base = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
+      return `${base}/savetax`;
+    },
   },
 
   async mounted() {
@@ -546,6 +582,16 @@ export default {
       } catch (e) {
         // non-fatal — hero hides if nothing returned
       }
+    }
+
+    try {
+      const data = await newsService.list({ page: 1 });
+      const articles = data?.data ?? data?.articles ?? (Array.isArray(data) ? data : null);
+      if (Array.isArray(articles) && articles.length) {
+        this.latestNewsArticle = articles[0];
+      }
+    } catch {
+      // non-fatal
     }
   },
 

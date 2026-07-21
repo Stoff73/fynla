@@ -13,7 +13,8 @@ use Illuminate\Support\Collection;
 class LifeCoverCalculator
 {
     public function __construct(
-        private readonly AssumptionsService $assumptionsService
+        private readonly AssumptionsService $assumptionsService,
+        private readonly FutureValueCalculator $futureValueCalculator
     ) {}
 
     /**
@@ -222,7 +223,7 @@ class LifeCoverCalculator
     ): array {
 
         // Calculate future value of premiums invested annually
-        $futureValue = $this->calculateFutureValueOfAnnuity(
+        $futureValue = $this->futureValueCalculator->calculateFutureValueOfAnnuity(
             $annualPremium,
             $investmentReturn,
             $years
@@ -326,23 +327,6 @@ class LifeCoverCalculator
 
         // Return annual premium
         return $monthlyPremium * 12;
-    }
-
-    /**
-     * Calculate future value of annuity (regular investments)
-     *
-     * FV = PMT × [(1 + r)^n - 1] / r
-     */
-    private function calculateFutureValueOfAnnuity(
-        float $payment,
-        float $rate,
-        int $periods
-    ): float {
-        if ($rate == 0) {
-            return $payment * $periods;
-        }
-
-        return $payment * ((pow(1 + $rate, $periods) - 1) / $rate);
     }
 
     /**

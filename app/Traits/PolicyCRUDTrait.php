@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -89,7 +90,7 @@ trait PolicyCRUDTrait
                 'message' => "{$policyTypeName} policy updated successfully.",
                 'data' => $responseData,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Policy not found or you do not have permission to update it.',
@@ -128,7 +129,7 @@ trait PolicyCRUDTrait
                 'success' => true,
                 'message' => "{$policyTypeName} policy deleted successfully.",
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Policy not found or you do not have permission to delete it.',

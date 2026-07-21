@@ -10,17 +10,19 @@ use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
+use App\Traits\ResolvesIncome;
 
 /**
  * Service for household-level financial planning.
@@ -37,9 +39,12 @@ use App\Traits\CalculatesOwnershipShare;
 class HouseholdPlanningService
 {
     use CalculatesOwnershipShare;
+    use ResolvesIncome;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -167,8 +172,8 @@ class HouseholdPlanningService
         $recommendations = [];
 
         // Compare income tax positions
-        $userIncome = $this->calculateTotalIncome($user);
-        $spouseIncome = $this->calculateTotalIncome($spouse);
+        $userIncome = $this->resolveGrossAnnualIncome($user);
+        $spouseIncome = $this->resolveGrossAnnualIncome($spouse);
 
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
         $personalAllowance = (float) ($incomeTaxConfig['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
@@ -268,7 +273,10 @@ class HouseholdPlanningService
 
         // NRB/RNRB transfers to surviving spouse on first death
         $nrbTransferred = $nrb; // Full NRB transfers if not used
-        $hasMainResidence = $deceased->properties()->where('property_type', 'main_residence')->exists();
+        $hasMainResidence = $this->propertyStore
+            ->forUserByType($deceased, 'main_residence')
+            ->where('user_id', $deceased->id)
+            ->isNotEmpty();
         $hasDirectDescendants = $deceased->familyMembers()->whereIn('relationship', ['child', 'grandchild', 'step_child'])->exists();
         $qualifiesForRNRB = $hasMainResidence && $hasDirectDescendants;
         $rnrbTransferred = $qualifiesForRNRB ? $rnrb : 0.0; // RNRB transfers only if main residence passes to direct descendants
@@ -289,8 +297,8 @@ class HouseholdPlanningService
         $lifeInsurancePayouts = $this->calculateLifeInsurancePayouts($deceased);
 
         // Estimate income impact
-        $deceasedIncome = $this->calculateTotalIncome($deceased);
-        $survivorIncome = $this->calculateTotalIncome($survivor);
+        $deceasedIncome = $this->resolveGrossAnnualIncome($deceased);
+        $survivorIncome = $this->resolveGrossAnnualIncome($survivor);
 
         // DB pension spouse benefit (typically 50% of scheme pension)
         $dbSpouseBenefit = $this->calculateDBPensionSpouseBenefit($deceased);
@@ -388,14 +396,16 @@ class HouseholdPlanningService
     {
         $userId = $user->id;
 
-        // Properties
-        $properties = Property::forUserOrJoint($userId)
-            ->get();
+        // Properties — JOINT-AWARE: forUserWithJointOwner() is 1:1 with the prior
+        // forUserOrJoint(); calculateUserShare downstream handles the split,
+        // so NO single-owner where('user_id') post-filter here (PR 5c).
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
         $propertyValue = $properties->sum(fn ($p) => $this->calculateUserShare($p, $userId));
 
-        // Savings accounts
-        $savings = SavingsAccount::forUserOrJoint($userId)
-            ->get();
+        // Savings accounts — JOINT-AWARE: forUser() is 1:1 with the prior
+        // forUserOrJoint(); calculateUserShare downstream handles the split,
+        // so NO single-owner where('user_id') post-filter here (PR 5f).
+        $savings = app(SavingsStore::class)->forUser($user);
         $savingsValue = $savings->sum(fn ($s) => $this->calculateUserShare($s, $userId));
 
         // Investment accounts
@@ -404,7 +414,7 @@ class HouseholdPlanningService
         $investmentValue = $investments->sum(fn ($i) => $this->calculateUserShare($i, $userId));
 
         // DC Pensions (individual only)
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         $pensionValue = $dcPensions->sum('current_fund_value');
 
         // Business interests
@@ -449,8 +459,7 @@ class HouseholdPlanningService
         $userId = $user->id;
 
         // Mortgages
-        $mortgages = Mortgage::forUserOrJoint($userId)
-            ->get();
+        $mortgages = $this->mortgageStore->forUser($user);
         $mortgageTotal = $mortgages->sum(fn ($m) => $this->calculateUserMortgageShare($m, $userId));
 
         // Other liabilities (loans, credit cards, etc.)
@@ -465,20 +474,6 @@ class HouseholdPlanningService
                 'other' => $otherTotal,
             ],
         ];
-    }
-
-    /**
-     * Calculate total annual income for a user.
-     */
-    private function calculateTotalIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
     }
 
     /**
@@ -565,7 +560,8 @@ class HouseholdPlanningService
      */
     private function calculateISAUsage(User $user): float
     {
-        $savingsISA = SavingsAccount::where('user_id', $user->id)
+        $savingsISA = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', true)
             ->sum('isa_subscription_amount');
 
@@ -763,7 +759,7 @@ class HouseholdPlanningService
      */
     private function calculatePensionDeathBenefits(User $deceased): array
     {
-        $dcPensions = DCPension::where('user_id', $deceased->id)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType($deceased, 'dc');
         $details = [];
         $total = 0.0;
 
@@ -788,7 +784,7 @@ class HouseholdPlanningService
      */
     private function calculateDBPensionSpouseBenefit(User $deceased): float
     {
-        $dbPensions = DBPension::where('user_id', $deceased->id)->get();
+        $dbPensions = app(PensionStore::class)->forUserByType($deceased, 'db');
         $total = 0.0;
 
         foreach ($dbPensions as $pension) {
@@ -843,7 +839,7 @@ class HouseholdPlanningService
      */
     private function calculateDCPensionValue(User $user): float
     {
-        return (float) DCPension::where('user_id', $user->id)->sum('current_fund_value');
+        return (float) app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
     }
 
     /**
@@ -872,8 +868,7 @@ class HouseholdPlanningService
         }
 
         // Mortgage protection
-        $mortgages = Mortgage::forUserOrJoint($deceased->id)
-            ->get();
+        $mortgages = $this->mortgageStore->forUser($deceased);
         $totalMortgage = $mortgages->sum('outstanding_balance');
 
         if ($totalMortgage > 0) {
@@ -915,7 +910,10 @@ class HouseholdPlanningService
         $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
         $ihtRate = (float) ($ihtConfig['rate'] ?? 0.40);
 
-        $hasMainResidence = $user->properties()->where('property_type', 'main_residence')->exists();
+        $hasMainResidence = $this->propertyStore
+            ->forUserByType($user, 'main_residence')
+            ->where('user_id', $user->id)
+            ->isNotEmpty();
         $hasDirectDescendants = $user->familyMembers()->whereIn('relationship', ['child', 'grandchild', 'step_child'])->exists();
         $qualifiesForRNRB = $hasMainResidence && $hasDirectDescendants;
         $effectiveRNRB = $qualifiesForRNRB ? $rnrb : 0.0;

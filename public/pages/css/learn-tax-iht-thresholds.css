@@ -1,0 +1,8 @@
+/**
+ * Inheritance Tax Thresholds page — page-specific styles.
+ * Inherits all guide layout from learn-tax-pension-annual-allowance.css.
+ */
+@import url('learn-tax-pension-annual-allowance.css');
+
+/* Table inside a highlight box needs a small top gap */
+.guide-table-wrap--highlight-context { margin-top: 0.75rem; }

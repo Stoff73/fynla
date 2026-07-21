@@ -1,0 +1,32 @@
+{"__meta":{"provider":"anthropic","model":"claude-haiku-4-5-20251001","scenario_id":"mitchell_advice_protection_cover","recorded_at":"2026-04-28T18:07:53+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"7f2d32c","conversation_id":5,"event_count":31,"duration_ms":6565}}
+{"type":"title","title":"Am I covered enough for protection?"}
+{"type":"content","text":"I"}
+{"type":"content","text":"'ll check your current protection setup to give you a clear picture of where you stand."}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"content","text":"You"}
+{"type":"content","text":" currently have **no life insurance, critical illness cover, or income protection in place**. Given that you're a"}
+{"type":"content","text":" Finance Director earning \u00a3145,000 annually and supporting"}
+{"type":"content","text":" a family, this is a significant gap.\n\nHere's what's missing and why it matters:\n\n**Life Insurance**"}
+{"type":"content","text":"\nIf something happened to you, your family would lose your income. At your"}
+{"type":"content","text":" salary level, life cover would typically replace a multiple of your annual earnings"}
+{"type":"content","text":" \u2014 usually 5\u201310 times, depending on dependants"}
+{"type":"content","text":" and mortgage. This protects them from financial hardship.\n\n**Income Protection**\nIf you became"}
+{"type":"content","text":" unable to work due to illness or injury, this would replace a portion of your income (usually 50\u201370"}
+{"type":"content","text":"%) whilst you recover. Without it, you're relying entirely on statutory"}
+{"type":"content","text":" sick pay or state benefits, which are rarely enough to maintain living standards.\n\n**Critical Illness**\nA diagnosis"}
+{"type":"content","text":" of a serious condition like cancer or heart disease could prevent you working but wouldn't trigger life insurance. Critical"}
+{"type":"content","text":" illness cover pays a lump sum to help with treatment costs, adaptations, or"}
+{"type":"content","text":" bridging income whilst recovering.\n\nTo give you a tailored recommendation, I need a"}
+{"type":"content","text":" bit more detail:\n- Are you married with dependants, or is"}
+{"type":"content","text":" it just you and your spouse?\n- Do you have a mortgage or other significant debts?\n- Does your employer offer any group"}
+{"type":"content","text":" life or income protection schemes?\n\nOnce I understand your family situation better, I can guide you on the right"}
+{"type":"content","text":" level and type of cover to explore.\n\nFor regulated advice personal to"}
+{"type":"content","text":" your circumstances, speak to a qualified financial adviser."}
+{"type":"done","message_id":10,"input_tokens":1064,"output_tokens":528}

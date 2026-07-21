@@ -9,6 +9,12 @@ const state = {
   permissions: [],
   loading: false,
   error: null,
+  // Populated by AppLayout.checkTrialStatus. Read by router/index.js feature-gating
+  // guard at line 1558 to enforce plan-tier access on URL-direct route hits.
+  subscriptionData: null,
+  // SP2 PR8 §14 — per-user tier flags sourced from TierConfigurationStore via /api/auth/user.
+  // null until fetchUser completes.
+  tierFlags: null,
 };
 
 const getters = {
@@ -23,6 +29,10 @@ const getters = {
   hasPermission: (state) => (perm) => state.permissions.includes(perm),
   loading: (state) => state.loading,
   error: (state) => state.error,
+  // SP2 PR8 §14 — tier flags from backend store
+  tierFlags: (state) => state.tierFlags,
+  openApiAffordance: (state) => state.tierFlags?.open_api_affordance === true,
+  currencyDisplayMode: (state) => state.tierFlags?.currency_display_mode ?? 'gbp_only',
 };
 
 const actions = {
@@ -137,7 +147,6 @@ const actions = {
       // Reset module states to prevent data leakage
       commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
-      dispatch('mobileDashboard/clearCache', null, { root: true }).catch(() => {});
       dispatch('aiChat/reset', null, { root: true }).catch(() => {});
     } finally {
       commit('setLoading', false);
@@ -153,6 +162,7 @@ const actions = {
       commit('setUser', data.user);
       commit('setRole', data.role);
       commit('setPermissions', data.permissions || []);
+      commit('setTierFlags', data.tier_flags || null);
 
       // Always sync life stage from the authenticated user's data.
       // This ensures stale state from a previous user is cleared on login,
@@ -160,9 +170,10 @@ const actions = {
       commit('lifeStage/setCurrentStage', data.user?.life_stage || null, { root: true });
       commit('lifeStage/setDataCompletedSteps', data.data_completed_steps || [], { root: true });
 
-      // Load the active tax year so every allowance/tax-year label across
-      // the app reflects the admin-selected year (not the calendar year).
-      dispatch('taxConfig/fetchActive', null, { root: true }).catch(() => {});
+      // Hydrate the full tax-config snapshot so every allowance / threshold /
+      // rate across the app reflects the admin-selected year (not the
+      // calendar year, and not the hardcoded constants).
+      dispatch('taxConfig/fetchConfig', null, { root: true }).catch(() => {});
 
       return data.user;
     } catch (error) {
@@ -212,6 +223,21 @@ const mutations = {
     state.user = null;
     state.role = null;
     state.permissions = [];
+    state.subscriptionData = null;
+    state.tierFlags = null;
+    // Also drop the /m mobile bearer token. The desktop boot bridge
+    // (mScaffoldBridge.js) adopts localStorage('m_scaffold_token') into
+    // sessionStorage; without clearing it here, a sign-out would silently
+    // re-authenticate on the next boot.
+    try { localStorage.removeItem('m_scaffold_token'); } catch (e) { /* storage disabled */ }
+  },
+
+  setTierFlags(state, flags) {
+    state.tierFlags = flags;
+  },
+
+  setSubscriptionData(state, data) {
+    state.subscriptionData = data;
   },
 
   setLoading(state, loading) {

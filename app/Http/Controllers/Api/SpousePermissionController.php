@@ -6,7 +6,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\FamilyMember;
 use App\Models\SpousePermission;
+use App\Models\User;
+use App\Notifications\SpousePermissionRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,7 +30,7 @@ class SpousePermissionController extends Controller
         $hasLinkedSpouse = (bool) $user->spouse_id;
 
         // Also check if user has a spouse in family_members table (may not have linked account)
-        $spouseFamilyMember = \App\Models\FamilyMember::where('user_id', $user->id)
+        $spouseFamilyMember = FamilyMember::where('user_id', $user->id)
             ->where('relationship', 'spouse')
             ->first();
 
@@ -124,9 +127,9 @@ class SpousePermissionController extends Controller
         ]);
 
         // Send notification/email to spouse
-        $spouse = \App\Models\User::find($user->spouse_id);
+        $spouse = User::find($user->spouse_id);
         if ($spouse) {
-            $spouse->notify(new \App\Notifications\SpousePermissionRequest($user->name));
+            $spouse->notify(new SpousePermissionRequest($user->name));
         }
 
         return response()->json([

@@ -10,8 +10,8 @@ use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\PlanActionFundingSelection;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
@@ -26,6 +26,8 @@ use App\Services\Investment\Recommendation\SpouseOptimisationService;
 use App\Services\Investment\Recommendation\TransferRecommendationService;
 use App\Services\Investment\Recommendation\UserContextBuilder;
 use App\Services\TaxConfigService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class InvestmentPlanService extends BasePlanService
 {
@@ -77,7 +79,7 @@ class InvestmentPlanService extends BasePlanService
             ->with('holdings')
             ->get();
 
-        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
+        $savingsAccounts = app(SavingsStore::class)->forUser($user);
 
         $currentSituation = $this->buildCurrentSituation(
             $investmentAnalysis,
@@ -101,7 +103,7 @@ class InvestmentPlanService extends BasePlanService
         $allRecs = array_merge($goalRecommendations, $recommendations);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($allRecs, 'investment', $options);
 
-        $userAge = $user->date_of_birth ? (int) \Carbon\Carbon::parse($user->date_of_birth)->age : null;
+        $userAge = $user->date_of_birth ? (int) Carbon::parse($user->date_of_birth)->age : null;
         $retirementAge = $user->target_retirement_age ? (int) $user->target_retirement_age : null;
         $yearsToRetirement = ($userAge !== null && $retirementAge !== null && $retirementAge > $userAge)
             ? $retirementAge - $userAge
@@ -156,7 +158,7 @@ class InvestmentPlanService extends BasePlanService
             ->with('holdings')
             ->get();
 
-        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
+        $savingsAccounts = ($u = User::find($userId)) ? app(SavingsStore::class)->forUser($u) : collect();
 
         // ── Phase 1: DB-driven trigger recommendations ──
         $accountFeeAnalyses = $investmentAccounts->map(
@@ -288,7 +290,7 @@ class InvestmentPlanService extends BasePlanService
             return $merged['recommendations'] ?? [];
         } catch (\Exception $e) {
             // Pipeline failure is non-fatal — fall back to trigger-only recommendations
-            \Illuminate\Support\Facades\Log::warning('Investment pipeline failed, falling back to triggers: '.$e->getMessage());
+            Log::warning('Investment pipeline failed, falling back to triggers: '.$e->getMessage());
 
             return [];
         }
@@ -301,7 +303,7 @@ class InvestmentPlanService extends BasePlanService
         $checks = [
             'investment_accounts' => InvestmentAccount::where('user_id', $userId)->exists(),
             'risk_profile' => RiskProfile::where('user_id', $userId)->exists(),
-            'savings_accounts' => SavingsAccount::where('user_id', $userId)->exists(),
+            'savings_accounts' => $user && app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->isNotEmpty(),
             'income' => $user && ($user->annual_employment_income || $user->annual_self_employment_income),
         ];
 
@@ -732,11 +734,13 @@ class InvestmentPlanService extends BasePlanService
         $accounts = [];
 
         // Cash accounts (non-ISA, liquid types)
-        $cashAccounts = SavingsAccount::where('user_id', $user->id)
+        $cashAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->whereIn('account_type', self::FUNDING_CASH_ACCOUNT_TYPES)
-            ->orderByDesc('current_balance')
-            ->get();
+            ->sortByDesc('current_balance')
+            ->values();
 
         foreach ($cashAccounts as $account) {
             $balance = (float) $account->current_balance;
@@ -828,7 +832,7 @@ class InvestmentPlanService extends BasePlanService
 
         $projections = [];
         $growthRate = $this->planConfig->getDefaultGrowthRate();
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
 
         foreach ($accountIdsWithActions as $accountId) {
             $account = $investmentAccounts->firstWhere('id', $accountId);
@@ -853,7 +857,7 @@ class InvestmentPlanService extends BasePlanService
 
             if ($goals && $goals->isNotEmpty()) {
                 $latestGoal = $goals->sortByDesc('target_date')->first();
-                $goalYears = (int) ceil($now->diffInMonths(\Carbon\Carbon::parse($latestGoal->target_date)) / 12);
+                $goalYears = (int) ceil($now->diffInMonths(Carbon::parse($latestGoal->target_date)) / 12);
                 if ($goalYears > 0) {
                     $years = $goalYears;
                     $projectionLabel = $latestGoal->goal_name;

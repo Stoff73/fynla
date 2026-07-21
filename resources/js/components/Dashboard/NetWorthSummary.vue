@@ -85,7 +85,7 @@
         </div>
         <div class="flex justify-between items-center">
           <div class="flex items-center">
-            <div class="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+            <div class="w-3 h-3 rounded-full bg-violet-500 mr-2"></div>
             <span class="text-sm text-neutral-500">Pensions</span>
           </div>
           <span class="text-sm font-semibold text-horizon-500">

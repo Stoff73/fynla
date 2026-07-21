@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\ProtectionAgent;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Cache;
 
@@ -39,7 +40,7 @@ describe('Protection Cache Invalidation', function () {
         $firstHumanCapital = $firstAnalysis['data']['needs']['human_capital'];
 
         // Update user income via API
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/income-occupation', [
                 'annual_employment_income' => 75000, // Increased income
                 'annual_self_employment_income' => 0,
@@ -109,7 +110,7 @@ describe('Protection Cache Invalidation', function () {
         expect($cachedBefore)->not->toBeNull();
 
         // Invalidate using the centralised service
-        $service = app(\App\Services\Cache\CacheInvalidationService::class);
+        $service = app(CacheInvalidationService::class);
         $service->invalidateForUser($user->id);
 
         // Verify cache was cleared
@@ -156,7 +157,7 @@ describe('Protection Cache Invalidation', function () {
         $agent->analyze($spouse->id);
 
         // Update user income via API
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/income-occupation', [
                 'annual_employment_income' => 75000,
                 'annual_self_employment_income' => 0,

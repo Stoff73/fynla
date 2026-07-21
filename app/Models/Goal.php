@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
+use App\Models\Investment\InvestmentAccount;
 use App\Services\Goals\GoalCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
@@ -17,7 +19,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Goal extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'goal';
+    }
 
     /**
      * @var array<int, string>
@@ -126,7 +133,7 @@ class Goal extends Model
      */
     public function jointOwner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'joint_owner_id');
+        return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
     }
 
     /**
@@ -142,7 +149,7 @@ class Goal extends Model
      */
     public function linkedInvestmentAccount(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Investment\InvestmentAccount::class, 'linked_investment_account_id');
+        return $this->belongsTo(InvestmentAccount::class, 'linked_investment_account_id');
     }
 
     /**

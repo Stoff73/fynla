@@ -9,7 +9,7 @@ describe('Device Registration API', function () {
     it('registers a new device token', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/v1/mobile/devices', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/mobile/devices', [
             'device_token' => 'fcm-token-abc123',
             'device_id' => 'device-uuid-1',
             'platform' => 'ios',
@@ -36,7 +36,7 @@ describe('Device Registration API', function () {
             'device_token' => 'old-token',
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/v1/mobile/devices', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/mobile/devices', [
             'device_token' => 'new-token',
             'device_id' => 'device-uuid-1',
             'platform' => 'ios',
@@ -51,7 +51,7 @@ describe('Device Registration API', function () {
         $user = User::factory()->create();
         DeviceToken::factory()->count(2)->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/devices');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/devices');
 
         $response->assertOk()
             ->assertJsonCount(2, 'data.devices');
@@ -64,7 +64,7 @@ describe('Device Registration API', function () {
             'device_id' => 'device-to-delete',
         ]);
 
-        $response = $this->actingAs($user)->deleteJson('/api/v1/mobile/devices/device-to-delete');
+        $response = $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/mobile/devices/device-to-delete');
 
         $response->assertOk();
         $this->assertDatabaseMissing('device_tokens', [
@@ -84,7 +84,7 @@ describe('Device Registration API', function () {
     it('validates required fields', function () {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->postJson('/api/v1/mobile/devices', [])
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/mobile/devices', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['device_token', 'device_id', 'platform']);
     });
@@ -92,7 +92,7 @@ describe('Device Registration API', function () {
     it('validates platform enum', function () {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->postJson('/api/v1/mobile/devices', [
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/mobile/devices', [
             'device_token' => 'token',
             'device_id' => 'id',
             'platform' => 'windows',
@@ -108,7 +108,7 @@ describe('Device Registration API', function () {
             'device_id' => 'other-device',
         ]);
 
-        $this->actingAs($user)->deleteJson('/api/v1/mobile/devices/other-device')
+        $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/mobile/devices/other-device')
             ->assertNotFound();
     });
 });

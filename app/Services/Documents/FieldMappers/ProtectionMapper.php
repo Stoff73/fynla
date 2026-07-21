@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Documents\FieldMappers;
 
+use App\Models\CriticalIllnessPolicy;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
+
 class ProtectionMapper extends AbstractFieldMapper
 {
     protected array $fieldMappings = [
@@ -37,7 +41,7 @@ class ProtectionMapper extends AbstractFieldMapper
 
     public function getModelClass(): string
     {
-        return \App\Models\LifeInsurancePolicy::class;
+        return LifeInsurancePolicy::class;
     }
 
     /**
@@ -46,9 +50,9 @@ class ProtectionMapper extends AbstractFieldMapper
     public function getModelClassForType(string $type): string
     {
         return match ($type) {
-            'critical_illness', 'standalone', 'accelerated', 'additional' => \App\Models\CriticalIllnessPolicy::class,
-            'income_protection' => \App\Models\IncomeProtectionPolicy::class,
-            default => \App\Models\LifeInsurancePolicy::class,
+            'critical_illness', 'standalone', 'accelerated', 'additional' => CriticalIllnessPolicy::class,
+            'income_protection' => IncomeProtectionPolicy::class,
+            default => LifeInsurancePolicy::class,
         };
     }
 

@@ -304,7 +304,7 @@ export default {
 
 .add-info-link {
   font-size: 13px;
-  @apply text-purple-600;
+  @apply text-violet-600;
   font-weight: 500;
   text-decoration: none;
 }
@@ -378,7 +378,7 @@ export default {
 }
 
 .refresh-btn:hover {
-  @apply text-purple-600;
+  @apply text-violet-600;
 }
 
 .refresh-btn svg {

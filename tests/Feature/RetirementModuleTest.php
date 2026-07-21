@@ -8,12 +8,14 @@ use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 // Authenticated Tests
@@ -279,8 +281,9 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
             'current_fund_value' => 100000,
         ]);
 
-        // Request authorize() check returns 403 before controller runs
-        $response->assertStatus(403);
+        // PensionStore::updateDc is the canonical auth point (spec §8.3);
+        // a cross-user id raises ModelNotFoundException and surfaces as 404.
+        $response->assertStatus(404);
     });
 
     it('prevents deleting another users DC pension', function () {
@@ -460,12 +463,13 @@ describe('Retirement API Authorization Checks', function () {
         $dcPension = DCPension::factory()->create(['user_id' => $otherUser->id]);
         $dbPension = DBPension::factory()->create(['user_id' => $otherUser->id]);
 
-        // DC pension update: Request authorize() returns 403 before controller
+        // DC pension update: PensionStore is the canonical auth point
+        // (spec §8.3) — cross-user id surfaces as 404 via ModelNotFoundException.
         $this->putJson("/api/retirement/pensions/dc/{$dcPension->id}", [
             'scheme_name' => 'Test Scheme',
             'pension_type' => 'occupational',
             'current_fund_value' => 999999,
-        ])->assertStatus(403);
+        ])->assertStatus(404);
 
         $this->deleteJson("/api/retirement/pensions/dc/{$dcPension->id}")
             ->assertStatus(404);

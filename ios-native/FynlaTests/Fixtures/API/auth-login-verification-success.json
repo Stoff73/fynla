@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Verification successful",
+  "data": {
+    "user": {
+      "id": 103,
+      "first_name": "Verified",
+      "surname": "Example",
+      "name": "Verified Example",
+      "email": "verified@example.test"
+    },
+    "access_token": "bootstrap-example-verification",
+    "token_type": "Bearer",
+    "must_change_password": true,
+    "mfa_enabled": false
+  }
+}

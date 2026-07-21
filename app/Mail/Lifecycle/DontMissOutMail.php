@@ -32,9 +32,9 @@ class DontMissOutMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.dont-miss-out',
             with: [
-                'firstName'           => $this->firstName,
-                'getStartedUrl'       => $this->utm('https://fynla.org/dashboard', 'zero-state-get-started'),
-                'addInformationUrl'   => $this->utm('https://fynla.org/dashboard', 'add-my-information-cta'),
+                'firstName' => $this->firstName,
+                'getStartedUrl' => $this->utm('https://fynla.org/dashboard', 'zero-state-get-started'),
+                'addInformationUrl' => $this->utm('https://fynla.org/dashboard', 'add-my-information-cta'),
             ],
         );
     }

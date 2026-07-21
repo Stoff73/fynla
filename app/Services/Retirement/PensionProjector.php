@@ -6,9 +6,11 @@ namespace App\Services\Retirement;
 
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 
 /**
@@ -164,9 +166,11 @@ class PensionProjector
      */
     public function projectTotalRetirementIncome(int $userId): array
     {
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        $dbPensions = DBPension::where('user_id', $userId)->get();
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $user = User::findOrFail($userId);
+        $store = app(PensionStore::class);
+        $dcPensions = $store->forUserByType($user, 'dc');
+        $dbPensions = $store->forUserByType($user, 'db');
+        $statePension = $store->statePension($user);
 
         $totalDCValue = 0.0;
         $totalDBIncome = 0.0;
@@ -238,13 +242,13 @@ class PensionProjector
      */
     private function getUserAge(int $userId): int
     {
-        $profile = \App\Models\RetirementProfile::where('user_id', $userId)->first();
+        $profile = RetirementProfile::where('user_id', $userId)->first();
 
         if ($profile && $profile->current_age) {
             return $profile->current_age;
         }
 
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if ($user && $user->date_of_birth) {
             return (int) $user->date_of_birth->diffInYears(now());
         }

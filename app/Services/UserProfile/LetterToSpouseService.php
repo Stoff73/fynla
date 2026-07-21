@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace App\Services\UserProfile;
 
 use App\Models\LetterToSpouse;
-use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
+use Carbon\Carbon;
 
 class LetterToSpouseService
 {
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
+    ) {}
+
     /**
      * Get or create letter for user with auto-populated data
      */
@@ -91,9 +98,10 @@ class LetterToSpouseService
      */
     private function generateImmediateFundsInfo(User $user): ?string
     {
-        $savingsAccounts = SavingsAccount::where('user_id', $user->id)
-            ->where('ownership_type', 'joint')
-            ->get();
+        $savingsAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id)
+            ->where('ownership_type', 'joint');
 
         if ($savingsAccounts->isEmpty()) {
             return 'Note: Review which accounts are joint accounts that can be accessed immediately.';
@@ -115,7 +123,9 @@ class LetterToSpouseService
      */
     private function generateBankAccountsInfo(User $user): ?string
     {
-        $savingsAccounts = SavingsAccount::where('user_id', $user->id)->get();
+        $savingsAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id);
 
         if ($savingsAccounts->isEmpty()) {
             return null;
@@ -228,7 +238,11 @@ class LetterToSpouseService
      */
     private function generateRealEstateInfo(User $user): ?string
     {
-        $properties = Property::where('user_id', $user->id)->get();
+        // Primary-owner-only — letter is about $user's directly-owned properties.
+        // PropertyStore::forUser is joint-aware; filter back down to preserve the
+        // pre-PR-5a semantics where joint-only-as-secondary properties were excluded.
+        $properties = $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id);
 
         if ($properties->isEmpty()) {
             return null;
@@ -260,7 +274,7 @@ class LetterToSpouseService
     private function generateLiabilitiesInfo(User $user): ?string
     {
         $liabilities = $user->liabilities;
-        $mortgages = $user->mortgages;
+        $mortgages = $this->mortgageStore->forUserPrimaryOnly($user);
 
         if ($liabilities->isEmpty() && $mortgages->isEmpty()) {
             return 'No outstanding liabilities recorded.';
@@ -306,7 +320,7 @@ class LetterToSpouseService
             $info .= "• {$member->name}\n";
             $info .= '  Relationship: '.ucfirst($member->relationship ?? 'dependent')."\n";
             if ($member->date_of_birth) {
-                $age = \Carbon\Carbon::parse($member->date_of_birth)->age;
+                $age = Carbon::parse($member->date_of_birth)->age;
                 $info .= "  Age: {$age}\n";
             }
             $info .= "\n";
@@ -333,7 +347,7 @@ class LetterToSpouseService
         foreach ($children as $child) {
             $info .= "• {$child->name}\n";
             if ($child->date_of_birth) {
-                $age = \Carbon\Carbon::parse($child->date_of_birth)->age;
+                $age = Carbon::parse($child->date_of_birth)->age;
                 $info .= "  Current Age: {$age}\n";
             }
             $info .= "  Education Plans: [Please add details about university plans, savings accounts, etc.]\n\n";

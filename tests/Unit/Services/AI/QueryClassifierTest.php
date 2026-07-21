@@ -41,7 +41,102 @@ describe('QueryClassifier', function () {
         });
     });
 
+    describe('billing classification (precedence over navigation)', function () {
+        // Regression: billing is answered in-chat via get_subscription_status
+        // + list_invoices; <billing_guidance> forbids navigating the user to a
+        // settings page. A billing entity in the message must beat the
+        // NAVIGATION step so the unified assembler injects <billing_guidance>.
+        it('classifies "show me my invoice" as billing, not navigation', function () {
+            expect($this->classifier->classify('show me my invoice')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "show my subscription" as billing', function () {
+            expect($this->classifier->classify('show my subscription')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "where is my invoice" as billing', function () {
+            expect($this->classifier->classify('where is my invoice')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "show me my billing" as billing', function () {
+            expect($this->classifier->classify('show me my billing')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "what is my subscription status and where are my invoices" as billing', function () {
+            expect($this->classifier->classify('what is my subscription status and where are my invoices')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies an explicit Fynla plan question as billing', function () {
+            expect($this->classifier->classify('Which Fynla plan am I on?')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        // ISA-subscription is a savings concept, NOT Fynla billing — the
+        // fixed-width negative lookbehind must keep it out of BILLING.
+        it('does NOT classify "what is my ISA subscription limit" as billing', function () {
+            expect($this->classifier->classify('what is my ISA subscription limit')['primary'])
+                ->not->toBe(QuerySchemas::BILLING);
+        });
+
+        it('does not classify a saved ISA subscription question as billing', function () {
+            $result = $this->classifier->classify(
+                'Using my saved data, how much of my ISA allowance have I used this tax year, how much remains, and which account contains the subscription?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS)
+                ->and($result['related'])->toContain(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
+        });
+
+        // Genuine navigation with no billing entity must still be navigation.
+        it('keeps "take me to my goals page" as navigation', function () {
+            expect($this->classifier->classify('take me to my goals page')['primary'])
+                ->toBe(QuerySchemas::NAVIGATION);
+        });
+
+        it('does not treat a saved tax-plan explanation as subscription billing', function () {
+            $result = $this->classifier->classify(
+                'Can you explain in plain English why moving £2,612 of my Marcus savings into my ISA could save about £49 a year, using the figures in my plan?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
+        });
+    });
+
     describe('advice classification', function () {
+        it('keeps retirement readiness out of goals-related classification', function () {
+            $result = $this->classifier->classify('Am I on track for retirement?');
+
+            expect($result['primary'])->toBe(QuerySchemas::RETIREMENT_READINESS)
+                ->and($result['related'])->not->toContain(QuerySchemas::GOALS_PROGRESS);
+        });
+
+        it('classifies explicit goal and life event progress as goals', function (string $message) {
+            expect($this->classifier->classify($message)['primary'])
+                ->toBe(QuerySchemas::GOALS_PROGRESS);
+        })->with([
+            'Am I on track with my goal?',
+            'How is my life event progress?',
+        ]);
+
+        it('does not make financial target wording goals-primary without explicit goal language', function (string $message) {
+            expect($this->classifier->classify($message)['primary'])
+                ->not->toBe(QuerySchemas::GOALS_PROGRESS);
+        })->with([
+            'Am I on track for my pension target?',
+            'Am I on track for my mortgage target?',
+            'Am I on track for my house target?',
+            'Am I on track for my ISA target?',
+            'Am I on track for my savings target?',
+            'Am I on track for my investment target?',
+        ]);
+
         it('classifies "How do I maximise my pension?" as retirement_contribution with related types', function () {
             $result = $this->classifier->classify('How do I maximise my pension?');
             expect($result['primary'])->toBe(QuerySchemas::RETIREMENT_CONTRIBUTION);
@@ -77,12 +172,60 @@ describe('QueryClassifier', function () {
             expect($result['primary'])->toBe(QuerySchemas::SAVINGS_EMERGENCY);
             expect($result['related'])->toContain(QuerySchemas::AFFORDABILITY);
         });
+
+        // "protected for my savings" is FSCS deposit protection, NOT life
+        // insurance. The bare "am i protected" pattern must not claim it.
+        it('classifies "am i protected for my savings" as savings_accounts (FSCS, not life cover)', function () {
+            $result = $this->classifier->classify('am i protected for my savings');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "are my savings safe" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('are my savings safe');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "is my money protected in the bank" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('is my money protected in the bank');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "is my cash deposit protected" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('is my cash deposit protected');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        // Regression: genuine life-cover questions must still be protection.
+        it('still classifies "am i protected?" (no savings object) as protection_cover', function () {
+            $result = $this->classifier->classify('am i protected?');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
+
+        it('still classifies "am i covered enough" as protection_cover', function () {
+            $result = $this->classifier->classify('am i covered enough');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
+
+        it('still classifies "do I have enough life cover for my family" as protection_cover', function () {
+            $result = $this->classifier->classify('do I have enough life cover for my family');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
     });
 
-    describe('general classification', function () {
-        it('classifies "What is my net worth?" as general', function () {
+    describe('net worth classification', function () {
+        it('classifies "What is my net worth?" as holistic_health so financial_context is included', function () {
             $result = $this->classifier->classify('What is my net worth?');
-            expect($result['primary'])->toBe(QuerySchemas::GENERAL);
+            expect($result['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
+        });
+
+        it('classifies "Show me my net worth" as holistic_health (not navigation)', function () {
+            $result = $this->classifier->classify('Show me my net worth');
+            expect($result['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
+        });
+
+        it('classifies "Combined wealth" as holistic_health', function () {
+            $result = $this->classifier->classify('Combined wealth');
+            expect($result['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
         });
     });
 
@@ -114,6 +257,40 @@ describe('QueryClassifier', function () {
         it('returns empty modules for data_entry', function () {
             $result = $this->classifier->classify('I have a new ISA with £10,000');
             expect($result['modules'])->toBe([]);
+        });
+    });
+
+    // The savings keyword table is intentionally narrow (saving + account|rate,
+    // emergency fund, etc.) so generic "save" phrasings — "save tax", "save for
+    // retirement" — are NOT swallowed into a savings classification. A generic
+    // "how do I start saving?" therefore stays GENERAL by design; the
+    // emergency-fund-first guidance for it is injected by FynContextAssembler,
+    // not by reclassifying. These pin that boundary so neither side drifts.
+    describe('generic getting-started saving stays general', function () {
+        it('classifies "how do I start saving properly?" as general', function () {
+            expect($this->classifier->classify('how do I start saving properly?')['primary'])
+                ->toBe(QuerySchemas::GENERAL);
+        });
+
+        it('classifies "how do I start saving?" as general', function () {
+            expect($this->classifier->classify('how do I start saving?')['primary'])
+                ->toBe(QuerySchemas::GENERAL);
+        });
+
+        it('does not misroute a generic "save tax" question into savings', function () {
+            $result = $this->classifier->classify('how can I save tax?');
+            expect($result['primary'])->not->toBe(QuerySchemas::SAVINGS_EMERGENCY)
+                ->and($result['primary'])->not->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('still classifies a real emergency-fund question as savings_emergency', function () {
+            expect($this->classifier->classify('is my emergency fund big enough?')['primary'])
+                ->toBe(QuerySchemas::SAVINGS_EMERGENCY);
+        });
+
+        it('still classifies a savings-rate question as savings_accounts', function () {
+            expect($this->classifier->classify('what savings rate should I be getting?')['primary'])
+                ->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
         });
     });
 });

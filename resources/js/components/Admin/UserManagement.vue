@@ -23,7 +23,6 @@
           class="border border-horizon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         >
           <option value="">All Statuses</option>
-          <option value="trialing">Trialing</option>
           <option value="active">Active</option>
           <option value="expired">Expired</option>
           <option value="cancelled">Cancelled</option>
@@ -56,7 +55,6 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Spouse</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Plan</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Trial</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Payment</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Created</th>
               <th class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Actions</th>
@@ -108,15 +106,6 @@
                   {{ user.subscription.status }}
                 </span>
                 <span v-else class="text-horizon-400 text-sm">-</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
-                <template v-if="user.subscription && user.subscription.status === 'trialing'">
-                  Day {{ trialDay(user.subscription) }}/7
-                </template>
-                <template v-else-if="user.subscription && user.subscription.status === 'expired'">
-                  Ended
-                </template>
-                <template v-else>-</template>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 <template v-if="lastPayment(user)">
@@ -505,22 +494,12 @@ export default {
     statusBadgeClass(status) {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize';
       const colors = {
-        trialing: 'bg-violet-100 text-violet-800',
         active: 'bg-spring-100 text-spring-800',
         expired: 'bg-raspberry-100 text-raspberry-800',
         cancelled: 'bg-savannah-100 text-horizon-500',
         past_due: 'bg-raspberry-100 text-raspberry-800',
       };
       return `${base} ${colors[status] || 'bg-savannah-100 text-horizon-500'}`;
-    },
-
-    trialDay(subscription) {
-      if (!subscription.trial_started_at) return '?';
-      const start = new Date(subscription.trial_started_at);
-      const now = new Date();
-      const diffMs = now - start;
-      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-      return Math.min(Math.max(diffDays, 1), 7);
     },
 
     lastPayment(user) {

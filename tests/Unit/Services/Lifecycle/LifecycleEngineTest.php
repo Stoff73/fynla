@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Mail\Lifecycle\EmptyTrialerMail;
+use App\Mail\Lifecycle\LapsedSubscriberMail;
 use App\Models\LifecycleEmailLog;
 use App\Models\User;
 use App\Services\Lifecycle\Contracts\LifecycleCampaign;
@@ -34,6 +34,15 @@ it('defaults throttle to 150ms via config', function () {
     expect(config('lifecycle.throttle_ms'))->toBe(150);
 });
 
+it('registers no retired trialer campaigns or notification preferences', function () {
+    expect(config('lifecycle.feedback_reasons'))->not->toHaveKey('cancelled_trialer')
+        ->and(config('lifecycle.campaign_to_preference'))->not->toHaveKeys([
+            'empty_trialer',
+            'engaged_trialer',
+            'cancelled_trialer',
+        ]);
+});
+
 it('paces sends with configured throttle between iterations', function () {
     // Three users, 50ms pacing = at least 150ms elapsed (3 sleeps).
     // Using 50ms keeps test under 1s while still being measurable on CI.
@@ -46,7 +55,7 @@ it('paces sends with configured throttle between iterations', function () {
 
         public function name(): string
         {
-            return 'empty_trialer';
+            return 'test_campaign';
         }
 
         public function priority(): int
@@ -59,9 +68,9 @@ it('paces sends with configured throttle between iterations', function () {
             return $this->users;
         }
 
-        public function mailable(User $user): EmptyTrialerMail
+        public function mailable(User $user): LapsedSubscriberMail
         {
-            return new EmptyTrialerMail($user, 'https://example.com/link');
+            return new LapsedSubscriberMail($user, 'https://example.com/link');
         }
     };
 
@@ -72,7 +81,7 @@ it('paces sends with configured throttle between iterations', function () {
     $stats = app(LifecycleEngine::class)->run();
     $elapsedMs = (microtime(true) - $started) * 1000;
 
-    expect($stats['empty_trialer']['sent'])->toBe(3);
+    expect($stats['test_campaign']['sent'])->toBe(3);
     expect($elapsedMs)->toBeGreaterThanOrEqual(150.0);
 });
 
@@ -87,7 +96,7 @@ it('skips pacing when throttle_ms is 0 so unit suites stay fast', function () {
 
         public function name(): string
         {
-            return 'empty_trialer';
+            return 'test_campaign';
         }
 
         public function priority(): int
@@ -100,9 +109,9 @@ it('skips pacing when throttle_ms is 0 so unit suites stay fast', function () {
             return $this->users;
         }
 
-        public function mailable(User $user): EmptyTrialerMail
+        public function mailable(User $user): LapsedSubscriberMail
         {
-            return new EmptyTrialerMail($user, 'https://example.com/link');
+            return new LapsedSubscriberMail($user, 'https://example.com/link');
         }
     };
 

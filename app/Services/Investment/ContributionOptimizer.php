@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Investment\Goals\GoalProbabilityCalculator;
 use App\Services\Investment\Tax\ISAAllowanceOptimizer;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
 /**
@@ -30,7 +31,7 @@ class ContributionOptimizer
     public function __construct(
         private ISAAllowanceOptimizer $isaOptimizer,
         private GoalProbabilityCalculator $probabilityCalculator,
-        private \App\Services\TaxConfigService $taxConfig,
+        private TaxConfigService $taxConfig,
         private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 

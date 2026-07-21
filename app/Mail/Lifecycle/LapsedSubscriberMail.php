@@ -22,8 +22,7 @@ class LapsedSubscriberMail extends Mailable
         public ?string $updatePaymentUrl = null,
         public array $feedbackUrls = [],
         public ?string $gracePeriodEnd = null,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

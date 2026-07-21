@@ -1,0 +1,97 @@
+/**
+ * Fynla public pages — why-fynla/our-approach page stylesheet
+ *
+ * Page-specific styles for public/pages/why-fynla/our-approach.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ */
+
+/* ===================================================================
+   HERO MODULE  [id=hero]
+   Critical hero classes live in the inline <style> block — not duplicated here.
+   =================================================================== */
+
+/* ===================================================================
+   PRINCIPLES MODULE  [id=principles]
+   =================================================================== */
+.oa-principles {
+  background: var(--white);
+  padding: 4rem 0;
+}
+.oa-principles__sr-heading {
+  /* visually hidden — heading hierarchy maintained for screen readers */
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+.oa-principles__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+  display: flex; flex-direction: column; gap: 1.5rem;
+}
+.oa-principle {
+  background: var(--light-pink-100);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem 2rem;
+  display: flex; align-items: flex-start; gap: 1rem;
+}
+.oa-principle__icon-wrap {
+  width: 2.5rem; height: 2.5rem; flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--horizon-500);
+}
+.oa-principle__icon-wrap--spring  { color: var(--spring-600); }
+.oa-principle__icon-wrap--violet  { color: var(--violet-500); }
+.oa-principle__icon-wrap--raspberry { color: var(--raspberry-500); }
+.oa-principle__content { flex: 1; }
+.oa-principle__heading {
+  font-size: 1.25rem; font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 0.5rem;
+}
+.oa-principle__body {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625;
+}
+
+/* ===================================================================
+   VALUES MODULE  [id=values]
+   =================================================================== */
+.oa-values {
+  background: var(--horizon-500);
+  padding: 4rem 0;
+}
+.oa-values__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+}
+.oa-values__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700;
+  color: var(--white); text-align: center; margin-bottom: 2rem;
+}
+.oa-values__grid {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+}
+.oa-value-card {
+  background: var(--white-10);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+}
+.oa-value-card__heading {
+  font-size: 1.125rem; font-weight: 700;
+  color: var(--white); margin-bottom: 0.5rem;
+}
+.oa-value-card__body {
+  font-size: 0.875rem; color: var(--white-70); line-height: 1.625;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 768px) {
+  .oa-values__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .oa-principles__inner { padding-left: 2rem; padding-right: 2rem; }
+  .oa-values__inner     { padding-left: 2rem; padding-right: 2rem; }
+  .oa-values__grid      { grid-template-columns: repeat(3, 1fr); }
+}

@@ -78,9 +78,9 @@
 
           <!-- Key Metrics - DB Pension -->
           <div v-if="pensionType === 'db'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
-            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
               <p class="text-sm text-neutral-500">Annual Income</p>
-              <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(pension.annual_income) }}</p>
+              <p class="text-2xl font-bold text-violet-600">{{ formatCurrency(pension.annual_income) }}</p>
             </div>
             <div class="bg-savannah-100 rounded-lg p-4">
               <p class="text-sm text-neutral-500">Service Years</p>

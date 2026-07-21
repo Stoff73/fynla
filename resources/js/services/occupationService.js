@@ -1,4 +1,5 @@
 import api from './api';
+import logger from '@/utils/logger';
 
 /**
  * Service for searching ONS SOC 2020 occupation codes.
@@ -23,7 +24,7 @@ export default {
 
       return response.data.data || [];
     } catch (error) {
-      console.error('Occupation search failed:', error);
+      logger.error('occupationService', 'Occupation search failed:', error);
       return [];
     }
   },

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Mortgage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Mortgage
+ * @mixin Mortgage
  */
 class MortgageResource extends JsonResource
 {
@@ -75,7 +76,7 @@ class MortgageResource extends JsonResource
 
             // Relationships
             'property' => $this->whenLoaded('property', fn () => new PropertyResource($this->property)),
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
 
             // Links
             'links' => [

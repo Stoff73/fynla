@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
-use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
@@ -18,15 +17,19 @@ use App\Models\Investment\RiskProfile;
 use App\Models\ISAAllowanceTracking;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
-use App\Models\Property;
 use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\Role;
-use App\Models\SavingsAccount;
-use App\Models\Subscription;
 use App\Models\User;
+use App\Models\UserConsent;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -51,7 +54,8 @@ class ChrisUserSeeder extends Seeder
                 'is_admin' => true,
                 'is_advisor' => false,
                 'is_preview_user' => false,
-                'plan' => 'standard',
+                'plan' => 'free',
+                'tier' => 'free',
                 'date_of_birth' => '1992-06-15',
                 'gender' => 'male',
                 'marital_status' => 'single',
@@ -82,30 +86,27 @@ class ChrisUserSeeder extends Seeder
                 'transport_fuel' => 100.00,
                 'expenditure_entry_mode' => 'category',
                 'expenditure_sharing_mode' => 'joint',
-                'ai_chat_enabled' => true,
                 'info_guide_enabled' => true,
             ]
         );
 
         $userId = $chris->id;
 
-        // ── Subscription (Pro, yearly, active) ────────────────
-        Subscription::updateOrCreate(
-            ['user_id' => $userId, 'plan' => 'pro'],
-            [
-                'billing_cycle' => 'yearly',
-                'status' => 'active',
-                'trial_started_at' => $chris->created_at,
-                'trial_ends_at' => null,
-                'current_period_start' => now(),
-                'current_period_end' => now()->addYear(),
-                'amount' => 20000.00,
-            ]
-        );
+        // Grant the same consents real users grant at registration
+        // (AuthController::register lines 506-511). Without this the
+        // consent gate at AiChatController::sendMessage returns 403.
+        foreach ([
+            UserConsent::TYPE_TERMS,
+            UserConsent::TYPE_PRIVACY,
+            UserConsent::TYPE_DATA_PROCESSING,
+            UserConsent::TYPE_AI_CHAT,
+        ] as $consentType) {
+            UserConsent::recordConsent($userId, $consentType, true);
+        }
 
         // ── Property 1: Main Residence ────────────────────────
-        $mainResidence = Property::updateOrCreate(
-            ['user_id' => $userId, 'address_line_1' => '14 Maple Avenue'],
+        $mainResidence = app(PropertyStore::class)->updateOrCreate(
+            ['address_line_1' => '14 Maple Avenue'],
             [
                 'property_type' => 'main_residence',
                 'ownership_type' => 'individual',
@@ -119,30 +120,32 @@ class ChrisUserSeeder extends Seeder
                 'current_value' => 350000.00,
                 'valuation_date' => '2026-03-25',
                 'outstanding_mortgage' => 200000.00,
-            ]
+            ],
+            $chris,
+            IngestSource::SEEDER
         );
 
-        Mortgage::updateOrCreate(
-            ['property_id' => $mainResidence->id, 'lender_name' => 'Halifax'],
-            [
-                'user_id' => $userId,
-                'country' => 'United Kingdom',
-                'mortgage_type' => 'repayment',
-                'outstanding_balance' => 200000.00,
-                'interest_rate' => 4.5000,
-                'rate_type' => 'fixed',
-                'monthly_payment' => 1100.00,
-                'start_date' => '2026-03-25',
-                'maturity_date' => '2051-03-25',
-                'remaining_term_months' => 300,
-                'ownership_type' => 'individual',
-                'ownership_percentage' => 100.00,
-            ]
-        );
+        // Main residence mortgage — routed through MortgageStore (PR 4).
+        $mainMortgageCanonical = MortgageNormaliser::fromForm([
+            'property_id' => $mainResidence->id,
+            'lender_name' => 'Halifax',
+            'country' => 'United Kingdom',
+            'mortgage_type' => 'repayment',
+            'outstanding_balance' => 200000.00,
+            'interest_rate' => 4.5000,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 1100.00,
+            'start_date' => '2026-03-25',
+            'maturity_date' => '2051-03-25',
+            'remaining_term_months' => 300,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+        ], $chris);
+        app(MortgageStore::class)->updateOrCreate($mainMortgageCanonical, $chris, IngestSource::SEEDER);
 
         // ── Property 2: Buy-to-Let (joint with "wife") ───────
-        $btl = Property::updateOrCreate(
-            ['user_id' => $userId, 'address_line_1' => '19 Worth Court'],
+        $btl = app(PropertyStore::class)->updateOrCreate(
+            ['address_line_1' => '19 Worth Court'],
             [
                 'property_type' => 'buy_to_let',
                 'ownership_type' => 'joint',
@@ -156,31 +159,33 @@ class ChrisUserSeeder extends Seeder
                 'valuation_date' => '2026-04-01',
                 'monthly_rental_income' => 900.00,
                 'outstanding_mortgage' => 3500.00,
-            ]
+            ],
+            $chris,
+            IngestSource::SEEDER
         );
 
-        Mortgage::updateOrCreate(
-            ['property_id' => $btl->id, 'lender_name' => 'To be completed'],
-            [
-                'user_id' => $userId,
-                'country' => 'United Kingdom',
-                'mortgage_type' => 'repayment',
-                'outstanding_balance' => 3500.00,
-                'interest_rate' => 0.0000,
-                'rate_type' => 'fixed',
-                'monthly_payment' => 0.00,
-                'start_date' => '2026-04-01',
-                'maturity_date' => '2051-04-01',
-                'remaining_term_months' => 300,
-                'ownership_type' => 'joint',
-                'ownership_percentage' => 50.00,
-            ]
-        );
+        // Buy-to-let mortgage — routed through MortgageStore (PR 4).
+        $btlMortgageCanonical = MortgageNormaliser::fromForm([
+            'property_id' => $btl->id,
+            'lender_name' => 'To be completed',
+            'country' => 'United Kingdom',
+            'mortgage_type' => 'repayment',
+            'outstanding_balance' => 3500.00,
+            'interest_rate' => 0.0000,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 0.00,
+            'start_date' => '2026-04-01',
+            'maturity_date' => '2051-04-01',
+            'remaining_term_months' => 300,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50.00,
+        ], $chris);
+        app(MortgageStore::class)->updateOrCreate($btlMortgageCanonical, $chris, IngestSource::SEEDER);
 
         // ── Savings: Cash ISA ─────────────────────────────────
-        SavingsAccount::updateOrCreate(
-            ['user_id' => $userId, 'institution' => 'Nationwide', 'account_type' => 'cash_isa'],
-            [
+        app(SavingsStore::class)->updateOrCreate(
+            match: ['institution' => 'Nationwide', 'account_type' => 'cash_isa'],
+            data: [
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100.00,
                 'current_balance' => 18500.00,
@@ -189,13 +194,15 @@ class ChrisUserSeeder extends Seeder
                 'is_isa' => true,
                 'isa_subscription_year' => '2025/26',
                 'country' => 'United Kingdom',
-            ]
+            ],
+            user: $chris,
+            source: IngestSource::SEEDER,
         );
 
         // ── DC Pension: Scottish Widows ───────────────────────
-        DCPension::updateOrCreate(
-            ['user_id' => $userId, 'scheme_name' => 'Scottish Widows Workplace Pension'],
-            [
+        app(PensionStore::class)->updateOrCreateDc(
+            match: ['scheme_name' => 'Scottish Widows Workplace Pension'],
+            data: [
                 'scheme_type' => 'workplace',
                 'provider' => 'Scottish Widows',
                 'pension_type' => 'occupational',
@@ -211,13 +218,19 @@ class ChrisUserSeeder extends Seeder
                 'risk_preference' => 'upper_medium',
                 'has_custom_risk' => false,
                 'has_flexibly_accessed' => false,
-            ]
+            ],
+            user: $chris,
+            source: IngestSource::SEEDER,
         );
 
         // ── Investment Account: Vanguard S&S ISA ──────────────
-        $investmentAccount = InvestmentAccount::updateOrCreate(
-            ['user_id' => $userId, 'provider' => 'Vanguard', 'account_type' => 'isa'],
-            [
+        // Match on (provider, account_type) — NOT account_name, which is nullable
+        // and NULL on rows seeded before account_name existed. Matching account_name
+        // would miss those rows and insert a duplicate on reseed.
+        $investmentAccount = app(InvestmentAccountStore::class)->updateOrCreate(
+            match: ['provider' => 'Vanguard', 'account_type' => 'isa'],
+            data: [
+                'account_name' => 'Vanguard Stocks & Shares ISA',
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100.00,
                 'company_country' => 'United Kingdom',
@@ -242,7 +255,9 @@ class ChrisUserSeeder extends Seeder
                 'include_in_retirement' => false,
                 'scheme_status' => 'active',
                 'grant_currency' => 'GBP',
-            ]
+            ],
+            user: $chris,
+            source: IngestSource::SEEDER,
         );
 
         // Holdings (only active — skip soft-deleted)

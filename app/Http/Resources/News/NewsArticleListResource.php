@@ -16,11 +16,11 @@ class NewsArticleListResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'           => $this->id,
-            'slug'         => $this->slug,
-            'title'        => $this->title,
-            'summary'      => $this->summary,
-            'author_name'  => $this->author_name,
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'title' => $this->title,
+            'summary' => $this->summary,
+            'author_name' => $this->author_name,
             'published_at' => optional($this->published_at)->toIso8601String(),
         ];
     }

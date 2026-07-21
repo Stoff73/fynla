@@ -1,0 +1,192 @@
+{"__meta":{"provider":"xai","model":"grok-4.3","scenario_id":"retired_couple_decumulation","recorded_at":"2026-06-11T03:40:35+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"e2aacff","conversation_id":74,"event_count":191,"turn_count":1,"duration_ms":4175}}
+{"type":"title","title":"are we drawing our money in the right order?"}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"content","text":"Patricia"}
+{"type":"content","text":","}
+{"type":"content","text":" your"}
+{"type":"content","text":" retirement"}
+{"type":"content","text":" income"}
+{"type":"content","text":" is"}
+{"type":"content","text":" currently"}
+{"type":"content","text":" projected"}
+{"type":"content","text":" at"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"30"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" per"}
+{"type":"content","text":" year"}
+{"type":"content","text":" once"}
+{"type":"content","text":" State"}
+{"type":"content","text":" Pension"}
+{"type":"content","text":" begins"}
+{"type":"content","text":" at"}
+{"type":"content","text":" age"}
+{"type":"content","text":" "}
+{"type":"content","text":"66"}
+{"type":"content","text":","}
+{"type":"content","text":" against"}
+{"type":"content","text":" a"}
+{"type":"content","text":" target"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"35"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**."}
+{"type":"content","text":" This"}
+{"type":"content","text":" leaves"}
+{"type":"content","text":" a"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"5"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" annual"}
+{"type":"content","text":" gap"}
+{"type":"content","text":" after"}
+{"type":"content","text":" State"}
+{"type":"content","text":" Pension"}
+{"type":"content","text":" age"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"You"}
+{"type":"content","text":" have"}
+{"type":"content","text":" two"}
+{"type":"content","text":" Defined"}
+{"type":"content","text":" Benefit"}
+{"type":"content","text":" pensions"}
+{"type":"content","text":" providing"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"18"}
+{"type":"content","text":","}
+{"type":"content","text":"500"}
+{"type":"content","text":"**"}
+{"type":"content","text":" combined"}
+{"type":"content","text":","}
+{"type":"content","text":" plus"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"11"}
+{"type":"content","text":","}
+{"type":"content","text":"500"}
+{"type":"content","text":"**"}
+{"type":"content","text":" from"}
+{"type":"content","text":" the"}
+{"type":"content","text":" State"}
+{"type":"content","text":" Pension"}
+{"type":"content","text":"."}
+{"type":"content","text":" There"}
+{"type":"content","text":" are"}
+{"type":"content","text":" no"}
+{"type":"content","text":" Defined"}
+{"type":"content","text":" Contribution"}
+{"type":"content","text":" pensions"}
+{"type":"content","text":" recorded"}
+{"type":"content","text":","}
+{"type":"content","text":" so"}
+{"type":"content","text":" no"}
+{"type":"content","text":" flexible"}
+{"type":"content","text":" draw"}
+{"type":"content","text":"down"}
+{"type":"content","text":" assets"}
+{"type":"content","text":" to"}
+{"type":"content","text":" sequence"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Without"}
+{"type":"content","text":" Defined"}
+{"type":"content","text":" Contribution"}
+{"type":"content","text":" funds"}
+{"type":"content","text":","}
+{"type":"content","text":" the"}
+{"type":"content","text":" question"}
+{"type":"content","text":" of"}
+{"type":"content","text":" draw"}
+{"type":"content","text":"down"}
+{"type":"content","text":" order"}
+{"type":"content","text":" does"}
+{"type":"content","text":" not"}
+{"type":"content","text":" currently"}
+{"type":"content","text":" apply"}
+{"type":"content","text":"."}
+{"type":"content","text":" The"}
+{"type":"content","text":" income"}
+{"type":"content","text":" is"}
+{"type":"content","text":" fixed"}
+{"type":"content","text":" from"}
+{"type":"content","text":" the"}
+{"type":"content","text":" Defined"}
+{"type":"content","text":" Benefit"}
+{"type":"content","text":" schemes"}
+{"type":"content","text":" and"}
+{"type":"content","text":" State"}
+{"type":"content","text":" Pension"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"One"}
+{"type":"content","text":" gap"}
+{"type":"content","text":" in"}
+{"type":"content","text":" the"}
+{"type":"content","text":" data"}
+{"type":"content","text":" is"}
+{"type":"content","text":" your"}
+{"type":"content","text":" spouse"}
+{"type":"content","text":" Harold"}
+{"type":"content","text":"'s"}
+{"type":"content","text":" life"}
+{"type":"content","text":" expectancy"}
+{"type":"content","text":","}
+{"type":"content","text":" which"}
+{"type":"content","text":" would"}
+{"type":"content","text":" help"}
+{"type":"content","text":" refine"}
+{"type":"content","text":" joint"}
+{"type":"content","text":"-life"}
+{"type":"content","text":" planning"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Would"}
+{"type":"content","text":" you"}
+{"type":"content","text":" like"}
+{"type":"content","text":" me"}
+{"type":"content","text":" to"}
+{"type":"content","text":" look"}
+{"type":"content","text":" at"}
+{"type":"content","text":" your"}
+{"type":"content","text":" Defined"}
+{"type":"content","text":" Benefit"}
+{"type":"content","text":" pension"}
+{"type":"content","text":" details"}
+{"type":"content","text":" or"}
+{"type":"content","text":" explore"}
+{"type":"content","text":" how"}
+{"type":"content","text":" the"}
+{"type":"content","text":" post"}
+{"type":"content","text":"-ret"}
+{"type":"content","text":"irement"}
+{"type":"content","text":" goals"}
+{"type":"content","text":" might"}
+{"type":"content","text":" affect"}
+{"type":"content","text":" your"}
+{"type":"content","text":" income"}
+{"type":"content","text":" needs"}
+{"type":"content","text":"?\n\n"}
+{"type":"content","text":"For"}
+{"type":"content","text":" regulated"}
+{"type":"content","text":" advice"}
+{"type":"content","text":" personal"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":","}
+{"type":"content","text":" speak"}
+{"type":"content","text":" to"}
+{"type":"content","text":" a"}
+{"type":"content","text":" qualified"}
+{"type":"content","text":" financial"}
+{"type":"content","text":" adviser"}
+{"type":"content","text":"."}
+{"type":"done","message_id":169,"input_tokens":13053,"output_tokens":200}

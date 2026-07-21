@@ -32,8 +32,14 @@
           </button>
         </div>
 
-        <!-- Limited Time Offer Banner -->
-        <div class="flex justify-center mb-4">
+        <div v-if="isPremiumCurrent" class="text-center py-8">
+          <p class="text-body-base font-semibold text-horizon-500">You are on Premium</p>
+          <p class="mt-2 text-body-sm text-neutral-500">Your current plan already includes all Premium features.</p>
+        </div>
+
+        <template v-else>
+        <!-- Limited Time Offer Banner — only when a launch/discount price is live -->
+        <div v-if="hasAnyLaunchOffer" class="flex justify-center mb-4">
           <span class="inline-block bg-raspberry-50 text-raspberry-500 text-base font-bold px-5 py-2 rounded-full">
             Limited Time Offer
           </span>
@@ -102,7 +108,7 @@
             </div>
             <!-- Most Popular Badge -->
             <div
-              v-else-if="plan.slug === 'family'"
+              v-else-if="plan.slug === 'premium'"
               class="absolute -top-3 left-1/2 -translate-x-1/2"
             >
               <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-spring-500 text-white whitespace-nowrap">
@@ -164,24 +170,15 @@
             </button>
           </div>
         </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
-
-const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
-
-// Student plan is gated to UK university students. Backend (PaymentController +
-// User::isEligibleForStudentPlan) is the authoritative gate; this mirrors that
-// check for the UI so ineligible users never see the Student card.
-function isEligibleForStudentPlan(email) {
-  return typeof email === 'string' && email.toLowerCase().trim().endsWith('.ac.uk');
-}
 
 export default {
   name: 'PlanSelectionModal',
@@ -223,30 +220,13 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['currentUser']),
-
-    isEligibleForStudentPlan() {
-      return isEligibleForStudentPlan(this.currentUser?.email);
+    isPremiumCurrent() {
+      return this.currentPlan === 'premium';
     },
 
-    // Plans filtered by both the upgrade-tier rule AND the Student eligibility rule.
     filteredPlans() {
-      let plans = this.plans;
-
-      // Upgrade flow: hide tiers at or below the user's current plan.
-      if (this.currentPlan && !this.showAllPlans) {
-        const currentIndex = PLAN_ORDER.indexOf(this.currentPlan);
-        if (currentIndex !== -1) {
-          plans = plans.filter(p => PLAN_ORDER.indexOf(p.slug) > currentIndex);
-        }
-      }
-
-      // Student plan: only visible to UK university students (.ac.uk email).
-      if (!this.isEligibleForStudentPlan) {
-        plans = plans.filter(p => p.slug !== 'student');
-      }
-
-      return plans;
+      if (this.isPremiumCurrent) return [];
+      return this.plans.filter(plan => plan.slug === 'premium');
     },
 
     gridClass() {
@@ -262,15 +242,24 @@ export default {
       return Math.max(...this.filteredPlans.map(p => this.savingsPercentage(p)));
     },
 
+    // Only surface the "Limited Time Offer" banner when at least one visible
+    // plan actually carries a launch/discount price. The tier model prices are
+    // flat (no launch discount), so the banner stays hidden for them.
+    hasAnyLaunchOffer() {
+      return this.filteredPlans.some(p => p.launch_monthly_price || p.launch_yearly_price);
+    },
+
     headerTitle() {
-      if (!this.dismissable) return 'Your Trial Has Ended';
+      if (this.isPremiumCurrent) return 'You are on Premium';
+      if (!this.dismissable) return 'Your subscription has ended';
       if (this.showAllPlans) return 'Choose Your Plan';
       if (this.currentPlan) return 'Upgrade Your Plan';
       return 'Choose Your Plan';
     },
 
     headerSubtitle() {
-      if (!this.dismissable) return 'Choose a plan to continue using Fynla';
+      if (this.isPremiumCurrent) return 'There are no further plans to choose.';
+      if (!this.dismissable) return 'Choose Premium to restore full access to Fynla.';
       if (this.showAllPlans && this.currentPlan) return 'Your current plan is highlighted below';
       if (this.currentPlan) return 'Select a plan to upgrade to';
       return 'Select a plan that works for you';
@@ -323,7 +312,9 @@ export default {
     },
 
     formatPrice(pence) {
-      return this.formatCurrency(pence / 100);
+      // Prices must display to the penny so the figure shown matches the amount
+      // charged (e.g. £4.99, not a rounded £5). formatCurrency drops pence.
+      return this.formatCurrencyWithPence(pence / 100);
     },
 
     savingsPercentage(plan) {
@@ -337,28 +328,12 @@ export default {
       return this.showAllPlans && plan.slug === this.currentPlan;
     },
 
-    // Render features with two adjustments vs the raw DB list:
-    //   1. Standard plan: when the Student card is hidden (user not eligible),
-    //      "Everything in Student" is meaningless — inline the Student feature
-    //      bullets so the Standard card stands on its own.
-    //   2. Family plan: always append "Parents included" + "Children for free"
-    //      as commercial add-ons, regardless of Student visibility.
+    // Premium carries a self-contained feature list from
+    // tier_configurations, so the card renders the DB list verbatim — no
+    // per-slug adjustments (the legacy Student-inline and Family add-on hacks
+    // were removed when the plans were relabelled onto the tier model).
     displayFeatures(plan) {
-      const features = Array.isArray(plan.features) ? [...plan.features] : [];
-
-      if (plan.slug === 'standard' && !this.isEligibleForStudentPlan) {
-        const studentPlan = this.plans.find(p => p.slug === 'student');
-        const studentFeatures = Array.isArray(studentPlan?.features) ? studentPlan.features : [];
-        return features.flatMap(f =>
-          f === 'Everything in Student' ? [...studentFeatures] : [f]
-        );
-      }
-
-      if (plan.slug === 'family') {
-        return [...features, 'Parents included', 'Children for free'];
-      }
-
-      return features;
+      return Array.isArray(plan.features) ? plan.features : [];
     },
 
     selectAndContinue(slug) {

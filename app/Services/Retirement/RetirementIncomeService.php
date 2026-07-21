@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DBPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\RetirementProfile;
-use App\Models\SavingsAccount;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxBandTracker;
 use App\Services\TaxConfigService;
 
@@ -253,8 +252,10 @@ class RetirementIncomeService
         // Combined Pension Pot (using projected 80% Monte Carlo value, not individual pensions)
         // This is the combined value of ALL DC pensions projected to retirement age
         if ($projectedPensionPot > 0) {
-            $pclsAvailable = $projectedPensionPot * 0.25; // 25% tax-free
-            $drawdownAvailable = $projectedPensionPot * 0.75; // 75% taxable
+            // PCLS = 25% of pot, capped at the Lump Sum Allowance (£268,275).
+            // TODO(audit-criticals): pass real lsa_used when per-user tracking lands.
+            $pclsAvailable = $this->taxConfig->calculatePCLS($projectedPensionPot);
+            $drawdownAvailable = $projectedPensionPot - $pclsAvailable;
 
             $accounts[] = [
                 'id' => 'pension_pot',
@@ -287,7 +288,9 @@ class RetirementIncomeService
         }
 
         // DB Pensions
-        $dbPensions = DBPension::whereIn('user_id', $userIds)->get();
+        $pensionStore = app(PensionStore::class);
+        $dbPensions = collect($userIds)
+            ->flatMap(fn ($uid) => $pensionStore->forUserByType(User::findOrFail($uid), 'db'));
         foreach ($dbPensions as $pension) {
             $annualIncome = (float) ($pension->accrued_annual_pension ?? 0);
             $accounts[] = [
@@ -307,7 +310,9 @@ class RetirementIncomeService
         }
 
         // State Pension
-        $statePensions = StatePension::whereIn('user_id', $userIds)->get();
+        $statePensions = collect($userIds)
+            ->map(fn ($uid) => $pensionStore->statePension(User::findOrFail($uid)))
+            ->filter();
         foreach ($statePensions as $pension) {
             $annualIncome = (float) ($pension->state_pension_forecast_annual ?? 0);
             $accounts[] = [
@@ -328,10 +333,10 @@ class RetirementIncomeService
         // ISAs (Savings - Cash ISA)
         // Projected to retirement age using compound growth
         // Only include accounts explicitly marked for retirement planning
-        $isaAccounts = SavingsAccount::whereIn('user_id', $userIds)
+        $isaAccounts = app(SavingsStore::class)->forUsers($userIds)
             ->where('include_in_retirement', true)
             ->where('is_isa', true)
-            ->get();
+            ->values();
         foreach ($isaAccounts as $account) {
             $currentValue = (float) ($account->current_balance ?? 0);
             // Cash ISAs grow at lower rate (savings rate)
@@ -384,7 +389,7 @@ class RetirementIncomeService
                 'is_projected' => true,
                 'years_projected' => $yearsToRetirement,
                 'projection_type' => 'monte_carlo_80',
-                'isa_type' => $account->isa_type ?? 'stocks_shares',
+                'isa_type' => $account->isa_type ?? 'stocks_and_shares',
                 'tax_rate' => 0,
                 'tax_treatment' => 'tax_free',
                 'source_type' => 'isa',
@@ -508,13 +513,10 @@ class RetirementIncomeService
         // Non-ISA Savings
         // Projected to retirement age using lower cash growth rate
         // Only include accounts explicitly marked for retirement planning
-        $savingsAccounts = SavingsAccount::whereIn('user_id', $userIds)
+        $savingsAccounts = app(SavingsStore::class)->forUsers($userIds)
             ->where('include_in_retirement', true)
-            ->where(function ($query) {
-                $query->where('is_isa', false)
-                    ->orWhereNull('is_isa');
-            })
-            ->get();
+            ->filter(fn ($a) => ! $a->is_isa)
+            ->values();
         foreach ($savingsAccounts as $account) {
             $currentValue = (float) ($account->current_balance ?? 0);
             // Cash savings grow at lower rate
@@ -557,7 +559,9 @@ class RetirementIncomeService
             }
         }
 
-        $statePensions = StatePension::whereIn('user_id', $userIds)->get();
+        $statePensions = collect($userIds)
+            ->map(fn ($uid) => app(PensionStore::class)->statePension(User::findOrFail($uid)))
+            ->filter();
 
         $defaultSPA = (int) $this->taxConfig->get('pension.state_pension.current_spa', 67);
 
@@ -631,14 +635,6 @@ class RetirementIncomeService
         }
 
         return $total;
-    }
-
-    /**
-     * @deprecated Use calculateTotalFunds() instead
-     */
-    public function calculateTotalPensionPot(array $availableAccounts): float
-    {
-        return $this->calculateTotalFunds($availableAccounts);
     }
 
     /**
@@ -1852,6 +1848,13 @@ class RetirementIncomeService
     {
         $balances = [];
 
+        // Resolve User once for ownership-scoped SavingsStore reads.
+        // If user is missing (e.g. mid-deletion), short-circuit before any account lookup.
+        $user = User::find($userId);
+        if (! $user) {
+            return $balances;
+        }
+
         // =============================================================================
         // CRITICAL: Build a lookup map from availableAccounts for CONSISTENT values
         // This ensures the projection uses the SAME values that were used to calculate
@@ -1932,10 +1935,10 @@ class RetirementIncomeService
             }
         }
 
-        // Pension Pot - split into PCLS (25%) and Drawdown (75%) as SEPARATE buckets
+        // Pension Pot - split into PCLS (capped at LSA) and Drawdown as SEPARATE buckets
         if ($hasPensionPotAllocation && $projectedPensionPot > 0) {
-            $balances['pension_pot_pcls'] = $projectedPensionPot * 0.25;      // 25% tax-free
-            $balances['pension_pot_drawdown'] = $projectedPensionPot * 0.75; // 75% taxable
+            $balances['pension_pot_pcls'] = $this->taxConfig->calculatePCLS($projectedPensionPot); // 25% tax-free, capped at LSA (£268,275)
+            $balances['pension_pot_drawdown'] = $projectedPensionPot - $balances['pension_pot_pcls']; // remainder taxable
         }
 
         // Cash growth rate
@@ -1952,7 +1955,7 @@ class RetirementIncomeService
 
         // ISAs (Cash/Savings) - only those explicitly allocated as cash ISAs
         if (! empty($cashIsaIds)) {
-            $isaAccounts = SavingsAccount::whereIn('id', $cashIsaIds)->where('is_isa', true)->get();
+            $isaAccounts = app(SavingsStore::class)->findMany($cashIsaIds, $user)->where('is_isa', true)->values();
             foreach ($isaAccounts as $account) {
                 $fundKey = 'isa_savings_'.$account->id;
                 // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
@@ -2057,11 +2060,9 @@ class RetirementIncomeService
 
         // Non-ISA Savings - only those in allocations
         if (! empty($savingsIds)) {
-            $savingsAccounts = SavingsAccount::whereIn('id', $savingsIds)
-                ->where(function ($query) {
-                    $query->where('is_isa', false)->orWhereNull('is_isa');
-                })
-                ->get();
+            $savingsAccounts = app(SavingsStore::class)->findMany($savingsIds, $user)
+                ->filter(fn ($a) => ! $a->is_isa)
+                ->values();
             foreach ($savingsAccounts as $account) {
                 $fundKey = 'savings_'.$account->id;
                 // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
@@ -2080,146 +2081,12 @@ class RetirementIncomeService
     }
 
     /**
-     * Initialize fund balances for projection.
-     *
-     * Uses projected pension pot value (80% Monte Carlo) passed directly.
-     * All other assets are projected to retirement age using compound growth.
-     *
-     * @deprecated Use initializeFundBalancesWithPclsSplit() instead
-     */
-    private function initializeFundBalances(int $userId, array $incomeAllocations, float $projectedPensionPot = 0, int $yearsToRetirement = 0): array
-    {
-        $balances = [];
-
-        // Build a set of account IDs that are actually in the income allocations
-        $allocatedAccounts = [];
-        $hasPensionPotAllocation = false;
-
-        foreach ($incomeAllocations as $allocation) {
-            $sourceType = $allocation['source_type'] ?? '';
-            $sourceId = $allocation['source_id'] ?? 0;
-
-            if (in_array($sourceType, ['pension_pot_pcls', 'pension_pot_drawdown'])) {
-                $hasPensionPotAllocation = true;
-            } elseif ($sourceType === 'isa' && $sourceId) {
-                $allocatedAccounts['isa'][] = $sourceId;
-            } elseif ($sourceType === 'onshore_bond' && $sourceId) {
-                $allocatedAccounts['onshore_bond'][] = $sourceId;
-            } elseif ($sourceType === 'offshore_bond' && $sourceId) {
-                $allocatedAccounts['offshore_bond'][] = $sourceId;
-            } elseif ($sourceType === 'gia' && $sourceId) {
-                $allocatedAccounts['gia'][] = $sourceId;
-            } elseif ($sourceType === 'savings' && $sourceId) {
-                $allocatedAccounts['savings'][] = $sourceId;
-            }
-        }
-
-        // Cash growth rate (lower for savings)
-        $cashGrowthRate = 0.02;
-
-        // Pension Pot - only include if there's an allocation for it
-        if ($hasPensionPotAllocation && $projectedPensionPot > 0) {
-            $balances['pension_pot'] = $projectedPensionPot;
-        }
-
-        // Only load accounts that are in the allocations
-        $isaIds = $allocatedAccounts['isa'] ?? [];
-        $onshoreBondIds = $allocatedAccounts['onshore_bond'] ?? [];
-        $offshoreBondIds = $allocatedAccounts['offshore_bond'] ?? [];
-        $giaIds = $allocatedAccounts['gia'] ?? [];
-        $savingsIds = $allocatedAccounts['savings'] ?? [];
-
-        // ISAs (Savings) - only those in allocations
-        if (! empty($isaIds)) {
-            $isaAccounts = SavingsAccount::whereIn('id', $isaIds)->where('is_isa', true)->get();
-            foreach ($isaAccounts as $account) {
-                $currentValue = (float) ($account->current_balance ?? 0);
-                $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
-                $balances['isa_savings_'.$account->id] = $projectedValue;
-            }
-
-            // ISAs (Investment) - only those in allocations
-            $investmentIsas = InvestmentAccount::whereIn('id', $isaIds)
-                ->whereIn('account_type', ['isa', 'stocks_shares_isa', 'lifetime_isa'])
-                ->get();
-            foreach ($investmentIsas as $account) {
-                $currentValue = (float) ($account->current_value ?? 0);
-                $accountUser = User::find($account->user_id);
-                $projectedValue = $yearsToRetirement > 0 && $accountUser
-                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
-                    : $currentValue;
-                $balances['isa_investment_'.$account->id] = $projectedValue;
-            }
-        }
-
-        // Onshore Bonds - only those in allocations
-        if (! empty($onshoreBondIds)) {
-            $onshoreBonds = InvestmentAccount::whereIn('id', $onshoreBondIds)
-                ->where('account_type', 'onshore_bond')
-                ->get();
-            foreach ($onshoreBonds as $account) {
-                $currentValue = (float) ($account->current_value ?? 0);
-                $accountUser = User::find($account->user_id);
-                $projectedValue = $yearsToRetirement > 0 && $accountUser
-                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
-                    : $currentValue;
-                $balances['onshore_bond_'.$account->id] = $projectedValue;
-            }
-        }
-
-        // Offshore Bonds - only those in allocations
-        if (! empty($offshoreBondIds)) {
-            $offshoreBonds = InvestmentAccount::whereIn('id', $offshoreBondIds)
-                ->where('account_type', 'offshore_bond')
-                ->get();
-            foreach ($offshoreBonds as $account) {
-                $currentValue = (float) ($account->current_value ?? 0);
-                $accountUser = User::find($account->user_id);
-                $projectedValue = $yearsToRetirement > 0 && $accountUser
-                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
-                    : $currentValue;
-                $balances['offshore_bond_'.$account->id] = $projectedValue;
-            }
-        }
-
-        // GIAs - only those in allocations
-        if (! empty($giaIds)) {
-            $giaAccounts = InvestmentAccount::whereIn('id', $giaIds)
-                ->whereIn('account_type', ['gia', 'general'])
-                ->get();
-            foreach ($giaAccounts as $account) {
-                $currentValue = (float) ($account->current_value ?? 0);
-                $accountUser = User::find($account->user_id);
-                $projectedValue = $yearsToRetirement > 0 && $accountUser
-                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
-                    : $currentValue;
-                $balances['gia_'.$account->id] = $projectedValue;
-            }
-        }
-
-        // Non-ISA Savings - only those in allocations
-        if (! empty($savingsIds)) {
-            $savingsAccounts = SavingsAccount::whereIn('id', $savingsIds)
-                ->where(function ($query) {
-                    $query->where('is_isa', false)->orWhereNull('is_isa');
-                })
-                ->get();
-            foreach ($savingsAccounts as $account) {
-                $currentValue = (float) ($account->current_balance ?? 0);
-                $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
-                $balances['savings_'.$account->id] = $projectedValue;
-            }
-        }
-
-        return $balances;
-    }
-
-    /**
      * Calculate annual withdrawals from allocations.
      */
-    private function calculateAnnualWithdrawals(array $incomeAllocations): array
+    private function calculateAnnualWithdrawals(int $userId, array $incomeAllocations): array
     {
         $withdrawals = [];
+        $user = User::find($userId);
 
         foreach ($incomeAllocations as $allocation) {
             $sourceType = $allocation['source_type'] ?? '';
@@ -2232,8 +2099,10 @@ class RetirementIncomeService
             if (in_array($sourceType, ['pension_pot_pcls', 'pension_pot_drawdown'])) {
                 $fundKey = 'pension_pot';
             } elseif ($sourceType === 'isa' && $sourceId) {
-                // Check if it's a savings ISA or investment ISA
-                $isSavingsIsa = SavingsAccount::where('id', $sourceId)->where('is_isa', true)->exists();
+                // Check if it's a savings ISA or investment ISA — user-scoped to prevent cross-user lookup
+                $isSavingsIsa = $user
+                    ? app(SavingsStore::class)->findMany([$sourceId], $user)->where('is_isa', true)->isNotEmpty()
+                    : false;
                 $fundKey = $isSavingsIsa ? 'isa_savings_'.$sourceId : 'isa_investment_'.$sourceId;
             } elseif ($sourceType === 'onshore_bond' && $sourceId) {
                 $fundKey = 'onshore_bond_'.$sourceId;

@@ -7,9 +7,12 @@ use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 describe('Savings API', function () {
@@ -19,7 +22,7 @@ describe('Savings API', function () {
             $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
             $goal = SavingsGoal::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->getJson('/api/savings');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -37,7 +40,7 @@ describe('Savings API', function () {
             $otherUser = User::factory()->create();
             SavingsAccount::factory()->create(['user_id' => $otherUser->id]);
 
-            $response = $this->actingAs($user)->getJson('/api/savings');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
 
             $response->assertOk()
                 ->assertJson([
@@ -61,7 +64,7 @@ describe('Savings API', function () {
                 'is_isa' => false,
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated()
                 ->assertJsonStructure([
@@ -80,7 +83,7 @@ describe('Savings API', function () {
         it('accepts empty request with defaults', function () {
             // All fields are nullable - account can be created with defaults
             $user = User::factory()->create();
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', []);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', []);
 
             $response->assertCreated();
             expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
@@ -100,13 +103,99 @@ describe('Savings API', function () {
                 'isa_subscription_amount' => 5000,
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated();
 
             $account = SavingsAccount::where('user_id', $user->id)->first();
             expect($account->is_isa)->toBeTrue();
             expect($account->isa_type)->toBe('cash');
+        });
+
+        it('does not 500 when country arrives null in the payload', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Test Bank',
+                'current_balance' => 10000,
+                'country' => null,
+            ];
+
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+        });
+
+        it('does not 500 when country arrives empty string in the payload', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Test Bank',
+                'current_balance' => 100,
+                'country' => '',
+            ];
+
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+        });
+
+        it('preserves an explicitly-supplied country on create', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Bank of Ireland',
+                'current_balance' => 5000,
+                'country' => 'Ireland',
+            ];
+
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'Ireland',
+            ]);
+        });
+
+        it('returns 403 with structured payload when a free-tier user exceeds the savings cap', function () {
+            // Create an explicit Free user for this cap test.
+            $freeUser = User::factory()->create(['tier' => 'free']);
+            Sanctum::actingAs($freeUser);
+
+            // Free-tier savings_account cap is 2 per TierConfigurationSeeder; create 2 then attempt a third.
+            SavingsAccount::factory(2)->create(['user_id' => $freeUser->id]);
+
+            $response = $this->postJson('/api/savings/accounts', [
+                'account_type' => 'easy_access',
+                'institution' => 'Third Bank',
+                'current_balance' => 1000,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'country' => 'United Kingdom',
+            ]);
+
+            $response->assertStatus(403)
+                ->assertJson([
+                    'success' => false,
+                    'error' => [
+                        'entity_key' => 'savings_account',
+                        'hard_limit' => 2,
+                    ],
+                ]);
+
+            expect(SavingsAccount::where('user_id', $freeUser->id)->count())->toBe(2);
         });
     });
 
@@ -115,7 +204,7 @@ describe('Savings API', function () {
             $user = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 15000,
             ]);
 
@@ -133,11 +222,31 @@ describe('Savings API', function () {
             $otherUser = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $otherUser->id]);
 
-            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 15000,
             ]);
 
             $response->assertNotFound();
+        });
+
+        it('does not 500 when country arrives null on update — preserves existing value', function () {
+            $user = User::factory()->create();
+            $account = SavingsAccount::factory()->create([
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
+                'current_balance' => 22000,
+                'country' => null,
+            ]);
+
+            $response->assertOk();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'id' => $account->id,
+                'country' => 'United Kingdom',
+            ]);
         });
     });
 
@@ -146,7 +255,7 @@ describe('Savings API', function () {
             $user = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->deleteJson("/api/savings/accounts/{$account->id}");
+            $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/savings/accounts/{$account->id}");
 
             $response->assertOk()
                 ->assertJson([
@@ -162,7 +271,7 @@ describe('Savings API', function () {
             $otherUser = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $otherUser->id]);
 
-            $response = $this->actingAs($user)->deleteJson("/api/savings/accounts/{$account->id}");
+            $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/savings/accounts/{$account->id}");
 
             $response->assertNotFound();
         });
@@ -188,7 +297,7 @@ describe('Savings API', function () {
                 'total_monthly_expenditure' => 2000,
             ]);
 
-            $response = $this->actingAs($user)->postJson('/api/savings/analyze');
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/analyze');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -204,12 +313,76 @@ describe('Savings API', function () {
         });
     });
 
+    describe('SavingsStore integration via HTTP', function () {
+        it('HTTP POST /api/savings/accounts persists via SavingsStore with IngestSource::FORM', function () {
+            $user = User::factory()->create(['is_preview_user' => false]);
+            Sanctum::actingAs($user);
+
+            $response = $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Halifax Easy Saver',
+                'account_type' => 'easy_access',
+                'institution' => 'Halifax',
+                'current_balance' => 12000,
+                'interest_rate' => 4.2,
+                'is_isa' => false,
+            ]);
+
+            $response->assertCreated();
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'account_name' => 'Halifax Easy Saver',
+                'ownership_type' => 'individual',
+                'country' => 'United Kingdom',
+            ]);
+            $account = SavingsAccount::where('user_id', $user->id)->where('account_name', 'Halifax Easy Saver')->firstOrFail();
+            expect((float) $account->ownership_percentage)->toBe(100.0);
+            expect((float) $account->current_balance)->toBe(12000.0);
+        });
+
+        it('rejects joint ISA creation with 422 — joint ISAs are illegal under UK law', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Joint Cash ISA',
+                'account_type' => 'cash_isa',
+                'current_balance' => 8000,
+                'is_isa' => true,
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+            ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['ownership_type']);
+
+            $this->assertDatabaseMissing('savings_accounts', [
+                'account_name' => 'Joint Cash ISA',
+            ]);
+        });
+
+        it('rejects joint ISA created via is_isa=true even without explicit cash_isa account_type', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Sneaky Joint ISA',
+                'account_type' => 'savings',
+                'current_balance' => 5000,
+                'is_isa' => true,
+                'joint_owner_id' => $spouse->id,
+            ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['ownership_type']);
+        });
+    });
+
     describe('GET /api/savings/isa-allowance/{taxYear}', function () {
         it('returns ISA allowance status', function () {
             $user = User::factory()->create();
             // Use hyphen format instead of slash
             $taxYear = '2025-26';
-            $response = $this->actingAs($user)->getJson("/api/savings/isa-allowance/{$taxYear}");
+            $response = $this->actingAs($user, 'sanctum')->getJson("/api/savings/isa-allowance/{$taxYear}");
 
             $response->assertOk()
                 ->assertJsonStructure([

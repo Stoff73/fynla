@@ -38,15 +38,15 @@ class WelcomeMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.welcome',
             with: [
-                'firstName'       => $this->firstName,
-                'email'           => $this->email,
-                'username'        => $this->username,
-                'planLabel'       => $this->planLabel,
-                'startDate'       => $this->startDate,
+                'firstName' => $this->firstName,
+                'email' => $this->email,
+                'username' => $this->username,
+                'planLabel' => $this->planLabel,
+                'startDate' => $this->startDate,
                 'journeyHeadline' => $this->journeyHeadline,
-                'journeyUrl'      => $this->utm("https://fynla.org/journeys/{$this->journeySlug}", 'journey-cta'),
-                'dashboardUrl'    => $this->utm('https://fynla.org/dashboard', 'dashboard-cta'),
-                'homeUrl'         => 'https://fynla.org',
+                'journeyUrl' => $this->utm("https://fynla.org/journeys/{$this->journeySlug}", 'journey-cta'),
+                'dashboardUrl' => $this->utm('https://fynla.org/dashboard', 'dashboard-cta'),
+                'homeUrl' => 'https://fynla.org',
             ],
         );
     }

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Annual Allowance Checker Service
@@ -102,7 +104,7 @@ class AnnualAllowanceChecker
         $isCalendarYear = $taxYear === $this->getCalendarTaxYear();
 
         if ($isCalendarYear) {
-            $dcPensions = DCPension::where('user_id', $userId)->get();
+            $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
             $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
         } else {
             $totalContributions = 0.0;
@@ -129,8 +131,26 @@ class AnnualAllowanceChecker
             ];
         }
 
-        // Calculate carry forward from previous 3 years
-        $carryForward = $this->getCarryForward($userId, $taxYear);
+        // Carry-forward from the previous 3 years. For a currently-tapered user
+        // we cap each prior year's assumed unused allowance at the current
+        // tapered allowance instead of the full standard AA — per-year income
+        // history isn't captured, so this is a conservative simplification
+        // (assumes a similar taper applied then) that avoids over-crediting.
+        $carryForward = $this->getCarryForward(
+            $userId,
+            $taxYear,
+            $isTapered ? $availableAllowance : null
+        );
+
+        // Money Purchase Annual Allowance (FA 2004 s227ZA): once the user has
+        // flexibly accessed a DC pension, money-purchase contributions are
+        // capped at the MPAA and NO carry-forward is available against it.
+        $mpaaApplies = app(PensionStore::class)
+            ->hasFlexiblyAccessedDcPension(User::findOrFail($userId));
+        if ($mpaaApplies) {
+            $availableAllowance = min($availableAllowance, $this->getMPAA());
+            $carryForward = 0.0;
+        }
 
         // Calculate remaining allowance
         $allowanceUsed = min($totalContributions, $availableAllowance + $carryForward);
@@ -149,6 +169,8 @@ class AnnualAllowanceChecker
             'remaining_allowance' => round($remainingAllowance, 2),
             'excess_contributions' => round($excessContributions, 2),
             'has_excess' => $excessContributions > 0,
+            'mpaa_applies' => $mpaaApplies,
+            'mpaa_amount' => $mpaaApplies ? $this->getMPAA() : null,
         ];
     }
 
@@ -179,27 +201,63 @@ class AnnualAllowanceChecker
     /**
      * Get carry forward allowance from previous 3 tax years.
      *
-     * Uses user-entered prior year unused allowance data from RetirementProfile.
-     * Returns 0 when no data is entered (conservative default to prevent
-     * users unknowingly exceeding their allowance).
+     * Primary path: reads captured PensionInputHistory rows (written by the
+     * savetax onboarding flow via CoordinatingAgent → PensionStore::captureInputHistory).
+     * Per-year unused = max(0, annual_allowance − pension_input_amount) so an
+     * over-contributed year contributes zero, never a negative.
      *
+     * Fallback: manually-entered RetirementProfile.prior_year_unused_allowance
+     * JSON field (existing behaviour, unchanged). Returns 0 when neither source
+     * is present (conservative default).
+     *
+     * Note: prior-year allowances are valued at the current standard annual
+     * allowance from TaxConfigService. TaxConfigService only holds the active
+     * tax year's figure; a per-historical-year lookup is not available.
+     *
+     * Only rows inside the exact HMRC 3-prior-years window count — stale
+     * rows from older captures are ignored, never summed as eligible.
+     *
+     * @param  float|null  $perYearAllowanceCap  When the caller knows the user is
+     *                                           currently tapered, the tapered allowance to value each prior year at
+     *                                           instead of the full standard AA (conservative — see checkAnnualAllowance).
+     *                                           Null keeps the standard-AA valuation. Applies to the history path only;
+     *                                           the manual fallback is the user's own entered unused figure.
      * @return float Total carry forward available
      */
-    public function getCarryForward(int $userId, string $taxYear): float
+    public function getCarryForward(int $userId, string $taxYear, ?float $perYearAllowanceCap = null): float
     {
+        $priorYears = $this->getPrevious3TaxYears($taxYear);
+
+        // Store-mediated read (store-boundary architecture rule): the pensions
+        // canonical set owns PensionInputHistory access.
+        $user = User::find($userId);
+        $history = $user === null
+            ? collect()
+            : collect(app(PensionStore::class)->pensionInputHistory($user))
+                ->whereIn('tax_year', $priorYears)
+                ->values();
+
+        if ($history->isNotEmpty()) {
+            $standard = (float) ($this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
+            $perYearAllowance = $perYearAllowanceCap ?? $standard;
+
+            return (float) $history->sum(
+                fn ($row) => max(0.0, $perYearAllowance - (float) $row->pension_input_amount)
+            );
+        }
+
+        // Fallback: manually-entered RetirementProfile.prior_year_unused_allowance.
         $profile = RetirementProfile::where('user_id', $userId)->first();
 
         if (! $profile || ! $profile->prior_year_unused_allowance) {
             return 0.0;
         }
 
-        $priorYears = $profile->prior_year_unused_allowance;
+        $manualUnused = $profile->prior_year_unused_allowance;
         $carryForward = 0.0;
 
-        $previousYears = $this->getPrevious3TaxYears($taxYear);
-
-        foreach ($previousYears as $year) {
-            $carryForward += (float) ($priorYears[$year] ?? 0);
+        foreach ($priorYears as $year) {
+            $carryForward += (float) ($manualUnused[$year] ?? 0);
         }
 
         return $carryForward;
@@ -208,9 +266,12 @@ class AnnualAllowanceChecker
     /**
      * Get the previous 3 tax year strings for carry forward lookback.
      *
+     * Public so PensionAACarryForwardStrategy shares the exact same HMRC
+     * window arithmetic — one source of truth for which years are eligible.
+     *
      * @return array e.g. ['2022/23', '2023/24', '2024/25'] for current year '2025/26'
      */
-    private function getPrevious3TaxYears(string $currentTaxYear): array
+    public function getPrevious3TaxYears(string $currentTaxYear): array
     {
         $startYear = (int) substr($currentTaxYear, 0, 4);
 
@@ -229,18 +290,17 @@ class AnnualAllowanceChecker
      */
     public function checkMPAA(int $userId): array
     {
-        $isTriggered = DCPension::where('user_id', $userId)
-            ->where('has_flexibly_accessed', true)
-            ->exists();
+        $flexiblyAccessed = app(PensionStore::class)
+            ->forUserByType(User::findOrFail($userId), 'dc')
+            ->where('has_flexibly_accessed', true);
+
+        $isTriggered = $flexiblyAccessed->isNotEmpty();
 
         $mpaaAmount = $this->getMPAA();
 
-        $triggerDate = null;
-        if ($isTriggered) {
-            $triggerDate = DCPension::where('user_id', $userId)
-                ->where('has_flexibly_accessed', true)
-                ->min('flexible_access_date');
-        }
+        $triggerDate = $isTriggered
+            ? $flexiblyAccessed->min('flexible_access_date')
+            : null;
 
         return [
             'is_triggered' => $isTriggered,
@@ -256,7 +316,7 @@ class AnnualAllowanceChecker
      * Calculate total annual pension contributions from all DC pensions.
      * Includes both employee and employer contributions as both count towards annual allowance.
      *
-     * @param  \Illuminate\Support\Collection  $dcPensions
+     * @param  Collection  $dcPensions
      */
     private function calculateTotalAnnualContributions($dcPensions): float
     {

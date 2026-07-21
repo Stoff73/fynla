@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
             // Tax configuration - rates, allowances, thresholds
             TaxConfigurationSeeder::class,
 
+            // Tier configuration - capability matrix, count caps, pricing placeholders
+            TierConfigurationSeeder::class,
+
             // Tax product reference - ISA/GIA/Bond tax treatment info
             TaxProductReferenceSeeder::class,
 
@@ -46,9 +49,13 @@ class DatabaseSeeder extends Seeder
 
             // Preview personas (young_family, peak_earners, etc.)
             PreviewUserSeeder::class,
+            PreviewGamificationSeeder::class,
 
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
+
+            // Currency rates (GBP base) - admin-managed FX rates for the multi-currency conversion path
+            CurrencyRatesSeeder::class,
 
             // ONS SOC 2020 occupation codes for autocomplete
             OccupationCodeSeeder::class,
@@ -74,8 +81,13 @@ class DatabaseSeeder extends Seeder
             // Estate action definitions - configurable estate planning action triggers
             EstateActionDefinitionSeeder::class,
 
-            // Subscription plans (pricing, trial config)
+            // Subscription plans (pricing configuration)
             SubscriptionPlanSeeder::class,
+
+            // Invoice sequence counter — schema:dump captures DDL only, so the
+            // create_invoice_sequences_table migration's seed INSERT is lost
+            // when boots load from the SQL dump.
+            InvoiceSequenceSeeder::class,
 
             // Discount codes (promotional codes for checkout)
             DiscountCodeSeeder::class,
@@ -91,7 +103,7 @@ class DatabaseSeeder extends Seeder
         // PHASE 2: Optional Data (for development/testing only)
         // These create additional test accounts beyond the required ones
         // ============================================================
-        if (app()->environment(['local', 'development', 'staging'])) {
+        if (app()->environment(['local', 'development'])) {
             $this->call([
                 // Households for multi-user testing
                 HouseholdSeeder::class,
@@ -122,6 +134,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             PreviewUserSeeder::class,
             SavingsMarketRatesSeeder::class,
+            CurrencyRatesSeeder::class,
             OccupationCodeSeeder::class,
             PlanConfigurationSeeder::class,
             RetirementActionDefinitionSeeder::class,
@@ -131,6 +144,7 @@ class DatabaseSeeder extends Seeder
             TaxActionDefinitionSeeder::class,
             EstateActionDefinitionSeeder::class,
             SubscriptionPlanSeeder::class,
+            InvoiceSequenceSeeder::class,
         ]);
     }
 }

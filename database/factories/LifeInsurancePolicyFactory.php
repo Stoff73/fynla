@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\LifeInsurancePolicy;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\LifeInsurancePolicy>
+ * @extends Factory<LifeInsurancePolicy>
  */
 class LifeInsurancePolicyFactory extends Factory
 {
@@ -19,7 +21,7 @@ class LifeInsurancePolicyFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'policy_type' => fake()->randomElement(['term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'level_term']),
             'provider' => fake()->company(),
             'policy_number' => fake()->unique()->numerify('LI######'),

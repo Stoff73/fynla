@@ -10,8 +10,43 @@
       @close="handleVerificationClose"
     />
 
+    <!-- Restore Account Modal -->
+    <RestoreAccountModal
+      v-bind="restoreModal"
+      @cancel="onRestoreCancel"
+      @restored="onRestored"
+    />
+
     <div class="max-w-2xl w-full">
       <div class="auth-card rounded-2xl py-8 px-6 sm:px-12 lg:px-16 space-y-6">
+        <!-- Funnel hand-off (from=savetax et al): the user already filled the
+             compact register form on the campaign page, so re-showing this
+             page's full form (behind the verification modal, and again in the
+             gap between verifying and the dashboard redirect) reads as a
+             confusing flash of a second registration form. Hold on a quiet
+             setup panel instead — the form only returns if they close the
+             modal without verifying. -->
+        <div v-if="funnelHandoff" class="py-10 flex flex-col items-center gap-5">
+          <img :src="logoImage" alt="Fynla" class="h-[75px] w-auto">
+          <template v-if="handoffError">
+            <p class="text-body-sm text-raspberry-700 text-center">{{ handoffError }}</p>
+            <button v-if="pendingId" type="button" class="btn-primary" @click="resumeVerification">
+              Continue verification
+            </button>
+            <router-link :to="loginDestination" class="font-medium text-raspberry-500 hover:text-raspberry-700 underline">
+              Sign in to your account
+            </router-link>
+            <button type="button" class="btn-secondary" @click="resetHandoff">
+              Create a new account
+            </button>
+          </template>
+          <template v-else>
+            <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
+            <p class="text-body-sm text-neutral-500 text-center">Setting up your account…</p>
+          </template>
+        </div>
+
+        <template v-else>
         <div>
           <div class="flex justify-center">
             <router-link to="/" class="inline-block hover:opacity-85 transition-opacity">
@@ -172,6 +207,7 @@
           By creating an account, you agree to our <router-link to="/terms" class="text-raspberry-500 hover:text-raspberry-600 underline">Terms of Service</router-link> and <router-link to="/privacy" class="text-raspberry-500 hover:text-raspberry-600 underline">Privacy Policy</router-link>
         </p>
       </form>
+        </template>
       </div>
 
       <!-- Links below the box -->
@@ -190,21 +226,31 @@ import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
+import RestoreAccountModal from '@/components/Account/RestoreAccountModal.vue';
 import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
 import { hasConsent, acceptCookies } from '@/utils/cookieConsent';
+import { getCapturedSource, clearCapturedSource } from '@/utils/sourceCapture';
 
 export default {
   name: 'RegisterView',
 
   components: {
     VerificationCodeModal,
+    RestoreAccountModal,
   },
 
   setup() {
     const store = useStore();
     const router = useRouter();
+    const route = router.currentRoute.value;
+    const initialHandoff = typeof route.query.handoff === 'string' ? route.query.handoff : '';
+    if (initialHandoff) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('handoff');
+      window.history.replaceState(window.history.state, '', cleanUrl.toString());
+    }
     const cookiesAccepted = ref(hasConsent());
 
     const handleAcceptCookiesForRegistration = () => {
@@ -234,14 +280,85 @@ export default {
     const pendingId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
+    // Funnel hand-off in progress: hide this page's registration form (the
+    // user already registered on the campaign page) and hold on a quiet
+    // setup panel until the post-verification redirect fires.
+    const funnelHandoff = ref(initialHandoff !== '');
+    const handoffError = ref('');
+    const handoffSource = ref('');
+
+    const restoreModal = ref({
+      visible: false,
+      firstName: '',
+      deletedAt: '',
+      restorationToken: '',
+      registrationHandoff: '',
+      requiresPasswordVerification: false,
+      email: '',
+    });
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
     // Capture plan/billing/referral from query params
-    const route = router.currentRoute.value;
     const selectedPlan = route.query.plan || null;
     const selectedBilling = route.query.billing || null;
     const referralCode = route.query.ref || null;
+
+    onMounted(async () => {
+      const handoff = initialHandoff;
+      if (handoff.length === 0) return;
+
+      try {
+        const response = await api.post('/auth/registration-handoff/resolve', { handoff });
+        handoffSource.value = response.data.source;
+
+        if (response.data.kind === 'verification') {
+          pendingId.value = response.data.pending_id;
+          pendingEmail.value = response.data.masked_email || '';
+          showVerificationModal.value = true;
+          return;
+        }
+
+        if (response.data.kind === 'restoration') {
+          restoreModal.value = {
+            visible: true,
+            firstName: response.data.first_name || '',
+            deletedAt: response.data.deleted_at || '',
+            restorationToken: '',
+            registrationHandoff: handoff,
+            requiresPasswordVerification: true,
+            email: '',
+          };
+          return;
+        }
+
+        throw new Error('Unsupported registration handoff.');
+      } catch (error) {
+        handoffError.value = error.response?.data?.message
+          || 'This registration link is invalid. Please start again.';
+      }
+    });
+
+    const loginDestination = computed(() => ({
+      path: '/login',
+      query: route.query.from ? { from: route.query.from } : {},
+    }));
+
+    const resetHandoff = async () => {
+      handoffError.value = '';
+      funnelHandoff.value = false;
+      pendingId.value = null;
+      pendingEmail.value = '';
+      await router.replace({
+        path: '/register',
+        query: route.query.from ? { from: route.query.from } : {},
+      });
+    };
+
+    const resumeVerification = () => {
+      handoffError.value = '';
+      showVerificationModal.value = true;
+    };
 
     const handleRegister = async () => {
       // Guard against double submission
@@ -276,7 +393,37 @@ export default {
           payload.referral_code = referralCode;
         }
 
+        // Marketing-channel attribution captured at first page load
+        // (e.g. /savetax?utm_source=linkedin) and stashed in
+        // sessionStorage by sourceCapture.js. Send it through; backend
+        // validates against an allowlist before persisting.
+        const capturedSource = getCapturedSource();
+        if (capturedSource) {
+          payload.signup_source = capturedSource;
+        }
+
         const response = await api.post('/auth/register', payload);
+
+        // Source has been persisted to PendingRegistration; clear so a
+        // second registration attempt in the same browser session does
+        // not silently inherit it.
+        if (capturedSource) clearCapturedSource();
+
+        // Email belongs to a soft-deleted but restorable account — show
+        // the restore modal. The modal collects the password and calls
+        // /auth/restore/check before /auth/restore.
+        if (response.data.account_deleted_restorable) {
+          restoreModal.value = {
+            visible: true,
+            firstName: response.data.first_name || '',
+            deletedAt: response.data.deleted_at || '',
+            restorationToken: '',
+            registrationHandoff: '',
+            requiresPasswordVerification: true,
+            email: form.value.email,
+          };
+          return;
+        }
 
         // Check if verification is required
         if (response.data.requires_verification) {
@@ -337,13 +484,21 @@ export default {
       // CRITICAL: Reset aiChat state to prevent any prior user's conversation leaking
       store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
 
-      // Route based on registration source
-      const fromParam = route.query.from;
+      // Route based on registration source. Any `from=<id>` (e.g. fyn,
+      // savetax, biggerpension) takes the user to the dashboard with the
+      // Fyn chat auto-opened, propagating the entry source so the
+      // onboarding director can route to the matching campaign or
+      // life-stage journey via the campaign_map / journey_map config.
+      const fromParam = handoffSource.value || route.query.from;
       const stageParam = route.query.stage;
 
-      if (fromParam === 'fyn') {
-        // Came from "Get started with Fyn" — go to dashboard with Fyn chat open
-        router.push({ name: 'Dashboard', query: { openFyn: 'journey', newUser: '1' } });
+      if (data.checkout_intent) {
+        router.push(`/checkout?plan=${encodeURIComponent(data.checkout_intent.tier)}&cycle=${encodeURIComponent(data.checkout_intent.billing_cycle)}`);
+      } else if (fromParam) {
+        router.push({
+          name: 'Dashboard',
+          query: { openFyn: 'journey', newUser: '1', from: fromParam },
+        });
       } else if (stageParam) {
         router.push({ name: 'Onboarding', query: { stage: stageParam, newUser: '1' } });
       } else {
@@ -353,8 +508,53 @@ export default {
 
     const handleVerificationClose = () => {
       showVerificationModal.value = false;
+      if (funnelHandoff.value) {
+        handoffError.value = 'Verification was paused. You can continue without entering your details again.';
+        return;
+      }
+
       pendingId.value = null;
       pendingEmail.value = '';
+    };
+
+    const onRestoreCancel = () => {
+      restoreModal.value = {
+        visible: false,
+        firstName: '',
+        deletedAt: '',
+        restorationToken: '',
+        registrationHandoff: '',
+        requiresPasswordVerification: false,
+        email: '',
+      };
+      if (funnelHandoff.value) {
+        handoffError.value = 'Account restoration was cancelled. You can sign in or create a new account.';
+      }
+    };
+
+    const onRestored = async (result) => {
+      // result = { token, user, redirect_to } from POST /api/auth/restore
+      await authService.setToken(result.token);
+      store.commit('auth/setToken', result.token);
+
+      // Reset cross-user caches so a returning restored user does not
+      // inherit any stale chat / dashboard state.
+      store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
+
+      try {
+        await store.dispatch('auth/fetchUser');
+      } catch {
+        // fetchUser failure shouldn't block redirect — token is set.
+      }
+
+      restoreModal.value.visible = false;
+      if (handoffSource.value === 'savetax') {
+        router.push({ name: 'Dashboard', query: { openFyn: 'journey', from: 'savetax' } });
+      } else if (handoffSource.value) {
+        router.push({ name: 'Dashboard', query: { openFyn: 'journey', from: handoffSource.value } });
+      } else {
+        router.push(result.redirect_to || { name: 'Dashboard' });
+      }
     };
 
     return {
@@ -368,9 +568,17 @@ export default {
       showVerificationModal,
       pendingId,
       pendingEmail,
+      funnelHandoff,
+      handoffError,
+      loginDestination,
+      resetHandoff,
+      resumeVerification,
+      restoreModal,
       handleRegister,
       handleVerified,
       handleVerificationClose,
+      onRestoreCancel,
+      onRestored,
       logoImage: '/images/logos/LogoHiResFynlaDark.png',
     };
   },

@@ -6,6 +6,7 @@ use App\Models\LoginAttempt;
 use App\Models\User;
 use App\Services\Auth\LoginLockoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -96,6 +97,24 @@ describe('recordFailedAttempt', function () {
 
         $user->refresh();
         expect($user->failed_login_count)->toBe(2);
+    });
+
+    it('locks the account row while incrementing the shared failure counter', function () {
+        User::factory()->create([
+            'email' => 'test@example.com',
+            'failed_login_count' => 0,
+        ]);
+        $queries = [];
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = strtolower($query->sql);
+        });
+
+        $this->service->recordFailedAttempt('test@example.com');
+
+        expect(collect($queries)->contains(
+            fn (string $query): bool => str_contains($query, 'from `users`')
+                && str_contains($query, 'for update')
+        ))->toBeTrue();
     });
 
     it('locks account after 3 failed attempts (1 minute)', function () {

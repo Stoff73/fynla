@@ -6,6 +6,7 @@ namespace App\Services\GDPR;
 
 use App\Models\User;
 use App\Models\UserConsent;
+use Illuminate\Database\Eloquent\Collection;
 
 class ConsentService
 {
@@ -75,7 +76,7 @@ class ConsentService
     /**
      * Get consent history for a user
      */
-    public function getConsentHistory(User $user): \Illuminate\Database\Eloquent\Collection
+    public function getConsentHistory(User $user): Collection
     {
         return UserConsent::where('user_id', $user->id)
             ->orderByDesc('created_at')

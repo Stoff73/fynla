@@ -5,8 +5,26 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Exceptions\FinancialCalculationException;
+use App\Models\CriticalIllnessPolicy;
+use App\Models\Estate\Will;
+use App\Models\FamilyMember;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
+use App\Models\RetirementProfile;
+use App\Models\SpousePermission;
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\LiabilityStore;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -14,8 +32,10 @@ class OnboardingService
 {
     public function __construct(
         private EstateOnboardingFlow $estateFlow,
-        private \App\Services\TaxConfigService $taxConfig,
-        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
+        private TaxConfigService $taxConfig,
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly MortgageStore $mortgageStore,
+        private readonly LiabilityStore $liabilityStore,
     ) {}
 
     /**
@@ -249,7 +269,7 @@ class OnboardingService
         }
 
         // Get existing family members added during onboarding
-        $existingMembers = \App\Models\FamilyMember::where('user_id', $userId)
+        $existingMembers = FamilyMember::where('user_id', $userId)
             ->whereNotNull('date_of_birth')
             ->get()
             ->keyBy('name');
@@ -274,7 +294,7 @@ class OnboardingService
                 ]);
             } else {
                 // Create new family member
-                \App\Models\FamilyMember::create([
+                FamilyMember::create([
                     'user_id' => $userId,
                     'name' => $memberData['name'],
                     'relationship' => $memberData['relationship'],
@@ -333,7 +353,7 @@ class OnboardingService
                 $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseAccount->id);
 
                 // Create bidirectional spouse data sharing permissions
-                \App\Models\SpousePermission::updateOrCreate(
+                SpousePermission::updateOrCreate(
                     [
                         'user_id' => $user->id,
                         'spouse_id' => $spouseAccount->id,
@@ -344,7 +364,7 @@ class OnboardingService
                     ]
                 );
 
-                \App\Models\SpousePermission::updateOrCreate(
+                SpousePermission::updateOrCreate(
                     [
                         'user_id' => $spouseAccount->id,
                         'spouse_id' => $user->id,
@@ -356,7 +376,7 @@ class OnboardingService
                 );
 
                 // Create family member record for the current user
-                \App\Models\FamilyMember::updateOrCreate(
+                FamilyMember::updateOrCreate(
                     [
                         'user_id' => $user->id,
                         'relationship' => 'spouse',
@@ -370,7 +390,7 @@ class OnboardingService
                 );
 
                 // Create reciprocal family member record for spouse
-                \App\Models\FamilyMember::updateOrCreate(
+                FamilyMember::updateOrCreate(
                     [
                         'user_id' => $spouseAccount->id,
                         'relationship' => 'spouse',
@@ -385,7 +405,7 @@ class OnboardingService
             });
         } else {
             // Account doesn't exist yet - just create family member record
-            \App\Models\FamilyMember::updateOrCreate(
+            FamilyMember::updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'relationship' => 'spouse',
@@ -426,7 +446,7 @@ class OnboardingService
         }
 
         // Use updateOrCreate to handle both new and existing records
-        \App\Models\Estate\Will::updateOrCreate(
+        Will::updateOrCreate(
             ['user_id' => $userId],
             $willData
         );
@@ -457,9 +477,9 @@ class OnboardingService
 
         // Update or create retirement profile if retirement age is provided
         if (isset($data['target_retirement_age'])) {
-            $currentAge = $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->age : 30;
+            $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 30;
 
-            \App\Models\RetirementProfile::updateOrCreate(
+            RetirementProfile::updateOrCreate(
                 ['user_id' => $userId],
                 [
                     'current_age' => $currentAge,
@@ -470,12 +490,12 @@ class OnboardingService
 
         // If user is retired, calculate their retirement age from retirement date
         if ($data['employment_status'] === 'retired' && isset($data['retirement_date']) && $user->date_of_birth) {
-            $birthDate = \Carbon\Carbon::parse($user->date_of_birth);
-            $retirementDate = \Carbon\Carbon::parse($data['retirement_date']);
+            $birthDate = Carbon::parse($user->date_of_birth);
+            $retirementDate = Carbon::parse($data['retirement_date']);
             $retirementAge = $retirementDate->diffInYears($birthDate);
-            $currentAge = \Carbon\Carbon::now()->diffInYears($birthDate);
+            $currentAge = Carbon::now()->diffInYears($birthDate);
 
-            \App\Models\RetirementProfile::updateOrCreate(
+            RetirementProfile::updateOrCreate(
                 ['user_id' => $userId],
                 [
                     'current_age' => $currentAge,
@@ -596,13 +616,16 @@ class OnboardingService
         // Process Properties
         if (isset($data['properties']) && is_array($data['properties'])) {
             $totalMonthlyRentalIncome = 0;
+            $user = User::findOrFail($userId);
 
             foreach ($data['properties'] as $propertyData) {
                 $monthlyRental = $propertyData['monthly_rental_income'] ?? 0;
 
-                // Create property record
-                $property = \App\Models\Property::create([
-                    'user_id' => $userId,
+                // Create property record via PropertyStore (IngestSource::FORM — onboarding payload is form-shape).
+                // Mirror the savings sibling below: normalise via fromForm() before the store call so future
+                // form-field drift (alias keys, enum variants) is canonicalised at the seam rather than failing
+                // validation deeper. annual_rental_income is a users column, not a properties column; omit it.
+                $canonical = app(PropertyNormaliser::class)->fromForm([
                     'property_type' => $propertyData['property_type'],
                     'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
                     'address_line_1' => $propertyData['address_line_1'],
@@ -613,8 +636,9 @@ class OnboardingService
                     'current_value' => $propertyData['current_value'],
                     'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
                     'monthly_rental_income' => $monthlyRental,
-                    'annual_rental_income' => $monthlyRental * 12,
                 ]);
+
+                $property = app(PropertyStore::class)->create($canonical, $user, IngestSource::FORM);
 
                 // Accumulate rental income for updating user's total rental income
                 if ($monthlyRental > 0) {
@@ -623,30 +647,31 @@ class OnboardingService
 
                 // If property has a mortgage, create a mortgage record linked to this property
                 if (isset($propertyData['outstanding_mortgage']) && $propertyData['outstanding_mortgage'] > 0) {
-                    \App\Models\Mortgage::create([
+                    $mortgageCanonical = MortgageNormaliser::fromForm([
                         'property_id' => $property->id,
-                        'user_id' => $userId,
-                        'lender_name' => 'Mortgage Provider', // Default name from onboarding
-                        'mortgage_type' => 'repayment', // Default to repayment
-                        'original_loan_amount' => $propertyData['outstanding_mortgage'], // Use current balance as original
+                        'lender_name' => 'Mortgage Provider',
+                        'mortgage_type' => 'repayment',
+                        'original_loan_amount' => $propertyData['outstanding_mortgage'],
                         'outstanding_balance' => $propertyData['outstanding_mortgage'],
-                        'interest_rate' => 0.0350, // Default 3.5% if not provided
+                        'interest_rate' => 0.0350,
                         'rate_type' => 'fixed',
                         'monthly_payment' => $this->calculateMortgagePayment(
                             $propertyData['outstanding_mortgage'],
                             0.0350,
                             25
                         ),
-                        'start_date' => now()->subYears(5), // Default 5 years ago
-                        'maturity_date' => now()->addYears(20), // Default 20 years remaining
-                        'remaining_term_months' => 240, // 20 years * 12 months
-                    ]);
+                        'start_date' => now()->subYears(5),
+                        'maturity_date' => now()->addYears(20),
+                        'remaining_term_months' => 240,
+                        'ownership_type' => 'individual',
+                        'ownership_percentage' => 100.00,
+                    ], $user);
+                    $this->mortgageStore->create($mortgageCanonical, $user, IngestSource::FORM);
                 }
             }
 
             // Update user's rental income if any buy-to-let properties were added
             if ($totalMonthlyRentalIncome > 0) {
-                $user = User::find($userId);
                 $user->update([
                     'annual_rental_income' => $totalMonthlyRentalIncome * 12,
                 ]);
@@ -679,22 +704,26 @@ class OnboardingService
                 if ($ownershipType === 'joint') {
                     $ownershipPercentage = 50.00;
                     $jointOwnerId = $investmentData['joint_owner_id']
-                        ?? \App\Models\User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
+                        ?? User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
-                \App\Models\Investment\InvestmentAccount::create([
-                    'user_id' => $userId,
-                    'provider' => $investmentData['institution'],
-                    'account_type' => $accountType,
-                    'country' => $investmentData['country'] ?? 'United Kingdom',
-                    'current_value' => $currentValue,
-                    'ownership_type' => $ownershipType,
-                    'ownership_percentage' => $ownershipPercentage,
-                    'joint_owner_id' => $jointOwnerId,
-                    'isa_subscription_current_year' => $isaAllowanceUsed,
-                    'tax_year' => $this->taxConfig->getTaxYear(),
-                    'isa_type' => $accountType === 'isa' ? 'stocks_and_shares' : null,
-                ]);
+                app(InvestmentAccountStore::class)->create(
+                    app(InvestmentAccountNormaliser::class)->fromForm([
+                        'user_id' => $userId,
+                        'provider' => $investmentData['institution'],
+                        'account_type' => $accountType,
+                        'country' => $investmentData['country'] ?? 'United Kingdom',
+                        'current_value' => $currentValue,
+                        'ownership_type' => $ownershipType,
+                        'ownership_percentage' => $ownershipPercentage,
+                        'joint_owner_id' => $jointOwnerId,
+                        'isa_subscription_current_year' => $isaAllowanceUsed,
+                        'tax_year' => $this->taxConfig->getTaxYear(),
+                        'isa_type' => $accountType === 'isa' ? 'stocks_and_shares' : null,
+                    ], User::findOrFail($userId)),
+                    User::findOrFail($userId),
+                    IngestSource::FORM
+                );
             }
         }
 
@@ -712,25 +741,28 @@ class OnboardingService
                 $jointOwnerId = null;
                 if ($ownershipType === 'joint') {
                     $jointOwnerId = $cashData['joint_owner_id']
-                        ?? \App\Models\User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
+                        ?? User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
-                \App\Models\SavingsAccount::create([
-                    'user_id' => $userId,
-                    'institution' => $cashData['institution'],
-                    'account_type' => $cashData['account_type'],
-                    'country' => $cashData['country'] ?? 'United Kingdom',
-                    'current_balance' => $currentBalance,
-                    'interest_rate' => isset($cashData['interest_rate']) ? $cashData['interest_rate'] / 100 : 0,
-                    'ownership_type' => $ownershipType,
-                    'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
-                    'joint_owner_id' => $jointOwnerId,
-                    'is_isa' => $isCashISA,
-                    'isa_type' => $isCashISA ? 'cash' : null,
-                    'isa_subscription_year' => $isCashISA ? $this->taxConfig->getTaxYear() : null,
-                    'isa_subscription_amount' => $isCashISA ? $isaAllowanceUsed : null,
-                    'access_type' => $this->mapAccessType($cashData['account_type']),
-                ]);
+                app(SavingsStore::class)->create(
+                    app(SavingsAccountNormaliser::class)->fromForm([
+                        'institution' => $cashData['institution'],
+                        'account_type' => $cashData['account_type'],
+                        'country' => $cashData['country'] ?? 'United Kingdom',
+                        'current_balance' => $currentBalance,
+                        'interest_rate' => isset($cashData['interest_rate']) ? $cashData['interest_rate'] / 100 : 0,
+                        'ownership_type' => $ownershipType,
+                        'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
+                        'joint_owner_id' => $jointOwnerId,
+                        'is_isa' => $isCashISA,
+                        'isa_type' => $isCashISA ? 'cash' : null,
+                        'isa_subscription_year' => $isCashISA ? $this->taxConfig->getTaxYear() : null,
+                        'isa_subscription_amount' => $isCashISA ? $isaAllowanceUsed : null,
+                        'access_type' => $this->mapAccessType($cashData['account_type']),
+                    ]),
+                    User::findOrFail($userId),
+                    IngestSource::FORM
+                );
             }
         }
     }
@@ -784,6 +816,8 @@ class OnboardingService
             return;
         }
 
+        $user = User::findOrFail($userId);
+
         foreach ($data['liabilities'] as $liabilityData) {
             // Skip mortgages - they should be linked to properties and created in processAssets
             if ($liabilityData['type'] === 'mortgage') {
@@ -796,8 +830,7 @@ class OnboardingService
                 : null;
 
             // Create liability record
-            \App\Models\Estate\Liability::create([
-                'user_id' => $userId,
+            $this->liabilityStore->create([
                 'liability_type' => $liabilityData['type'],
                 'liability_name' => $liabilityData['lender'],
                 'country' => $liabilityData['country'] ?? 'United Kingdom',
@@ -805,7 +838,7 @@ class OnboardingService
                 'monthly_payment' => $liabilityData['monthly_payment'] ?? null,
                 'interest_rate' => $interestRate,
                 'notes' => $liabilityData['purpose'] ?? null,
-            ]);
+            ], $user, IngestSource::FORM);
         }
     }
 
@@ -851,8 +884,8 @@ class OnboardingService
         // Calculate term years if end date provided or use provided term_years
         $termYears = $data['term_years'] ?? 25; // Default
         if ($endDate) {
-            $start = \Carbon\Carbon::parse($startDate);
-            $end = \Carbon\Carbon::parse($endDate);
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
             $termYears = $start->diffInYears($end);
         }
 
@@ -880,7 +913,7 @@ class OnboardingService
             $policyData['decreasing_rate'] = $data['decreasing_rate'] ?? null;
         }
 
-        \App\Models\LifeInsurancePolicy::create($policyData);
+        LifeInsurancePolicy::create($policyData);
     }
 
     /**
@@ -894,12 +927,12 @@ class OnboardingService
         // Calculate term years if end date provided
         $termYears = 25; // Default
         if ($endDate) {
-            $start = \Carbon\Carbon::parse($startDate);
-            $end = \Carbon\Carbon::parse($endDate);
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
             $termYears = $start->diffInYears($end);
         }
 
-        \App\Models\CriticalIllnessPolicy::create([
+        CriticalIllnessPolicy::create([
             'user_id' => $userId,
             'policy_type' => 'standalone', // Default
             'provider' => $data['provider'],
@@ -919,7 +952,7 @@ class OnboardingService
     {
         $startDate = ! empty($data['start_date']) ? $data['start_date'] : now()->toDateString();
 
-        \App\Models\IncomeProtectionPolicy::create([
+        IncomeProtectionPolicy::create([
             'user_id' => $userId,
             'provider' => $data['provider'],
             'policy_number' => $data['policy_number'] ?? null,
@@ -1020,28 +1053,22 @@ class OnboardingService
             }
         }
 
-        $user->update([
-            'onboarding_skipped_steps' => $skippedSteps,
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-        ]);
+        $user->onboarding_skipped_steps = $skippedSteps;
 
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
     }
 
     /**
-     * Complete the onboarding process
+     * Complete the onboarding process.
+     *
+     * Clears every active Fyn routing field so the server and both clients
+     * resolve the completed user to the read-only advice state.
      */
     public function completeOnboarding(int $userId): User
     {
         $user = User::findOrFail($userId);
 
-        $user->update([
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-        ]);
-
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
     }
 
     /**
@@ -1051,13 +1078,36 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        $user->update([
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-            'onboarding_mode' => 'quick',
-        ]);
+        $user->onboarding_mode = 'quick';
 
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
+    }
+
+    /**
+     * Complete either wizard flow and clear stale Fyn routing state atomically.
+     */
+    private function finaliseOnboardingState(User $user): User
+    {
+        return DB::transaction(function () use ($user): User {
+            $context = $user->onboarding_fyn_context;
+            if (is_array($context)) {
+                unset($context['paused_at_step']);
+            }
+
+            $user->update([
+                'onboarding_skipped_steps' => $user->onboarding_skipped_steps,
+                'onboarding_completed' => true,
+                'onboarding_completed_at' => Carbon::now(),
+                'onboarding_mode' => $user->onboarding_mode,
+                'active_campaign' => null,
+                'onboarding_fyn_path' => null,
+                'onboarding_fyn_selection' => null,
+                'onboarding_fyn_step' => null,
+                'onboarding_fyn_context' => $context,
+            ]);
+
+            return $user->fresh();
+        });
     }
 
     /**

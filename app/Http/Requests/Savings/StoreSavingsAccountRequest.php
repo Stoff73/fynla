@@ -6,6 +6,7 @@ namespace App\Http\Requests\Savings;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreSavingsAccountRequest extends FormRequest
 {
@@ -14,9 +15,22 @@ class StoreSavingsAccountRequest extends FormRequest
         return true;
     }
 
+    /**
+     * The savings_accounts.country column is NOT NULL DEFAULT 'United Kingdom'.
+     * Drop the key when it arrives null/empty so the DB default kicks in instead
+     * of an integrity-constraint 500. Same pattern as PR #269 (investment_accounts).
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
+            $this->offsetUnset('country');
+        }
+    }
+
     public function rules(): array
     {
         return [
+            'account_name' => 'nullable|string|max:255',
             'account_type' => 'nullable|string|max:255',
             'institution' => 'nullable|string|max:255',
             'account_number' => [
@@ -43,11 +57,37 @@ class StoreSavingsAccountRequest extends FormRequest
             'isa_subscription_amount' => 'nullable|numeric|min:0',
 
             // Ownership - defaults to 'individual' if not provided
-            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'joint_owner_id' => ['nullable', 'exists:users,id'],
             'trust_id' => ['nullable', 'exists:trusts,id'],
         ];
+    }
+
+    /**
+     * Joint ISAs do not exist in UK law — every ISA is held in a single name.
+     * Reject combinations that try to create one before they reach the controller.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $isIsa = $this->boolean('is_isa') || in_array($this->input('account_type'), ['cash_isa', 'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa'], true);
+            $ownershipType = $this->input('ownership_type');
+            $isJoint = in_array($ownershipType, ['joint', 'tenants_in_common'], true) || $this->filled('joint_owner_id');
+
+            if (in_array($ownershipType, ['joint', 'tenants_in_common'], true) && ! $this->filled('ownership_percentage')) {
+                $v->errors()->add('ownership_percentage', 'An explicit ownership share is required for a shared account.');
+            } elseif (in_array($ownershipType, ['joint', 'tenants_in_common'], true)) {
+                $share = (float) $this->input('ownership_percentage');
+                if ($share <= 0 || $share >= 100) {
+                    $v->errors()->add('ownership_percentage', 'The ownership share must be between 0% and 100% for a shared account.');
+                }
+            }
+
+            if ($isIsa && $isJoint) {
+                $v->errors()->add('ownership_type', 'ISAs cannot be jointly owned — every ISA is held in a single name under UK law.');
+            }
+        });
     }
 
     public function messages(): array

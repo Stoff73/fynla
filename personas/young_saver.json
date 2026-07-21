@@ -1,0 +1,394 @@
+{
+  "id": "young_saver",
+  "life_stage": "early_career",
+  "name": "John Morgan",
+  "tagline": "Early career professional saving for his first home",
+  "description": "A 28-year-old data analyst in Manchester, renting and saving for a house deposit. Five years into his career with a growing workplace pension, Lifetime ISA for a first home, and a solid emergency fund. Student loan from university still being repaid through PAYE.",
+  "netWorthRange": "£15k - £20k",
+  "focus": "First home, emergency fund, pension growth",
+
+  "user": {
+    "first_name": "John",
+    "last_name": "Morgan",
+    "email": "john.morgan@example.com",
+    "date_of_birth": "1998-03-22",
+    "age": 28,
+    "gender": "male",
+    "marital_status": "single",
+    "annual_income": 38000,
+    "employment_status": "employed",
+    "employer_name": "DataInsights Ltd",
+    "occupation": "Data Analyst",
+    "target_retirement_age": 67,
+    "target_retirement_income": 25000,
+    "monthly_expenditure": 2100,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "undergraduate",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "Flat 4, 28 Deansgate Mews",
+      "city": "Manchester",
+      "postcode": "M3 4LQ"
+    },
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
+    }
+  },
+
+  "spouse": null,
+
+  "family_members": [],
+
+  "properties": [],
+
+  "mortgages": [],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "John's Current Account",
+      "provider_name": "Monzo",
+      "account_type": "current_account",
+      "current_balance": 1200,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Day-to-day spending account"
+    },
+    {
+      "id": 2,
+      "account_name": "Emergency Fund",
+      "provider_name": "Chase",
+      "account_type": "instant_access",
+      "current_balance": 3500,
+      "interest_rate": 4.5,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "Building towards 3 months expenses"
+    },
+    {
+      "id": 3,
+      "account_name": "John's Cash ISA",
+      "provider_name": "Marcus",
+      "account_type": "cash_isa",
+      "current_balance": 6000,
+      "interest_rate": 4.25,
+      "is_isa": true,
+      "isa_subscription_current_year": 2400,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "Flexible savings with tax-free interest"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "Lifetime ISA",
+      "provider_name": "Moneybox",
+      "account_type": "lisa",
+      "current_value": 2400,
+      "annual_contribution": 2000,
+      "monthly_contribution_amount": 150,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 2000,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 0,
+      "risk_preference": "lower_medium",
+      "has_custom_risk": false,
+      "notes": "Stocks & Shares LISA for first home deposit. 25% government bonus on contributions up to £4,000/year. Can use for first home up to £450k or at 60+.",
+      "holdings": [
+        {
+          "holding_name": "Moneybox Global Shares Fund",
+          "ticker": null,
+          "isin": "GB00BF0SWL52",
+          "asset_type": "fund",
+          "units": 18.5,
+          "initial_unit_cost": 98.50,
+          "current_unit_price": 103.78,
+          "current_value": 1920,
+          "allocation_percentage": 80,
+          "annual_fee": 0.35
+        },
+        {
+          "holding_name": "Moneybox UK Shares Fund",
+          "ticker": null,
+          "isin": "GB00BF0SWK46",
+          "asset_type": "fund",
+          "units": 4.8,
+          "initial_unit_cost": 95.00,
+          "current_unit_price": 100.00,
+          "current_value": 480,
+          "allocation_percentage": 20,
+          "annual_fee": 0.30
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "DataInsights Workplace Pension",
+      "provider_name": "NEST",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 8200,
+      "employee_contribution_percent": 5,
+      "employer_contribution_percent": 3,
+      "annual_salary": 38000,
+      "retirement_age": 67,
+      "ownership_type": "individual",
+      "risk_preference": "medium",
+      "platform_fee_percent": 0.30,
+      "notes": "Auto-enrolled workplace pension. Contributing 5% with 3% employer match."
+    }
+  ],
+
+  "db_pensions": [],
+
+  "state_pension": null,
+
+  "life_insurance_policies": [],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "student_loan",
+      "liability_name": "Student Loan Plan 2",
+      "current_balance": 42000,
+      "original_amount": 45000,
+      "interest_rate": 7.3,
+      "monthly_payment": 35,
+      "start_date": "2022-04-01",
+      "end_date": null,
+      "lender_name": "Student Loans Company",
+      "notes": "Plan 2 loan - repay 9% of earnings above 27295/year. Written off after 30 years."
+    },
+    {
+      "id": 2,
+      "liability_type": "other",
+      "liability_name": "iPhone 15 Pro Finance",
+      "current_balance": 420,
+      "original_amount": 840,
+      "interest_rate": 0,
+      "monthly_payment": 35,
+      "start_date": "2024-01-15",
+      "end_date": "2026-01-15",
+      "lender_name": "Apple",
+      "notes": "24-month interest-free contract, 12 months remaining"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [],
+
+  "expenditure": {
+    "total_monthly": 1833,
+    "categories": {
+      "rent": 650,
+      "utilities": 150,
+      "food_groceries": 250,
+      "transport_fuel": 85,
+      "mobile_phones": 35,
+      "subscriptions": 45,
+      "entertainment_dining": 200,
+      "clothing_personal_care": 50,
+      "other_expenditure": 368
+    }
+  },
+
+  "key_concerns": [
+    "How can I save for a house deposit while paying off my student loan?",
+    "Should I put more into my pension or focus on my LISA?",
+    "Am I saving enough for emergencies?",
+    "What happens if I lose my job?"
+  ],
+
+  "highlights": {
+    "protection_gaps": [
+      "No life insurance - minimal need as single with no dependents",
+      "No income protection - consider once earning more",
+      "Employer may provide death-in-service benefit - check"
+    ],
+    "net_worth_range": "-35k to -30k",
+    "primary_focus": "Emergency fund, first-time buyer savings, pension contributions"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "medium",
+    "notes": "Young with long investment horizon, can take more risk for growth but currently focused on cash savings for house deposit"
+  },
+
+  "will": {
+    "has_will": false,
+    "spouse_primary_beneficiary": false,
+    "spouse_bequest_percentage": 0,
+    "executor_name": null,
+    "executor_notes": null,
+    "will_last_updated": null,
+    "bequests": []
+  },
+
+  "goals": [
+    {
+      "goal_name": "First Home Deposit",
+      "goal_type": "property_purchase",
+      "description": "Save for house deposit in Manchester using LISA 25% bonus. Targeting £250k property with 10% deposit.",
+      "target_amount": 25000,
+      "current_amount": 5600,
+      "target_date": "2029-06-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "property",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 250,
+      "contribution_streak": 18,
+      "longest_streak": 18,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual",
+      "property_location": "Manchester",
+      "is_first_time_buyer": true,
+      "estimated_property_price": 250000,
+      "deposit_percentage": 10
+    },
+    {
+      "goal_name": "Emergency Fund",
+      "goal_type": "emergency_fund",
+      "description": "Build 3 months of living expenses as safety net",
+      "target_amount": 5500,
+      "current_amount": 1500,
+      "target_date": "2027-06-01",
+      "start_date": "2024-06-01",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": true,
+      "monthly_contribution": 100,
+      "contribution_streak": 15,
+      "longest_streak": 15,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Max LISA This Year",
+      "goal_type": "custom",
+      "custom_goal_type_name": "LISA Maximization",
+      "description": "Contribute full £4,000 to Lifetime ISA to get maximum £1,000 government bonus",
+      "target_amount": 4000,
+      "current_amount": 2000,
+      "target_date": "2026-04-05",
+      "start_date": "2025-04-06",
+      "assigned_module": "savings",
+      "priority": "medium",
+      "is_essential": false,
+      "monthly_contribution": 150,
+      "contribution_streak": 10,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Career Development Fund",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Education",
+      "description": "Save for professional certifications (AWS, data science courses) to boost earning potential",
+      "target_amount": 3000,
+      "current_amount": 800,
+      "target_date": "2027-03-01",
+      "start_date": "2025-06-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 75,
+      "contribution_streak": 6,
+      "longest_streak": 6,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    }
+  ],
+
+  "life_events": [
+    {
+      "event_name": "First Car Purchase",
+      "event_type": "large_purchase",
+      "description": "Buy first car - reliable used hatchback for commuting",
+      "amount": 8000,
+      "impact_type": "expense",
+      "expected_date": "2027-06-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Annual Bonus",
+      "event_type": "bonus",
+      "description": "Expected performance bonus at TechFlow Digital",
+      "amount": 3500,
+      "impact_type": "income",
+      "expected_date": "2026-04-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Promotion Pay Rise",
+      "event_type": "custom_income",
+      "description": "Expecting promotion to Senior Developer with significant pay increase",
+      "amount": 8000,
+      "impact_type": "income",
+      "expected_date": "2027-01-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Move to Better Flat",
+      "event_type": "large_purchase",
+      "description": "Rental deposit and moving costs for better flat",
+      "amount": 3000,
+      "impact_type": "expense",
+      "expected_date": "2026-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Grandparents' Gift",
+      "event_type": "gift_received",
+      "description": "Grandparents mentioned helping with first home deposit when the time comes",
+      "amount": 15000,
+      "impact_type": "income",
+      "expected_date": "2030-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    }
+  ]
+}

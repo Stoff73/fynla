@@ -6,15 +6,13 @@ namespace App\Services\NetWorth;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Property;
 use App\Models\SavingsAccount;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -24,7 +22,8 @@ class NetWorthService
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private CrossModuleAssetAggregator $assetAggregator
+        private CrossModuleAssetAggregator $assetAggregator,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -198,10 +197,10 @@ class NetWorthService
      */
     private function calculatePensionBreakdown(int $userId): array
     {
-        $dcValue = (float) DCPension::where('user_id', $userId)
-            ->sum('current_fund_value');
-
-        $hasDB = DBPension::where('user_id', $userId)->exists();
+        $user = User::findOrFail($userId);
+        $store = app(PensionStore::class);
+        $dcValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
+        $hasDB = $store->forUserByType($user, 'db')->isNotEmpty();
 
         return [
             'dc' => $dcValue,
@@ -247,9 +246,10 @@ class NetWorthService
         $breakdown = $this->assetAggregator->getAssetBreakdown($userId);
 
         // Calculate pension counts
-        $dcCount = DCPension::where('user_id', $userId)->count();
-        $dbCount = DBPension::where('user_id', $userId)->count();
-        $stateCount = StatePension::where('user_id', $userId)->count();
+        $store = app(PensionStore::class);
+        $dcCount = $store->forUserByType($user, 'dc')->count();
+        $dbCount = $store->forUserByType($user, 'db')->count();
+        $stateCount = $store->statePension($user) ? 1 : 0;
         $pensionCount = $dcCount + $dbCount + $stateCount;
 
         return [
@@ -294,8 +294,9 @@ class NetWorthService
         $userId = $user->id;
 
         // Get pension items
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        $dbPensions = DBPension::where('user_id', $userId)->get();
+        $store = app(PensionStore::class);
+        $dcPensions = $store->forUserByType($user, 'dc');
+        $dbPensions = $store->forUserByType($user, 'db');
 
         $pensionItems = [];
 
@@ -325,7 +326,7 @@ class NetWorthService
         }
 
         // Get property items
-        $properties = Property::where('user_id', $userId)->get();
+        $properties = $this->propertyStore->forUser($user)->where('user_id', $userId);
         $propertyItems = $properties->map(function ($property) {
             $name = $property->address_line_1 ?: $property->property_type;
 
@@ -463,10 +464,12 @@ class NetWorthService
         $userId = $user->id;
         $jointAssets = [];
 
-        // Get joint properties
-        $properties = Property::where('user_id', $userId)
+        // Get joint properties (jointOwner eager-loaded — the display-name
+        // accessor reads the relation, which trips strict no-lazy-loading)
+        $properties = $this->propertyStore
+            ->forUserWithJointOwner($user)
+            ->where('user_id', $userId)
             ->where('ownership_type', 'joint')
-            ->get()
             ->map(function ($property) {
                 return [
                     'type' => 'property',
@@ -474,13 +477,14 @@ class NetWorthService
                     'description' => $property->address_line_1,
                     'value' => $property->current_value,
                     'ownership_percentage' => $property->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $property->joint_owner_display_name,
                 ];
             });
 
         // Get joint investments
         $investments = InvestmentAccount::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($investment) {
                 return [
@@ -489,13 +493,14 @@ class NetWorthService
                     'description' => $investment->provider.' - '.$investment->account_type,
                     'value' => $investment->current_value,
                     'ownership_percentage' => $investment->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $investment->jointOwner?->name,
                 ];
             });
 
         // Get joint savings accounts
         $cashAccounts = SavingsAccount::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($account) {
                 return [
@@ -511,6 +516,7 @@ class NetWorthService
         // Get joint businesses
         $businesses = BusinessInterest::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($business) {
                 return [
@@ -519,13 +525,14 @@ class NetWorthService
                     'description' => $business->business_name,
                     'value' => $business->current_valuation,
                     'ownership_percentage' => $business->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $business->jointOwner?->name,
                 ];
             });
 
         // Get joint chattels
         $chattels = Chattel::where('user_id', $userId)
             ->where('ownership_type', 'joint')
+            ->with('jointOwner')
             ->get()
             ->map(function ($chattel) {
                 return [
@@ -534,7 +541,7 @@ class NetWorthService
                     'description' => $chattel->name,
                     'value' => $chattel->current_value,
                     'ownership_percentage' => $chattel->ownership_percentage,
-                    'co_owner' => null, // Co-owner tracking not in schema
+                    'co_owner' => $chattel->jointOwner?->name ?? $chattel->joint_owner_name,
                 ];
             });
 

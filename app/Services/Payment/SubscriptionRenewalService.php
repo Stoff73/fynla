@@ -41,12 +41,13 @@ class SubscriptionRenewalService
             } else {
                 // Find subscription that has this as a renewal — look for subscriptions with revolut_subscription_id
                 $subscription = Subscription::whereNotNull('revolut_subscription_id')
+                    ->where('auto_renew', true)
                     ->where('status', 'active')
                     ->latest('current_period_end')
                     ->first();
             }
 
-            if (! $subscription) {
+            if (! $subscription || ! $subscription->auto_renew) {
                 Log::warning('Renewal payment: subscription not found', ['order_id' => $orderId]);
 
                 return;
@@ -73,7 +74,7 @@ class SubscriptionRenewalService
                 'amount' => $amount,
                 'currency' => 'GBP',
                 'status' => 'pending',
-                'description' => ucfirst($planSlug) . ' — ' . ucfirst($billingCycle) . ' (Auto-renewal)',
+                'description' => ucfirst($planSlug).' — '.ucfirst($billingCycle).' (Auto-renewal)',
                 'plan_slug' => $planSlug,
                 'billing_cycle' => $billingCycle,
                 'revolut_subscription_payment' => true,
@@ -127,7 +128,9 @@ class SubscriptionRenewalService
             return;
         }
 
-        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)->first();
+        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)
+            ->where('auto_renew', true)
+            ->first();
         if (! $subscription) {
             Log::warning('Subscription overdue: subscription not found', [
                 'revolut_subscription_id' => $revolutSubscriptionId,
@@ -166,7 +169,9 @@ class SubscriptionRenewalService
             return;
         }
 
-        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)->first();
+        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)
+            ->where('auto_renew', true)
+            ->first();
         if (! $subscription) {
             Log::warning('Subscription cancelled webhook: subscription not found', [
                 'revolut_subscription_id' => $revolutSubscriptionId,
@@ -200,16 +205,38 @@ class SubscriptionRenewalService
             return;
         }
 
-        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)->first();
+        $subscription = Subscription::where('revolut_subscription_id', $revolutSubscriptionId)
+            ->where('auto_renew', true)
+            ->first();
         if (! $subscription) {
             return;
         }
 
-        $subscription->update([
-            'status' => 'expired',
-            'auto_renew' => false,
-            'data_retention_starts_at' => $subscription->current_period_end ?? now(),
-        ]);
+        // SUBSCRIPTION_FINISHED is terminal: Revolut emits it only once a
+        // fixed-term subscription has completed ALL its billing cycles, so
+        // paid access genuinely ends now (consistent with §15 — there is no
+        // mid-window FINISHED; data_retention_starts_at is set to the
+        // already-elapsed current_period_end). This is the THIRD terminal
+        // path: unlike SUBSCRIPTION_CANCELLED (deferred revoke via the
+        // expireCancelledSubscriptions sweep), a FINISHED sub has
+        // status='expired' AND data_retention_starts_at set, so it is
+        // excluded from every sweep — this handler must revoke the user
+        // itself or tier access leaks forever. Reset the legacy
+        // billing-compat column AND the canonical gating column in the same
+        // transaction (tier => null → TierResolver resolves to 'free',
+        // §5.2). Legacy-slug users already have tier null — harmless no-op.
+        DB::transaction(function () use ($subscription) {
+            $subscription->update([
+                'status' => 'expired',
+                'auto_renew' => false,
+                'data_retention_starts_at' => $subscription->current_period_end ?? now(),
+            ]);
+
+            $user = $subscription->user;
+            if ($user) {
+                $user->update(['plan' => 'free', 'tier' => null]);
+            }
+        });
 
         Log::info('Subscription finished via webhook', [
             'subscription_id' => $subscription->id,

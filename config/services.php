@@ -31,32 +31,27 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'openai' => [
-        'api_key' => env('OPENAI_API_KEY', ''),
-        'chat_model_pro' => env('OPENAI_CHAT_MODEL_PRO', 'gpt-5-mini-2025-08-07'),
-        'chat_model_standard' => env('OPENAI_CHAT_MODEL_STANDARD', 'gpt-5-mini-2025-08-07'),
-    ],
-
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY', ''),
         'chat_model' => env('ANTHROPIC_CHAT_MODEL', 'claude-haiku-4-5-20251001'),
         'advanced_chat_model' => env('ANTHROPIC_ADVANCED_CHAT_MODEL', 'claude-sonnet-4-6-20260320'),
-        'agent_internal_token' => env('AGENT_INTERNAL_TOKEN', ''),
     ],
 
     'xai' => [
         'api_key' => env('XAI_API_KEY', ''),
-        'chat_model' => env('XAI_CHAT_MODEL', 'grok-4-1-fast-reasoning'),
-        'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4-1-fast-reasoning'),
-        'vision_model' => env('XAI_VISION_MODEL', 'grok-4-1-fast-non-reasoning'),
+        'chat_model' => env('XAI_CHAT_MODEL', 'grok-4.3'),
+        'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4.3'),
+        // Cheaper tier used when a user's rolling weekly budget is exceeded
+        // (HasAiGuardrails soft-degrade). Defaults to the standard chat model so
+        // chat stays OPEN on xAI; set to a cheaper xAI model to actually degrade.
+        'degrade_chat_model' => env('XAI_DEGRADE_CHAT_MODEL'),
+        'vision_model' => env('XAI_VISION_MODEL', 'grok-4.3'),
         'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
-        'agent_internal_token' => env('AGENT_INTERNAL_TOKEN', ''),
     ],
 
     // Active AI provider: 'anthropic' or 'xai'
     // Runtime override via admin panel stored in cache; falls back to .env
     'ai_provider' => env('AI_PROVIDER', 'anthropic'),
-    'ai_provider_runtime' => true, // Flag to check cache at runtime
 
     'getaddress' => [
         'api_key' => env('GETADDRESS_API_KEY', ''),
@@ -72,6 +67,16 @@ return [
     'fcm' => [
         'server_key' => env('FCM_SERVER_KEY'),
         'project_id' => env('FCM_PROJECT_ID'),
+    ],
+
+    // GitHub issue creation for in-app bug reports. The token needs only
+    // Issues: write on the target repo, lives on the server .env, and is
+    // disabled by default so nothing fires until provisioned.
+    'github' => [
+        'token' => env('GITHUB_BUG_ISSUE_TOKEN'),
+        'repo' => env('GITHUB_BUG_ISSUE_REPO', 'Stoff73/fynla'),
+        'enabled' => env('GITHUB_BUG_ISSUE_ENABLED', false),
+        'labels' => ['bug', 'from-mobile', 'claude-auto'],
     ],
 
 ];

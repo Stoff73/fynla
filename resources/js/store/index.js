@@ -3,7 +3,6 @@ import createPersistedState from 'vuex-persistedstate';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import auth from './modules/auth';
-import dashboard from './modules/dashboard';
 import protection from './modules/protection';
 import savings from './modules/savings';
 import investment from './modules/investment';
@@ -23,10 +22,7 @@ import infoGuide from './modules/infoGuide';
 import aiChat from './modules/aiChat';
 import plans from './modules/plans';
 import taxConfig from './modules/taxConfig';
-import household from './modules/household';
 import journeys from './modules/journeys';
-import mobileDashboard from './modules/mobileDashboard';
-import mobileNotifications from './modules/mobileNotifications';
 import advisor from './modules/advisor';
 import lifeStage from './modules/lifeStage';
 import completeness from './modules/completeness';
@@ -35,6 +31,12 @@ import whatIf from './modules/whatIf';
 import aiFormFill from './modules/aiFormFill';
 import toast from './modules/toast';
 import insights from './modules/insights';
+import taxStrategy from './modules/taxStrategy';
+import documentArticles from './modules/documentArticles';
+import savingsMarketRates from './modules/savingsMarketRates';
+import actuarialLifeTables from './modules/actuarialLifeTables';
+import currencyRates from './modules/currencyRates';
+import gamification from './modules/gamification';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -61,7 +63,6 @@ const storageBackend = Capacitor.isNativePlatform()
 const store = createStore({
   modules: {
     auth,
-    dashboard,
     protection,
     savings,
     investment,
@@ -81,10 +82,7 @@ const store = createStore({
     aiChat,
     plans,
     taxConfig,
-    household,
     journeys,
-    mobileDashboard,
-    mobileNotifications,
     advisor,
     lifeStage,
     completeness,
@@ -93,17 +91,20 @@ const store = createStore({
     aiFormFill,
     toast,
     insights,
+    taxStrategy,
+    documentArticles,
+    savingsMarketRates,
+    actuarialLifeTables,
+    currencyRates,
+    gamification,
   },
   plugins: [
     createPersistedState({
       key: 'fynla-state',
       paths: [
         'auth.user',
-        'dashboard',
         'aiChat.conversations',
         'goals.goals',
-        'mobileDashboard',
-        'mobileNotifications.permissionStatus',
       ],
       storage: storageBackend,
     }),

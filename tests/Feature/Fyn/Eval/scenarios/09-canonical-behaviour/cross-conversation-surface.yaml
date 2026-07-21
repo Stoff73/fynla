@@ -1,0 +1,78 @@
+id: cross_conversation_surface
+category: 09-canonical-behaviour
+description: |
+  S1.5 acceptance — `search_conversation_index` tool surfaces a prior
+  conversation's `intents_stated` to the current turn (INV-2.11.3).
+
+  User has a prior summarised conversation containing the intent
+  "I want to retire at 60" + topic `retirement`. They now ask "Can I
+  retire early?" — Advice Fyn should call `search_conversation_index`
+  with `topic_keywords: ["retirement"]`, see the prior intent, and
+  surface "you mentioned wanting to retire at 60" without re-asking.
+
+  Recording deferred — see Sprint 1 plan "Output-shape contract — S1.6
+  scope extension" §S1.2.k. Unit pin
+  `tests/Feature/AI/SearchConversationIndexTest.php` covers the tool's
+  query semantics + per-user ACL + active-conversation exclusion
+  synchronously.
+
+input:
+  turns:
+    - user: "Can I retire early?"
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    date_of_birth: '1980-01-01'
+    marital_status: married
+    employment_status: employed
+    annual_employment_income: 80000
+    monthly_expenditure: 3000
+    onboarding_completed: true
+  ai_conversations:
+    - title: "Earlier retirement chat"
+      status: active
+      model_used: grok-4-1-fast-reasoning
+      summary: "User asked about retirement at 60 and discussed pension contributions."
+      topics: ["retirement"]
+      intents_stated: ["I want to retire at 60"]
+      entities_mentioned: []
+      last_message_at: '2026-01-15T10:00:00Z'
+      summarised_at: '2026-01-15T10:30:00Z'
+
+expected_classifications:
+  - retirement_capacity
+
+expected_tool_calls:
+  - tool: search_conversation_index
+    args:
+      topic_keywords: ["retirement"]
+  - tool: get_module_analysis
+    args: { module: retirement }
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_advice_response:
+  surfaces_prior_intent: "retire at 60"
+  note: "Once S1.6 ships, the prior intent is surfaced via the structured advice_response key_figures or breakdowns rather than free-text composition."
+
+forbidden_outputs:
+  - "What age would you like to retire"
+  - "When would you like to retire"
+  - "I'd need to know your retirement age"
+
+forbidden_tools:
+  - create_pension
+  - update_pension
+  - delete_record
+
+timing_budget_ms: 6000
+
+tags:
+  - regression-band-0
+  - canonical-contract
+  - cross-conversation
+  - INV-2.11.3

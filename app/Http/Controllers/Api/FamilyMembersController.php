@@ -12,19 +12,24 @@ use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\UserProfile\UserProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class FamilyMembersController extends Controller
 {
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly UserProfileService $userProfileService
     ) {}
 
     /**
@@ -36,81 +41,13 @@ class FamilyMembersController extends Controller
     {
         $user = $request->user();
 
-        Log::info('FamilyMembers::index called', [
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'spouse_id' => $user->spouse_id,
-        ]);
-
-        $familyMembers = FamilyMember::where('user_id', $user->id)
-            ->orderBy('relationship')
-            ->orderBy('date_of_birth')
-            ->get();
-
-        // If user has a linked spouse, get spouse's children (NOT the spouse record itself)
-        $spouseFamilyMembers = collect();
-        if ($user->spouse_id) {
-            $spouseFamilyMembers = FamilyMember::where('user_id', $user->spouse_id)
-                ->where('relationship', 'child')  // Only children, not spouse record
-                ->orderBy('date_of_birth')
-                ->get();
-        }
-
-        // Add spouse email if applicable and mark spouse's children as shared
-        $familyMembers = $familyMembers->map(function ($member) use ($user) {
-            $memberArray = $member->toArray();
-            $memberArray['is_shared'] = false;
-            $memberArray['owner'] = 'self';
-
-            // If this is a spouse and user has a spouse_id, get the spouse's email
-            if ($member->relationship === 'spouse' && $user->spouse_id) {
-                $spouse = \App\Models\User::find($user->spouse_id);
-                $memberArray['email'] = $spouse ? $spouse->email : null;
-            }
-
-            return $memberArray;
-        });
-
-        // Process spouse's children (mark as shared if not duplicate)
-        $sharedFromSpouse = $spouseFamilyMembers->map(function ($member) use ($familyMembers) {
-            $memberArray = $member->toArray();
-
-            // Check if this child already exists in user's family members (duplicate)
-            $isDuplicate = $familyMembers->contains(function ($fm) use ($member) {
-                return $fm['relationship'] === 'child' &&
-                       $fm['first_name'] === $member->first_name &&
-                       $fm['last_name'] === $member->last_name &&
-                       $fm['date_of_birth'] === $member->date_of_birth;
-            });
-
-            if (! $isDuplicate) {
-                $memberArray['is_shared'] = true;
-                $memberArray['owner'] = 'spouse';
-
-                return $memberArray;
-            }
-
-            return null;
-        })->filter(); // Remove nulls
-
-        // Merge user's family members with spouse's shared records
-        $allMembers = $familyMembers->concat($sharedFromSpouse);
-
-        Log::info('FamilyMembers::index result', [
-            'own_members_count' => $familyMembers->count(),
-            'spouse_members_count' => $spouseFamilyMembers->count(),
-            'shared_from_spouse_count' => $sharedFromSpouse->count(),
-            'total_members' => $allMembers->count(),
-            'members' => $allMembers->map(function ($m) {
-                return ['name' => $m['name'], 'relationship' => $m['relationship'], 'is_shared' => $m['is_shared']];
-            })->toArray(),
-        ]);
+        $allMembers = $this->userProfileService->getFamilyMembersWithSharing($user);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'family_members' => $allMembers->values(),
-                'count' => $allMembers->count(),
+                'family_members' => $allMembers,
+                'count' => count($allMembers),
             ],
         ]);
     }
@@ -136,14 +73,14 @@ class FamilyMembersController extends Controller
                 ->where('relationship', 'child')
                 ->where('first_name', $data['first_name'])
                 ->where('last_name', $data['last_name'])
-                ->where('date_of_birth', $data['date_of_birth'])
+                ->where('date_of_birth', $data['date_of_birth'] ?? null)
                 ->exists();
 
             $duplicateInSpouseRecords = FamilyMember::where('user_id', $user->spouse_id)
                 ->where('relationship', 'child')
                 ->where('first_name', $data['first_name'])
                 ->where('last_name', $data['last_name'])
-                ->where('date_of_birth', $data['date_of_birth'])
+                ->where('date_of_birth', $data['date_of_birth'] ?? null)
                 ->exists();
 
             if ($duplicateInUserRecords || $duplicateInSpouseRecords) {
@@ -184,13 +121,11 @@ class FamilyMembersController extends Controller
 
         Log::info('handleSpouseCreation called', [
             'current_user_id' => $currentUser->id,
-            'current_user_email' => $currentUser->email,
             'current_user_spouse_id' => $currentUser->spouse_id,
-            'spouse_email' => $spouseEmail,
         ]);
 
         // Check if spouse already has an account
-        $spouseUser = \App\Models\User::where('email', $spouseEmail)->first();
+        $spouseUser = User::where('email', $spouseEmail)->first();
 
         Log::info('Spouse user lookup result', [
             'found' => $spouseUser ? 'yes' : 'no',
@@ -270,7 +205,7 @@ class FamilyMembersController extends Controller
             // Link both users inside a transaction with pessimistic locking
             $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data) {
                 // Lock spouse row to prevent concurrent linking by another user
-                $spouseUser = \App\Models\User::lockForUpdate()->find($spouseUser->id);
+                $spouseUser = User::lockForUpdate()->find($spouseUser->id);
                 if ($spouseUser->spouse_id && $spouseUser->spouse_id !== $currentUser->id) {
                     return null;
                 }
@@ -390,7 +325,7 @@ class FamilyMembersController extends Controller
         }
 
         // Spouse doesn't exist - create new user account inside a transaction
-        $temporaryPassword = \Illuminate\Support\Str::random(16);
+        $temporaryPassword = Str::random(16);
 
         [$familyMember, $spouseUser] = DB::transaction(function () use ($currentUser, $data, $spouseEmail, $temporaryPassword) {
             // Construct full name from name parts
@@ -398,12 +333,12 @@ class FamilyMembersController extends Controller
                 (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
                 ($data['last_name'] ?? ''));
 
-            $spouseUser = \App\Models\User::create([
+            $spouseUser = User::create([
                 'first_name' => $data['first_name'] ?? '',
                 'surname' => $data['last_name'] ?? '',
                 'name' => $fullName,
                 'email' => $spouseEmail,
-                'password' => \Illuminate\Support\Facades\Hash::make($temporaryPassword),
+                'password' => Hash::make($temporaryPassword),
                 'must_change_password' => true,
                 'date_of_birth' => $data['date_of_birth'] ?? null,
                 'gender' => $data['gender'] ?? null,
@@ -532,7 +467,7 @@ class FamilyMembersController extends Controller
 
         // If this is a spouse and user has a spouse_id, get the spouse's email
         if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouse = \App\Models\User::find($user->spouse_id);
+            $spouse = User::find($user->spouse_id);
             $memberArray['email'] = $spouse ? $spouse->email : null;
         }
 
@@ -570,7 +505,7 @@ class FamilyMembersController extends Controller
 
         // If updating a spouse, sync relevant fields to the spouse user account
         if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouseUser = \App\Models\User::find($user->spouse_id);
+            $spouseUser = User::find($user->spouse_id);
             if ($spouseUser) {
                 $spouseUpdates = [];
 
@@ -630,7 +565,7 @@ class FamilyMembersController extends Controller
 
         // If deleting a spouse, clear the spouse linkage and delete reciprocal record
         if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouseUser = \App\Models\User::find($user->spouse_id);
+            $spouseUser = User::find($user->spouse_id);
 
             if ($spouseUser) {
                 // Delete the reciprocal family_member record on spouse's account

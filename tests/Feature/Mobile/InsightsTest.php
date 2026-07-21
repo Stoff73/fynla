@@ -33,7 +33,7 @@ describe('Daily Insights API', function () {
     it('returns daily insight for authenticated user', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/insights/daily');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/insights/daily');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -63,7 +63,7 @@ describe('Daily Insights API', function () {
     it('includes ETag header in response', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/insights/daily');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/insights/daily');
 
         $response->assertOk();
         expect($response->headers->has('ETag'))->toBeTrue();
@@ -71,12 +71,12 @@ describe('Daily Insights API', function () {
 
     it('returns fallback insight when analysis fails', function () {
         $failingMock = Mockery::mock(CoordinatingAgent::class);
-        $failingMock->shouldReceive('analyze')->andThrow(new \RuntimeException('Analysis failed'));
+        $failingMock->shouldReceive('analyze')->andThrow(new RuntimeException('Analysis failed'));
         $this->app->instance(CoordinatingAgent::class, $failingMock);
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/insights/daily');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/insights/daily');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -96,14 +96,14 @@ describe('Daily Insights API', function () {
         $user = User::factory()->create();
 
         // First request to get ETag
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/insights/daily');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/insights/daily');
         $response->assertOk();
         $etag = $response->headers->get('ETag');
 
         expect($etag)->not->toBeNull();
 
         // Second request with matching If-None-Match
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->withHeader('If-None-Match', $etag)
             ->getJson('/api/v1/mobile/insights/daily');
 

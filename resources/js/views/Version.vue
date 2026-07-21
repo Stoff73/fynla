@@ -187,7 +187,7 @@
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Subscription Enforcement:</strong> Enabled subscription checking for all authenticated users. Users without an active subscription or trial now see appropriate messaging instead of accessing module data.</span>
+                <span class="text-body-base text-neutral-500"><strong>Tier Enforcement:</strong> Permanent Free accounts remain writable within their server-enforced limits, while Premium capabilities require verified paid access.</span>
               </li>
             </ul>
           </div>
@@ -712,19 +712,19 @@
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">🏦 Retirement Planner Enhancements</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Income Tax Slider:</strong> Interactive slider to model different retirement income levels and see the tax impact in real-time.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Decumulation Graph:</strong> Visual projection of pension fund drawdown over retirement years.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>DB/State Pension Fallback:</strong> Dashboard retirement card now shows projected income for users with only DB or State pensions.</span>
@@ -783,7 +783,7 @@
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Info Guide Fix:</strong> Fixed 500 error on requirements endpoint and corrected DC pension requirement logic for DB-only users.</span>
+                <span class="text-body-base text-neutral-500"><strong>Info Guide Fix:</strong> Fixed 500 error on requirements endpoint and corrected Defined Contribution pension requirement logic for Defined Benefit-only users.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -933,31 +933,31 @@
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">🏛️ Estate & Retirement Module Updates</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>IHT → Inheritance Tax:</strong> Replaced acronym with full term throughout 19 components for clarity.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Tax Projection Columns:</strong> Added -5 and +5 year projections to Inheritance Tax calculation tables.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Estate Dashboard Redesign:</strong> Tab navigation removed, strategies accessible via clickable cards.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Retirement Dashboard:</strong> New 3-column layout with Monte Carlo projections, pension sidebar, and income summary.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Protection Gap Analysis:</strong> Moved into Policy Overview tab with 5 shortfall cards and affordability assessment.</span>
@@ -1466,7 +1466,7 @@
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Database Migrations:</strong> 10 new migrations adding DC pension types, joint mortgage ownership fields, state pension enhancements, and more.</span>
+                <span class="text-body-base text-neutral-500"><strong>Database Migrations:</strong> 10 new migrations adding Defined Contribution pension types, joint mortgage ownership fields, state pension enhancements, and more.</span>
               </li>
             </ul>
           </div>
@@ -1494,10 +1494,10 @@
                   <li>• Holdings management & rebalancing</li>
 
                   <li class="mt-2"><strong>Retirement Module:</strong></li>
-                  <li>• DC/DB pension tracking & projections</li>
+                  <li>• Defined Contribution / Defined Benefit pension tracking & projections</li>
                   <li>• State pension integration</li>
                   <li>• Annual allowance monitoring (£60k + carry forward)</li>
-                  <li>• DC pension portfolio optimisation</li>
+                  <li>• Defined Contribution pension portfolio optimisation</li>
                   <li>• Holdings management for pension pots</li>
                   <li>• Retirement readiness scoring</li>
                   <li>• Decumulation planning</li>
@@ -1821,7 +1821,7 @@
 
       <!-- Footer Note -->
       <div class="mt-8 text-center text-body-sm text-neutral-500">
-        <p>For detailed changelog and bug fixes, see the <a href="/OCTOBER_2025_FEATURES_UPDATE.md" class="text-raspberry-500 hover:text-raspberry-600 underline">October 2025 Features Update</a> document.</p>
+        <p>For detailed changelog and bug fixes, see the <a :href="withBase('/OCTOBER_2025_FEATURES_UPDATE.md')" class="text-raspberry-500 hover:text-raspberry-600 underline">October 2025 Features Update</a> document.</p>
         <p class="mt-2">Built with Claude Code</p>
       </div>
     </div>
@@ -1830,12 +1830,17 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
+import { withBase } from '@/utils/basePath';
 
 export default {
   name: 'VersionHistory',
 
   components: {
     AppLayout,
+  },
+
+  methods: {
+    withBase,
   },
 };
 </script>

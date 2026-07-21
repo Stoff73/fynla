@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\Subscription;
+use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +38,26 @@ class CheckSubscription
         'api/settings/',
     ];
 
+    /**
+     * Route prefixes whose endpoints require a full capability grant.
+     * Longer document paths must remain before their shared prefix.
+     */
+    private const CAPABILITY_ROUTE_MAP = [
+        'api/plans/adviser-export-pack' => 'advisor_export',
+        'api/documents/upload-only' => 'document_upload',
+        'api/documents/upload' => 'statement_upload',
+        'api/investment/fees' => 'investment_cost_analysis',
+        'api/what-if-scenarios' => 'what_if',
+        'api/holistic' => 'holistic_plan',
+        'api/household' => 'joint_household_view',
+        'api/user/letter-to-spouse' => 'letter_to_spouse',
+    ];
+
+    public function __construct(
+        private readonly TierConfigurationStore $tierStore,
+        private readonly TierResolver $tierResolver,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         // Feature flag: when payments are disabled, let everyone through
@@ -62,13 +86,28 @@ class CheckSubscription
             return $next($request);
         }
 
-        // User has active subscription or is trialing — allow through
-        if ($user->hasActivePlan() || $user->onTrial()) {
+        $subscription = $user->relationLoaded('subscription')
+            ? $user->subscription
+            : $user->subscription()->first();
+
+        // Pure freemium: a Free user may write while no subscription exists or
+        // checkout is provisional. TierResolver and DbTierGate still resolve
+        // and enforce Free access until verified payment activates Premium.
+        $hasWriteAccess = $subscription === null
+            || in_array($subscription->status, Subscription::PROVISIONAL_STATUSES, true)
+            || $subscription->isActive();
+
+        if ($hasWriteAccess) {
+            $capabilityDenial = $this->checkCapability($request, $user);
+            if ($capabilityDenial !== null) {
+                return $capabilityDenial;
+            }
+
             return $next($request);
         }
 
-        // Expired trial or grace period — allow read-only access so users can see
-        // their data behind the plan selection modal. Writes are blocked.
+        // Remaining case: a churned PAID user whose subscription is terminal
+        // (expired/cancelled past period). Read-only + grace, then hard block.
         if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
             return $next($request);
         }
@@ -82,8 +121,41 @@ class CheckSubscription
 
         return response()->json([
             'error' => 'subscription_required',
-            'message' => 'Your trial has expired. Please subscribe to continue.',
+            'message' => 'Your subscription has expired. Please subscribe to continue.',
         ], 403);
+    }
+
+    /**
+     * Resolve capability for a mapped route. Returns a structured 403 unless
+     * the resolved tier has a full grant.
+     */
+    private function checkCapability(Request $request, User $user): ?Response
+    {
+        $path = $request->path();
+
+        foreach (self::CAPABILITY_ROUTE_MAP as $routePrefix => $entityKey) {
+            if (! str_starts_with($path, $routePrefix)) {
+                continue;
+            }
+
+            $tier = $this->tierResolver->resolve($user);
+            $capability = $this->tierStore->capabilityFor($tier, $entityKey);
+
+            if ($capability !== 'full') {
+                $targetTier = $this->tierStore->lowestTierWithCapability($entityKey, 'full');
+
+                return response()->json([
+                    'error' => 'capability_denied',
+                    'capability' => $entityKey,
+                    'required_tier' => $targetTier['tier'] ?? null,
+                    'message' => 'Your plan does not include this feature.',
+                ], 403);
+            }
+
+            return null;
+        }
+
+        return null;
     }
 
     private function isExcludedPath(Request $request): bool

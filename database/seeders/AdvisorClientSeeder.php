@@ -8,7 +8,6 @@ use App\Models\AdvisorClient;
 use App\Models\ClientActivity;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdvisorClientSeeder extends Seeder
@@ -30,9 +29,7 @@ class AdvisorClientSeeder extends Seeder
             return;
         }
 
-        DB::table('users')
-            ->where('id', $advisor->id)
-            ->update(['is_advisor' => true]);
+        $advisor->markAsAdvisor();
 
         // 2. Per-persona configuration
         $clientConfigs = [

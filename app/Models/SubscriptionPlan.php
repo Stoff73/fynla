@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -16,6 +18,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class SubscriptionPlan extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'slug',
         'name',
@@ -23,7 +27,6 @@ class SubscriptionPlan extends Model
         'yearly_price',
         'launch_monthly_price',
         'launch_yearly_price',
-        'trial_days',
         'is_active',
         'features',
         'sort_order',
@@ -34,7 +37,6 @@ class SubscriptionPlan extends Model
         'yearly_price' => 'integer',
         'launch_monthly_price' => 'integer',
         'launch_yearly_price' => 'integer',
-        'trial_days' => 'integer',
         'is_active' => 'boolean',
         'features' => 'array',
         'sort_order' => 'integer',
@@ -67,7 +69,7 @@ class SubscriptionPlan extends Model
     /**
      * Scope to only active plans.
      */
-    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }

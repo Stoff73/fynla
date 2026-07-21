@@ -12,7 +12,9 @@ use App\Services\Protection\CoverageGapAnalyzer;
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
+use App\Services\Stores\MortgageStore;
 use App\Services\UserProfile\ProfileCompletenessChecker;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
@@ -31,6 +33,8 @@ beforeEach(function () {
         'warnings' => [],
         'info' => [],
     ])->byDefault();
+    $this->mortgageStore = Mockery::mock(MortgageStore::class);
+    $this->mortgageStore->shouldReceive('forUserPrimaryOnly')->andReturn(new Collection)->byDefault();
 
     // Create agent with mocked dependencies
     $this->agent = new ProtectionAgent(
@@ -40,7 +44,8 @@ beforeEach(function () {
         $this->scenarioBuilder,
         $this->completenessChecker,
         $this->personaliser,
-        $this->readinessService
+        $this->readinessService,
+        $this->mortgageStore
     );
 
     // Set up default mock expectations for full analysis flow

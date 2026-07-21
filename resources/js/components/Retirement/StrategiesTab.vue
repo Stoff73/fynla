@@ -926,11 +926,11 @@ export default {
 }
 
 .capital-card.pension {
-  @apply bg-purple-50 border-purple-200;
+  @apply bg-violet-50 border-violet-200;
 }
 
 .capital-card.pension .capital-card-icon {
-  @apply bg-purple-100 text-purple-600;
+  @apply bg-violet-100 text-violet-600;
 }
 
 .capital-card.assets {

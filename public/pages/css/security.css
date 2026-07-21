@@ -1,0 +1,80 @@
+/**
+ * Fynla public pages — security page stylesheet
+ *
+ * Page-specific styles for public/pages/security.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ */
+
+/* ===================================================================
+   HERO MODULE  [id=hero]
+   Critical classes live in inline <style> in security.php.
+   =================================================================== */
+
+/* ===================================================================
+   INTRO MODULE  [id=intro]
+   =================================================================== */
+.security-intro { background: var(--eggshell-500); padding: 3rem 0; }
+.security-intro__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.security-intro__body {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625;
+  max-width: 60rem;
+}
+
+/* ===================================================================
+   SECURITY BLOCKS MODULE  [id=security-sections]
+   =================================================================== */
+.security-blocks { background: var(--eggshell-500); padding-bottom: 3rem; }
+.security-blocks__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+  display: flex; flex-direction: column; gap: 1.5rem;
+}
+
+.security-block { border-radius: var(--radius-lg); padding: 1.5rem 1.5rem 2rem; }
+.security-block--pink { background: var(--light-pink-100); }
+.security-block--blue { background: var(--light-blue-100); }
+
+.security-block__heading {
+  font-size: clamp(1.125rem, 3vw, 1.75rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 1.25rem;
+}
+
+.security-block__grid {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+}
+
+/* Individual security feature card */
+.security-item {
+  background: var(--white); border-radius: var(--radius-lg); padding: 1.25rem;
+}
+.security-item__title {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.375rem;
+}
+.security-item__check { color: var(--horizon-500); flex-shrink: 0; margin-top: 0.125rem; }
+.security-item__body { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; }
+
+/* ===================================================================
+   IMPORTANT NOTICE MODULE  [id=notice]
+   =================================================================== */
+.security-notice { background: var(--horizon-500); padding: 3rem 0; }
+.security-notice__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.security-notice__heading {
+  font-size: 1.125rem; font-weight: 700; color: var(--white); margin-bottom: 0.75rem;
+}
+.security-notice__body {
+  font-size: 0.875rem; color: var(--white-70); line-height: 1.625; margin-bottom: 0.75rem;
+}
+.security-notice__body:last-child { margin-bottom: 0; }
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 768px) {
+  .security-block__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .security-intro__inner,
+  .security-blocks__inner,
+  .security-notice__inner { padding-left: 2rem; padding-right: 2rem; }
+}

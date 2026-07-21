@@ -1,0 +1,76 @@
+{
+  "id": "mitchell_advice_savings_emergency",
+  "category": "01-query-types",
+  "persona": "peak_earners",
+  "is_mutating": false,
+  "description": "David Mitchell asks about emergency savings. Classifier resolves to SAVINGS_EMERGENCY (primary), affordability (related), modules: [savings, income]. Universal KYC passes. peak_earners has populated savings_accounts and an expenditure profile, so SavingsAgent reaches the happy emergency-fund analysis path. LLM should reference the user's actual cash buffer in months and signpost FCA advice.",
+  "input": {
+    "turns": [
+      {"user": "Do I have enough emergency savings?", "current_route": "/net-worth/cash"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "savings_emergency",
+    "related": ["affordability"],
+    "modules": ["savings", "income"]
+  },
+  "expected_response_mode": "recommendation",
+  "expected_engine_call_level": "module",
+  "expected_kyc_state": "passed",
+  "expected_tool_calls": [
+    {"tool": "get_module_analysis", "args": {"module": "savings"}, "required": true, "result_path": "happy"},
+    {"tool": "list_records", "args": {"entity_type": "savings_account"}, "required": true, "result_path": "happy"}
+  ],
+  "expected_tool_calls_absent": [
+    "create_savings_account",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["title", "content", "tool_use", "done"],
+    "must_emit_exactly_once": ["done", "title"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5,
+    "tool_use_count_min": 2,
+    "tool_use_count_max": 8
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+    ],
+    "must_contain_at_least_one_of": [
+      ["emergency", "months", "cash buffer", "savings"]
+    ],
+    "must_not_contain_substrings": ["I think you should", "I'd recommend", "In my opinion", "you should definitely"],
+    "minimum_length_chars": 200,
+    "maximum_length_chars": 3000
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["savings_accounts", "expenditure_profiles", "users"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "AgentDecision", "decisionPoint": "response_mode", "outcome": "recommendation"},
+      {"event": "AgentDecision", "decisionPoint": "engine_call_level", "outcome": "module"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true},
+      {"event": "GateChecked", "gate": "kyc", "module": "savings", "passed": true},
+      {"event": "EngineCalled", "engine": "savings_analysis"}
+    ],
+    "must_not_contain": [
+      {"event": "EngineCalled", "engine": "orchestrate_analysis"}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"happy": 9000},
+    "xai": {"happy": 22000}
+  },
+  "tags": ["regression-band-0", "recommendation-mode", "savings", "peak_earners", "happy-path"]
+}

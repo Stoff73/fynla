@@ -2,10 +2,55 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
-  },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/dangerous-command-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking command against Fynla NEVER rules..."
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__ssh-fynla__ssh_exec",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/prod-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking prod command against Fynla NEVER rules..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/env-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking for .env edits..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/pint-format.sh",
+            "timeout": 30,
+            "statusMessage": "Pint: formatting PHP (PSR-12)..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -14,6 +59,42 @@
             "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/tax-hardcode-check.sh",
             "timeout": 15,
             "statusMessage": "Checking for hardcoded tax values..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/design-lint.sh",
+            "timeout": 20,
+            "statusMessage": "Design-system lint (Rules 8/11/15)..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/m-parity-check.sh",
+            "timeout": 10,
+            "statusMessage": "Checking /m parity (Rule 19)..."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/precompact-handover.sh",
+            "timeout": 30,
+            "statusMessage": "Writing safety-net handover before compaction..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/postcompact-vaultsync.sh",
+            "timeout": 15
           }
         ]
       }
@@ -35,5 +116,9 @@
       "PowerShell(Get-Process*)",
       "PowerShell(Test-Path*)"
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "github@claude-plugins-official": true
   }
 }

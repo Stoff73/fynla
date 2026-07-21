@@ -55,7 +55,7 @@ class InvestmentAccountFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'account_type' => 'isa',
             'account_name' => 'Stocks & Shares ISA',
-            'isa_type' => 'stocks_shares',
+            'isa_type' => 'stocks_and_shares',
             'isa_subscription_current_year' => fake()->randomFloat(2, 0, 20000),
         ]);
     }

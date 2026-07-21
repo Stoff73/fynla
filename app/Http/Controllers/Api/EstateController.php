@@ -15,46 +15,88 @@ use App\Http\Resources\Estate\AssetResource;
 use App\Http\Resources\Estate\GiftResource;
 use App\Http\Resources\Estate\LiabilityResource;
 use App\Http\Resources\Estate\TrustResource;
+use App\Http\Traits\GatesEstateAccess;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
+use App\Models\Estate\Will;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
+use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\LiabilityStore;
+use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\EstateIhtExposureDetector;
+use App\Services\Tiers\TeaserGate;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EstateController extends Controller
 {
+    use GatesEstateAccess;
     use SanitizedErrorResponse;
 
     public function __construct(
         private readonly NetWorthAnalyzer $netWorthAnalyzer,
         private readonly CashFlowProjector $cashFlowProjector,
-        private readonly \App\Services\Estate\ComprehensiveEstatePlanService $comprehensiveEstatePlan,
+        private readonly ComprehensiveEstatePlanService $comprehensiveEstatePlan,
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly TeaserGate $teaserGate,
+        private readonly EstateIhtExposureDetector $ihtExposureDetector,
+        private readonly TierConfigurationStore $tierStore,
+        private readonly LiabilityStore $liabilityStore,
     ) {}
 
     /**
-     * Get all estate planning data for authenticated user
+     * Get all estate planning data for authenticated user.
+     *
+     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free users
+     * receive a cheap IHT-exposure signal rather than the full module.
+     * The Vue view branches on `mode` for defence-in-depth, but this
+     * response is authoritative.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
+        // Defence-in-depth: server is the authoritative gate (spec §10.2).
+        if (! $this->teaserGate->isFull($user, 'estate')) {
+            $teaser = $this->ihtExposureDetector->detect($user);
+
+            // CTA label/target: cheapest tier that grants full Estate (plan §7.3 — not hardcoded).
+            $targetTier = $this->tierStore->lowestTierWithCapability('estate', 'full');
+            $ctaLabel = $targetTier
+                ? "Upgrade to {$targetTier['display_name']} to unlock full Estate Planning"
+                : 'Upgrade to unlock full Estate Planning';
+
+            return response()->json([
+                'mode' => 'teaser',
+                'teaser' => $teaser,
+                'cta' => [
+                    'label' => $ctaLabel,
+                    'target_tier' => $targetTier['tier'] ?? null,
+                ],
+            ]);
+        }
+
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
         $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
 
         // Include mortgages as liabilities for net worth display
-        $mortgages = \App\Models\Mortgage::whereHas('property', function ($q) use ($user) {
+        $mortgages = Mortgage::whereHas('property', function ($q) use ($user) {
             $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
         })->with('property')->limit(100)->get();
 
@@ -78,7 +120,7 @@ class EstateController extends Controller
         $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
         $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
         $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
-        $will = \App\Models\Estate\Will::where('user_id', $user->id)->first();
+        $will = Will::where('user_id', $user->id)->first();
 
         // Pull investment accounts and categorize for IHT
         $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->limit(100)->get();
@@ -111,6 +153,7 @@ class EstateController extends Controller
         });
 
         return response()->json([
+            'mode' => 'full',
             'success' => true,
             'data' => [
                 'assets' => AssetResource::collection($assets),
@@ -140,6 +183,7 @@ class EstateController extends Controller
     public function getComprehensiveEstatePlan(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
 
         try {
             // Eager load relationships needed for IHT calculations
@@ -147,7 +191,7 @@ class EstateController extends Controller
 
             // Also load spouse relationships if spouse is involved
             $spouse = ($user->marital_status === 'married' && $user->spouse_id)
-                ? \App\Models\User::find($user->spouse_id)
+                ? User::find($user->spouse_id)
                 : null;
             if ($spouse) {
                 $spouse->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
@@ -159,7 +203,7 @@ class EstateController extends Controller
                 'success' => true,
                 'data' => $plan,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -174,6 +218,7 @@ class EstateController extends Controller
     public function getNetWorth(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
 
         try {
             $netWorth = $this->netWorthAnalyzer->generateSummary($user->id);
@@ -182,7 +227,7 @@ class EstateController extends Controller
                 'success' => true,
                 'data' => $netWorth,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -197,6 +242,7 @@ class EstateController extends Controller
     public function getCashFlow(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
         $taxYear = $request->query('taxYear', $this->taxConfig->getTaxYear());
 
         try {
@@ -206,7 +252,7 @@ class EstateController extends Controller
                 'success' => true,
                 'data' => $cashFlow,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -237,7 +283,7 @@ class EstateController extends Controller
                 'message' => 'Asset created successfully',
                 'data' => new AssetResource($asset),
             ], 201);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -269,7 +315,7 @@ class EstateController extends Controller
                 'message' => 'Asset updated successfully',
                 'data' => new AssetResource($asset->fresh()),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Asset not found or unauthorized',
@@ -300,7 +346,7 @@ class EstateController extends Controller
                 'success' => true,
                 'message' => 'Asset deleted successfully',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Asset not found or unauthorized',
@@ -321,8 +367,7 @@ class EstateController extends Controller
         $validated = $request->validated();
 
         try {
-            $validated['user_id'] = $user->id;
-            $liability = Liability::create($validated);
+            $liability = $this->liabilityStore->create($validated, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -332,10 +377,12 @@ class EstateController extends Controller
                 'message' => 'Liability created successfully',
                 'data' => new LiabilityResource($liability),
             ], 201);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Liability creation');
         }
@@ -350,11 +397,7 @@ class EstateController extends Controller
         $validated = $request->validated();
 
         try {
-            $liability = Liability::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $liability->update($validated);
+            $liability = $this->liabilityStore->update($id, $validated, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -362,9 +405,9 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Liability updated successfully',
-                'data' => new LiabilityResource($liability->fresh()),
+                'data' => new LiabilityResource($liability),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Liability not found or unauthorized',
@@ -382,11 +425,7 @@ class EstateController extends Controller
         $user = $request->user();
 
         try {
-            $liability = Liability::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $liability->delete();
+            $this->liabilityStore->delete($id, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -395,7 +434,7 @@ class EstateController extends Controller
                 'success' => true,
                 'message' => 'Liability deleted successfully',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Liability not found or unauthorized',
@@ -427,7 +466,7 @@ class EstateController extends Controller
                 'message' => 'Gift created successfully',
                 'data' => new GiftResource($gift),
             ], 201);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -459,7 +498,7 @@ class EstateController extends Controller
                 'message' => 'Gift updated successfully',
                 'data' => new GiftResource($gift->fresh()),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Gift not found or unauthorized',
@@ -490,7 +529,7 @@ class EstateController extends Controller
                 'success' => true,
                 'message' => 'Gift deleted successfully',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Gift not found or unauthorized',

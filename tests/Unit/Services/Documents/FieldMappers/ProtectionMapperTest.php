@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\CriticalIllnessPolicy;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
 use App\Services\Documents\FieldMappers\ProtectionMapper;
 
 it('maps extracted protection fields to policy model fields', function () {
@@ -31,10 +34,10 @@ it('maps extracted protection fields to policy model fields', function () {
 it('detects policy model class from type', function () {
     $mapper = new ProtectionMapper;
 
-    expect($mapper->getModelClassForType('term'))->toBe(\App\Models\LifeInsurancePolicy::class);
-    expect($mapper->getModelClassForType('whole_of_life'))->toBe(\App\Models\LifeInsurancePolicy::class);
-    expect($mapper->getModelClassForType('critical_illness'))->toBe(\App\Models\CriticalIllnessPolicy::class);
-    expect($mapper->getModelClassForType('income_protection'))->toBe(\App\Models\IncomeProtectionPolicy::class);
+    expect($mapper->getModelClassForType('term'))->toBe(LifeInsurancePolicy::class);
+    expect($mapper->getModelClassForType('whole_of_life'))->toBe(LifeInsurancePolicy::class);
+    expect($mapper->getModelClassForType('critical_illness'))->toBe(CriticalIllnessPolicy::class);
+    expect($mapper->getModelClassForType('income_protection'))->toBe(IncomeProtectionPolicy::class);
 });
 
 it('validates required protection fields', function () {

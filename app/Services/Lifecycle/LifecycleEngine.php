@@ -17,18 +17,6 @@ class LifecycleEngine
 {
     private bool $testMode = false;
 
-    /** @var array<int, User> */
-    private array $cachedTrialAfterEndCandidates = [];
-
-    /** @var array<int, int> */
-    private array $cachedHasDataIds = [];
-
-    public function __construct(
-        private readonly LifecycleSnapshotService $snapshotService,
-        private readonly LifecycleDiscountCodeGenerator $discountGenerator,
-    ) {
-    }
-
     public function setTestMode(bool $testMode): self
     {
         $this->testMode = $testMode;
@@ -156,44 +144,5 @@ class LifecycleEngine
             'sent_at' => now(),
             'context' => null,
         ]);
-    }
-
-    /**
-     * Candidate set for the "after trial end" eligibility check used by
-     * CancelledTrialerCampaign and EmptyTrialerCampaign. Cached per engine
-     * instance because both campaigns hit it in the same run.
-     */
-    public function trialAfterEndCandidates(): Collection
-    {
-        if (empty($this->cachedTrialAfterEndCandidates)) {
-            $anchorDays = (int) config('lifecycle.eligibility_anchor_days', 9);
-
-            $this->cachedTrialAfterEndCandidates = User::query()
-                ->where('created_at', '<=', now()->subDays($anchorDays))
-                ->whereHas('subscriptions', fn ($q) => $q
-                    ->where(fn ($q2) => $q2
-                        ->where('status', 'expired')
-                        ->orWhere(fn ($q3) => $q3
-                            ->where('status', 'trialing')
-                            ->where('trial_ends_at', '<', now())
-                        )
-                    )
-                )
-                ->whereDoesntHave('subscriptions', fn ($q) => $q->whereIn('status', ['active', 'past_due']))
-                ->get()
-                ->all();
-
-            $this->cachedHasDataIds = $this->snapshotService
-                ->findUserIdsWithData(collect($this->cachedTrialAfterEndCandidates)->pluck('id')->all())
-                ->flip()
-                ->all();
-        }
-
-        return collect($this->cachedTrialAfterEndCandidates);
-    }
-
-    public function candidateHasData(int $userId): bool
-    {
-        return isset($this->cachedHasDataIds[$userId]);
     }
 }

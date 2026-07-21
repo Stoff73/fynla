@@ -32,9 +32,9 @@ class WeHaventSeenYouMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.we-havent-seen-you',
             with: [
-                'firstName'                  => $this->firstName,
-                'getMoreRecommendationsUrl'  => $this->utm('https://fynla.org/dashboard', 'get-more-recommendations-cta'),
-                'subscribeUrl'               => $this->utm('https://fynla.org/subscribe', 'subscribe-retention-cta'),
+                'firstName' => $this->firstName,
+                'getMoreRecommendationsUrl' => $this->utm('https://fynla.org/dashboard', 'get-more-recommendations-cta'),
+                'subscribeUrl' => $this->utm('https://fynla.org/subscribe', 'subscribe-retention-cta'),
             ],
         );
     }

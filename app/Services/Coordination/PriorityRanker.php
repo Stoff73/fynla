@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Constants\SignificanceThresholds;
+
 /**
  * PriorityRanker
  *
@@ -159,7 +161,7 @@ class PriorityRanker
         switch ($module) {
             case 'protection':
                 // Life insurance gap with dependents = critical
-                if (isset($recommendation['coverage_gap']) && $recommendation['coverage_gap'] > 100000) {
+                if (isset($recommendation['coverage_gap']) && $recommendation['coverage_gap'] > SignificanceThresholds::IMPORTANT) {
                     $urgency = 95;
                 } elseif (isset($recommendation['adequacy_score']) && $recommendation['adequacy_score'] < 30) {
                     $urgency = 90;
@@ -224,7 +226,7 @@ class PriorityRanker
                 // IHT liability
                 if (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > 500000) {
                     $urgency = 85;
-                } elseif (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > 200000) {
+                } elseif (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > SignificanceThresholds::CRITICAL) {
                     $urgency = 70;
                 } elseif (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > 50000) {
                     $urgency = 55;
@@ -274,7 +276,7 @@ class PriorityRanker
                         $impact = 95;
                     } elseif ($gap > 250000) {
                         $impact = 85;
-                    } elseif ($gap > 100000) {
+                    } elseif ($gap > SignificanceThresholds::IMPORTANT) {
                         $impact = 70;
                     } else {
                         $impact = 55;
@@ -334,9 +336,9 @@ class PriorityRanker
                 // IHT saving
                 if (isset($recommendation['iht_saving'])) {
                     $saving = $recommendation['iht_saving'];
-                    if ($saving > 200000) {
+                    if ($saving > SignificanceThresholds::CRITICAL) {
                         $impact = 95;
-                    } elseif ($saving > 100000) {
+                    } elseif ($saving > SignificanceThresholds::IMPORTANT) {
                         $impact = 85;
                     } elseif ($saving > 50000) {
                         $impact = 70;

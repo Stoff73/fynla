@@ -23,6 +23,26 @@
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # =============================================================================
+    # Mark API requests so mod_headers can force `no-store` on the response.
+    # MUST be before the front-controller [L] rule below, otherwise the rewrite
+    # phase terminates first and this rule never fires.
+    # =============================================================================
+    RewriteRule ^api/ - [E=FYNLA_API:1]
+
+    # =============================================================================
+    # Strip a leaked /public/ path segment -> single canonical URL
+    # =============================================================================
+    # Defence-in-depth for SEO: if a request ever arrives under /public/ (either
+    # directly, because the document root is the project root and public/ is a
+    # reachable sub-folder, or via an http->https redirect that captured the
+    # rewritten path), collapse it to the clean https://fynla.org/... URL. This
+    # removes the duplicate-content path Google was crawling and keeps a single
+    # canonical address. THE_REQUEST is the original request line, so internal
+    # rewrites to public/ never trigger this (no loop, no false positives).
+    RewriteCond %{THE_REQUEST} \s/+public/(\S*) [NC]
+    RewriteRule ^ https://fynla.org/%1 [R=301,L]
+
+    # =============================================================================
     # Force HTTPS
     # =============================================================================
     RewriteCond %{HTTPS} !=on
@@ -54,15 +74,16 @@
 # =============================================================================
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header unset X-Powered-By
-    # HSTS, Content-Security-Policy, and Permissions-Policy are set by
-    # app/Http/Middleware/SecurityHeaders.php (richer, app-aware allowlist
-    # for Revolut, Google Fonts, analytics, Meta Pixel, etc.). Do NOT add
-    # them here — Apache's Header set runs after PHP and would overwrite
-    # the middleware's values, blocking the Revolut widget on /checkout.
+    # X-Frame-Options, HSTS, Content-Security-Policy, and Permissions-Policy
+    # are set by app/Http/Middleware/SecurityHeaders.php (richer, app-aware
+    # allowlist for Revolut, Google Fonts, analytics, Meta Pixel, etc.).
+    # Do NOT add them here — Apache's Header set runs after PHP and would
+    # overwrite the middleware's values (e.g. middleware sets X-Frame-Options
+    # to DENY; SAMEORIGIN here would silently override).
+    # X-XSS-Protection is deprecated and can introduce its own XSS issues
+    # (Chrome's auditor that consumed it was removed in 2018). Do NOT re-add.
     # This matches the state the live fynla.org .htaccess has been in since
     # the original production edit (discovered session 65, 23 Apr 2026).
 </IfModule>
@@ -84,14 +105,34 @@ RewriteRule ^\.git - [F,L]
 </FilesMatch>
 
 # =============================================================================
-# Block Direct Access to Storage Directory
+# Disable Directory Listing & Allow Symlink Traversal
 # =============================================================================
-RedirectMatch 403 ^/storage/
+# `public/storage` is the Laravel `storage:link` symlink to `storage/app/public`
+# and is intentionally web-accessible (article cover images, user uploads, etc.).
+# Apache 403s symlink traversal unless FollowSymLinks (or the more secure
+# SymLinksIfOwnerMatch) is enabled. SiteGround restricts FollowSymLinks on
+# shared hosting, so we use SymLinksIfOwnerMatch — both link and target are
+# owned by the site user, so the resolution succeeds.
+# Do NOT add a `RedirectMatch 403 ^/storage/` rule — only `storage/app/public`
+# is exposed via the symlink; private files under storage/app, storage/logs,
+# storage/framework remain unreachable because no route maps to them.
+Options -Indexes +SymLinksIfOwnerMatch
 
 # =============================================================================
-# Disable Directory Listing
+# API responses must not be cached by any proxy (SiteGround edge / CDN)
 # =============================================================================
-Options -Indexes
+# The env FYNLA_API is set inside the main mod_rewrite block above (must run
+# before the front-controller [L] rule terminates the rewrite phase). When
+# the rewrite forwards to index.php, Apache exposes the env as both
+# FYNLA_API and REDIRECT_FYNLA_API depending on phase — match both.
+<IfModule mod_headers.c>
+    Header always set Cache-Control "no-store, no-cache, private, must-revalidate, max-age=0" env=FYNLA_API
+    Header always set Pragma "no-cache" env=FYNLA_API
+    Header always set Expires "0" env=FYNLA_API
+    Header always set Cache-Control "no-store, no-cache, private, must-revalidate, max-age=0" env=REDIRECT_FYNLA_API
+    Header always set Pragma "no-cache" env=REDIRECT_FYNLA_API
+    Header always set Expires "0" env=REDIRECT_FYNLA_API
+</IfModule>
 
 # =============================================================================
 # Compression

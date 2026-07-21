@@ -1,0 +1,357 @@
+/**
+ * Fynla public pages — how-it-works page stylesheet
+ *
+ * Page-specific styles for public/pages/how-it-works.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ * Review carousel and CTA band styles now live in global.css MODULE STYLES.
+ */
+
+/* ===================================================================
+   SHARED BUTTON VARIANTS — used across multiple sections of this page
+   =================================================================== */
+.btn-hiw-primary {
+  display: inline-block; padding: 0.625rem 1.5rem;
+  font-size: 0.875rem; font-weight: 600; color: var(--white);
+  background: var(--raspberry-500); border-radius: var(--radius-button);
+  border: none; transition: background 0.15s ease; white-space: nowrap;
+  min-height: 2.75rem; /* 44px touch target */
+}
+.btn-hiw-primary:hover { background: var(--raspberry-600); }
+
+.btn-hiw-secondary {
+  display: inline-block; padding: 0.625rem 1.5rem;
+  font-size: 0.875rem; font-weight: 600; color: var(--horizon-500);
+  background: var(--light-pink-100); border-radius: var(--radius-button);
+  border: none; transition: background 0.15s ease; white-space: nowrap;
+  min-height: 2.75rem; /* 44px touch target */
+}
+.btn-hiw-secondary:hover { background: var(--light-pink-200); }
+
+/* ===================================================================
+   HERO MODULE  [id=hero]
+   =================================================================== */
+/* .hiw-hero and critical hero classes live in the inline <style> block
+   in how-it-works.php for above-fold rendering. Nothing is duplicated here. */
+
+/* ===================================================================
+   STEPS MODULE  [id=steps]
+   =================================================================== */
+.hiw-steps { background: var(--eggshell-500); padding: 4rem 0; }
+.hiw-steps__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.hiw-steps__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 2.5rem;
+}
+
+/* Step card — base */
+.hiw-step {
+  border-radius: var(--radius-2xl); overflow: hidden;
+  margin-bottom: 4rem; display: grid; grid-template-columns: 1fr;
+  gap: 2rem;
+}
+.hiw-step:last-child { margin-bottom: 0; }
+
+/* Step colour themes */
+.hiw-step--grey     { background: linear-gradient(135deg, #4A4A4A, #9E9E9E); }
+.hiw-step--blue     { background: linear-gradient(135deg, #B8D4F0, var(--horizon-500)); }
+.hiw-step--raspberry{ background: linear-gradient(135deg, var(--raspberry-500), var(--light-pink-200)); }
+
+/* Step inner layout — mobile: stack */
+.hiw-step__content,
+.hiw-step__card { padding: 2rem 1.5rem; }
+
+/* Step typography */
+.hiw-step__number {
+  font-size: clamp(2rem, 6vw, 2.5rem); font-weight: 900; color: var(--white);
+  margin-bottom: 0.5rem; line-height: 1;
+}
+.hiw-step__title {
+  font-size: 1.125rem; font-weight: 600; color: var(--white-80);
+  margin-bottom: 0.75rem;
+}
+.hiw-step__body {
+  font-size: 0.875rem; color: var(--white); opacity: 0.6;
+  margin-bottom: 1rem; line-height: 1.625;
+}
+.hiw-step__body--mt { margin-top: 1rem; }
+
+/* Step list — checkmarks */
+.hiw-step__list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.hiw-step__item {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  font-size: 0.875rem; color: var(--white); opacity: 0.8;
+}
+.hiw-step__check { color: var(--spring-400); flex-shrink: 0; margin-top: 0.125rem; }
+
+/* Step list — icon variant (step 2) */
+.hiw-step__list--icons { gap: 0.625rem; }
+.hiw-step__item--icon  { gap: 0.75rem; opacity: 1; align-items: flex-start; }
+.hiw-step__icon-inline { color: var(--white); opacity: 0.7; flex-shrink: 0; margin-top: 0.125rem; }
+.hiw-step__item--icon strong { color: var(--white); font-weight: 600; }
+.hiw-step__item-sub { color: var(--white); opacity: 0.6; }
+
+/* Step list — scenario variant (step 3) */
+.hiw-step__list--scenarios { gap: 0.5rem; margin-bottom: 0; }
+.hiw-step__item--scenario  { align-items: center; gap: 0.5rem; opacity: 1; }
+.hiw-step__scenario-icon   { color: var(--white); flex-shrink: 0; }
+
+/* Aha moment callout (step 2) */
+.hiw-step__aha {
+  margin-top: 1rem; background: var(--white-10); border: 1px solid var(--white-20);
+  border-radius: var(--radius-lg); padding: 0.75rem;
+  font-size: 0.75rem; color: var(--white); opacity: 0.7;
+  line-height: 1.5;
+}
+
+/* Step meta row (step 1 — time + no-login) */
+.hiw-step__meta {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  font-size: 0.75rem; color: var(--white); opacity: 0.5;
+}
+
+/* Step card — white panel */
+.hiw-step__card {
+  background: var(--white); border-radius: var(--radius-2xl);
+  border: 1px solid var(--light-gray); box-shadow: var(--shadow-sm);
+  margin: 0 1.5rem 1.5rem;
+}
+.hiw-step__card--order-first { order: -1; }
+
+/* Step card — data rows (step 1) */
+.hiw-step__card-rows { display: flex; flex-direction: column; gap: 0; }
+.hiw-step__row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.625rem 0; border-bottom: 1px solid var(--light-gray);
+}
+.hiw-step__row:last-child { border-bottom: none; }
+.hiw-step__row-left { display: flex; align-items: center; gap: 0.75rem; }
+.hiw-step__icon {
+  width: 2rem; height: 2rem; border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: var(--white);
+}
+.hiw-step__icon--green    { background: var(--spring-500); }
+.hiw-step__icon--violet   { background: var(--violet-500); }
+.hiw-step__icon--raspberry{ background: var(--raspberry-500); }
+.hiw-step__icon--savannah { background: var(--savannah-500); }
+.hiw-step__icon--blue     { background: var(--light-blue-500); }
+.hiw-step__row-label { font-size: 0.875rem; font-weight: 500; color: var(--horizon-500); }
+.hiw-step__row-status { font-size: 0.75rem; font-weight: 500; color: var(--spring-600); }
+.hiw-step__row-status--partial { color: var(--neutral-500); }
+
+/* Step card — dashboard (step 2) */
+.hiw-step__dashboard { display: flex; flex-direction: column; gap: 0.75rem; }
+.hiw-step__db-row { display: flex; gap: 0.5rem; }
+.hiw-step__db-row--between { justify-content: space-between; align-items: baseline; }
+.hiw-step__db-label { font-size: 0.75rem; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.05em; }
+.hiw-step__db-value { font-size: 1.125rem; font-weight: 700; }
+.hiw-step__db-value--green { color: var(--spring-600); }
+.hiw-step__progress-track { width: 100%; background: var(--savannah-100); border-radius: var(--radius-full); height: 0.375rem; }
+.hiw-step__progress-fill  { height: 0.375rem; border-radius: var(--radius-full); background: var(--spring-500); }
+.hiw-step__db-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.hiw-step__db-mini { background: var(--eggshell-500); border-radius: var(--radius-lg); padding: 0.75rem; }
+.hiw-step__db-mini-label { font-size: 0.75rem; color: var(--neutral-500); }
+.hiw-step__db-mini-val { font-size: 0.875rem; font-weight: 600; color: var(--horizon-500); margin-top: 0.125rem; }
+.hiw-step__db-mini-val--red { color: var(--raspberry-500); }
+.hiw-step__db-divider { border-top: 1px solid var(--light-gray); padding-top: 0.75rem; }
+.hiw-step__db-sublabel { font-size: 0.75rem; color: var(--neutral-500); }
+.hiw-step__db-subval { font-size: 0.75rem; font-weight: 500; color: var(--horizon-500); }
+.hiw-step__db-subval--green  { color: var(--spring-600); }
+.hiw-step__db-subval--violet { color: var(--violet-500); }
+
+/* Step card — scenario (step 3) */
+.hiw-step__scenario-card { display: flex; flex-direction: column; gap: 0.75rem; }
+.hiw-step__scenario-label { font-size: 0.75rem; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.05em; }
+.hiw-step__scenario-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
+.hiw-step__scenario-key { color: var(--neutral-500); }
+.hiw-step__scenario-vals { display: flex; align-items: center; gap: 0.5rem; }
+.hiw-step__scenario-old { color: var(--neutral-400); text-decoration: line-through; font-size: 0.875rem; }
+.hiw-step__scenario-new { font-weight: 600; color: var(--raspberry-500); }
+.hiw-step__scenario-horizon { font-weight: 600; color: var(--horizon-500); }
+.hiw-step__scenario-violet  { font-weight: 600; color: var(--violet-500); }
+.hiw-step__scenario-divider { border-top: 1px solid var(--light-gray); }
+.hiw-step__scenario-gap-label { font-size: 0.75rem; color: var(--neutral-500); }
+.hiw-step__scenario-gap-row {
+  display: flex; justify-content: space-between; font-size: 0.75rem;
+  color: var(--horizon-500);
+}
+.hiw-step__scenario-gap-val { color: var(--spring-600); font-weight: 500; }
+
+/* ===================================================================
+   NEXT STEPS MODULE  [id=next-steps]
+   =================================================================== */
+.hiw-next { background: var(--light-pink-100); padding: 4rem 0; }
+.hiw-next__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.hiw-next__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700;
+  color: var(--horizon-500); text-align: center; margin-bottom: 2rem;
+}
+.hiw-next__grid {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+}
+.hiw-next__card {
+  background: var(--white); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+}
+.hiw-next__card-title {
+  font-size: 1.125rem; font-weight: 700; color: var(--horizon-500);
+  margin-bottom: 0.5rem;
+}
+.hiw-next__card-body { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; }
+
+/* ===================================================================
+   WHAT FYNLA DOES DIFFERENTLY MODULE  [id=differently]
+   =================================================================== */
+.hiw-diff {
+  background: linear-gradient(to right, var(--horizon-600), var(--horizon-700));
+  padding: 4rem 0;
+}
+.hiw-diff__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.hiw-diff__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700; color: var(--white);
+  text-align: center; margin-bottom: 0.5rem;
+}
+.hiw-diff__intro {
+  font-size: 0.875rem; color: var(--white); opacity: 0.6;
+  text-align: center; margin-bottom: 2rem; line-height: 1.5;
+}
+.hiw-diff__grid {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+}
+.hiw-diff__card {
+  background: var(--horizon-500); border-radius: var(--radius-lg);
+  padding: 1.25rem; display: flex; align-items: flex-start; gap: 0.75rem;
+}
+.hiw-diff__icon-wrap {
+  width: 2rem; height: 2rem; border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: var(--white);
+}
+.hiw-diff__icon-wrap--spring    { background: var(--spring-500); }
+.hiw-diff__icon-wrap--raspberry { background: var(--raspberry-500); }
+.hiw-diff__icon-wrap--violet    { background: var(--violet-500); }
+.hiw-diff__icon-wrap--blue      { background: var(--light-blue-500); }
+.hiw-diff__icon-wrap--savannah  { background: var(--savannah-500); }
+.hiw-diff__icon-wrap--horizon   { background: var(--horizon-400); }
+.hiw-diff__card-title { font-size: 1.125rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem; }
+.hiw-diff__card-body  { font-size: 0.75rem; color: var(--white); opacity: 0.6; line-height: 1.625; }
+
+/* ===================================================================
+   STUCK? ASK FYN MODULE  [id=ask-fyn]
+   =================================================================== */
+.hiw-fyn { background: var(--light-pink-100); padding: 4rem 0; }
+.hiw-fyn__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+  display: flex; flex-direction: column; gap: 2.5rem;
+}
+.hiw-fyn__heading {
+  font-size: clamp(1.5rem, 5vw, 2.25rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 0.5rem;
+}
+.hiw-fyn__body {
+  font-size: 0.875rem; color: var(--neutral-500);
+  max-width: 42rem; margin-bottom: 1.5rem; line-height: 1.625;
+}
+.btn-hiw-fyn {
+  display: inline-block; padding: 0.75rem 3rem;
+  font-size: 1rem; font-weight: 500; color: var(--white);
+  background: var(--raspberry-500); border-radius: var(--radius-button);
+  border: none; transition: background 0.15s ease; min-height: 3rem;
+}
+.btn-hiw-fyn:hover { background: var(--raspberry-600); }
+.hiw-fyn__questions { display: flex; flex-direction: column; gap: 0.75rem; }
+.hiw-fyn__q {
+  background: var(--white); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg); padding: 0.75rem 1rem;
+  font-size: 0.875rem; color: var(--horizon-500); box-shadow: var(--shadow-sm);
+}
+
+/* ===================================================================
+   FROM DEMO TO YOUR OWN PLAN MODULE  [id=demo-steps]
+   =================================================================== */
+.hiw-demo-steps {
+  background: linear-gradient(to right, var(--horizon-600), var(--horizon-700));
+  padding: 4rem 0;
+}
+.hiw-demo-steps__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.hiw-demo-steps__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700;
+  color: var(--white); text-align: center; margin-bottom: 2.5rem;
+}
+.hiw-demo-steps__grid {
+  display: grid; grid-template-columns: 1fr; gap: 1.5rem;
+  list-style: none; margin-bottom: 2.5rem;
+}
+.hiw-demo-steps__card {
+  background: var(--horizon-500); border-radius: var(--radius-2xl); padding: 1.5rem;
+}
+.hiw-demo-steps__num {
+  width: 2.5rem; height: 2.5rem; border-radius: var(--radius-full);
+  background: var(--raspberry-500); display: flex; align-items: center;
+  justify-content: center; margin-bottom: 1rem;
+  color: var(--white); font-size: 0.875rem; font-weight: 700;
+}
+.hiw-demo-steps__card-title {
+  color: var(--white); font-weight: 600; margin-bottom: 0.5rem; font-size: 1rem;
+}
+.hiw-demo-steps__card-body {
+  font-size: 0.875rem; color: var(--horizon-300); line-height: 1.625;
+}
+.hiw-demo-steps__cta { text-align: center; }
+.btn-hiw-demo {
+  display: inline-block; padding: 0.625rem 1.5rem;
+  font-size: 0.875rem; font-weight: 600; color: var(--white);
+  background: var(--raspberry-500); border-radius: var(--radius-button);
+  border: none; transition: background 0.15s ease; min-height: 2.75rem;
+}
+.btn-hiw-demo:hover { background: var(--raspberry-600); }
+
+/* Review carousel styles live in global.css MODULE STYLES — not duplicated here.
+   CTA band (15 minutes to clarity) styles live in global.css MODULE STYLES — not duplicated here. */
+
+/* ===================================================================
+   RESPONSIVE — page-specific breakpoints
+   =================================================================== */
+@media (min-width: 640px) {
+  .hiw-next__grid { grid-template-columns: repeat(2, 1fr); }
+  /* .cta-band__actions already uses flex-wrap:wrap justify-center — no override needed */
+}
+
+@media (min-width: 768px) {
+  .hiw-diff__grid       { grid-template-columns: repeat(2, 1fr); }
+  .hiw-demo-steps__grid { grid-template-columns: repeat(2, 1fr); }
+  /* review-carousel responsive handled in global.css MODULE STYLES */
+}
+
+@media (min-width: 1024px) {
+  /* Increase horizontal padding on page-specific inner containers */
+  .hiw-steps__inner,
+  .hiw-next__inner,
+  .hiw-diff__inner,
+  .hiw-fyn__inner,
+  .hiw-demo-steps__inner { padding-left: 2rem; padding-right: 2rem; }
+  /* review-carousel__inner and cta-band padding handled in global.css MODULE STYLES */
+
+  /* Steps: two-column layout with card beside content */
+  .hiw-step {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+  /* Step content and card: internal padding */
+  .hiw-step__content { padding: 2.5rem; }
+  .hiw-step__card {
+    margin: 1.5rem; /* card floats inside gradient bg */
+    padding: 1.5rem;
+  }
+  /* Step 2: card appears on the left at desktop */
+  .hiw-step--blue .hiw-step__card--order-first { order: -1; }
+
+  .hiw-next__grid       { grid-template-columns: repeat(3, 1fr); }
+  .hiw-diff__grid       { grid-template-columns: repeat(3, 1fr); }
+  .hiw-demo-steps__grid { grid-template-columns: repeat(3, 1fr); }
+
+  /* Ask Fyn: side-by-side layout */
+  .hiw-fyn__inner { flex-direction: row; align-items: center; gap: 2.5rem; }
+  .hiw-fyn__content { flex: 1; }
+  .hiw-fyn__questions { flex: 1; }
+}

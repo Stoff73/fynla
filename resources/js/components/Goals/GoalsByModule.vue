@@ -136,7 +136,7 @@ export default {
         property: {
           label: 'Property',
           icon: '🏠',
-          tagClass: 'bg-purple-100 text-purple-700',
+          tagClass: 'bg-violet-100 text-violet-700',
         },
         retirement: {
           label: 'Retirement',

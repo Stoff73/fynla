@@ -383,8 +383,8 @@ export default {
 }
 
 .badge-indigo {
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-slate {
@@ -393,8 +393,8 @@ export default {
 }
 
 .badge-purple {
-  @apply bg-purple-100;
-  @apply text-purple-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-teal {

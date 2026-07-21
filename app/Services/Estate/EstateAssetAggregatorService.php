@@ -6,16 +6,20 @@ namespace App\Services\Estate;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
-use App\Models\DBPension;
-use App\Models\DCPension;
+use App\Models\CriticalIllnessPolicy;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
+use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
-use App\Models\Property;
-use App\Models\SavingsAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -34,6 +38,11 @@ use Illuminate\Support\Collection;
 class EstateAssetAggregatorService
 {
     use CalculatesOwnershipShare;
+
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
+    ) {}
 
     /**
      * Gather all assets for a user from all modules
@@ -63,8 +72,7 @@ class EstateAssetAggregatorService
         });
 
         // Properties - Single-record pattern
-        $properties = Property::forUserOrJoint($user->id)
-            ->get();
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
         $propertyAssets = $properties->map(function ($property) use ($user) {
             return (object) [
                 'user_id' => $user->id,
@@ -81,8 +89,7 @@ class EstateAssetAggregatorService
         });
 
         // Savings/Cash - Single-record pattern
-        $savingsAccounts = SavingsAccount::forUserOrJoint($user->id)
-            ->get();
+        $savingsAccounts = app(SavingsStore::class)->forUser($user);
         $savingsAssets = $savingsAccounts->map(function ($account) use ($user) {
             return (object) [
                 'user_id' => $user->id,
@@ -110,7 +117,7 @@ class EstateAssetAggregatorService
             if ($business->bpr_eligible && $business->trading_status === 'trading') {
                 // Check 2-year ownership rule if acquisition_date is set
                 if ($business->acquisition_date) {
-                    $yearsOwned = \Carbon\Carbon::parse($business->acquisition_date)->diffInYears(now());
+                    $yearsOwned = Carbon::parse($business->acquisition_date)->diffInYears(now());
                     $ihtExempt = $yearsOwned >= 2;
                 } else {
                     // If no acquisition date set but marked BPR eligible, assume eligible
@@ -154,7 +161,7 @@ class EstateAssetAggregatorService
         });
 
         // DC Pensions (not IHT liable but needed for income projections in gifting strategy)
-        $dcPensions = DCPension::where('user_id', $user->id)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
         $dcPensionAssets = $dcPensions->map(function ($pension) use ($user) {
             return (object) [
                 'user_id' => $user->id,
@@ -170,7 +177,7 @@ class EstateAssetAggregatorService
         });
 
         // DB Pensions (for income projections only - no transfer value in estate)
-        $dbPensions = DBPension::where('user_id', $user->id)->get();
+        $dbPensions = app(PensionStore::class)->forUserByType($user, 'db');
         $dbPensionAssets = $dbPensions->map(function ($pension) use ($user) {
             return (object) [
                 'user_id' => $user->id,
@@ -215,9 +222,8 @@ class EstateAssetAggregatorService
             return $userShare;
         });
 
-        // Get mortgages - single-record pattern
-        $mortgages = Mortgage::forUserOrJoint($user->id)
-            ->get()
+        // Get mortgages - single-record pattern (joint-aware via MortgageStore)
+        $mortgages = $this->mortgageStore->forUser($user)
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
 
         return $liabilities + $mortgages;
@@ -230,8 +236,7 @@ class EstateAssetAggregatorService
      */
     public function getUserMortgages(User $user): Collection
     {
-        return Mortgage::forUserOrJoint($user->id)
-            ->get();
+        return $this->mortgageStore->forUser($user);
     }
 
     /**
@@ -250,10 +255,10 @@ class EstateAssetAggregatorService
      */
     public function getExistingLifeCover(User $user): float
     {
-        $lifeInsurance = \App\Models\LifeInsurancePolicy::where('user_id', $user->id)
+        $lifeInsurance = LifeInsurancePolicy::where('user_id', $user->id)
             ->sum('sum_assured');
 
-        $criticalIllness = \App\Models\CriticalIllnessPolicy::where('user_id', $user->id)
+        $criticalIllness = CriticalIllnessPolicy::where('user_id', $user->id)
             ->sum('sum_assured');
 
         return $lifeInsurance + $criticalIllness;
@@ -265,7 +270,7 @@ class EstateAssetAggregatorService
     public function getUserExpenditure(User $user): array
     {
         // Try ExpenditureProfile first
-        $expenditureProfile = \App\Models\ExpenditureProfile::where('user_id', $user->id)->first();
+        $expenditureProfile = ExpenditureProfile::where('user_id', $user->id)->first();
         if ($expenditureProfile) {
             return [
                 'monthly_expenditure' => $expenditureProfile->total_monthly_expenditure,
@@ -274,7 +279,7 @@ class EstateAssetAggregatorService
         }
 
         // Fall back to ProtectionProfile if available
-        $protectionProfile = \App\Models\ProtectionProfile::where('user_id', $user->id)->first();
+        $protectionProfile = ProtectionProfile::where('user_id', $user->id)->first();
         if ($protectionProfile && $protectionProfile->monthly_expenditure) {
             return [
                 'monthly_expenditure' => $protectionProfile->monthly_expenditure,

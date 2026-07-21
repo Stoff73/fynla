@@ -7,6 +7,7 @@ namespace App\Services\Documents;
 use App\Models\Document;
 use App\Models\DocumentExtraction;
 use App\Models\DocumentExtractionLog;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -123,8 +124,8 @@ class AIExtractionService
             $extraction = DocumentExtraction::create([
                 'document_id' => $document->id,
                 'extraction_version' => $version,
-                'model_used' => $response['model'] ?? (\Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai'
-                    ? config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning')
+                'model_used' => $response['model'] ?? (Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai'
+                    ? config('services.xai.vision_model', 'grok-4.3')
                     : self::ANTHROPIC_MODEL),
                 'input_tokens' => $response['usage']['input_tokens'] ?? null,
                 'output_tokens' => $response['usage']['output_tokens'] ?? null,
@@ -185,7 +186,7 @@ class AIExtractionService
      */
     private function callClaudeAPI(string $base64, string $mediaType, string $prompt): array
     {
-        $isXai = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
+        $isXai = Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
 
         // For images, resize if exceeds API limits
         $processedData = $base64;
@@ -221,7 +222,7 @@ class AIExtractionService
             throw new RuntimeException('XAI_API_KEY is not configured');
         }
 
-        $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+        $model = config('services.xai.vision_model', 'grok-4.3');
 
         // Build image content block in OpenAI format
         $imageUrl = "data:{$mediaType};base64,{$base64}";
@@ -235,7 +236,9 @@ class AIExtractionService
             'Content-Type' => 'application/json',
         ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
             'model' => $model,
-            'max_tokens' => self::MAX_TOKENS,
+            'max_completion_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
+            'reasoning_effort' => 'none',
             'messages' => [
                 ['role' => 'user', 'content' => $content],
             ],
@@ -281,6 +284,7 @@ class AIExtractionService
         $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::ANTHROPIC_API_URL, [
             'model' => self::ANTHROPIC_MODEL,
             'max_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
             'messages' => [
                 [
                     'role' => 'user',
@@ -306,7 +310,7 @@ class AIExtractionService
      */
     private function callClaudeAPIWithText(string $textContent, string $prompt): array
     {
-        $isXai = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
+        $isXai = Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
         $fullPrompt = "Here is the spreadsheet data:\n\n{$textContent}\n\n{$prompt}";
 
         if ($isXai) {
@@ -315,14 +319,16 @@ class AIExtractionService
                 throw new RuntimeException('XAI_API_KEY is not configured');
             }
 
-            $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+            $model = config('services.xai.vision_model', 'grok-4.3');
 
             $response = Http::withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type' => 'application/json',
             ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
                 'model' => $model,
-                'max_tokens' => self::MAX_TOKENS,
+                'max_completion_tokens' => self::MAX_TOKENS,
+                'temperature' => 0,
+                'reasoning_effort' => 'none',
                 'messages' => [
                     ['role' => 'user', 'content' => $fullPrompt],
                 ],
@@ -359,6 +365,7 @@ class AIExtractionService
         ])->timeout(self::TIMEOUT_SECONDS)->post(self::ANTHROPIC_API_URL, [
             'model' => self::ANTHROPIC_MODEL,
             'max_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
             'messages' => [
                 ['role' => 'user', 'content' => $fullPrompt],
             ],
@@ -743,7 +750,7 @@ PROMPT;
         if (json_last_error() !== JSON_ERROR_NONE) {
             Log::warning('Failed to parse extraction response as JSON', [
                 'error' => json_last_error_msg(),
-                'content' => substr($content, 0, 500),
+                'content_length' => strlen($content),
             ]);
 
             throw new RuntimeException(

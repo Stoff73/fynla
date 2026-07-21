@@ -1,0 +1,5 @@
+# Runtime episodic memories are USER DATA — written by the Fyn agent, never
+# committed. Only this dir's structure is tracked.
+*
+!.gitignore
+!.gitkeep

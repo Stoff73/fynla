@@ -6,6 +6,7 @@ use App\Models\Estate\Liability;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\CashFlowProjector;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
     // Ensure active tax configuration exists
@@ -13,7 +14,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $taxConfig = app(TaxConfigService::class);
     $this->projector = new CashFlowProjector($taxConfig);
     $this->user = User::factory()->create();
 });

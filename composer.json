@@ -14,14 +14,17 @@
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
+        "mews/purifier": "^3.4",
         "openai-php/client": "^0.19.1",
         "phpoffice/phpspreadsheet": "^5.3",
         "phpoffice/phpword": "^1.4",
         "pragmarx/google2fa-laravel": "^2.3",
-        "smalot/pdfparser": "^2.12"
+        "smalot/pdfparser": "^2.12",
+        "symfony/yaml": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
+        "justinrainbow/json-schema": "^6.8",
         "laravel/pint": "^1.0",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
@@ -55,6 +58,17 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
+        ],
+        "lint:php": [
+            "bash scripts/quality/php-syntax.sh",
+            "bash scripts/quality/pint-changed.sh"
+        ],
+        "quality": [
+            "@lint:php",
+            "@php vendor/bin/pest --testsuite=Architecture",
+            "@php vendor/bin/pest --testsuite=Unit",
+            "@php vendor/bin/pest --testsuite=Feature",
+            "@php vendor/bin/pest --testsuite=Integration"
         ]
     },
     "extra": {

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\AssetLocation;
 
+use App\Constants\TaxDefaults;
 use App\Models\Investment\Holding;
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
@@ -25,7 +27,8 @@ class TaxDragCalculator
     public function __construct(
         private readonly UKTaxCalculator $taxCalculator,
         private readonly TaxConfigService $taxConfig,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -171,11 +174,13 @@ class TaxDragCalculator
         // Calculate tax
         $cgtTax = $taxableCapitalGain * $cgtRate;
 
-        // Dividend tax rates
+        // Dividend tax rates — sourced from the same TaxConfigService block used
+        // for the dividend allowance above (Rule #2 — never hard-code); TaxDefaults
+        // supplies the current-year fallback only if the config key is missing.
         $dividendTaxRate = match (true) {
-            $incomeTaxRate <= 0.20 => 0.0875, // Basic rate: 8.75%
-            $incomeTaxRate <= 0.40 => 0.3375, // Higher rate: 33.75%
-            default => 0.3935, // Additional rate: 39.35%
+            $incomeTaxRate <= 0.20 => (float) ($dividendConfig['basic_rate'] ?? TaxDefaults::DIVIDEND_BASIC_RATE),
+            $incomeTaxRate <= 0.40 => (float) ($dividendConfig['higher_rate'] ?? TaxDefaults::DIVIDEND_HIGHER_RATE),
+            default => (float) ($dividendConfig['additional_rate'] ?? TaxDefaults::DIVIDEND_ADDITIONAL_RATE),
         };
         $dividendTax = $taxableDividend * $dividendTaxRate;
 
@@ -291,16 +296,27 @@ class TaxDragCalculator
     }
 
     /**
-     * Estimate interest rate for a holding based on asset type
+     * Estimate interest rate for a holding based on asset type.
+     *
+     * Wave 2.6 (REVIEW §4 High #21): reads from the same canonical
+     * TaxConfigService `investment.asset_class_yields` block that
+     * estimateDividendYield() uses, so cash + bond interest rates can
+     * be tuned year-over-year via the seeder without touching code. The
+     * previous implementation hardcoded "4.5% for cash (2024/25 rates)"
+     * which was both stale (current seeded value is 4.0%) and
+     * disconnected from the dividend-yield estimator that ran on the
+     * same input.
      *
      * @param  Holding  $holding  Holding
      * @return float Estimated interest rate (0-1)
      */
     private function estimateInterestRate(Holding $holding): float
     {
+        $yields = $this->taxConfig->get('investment.asset_class_yields', []);
+
         return match ($holding->asset_type) {
-            'bond', 'fixed_income' => 0.04, // 4% for bonds
-            'cash', 'money_market' => 0.045, // 4.5% for cash (2024/25 rates)
+            'bond', 'fixed_income' => $yields['bonds']['income_yield'] ?? 0.04,
+            'cash', 'money_market' => $yields['cash']['income_yield'] ?? 0.04,
             default => 0.0, // No interest for equities
         };
     }
@@ -314,9 +330,17 @@ class TaxDragCalculator
      */
     public function calculatePortfolioTaxDrag(int $userId, array $userTaxProfile): array
     {
-        $accounts = InvestmentAccount::where('user_id', $userId)
-            ->with('holdings')
-            ->get();
+        // Joint-aware — matches pre-PR-5a forUserOrJoint semantics; routed through store (SP1 Pass 6 PR 5a)
+        $user = User::find($userId);
+        if (! $user) {
+            return [
+                'total_portfolio_value' => 0,
+                'total_annual_tax_drag' => 0,
+                'average_tax_drag_percent' => 0,
+                'accounts' => [],
+            ];
+        }
+        $accounts = $this->investmentAccountStore->forUser($user)->load('holdings');
 
         $totalValue = 0;
         $totalTaxDrag = 0;

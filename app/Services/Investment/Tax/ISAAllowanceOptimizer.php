@@ -6,8 +6,9 @@ namespace App\Services\Investment\Tax;
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
+use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -122,9 +123,12 @@ class ISAAllowanceOptimizer
             ->whereIn('account_type', ['isa', 'stocks_shares_isa', 'lifetime_isa'])
             ->get();
 
-        $savingsISAs = SavingsAccount::where('user_id', $userId)
-            ->whereIn('account_type', ['isa', 'cash_isa', 'lifetime_isa'])
-            ->get();
+        $user = User::find($userId);
+        $savingsISAs = $user
+            ? app(SavingsStore::class)->forUser($user)
+                ->where('user_id', $userId)
+                ->whereIn('account_type', ['isa', 'cash_isa', 'lifetime_isa'])
+            : collect();
 
         $stocksAndSharesISA = 0;
         $cashISA = 0;

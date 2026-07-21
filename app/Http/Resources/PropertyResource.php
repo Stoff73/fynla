@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Property
+ * @mixin Property
  */
 class PropertyResource extends JsonResource
 {
@@ -36,6 +37,7 @@ class PropertyResource extends JsonResource
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
             'joint_ownership_type' => $this->joint_ownership_type,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'equity' => $this->equity,
             'outstanding_mortgage' => $this->outstanding_mortgage,
             'monthly_rental_income' => $this->when(
@@ -51,8 +53,8 @@ class PropertyResource extends JsonResource
 
             // Relationships
             'mortgages' => MortgageResource::collection($this->whenLoaded('mortgages')),
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
 
             // Links
             'links' => [

@@ -10,7 +10,6 @@
       :subscription-data="subscriptionData"
       @toggle="toggleSideMenu"
       @update:mobile-open="sideMenuMobileOpen = $event"
-      @open-plan-modal="showPlanModal = true"
     />
 
     <!-- Mobile hamburger toggle -->
@@ -23,10 +22,11 @@
     >
       <!-- Header is sticky so the top nav stays visible while dashboards scroll under it.
            Offset by 44px when the AdvisorBanner (fixed, z-50) is present so they don't overlap.
-           z-30 keeps it below modals (typically z-50) and the SideMenu (z-60). -->
+           z-[45] sits above the docked Fyn chat (z-40) so the nav dropdowns (Support /
+           user menu) open OVER the chat, while staying below modals (z-50) and SideMenu (z-60). -->
       <div
         ref="appHeader"
-        class="sticky z-30 bg-eggshell-500"
+        class="sticky z-[45] bg-eggshell-500"
         :class="isImpersonating ? 'top-[44px]' : 'top-0'"
       >
         <AppNavbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
@@ -42,6 +42,11 @@
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
 
+        <!-- Scheduled Deletion Banner — appears when the authenticated user has
+             `deletion_scheduled_for` set (grace-period scheduled deletion).
+             Renders a violet info bar with a "Cancel scheduled deletion" button. -->
+        <ScheduledDeletionBanner v-if="isAuthenticated && !isPreviewMode" />
+
         <!-- Data Retention Overlay (non-dismissable modal for grace period users).
              Suppressed on /checkout because the user is already in the subscribe flow. -->
         <DataRetentionOverlay
@@ -51,7 +56,7 @@
       </div>
 
       <!-- Content area -->
-      <main class="flex-grow bg-eggshell-500">
+      <main class="flex-grow bg-eggshell-500 transition-all duration-300">
         <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
@@ -60,15 +65,31 @@
       <AppFooter ref="appFooter" />
     </div>
 
-    <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
-    <!-- Expanded chat panel -->
+    <!--
+      Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer.
+      Two widths only:
+        • normal post-onboarding AND Fyn onboarding profile-review pause: 356px
+        • Fyn onboarding wide (path_choice / asset_capture / etc.): 712px = double 356px,
+          capped by viewport minus sidebar.
+      On entering a profile-review pause the main <slot/> view is routed to /profile
+      (UserProfile.vue) so the user can cross-reference the director's summary with the
+      real profile surface; on resume we navigate back to wherever they were before.
+      Stays right-anchored in all cases so the sidebar and chat never overlap.
+    -->
     <aside
-      v-if="showDockedChat && !chatCollapsed"
-      class="hidden lg:flex lg:flex-col fixed right-0 w-[356px] border-l border-light-gray bg-white z-40 transition-all duration-300"
+      v-if="showDockedChat"
+      v-show="!chatCollapsed"
+      class="hidden lg:flex lg:flex-col fixed right-0 border-l border-light-gray bg-white z-40 transition-all duration-300"
+      :class="asideWidthClass"
       style="box-shadow: -6px 0 18px rgba(0, 0, 0, 0.12), 0 -4px 14px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.06);"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
-      <AiChatPanel :docked="true" @collapse="toggleChat" />
+      <component
+        ref="dockedChat"
+        :is="isOnboardingRoute ? 'FynOnboardingChat' : 'AiChatPanel'"
+        :docked="true"
+        @collapse="toggleChat"
+      />
     </aside>
 
     <!-- Collapsed chat strip -->
@@ -78,6 +99,7 @@
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
       <button
+        ref="chatExpandButton"
         @click="toggleChat"
         class="w-7 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors"
         title="Expand Fyn chat"
@@ -99,21 +121,21 @@
     <!-- Global toast notifications -->
     <ToastNotification />
 
-    <!-- Trial Expired — plan selection.
+    <!-- Subscription ended — plan selection.
          Suppressed on /checkout because the user is already in the subscribe flow.
          Dismissable when opened from DataRetentionOverlay (grace-period flow) so the user
          can back out and choose Delete All Data instead. -->
     <PlanSelectionModal
-      v-if="showTrialExpiredModal && !isOnCheckoutRoute"
-      :dismissable="planModalDismissable"
+      v-if="showSubscriptionEndedModal && !isOnCheckoutRoute"
+      :dismissable="subscriptionModalDismissable"
       :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
-      @close="handleTrialModalClose"
+      @close="handleSubscriptionModalClose"
     />
 
     <!-- Plan selection modal (from navbar/sidebar "Choose a Plan" / "Upgrade Now") -->
     <PlanSelectionModal
-      v-if="showPlanModal && !showTrialExpiredModal"
+      v-if="showPlanModal && !showSubscriptionEndedModal"
       :current-plan="activePlanSlug"
       :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
@@ -127,19 +149,21 @@ import { mapGetters, mapActions } from 'vuex';
 import AppNavbar from '@/components/AppNavbar.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
-import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
+import ScheduledDeletionBanner from '@/components/Account/ScheduledDeletionBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 import AiChatButton from '@/components/Shared/AiChatButton.vue';
 import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
+import FynOnboardingChat from '@/components/Fyn/FynOnboardingChat.vue';
 import ToastNotification from '@/components/Shared/ToastNotification.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
-import OfflineBanner from '@/mobile/OfflineBanner.vue';
+import OfflineBanner from '@/components/Common/OfflineBanner.vue';
 import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import SubNavBar from '@/components/SubNavBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
+import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 import storage from '@/utils/storage';
 import { fynIconUrl } from '@/constants/fynIcon';
 
@@ -152,11 +176,12 @@ export default {
     AppNavbar,
     AppFooter,
     PreviewBanner,
-    TrialCountdownBanner,
+    ScheduledDeletionBanner,
     DataRetentionOverlay,
     InfoGuidePanel,
     AiChatButton,
     AiChatPanel,
+    FynOnboardingChat,
     SideMenu,
     SideMenuMobileToggle,
     OfflineBanner,
@@ -174,17 +199,21 @@ export default {
       chatCollapsed: storage.get('fynChatCollapsed') === null ? true : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
-      showTrialExpiredModal: false,
+      showSubscriptionEndedModal: false,
       showPlanModal: false,
-      planModalDismissable: false,
+      subscriptionModalDismissable: false,
       subscriptionData: null,
       isMobileView: window.innerWidth < 1024,
+      // Route the user was on before the director pushed us to /profile for a
+      // profile-review pause. Null when we are not currently displacing a route.
+      preProfileRoute: null,
     };
   },
 
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('auth', ['isAuthenticated', 'currentUser']),
+    ...mapGetters('aiChat', { onboardingLayout: 'onboardingLayout', isOnboardingActive: 'isOnboardingActive' }),
 
     isImpersonating() {
       return this.$store.state.advisor?.impersonating === true;
@@ -203,13 +232,42 @@ export default {
         && !this.currentUser.is_preview_user;
     },
 
-    // Only set for active paid subscribers — trial users see all plans
-    activePlanSlug() {
-      if (!this.subscriptionData || this.subscriptionData.status !== 'active') return null;
-      return this.subscriptionData.plan;
+    /**
+     * True while the Fyn-driven onboarding is active. Gates the wide-chat
+     * wrapper width and the profile-review route push (see asideWidthClass
+     * and the onboardingLayout watcher).
+     */
+    isOnboardingRoute() {
+      const path = this.$route?.path || '';
+      if (path.startsWith('/onboarding')) return true;
+      // Phase 13 — the "Quick start with Fyn" CTA launches the Fyn-driven
+      // onboarding from /dashboard?openFyn=journey. Dashboard.vue strips
+      // the query param immediately, leaving the app at /dashboard while
+      // the onboarding director is still driving the conversation. In
+      // that case the wide-chat wrapper must activate here even though the
+      // URL no longer says /onboarding.
+      return this.isOnboardingActive;
     },
 
-    // True when the current route is /checkout. Used to suppress the expired-trial
+    /**
+     * Aside width class. Right-anchored always. Two sizes only:
+     *   • onboarding wide state (path_choice / asset_capture, etc):
+     *     712px = double the normal 356px docked width.
+     *   • everything else (non-onboarding chat AND onboarding profile-
+     *     review pauses): normal 356px docked width.
+     */
+    asideWidthClass() {
+      if (this.isOnboardingRoute && this.onboardingLayout !== 'standard') {
+        return 'w-[712px] max-w-[calc(100vw-15rem)]';
+      }
+      return 'w-[356px]';
+    },
+
+    activePlanSlug() {
+      return this.subscriptionData?.tier || 'free';
+    },
+
+    // True when the current route is /checkout. Used to suppress subscription-ended
     // and grace-period overlays so the user can actually reach the Revolut widget.
     isOnCheckoutRoute() {
       return this.$route.path === '/checkout' || this.$route.name === 'Checkout';
@@ -226,6 +284,12 @@ export default {
   },
 
   watch: {
+    isAuthenticated(authenticated) {
+      if (authenticated && !this.isPreviewMode && !this.subscriptionData) {
+        this.checkSubscriptionStatus();
+      }
+    },
+
     // Collapse side menu when docked chat becomes active and expanded
     showDockedChat(active) {
       if (active && !this.chatCollapsed && !this.sideMenuCollapsed) {
@@ -238,9 +302,47 @@ export default {
     '$route.path'() {
       if (this.isAuthenticated && !this.isPreviewMode) {
         const now = Date.now();
-        if (!this._lastTrialCheck || now - this._lastTrialCheck > 300000) {
-          this._lastTrialCheck = now;
-          this.checkTrialStatus();
+        if (!this._lastSubscriptionCheck || now - this._lastSubscriptionCheck > 300000) {
+          this._lastSubscriptionCheck = now;
+          this.checkSubscriptionStatus();
+        }
+      }
+    },
+
+    // Watch for ?openPricing=1 arriving via in-app navigation (e.g. router.push
+    // after a successful restore). Mounted handles the initial-page-load case;
+    // this handles SPA-internal transitions.
+    '$route.query.openPricing'(value) {
+      if (value) this.maybeOpenPricingFromQuery();
+    },
+
+    // Profile-review pause routing. When the onboarding director emits
+    // `onboarding_layout_change { mode: 'standard' }` (entering
+    // profile_review_family or profile_review_expenditure), route the main
+    // <slot/> view to /profile (UserProfile.vue) so the user can see their
+    // actual captured profile behind the shrunken chat. When the director
+    // emits `{ mode: 'wide' }` on confirmation, return to whichever route
+    // they were on before the pause (typically /dashboard).
+    //
+    // The chat itself lives in a fixed <aside> and is unaffected by the
+    // <router-view> change; Vuex state (`aiChat`) persists across routes.
+    onboardingLayout(newLayout) {
+      if (!this.isOnboardingRoute) return;
+      if (newLayout === 'standard') {
+        if (this.$route.path !== '/profile') {
+          this.preProfileRoute = this.$route.fullPath;
+          this.$router.push('/profile').catch(() => {});
+        }
+      } else if (newLayout === 'wide') {
+        // Returning from a profile-review pause. Prefer the stored pre-pause
+        // route; fall back to /dashboard (where onboarding is always driven
+        // from) if nothing was stored. Only navigate if we're currently on
+        // /profile — on the very first wide event of a session we'd already
+        // be on /dashboard and a spurious push would no-op-or-worse.
+        if (this.$route.path === '/profile') {
+          const target = this.preProfileRoute || '/dashboard';
+          this.preProfileRoute = null;
+          this.$router.push(target).catch(() => {});
         }
       }
     },
@@ -251,8 +353,14 @@ export default {
       this.fetchInfoGuidePreference();
     }
     if (this.isAuthenticated) {
-      this.checkTrialStatus();
+      this.checkSubscriptionStatus();
     }
+
+    // Honour ?openPricing=1 — set by RestoreAccountController after a
+    // successful account restore, and reusable elsewhere when we want to
+    // pop the plan-selection modal on landing without forcing the user to
+    // click through DataRetentionOverlay first.
+    this.maybeOpenPricingFromQuery();
 
     // Listen for Fyn chat toggle from child views (e.g. Dashboard)
     this._onFynToggle = () => this.toggleChat();
@@ -335,6 +443,9 @@ export default {
       storage.set('fynChatCollapsed', this.chatCollapsed);
       if (this.chatCollapsed) {
         window.dispatchEvent(new Event('fyn-chat-interaction'));
+        this.$nextTick(() => this.$refs.chatExpandButton?.focus());
+      } else {
+        this.$nextTick(() => this.$refs.dockedChat?.focusInput?.());
       }
     },
 
@@ -343,19 +454,20 @@ export default {
       storage.set('fynChatCollapsed', false);
     },
 
-    async checkTrialStatus() {
+    async checkSubscriptionStatus() {
       if (this.isPreviewMode) return;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         this.subscriptionData = response.data;
-        if (!response.data.has_subscription) return;
-        const status = response.data.status;
+        this.$store.commit('auth/setSubscriptionData', response.data);
+        this.maybeOpenPricingFromQuery();
+        const presentation = getSubscriptionPresentation(response.data);
         // For grace-period users, DataRetentionOverlay is the primary surface.
         // PlanSelectionModal opens from its "Subscribe Now" button via handleSubscribeFromOverlay.
-        // Only auto-show the non-dismissable plan modal for non-grace expired users.
-        if (status !== 'trialing' && status !== 'active' && !response.data.is_in_grace_period) {
-          this.planModalDismissable = false;
-          this.showTrialExpiredModal = true;
+        // Only auto-show the non-dismissable plan modal after paid access has ended.
+        if (presentation.state === 'expired' && presentation.showUpgrade) {
+          this.subscriptionModalDismissable = false;
+          this.showSubscriptionEndedModal = true;
         }
       } catch {
         // Silently fail
@@ -363,23 +475,43 @@ export default {
     },
 
     handleSubscribeFromOverlay() {
-      this.planModalDismissable = true;
-      this.showTrialExpiredModal = true;
+      this.subscriptionModalDismissable = true;
+      this.showSubscriptionEndedModal = true;
     },
 
-    handleTrialModalClose() {
-      this.showTrialExpiredModal = false;
+    // Opens PlanSelectionModal when the URL carries ?openPricing=1. Used by
+    // the post-restore redirect (see RestoreAccountController). Reuses the
+    // same dismissable-plan-modal path as DataRetentionOverlay's "Subscribe
+    // Now" CTA so the modal sits above the grace-period overlay if present.
+    // Strips the query param after triggering so a refresh / back-nav does
+    // not re-pop the modal.
+    maybeOpenPricingFromQuery() {
+      if (!this.$route.query.openPricing) return;
+      if (this.$route.path === '/settings/subscription') return;
+      if (!this.isAuthenticated || this.isPreviewMode) return;
+      if (!this.subscriptionData) return;
+
+      if (getSubscriptionPresentation(this.subscriptionData).showUpgrade) {
+        this.showPlanModal = true;
+      }
+
+      const rest = { ...this.$route.query };
+      delete rest.openPricing;
+      this.$router
+        .replace({ path: this.$route.path, query: rest })
+        .catch(() => {});
     },
 
-    handlePlanSelect({ plan, billingCycle, isUpgrade, discountCode }) {
-      this.showTrialExpiredModal = false;
+    handleSubscriptionModalClose() {
+      this.showSubscriptionEndedModal = false;
+    },
+
+    handlePlanSelect({ plan, billingCycle, discountCode }) {
+      this.showSubscriptionEndedModal = false;
       this.showPlanModal = false;
-      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      // Thread the discount code through to the checkout page — its
-      // prefilledDiscountCode computed reads $route.query.discount and
-      // auto-validates + applies before creating the Revolut order.
-      const discountParam = discountCode ? `&discount=${encodeURIComponent(discountCode)}` : '';
-      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}${discountParam}`);
+      const query = { plan, cycle: billingCycle };
+      if (discountCode) query.discount = discountCode;
+      this.$router.push({ path: '/checkout', query });
     },
   },
 };

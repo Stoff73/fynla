@@ -24,18 +24,28 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Models\JointAccountLog;
+use App\Models\User;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\ReturnCalculationService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\TierGate;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Investment Controller
@@ -57,7 +67,9 @@ class InvestmentController extends Controller
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
         private readonly ReturnCalculationService $returnCalculationService,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly GoalStrategyService $goalStrategy
+        private readonly GoalStrategyService $goalStrategy,
+        private readonly InvestmentAccountStore $investmentAccountStore,
+        private readonly TierGate $tierGate,
     ) {}
 
     /**
@@ -120,6 +132,11 @@ class InvestmentController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accountsData,
+                // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the
+                // gate's primary-owner-only count (InvestmentAccountStore:192), NOT the
+                // joint-aware list above, so "X of Y used" matches what canCreate enforces.
+                'account_count' => InvestmentAccount::where('user_id', $user->id)->count(),
+                'account_limit' => $this->tierGate->hardLimit($user, InvestmentAccountStore::ENTITY_KEY),
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
                 'life_events' => $lifeEvents,
@@ -228,7 +245,7 @@ class InvestmentController extends Controller
                     'message' => 'Monte Carlo simulation started',
                 ],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Re-throw validation exceptions to let Laravel handle them (422 response)
             throw $e;
         } catch (\Exception $e) {
@@ -333,13 +350,13 @@ class InvestmentController extends Controller
             && isset($validated['tax_relief_type'])
             && in_array($validated['tax_relief_type'], ['eis', 'seis', 'sitr'])
             && isset($validated['investment_date'])) {
-            $investmentDate = \Carbon\Carbon::parse($validated['investment_date']);
+            $investmentDate = Carbon::parse($validated['investment_date']);
             $validated['disposal_restriction_date'] = $investmentDate->addYears(3)->format('Y-m-d');
         }
 
         // Auto-calculate CSOP three-year date (grant_date + 3 years)
         if ($validated['account_type'] === 'csop' && isset($validated['grant_date'])) {
-            $grantDate = \Carbon\Carbon::parse($validated['grant_date']);
+            $grantDate = Carbon::parse($validated['grant_date']);
             $validated['csop_three_year_date'] = $grantDate->copy()->addYears(3)->format('Y-m-d');
         }
 
@@ -347,7 +364,7 @@ class InvestmentController extends Controller
         if ($validated['account_type'] === 'saye'
             && isset($validated['scheme_start_date'])
             && isset($validated['scheme_duration_months'])) {
-            $startDate = \Carbon\Carbon::parse($validated['scheme_start_date']);
+            $startDate = Carbon::parse($validated['scheme_start_date']);
             $validated['saye_maturity_date'] = $startDate->copy()->addMonths($validated['scheme_duration_months'])->format('Y-m-d');
         }
 
@@ -371,46 +388,62 @@ class InvestmentController extends Controller
 
         $account = null;
 
-        DB::transaction(function () use ($validated, $holdings, &$account) {
-            $account = InvestmentAccount::create($validated);
+        $canonical = InvestmentAccountNormaliser::fromForm($validated, $user);
 
-            if (! empty($holdings)) {
-                $hasCashHolding = false;
+        try {
+            DB::transaction(function () use ($canonical, $user, $holdings, &$account) {
+                $account = $this->investmentAccountStore->create($canonical, $user, IngestSource::FORM);
 
-                foreach ($holdings as $holdingData) {
-                    $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
+                if (! empty($holdings)) {
+                    $hasCashHolding = false;
 
-                    if (($holdingData['asset_type'] ?? '') === 'cash') {
-                        $hasCashHolding = true;
+                    foreach ($holdings as $holdingData) {
+                        $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
+
+                        if (($holdingData['asset_type'] ?? '') === 'cash') {
+                            $hasCashHolding = true;
+                        }
+
+                        $account->holdings()->create([
+                            'holdable_type' => InvestmentAccount::class,
+                            'holdable_id' => $account->id,
+                            'security_name' => $holdingData['security_name'],
+                            'asset_type' => $holdingData['asset_type'],
+                            'allocation_percent' => $holdingData['allocation_percent'],
+                            'cost_basis' => $holdingData['cost_basis'] ?? null,
+                            'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                            'current_value' => $currentValue,
+                        ]);
                     }
 
-                    $account->holdings()->create([
-                        'holdable_type' => InvestmentAccount::class,
-                        'holdable_id' => $account->id,
-                        'security_name' => $holdingData['security_name'],
-                        'asset_type' => $holdingData['asset_type'],
-                        'allocation_percent' => $holdingData['allocation_percent'],
-                        'cost_basis' => $holdingData['cost_basis'] ?? null,
-                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
-                        'current_value' => $currentValue,
-                    ]);
+                    // Auto-create cash holding for remainder — only if user didn't already add one
+                    $totalAllocated = collect($holdings)->sum('allocation_percent');
+                    if ($totalAllocated < 100 && ! $hasCashHolding) {
+                        $remainderPercent = 100 - $totalAllocated;
+                        $account->holdings()->create([
+                            'holdable_type' => InvestmentAccount::class,
+                            'holdable_id' => $account->id,
+                            'security_name' => 'Cash',
+                            'asset_type' => 'cash',
+                            'allocation_percent' => $remainderPercent,
+                            'current_value' => ($account->current_value * $remainderPercent) / 100,
+                        ]);
+                    }
                 }
-
-                // Auto-create cash holding for remainder — only if user didn't already add one
-                $totalAllocated = collect($holdings)->sum('allocation_percent');
-                if ($totalAllocated < 100 && ! $hasCashHolding) {
-                    $remainderPercent = 100 - $totalAllocated;
-                    $account->holdings()->create([
-                        'holdable_type' => InvestmentAccount::class,
-                        'holdable_id' => $account->id,
-                        'security_name' => 'Cash',
-                        'asset_type' => 'cash',
-                        'allocation_percent' => $remainderPercent,
-                        'current_value' => ($account->current_value * $remainderPercent) / 100,
-                    ]);
-                }
-            }
-        });
+            });
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Investment account limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
+        }
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
@@ -447,10 +480,10 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can update
-        $account = InvestmentAccount::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $account = $this->investmentAccountStore->find($id, $user);
+        if ($account === null || $account->user_id !== $user->id) {
+            return $this->notFoundResponse('Investment account');
+        }
 
         $validated = $request->validated();
 
@@ -491,7 +524,7 @@ class InvestmentController extends Controller
         // Auto-calculate CSOP three-year date on update if grant_date changes
         $accountType = $validated['account_type'] ?? $account->account_type;
         if ($accountType === 'csop' && isset($validated['grant_date'])) {
-            $grantDate = \Carbon\Carbon::parse($validated['grant_date']);
+            $grantDate = Carbon::parse($validated['grant_date']);
             $validated['csop_three_year_date'] = $grantDate->copy()->addYears(3)->format('Y-m-d');
         }
 
@@ -500,7 +533,7 @@ class InvestmentController extends Controller
             $startDate = $validated['scheme_start_date'] ?? $account->scheme_start_date;
             $duration = $validated['scheme_duration_months'] ?? $account->scheme_duration_months;
             if ($startDate && $duration) {
-                $startDateCarbon = \Carbon\Carbon::parse($startDate);
+                $startDateCarbon = Carbon::parse($startDate);
                 $validated['saye_maturity_date'] = $startDateCarbon->copy()->addMonths($duration)->format('Y-m-d');
             }
         }
@@ -509,8 +542,13 @@ class InvestmentController extends Controller
         $holdings = $validated['holdings'] ?? null;
         unset($validated['holdings']);
 
-        // Single-record pattern: Update directly (no reciprocal update)
-        $account->update($validated);
+        $canonical = InvestmentAccountNormaliser::fromForm($validated, $user);
+
+        try {
+            $account = $this->investmentAccountStore->update($id, $canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
 
         // Sync holdings if provided
         if ($holdings !== null) {
@@ -586,14 +624,17 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can toggle
-        $account = InvestmentAccount::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $account = $this->investmentAccountStore->find($id, $user);
+        if ($account === null || $account->user_id !== $user->id) {
+            return $this->notFoundResponse('Investment account');
+        }
 
-        // Toggle the flag
-        $account->include_in_retirement = ! $account->include_in_retirement;
-        $account->save();
+        $account = $this->investmentAccountStore->update(
+            $id,
+            ['include_in_retirement' => ! $account->include_in_retirement],
+            $user,
+            IngestSource::FORM
+        );
 
         // Clear caches
         $this->investmentAgent->clearCache($user->id);
@@ -624,18 +665,17 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can delete
-        $account = InvestmentAccount::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $account = $this->investmentAccountStore->find($id, $user);
+        if ($account === null || $account->user_id !== $user->id) {
+            return $this->notFoundResponse('Investment account');
+        }
 
         $jointOwnerId = $account->joint_owner_id;
 
         // Soft-delete holdings first (polymorphic — no SQL CASCADE on soft-delete)
         $account->holdings()->delete();
 
-        // Then soft-delete the account
-        $account->delete();
+        $this->investmentAccountStore->delete($id, $user, IngestSource::FORM);
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
@@ -911,7 +951,7 @@ class InvestmentController extends Controller
     /**
      * Log joint investment account update for audit trail
      */
-    private function logJointAccountUpdate(\App\Models\User $user, InvestmentAccount $account, array $validated): void
+    private function logJointAccountUpdate(User $user, InvestmentAccount $account, array $validated): void
     {
         $beforeValues = [
             'current_value' => [
@@ -927,7 +967,7 @@ class InvestmentController extends Controller
             ],
         ];
 
-        \App\Models\JointAccountLog::logEdit(
+        JointAccountLog::logEdit(
             $user->id,
             $account->joint_owner_id,
             $account,
@@ -1056,15 +1096,5 @@ class InvestmentController extends Controller
                 'account_type' => $account->account_type,
             ]),
         ]);
-    }
-
-    /**
-     * Calculate annualised return for an account based on holdings.
-     *
-     * @deprecated Use ReturnCalculationService::calculateAnnualisedReturn() directly
-     */
-    private function calculateAccountAnnualisedReturn(InvestmentAccount $account): ?float
-    {
-        return $this->returnCalculationService->calculateAnnualisedReturn($account);
     }
 }

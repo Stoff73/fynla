@@ -6,7 +6,12 @@
       ></div>
     </div>
 
-    <div v-else-if="article" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+    <article
+      v-else-if="article"
+      class="insight-body max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14"
+      itemscope
+      itemtype="https://schema.org/Article"
+    >
       <div v-if="article.tags && article.tags.length" class="flex items-center gap-2 mb-4 flex-wrap">
         <span
           v-for="tag in article.tags"
@@ -26,11 +31,13 @@
           :src="article.hero_image.full"
           :alt="article.title"
           class="block w-full h-auto"
+          itemprop="image"
         />
         <div
           class="pointer-events-none absolute inset-0 bg-gradient-to-t from-horizon-500/85 via-horizon-500/40 to-transparent"
         ></div>
         <span
+          v-if="categoryLabel"
           class="absolute top-4 right-4 text-xs font-semibold px-2.5 py-1 rounded-md uppercase tracking-wide bg-raspberry-500 text-white shadow-sm"
         >
           {{ categoryLabel }}
@@ -39,6 +46,7 @@
           <h1
             class="text-2xl sm:text-3xl md:text-5xl font-black leading-tight drop-shadow-sm"
             style="letter-spacing:-0.02em;"
+            itemprop="name"
           >
             {{ article.title }}
           </h1>
@@ -57,10 +65,12 @@
           <h1
             class="flex-1 text-4xl md:text-5xl font-black text-horizon-500 leading-tight"
             style="letter-spacing:-0.02em;"
+            itemprop="name"
           >
             {{ article.title }}
           </h1>
           <span
+            v-if="categoryLabel"
             class="flex-shrink-0 mt-2 text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-raspberry-100 text-raspberry-700"
           >
             {{ categoryLabel }}
@@ -71,12 +81,20 @@
         </p>
       </header>
 
-      <p v-if="byline" class="text-sm text-neutral-400 mb-10">{{ byline }}</p>
+      <p v-if="byline" class="text-sm text-neutral-400 mb-10" itemprop="author">{{ byline }}</p>
 
-      <ArticleBlockRenderer :blocks="article.body_blocks || []" />
-
-      <InsightCtaPanel :article="article" />
-    </div>
+      <!-- CMS-imported document articles carry sanitised raw HTML in body_html
+           (already passed through HTMLPurifier on import). Native insights use
+           structured body_blocks. Render whichever the article supplies. -->
+      <div class="insight-content" itemprop="articleBody">
+        <div
+          v-if="article.body_html"
+          class="article-html-body"
+          v-html="article.body_html"
+        ></div>
+        <ArticleBlockRenderer v-else :blocks="article.body_blocks || []" />
+      </div>
+    </article>
 
     <div v-else class="max-w-4xl mx-auto px-4 py-20 text-center">
       <h1 class="text-3xl font-bold text-horizon-500 mb-4">Article not found</h1>
@@ -97,7 +115,6 @@
 import { mapActions } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import ArticleBlockRenderer from '@/components/Insights/ArticleBlockRenderer.vue';
-import InsightCtaPanel from '@/components/Insights/InsightCtaPanel.vue';
 import { formatDateLong } from '@/utils/dateFormatter';
 
 const CATEGORY_LABELS = {
@@ -115,7 +132,7 @@ const CATEGORY_LABELS = {
 
 export default {
   name: 'InsightArticlePage',
-  components: { PublicLayout, ArticleBlockRenderer, InsightCtaPanel },
+  components: { PublicLayout, ArticleBlockRenderer },
   data() {
     return { loading: true, article: null };
   },
@@ -167,3 +184,64 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Styling for raw-HTML article bodies imported from .docx via the CMS.
+   Mirrors the visual scale used by the structured ArticleBlockRenderer
+   blocks but applies it directly to elements emitted by HTMLPurifier. */
+.article-html-body {
+  @apply text-base leading-relaxed text-horizon-700;
+  display: flow-root;
+}
+.article-html-body :deep(h2) {
+  @apply text-2xl md:text-3xl font-bold text-horizon-500 mt-10 mb-4 leading-tight;
+  letter-spacing: -0.01em;
+}
+.article-html-body :deep(h3) {
+  @apply text-xl md:text-2xl font-bold text-horizon-500 mt-8 mb-3 leading-tight;
+}
+.article-html-body :deep(h4) {
+  @apply text-lg font-bold text-horizon-500 mt-6 mb-2;
+}
+.article-html-body :deep(p) {
+  @apply mb-5;
+}
+.article-html-body :deep(a) {
+  @apply text-raspberry-500 underline decoration-raspberry-300 underline-offset-2 hover:text-raspberry-700;
+}
+.article-html-body :deep(ul),
+.article-html-body :deep(ol) {
+  @apply mb-5 pl-6 space-y-2;
+}
+.article-html-body :deep(ul) { list-style: disc; }
+.article-html-body :deep(ol) { list-style: decimal; }
+.article-html-body :deep(li) { @apply leading-relaxed; }
+.article-html-body :deep(blockquote) {
+  @apply border-l-4 border-raspberry-500 pl-4 my-6 italic text-neutral-600;
+}
+.article-html-body :deep(img) {
+  @apply rounded-md my-6 max-w-full h-auto;
+}
+.article-html-body :deep(table) {
+  @apply w-full my-6 border-collapse;
+}
+.article-html-body :deep(th),
+.article-html-body :deep(td) {
+  @apply border border-eggshell-900 px-3 py-2 text-left;
+}
+.article-html-body :deep(th) {
+  @apply bg-savannah-300 font-bold;
+}
+.article-html-body :deep(pre) {
+  @apply bg-eggshell-100 rounded-md p-4 my-5 overflow-x-auto text-sm font-mono;
+}
+.article-html-body :deep(code) {
+  @apply bg-eggshell-100 px-1 py-0.5 rounded text-sm font-mono;
+}
+.article-html-body :deep(pre code) {
+  @apply bg-transparent p-0;
+}
+.article-html-body :deep(hr) {
+  @apply my-8 border-t border-eggshell-900;
+}
+</style>

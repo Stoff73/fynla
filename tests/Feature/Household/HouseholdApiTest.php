@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
     // Seed tax configuration
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 
     $this->user = User::factory()->create([
         'first_name' => 'James',

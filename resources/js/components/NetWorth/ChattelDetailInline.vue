@@ -133,7 +133,9 @@
                   </div>
                   <div class="flex justify-between">
                     <dt class="text-sm text-neutral-500">Ownership</dt>
-                    <dd class="text-sm font-medium text-horizon-500">{{ formatOwnership(chattel) }}</dd>
+                    <dd class="text-sm font-medium text-horizon-500">
+                      {{ formatOwnership(chattel) }}<span v-if="chattel.joint_owner_deactivated" class="ml-1 text-xs text-neutral-400">(Deactivated)</span>
+                    </dd>
                   </div>
                   <div v-if="chattel.valuation_date" class="flex justify-between">
                     <dt class="text-sm text-neutral-500">Last Valued</dt>
@@ -546,8 +548,8 @@ export default {
 }
 
 .badge-purple {
-  @apply bg-purple-50;
-  @apply text-purple-800;
+  @apply bg-violet-50;
+  @apply text-violet-800;
 }
 
 .badge-green {
@@ -561,7 +563,7 @@ export default {
 }
 
 .badge-indigo {
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 </style>

@@ -1,0 +1,67 @@
+{
+  "id": "entrepreneur_tax_position",
+  "category": "02-insight-quality",
+  "persona": "entrepreneur",
+  "is_mutating": false,
+  "notes": "Golden persona scenario — grounded figures + hedged judgement. Tax-efficiency advice must quote figures from the user's actual data and hedge any judgement-tier item.",
+  "description": "Alex Chen asks how to be more tax efficient. The reply must quote pound figures grounded in the user's actual data and hedge any judgement-tier strategy ('you may want to consider' / 'one option' / 'worth exploring'), never stating uncertain outcomes as fact, and must signpost FCA advice.",
+  "input": {
+    "turns": [
+      {"user": "how can I be more tax efficient?", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "tax_optimisation",
+    "related": [],
+    "modules": ["tax"]
+  },
+  "expected_response_mode": "recommendation",
+  "expected_engine_call_level": "module",
+  "expected_kyc_state": "passed",
+  "expected_tool_calls": [
+    {"tool": "get_recommendations", "required": true, "result_path": "happy"}
+  ],
+  "expected_tool_calls_absent": [
+    "create_record",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["content", "done"],
+    "must_emit_exactly_once": ["done"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+    ],
+    "must_contain_at_least_one_of": [
+      ["£"],
+      ["you may want to consider", "one option", "worth exploring", "you could consider", "worth discussing", "may ", "consider speaking", "it is worth", "you might"]
+    ],
+    "must_not_contain_substrings": ["I think you should", "you should definitely", "In my opinion", "guaranteed"],
+    "minimum_length_chars": 200
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["users", "ai_conversations"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"happy": 12000},
+    "xai": {"happy": 30000}
+  },
+  "tags": ["golden", "insight-quality", "recommendation-mode", "tax", "entrepreneur", "hedged-judgement", "happy-path"]
+}

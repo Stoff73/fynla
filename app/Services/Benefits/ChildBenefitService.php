@@ -6,6 +6,7 @@ namespace App\Services\Benefits;
 
 use App\Models\FamilyMember;
 use App\Models\User;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -24,7 +25,8 @@ use Illuminate\Support\Collection;
 class ChildBenefitService
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly IncomeDefinitionsService $incomeDefinitions
     ) {}
 
     /**
@@ -204,28 +206,15 @@ class ChildBenefitService
     /**
      * Calculate adjusted net income for HICBC purposes.
      *
-     * Adjusted net income = Total income - Pension contributions - Gift Aid donations
-     *
-     * For simplicity, we use total annual income from user profile.
-     * In a full implementation, this would factor in pension contributions
-     * and charitable donations for a more accurate figure.
+     * Delegates to IncomeDefinitionsService which computes ANI per HMRC ITA 2007 s58:
+     * total income − gross employee pension contributions − grossed-up Gift Aid
+     * − Blind Person's Allowance. This is the same ANI value used by the PA-taper
+     * calculation in UKTaxCalculator, ensuring consistency across the engine.
      */
     private function calculateAdjustedNetIncome(User $user): float
     {
-        // Sum all income sources
-        $totalIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        $income = $this->incomeDefinitions->calculate($user->id);
 
-        // Note: For a more accurate HICBC calculation, we would deduct:
-        // - Gross pension contributions (where relief claimed at source)
-        // - Gift Aid donations (grossed up)
-        // - Trading losses
-        // This simplified version uses gross income.
-
-        return $totalIncome;
+        return (float) $income['adjusted_net_income'];
     }
 }

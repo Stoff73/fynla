@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\TaxConfiguration;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\TaxConfigStore;
 use Illuminate\Database\Seeder;
 
 class TaxConfigurationSeeder extends Seeder
@@ -22,11 +23,15 @@ class TaxConfigurationSeeder extends Seeder
      *
      * Seeds 6 UK tax years (2021/22 through 2026/27) with comprehensive tax configuration.
      * The year defined by self::ACTIVE_TAX_YEAR is set as the active tax year.
+     *
+     * All writes go through TaxConfigStore with IngestSource::SEEDER per spec §14.1.
      */
     public function run(): void
     {
         $this->command->info('');
         $this->command->info('Seeding UK tax configurations for 6 tax years...');
+
+        $store = app(TaxConfigStore::class);
 
         $taxYears = [
             '2021/22' => $this->getTaxConfig202122(),
@@ -38,27 +43,33 @@ class TaxConfigurationSeeder extends Seeder
         ];
 
         foreach ($taxYears as $taxYear => $config) {
-            $isActive = ($taxYear === self::ACTIVE_TAX_YEAR);
+            $payload = [
+                'tax_year' => $taxYear,
+                'effective_from' => $config['effective_from'],
+                'effective_to' => $config['effective_to'],
+                'config_data' => $config,
+                'is_active' => false, // setActive at the end handles the target row
+                'notes' => $config['notes'],
+            ];
 
-            TaxConfiguration::updateOrCreate(
-                ['tax_year' => $taxYear],
-                [
-                    'effective_from' => $config['effective_from'],
-                    'effective_to' => $config['effective_to'],
-                    'config_data' => $config,
-                    'is_active' => $isActive,
-                    'notes' => $config['notes'],
-                ]
-            );
+            $existing = $store->findByTaxYear($taxYear);
+
+            if ($existing) {
+                $store->update($existing->id, $payload, IngestSource::SEEDER);
+            } else {
+                $store->create($payload, IngestSource::SEEDER);
+            }
 
             $this->command->info("✓ Tax configuration for {$taxYear} seeded successfully.");
         }
 
-        // Ensure only the designated active year is marked active.
-        // Admins can change the active year at runtime via the Tax Settings admin UI
-        // without re-running this seeder; re-seeding will reset to self::ACTIVE_TAX_YEAR.
-        TaxConfiguration::where('tax_year', '!=', self::ACTIVE_TAX_YEAR)
-            ->update(['is_active' => false]);
+        // Activate the designated year. setActive() deactivates every other row
+        // atomically, so this also covers any admin-added rows that were active
+        // before re-seeding (spec §10.4 reset-to-canonical behaviour).
+        $active = $store->findByTaxYear(self::ACTIVE_TAX_YEAR);
+        if ($active) {
+            $store->setActive($active->id, IngestSource::SEEDER);
+        }
 
         $this->command->info('');
         $this->command->info('✓ All 6 tax years seeded successfully. '.self::ACTIVE_TAX_YEAR.' is the active tax year.');
@@ -79,6 +90,16 @@ class TaxConfigurationSeeder extends Seeder
                 'personal_allowance' => 12570,
                 'personal_allowance_taper_threshold' => 100000,
                 'personal_allowance_taper_rate' => 0.5,
+
+                // Top-level aliases for absolute band thresholds. Match
+                // bands[0]['upper_limit'] and bands[1]['upper_limit'] respectively.
+                // Many services (DecumulationPlanner, RetirementActionDefinitionService,
+                // SavingsActionDefinitionService, PSACalculator, TaxOptimisationService,
+                // TaxActionDefinitionService, AdvicePromptBuilder) expect these keys
+                // and silently fall back to literals when missing. Keep aliases in sync
+                // with the bands when overriding for historical years.
+                'higher_rate_threshold' => 50270,
+                'additional_rate_threshold' => 125140,
 
                 'bands' => [
                     [
@@ -123,6 +144,13 @@ class TaxConfigurationSeeder extends Seeder
                 'starting_rate_for_savings' => [
                     'band' => 5000,         // £5,000 starting rate band
                     'rate' => 0,            // 0% rate
+                ],
+
+                // Marriage Allowance — 10% of personal allowance, transferable
+                // between spouses / civil partners where the recipient is a
+                // basic-rate taxpayer.
+                'marriage_allowance' => [
+                    'amount' => 1260,
                 ],
 
                 // Blind Person's Allowance
@@ -226,9 +254,23 @@ class TaxConfigurationSeeder extends Seeder
 
             'pension' => [
                 'annual_allowance' => 60000,
+                // Non-earner / low-earner gross contribution limit. Anyone with
+                // relevant UK earnings below this can still contribute up to
+                // £3,600 gross (£2,880 net + 20% basic-rate relief). The £60,000
+                // annual allowance is otherwise capped at 100% of earnings.
+                'relevant_earnings_minimum' => 3600,
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
                 'lifetime_allowance_abolished' => true,
+                // Lump Sum Allowance (LSA) — caps tax-free PCLS at £268,275 since 6 April 2024
+                // when the LTA was abolished. Frozen until April 2031.
+                'lump_sum_allowance' => 268275,
+                // Lump Sum and Death Benefit Allowance (LSDBA) — caps total tax-free lump sums
+                // (PCLS + tax-free death benefits) at £1,073,100. Frozen until April 2031.
+                'lump_sum_and_death_benefit_allowance' => 1073100,
+                // PCLS rate — proportion of crystallised pension funds payable tax-free
+                // (subject to the LSA cap above).
+                'pcls_rate' => 0.25,
                 'carry_forward_years' => 3,
                 'tapered_annual_allowance' => [
                     'threshold_income' => 200000,
@@ -260,8 +302,8 @@ class TaxConfigurationSeeder extends Seeder
                         'apprentice' => 7.55,
                     ],
                     'conservative_proxy_floor' => 10000,         // Use auto-enrolment earnings trigger as proxy
-                    'nic_exemption_cap' => 2000,                 // From April 2029: only first £2,000 of employee salary sacrifice exempt from NICs
-                    'nic_exemption_cap_effective_date' => '2029-04-06', // When the cap takes effect
+                    'nic_exemption_cap' => 2000,                 // From April 2027: only first £2,000 of employee salary sacrifice exempt from NICs
+                    'nic_exemption_cap_effective_date' => '2027-04-06', // Start of 2027/28 tax year — CSJ confirmed 2026-05-12
                 ],
 
                 // Auto-enrolment thresholds
@@ -582,6 +624,41 @@ class TaxConfigurationSeeder extends Seeder
                     ],
                     'non_resident_surcharge' => 0.02,  // 2% for non-UK residents
                 ],
+
+                // Land and Buildings Transaction Tax — Scotland
+                // Bands stored in lower-bound style (rate applies from threshold up),
+                // matching the existing 'residential' shape above.
+                'lbtt' => [
+                    'bands' => [
+                        ['threshold' => 0, 'rate' => 0.00],
+                        ['threshold' => 145000, 'rate' => 0.02],
+                        ['threshold' => 250000, 'rate' => 0.05],
+                        ['threshold' => 325000, 'rate' => 0.10],
+                        ['threshold' => 750000, 'rate' => 0.12],
+                    ],
+                    'additional_surcharge' => 0.08,  // 8% surcharge for additional dwellings (raised from 6% on 5 Dec 2024)
+                    'non_uk_surcharge' => 0.02,      // 2% for non-UK residents
+                ],
+
+                // Land Transaction Tax — Wales
+                'ltt' => [
+                    'bands' => [
+                        ['threshold' => 0, 'rate' => 0.00],
+                        ['threshold' => 225000, 'rate' => 0.06],
+                        ['threshold' => 400000, 'rate' => 0.075],
+                        ['threshold' => 750000, 'rate' => 0.10],
+                        ['threshold' => 1500000, 'rate' => 0.12],
+                    ],
+                    'additional_surcharge' => 0.05,  // 5% surcharge for additional dwellings (raised from 4% on 11 Dec 2024)
+                    'non_uk_surcharge' => 0.02,      // 2% for non-UK residents
+                ],
+            ],
+
+            // Student Loan Repayments
+            // 9% of income above the relevant plan threshold; rate is identical
+            // across Plans 1, 2, 4, 5; postgraduate loans use 6% (not stored yet).
+            'student_loan' => [
+                'repayment_rate' => 0.09,
             ],
 
             'assumptions' => [
@@ -1251,8 +1328,14 @@ class TaxConfigurationSeeder extends Seeder
 
         // ==============================================================
         // Savings - Premium Bonds prize fund rate reduced to 3.3%
+        // FSCS deposit protection raised from £85,000 to £120,000 (PRA,
+        // effective 1 December 2025); joint accounts and temporary high
+        // balance scale accordingly. Base (2025/26 and earlier) stays £85,000.
         // ==============================================================
         $config['savings']['premium_bonds_prize_fund_rate'] = 0.033;
+        $config['savings']['fscs_deposit_protection'] = 120000;          // £120,000 per eligible person per institution
+        $config['savings']['fscs_joint_protection'] = 240000;            // £240,000 for joint accounts
+        $config['savings']['fscs_temporary_high_balance'] = 1400000;     // £1,400,000 temporary high balance protection
 
         // ==============================================================
         // Pension - State Pension uprated 4.8%, NLW/NMW uprated
@@ -1440,6 +1523,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['income_tax']['bands'][1]['max'] = 150000;
         $config['income_tax']['bands'][2]['lower_limit'] = 150000;
         $config['income_tax']['bands'][2]['min'] = 150000;
+        $config['income_tax']['additional_rate_threshold'] = 150000;
 
         // 2021/22 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 12300;

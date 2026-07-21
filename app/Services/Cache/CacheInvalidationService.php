@@ -52,7 +52,8 @@ class CacheInvalidationService
     ];
 
     /**
-     * Module names used for mobile summary caches.
+     * Module names used for mobile summary caches. Must mirror
+     * ModuleSummaryController::VALID_MODULES (includes 'tax').
      */
     private const MODULES = [
         'protection',
@@ -61,6 +62,7 @@ class CacheInvalidationService
         'retirement',
         'estate',
         'goals',
+        'tax',
     ];
 
     /**
@@ -126,10 +128,15 @@ class CacheInvalidationService
         Cache::forget("ai_existing_records_{$userId}");
         Cache::forget("ai_income_defs_{$userId}");
 
-        // Mobile module summaries
+        // Mobile module summaries — keyed mobile_module_{module}_{userId} by
+        // ModuleSummaryController (NOT module_summary_*; that prior key matched
+        // nothing, so the /m drill-downs went stale for up to 24h after a write).
         foreach (self::MODULES as $module) {
-            Cache::forget("module_summary_{$module}_{$userId}");
+            Cache::forget("mobile_module_{$module}_{$userId}");
         }
+
+        // Mobile gamification level/actions cache (drives the dashboard level wheel).
+        Cache::forget("mobile_level_actions_{$userId}");
     }
 
     /**

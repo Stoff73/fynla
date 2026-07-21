@@ -40,10 +40,6 @@ const EXCLUDED_ROUTE_NAMES = new Set([
 
 let masterTagLoaded = false;
 
-export function isEnabled() {
-  return ENABLED;
-}
-
 /**
  * Whether the MasterTag should be loaded for the given route.
  * Returns false on sensitive routes or when Awin is disabled.

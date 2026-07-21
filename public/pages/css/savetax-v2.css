@@ -1,0 +1,53 @@
+/**
+ * savetax-v2.css — v2 mockup overrides for /savetax/v2
+ *
+ * Loaded AFTER savetax.css — overrides only. Does not redefine :root.
+ * Changes from v1:
+ *   1. Eggshell→raspberry gradient on .qr-main (the question area below
+ *      the progress bar). Body + card backgrounds unchanged.
+ *   2. Q3 (spouse Yes/No) becomes a 2-col grid of square rounded boxes.
+ *   3. Continue-required flow (JS change in savetax-v2.js).
+ */
+
+/* ===================================================================
+   GRADIENT AREA — only the question content zone below the progress bar.
+   Eggshell on the left, raspberry on the right.
+   =================================================================== */
+
+.qr-main {
+  background: linear-gradient(to right, var(--eggshell-500), var(--raspberry-500));
+}
+
+/* ===================================================================
+   Q3 SPOUSE — Yes/No as a pair of square rounded boxes
+   2 columns on every viewport (mobile is the lead format here).
+   =================================================================== */
+
+.qr-options--pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.qr-opt--square {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 7rem;
+  padding: 1rem;
+  gap: 0.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.qr-opt--square .qr-opt__label {
+  flex: none;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.qr-opt--square .qr-opt__check {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+}

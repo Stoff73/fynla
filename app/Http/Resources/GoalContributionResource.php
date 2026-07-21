@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\GoalContribution;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\GoalContribution
+ * @mixin GoalContribution
  */
 class GoalContributionResource extends JsonResource
 {
@@ -32,7 +33,7 @@ class GoalContributionResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
             'goal' => $this->whenLoaded('goal', fn () => new GoalResource($this->goal)),
         ];
     }

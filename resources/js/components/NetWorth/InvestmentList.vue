@@ -34,7 +34,7 @@
         </svg>
         <p>No investment accounts found</p>
         <p class="empty-subtitle">Add your first investment account to track your portfolio</p>
-        <button v-preview-disabled="'add'" @click="editingAccount = null; showAccountForm = true;" class="add-first-button">
+        <button v-preview-disabled="'add'" @click="openAddAccountModal" class="add-first-button">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -118,7 +118,7 @@
               <button
                 v-preview-disabled="'add'"
                 type="button"
-                @click="editingAccount = null; showAccountForm = true;"
+                @click="openAddAccountModal"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,6 +224,17 @@
       />
     </Teleport>
 
+    <!-- Tier count-cap reached -->
+    <Teleport to="body">
+      <LimitReachedModal
+        :show="showLimitModal"
+        entity-label="investment accounts"
+        :cap="tierCountCap('investment') || 0"
+        :tier-label="tierLabel"
+        @close="showLimitModal = false"
+      />
+    </Teleport>
+
     <!-- Document Upload Modal -->
     <Teleport to="body">
       <DocumentUploadModal
@@ -231,7 +242,7 @@
         document-type="investment_statement"
         @close="showUploadModal = false"
         @saved="handleDocumentSaved"
-        @manual-entry="showUploadModal = false; showAccountForm = true;"
+        @manual-entry="openManualAccountEntry"
       />
     </Teleport>
 
@@ -242,6 +253,19 @@
     <div v-if="errorMessage" class="notification error animate-slide-in-right">
       {{ errorMessage }}
     </div>
+
+    <!-- Open Banking Affordance — shown only when the Premium affordance flag is true. -->
+    <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-semibold text-horizon-500">Connect via Open Banking — coming soon</h3>
+          <p class="text-sm text-neutral-500 mt-1">Automatically import and sync your investment accounts via Open Banking.</p>
+        </div>
+        <button disabled class="ml-4 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-100 border border-neutral-200 rounded-lg cursor-not-allowed whitespace-nowrap">
+          Coming soon
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -250,43 +274,35 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjections from './InvestmentProjections.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import InvestmentHoldings from '@/components/Investment/InvestmentHoldings.vue';
 import InvestmentPerformance from '@/components/Investment/InvestmentPerformance.vue';
-import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
-import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
-import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
-import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
-import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'InvestmentList',
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, tierLimitMixin],
 
   components: {
     InvestmentProjections,
     AccountForm,
     DocumentUploadModal,
-    InvestmentHoldings,
     InvestmentPerformance,
-    PortfolioOptimization,
-    AssetLocationOptimizer,
-    WrapperOptimizer,
-    FeeBreakdown,
-    TaxEfficiencyPanel,
     RiskMismatchWarning,
     ModuleStatusBar,
+    LimitReachedModal,
   },
 
   data() {
     return {
       selectedAccount: null,
       showAccountForm: false,
+      showLimitModal: false,
       showUploadModal: false,
       editingAccount: null,
       successMessage: null,
@@ -313,6 +329,7 @@ export default {
       'holdingsCount',
     ]),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
+    ...mapGetters('auth', ['openApiAffordance']),
 
     // Calculate portfolio-wide diversification score (value-weighted average)
     portfolioDiversificationScore() {
@@ -393,7 +410,7 @@ export default {
   watch: {
     actionCounter() {
       if (this.pendingAction === 'addAccount') {
-        this.showAccountForm = true;
+        this.openAddAccountModal();
         this.$store.dispatch('subNav/consumeCta');
       } else if (this.pendingAction === 'uploadStatement') {
         this.showUploadModal = true;
@@ -410,8 +427,7 @@ export default {
             this.showAccountForm = true;
           }
         } else {
-          this.editingAccount = null;
-          this.showAccountForm = true;
+          this.openAddAccountModal();
         }
       } else if (fill.entityType === 'investment_holding') {
         // Navigate into the account detail view so the holding form can open
@@ -474,6 +490,20 @@ export default {
       // In preview mode, update the selected account locally
       // This keeps the changes visible in the UI until page refresh
       this.selectedAccount = updatedAccount;
+    },
+
+    openAddAccountModal() {
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('investment', this.accounts.length)) {
+        this.showLimitModal = true;
+        return;
+      }
+      this.editingAccount = null;
+      this.showAccountForm = true;
+    },
+
+    openManualAccountEntry() {
+      this.showUploadModal = false;
+      this.openAddAccountModal();
     },
 
     closeAccountForm() {
@@ -807,11 +837,13 @@ export default {
   },
 
   async mounted() {
+    this.setDetailView(false);
+    await this.loadData();
+
     // Check for pendingFill that was set before this component mounted
     const fill = this.$store.state.aiFormFill?.pendingFill;
     if (fill && fill.entityType === 'investment_account' && fill.mode !== 'edit') {
-      this.editingAccount = null;
-      this.showAccountForm = true;
+      this.openAddAccountModal();
     } else if (fill && fill.entityType === 'investment_holding') {
       const accountId = fill.fields?.investment_account_id;
       if (accountId) {
@@ -822,8 +854,6 @@ export default {
       }
     }
 
-    this.setDetailView(false);
-    await this.loadData();
   },
 };
 </script>
@@ -870,7 +900,7 @@ export default {
   top: 8px;
   right: 8px;
   z-index: 10;
-  @apply px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800;
+  @apply px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-800;
 }
 
 .retirement-badge-corner {
@@ -950,8 +980,8 @@ export default {
 }
 
 .badge-joint {
-  @apply bg-purple-100;
-  @apply text-purple-500;
+  @apply bg-violet-100;
+  @apply text-violet-500;
 }
 
 .badge-trust {
@@ -1167,7 +1197,7 @@ export default {
 }
 
 .summary-item.diversification {
-  @apply border-l-purple-500;
+  @apply border-l-violet-500;
 }
 
 .summary-label {

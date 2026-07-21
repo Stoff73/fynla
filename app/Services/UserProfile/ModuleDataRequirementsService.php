@@ -530,7 +530,7 @@ class ModuleDataRequirementsService
                     'link' => '/profile',
                 ],
                 'spouse' => [
-                    'label' => 'Your spouse or partner details',
+                    'label' => 'Your spouse details',
                     'why' => 'Enables household financial planning and spousal tax optimisations',
                     'how_used' => 'Powers household net worth, spousal transfer recommendations, and death-of-spouse scenario modelling',
                     'link' => '/profile',

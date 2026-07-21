@@ -367,7 +367,7 @@ export default {
 
     getAssetBarClasses(assetType) {
       return {
-        equity: 'bg-purple-100',
+        equity: 'bg-violet-100',
         bond: 'bg-blue-100',
         cash: 'bg-green-100',
       }[assetType] || 'bg-savannah-100';
@@ -375,7 +375,7 @@ export default {
 
     getAssetFillClasses(assetType) {
       return {
-        equity: 'bg-purple-500',
+        equity: 'bg-violet-500',
         bond: 'bg-blue-500',
         cash: 'bg-green-500',
       }[assetType] || 'bg-neutral-500';

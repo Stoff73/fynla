@@ -261,6 +261,166 @@ describe('evaluateAgentActions', function () {
         expect($ageRec)->not->toBeNull()
             ->and($ageRec['title'])->toContain('Consider Adjusting Retirement Age');
     });
+
+    it('caps contribution-increase headroom at relevant earnings', function () {
+        // Tax-relievable personal contributions are limited to relevant UK
+        // earnings — a £9k earner must never be told they can use £60k.
+        $this->user->update(['annual_employment_income' => 9000]);
+
+        DCPension::create([
+            'user_id' => $this->user->id,
+            'scheme_name' => 'Part-time Workplace',
+            'scheme_type' => 'workplace',
+            'pension_type' => 'occupational',
+            'employee_contribution_percent' => 3.0,
+            'employer_contribution_percent' => 3.0,
+            'current_fund_value' => 5000,
+            'annual_salary' => 9000,
+        ]);
+
+        $analysisData = [
+            'profile' => $this->profile->toArray(),
+            'summary' => [
+                'income_gap' => 5000,
+                'target_retirement_income' => 30000,
+                'target_retirement_age' => 65,
+            ],
+            'annual_allowance' => [
+                'has_excess' => false,
+                'remaining_allowance' => 59460,
+                'carry_forward_available' => 0,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions($analysisData);
+        $rec = collect($result['recommendations'])->firstWhere('category', 'Contribution_increase');
+
+        expect($rec)->not->toBeNull()
+            ->and($rec['available_annual_headroom'])->toBeLessThanOrEqual(9000.0)
+            ->and($rec['available_annual_headroom'])->toBeGreaterThan(0.0);
+    });
+
+    it('floors the contribution-increase cap at the non-earner gross amount', function () {
+        // A user with no relevant earnings can still contribute £2,880 net
+        // (£3,600 gross) — the headroom must say £3,600, not the full allowance.
+        $this->user->update(['annual_employment_income' => 0]);
+
+        DCPension::create([
+            'user_id' => $this->user->id,
+            'scheme_name' => 'Personal Pension',
+            'scheme_type' => 'sipp',
+            'pension_type' => 'personal',
+            'employee_contribution_percent' => 0,
+            'employer_contribution_percent' => 0,
+            'monthly_contribution_amount' => 100,
+            'current_fund_value' => 20000,
+        ]);
+
+        $analysisData = [
+            'profile' => $this->profile->toArray(),
+            'summary' => [
+                'income_gap' => 5000,
+                'target_retirement_income' => 30000,
+                'target_retirement_age' => 65,
+            ],
+            'annual_allowance' => [
+                'has_excess' => false,
+                'remaining_allowance' => 58800,
+                'carry_forward_available' => 0,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions($analysisData);
+        $rec = collect($result['recommendations'])->firstWhere('category', 'Contribution_increase');
+
+        expect($rec)->not->toBeNull()
+            ->and($rec['available_annual_headroom'])->toBe(3600.0);
+    });
+
+    it('suppresses contribution-increase from age 75 (no tax relief)', function () {
+        $this->user->update([
+            'date_of_birth' => now()->subYears(77)->toDateString(),
+            'annual_employment_income' => 20000,
+        ]);
+
+        DCPension::create([
+            'user_id' => $this->user->id,
+            'scheme_name' => 'Workplace',
+            'scheme_type' => 'workplace',
+            'pension_type' => 'occupational',
+            'employee_contribution_percent' => 3.0,
+            'employer_contribution_percent' => 3.0,
+            'current_fund_value' => 50000,
+            'annual_salary' => 20000,
+        ]);
+
+        $analysisData = [
+            'profile' => $this->profile->toArray(),
+            'summary' => [
+                'income_gap' => 5000,
+                'target_retirement_income' => 30000,
+                'target_retirement_age' => 65,
+            ],
+            'annual_allowance' => [
+                'has_excess' => false,
+                'remaining_allowance' => 58800,
+                'carry_forward_available' => 0,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions($analysisData);
+        $rec = collect($result['recommendations'])->firstWhere('category', 'Contribution_increase');
+
+        expect($rec)->toBeNull();
+    });
+
+    it('does not suggest adjusting retirement age to a retired user', function () {
+        $this->user->update(['employment_status' => 'retired']);
+
+        $analysisData = [
+            'profile' => $this->profile->toArray(),
+            'summary' => [
+                'income_gap' => 10000,
+                'target_retirement_income' => 30000,
+                'target_retirement_age' => 60,
+            ],
+            'annual_allowance' => [
+                'has_excess' => false,
+                'remaining_allowance' => 60000,
+                'carry_forward_available' => 0,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions($analysisData);
+        $ageRec = collect($result['recommendations'])->firstWhere('category', 'Retirement Planning');
+
+        expect($ageRec)->toBeNull();
+    });
+
+    it('does not suggest adjusting retirement age past the target age', function () {
+        // Already older than the target retirement age — delaying a retirement
+        // that has effectively happened is not actionable advice.
+        $this->user->update(['date_of_birth' => now()->subYears(72)->toDateString()]);
+
+        $analysisData = [
+            'profile' => $this->profile->toArray(),
+            'summary' => [
+                'income_gap' => 10000,
+                'target_retirement_income' => 30000,
+                'target_retirement_age' => 65,
+            ],
+            'annual_allowance' => [
+                'has_excess' => false,
+                'remaining_allowance' => 60000,
+                'carry_forward_available' => 0,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions($analysisData);
+        $ageRec = collect($result['recommendations'])->firstWhere('category', 'Retirement Planning');
+
+        expect($ageRec)->toBeNull();
+    });
 });
 
 describe('evaluateGoalActions', function () {

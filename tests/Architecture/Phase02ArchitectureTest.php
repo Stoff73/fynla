@@ -185,7 +185,7 @@ describe('Phase 02 Architecture Tests', function () {
 
             // PersonalAccountsService depends on UKTaxCalculator for proper tax calculation
             expect($constructor)->not->toBeNull();
-            expect($constructor->getNumberOfParameters())->toBe(1);
+            expect($constructor->getNumberOfParameters())->toBe(3); // UKTaxCalculator + PropertyStore + MortgageStore (SP1 Pass 5 PR 5c)
         });
 
         it('UserProfileService uses dependency injection for cross-module services', function () {

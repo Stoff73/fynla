@@ -8,6 +8,7 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdvisorImpersonationMiddleware
@@ -25,7 +26,7 @@ class AdvisorImpersonationMiddleware
         }
 
         $token = $user->currentAccessToken();
-        if (! $token || ! ($token instanceof \Laravel\Sanctum\PersonalAccessToken)) {
+        if (! $token || ! ($token instanceof PersonalAccessToken)) {
             return $next($request);
         }
         $tokenId = $token->id;

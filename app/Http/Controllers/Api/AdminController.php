@@ -17,10 +17,16 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Admin\DatabaseMetricsService;
 use App\Services\Admin\UserModuleTrackingService;
+use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminController extends Controller
 {
@@ -114,14 +120,14 @@ class AdminController extends Controller
         }
     }
 
-    private function resolvePreviousLoginAt(?User $user): ?\Illuminate\Support\Carbon
+    private function resolvePreviousLoginAt(?User $user): ?Carbon
     {
         if (! $user) {
             return null;
         }
 
         $token = $user->currentAccessToken();
-        $currentTokenId = $token instanceof \Laravel\Sanctum\PersonalAccessToken ? $token->id : null;
+        $currentTokenId = $token instanceof PersonalAccessToken ? $token->id : null;
 
         $query = UserSession::where('user_id', $user->id);
         if ($currentTokenId) {
@@ -136,13 +142,12 @@ class AdminController extends Controller
     }
 
     /**
-     * Get subscription and trial statistics for admin dashboard.
+     * Get subscription statistics for admin dashboard.
      */
     public function getSubscriptionStats(): JsonResponse
     {
         try {
             $stats = [
-                'trialing' => Subscription::where('status', 'trialing')->count(),
                 'active' => Subscription::where('status', 'active')->count(),
                 'expired' => Subscription::where('status', 'expired')->count(),
                 'cancelled' => Subscription::where('status', 'cancelled')->count(),
@@ -167,7 +172,7 @@ class AdminController extends Controller
             $request->validate([
                 'per_page' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|nullable|string|max:100',
-                'status' => 'sometimes|nullable|string|in:trialing,active,expired,cancelled,past_due',
+                'status' => 'sometimes|nullable|string|in:active,expired,cancelled,past_due',
             ]);
 
             $perPage = min((int) $request->query('per_page', 15), 100);
@@ -644,7 +649,13 @@ class AdminController extends Controller
      */
     public function getAiProvider(): JsonResponse
     {
-        $provider = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+        // S0.11.4 — read via the versioned-key path so the admin UI sees
+        // the same provider as in-flight chat loops resolved through
+        // HasAiGuardrails::getAiProviderForLoop().
+        $version = (int) Cache::get('ai_provider_version', 0);
+        $provider = $version > 0
+            ? Cache::get("ai_provider:v{$version}", config('services.ai_provider', 'anthropic'))
+            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
 
         return response()->json([
             'success' => true,
@@ -660,7 +671,7 @@ class AdminController extends Controller
                     [
                         'id' => 'xai',
                         'name' => 'xAI Grok',
-                        'model' => config('services.xai.chat_model', 'grok-4-1-fast-reasoning'),
+                        'model' => config('services.xai.chat_model', 'grok-4.3'),
                         'configured' => ! empty(config('services.xai.api_key')),
                     ],
                 ],
@@ -688,11 +699,21 @@ class AdminController extends Controller
             ], 422);
         }
 
-        // Store in cache (persists across requests, survives config:clear)
-        \Illuminate\Support\Facades\Cache::forever('ai_provider', $provider);
+        // S0.11.4 — bump the version counter and write the new value
+        // under the versioned key. In-flight chat loops captured the OLD
+        // version's value at their entry, so they finish on their original
+        // provider; new requests see the new provider atomically.
+        // Also keep writing the legacy unversioned key for backward
+        // compatibility with any reader that hasn't migrated yet.
+        $currentVersion = (int) Cache::get('ai_provider_version', 0);
+        $newVersion = $currentVersion + 1;
+        Cache::forever("ai_provider:v{$newVersion}", $provider);
+        Cache::forever('ai_provider_version', $newVersion);
+        Cache::forever('ai_provider', $provider);
 
-        \Illuminate\Support\Facades\Log::info('[Admin] AI provider switched', [
+        Log::info('[Admin] AI provider switched', [
             'provider' => $provider,
+            'version' => $newVersion,
             'changed_by' => $request->user()->id,
         ]);
 
@@ -733,12 +754,12 @@ class AdminController extends Controller
     {
         $request->validate([
             'code' => 'required|string|max:50|unique:discount_codes,code',
-            'type' => 'required|string|in:percentage,fixed_amount,trial_extension',
+            'type' => 'required|string|in:percentage,fixed_amount',
             'value' => 'required|integer|min:1',
             'max_uses' => 'nullable|integer|min:1',
             'max_uses_per_user' => 'integer|min:1',
             'applicable_plans' => 'nullable|array',
-            'applicable_plans.*' => 'string|in:student,standard,family,pro',
+            'applicable_plans.*' => ['string', Rule::in(TierConfigurationStore::paidTiers())],
             'applicable_cycles' => 'nullable|array',
             'applicable_cycles.*' => 'string|in:monthly,yearly',
             'starts_at' => 'nullable|date',
@@ -785,12 +806,12 @@ class AdminController extends Controller
 
         $request->validate([
             'code' => "required|string|max:50|unique:discount_codes,code,{$id}",
-            'type' => 'required|string|in:percentage,fixed_amount,trial_extension',
+            'type' => 'required|string|in:percentage,fixed_amount',
             'value' => 'required|integer|min:1',
             'max_uses' => 'nullable|integer|min:1',
             'max_uses_per_user' => 'integer|min:1',
             'applicable_plans' => 'nullable|array',
-            'applicable_plans.*' => 'string|in:student,standard,family,pro',
+            'applicable_plans.*' => ['string', Rule::in(TierConfigurationStore::paidTiers())],
             'applicable_cycles' => 'nullable|array',
             'applicable_cycles.*' => 'string|in:monthly,yearly',
             'starts_at' => 'nullable|date',

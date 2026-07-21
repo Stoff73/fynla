@@ -196,7 +196,7 @@ export default {
         medium: 'bg-blue-400',
         long: 'bg-green-400',
         very_long: 'bg-teal-400',
-        indefinite: 'bg-purple-400',
+        indefinite: 'bg-violet-400',
       };
       return colors[this.selectedHorizon] || 'bg-horizon-400';
     },
@@ -207,7 +207,7 @@ export default {
         medium: 'bg-blue-50 border border-blue-200',
         long: 'bg-green-50 border border-green-200',
         very_long: 'bg-teal-50 border border-teal-200',
-        indefinite: 'bg-purple-50 border border-purple-200',
+        indefinite: 'bg-violet-50 border border-violet-200',
       };
       return classes[this.selectedHorizon] || '';
     },
@@ -218,7 +218,7 @@ export default {
         medium: 'text-blue-600',
         long: 'text-green-600',
         very_long: 'text-teal-600',
-        indefinite: 'text-purple-600',
+        indefinite: 'text-violet-600',
       };
       return classes[this.selectedHorizon] || 'text-neutral-500';
     },

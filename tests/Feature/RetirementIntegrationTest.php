@@ -7,7 +7,9 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,7 +17,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->seed(\Database\Seeders\RetirementActionDefinitionSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+    $this->seed(RetirementActionDefinitionSeeder::class);
     $this->user = User::factory()->create([
         'date_of_birth' => now()->subYears(45),
         'annual_employment_income' => 50000,

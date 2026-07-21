@@ -2,16 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Agents\RetirementAgent;
 use App\Models\Goal;
 use App\Models\Household;
 use App\Models\RetirementProfile;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    \App\Models\TaxConfiguration::factory()->create(['is_active' => true]);
+    TaxConfiguration::factory()->create(['is_active' => true]);
     $this->household = Household::factory()->create();
     $this->user = User::factory()->create([
         'household_id' => $this->household->id,
@@ -39,7 +41,7 @@ describe('RetirementAgent goal integration', function () {
             'monthly_contribution' => 500,
         ]);
 
-        $agent = app(\App\Agents\RetirementAgent::class);
+        $agent = app(RetirementAgent::class);
         $result = $agent->analyze($this->user->id);
 
         expect($result['data'])->toHaveKey('post_retirement_goals');

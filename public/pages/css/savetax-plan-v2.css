@@ -1,0 +1,362 @@
+/**
+ * savetax-plan-v2.css — v2 overrides for /savetax/plan/v2
+ *
+ * Loaded AFTER savetax-plan.css, so rules here win via cascade.
+ * Responsibilities:
+ *   - Reset the fixed-panel margin that savetax-plan.css sets on .campaign-body
+ *   - Two-column hero layout (copy left, savings card right on md+)
+ *   - Inline savings card styles (amount, CTA, Fyn toggle/chat)
+ *
+ * Do NOT redefine :root. Do NOT duplicate nav/footer rules.
+ */
+
+/* ===================================================================
+   DESKTOP INNER — v2 keeps the 356px panel from savetax-plan.css,
+   so .campaign-body retains margin-right: 356px at lg+.
+
+   Left edge must align with the Fynla logo in the nav.
+   Nav uses: max-width 80rem, margin: 0 auto, padding-left: 1rem.
+   Logo left edge = max(1rem, (100vw − 80rem) / 2) + 1rem padding.
+
+   We replicate the same margin-left so content left = logo left,
+   then let it fill rightward into the available space (no max-width).
+   =================================================================== */
+@media (min-width: 1024px) {
+  .campaign-body .campaign-inner {
+    max-width: none;
+    /* (100vw - 80rem) / 2 matches the auto-centred nav's left offset.
+       At viewports ≤ 80rem the fallback 1rem matches nav padding. */
+    margin-left: max(1rem, calc((100vw - 80rem) / 2));
+    margin-right: 1.5rem;
+    padding-left: 1rem;  /* matches nav-primary__inner padding-left */
+    padding-right: 1.5rem;
+  }
+}
+
+/* ===================================================================
+   HERO V2  [.v2-hero]
+   Two-column layout: copy (left) + savings card (right) on md+
+   =================================================================== */
+
+.v2-hero {
+  padding: 2.5rem 0;
+}
+
+/* Inner: stacked on mobile, side-by-side on md+ */
+.v2-hero__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.v2-hero__copy {
+  /* Takes all available space on mobile; flex:1 on md+ */
+}
+
+/* Organic CTA (Register for free link in the hero copy) */
+.v2-hero__organic-cta {
+  margin-top: 1.75rem;
+}
+
+.v2-hero__register-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 3rem;
+  border: 2px solid var(--white-40);
+}
+
+.v2-hero__register-btn:hover {
+  background: var(--raspberry-600);
+}
+
+/* ===================================================================
+   SAVINGS CARD  [.v2-hero__savings-card]
+   Inline card within the hero — floats beside copy on md+.
+   =================================================================== */
+
+.v2-hero__savings-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  /* Ensure it's always visible (no [hidden] — it's inline content) */
+}
+
+/* ===================================================================
+   SAVINGS AMOUNT  [.v2-savings-amount]
+   "Up to £103,330 in available annual tax allowances"
+   =================================================================== */
+
+.v2-savings-amount {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.v2-savings-amount__up-to {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--white-70);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.v2-savings-amount__figure {
+  font-size: clamp(2.5rem, 8vw, 3.25rem);
+  font-weight: 900;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.v2-savings-amount__label {
+  font-size: 0.875rem;
+  color: var(--white-70);
+  line-height: 1.4;
+}
+
+/* ===================================================================
+   CTA BLOCK  [.v2-cta-block]
+   "To find out exactly how you could save" + Register + Fyn toggle
+   =================================================================== */
+
+.v2-cta-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.v2-cta-block__copy {
+  font-size: 0.9375rem;
+  color: var(--white-70);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.v2-cta-block__register-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 3rem;
+}
+
+.v2-cta-block__register-btn:hover {
+  background: var(--raspberry-600);
+}
+
+/* ===================================================================
+   FYN TOGGLE  [.v2-fyn-toggle]
+   "Or find out more with Fyn" — link-style button
+   =================================================================== */
+
+.v2-fyn-toggle {
+  background: none;
+  border: none;
+  color: var(--white-70);
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.v2-fyn-toggle:hover {
+  color: var(--white);
+}
+
+.v2-fyn-toggle:focus-visible {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ===================================================================
+   FYN CHAT INLINE  [.v2-fyn-chat]
+   Expands below the toggle. Starts [hidden]; JS removes on toggle.
+   =================================================================== */
+
+.v2-fyn-chat {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.v2-fyn-chat__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.v2-fyn-chat__bubble {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+}
+
+.v2-fyn-chat__bubble--fyn p {
+  font-size: 0.875rem;
+  color: var(--white);
+  line-height: 1.5;
+  margin-bottom: 0.375rem;
+}
+
+.v2-fyn-chat__bubble--fyn p:last-child {
+  margin-bottom: 0;
+}
+
+.v2-fyn-chat__list {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.375rem;
+}
+
+.v2-fyn-chat__list li {
+  font-size: 0.875rem;
+  color: var(--white);
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.v2-fyn-chat__cta-row {
+  margin-top: 0.5rem;
+}
+
+.v2-fyn-chat__cta-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.625rem 1.25rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 2.5rem;
+  text-align: center;
+}
+
+.v2-fyn-chat__cta-link:hover {
+  background: var(--spring-600);
+}
+
+/* Compose row */
+.v2-fyn-chat__compose {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.v2-fyn-chat__input {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.15);
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+
+.v2-fyn-chat__input::placeholder {
+  color: var(--white-70);
+}
+
+.v2-fyn-chat__input:focus {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 1px;
+}
+
+.v2-fyn-chat__send {
+  padding: 0.5rem 0.875rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-button);
+  font-family: var(--font-primary);
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  min-height: 2.5rem;
+  min-width: 5.5rem;
+  cursor: pointer;
+}
+
+.v2-fyn-chat__send:hover {
+  background: var(--spring-600);
+}
+
+.v2-fyn-chat__send:focus-visible {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+
+/* md+: hero goes two-column — copy left, card right */
+@media (min-width: 768px) {
+  .v2-hero {
+    padding: 3.5rem 0;
+  }
+
+  .v2-hero__inner {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 3rem;
+  }
+
+  .v2-hero__copy {
+    flex: 1;
+  }
+
+  .v2-hero__savings-card {
+    width: 320px;
+    flex-shrink: 0;
+  }
+
+  .v2-savings-amount__figure {
+    font-size: 2.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .v2-hero {
+    padding: 4rem 0;
+  }
+
+  .v2-hero__savings-card {
+    width: 340px;
+  }
+}

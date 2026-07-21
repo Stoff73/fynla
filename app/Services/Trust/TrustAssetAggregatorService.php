@@ -9,11 +9,15 @@ use App\Models\CashAccount;
 use App\Models\Chattel;
 use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Property;
+use App\Services\Stores\PropertyStore;
 use Illuminate\Support\Collection;
 
 class TrustAssetAggregatorService
 {
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
+
     /**
      * Aggregate all assets held in a specific trust
      */
@@ -42,8 +46,8 @@ class TrustAssetAggregatorService
      */
     private function getPropertiesInTrust(int $trustId): Collection
     {
-        return Property::where('trust_id', $trustId)
-            ->get()
+        return $this->propertyStore
+            ->forTrust($trustId)
             ->map(function ($property) {
                 return [
                     'id' => $property->id,

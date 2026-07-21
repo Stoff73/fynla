@@ -6,9 +6,9 @@ namespace App\Services\Tax;
 
 use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesIncome;
 
@@ -110,9 +110,9 @@ class TaxOptimisationService
         $investmentISASubscribed = (float) $investmentISAs->sum('isa_subscription_current_year');
 
         // Cash ISAs from savings
-        $cashISAs = SavingsAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->get();
+        $cashISAs = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
+            ->where('account_type', 'isa');
         $cashISASubscribed = (float) $cashISAs->sum('isa_subscription_amount');
 
         $totalUsed = $investmentISASubscribed + $cashISASubscribed;
@@ -123,7 +123,8 @@ class TaxOptimisationService
             ->where('account_type', 'gia')
             ->sum('current_value');
 
-        $nonISASavings = SavingsAccount::where('user_id', $user->id)
+        $nonISASavings = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('account_type', '!=', 'isa')
             ->sum('current_balance');
 
@@ -421,7 +422,10 @@ class TaxOptimisationService
         $spouseISAUsed = InvestmentAccount::where('user_id', $spouse->id)
             ->whereIn('account_type', ['isa', 'stocks_shares_isa'])
             ->sum('isa_subscription_current_year');
-        $spouseISAUsed += SavingsAccount::where('user_id', $spouse->id)
+        // $spouse is a User::find() result, null-guarded above; forUser() is
+        // joint-aware so the Collection where('user_id') keeps single-owner parity.
+        $spouseISAUsed += app(SavingsStore::class)->forUser($spouse)
+            ->where('user_id', $spouse->id)
             ->where('account_type', 'isa')
             ->sum('isa_subscription_amount');
 

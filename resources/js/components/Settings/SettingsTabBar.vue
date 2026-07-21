@@ -21,17 +21,24 @@
 </template>
 
 <script>
+const ALL_TABS = [
+  { label: 'General', to: '/settings' },
+  { label: 'Personal Info', to: '/settings/personal' },
+  { label: 'Health', to: '/settings/health' },
+  { label: 'Family', to: '/settings/family' },
+  { label: 'Subscription', to: '/settings/subscription' },
+  { label: 'Notifications', to: '/settings/notifications' },
+  { label: 'Security', to: '/settings/security' },
+  { label: 'Privacy', to: '/settings/privacy' },
+  { label: 'Assumptions', to: '/settings/assumptions' },
+];
+
 export default {
   name: 'SettingsTabBar',
-  data() {
-    return {
-      tabs: [
-        { label: 'General', to: '/settings' },
-        { label: 'Security', to: '/settings/security' },
-        { label: 'Privacy', to: '/settings/privacy' },
-        { label: 'Assumptions', to: '/settings/assumptions' },
-      ],
-    };
+  computed: {
+    tabs() {
+      return ALL_TABS;
+    },
   },
   methods: {
     isActive(tab) {

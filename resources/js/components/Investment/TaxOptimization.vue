@@ -28,7 +28,7 @@
                 £{{ formatNumber(taxAnalysis?.current_position?.isa_allowance_used || 0) }}
               </p>
               <p class="text-xs text-neutral-500">
-                {{ ((taxAnalysis?.current_position?.isa_allowance_used || 0) / ISA_ANNUAL_ALLOWANCE * 100).toFixed(0) }}% of {{ formatCurrency(ISA_ANNUAL_ALLOWANCE) }}
+                {{ ((taxAnalysis?.current_position?.isa_allowance_used || 0) / (isaAnnualAllowance || 1) * 100).toFixed(0) }}% of {{ formatCurrency(isaAnnualAllowance || 0) }}
               </p>
             </div>
             <div>
@@ -132,9 +132,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import investmentService from '@/services/investmentService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import { getTaxYearStart } from '@/utils/dateFormatter';
 import TaxOptimizationOverview from './TaxOptimizationOverview.vue';
 import ISAOptimizationStrategy from './ISAOptimizationStrategy.vue';
@@ -166,7 +166,6 @@ export default {
       cgtHarvesting: null,
       bedAndISA: null,
       recommendations: null,
-      ISA_ANNUAL_ALLOWANCE,
       taxYear: (() => { const y = getTaxYearStart().getFullYear(); return `${y}/${String(y + 1).slice(-2)}`; })(),
       tabs: [
         { id: 'overview', name: 'Overview' },
@@ -179,6 +178,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },

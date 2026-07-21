@@ -70,7 +70,7 @@ class RevolutService
         if ($response->failed()) {
             Log::error('Revolut createOrder failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'amount' => $amount,
                 'currency' => $currency,
             ]);
@@ -109,7 +109,57 @@ class RevolutService
             Log::error('Revolut getOrder failed', [
                 'order_id' => $orderId,
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
+            ]);
+            $response->throw();
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Reconcile an order creation whose HTTP outcome was uncertain.
+     */
+    public function findOrderByMerchantReference(string $merchantReference): ?array
+    {
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Revolut-Api-Version' => '2025-12-04',
+        ])->get("{$this->apiUrl}/orders", [
+            'limit' => 100,
+            'merchant_order_data_reference' => $merchantReference,
+        ]);
+
+        if ($response->failed()) {
+            Log::error('Revolut order reconciliation failed', [
+                'merchant_reference' => $merchantReference,
+                'status' => $response->status(),
+                'revolut_error_code' => $response->json('code'),
+            ]);
+            $response->throw();
+        }
+
+        $order = collect($response->json('orders', []))->first();
+
+        return isset($order['id']) ? $this->getOrder($order['id']) : null;
+    }
+
+    /**
+     * Cancel an uncaptured Revolut order before replacing a checkout.
+     * Revolut accepts this for pending orders and manually authorised orders.
+     */
+    public function cancelOrder(string $orderId): array
+    {
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Revolut-Api-Version' => '2025-12-04',
+        ])->post("{$this->apiUrl}/orders/{$orderId}/cancel");
+
+        if ($response->failed()) {
+            Log::error('Revolut cancelOrder failed', [
+                'order_id' => $orderId,
+                'status' => $response->status(),
+                'revolut_error_code' => $response->json('code'),
             ]);
             $response->throw();
         }
@@ -175,7 +225,7 @@ class RevolutService
         if ($response->failed()) {
             Log::error('Revolut createOrderWithCustomer failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'revolut_error_code' => $response->json('code'),
                 'amount' => $amount,
                 'customer_id' => $customerId,
             ]);

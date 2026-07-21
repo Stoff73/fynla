@@ -1,0 +1,27 @@
+id: release-smoke
+finding_ids: []
+environment: csjones
+user:
+  kind: dedicated_qa
+  email_ref: CSJONES_QA_EMAIL
+surfaces:
+  - name: desktop
+    start_url: https://csjones.co/fynla
+    steps:
+      - action: click
+        target: Sign in
+        assert: Login form is visible
+        evidence: 01-desktop-login.png
+  - name: mobile
+    start_url: https://csjones.co/fynla/m
+    steps:
+      - action: inspect-frame
+        target: mobile application iframe
+        assert: Mobile main region is visible
+        evidence: 02-mobile-boot.png
+negative_assertions:
+  - no console errors
+  - no unexpected 4xx or 5xx API responses
+  - no desktop/mobile state divergence
+cleanup:
+  - retain only the standing QA account

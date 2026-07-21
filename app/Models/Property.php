@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Estate\Trust;
 use App\Services\Property\PropertyCalculationService;
 use App\Traits\Auditable;
@@ -16,7 +17,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Property extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'property';
+    }
 
     protected $fillable = [
         'user_id',
@@ -64,6 +70,13 @@ class Property extends Model
         'monthly_maintenance_reserve',
         'other_monthly_costs',
         'notes',
+        'current_value_gbp',
+        'current_value_gbp_calculated_at',
+        'equity_gbp',
+        'equity_gbp_calculated_at',
+        'loan_to_value_pct',
+        'loan_to_value_pct_calculated_at',
+        'outstanding_mortgage_calculated_at',
     ];
 
     protected $casts = [
@@ -89,6 +102,13 @@ class Property extends Model
         'other_monthly_costs' => 'decimal:2',
         'ownership_percentage' => 'decimal:2',
         'lease_remaining_years' => 'integer',
+        'current_value_gbp' => 'decimal:2',
+        'current_value_gbp_calculated_at' => 'datetime',
+        'equity_gbp' => 'decimal:2',
+        'equity_gbp_calculated_at' => 'datetime',
+        'loan_to_value_pct' => 'decimal:2',
+        'loan_to_value_pct_calculated_at' => 'datetime',
+        'outstanding_mortgage_calculated_at' => 'datetime',
     ];
 
     /**
@@ -135,7 +155,7 @@ class Property extends Model
      */
     public function jointOwner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'joint_owner_id');
+        return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
     }
 
     /**

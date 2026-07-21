@@ -3,17 +3,20 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('rejects files over 20MB', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['tier' => 'premium']);
     $this->actingAs($user, 'sanctum');
 
     $file = UploadedFile::fake()->create('huge.xlsx', 21000);
@@ -26,7 +29,7 @@ it('rejects files over 20MB', function () {
 });
 
 it('rejects unsupported file types', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['tier' => 'premium']);
     $this->actingAs($user, 'sanctum');
 
     $file = UploadedFile::fake()->create('malicious.exe', 100);
@@ -39,11 +42,11 @@ it('rejects unsupported file types', function () {
 });
 
 it('accepts xlsx file type in validation', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['tier' => 'premium']);
     $this->actingAs($user, 'sanctum');
 
     // Create a minimal xlsx using PhpSpreadsheet
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+    $spreadsheet = new Spreadsheet;
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('ISA');
     $sheet->setCellValue('A1', 'Security Name');
@@ -52,7 +55,7 @@ it('accepts xlsx file type in validation', function () {
     $sheet->setCellValue('B2', '10000');
 
     $tempPath = tempnam(sys_get_temp_dir(), 'test_').'.xlsx';
-    (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($tempPath);
+    (new Xlsx($spreadsheet))->save($tempPath);
 
     $file = new UploadedFile(
         $tempPath,

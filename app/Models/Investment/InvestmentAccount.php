@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models\Investment;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Estate\Trust;
 use App\Models\Household;
 use App\Models\User;
 use App\Services\Investment\EmployeeSchemeCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +23,12 @@ use Illuminate\Support\Facades\Crypt;
 
 class InvestmentAccount extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'investment_account';
+    }
 
     protected $auditExcludeFields = ['updated_at', 'created_at'];
 
@@ -317,7 +324,7 @@ class InvestmentAccount extends Model
      */
     public function jointOwner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'joint_owner_id');
+        return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
     }
 
     /**
@@ -475,7 +482,7 @@ class InvestmentAccount extends Model
                 }
                 try {
                     return Crypt::decryptString($value);
-                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                } catch (DecryptException $e) {
                     return $value;
                 }
             },

@@ -62,7 +62,7 @@ describe('JourneyFieldResolver', function () {
 
     it('throws exception for invalid journey name', function () {
         $this->resolver->getFieldsForJourneys(['invalid_journey']);
-    })->throws(\InvalidArgumentException::class);
+    })->throws(InvalidArgumentException::class);
 
     it('orders personal fields before financial fields', function () {
         $fields = $this->resolver->getFieldsForJourneys(['protection']);

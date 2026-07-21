@@ -4,19 +4,35 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\AiConversation;
+use App\Models\AiMessage;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Estate\Asset;
+use App\Models\Estate\Gift;
+use App\Models\Estate\IHTProfile;
+use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
+use App\Models\Estate\Will;
+use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
+use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\ProtectionProfile;
+use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\PreviewUserSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -103,22 +119,24 @@ class ResetPreviewData extends Command
             $this->deleteUserData($user);
             if ($spouse) {
                 $this->deleteUserData($spouse);
-                // Delete spouse user
+                // Hard-delete spouse user — User model uses SoftDeletes, but
+                // PreviewUserSeeder's lookup excludes soft-deleted rows, which
+                // would leak the email and break the next reseed.
                 $spouse->tokens()->delete();
-                $spouse->delete();
+                $spouse->forceDelete();
             }
 
             // Reset user's spouse_id
             $user->spouse_id = null;
             $user->save();
 
-            // Delete the user
+            // Hard-delete the user (see SoftDeletes note above).
             $user->tokens()->delete();
-            $user->delete();
+            $user->forceDelete();
         });
 
         // Re-run the seeder for this persona
-        $seeder = new \Database\Seeders\PreviewUserSeeder;
+        $seeder = new PreviewUserSeeder;
         $seeder->setCommand($this);
 
         // Create a temporary seeder that only seeds this persona
@@ -132,26 +150,61 @@ class ResetPreviewData extends Command
      */
     private function deleteUserData(User $user): void
     {
-        // Delete in reverse order of dependencies
+        // Hard-delete every child row. Most child models use SoftDeletes,
+        // so plain ->delete() would only set deleted_at and the FK would
+        // still reference the row — blocking the user's forceDelete.
+        // We explicit-delete (rather than relying on cascade) to (a) make
+        // the persona-touched surface visible and lockable via
+        // PreviewResetCompletenessTest, (b) cover any FKs that don't
+        // cascade, and (c) keep behaviour consistent with
+        // PreviewUserSeeder::deletePreviewUser.
+
         Holding::whereHasMorph('holdable', [InvestmentAccount::class], function ($query) use ($user) {
             $query->where('user_id', $user->id);
-        })->delete();
+        })->forceDelete();
 
         Holding::whereHasMorph('holdable', [DCPension::class], function ($query) use ($user) {
             $query->where('user_id', $user->id);
-        })->delete();
+        })->forceDelete();
 
-        InvestmentAccount::where('user_id', $user->id)->delete();
-        SavingsAccount::where('user_id', $user->id)->delete();
-        DCPension::where('user_id', $user->id)->delete();
-        DBPension::where('user_id', $user->id)->delete();
-        LifeInsurancePolicy::where('user_id', $user->id)->delete();
-        CriticalIllnessPolicy::where('user_id', $user->id)->delete();
-        IncomeProtectionPolicy::where('user_id', $user->id)->delete();
-        Liability::where('user_id', $user->id)->delete();
-        FamilyMember::where('user_id', $user->id)->delete();
-        Mortgage::where('user_id', $user->id)->delete();
-        Property::where('user_id', $user->id)->delete();
+        // AI conversation messages first, then conversations.
+        AiMessage::whereIn(
+            'conversation_id',
+            AiConversation::where('user_id', $user->id)->pluck('id')
+        )->forceDelete();
+        AiConversation::where('user_id', $user->id)->forceDelete();
+
+        // Module child entities.
+        InvestmentAccount::where('user_id', $user->id)->forceDelete();
+        SavingsAccount::where('user_id', $user->id)->forceDelete();
+        DCPension::where('user_id', $user->id)->forceDelete();
+        DBPension::where('user_id', $user->id)->forceDelete();
+        LifeInsurancePolicy::where('user_id', $user->id)->forceDelete();
+        CriticalIllnessPolicy::where('user_id', $user->id)->forceDelete();
+        IncomeProtectionPolicy::where('user_id', $user->id)->forceDelete();
+        Liability::where('user_id', $user->id)->forceDelete();
+        FamilyMember::where('user_id', $user->id)->forceDelete();
+        Mortgage::where('user_id', $user->id)->forceDelete();
+        Property::where('user_id', $user->id)->forceDelete();
+
+        // Profiles (added 2026-04-27 — eval HTTP rewrite plan §8.2).
+        ProtectionProfile::where('user_id', $user->id)->forceDelete();
+        RetirementProfile::where('user_id', $user->id)->forceDelete();
+        IHTProfile::where('user_id', $user->id)->forceDelete();
+        ExpenditureProfile::where('user_id', $user->id)->forceDelete();
+
+        // Goals + life events.
+        Goal::where('user_id', $user->id)->forceDelete();
+        LifeEvent::where('user_id', $user->id)->forceDelete();
+
+        // Estate documents.
+        LastingPowerOfAttorney::where('user_id', $user->id)->forceDelete();
+        Will::where('user_id', $user->id)->forceDelete();
+        Trust::where('user_id', $user->id)->forceDelete();
+        Gift::where('user_id', $user->id)->forceDelete();
+        Chattel::where('user_id', $user->id)->forceDelete();
+        BusinessInterest::where('user_id', $user->id)->forceDelete();
+        Asset::where('user_id', $user->id)->forceDelete();
     }
 
     /**

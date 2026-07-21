@@ -1,0 +1,838 @@
+{
+  "id": "entrepreneur",
+  "life_stage": "mid_career",
+  "name": "Alex Chen",
+  "tagline": "Self-made tech entrepreneur",
+  "description": "A 38-year-old single tech consultancy owner with business interests, Self-Invested Personal Pension (SIPP), and key person insurance considerations.",
+  "netWorthRange": "£800k - £1m",
+  "focus": "Business protection, single estate",
+
+  "user": {
+    "first_name": "Alex",
+    "last_name": "Chen",
+    "email": "alex.chen@example.com",
+    "date_of_birth": "1986-09-18",
+    "age": 38,
+    "gender": "male",
+    "marital_status": "single",
+    "annual_income": 180000,
+    "annual_dividend_income": 60000,
+    "employment_status": "self_employed",
+    "business_name": "Chen Tech Consulting Ltd",
+    "occupation": "Owner/Director",
+    "target_retirement_age": 55,
+    "target_retirement_income": 50000,
+    "monthly_expenditure": 5500,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "postgraduate",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "Penthouse 3, The Lofts",
+      "line_2": "42 Deansgate",
+      "city": "Manchester",
+      "postcode": "M3 4LQ"
+    },
+    "annual_charitable_donations": 600.00,
+    "is_gift_aid": true,
+    "domicile": {
+      "country_of_birth": "South Africa",
+      "uk_arrival_date": "2018-03-15",
+      "years_uk_resident": 8,
+      "domicile_status": "non_uk_domiciled"
+    }
+  },
+
+  "spouse": null,
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "Wei",
+      "last_name": "Chen",
+      "relationship": "parent",
+      "date_of_birth": "1958-02-14",
+      "age": 66,
+      "is_dependent": false,
+      "notes": "Father - may need care support in future"
+    },
+    {
+      "id": 2,
+      "first_name": "Mei",
+      "last_name": "Chen",
+      "relationship": "parent",
+      "date_of_birth": "1961-07-22",
+      "age": 63,
+      "is_dependent": false,
+      "notes": "Mother - in good health"
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "City Centre Penthouse",
+      "address": "Penthouse 3, The Lofts, 42 Deansgate, Manchester, M3 4LQ",
+      "property_type": "main_residence",
+      "current_value": 380000,
+      "purchase_price": 320000,
+      "purchase_date": "2020-03-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "is_primary_residence": true,
+      "bedrooms": 2,
+      "estimated_rental_value": 2000,
+      "council_tax_band": "F",
+      "monthly_council_tax": 245,
+      "monthly_gas": 65,
+      "monthly_electricity": 55,
+      "monthly_water": 35,
+      "monthly_building_insurance": 35,
+      "monthly_contents_insurance": 30,
+      "monthly_service_charge": 350,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 0
+    }
+  ],
+
+  "mortgages": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "lender_name": "Metro Bank",
+      "outstanding_balance": 190000,
+      "original_amount": 256000,
+      "mortgage_type": "repayment",
+      "interest_rate": 4.49,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2027-03-01",
+      "monthly_payment": 1350,
+      "remaining_term_months": 204,
+      "mortgage_start_date": "2020-03-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100
+    }
+  ],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Alex's Current Account",
+      "provider_name": "Starling Bank",
+      "account_type": "current_account",
+      "current_balance": 5680,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Personal current account"
+    },
+    {
+      "id": 2,
+      "account_name": "Chen Tech Consulting - Business Current",
+      "provider_name": "Tide",
+      "account_type": "business_current",
+      "current_balance": 48500,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main business operating account"
+    },
+    {
+      "id": 3,
+      "account_name": "Chen Tech Consulting - Business Reserve",
+      "provider_name": "Tide",
+      "account_type": "business_savings",
+      "current_balance": 75000,
+      "interest_rate": 3.75,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Business reserves and tax provisions"
+    },
+    {
+      "id": 4,
+      "account_name": "Personal Notice Account",
+      "provider_name": "Aldermore",
+      "account_type": "notice",
+      "current_balance": 40000,
+      "interest_rate": 5.1,
+      "is_isa": false,
+      "access_type": "notice",
+      "notice_period_days": 90,
+      "ownership_type": "individual",
+      "monthly_contribution": 1000
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "Stocks & Shares ISA",
+      "provider_name": "Interactive Investor",
+      "account_type": "isa",
+      "current_value": 95000,
+      "annual_contribution": 20000,
+      "monthly_contribution_amount": 1667,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 20000,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0,
+      "advisor_fee_percent": 0.5,
+      "risk_profile": "adventurous",
+      "risk_preference": "high",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Baillie Gifford American",
+          "ticker": "USA",
+          "isin": "GB00BYPJS636",
+          "asset_type": "fund",
+          "units": 2500,
+          "initial_unit_cost": 10.20,
+          "current_unit_price": 12.00,
+          "current_value": 30000,
+          "allocation_percentage": 31.6,
+          "annual_fee": 0.51
+        },
+        {
+          "id": 2,
+          "holding_name": "Scottish Mortgage IT",
+          "ticker": "SMT",
+          "isin": "GB00BLDYK618",
+          "asset_type": "uk_equity",
+          "units": 2500,
+          "initial_unit_cost": 8.40,
+          "current_unit_price": 10.00,
+          "current_value": 25000,
+          "allocation_percentage": 26.3,
+          "annual_fee": 0.34
+        },
+        {
+          "id": 3,
+          "holding_name": "Polar Capital Tech",
+          "ticker": "PCT",
+          "isin": "IE00B3QXJP52",
+          "asset_type": "fund",
+          "units": 667,
+          "initial_unit_cost": 25.50,
+          "current_unit_price": 30.00,
+          "current_value": 20010,
+          "allocation_percentage": 21.1,
+          "annual_fee": 0.79
+        },
+        {
+          "id": 4,
+          "holding_name": "iShares MSCI World Tech",
+          "ticker": "WTCH",
+          "isin": "IE00BGV5VR99",
+          "asset_type": "etf",
+          "units": 400,
+          "initial_unit_cost": 42.50,
+          "current_unit_price": 50.00,
+          "current_value": 20000,
+          "allocation_percentage": 21.1,
+          "annual_fee": 0.4
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "account_name": "General Investment Account",
+      "provider_name": "AJ Bell",
+      "account_type": "gia",
+      "current_value": 45000,
+      "annual_contribution": 12000,
+      "monthly_contribution_amount": 1000,
+      "contribution_frequency": "monthly",
+      "ownership_type": "individual",
+      "risk_profile": "adventurous",
+      "risk_preference": "high",
+      "holdings": [
+        {
+          "id": 5,
+          "holding_name": "Nvidia",
+          "ticker": "NVDA",
+          "isin": "US67066G1040",
+          "asset_type": "us_equity",
+          "units": 13,
+          "initial_unit_cost": 800.00,
+          "current_unit_price": 1200.00,
+          "current_value": 15600,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0
+        },
+        {
+          "id": 6,
+          "holding_name": "Microsoft",
+          "ticker": "MSFT",
+          "isin": "US5949181045",
+          "asset_type": "us_equity",
+          "units": 40,
+          "initial_unit_cost": 310.00,
+          "current_unit_price": 375.00,
+          "current_value": 15000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0
+        },
+        {
+          "id": 7,
+          "holding_name": "Amazon",
+          "ticker": "AMZN",
+          "isin": "US0231351067",
+          "asset_type": "us_equity",
+          "units": 85,
+          "initial_unit_cost": 145.00,
+          "current_unit_price": 176.47,
+          "current_value": 15000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "Chen Tech Consulting Pension",
+      "provider_name": "Nest",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 45000,
+      "employee_contribution_percent": 5,
+      "employer_contribution_percent": 10,
+      "annual_salary": 180000,
+      "retirement_age": 55,
+      "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "platform_fee_percent": 0.30,
+      "notes": "Company director pension - employer contribution via company"
+    },
+    {
+      "id": 2,
+      "scheme_name": "Alex's Self-Invested Personal Pension (SIPP)",
+      "provider_name": "AJ Bell",
+      "pension_type": "sipp",
+      "scheme_type": "sipp",
+      "current_fund_value": 185000,
+      "monthly_contribution_amount": 3333,
+      "retirement_age": 55,
+      "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "has_custom_risk": true,
+      "platform_fee_percent": 0.25,
+      "notes": "Personal SIPP with additional contributions",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard Global All Cap",
+          "ticker": "VAFTGAG",
+          "isin": "IE00BD3QJN10",
+          "asset_type": "fund",
+          "units": 2313,
+          "initial_unit_cost": 35.00,
+          "current_unit_price": 40.00,
+          "current_value": 92520,
+          "allocation_percentage": 50,
+          "annual_fee": 0.23
+        },
+        {
+          "id": 2,
+          "holding_name": "HSBC FTSE All-World",
+          "ticker": "HMWO",
+          "isin": "IE00B4X9L533",
+          "asset_type": "etf",
+          "units": 1850,
+          "initial_unit_cost": 26.00,
+          "current_unit_price": 30.00,
+          "current_value": 55500,
+          "allocation_percentage": 30,
+          "annual_fee": 0.13
+        },
+        {
+          "id": 3,
+          "holding_name": "Fundsmith Equity",
+          "ticker": "FUND",
+          "isin": "GB00B41YBW71",
+          "asset_type": "fund",
+          "units": 370,
+          "initial_unit_cost": 85.50,
+          "current_unit_price": 99.86,
+          "current_value": 36948,
+          "allocation_percentage": 20,
+          "annual_fee": 0.95
+        }
+      ]
+    }
+  ],
+
+  "db_pensions": [],
+
+  "state_pension": {
+    "forecast_weekly_amount": 185.15,
+    "forecast_annual_amount": 9628,
+    "state_pension_age": 68,
+    "qualifying_years": 12,
+    "years_remaining": 23,
+    "notes": "Reduced forecast due to self-employment gaps"
+  },
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "level_term",
+      "provider_name": "Zurich",
+      "sum_assured": 200000,
+      "premium_amount": 18,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2021-01-01",
+      "policy_end_date": "2046-01-01",
+      "in_trust": false,
+      "joint_life": false,
+      "policy_reference": "ZUR-LT-567890",
+      "notes": "Personal life cover",
+      "beneficiaries": "Wei Chen (father), Mei Chen (mother)"
+    },
+    {
+      "id": 2,
+      "policy_type": "level_term",
+      "provider_name": "Legal & General",
+      "sum_assured": 500000,
+      "premium_amount": 95,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2022-06-01",
+      "policy_end_date": "2032-06-01",
+      "in_trust": false,
+      "joint_life": false,
+      "policy_reference": "LG-KP-234567",
+      "notes": "Key person insurance - paid by company",
+      "beneficiaries": "Chen Tech Consulting Ltd (company)"
+    }
+  ],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [
+    {
+      "owner": "user",
+      "provider_name": "Aviva",
+      "policy_reference": "AV-PA-2022-AC",
+      "benefit_amount": 9000,
+      "benefit_frequency": "monthly",
+      "deferred_period_weeks": 4,
+      "benefit_period_months": 12,
+      "premium_amount": 85,
+      "premium_frequency": "monthly",
+      "occupation_class": "2",
+      "coverage_type": "accident_only",
+      "policy_start_date": "2022-03-15",
+      "policy_term_years": 5
+    }
+  ],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "business_loan",
+      "liability_name": "Director's Loan from Company",
+      "current_balance": 35000,
+      "interest_rate": 0,
+      "lender_name": "Chen Tech Consulting Ltd",
+      "notes": "Loan from company - repayable"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [
+    {
+      "id": 1,
+      "business_name": "Chen Tech Consulting Ltd",
+      "business_type": "limited_company",
+      "company_number": "12345678",
+      "industry_sector": "technology",
+      "ownership_type": "individual",
+      "ownership_percentage": 60,
+      "current_valuation": 750000,
+      "valuation_date": "2024-06-01",
+      "valuation_method": "earnings_multiple",
+      "annual_revenue": 520000,
+      "annual_profit": 280000,
+      "annual_dividend_income": 60000,
+      "vat_registered": true,
+      "vat_number": "GB123456789",
+      "utr_number": "1234567890",
+      "tax_year_end": "2025-03-31",
+      "employee_count": 8,
+      "paye_reference": "123/AB12345",
+      "trading_status": "trading",
+      "acquisition_date": "2018-04-01",
+      "acquisition_cost": 50000,
+      "bpr_eligible": true,
+      "description": "IT consultancy specialising in cloud infrastructure and digital transformation. 40% owned by business partner Marcus Wong.",
+      "notes": "Key considerations: business protection, succession planning, shareholder agreement with Marcus"
+    },
+    {
+      "id": 2,
+      "business_name": "TechAngel Ventures LLP",
+      "business_type": "llp",
+      "company_number": "OC456789",
+      "industry_sector": "financial_services",
+      "ownership_type": "individual",
+      "ownership_percentage": 25,
+      "current_valuation": 400000,
+      "valuation_date": "2024-09-01",
+      "valuation_method": "book_value",
+      "annual_revenue": 180000,
+      "annual_profit": 95000,
+      "annual_dividend_income": 0,
+      "vat_registered": false,
+      "trading_status": "trading",
+      "acquisition_date": "2021-06-15",
+      "acquisition_cost": 75000,
+      "bpr_eligible": false,
+      "description": "Angel investment syndicate. Passive investment vehicle - not qualifying for Business Property Relief as primarily investment-holding.",
+      "notes": "Joint venture with 3 other tech entrepreneurs. Focuses on early-stage tech startups."
+    }
+  ],
+
+  "chattels": [
+    {
+      "id": 1,
+      "item_name": "Porsche 911",
+      "current_value": 85000,
+      "ownership_type": "individual",
+      "notes": "2022 992 Carrera S"
+    },
+    {
+      "id": 2,
+      "item_name": "Art Collection",
+      "current_value": 25000,
+      "ownership_type": "individual",
+      "notes": "Contemporary art pieces"
+    },
+    {
+      "id": 3,
+      "item_name": "Watch Collection",
+      "current_value": 35000,
+      "ownership_type": "individual",
+      "notes": "Rolex, Omega, IWC"
+    }
+  ],
+
+  "expenditure": {
+    "total_monthly": 5500,
+    "categories": {
+      "food_groceries": 450,
+      "transport_fuel": 400,
+      "healthcare_medical": 80,
+      "insurance": 350,
+      "mobile_phones": 85,
+      "internet_tv": 75,
+      "subscriptions": 120,
+      "clothing_personal_care": 250,
+      "entertainment_dining": 600,
+      "holidays_travel": 500,
+      "pets": 0,
+      "childcare": 0,
+      "school_fees": 0,
+      "school_lunches": 0,
+      "school_extras": 0,
+      "university_fees": 0,
+      "children_activities": 0,
+      "gifts_charity": 150,
+      "regular_savings": 1000,
+      "other_expenditure": 440
+    }
+  },
+
+  "key_concerns": [
+    "What happens to my business if something happens to me?",
+    "How do I balance pension contributions vs. business investment?",
+    "Should I buy more property or diversify investments?",
+    "How do I plan for parents who may need care?"
+  ],
+
+  "highlights": {
+    "business_protection": {
+      "succession_plan": "None in place",
+      "buy_sell_agreement": "Not established",
+      "key_person_insurance": "500,000 exists but no succession trigger",
+      "shareholder_protection": "Needs discussion"
+    },
+    "net_worth_range": "800k - 1m",
+    "primary_focus": "Business protection, single estate"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "high",
+    "notes": "Single tech entrepreneur with high risk tolerance, aggressive growth strategy, slightly more conservative for pension given early retirement goal"
+  },
+
+  "will": {
+    "has_will": true,
+    "spouse_primary_beneficiary": false,
+    "spouse_bequest_percentage": 0,
+    "executor_name": "Wei Chen (Father) & Pannone Corporate LLP",
+    "executor_notes": "Will drafted to account for business interests. Chen Tech Consulting Ltd shares held via shareholder agreement. Business partner Marcus Wong has first refusal on shares. Consider updating after any funding round.",
+    "will_last_updated": "2024-06-15",
+    "bequests": [
+      {
+        "beneficiary_name": "Wei Chen (Father)",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 40,
+        "priority_order": 2,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Mei Chen (Mother)",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 40,
+        "priority_order": 2,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Manchester Tech Foundation",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 10,
+        "priority_order": 2,
+        "conditions": "To support young entrepreneurs from underrepresented backgrounds"
+      },
+      {
+        "beneficiary_name": "Cancer Research UK",
+        "bequest_type": "specific_amount",
+        "specific_amount": 25000,
+        "priority_order": 1,
+        "conditions": "In memory of grandmother"
+      },
+      {
+        "beneficiary_name": "Marcus Wong (Business Partner)",
+        "bequest_type": "specific_asset",
+        "specific_asset_description": "First refusal on Chen Tech Consulting Ltd shares at fair market value",
+        "priority_order": 1,
+        "conditions": "Per shareholder agreement"
+      }
+    ]
+  },
+
+  "goals": [
+    {
+      "goal_name": "Business Exit Fund",
+      "goal_type": "wealth_accumulation",
+      "description": "Build liquid assets outside business for financial independence",
+      "target_amount": 500000,
+      "current_amount": 185000,
+      "target_date": "2030-01-01",
+      "start_date": "2022-01-01",
+      "assigned_module": "investment",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 5000,
+      "contribution_streak": 24,
+      "longest_streak": 36,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Early Retirement Pension (SIPP)",
+      "goal_type": "retirement",
+      "description": "Max Self-Invested Personal Pension contributions for tax efficiency",
+      "target_amount": 60000,
+      "current_amount": 48000,
+      "target_date": "2026-04-05",
+      "start_date": "2025-04-06",
+      "assigned_module": "retirement",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 4000,
+      "contribution_streak": 12,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Property Investment Deposit",
+      "goal_type": "property_purchase",
+      "description": "Save deposit for first buy-to-let investment property",
+      "target_amount": 100000,
+      "current_amount": 35000,
+      "target_date": "2028-06-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "property",
+      "priority": "medium",
+      "is_essential": false,
+      "monthly_contribution": 2500,
+      "contribution_streak": 18,
+      "longest_streak": 24,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual",
+      "estimated_property_price": 400000,
+      "deposit_percentage": 25,
+      "is_first_time_buyer": false
+    },
+    {
+      "goal_name": "Emergency Business Buffer",
+      "goal_type": "emergency_fund",
+      "description": "12 months personal expenses as business owner safety net",
+      "target_amount": 60000,
+      "current_amount": 45000,
+      "target_date": "2026-06-01",
+      "start_date": "2024-06-01",
+      "assigned_module": "savings",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 1500,
+      "contribution_streak": 18,
+      "longest_streak": 18,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Sabbatical Travel Fund",
+      "goal_type": "holiday",
+      "description": "Fund 3-month sabbatical trip around Asia",
+      "target_amount": 25000,
+      "current_amount": 8000,
+      "target_date": "2028-01-01",
+      "start_date": "2025-06-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 600,
+      "contribution_streak": 7,
+      "longest_streak": 7,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    }
+  ],
+
+  "letter_to_spouse": {
+    "immediate_actions": "1. Contact my parents Wei and Mei Chen immediately (details below)\n2. Contact Marcus Wong (business partner) - he needs to know ASAP for business continuity\n3. Contact Legal & General about key person insurance - policy LG-KP-234567 (£500k)\n4. Zurich personal life insurance - policy ZUR-LT-567890 (£200k to parents)\n5. Contact Chen Tech Consulting accountant for company matters\n6. Keep my mobile phone active - it has 2FA for all accounts\n7. Register the death at Manchester Register Office\n8. Obtain at least 15 death certificates (business accounts need more)",
+    "executor_name": "To be appointed - URGENT need to create will",
+    "executor_contact": "Recommend: Marcus Wong as primary, Wei Chen as backup",
+    "attorney_name": "Pannone Corporate LLP",
+    "attorney_contact": "0161 909 3000 / corporate@pannonecorp.com - Ask for Rachel Holmes (handles company matters)",
+    "financial_advisor_name": "Interactive Investor Advisory Team",
+    "financial_advisor_contact": "0345 607 6001 / advice@ii.co.uk",
+    "accountant_name": "BDO Manchester - Tech Sector Team",
+    "accountant_contact": "0161 817 7500 / manchester@bdo.co.uk - Ask for Tom Richards",
+    "immediate_funds_access": "Personal Accounts:\n• Starling Bank Current - Approx £5,680\n• Aldermore Notice Account - £40,000 (90-day notice)\n\nBusiness Accounts (Director access):\n• Tide Business Current - Approx £48,500\n• Tide Business Reserve - £75,000\n\nNote: Company accounts will need board resolution for access. Marcus has co-signatory rights on all business accounts.",
+    "employer_hr_contact": "N/A - Self-employed / Company Director",
+    "employer_benefits_info": "Key Person Insurance: £500,000 payable to Chen Tech Consulting Ltd\nThis is to ensure business continuity, not personal inheritance.\nContact Legal & General: 0800 587 0097, policy LG-KP-234567",
+    "password_manager_info": "Bitwarden - Master password written on card in safe at apartment\nSafe combination: On file with parents\n2FA backup codes: Printed in safe\nYubikey hardware key: Desk drawer",
+    "estate_documents_location": "NOTE: NO WILL CURRENTLY EXISTS - THIS IS URGENT\n\nCompany documents: With Pannone Corporate LLP\nShareholder agreement with Marcus: Same location\nPersonal documents: Safe at apartment\nSafe at penthouse: Contains passports, backup codes, share certificates",
+    "vehicles_info": "Porsche 911 (2022 992 Carrera S):\n- Registration: [To be added]\n- Finance: Fully paid off\n- Insured with Admiral\n- Worth approximately £85,000\n- Parents don't drive - recommend selling through Porsche Centre Manchester",
+    "valuable_items_info": "Porsche 911 Carrera S (£85,000):\n- 2022 model, low mileage\n- Sell through Porsche Centre Manchester\n\nWatch Collection (£35,000):\n- Rolex Submariner (£12,000)\n- Omega Speedmaster (£8,000)\n- IWC Portuguese (£15,000)\n- All documentation in safe\n- Sell through Watches of Switzerland\n\nArt Collection (£25,000):\n- Contemporary pieces\n- Contact Bonhams Manchester for valuation",
+    "cryptocurrency_info": "Holdings on Interactive Investor account - small allocation.\n\nCoinbase account:\n- Various holdings approx £5,000\n- Seed phrases in safe at apartment\n- Login details in Bitwarden\n\nDO NOT lose the seed phrases - crypto is unrecoverable without them.",
+    "recurring_bills_info": "Personal:\n- Council Tax: £245/month (direct debit Starling)\n- Service Charge: £350/month\n- Utilities: £155/month (Octopus)\n- Car Insurance: Admiral\n- Gym: Third Space Manchester - cancel\n\nBusiness (company accounts):\n- Office rent, salaries, software subscriptions\n- Marcus will know what to do\n- BDO has all financial records",
+    "funeral_preference": "cremation",
+    "funeral_service_details": "Cremation preferred. Simple service - no religious ceremony. Celebration of life at The Ivy Manchester or similar venue. Invite tech community friends and colleagues. Play some good music - no sad songs.",
+    "obituary_wishes": "Mention building Chen Tech Consulting from nothing, the team I built, and my passion for technology and entrepreneurship. Note my work with TechAngel Ventures helping other startups. Keep it brief and forward-looking.",
+    "additional_wishes": "Mum and Dad - I'm sorry I didn't spend more time with you. Please use the money to enjoy your retirement and travel. Maybe finally take that trip back to South Africa you've always talked about.\n\nMarcus - thank you for being my business partner and friend. Please look after the team. The company is in good hands with you.\n\nUrgent: PLEASE MAKE A WILL. I know I've been putting this off. If you're reading this without a will, everything goes to intestacy rules which is not what I want.",
+    "additional_boxes": [
+      {
+        "title": "Chen Tech Consulting - Business Succession",
+        "content": "60% shareholding in Chen Tech Consulting Ltd\nMarcus Wong owns 40%\n\nShareholder Agreement provisions:\n- Marcus has right of first refusal on my shares\n- Valuation: 3x trailing earnings multiple\n- Key person insurance (£500k) to fund buyout\n\nCompany Number: 12345678\nContact: Pannone Corporate for share transfer\n\nCRITICAL: Business must continue - 8 employees depend on it"
+      },
+      {
+        "title": "TechAngel Ventures LLP - Investment Holding",
+        "content": "25% interest in TechAngel Ventures LLP\nOC456789\n\nThree other partners:\n- Contact Simon Wright (managing partner)\n- simon@techangelventures.com\n\nNot Business Property Relief eligible (investment holding)\nCurrent value: ~£100,000 (my 25%)\nPartnership agreement specifies buyout terms"
+      },
+      {
+        "title": "Director's Loan Account",
+        "content": "Outstanding director's loan: £35,000\nOWED BY ME TO THE COMPANY\n\nThis is repayable to Chen Tech Consulting Ltd\nDeduct from any inheritance or estate\n\nBDO has full records of the loan account"
+      },
+      {
+        "title": "Parents Care Planning",
+        "content": "Wei Chen (father, 66) - May need care support in future\nMei Chen (mother, 63) - Currently in good health\n\nI've been setting aside money for their future care.\nThe Aldermore savings (£40,000) and life insurance proceeds should help.\n\nThey live in Hong Kong - may want to return to UK for care."
+      }
+    ]
+  },
+
+  "life_events": [
+    {
+      "event_name": "Chen Tech Consulting Acquisition Offer",
+      "event_type": "business_sale",
+      "description": "Potential acquisition by larger consulting firm. Multiple expressions of interest over the years.",
+      "amount": 650000,
+      "impact_type": "income",
+      "expected_date": "2031-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Buy-to-Let Property Investment",
+      "event_type": "large_purchase",
+      "description": "Purchase of Buy-to-Let property in Manchester for rental income diversification",
+      "amount": 180000,
+      "impact_type": "expense",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Parents UK Relocation Support",
+      "event_type": "gift_given",
+      "description": "Help parents relocate from Hong Kong to UK including housing deposit assistance",
+      "amount": 80000,
+      "impact_type": "expense",
+      "expected_date": "2028-03-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Annual Dividend",
+      "event_type": "bonus",
+      "description": "Annual dividend from Chen Tech Consulting (varies with profits)",
+      "amount": 45000,
+      "impact_type": "income",
+      "expected_date": "2026-05-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "TechAngel Venture Exit",
+      "event_type": "custom_income",
+      "description": "Expected return from TechAngel Ventures portfolio company exit (25% share)",
+      "amount": 75000,
+      "impact_type": "income",
+      "expected_date": "2029-12-01",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Office Expansion",
+      "event_type": "large_purchase",
+      "description": "Expand Chen Tech office space or acquire new premises",
+      "amount": 35000,
+      "impact_type": "expense",
+      "expected_date": "2027-01-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    }
+  ]
+}

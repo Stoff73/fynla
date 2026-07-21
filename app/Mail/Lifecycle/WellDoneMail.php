@@ -32,13 +32,13 @@ class WellDoneMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.well-done',
             with: [
-                'firstName'          => $this->firstName,
-                'subscribeUrl'       => $this->utm('https://fynla.org/subscribe', 'claim-20-cta'),
-                'checkFeaturesUrl'   => $this->utm('https://fynla.org/dashboard', 'check-features-cta'),
-                'scenarioUrl'        => $this->utm('https://fynla.org/planning/what-if', 'feature-scenario'),
-                'monteCarloUrl'      => $this->utm('https://fynla.org/net-worth/retirement', 'feature-monte-carlo'),
-                'willBuilderUrl'     => $this->utm('https://fynla.org/estate/will-builder', 'feature-will-builder'),
-                'fynChatUrl'         => $this->utm('https://fynla.org/dashboard', 'feature-fyn-chat'),
+                'firstName' => $this->firstName,
+                'subscribeUrl' => $this->utm('https://fynla.org/subscribe', 'claim-20-cta'),
+                'checkFeaturesUrl' => $this->utm('https://fynla.org/dashboard', 'check-features-cta'),
+                'scenarioUrl' => $this->utm('https://fynla.org/planning/what-if', 'feature-scenario'),
+                'monteCarloUrl' => $this->utm('https://fynla.org/net-worth/retirement', 'feature-monte-carlo'),
+                'willBuilderUrl' => $this->utm('https://fynla.org/estate/will-builder', 'feature-will-builder'),
+                'fynChatUrl' => $this->utm('https://fynla.org/dashboard', 'feature-fyn-chat'),
             ],
         );
     }

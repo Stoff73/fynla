@@ -17,6 +17,35 @@ const aiAuditService = {
         const response = await api.get(`/admin/ai-audit/conversations/${conversationId}/messages`);
         return response.data;
     },
+
+    async getChain({ userId = '', status = '', operation = '', page = 1 } = {}) {
+        const response = await api.get('/admin/ai-audit/chain', {
+            params: { user_id: userId, status, operation, page },
+        });
+        return response.data;
+    },
+
+    async verifyChain() {
+        const response = await api.get('/admin/ai-audit/chain/verify');
+        return response.data;
+    },
+
+    async getEpisodes({ userId = '', from = '', to = '', module = '', persona = '', page = 1 } = {}) {
+        const response = await api.get('/admin/ai-audit/episodes', {
+            params: { user_id: userId, from, to, module, persona, page },
+        });
+        return response.data;
+    },
+
+    async getEpisode(id) {
+        const response = await api.get(`/admin/ai-audit/episodes/${id}`);
+        return response.data;
+    },
+
+    async verifyEpisode(id) {
+        const response = await api.post(`/admin/ai-audit/episodes/${id}/verify`);
+        return response.data;
+    },
 };
 
 export default aiAuditService;

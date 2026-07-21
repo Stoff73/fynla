@@ -1,0 +1,87 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "delegate_to_capture",
+            "description": "Internal. Emit when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture. Never shown to the user.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "Why capture is needed."
+                    },
+                    "entity_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Record types to capture."
+                    },
+                    "fields_needed": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Optional specific fields required."
+                    }
+                },
+                "required": [
+                    "reason",
+                    "entity_types",
+                    "fields_needed"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "capture_complete",
+            "description": "Internal. Emit when you (data-capture Fyn) have finished capturing. Orchestrator returns control to advice Fyn.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "summary": {
+                        "type": "string",
+                        "description": "Short user-facing recap."
+                    },
+                    "records_created": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": [
+                                        "integer",
+                                        "string"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "type",
+                                "id"
+                            ],
+                            "additionalProperties": false
+                        },
+                        "description": "Records created or updated."
+                    }
+                },
+                "required": [
+                    "summary",
+                    "records_created"
+                ],
+                "additionalProperties": false
+            },
+            "strict": true
+        }
+    }
+]

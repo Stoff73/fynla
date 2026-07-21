@@ -196,10 +196,6 @@ export default {
       if (!Array.isArray(this.activity) || !this.activity.length) return [];
       return [
         {
-          name: 'Trial Expired',
-          data: this.activity.map(item => item.trial_expired ?? 0),
-        },
-        {
           name: 'Cancelled',
           data: this.activity.map(item => item.cancellations ?? 0),
         },

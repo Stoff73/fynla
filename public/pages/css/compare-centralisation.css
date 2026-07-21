@@ -1,0 +1,205 @@
+/**
+ * Fynla public pages — compare-centralisation.css
+ *
+ * Page-specific styles for:
+ *   /compare/fynla-vs-financial-centralisation-platform
+ *
+ * Design tokens and nav/footer styles live in global.css — never duplicated here.
+ * No :root block here. No hardcoded hex values.
+ */
+
+/* ===================================================================
+   HERO
+   =================================================================== */
+.compare-hero {
+  background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+  overflow: hidden;
+}
+
+.compare-hero__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem;
+}
+
+.compare-hero__heading {
+  font-size: clamp(2rem, 8vw, 4rem);
+  line-height: 1.05;
+  font-weight: 900;
+  color: var(--white);
+  margin-bottom: 1rem;
+}
+
+.compare-hero__heading-accent {
+  color: var(--raspberry-300);
+}
+
+.compare-hero__subtext {
+  font-size: 1.125rem;
+  color: var(--white-70);
+  line-height: 1.625;
+}
+
+/* ===================================================================
+   MAIN CONTENT WRAPPER
+   =================================================================== */
+.compare-content {
+  padding: 3rem 0 2rem;
+  background: var(--eggshell-500);
+}
+
+.compare-content__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* ===================================================================
+   SHARED SECTION HEADING
+   =================================================================== */
+.compare-section-heading {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 1rem;
+}
+
+/* ===================================================================
+   OVERVIEW PANEL
+   =================================================================== */
+.compare-overview {
+  background: var(--light-blue-100);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+}
+
+.compare-overview__body {
+  font-size: 0.9375rem;
+  color: var(--neutral-600);
+  line-height: 1.625;
+}
+
+/* ===================================================================
+   STRENGTHS LIST
+   =================================================================== */
+.compare-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.compare-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.9375rem;
+  color: var(--neutral-600);
+  line-height: 1.5;
+}
+
+/* Green bullet dot — matches Vue's spring-500 rounded-full span */
+.compare-list__bullet {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-full);
+  background: var(--spring-500);
+  margin-top: 0.5625rem; /* optical alignment to cap-height of first text line */
+}
+
+/* ===================================================================
+   USE CASES GRID
+   =================================================================== */
+.compare-use-cases__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.compare-use-case-card {
+  background: var(--light-pink-100);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+}
+
+.compare-use-case-card__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 0.875rem;
+}
+
+.compare-use-case-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.9375rem;
+  color: var(--neutral-500);
+}
+
+.compare-use-case-card__list li {
+  /* list-style reset is already in global.css via ul{list-style:none} */
+}
+
+/* ===================================================================
+   RELATED LINKS
+   =================================================================== */
+.compare-related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-top: 1px solid var(--light-gray);
+  padding-top: 1.5rem;
+}
+
+.compare-related__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+
+.compare-related__link {
+  font-size: 0.75rem;
+  color: var(--raspberry-500);
+  transition: color 0.15s ease;
+}
+
+.compare-related__link:hover {
+  color: var(--raspberry-600);
+}
+
+.compare-related__separator {
+  font-size: 0.875rem;
+  color: var(--horizon-300);
+  user-select: none;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 640px) {
+  .compare-use-cases__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .compare-hero__inner {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .compare-content__inner {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .compare-overview {
+    padding: 2.5rem;
+  }
+}

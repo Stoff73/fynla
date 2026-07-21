@@ -1,0 +1,33 @@
+{"__meta":{"provider":"anthropic","model":"claude-haiku-4-5-20251001","scenario_id":"advice_estate_iht","recorded_at":"2026-04-27T18:40:35+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"a705ae8","conversation_id":208,"event_count":32,"duration_ms":9849}}
+{"type":"title","title":"How much inheritance tax will my estate pay?"}
+{"type":"tool_use","tool":"get_tax_information","status":"running"}
+{"type":"tool_use","tool":"get_tax_information","status":"complete"}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"content","text":"Based"}
+{"type":"content","text":" on your current estate, **Inheritance Tax of \u00a340,000 will"}
+{"type":"content","text":" be due**.\n\nHere's how that breaks down:\n\n**Your estate calculation:**\n-"}
+{"type":"content","text":" Gross estate: \u00a3600,000\n- Less Nil Rate Band (standard allowance): \u00a3325,000\n- Less Residence"}
+{"type":"content","text":" Nil Rate Band (for your main residence): \u00a3175,000\n- Taxable amount: \u00a3100"}
+{"type":"content","text":",000\n- Inheritance Tax at 40%: **\u00a340,000**\n\n**What this means:**\n\nYour estate is"}
+{"type":"content","text":" currently worth \u00a3600,000 (your property). The first \u00a3500"}
+{"type":"content","text":",000 is protected from Inheritance Tax through your personal and residential allowances, but the remaining \u00a3100,000 is"}
+{"type":"content","text":" taxable at the standard 40% rate.\n\n**Opportunity to reduce this"}
+{"type":"content","text":":**\n\nThe system has identified four potential strategies to reduce or eliminate this"}
+{"type":"content","text":" \u00a340,000 liability:\n\n1. **Charitable giving** \u2014 If you leave \u00a327,500 or"}
+{"type":"content","text":" more to registered charities, you'd qualify for a reduced 36% Inheritance Tax rate instead of "}
+{"type":"content","text":"40%, saving \u00a311,000.\n\n2. **Annual gifting** \u2014 Using your \u00a33,000 annual exem"}
+{"type":"content","text":"ption to gift to family members over time."}
+{"type":"content","text":" Over 27 years, this could save \u00a332,400 in Inheritance Tax.\n\n3. **Larger"}
+{"type":"content","text":" gifts (Potentially Exempt Transfers)** \u2014 Making structured gifts of up"}
+{"type":"content","text":" to \u00a3325,000 every 7 years would become fully exempt from Inheritance Tax if"}
+{"type":"content","text":" you survive 7 years after making them. This could save up to \u00a3390,000 over time"}
+{"type":"content","text":".\n\n4. **Liquidity** \u2014 Your estate currently has no liquid savings, but the Inheritance Tax bill"}
+{"type":"content","text":" of \u00a340,000 will need to be paid from somewhere (usually the"}
+{"type":"content","text":" property would need to be sold or the family would need to find the cash"}
+{"type":"content","text":").\n\nWould you like me to walk you through any of these strategies in more detail, or would you like to see your full estate"}
+{"type":"content","text":" planning analysis?\n\nFor regulated advice personal to your"}
+{"type":"content","text":" circumstances, speak to a qualified financial adviser."}
+{"type":"done","message_id":331,"input_tokens":4433,"output_tokens":591}

@@ -21,8 +21,7 @@ class ChurnedSubscriberMail extends Mailable
         public User $user,
         public array $feedbackUrls = [],
         public ?string $subscriptionDuration = null,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

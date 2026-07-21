@@ -236,6 +236,6 @@ export default {
   letter-spacing: 0.05em;
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #FECDD3;
+  @apply border-b border-raspberry-100;
 }
 </style>

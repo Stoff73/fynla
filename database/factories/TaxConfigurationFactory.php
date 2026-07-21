@@ -8,7 +8,7 @@ use App\Models\TaxConfiguration;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\TaxConfiguration>
+ * @extends Factory<TaxConfiguration>
  */
 class TaxConfigurationFactory extends Factory
 {

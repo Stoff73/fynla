@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\Subscription;
 use App\Models\User;
@@ -35,9 +36,9 @@ describe('getSnapshot', function () {
             'status' => 'active',
         ]);
 
-        $trialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $trialUser->id,
+        $pendingUser = User::factory()->create(['is_preview_user' => false]);
+        Subscription::factory()->pending()->create([
+            'user_id' => $pendingUser->id,
         ]);
 
         // Preview user with active sub (should not count)
@@ -52,129 +53,21 @@ describe('getSnapshot', function () {
         expect($snapshot['active_subscribers'])->toBe(1);
     });
 
-    it('correctly counts trialing users', function () {
-        $trialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $trialUser->id,
-            'trial_ends_at' => now()->addDays(7),
-        ]);
-
-        // Expired trial (trial_ends_at in the past, but status still trialing)
-        $expiredTrialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $expiredTrialUser->id,
-            'trial_ends_at' => now()->subDay(),
-        ]);
-
-        $snapshot = $this->service->getSnapshot();
-
-        expect($snapshot['on_trial'])->toBe(1);
-    });
-
     it('correctly counts never-paid users', function () {
         // 5 real users total
         $users = User::factory()->count(5)->create(['is_preview_user' => false]);
 
-        // 1 active subscriber
+        // 1 active subscriber; the other 4 have no active subscription =
+        // never_paid (pure freemium: a user is "paid" only with an active sub).
         Subscription::factory()->create([
             'user_id' => $users[0]->id,
             'status' => 'active',
         ]);
 
-        // 1 trialing user
-        Subscription::factory()->trialing()->create([
-            'user_id' => $users[1]->id,
-        ]);
-
-        // 3 users with no subscription at all = never_paid
         $snapshot = $this->service->getSnapshot();
 
         expect($snapshot['total_registered'])->toBe(5)
-            ->and($snapshot['never_paid'])->toBe(3);
-    });
-});
-
-// =========================================================================
-// getTrialBreakdown
-// =========================================================================
-
-describe('getTrialBreakdown', function () {
-    it('buckets trial users by days remaining', function () {
-        // 4+ days
-        $user1 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user1->id,
-            'trial_ends_at' => now()->addDays(5),
-        ]);
-
-        // 3 days bucket (between now+2d and now+3d)
-        $user2 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user2->id,
-            'trial_ends_at' => now()->addDays(2)->addHours(12),
-        ]);
-
-        // 2 days bucket (between now+1d and now+2d)
-        $user3 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user3->id,
-            'trial_ends_at' => now()->addDays(1)->addHours(12),
-        ]);
-
-        // 1 day bucket (between now and now+1d)
-        $user4 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user4->id,
-            'trial_ends_at' => now()->addHours(12),
-        ]);
-
-        $breakdown = $this->service->getTrialBreakdown();
-
-        expect($breakdown['four_plus_days'])->toBe(1)
-            ->and($breakdown['three_days'])->toBe(1)
-            ->and($breakdown['two_days'])->toBe(1)
-            ->and($breakdown['one_day'])->toBe(1);
-    });
-
-    it('counts expired trials correctly', function () {
-        // Expired trial (trialing with trial_ends_at in the past, no active sub)
-        $user1 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $user1->id,
-            'trial_ends_at' => now()->subDays(2),
-        ]);
-
-        // Explicitly expired status
-        $user2 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->expired()->create([
-            'user_id' => $user2->id,
-            'trial_ends_at' => now()->subDays(5),
-        ]);
-
-        // User with expired trial but also an active sub (should NOT count as expired)
-        // Note: hasOne relationship means one subscription per user, so this user's
-        // subscription is active — they shouldn't appear in expired
-        $user3 = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->create([
-            'user_id' => $user3->id,
-            'status' => 'active',
-        ]);
-
-        $breakdown = $this->service->getTrialBreakdown();
-
-        expect($breakdown['expired'])->toBe(2);
-    });
-
-    it('excludes preview users from trial breakdown', function () {
-        $previewUser = User::factory()->create(['is_preview_user' => true]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $previewUser->id,
-            'trial_ends_at' => now()->addDays(5),
-        ]);
-
-        $breakdown = $this->service->getTrialBreakdown();
-
-        expect($breakdown['four_plus_days'])->toBe(0);
+            ->and($snapshot['never_paid'])->toBe(4);
     });
 });
 
@@ -184,78 +77,67 @@ describe('getTrialBreakdown', function () {
 
 describe('getPlanBreakdown', function () {
     it('groups active subscriptions by plan and billing cycle', function () {
-        // 2 monthly student subs
+        // 2 monthly Premium subscriptions
         foreach (range(1, 2) as $_) {
             $user = User::factory()->create(['is_preview_user' => false]);
             Subscription::factory()->create([
                 'user_id' => $user->id,
-                'plan' => 'student',
+                'plan' => 'premium',
                 'billing_cycle' => 'monthly',
                 'status' => 'active',
-                'amount' => 399,
+                'amount' => 699,
             ]);
         }
 
-        // 1 yearly standard sub
+        // 1 yearly Premium subscription
         $user = User::factory()->create(['is_preview_user' => false]);
         Subscription::factory()->create([
             'user_id' => $user->id,
-            'plan' => 'standard',
+            'plan' => 'premium',
             'billing_cycle' => 'yearly',
             'status' => 'active',
-            'amount' => 10000,
+            'amount' => 5999,
         ]);
 
-        // 1 trialing sub (should NOT count)
-        $trialUser = User::factory()->create(['is_preview_user' => false]);
-        Subscription::factory()->trialing()->create([
-            'user_id' => $trialUser->id,
-            'plan' => 'pro',
+        // One pending checkout should not count as a paid subscription.
+        $pendingUser = User::factory()->create(['is_preview_user' => false]);
+        Subscription::factory()->pending()->create([
+            'user_id' => $pendingUser->id,
+            'plan' => 'premium',
         ]);
 
         $breakdown = $this->service->getPlanBreakdown();
 
-        // Find student plan
-        $student = collect($breakdown)->firstWhere('plan', 'student');
-        expect($student['total'])->toBe(2)
-            ->and($student['monthly'])->toBe(2)
-            ->and($student['yearly'])->toBe(0)
-            ->and($student['monthly_revenue'])->toBe(798);
-
-        // Find standard plan
-        $standard = collect($breakdown)->firstWhere('plan', 'standard');
-        expect($standard['total'])->toBe(1)
-            ->and($standard['monthly'])->toBe(0)
-            ->and($standard['yearly'])->toBe(1)
-            ->and($standard['yearly_revenue'])->toBe(10000);
-
-        // Pro should be 0 (trialing doesn't count)
-        $pro = collect($breakdown)->firstWhere('plan', 'pro');
-        expect($pro['total'])->toBe(0);
+        $premium = collect($breakdown)->firstWhere('plan', 'premium');
+        expect($premium['total'])->toBe(3)
+            ->and($premium['monthly'])->toBe(2)
+            ->and($premium['yearly'])->toBe(1)
+            ->and($premium['monthly_revenue'])->toBe(1398)
+            ->and($premium['yearly_revenue'])->toBe(5999);
     });
 
-    it('returns all four plan types', function () {
+    it('returns only the canonical paid plan type', function () {
         $breakdown = $this->service->getPlanBreakdown();
 
         $planNames = array_column($breakdown, 'plan');
-        expect($planNames)->toBe(['student', 'standard', 'family', 'pro']);
+        expect($planNames)->toBe(['premium']);
     });
 
     it('excludes preview user subscriptions', function () {
         $previewUser = User::factory()->create(['is_preview_user' => true]);
         Subscription::factory()->create([
             'user_id' => $previewUser->id,
-            'plan' => 'pro',
+            'plan' => 'premium',
             'billing_cycle' => 'monthly',
             'status' => 'active',
             'amount' => 1999,
         ]);
 
         $breakdown = $this->service->getPlanBreakdown();
-        $pro = collect($breakdown)->firstWhere('plan', 'pro');
+        $premium = collect($breakdown)->firstWhere('plan', 'premium');
 
-        expect($pro['total'])->toBe(0)
-            ->and($pro['monthly_revenue'])->toBe(0);
+        expect($premium['total'])->toBe(0)
+            ->and($premium['monthly_revenue'])->toBe(0);
     });
 });
 
@@ -400,7 +282,7 @@ describe('getEngagementStats', function () {
             'onboarding_completed' => true,
         ]);
         SavingsAccount::factory()->create(['user_id' => $user1->id]);
-        \App\Models\Property::factory()->create(['user_id' => $user1->id]);
+        Property::factory()->create(['user_id' => $user1->id]);
 
         // User who has used 0 modules
         User::factory()->create([

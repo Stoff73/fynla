@@ -9,9 +9,12 @@ use App\Http\Resources\UserResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AuditLog;
 use App\Models\LoginAttempt;
+use App\Models\User;
+use App\Models\UserSession;
 use App\Services\Audit\AuditService;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
+use App\Services\Gamification\PointsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -163,7 +166,7 @@ class MFAController extends Controller
             return $genericError;
         }
 
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
 
         if (! $user) {
             return $genericError;
@@ -209,8 +212,12 @@ class MFAController extends Controller
         // Create session for this token
         $accessToken = $user->tokens()->latest()->first();
         if ($accessToken) {
-            \App\Models\UserSession::createForToken($user, $accessToken);
+            UserSession::createForToken($user, $accessToken);
         }
+
+        // Gamification: record today's login + streak. Preview-safe and never
+        // throws — a failure must not break the login.
+        app(PointsService::class)->recordLogin($user);
 
         return response()->json([
             'success' => true,
@@ -245,7 +252,7 @@ class MFAController extends Controller
             return $genericError;
         }
 
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
 
         if (! $user) {
             return $genericError;
@@ -264,7 +271,7 @@ class MFAController extends Controller
         // Create session for this token
         $accessToken = $user->tokens()->latest()->first();
         if ($accessToken) {
-            \App\Models\UserSession::createForToken($user, $accessToken);
+            UserSession::createForToken($user, $accessToken);
         }
 
         $remainingCodes = $this->mfaService->getRemainingRecoveryCodeCount($user);

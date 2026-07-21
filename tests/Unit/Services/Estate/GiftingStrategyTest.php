@@ -7,6 +7,7 @@ use App\Models\Estate\IHTProfile;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\GiftingStrategy;
+use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
 beforeEach(function () {
@@ -15,7 +16,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $taxConfig = app(TaxConfigService::class);
     $this->strategy = new GiftingStrategy($taxConfig);
     $this->user = User::factory()->create();
 });

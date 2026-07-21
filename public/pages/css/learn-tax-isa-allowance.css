@@ -1,0 +1,29 @@
+/**
+ * ISA Allowance page — page-specific styles.
+ * Inherits all guide layout from learn-tax-pension-annual-allowance.css.
+ */
+@import url('learn-tax-pension-annual-allowance.css');
+
+/* ── ISA TYPE CARDS ────────────────────────────────────────────────────── */
+.guide-isa-types {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.guide-highlight--stacked {
+  margin-bottom: 0; /* gap handled by parent flex gap */
+}
+/* Last card in a stacked list — no extra margin */
+.guide-highlight--last { margin-bottom: 0; }
+
+.guide-isa-type__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--horizon-500);
+  margin-bottom: 0.25rem;
+}
+.guide-isa-type__desc {
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  line-height: 1.5;
+}

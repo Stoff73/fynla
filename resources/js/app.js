@@ -1,3 +1,7 @@
+// MUST be first — adopts the /m mobile token into sessionStorage before the
+// Vuex store reads it synchronously on init. See mScaffoldBridge.js.
+import './mScaffoldBridge';
+
 import './bootstrap';
 
 // Unregister any stale service workers from previous PWA-enabled builds.
@@ -31,12 +35,18 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
-import { isNativePlatform, getToken, getItem } from './services/tokenStorage';
-import { initAppLifecycle, attemptBiometricLogin } from './mobile/appLifecycle';
+import { isNativePlatform, getToken } from './services/tokenStorage';
 import logger from './utils/logger';
+import { captureSourceFromUrl } from './utils/sourceCapture';
 
 // One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
 localStorage.removeItem('auth_token');
+
+// First-touch marketing-channel attribution. If the user landed via
+// a Fynla social post (e.g. /savetax?utm_source=linkedin) the value
+// is stashed in sessionStorage and submitted with the registration
+// form so users.signup_source can be populated server-side.
+captureSourceFromUrl();
 
 // Create Vue app instance
 const app = createApp(App);
@@ -117,30 +127,13 @@ async function initAndMount() {
     await router.isReady();
     logger.debug('App Init', 'Step 8: Router ready, current route:', router.currentRoute.value.path);
   } catch (e) {
-    console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
-  }
-
-  // On native, initialise app lifecycle (background/foreground handling)
-  // and attempt biometric login if no token was restored from storage
-  if (isNativePlatform()) {
-    logger.debug('App Init', 'Step 9: Initialising native app lifecycle');
-    initAppLifecycle(store, router);
-
-    // Auto-login with Face ID if user has previously set it up
-    if (!store.getters['auth/isAuthenticated']) {
-      const biometricFlag = await getItem('biometric_enabled');
-      if (biometricFlag === 'true') {
-        try {
-          const success = await attemptBiometricLogin(store);
-          if (success) {
-            router.push('/m/home');
-          }
-        } catch {
-          // Face ID failed or cancelled — fall through to login screen
-        }
-      }
+    if (window.__fynlaMobileHandoffPending) {
+      logger.debug('App Init', 'Step 8: Router navigation replaced by the mobile handoff');
+    } else {
+      console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
     }
   }
+
 }
 
 initAndMount().catch(e => {

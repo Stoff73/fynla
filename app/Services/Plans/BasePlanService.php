@@ -6,8 +6,8 @@ namespace App\Services\Plans;
 
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Traits\FormatsCurrency;
 use App\Traits\ResolvesExpenditure;
 
@@ -123,20 +123,25 @@ abstract class BasePlanService
      */
     private function resolveFundingSource(Goal $goal): array
     {
-        $userId = $goal->user_id;
-        $user = User::find($userId);
+        $user = User::find($goal->user_id);
+        if (! $user) {
+            return ['name' => null, 'warning' => null];
+        }
+
         $lumpSumNeeded = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
 
         // Calculate the 6-month emergency threshold
-        $monthlyExpenditure = $user ? $this->resolveMonthlyExpenditure($user)['amount'] : 0.0;
+        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
         $emergencyThreshold = $monthlyExpenditure * 6;
 
         // 1. Try liquid cash accounts (non-ISA, non-premium-bonds, non-notice)
-        $cashAccounts = SavingsAccount::where('user_id', $userId)
+        $cashAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->whereIn('account_type', self::CASH_ACCOUNT_TYPES)
-            ->orderByDesc('current_balance')
-            ->get();
+            ->sortByDesc('current_balance')
+            ->values();
 
         foreach ($cashAccounts as $account) {
             $balance = (float) $account->current_balance;
@@ -151,7 +156,7 @@ abstract class BasePlanService
         }
 
         // 2. Fall back to GIA only (exclude ISA, pension, VCT, EIS, and employee schemes)
-        $gia = InvestmentAccount::where('user_id', $userId)
+        $gia = InvestmentAccount::where('user_id', $user->id)
             ->where('account_type', 'gia')
             ->orderByDesc('current_value')
             ->first();

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\BusinessInterest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\BusinessInterest
+ * @mixin BusinessInterest
  */
 class BusinessInterestResource extends JsonResource
 {
@@ -26,6 +27,7 @@ class BusinessInterestResource extends JsonResource
             'company_number' => $this->company_number,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'current_valuation' => $this->current_valuation,
             'valuation_date' => $this->valuation_date?->toDateString(),
             'valuation_method' => $this->valuation_method,
@@ -53,8 +55,8 @@ class BusinessInterestResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'household' => $this->whenLoaded('household'),
             'trust' => $this->whenLoaded('trust'),
 

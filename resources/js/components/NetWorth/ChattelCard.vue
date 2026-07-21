@@ -156,8 +156,8 @@ export default {
 }
 
 .type-jewelry {
-  @apply bg-purple-50;
-  @apply text-purple-800;
+  @apply bg-violet-50;
+  @apply text-violet-800;
 }
 
 .type-collectible {
@@ -175,8 +175,8 @@ export default {
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .card-content {

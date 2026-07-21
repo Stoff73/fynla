@@ -71,6 +71,17 @@
       />
     </Teleport>
 
+    <!-- Tier count-cap reached -->
+    <Teleport to="body">
+      <LimitReachedModal
+        :show="showLimitModal"
+        entity-label="properties"
+        :cap="tierCountCap('property') || 0"
+        :tier-label="tierLabel"
+        @close="showLimitModal = false"
+      />
+    </Teleport>
+
     <!-- Success/Error Messages -->
     <div v-if="successMessage" class="notification success animate-slide-in-right">
       {{ successMessage }}
@@ -87,6 +98,8 @@ import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 import api from '@/services/api';
 
 import logger from '@/utils/logger';
@@ -98,7 +111,10 @@ export default {
     PropertyForm,
     PropertyDetailInline,
     ModuleStatusBar,
+    LimitReachedModal,
   },
+
+  mixins: [tierLimitMixin],
 
   data() {
     return {
@@ -106,6 +122,7 @@ export default {
       loading: false,
       error: null,
       showPropertyForm: false,
+      showLimitModal: false,
       selectedProperty: null,
       editingProperty: null,
       successMessage: null,
@@ -170,9 +187,7 @@ export default {
             this.showPropertyForm = true;
           }
         } else {
-          // Open create modal
-          this.editingProperty = null;
-          this.showPropertyForm = true;
+          this.addProperty();
         }
       }
     },
@@ -211,6 +226,10 @@ export default {
     },
 
     addProperty() {
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('property', this.properties.length)) {
+        this.showLimitModal = true;
+        return;
+      }
       this.editingProperty = null;
       this.showPropertyForm = true;
     },
@@ -318,17 +337,16 @@ export default {
   },
 
   async mounted() {
-    // Check for pendingFill that was set before this component mounted
-    const fill = this.$store.state.aiFormFill?.pendingFill;
-    if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage') && fill.mode !== 'edit') {
-      this.editingProperty = null;
-      this.showPropertyForm = true;
-    }
-
     this.setDetailView(false);
     // Fetch family members to ensure spouse data is available (works for both regular and preview users)
     await this.$store.dispatch('userProfile/fetchFamilyMembers');
     await this.fetchProperties();
+
+    // Check for pendingFill after loading the authoritative property count.
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage') && fill.mode !== 'edit') {
+      this.addProperty();
+    }
   },
 };
 </script>

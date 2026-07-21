@@ -6,8 +6,10 @@ use App\Models\Insights\InsightArticle;
 use App\Models\Insights\InsightTemplate;
 use App\Models\User;
 use App\Services\Insights\InsightTemplateService;
+use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->admin = User::factory()->create(['is_admin' => true]);
@@ -34,7 +36,7 @@ it('rejects duplicate template names', function () {
     InsightTemplate::factory()->create(['name' => 'Standard guide']);
 
     $this->service->saveFromArticle($article, 'Standard guide', null, $this->admin);
-})->throws(\Illuminate\Database\QueryException::class);
+})->throws(QueryException::class);
 
 it('deletes a template and nulls the reference on articles', function () {
     $template = InsightTemplate::factory()->create();

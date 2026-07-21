@@ -1,0 +1,344 @@
+{"__meta":{"provider":"xai","model":"grok-4-1-fast-reasoning","scenario_id":"advice_estate_iht","recorded_at":"2026-04-27T18:40:49+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"a705ae8","conversation_id":209,"event_count":343,"duration_ms":14048}}
+{"type":"title","title":"How much inheritance tax will my estate pay?"}
+{"type":"tool_use","tool":"get_tax_information","status":"running"}
+{"type":"tool_use","tool":"get_tax_information","status":"complete"}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"content","text":"Your"}
+{"type":"content","text":" estate"}
+{"type":"content","text":" is"}
+{"type":"content","text":" currently"}
+{"type":"content","text":" estimated"}
+{"type":"content","text":" at"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"600"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" ("}
+{"type":"content","text":"your"}
+{"type":"content","text":" main"}
+{"type":"content","text":" residence"}
+{"type":"content","text":"),"}
+{"type":"content","text":" with"}
+{"type":"content","text":" no"}
+{"type":"content","text":" liabilities"}
+{"type":"content","text":" recorded"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Based"}
+{"type":"content","text":" on"}
+{"type":"content","text":" current"}
+{"type":"content","text":" UK"}
+{"type":"content","text":" rules"}
+{"type":"content","text":","}
+{"type":"content","text":" after"}
+{"type":"content","text":" applying"}
+{"type":"content","text":" the"}
+{"type":"content","text":" **"}
+{"type":"content","text":"Nil"}
+{"type":"content","text":" Rate"}
+{"type":"content","text":" Band"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"325"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" and"}
+{"type":"content","text":" full"}
+{"type":"content","text":" **"}
+{"type":"content","text":"Res"}
+{"type":"content","text":"idence"}
+{"type":"content","text":" Nil"}
+{"type":"content","text":" Rate"}
+{"type":"content","text":" Band"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"175"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"100"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" would"}
+{"type":"content","text":" be"}
+{"type":"content","text":" taxable"}
+{"type":"content","text":" at"}
+{"type":"content","text":" the"}
+{"type":"content","text":" standard"}
+{"type":"content","text":" **"}
+{"type":"content","text":"40"}
+{"type":"content","text":"%"}
+{"type":"content","text":"**"}
+{"type":"content","text":" rate"}
+{"type":"content","text":","}
+{"type":"content","text":" giving"}
+{"type":"content","text":" an"}
+{"type":"content","text":" estimated"}
+{"type":"content","text":" Inheritance"}
+{"type":"content","text":" Tax"}
+{"type":"content","text":" liability"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"40"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**."}
+{"type":"content","text":" Tax"}
+{"type":"content","text":" rules"}
+{"type":"content","text":" are"}
+{"type":"content","text":" based"}
+{"type":"content","text":" on"}
+{"type":"content","text":" current"}
+{"type":"content","text":" UK"}
+{"type":"content","text":" legislation"}
+{"type":"content","text":" for"}
+{"type":"content","text":" the"}
+{"type":"content","text":" "}
+{"type":"content","text":"202"}
+{"type":"content","text":"6"}
+{"type":"content","text":"/"}
+{"type":"content","text":"27"}
+{"type":"content","text":" tax"}
+{"type":"content","text":" year"}
+{"type":"content","text":" and"}
+{"type":"content","text":" depend"}
+{"type":"content","text":" on"}
+{"type":"content","text":" your"}
+{"type":"content","text":" individual"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" they"}
+{"type":"content","text":" may"}
+{"type":"content","text":" change"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"You"}
+{"type":"content","text":" may"}
+{"type":"content","text":" want"}
+{"type":"content","text":" to"}
+{"type":"content","text":" consider"}
+{"type":"content","text":" these"}
+{"type":"content","text":" opportunities"}
+{"type":"content","text":" to"}
+{"type":"content","text":" reduce"}
+{"type":"content","text":" it"}
+{"type":"content","text":":\n"}
+{"type":"content","text":"1"}
+{"type":"content","text":"."}
+{"type":"content","text":" **"}
+{"type":"content","text":"Char"}
+{"type":"content","text":"itable"}
+{"type":"content","text":" be"}
+{"type":"content","text":"quest"}
+{"type":"content","text":"**:"}
+{"type":"content","text":" Your"}
+{"type":"content","text":" estate"}
+{"type":"content","text":" is"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"27"}
+{"type":"content","text":","}
+{"type":"content","text":"500"}
+{"type":"content","text":"**"}
+{"type":"content","text":" below"}
+{"type":"content","text":" the"}
+{"type":"content","text":" "}
+{"type":"content","text":"10"}
+{"type":"content","text":"%"}
+{"type":"content","text":" threshold"}
+{"type":"content","text":"."}
+{"type":"content","text":" Leaving"}
+{"type":"content","text":" that"}
+{"type":"content","text":" amount"}
+{"type":"content","text":" ("}
+{"type":"content","text":"or"}
+{"type":"content","text":" more"}
+{"type":"content","text":")"}
+{"type":"content","text":" to"}
+{"type":"content","text":" charity"}
+{"type":"content","text":" could"}
+{"type":"content","text":" qualify"}
+{"type":"content","text":" you"}
+{"type":"content","text":" for"}
+{"type":"content","text":" the"}
+{"type":"content","text":" reduced"}
+{"type":"content","text":" **"}
+{"type":"content","text":"36"}
+{"type":"content","text":"%"}
+{"type":"content","text":"**"}
+{"type":"content","text":" rate"}
+{"type":"content","text":","}
+{"type":"content","text":" saving"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"11"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**.\n"}
+{"type":"content","text":"2"}
+{"type":"content","text":"."}
+{"type":"content","text":" **"}
+{"type":"content","text":"Annual"}
+{"type":"content","text":" g"}
+{"type":"content","text":"ifting"}
+{"type":"content","text":"**:"}
+{"type":"content","text":" Regular"}
+{"type":"content","text":" gifts"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"3"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**/"}
+{"type":"content","text":"year"}
+{"type":"content","text":" from"}
+{"type":"content","text":" surplus"}
+{"type":"content","text":" income"}
+{"type":"content","text":" could"}
+{"type":"content","text":" save"}
+{"type":"content","text":" up"}
+{"type":"content","text":" to"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"32"}
+{"type":"content","text":","}
+{"type":"content","text":"400"}
+{"type":"content","text":"**"}
+{"type":"content","text":" over"}
+{"type":"content","text":" time"}
+{"type":"content","text":" ("}
+{"type":"content","text":"immediately"}
+{"type":"content","text":" exempt"}
+{"type":"content","text":").\n"}
+{"type":"content","text":"3"}
+{"type":"content","text":"."}
+{"type":"content","text":" **"}
+{"type":"content","text":"Pot"}
+{"type":"content","text":"entially"}
+{"type":"content","text":" Exempt"}
+{"type":"content","text":" Transfers"}
+{"type":"content","text":"**:"}
+{"type":"content","text":" With"}
+{"type":"content","text":" time"}
+{"type":"content","text":" available"}
+{"type":"content","text":","}
+{"type":"content","text":" gifts"}
+{"type":"content","text":" up"}
+{"type":"content","text":" to"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"325"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" every"}
+{"type":"content","text":" "}
+{"type":"content","text":"7"}
+{"type":"content","text":" years"}
+{"type":"content","text":" ("}
+{"type":"content","text":"3"}
+{"type":"content","text":" cycles"}
+{"type":"content","text":" possible"}
+{"type":"content","text":")"}
+{"type":"content","text":" could"}
+{"type":"content","text":" save"}
+{"type":"content","text":" up"}
+{"type":"content","text":" to"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"390"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" becoming"}
+{"type":"content","text":" exempt"}
+{"type":"content","text":" if"}
+{"type":"content","text":" you"}
+{"type":"content","text":" survive"}
+{"type":"content","text":" "}
+{"type":"content","text":"7"}
+{"type":"content","text":" years"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Your"}
+{"type":"content","text":" liquid"}
+{"type":"content","text":" assets"}
+{"type":"content","text":" are"}
+{"type":"content","text":" currently"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"0"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" so"}
+{"type":"content","text":" it"}
+{"type":"content","text":" could"}
+{"type":"content","text":" be"}
+{"type":"content","text":" worth"}
+{"type":"content","text":" building"}
+{"type":"content","text":" cash"}
+{"type":"content","text":" to"}
+{"type":"content","text":" cover"}
+{"type":"content","text":" this"}
+{"type":"content","text":" liability"}
+{"type":"content","text":" without"}
+{"type":"content","text":" selling"}
+{"type":"content","text":" assets"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Review"}
+{"type":"content","text":" this"}
+{"type":"content","text":" annually"}
+{"type":"content","text":" or"}
+{"type":"content","text":" after"}
+{"type":"content","text":" life"}
+{"type":"content","text":" changes"}
+{"type":"content","text":" like"}
+{"type":"content","text":" g"}
+{"type":"content","text":"ifting"}
+{"type":"content","text":" or"}
+{"type":"content","text":" updating"}
+{"type":"content","text":" your"}
+{"type":"content","text":" Will"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Would"}
+{"type":"content","text":" you"}
+{"type":"content","text":" like"}
+{"type":"content","text":" to"}
+{"type":"content","text":" explore"}
+{"type":"content","text":" adding"}
+{"type":"content","text":" a"}
+{"type":"content","text":" charitable"}
+{"type":"content","text":" be"}
+{"type":"content","text":"quest"}
+{"type":"content","text":" or"}
+{"type":"content","text":" g"}
+{"type":"content","text":"ifting"}
+{"type":"content","text":" details"}
+{"type":"content","text":"?\n\n"}
+{"type":"content","text":"For"}
+{"type":"content","text":" regulated"}
+{"type":"content","text":" advice"}
+{"type":"content","text":" personal"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":","}
+{"type":"content","text":" speak"}
+{"type":"content","text":" to"}
+{"type":"content","text":" a"}
+{"type":"content","text":" qualified"}
+{"type":"content","text":" financial"}
+{"type":"content","text":" adviser"}
+{"type":"content","text":"."}
+{"type":"done","message_id":333,"input_tokens":17131,"output_tokens":414}

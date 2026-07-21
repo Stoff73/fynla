@@ -140,7 +140,6 @@ class DiscountCode extends Model
             'percentage' => (int) round($amountPence * $this->value / 100),
             'fixed_amount' => min($this->value, $amountPence),
             'lifecycle_welcome' => $this->calculateLifecycleAmount($amountPence, $planSlug, $billingCycle),
-            'trial_extension' => 0,
             default => 0,
         };
     }
@@ -152,6 +151,7 @@ class DiscountCode extends Model
         }
         $key = "{$planSlug}.{$billingCycle}";
         $amount = $this->metadata['plan_amounts'][$key] ?? 0;
+
         return min((int) $amount, $amountPence);
     }
 }

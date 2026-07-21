@@ -8,7 +8,7 @@ describe('Share Content API', function () {
     it('returns share content for goal milestone', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/share/goal_milestone/1');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/share/goal_milestone/1');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -26,7 +26,7 @@ describe('Share Content API', function () {
     it('returns share content for app referral', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/share/app_referral');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/share/app_referral');
 
         $response->assertOk()
             ->assertJson(['success' => true]);
@@ -35,7 +35,7 @@ describe('Share Content API', function () {
     it('rejects invalid share types', function () {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->getJson('/api/v1/mobile/share/invalid_type')
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/share/invalid_type')
             ->assertStatus(422);
     });
 
@@ -50,7 +50,7 @@ describe('Share Content API', function () {
         $types = ['goal_milestone', 'net_worth_milestone', 'fyn_insight', 'app_referral'];
 
         foreach ($types as $type) {
-            $response = $this->actingAs($user)->getJson("/api/v1/mobile/share/{$type}");
+            $response = $this->actingAs($user, 'sanctum')->getJson("/api/v1/mobile/share/{$type}");
             $text = $response->json('data.text');
 
             expect($text)->not->toContain('£')

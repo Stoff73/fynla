@@ -491,23 +491,6 @@ class TaxConfigServiceTest extends TestCase
         $this->assertEquals($this->previousTaxYear, $taxYearAfter);
     }
 
-    /**
-     * Test getModel() returns TaxConfiguration model
-     */
-    public function test_get_model_returns_tax_configuration_model(): void
-    {
-        // Arrange
-        $this->createActiveTaxConfig();
-
-        // Act
-        $model = $this->service->getModel();
-
-        // Assert
-        $this->assertInstanceOf(TaxConfiguration::class, $model);
-        $this->assertEquals($this->currentTaxYear, $model->tax_year);
-        $this->assertTrue($model->is_active);
-    }
-
     // =========================================================================
     // Helper Methods
     // =========================================================================

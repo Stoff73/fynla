@@ -2,18 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     // Create admin and regular users (set is_preview_user to skip email verification)
     // Seed roles and permissions
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
 
-    $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
-    $userRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_USER);
+    $adminRole = Role::findByName(Role::ROLE_ADMIN);
+    $userRole = Role::findByName(Role::ROLE_USER);
 
     $this->adminUser = User::factory()->create([
         'first_name' => 'Admin',
@@ -134,7 +138,7 @@ describe('Dashboard Visibility', function () {
 describe('Admin Seeder', function () {
     it('has admin user in database after seeding', function () {
         // Run the admin seeder
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(AdminUserSeeder::class);
 
         $admin = User::where('email', 'admin@fps.com')->first();
 
@@ -146,7 +150,7 @@ describe('Admin Seeder', function () {
 
     it('allows admin user to authenticate', function () {
         // Run the admin seeder
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(AdminUserSeeder::class);
 
         $response = $this->postJson('/api/auth/login', [
             'email' => 'admin@fps.com',
@@ -154,5 +158,48 @@ describe('Admin Seeder', function () {
         ]);
 
         $response->assertStatus(200);
+    });
+
+    it('preserves an existing admin password and profile when reseeded', function () {
+        $adminRole = Role::findByName(Role::ROLE_ADMIN);
+        $existing = User::factory()->create([
+            'email' => 'admin@fps.com',
+            'first_name' => 'Existing',
+            'surname' => 'Administrator',
+            'password' => Hash::make('ExistingPassword1!'),
+            'role_id' => $adminRole->id,
+            'is_admin' => true,
+        ]);
+
+        $this->seed(AdminUserSeeder::class);
+
+        $existing->refresh();
+
+        expect($existing->first_name)->toBe('Existing')
+            ->and($existing->surname)->toBe('Administrator')
+            ->and(Hash::check('ExistingPassword1!', $existing->password))->toBeTrue();
+    });
+
+    it('does not create the demo admin with a fallback password outside development', function (string $environment) {
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => $environment);
+
+        try {
+            app(AdminUserSeeder::class)->run();
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
+
+        expect(User::where('email', 'admin@fps.com')->exists())->toBeFalse();
+    })->with(['staging', 'production']);
+
+    it('does not recreate a soft-deleted demo admin', function () {
+        $deleted = User::factory()->create(['email' => 'admin@fps.com']);
+        $deleted->delete();
+
+        $this->seed(AdminUserSeeder::class);
+
+        expect(User::withTrashed()->where('email', 'admin@fps.com')->count())->toBe(1)
+            ->and(User::withTrashed()->where('email', 'admin@fps.com')->firstOrFail()->trashed())->toBeTrue();
     });
 });

@@ -1,177 +1,230 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import familyMembersService from '@/services/familyMembersService';
 import FamilyMembers from '../../UserProfile/FamilyMembers.vue';
+
+vi.mock('@/services/familyMembersService', () => ({
+  default: {
+    getFamilyMembers: vi.fn(),
+    createFamilyMember: vi.fn(),
+    updateFamilyMember: vi.fn(),
+    deleteFamilyMember: vi.fn(),
+  },
+}));
 
 describe('FamilyMembers.vue', () => {
   let wrapper;
   let store;
-  let mockActions;
 
-  beforeEach(() => {
-    mockActions = {
-      fetchFamilyMembers: vi.fn(),
-      addFamilyMember: vi.fn(() => Promise.resolve()),
-      updateFamilyMember: vi.fn(() => Promise.resolve()),
-      deleteFamilyMember: vi.fn(() => Promise.resolve()),
-    };
+  const familyMembers = [
+    {
+      id: 1,
+      name: 'Jane Doe',
+      relationship: 'spouse',
+      date_of_birth: '1992-05-15',
+      gender: 'female',
+      is_dependent: false,
+    },
+    {
+      id: 2,
+      name: 'Johnny Doe',
+      relationship: 'child',
+      date_of_birth: '2015-08-20',
+      gender: 'male',
+      is_dependent: true,
+    },
+  ];
 
-    store = createStore({
-      modules: {
-        userProfile: {
-          namespaced: true,
-          state: {
-            familyMembers: [
-              {
-                id: 1,
-                name: 'Jane Doe',
-                relationship: 'spouse',
-                date_of_birth: '1992-05-15',
-                gender: 'female',
-                is_dependent: false,
-              },
-              {
-                id: 2,
-                name: 'Johnny Doe',
-                relationship: 'child',
-                date_of_birth: '2015-08-20',
-                gender: 'male',
-                is_dependent: true,
-              },
-            ],
-            loading: false,
-            error: null,
-          },
-          getters: {
-            familyMembers: (state) => state.familyMembers,
-            loading: (state) => state.loading,
-          },
-          actions: mockActions,
+  const createTestStore = (members = familyMembers) => createStore({
+    state: {
+      aiFormFill: { pendingFill: null },
+    },
+    modules: {
+      userProfile: {
+        namespaced: true,
+        state: () => ({ familyMembers: structuredClone(members) }),
+        actions: {
+          fetchProfile: vi.fn(() => Promise.resolve()),
+          updatePersonalInfo: vi.fn(() => Promise.resolve()),
         },
       },
-    });
-
-    wrapper = mount(FamilyMembers, {
-      global: {
-        plugins: [store],
-        stubs: {
-          FamilyMemberFormModal: {
-            template: '<div class="modal-stub"></div>',
-            props: ['modelValue', 'familyMember'],
-            emits: ['update:modelValue', 'save'],
-          },
+      auth: {
+        namespaced: true,
+        state: () => ({
+          user: { marital_status: 'married', charitable_bequest: false },
+        }),
+        getters: {
+          user: (state) => state.user,
+        },
+        actions: {
+          fetchUser: vi.fn(() => Promise.resolve()),
         },
       },
-    });
+      preview: {
+        namespaced: true,
+        getters: {
+          isPreviewMode: () => false,
+        },
+      },
+      spousePermission: {
+        namespaced: true,
+        actions: {
+          fetchPermissionStatus: vi.fn(() => Promise.resolve()),
+        },
+      },
+    },
   });
 
-  it('renders family members component', () => {
-    expect(wrapper.find('h2').text()).toBe('Family Members');
-    expect(wrapper.find('table').exists()).toBe(true);
+  const mountComponent = (testStore = store) => mount(FamilyMembers, {
+    global: {
+      plugins: [testStore],
+      directives: {
+        previewDisabled: {},
+      },
+      stubs: {
+        FamilyMemberFormModal: {
+          name: 'FamilyMemberFormModal',
+          props: ['member'],
+          emits: ['save', 'close'],
+          template: '<div class="family-member-modal-stub" />',
+        },
+        ConfirmDialog: {
+          name: 'ConfirmDialog',
+          props: ['show', 'title', 'message'],
+          emits: ['confirm', 'cancel'],
+          template: '<div class="confirm-dialog-stub" />',
+        },
+        SpouseSuccessModal: {
+          name: 'SpouseSuccessModal',
+          props: ['show'],
+          emits: ['close'],
+          template: '<div class="spouse-success-stub" />',
+        },
+      },
+    },
   });
 
-  it('displays family members list', () => {
-    const rows = wrapper.findAll('tbody tr');
-    expect(rows.length).toBe(2);
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    familyMembersService.getFamilyMembers.mockResolvedValue({ data: { family_members: [] } });
+    familyMembersService.createFamilyMember.mockResolvedValue({ data: {} });
+    familyMembersService.updateFamilyMember.mockResolvedValue({ data: {} });
+    familyMembersService.deleteFamilyMember.mockResolvedValue({ data: {} });
+
+    store = createTestStore();
+    wrapper = mountComponent();
+    await flushPromises();
   });
 
-  it('shows family member details in table', () => {
-    const firstRow = wrapper.findAll('tbody tr')[0];
-    expect(firstRow.text()).toContain('Jane Doe');
-    expect(firstRow.text()).toContain('spouse');
+  it('renders the family-members section', () => {
+    expect(wrapper.findAll('h3').some((heading) => heading.text() === 'Family Members')).toBe(true);
+    expect(wrapper.text()).toContain('Manage your family members and dependents');
   });
 
-  it('has an "Add Family Member" button', () => {
-    const addButton = wrapper.find('button');
-    expect(addButton.exists()).toBe(true);
-    expect(addButton.text()).toContain('Add Family Member');
+  it('displays the family members supplied by the profile store', () => {
+    expect(wrapper.text()).toContain('Jane Doe');
+    expect(wrapper.text()).toContain('Johnny Doe');
   });
 
-  it('opens modal when Add button is clicked', async () => {
-    const addButton = wrapper.find('button');
+  it('shows relationship and personal details', () => {
+    const text = wrapper.text();
+    expect(text).toContain('spouse');
+    expect(text).toContain('child');
+    expect(text).toContain('female');
+    expect(text).toContain('male');
+  });
+
+  it('opens the add modal from the section action', async () => {
+    const addButton = wrapper.findAll('button').find((button) => button.text() === 'Add');
     await addButton.trigger('click');
 
     expect(wrapper.vm.showModal).toBe(true);
+    expect(wrapper.findComponent({ name: 'FamilyMemberFormModal' }).props('member')).toBeNull();
   });
 
-  it('has Edit button for each family member', () => {
-    const editButtons = wrapper.findAll('button').filter(btn =>
-      btn.text().includes('Edit') || btn.html().includes('pencil')
-    );
-    expect(editButtons.length).toBeGreaterThan(0);
+  it('offers edit and delete actions only for editable non-spouse members', () => {
+    const editButtons = wrapper.findAll('button').filter((button) => button.text() === 'Edit');
+    const deleteButtons = wrapper.findAll('button').filter((button) => button.text() === 'Delete');
+
+    expect(editButtons).toHaveLength(1);
+    expect(deleteButtons).toHaveLength(1);
   });
 
-  it('has Delete button for each family member', () => {
-    const deleteButtons = wrapper.findAll('button').filter(btn =>
-      btn.text().includes('Delete') || btn.html().includes('trash')
-    );
-    expect(deleteButtons.length).toBeGreaterThan(0);
+  it('opens the child in edit mode', async () => {
+    const editButton = wrapper.findAll('button').find((button) => button.text() === 'Edit');
+    await editButton.trigger('click');
+
+    expect(wrapper.vm.selectedMember).toEqual(familyMembers[1]);
+    expect(wrapper.findComponent({ name: 'FamilyMemberFormModal' }).props('member')).toEqual(familyMembers[1]);
   });
 
-  it('displays "No family members" message when list is empty', async () => {
-    const emptyStore = createStore({
-      modules: {
-        userProfile: {
-          namespaced: true,
-          state: {
-            familyMembers: [],
-            loading: false,
-            error: null,
-          },
-          getters: {
-            familyMembers: (state) => state.familyMembers,
-            loading: (state) => state.loading,
-          },
-          actions: mockActions,
-        },
-      },
+  it('marks dependent family members', () => {
+    expect(wrapper.text()).toContain('Dependent');
+  });
+
+  it('formats dates in day-month-year order', () => {
+    expect(wrapper.text()).toContain('15/05/1992');
+    expect(wrapper.text()).toContain('20/08/2015');
+  });
+
+  it('uses existing profile family data without an unnecessary request', () => {
+    expect(familyMembersService.getFamilyMembers).not.toHaveBeenCalled();
+  });
+
+  it('loads family members from the service when the profile store is empty', async () => {
+    familyMembersService.getFamilyMembers.mockResolvedValue({
+      data: { family_members: [familyMembers[1]] },
     });
+    const emptyWrapper = mountComponent(createTestStore([]));
+    await flushPromises();
 
-    const emptyWrapper = mount(FamilyMembers, {
-      global: {
-        plugins: [emptyStore],
-        stubs: {
-          FamilyMemberFormModal: {
-            template: '<div class="modal-stub"></div>',
-          },
-        },
-      },
+    expect(familyMembersService.getFamilyMembers).toHaveBeenCalledTimes(1);
+    expect(emptyWrapper.text()).toContain('Johnny Doe');
+  });
+
+  it('shows the empty state when no family members exist', async () => {
+    const emptyWrapper = mountComponent(createTestStore([]));
+    await flushPromises();
+
+    expect(emptyWrapper.text()).toContain('No family members added yet');
+    expect(emptyWrapper.text()).toContain('Add Your First Family Member');
+  });
+
+  it('creates a family member from the modal save event', async () => {
+    const formData = {
+      name: 'New Child',
+      relationship: 'child',
+      date_of_birth: '2020-01-01',
+    };
+    const addButton = wrapper.findAll('button').find((button) => button.text() === 'Add');
+    await addButton.trigger('click');
+    await wrapper.findComponent({ name: 'FamilyMemberFormModal' }).vm.$emit('save', formData);
+    await flushPromises();
+
+    expect(familyMembersService.createFamilyMember).toHaveBeenCalledWith(formData);
+    expect(wrapper.vm.showModal).toBe(false);
+  });
+
+  it('updates an existing family member from the modal save event', async () => {
+    const editButton = wrapper.findAll('button').find((button) => button.text() === 'Edit');
+    await editButton.trigger('click');
+    await wrapper.findComponent({ name: 'FamilyMemberFormModal' }).vm.$emit('save', {
+      ...familyMembers[1],
+      name: 'Johnny Smith',
     });
+    await flushPromises();
 
-    expect(emptyWrapper.text()).toContain('No family members');
+    expect(familyMembersService.updateFamilyMember).toHaveBeenCalledWith(2, expect.objectContaining({
+      name: 'Johnny Smith',
+    }));
   });
 
-  it('shows dependent badge for dependent children', () => {
-    const rows = wrapper.findAll('tbody tr');
-    const childRow = rows[1]; // Second row is the child
-    expect(childRow.text()).toContain('Dependent');
-  });
+  it('deletes the selected editable family member', async () => {
+    wrapper.vm.confirmDelete(familyMembers[1]);
+    await wrapper.vm.handleDelete();
 
-  it('formats dates correctly', () => {
-    // Dates should be displayed in DD/MM/YYYY format
-    const rows = wrapper.findAll('tbody tr');
-    // Check if date is formatted (the exact format depends on your dateFormatter)
-    expect(rows[0].html()).toContain('1992'); // Birth year
-  });
-
-  it('calls fetchFamilyMembers on mount', () => {
-    expect(mockActions.fetchFamilyMembers).toHaveBeenCalled();
-  });
-
-  it('emits save event when modal save is triggered', async () => {
-    // Open modal
-    await wrapper.find('button').trigger('click');
-
-    // Find the modal stub and emit save event
-    const modal = wrapper.findComponent({ name: 'FamilyMemberFormModal' });
-    if (modal.exists()) {
-      await modal.vm.$emit('save', {
-        name: 'New Member',
-        relationship: 'child',
-        date_of_birth: '2020-01-01',
-      });
-
-      expect(mockActions.addFamilyMember).toHaveBeenCalled();
-    }
+    expect(familyMembersService.deleteFamilyMember).toHaveBeenCalledWith(2);
+    expect(wrapper.vm.showDeleteConfirm).toBe(false);
   });
 });

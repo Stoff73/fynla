@@ -9,10 +9,11 @@ use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
@@ -33,7 +34,7 @@ class UserContextBuilder
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly RiskPreferenceService $riskPreferenceService,
-        private readonly \App\Services\UKTaxCalculator $taxCalculator
+        private readonly UKTaxCalculator $taxCalculator
     ) {}
 
     /**
@@ -61,7 +62,8 @@ class UserContextBuilder
         $investmentIsaUsed = InvestmentAccount::where('user_id', $user->id)
             ->where('account_type', 'isa')
             ->sum('isa_subscription_current_year');
-        $savingsIsaUsed = SavingsAccount::where('user_id', $user->id)
+        $savingsIsaUsed = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->whereIn('account_type', ['isa', 'cash_isa'])
             ->where('isa_subscription_year', $taxYear)
             ->sum('isa_subscription_amount');
@@ -82,7 +84,7 @@ class UserContextBuilder
         $psa = $this->taxConfig->getPersonalSavingsAllowance($taxBand);
 
         // Emergency fund
-        $savingsAccounts = SavingsAccount::forUserOrJoint($user->id)->get();
+        $savingsAccounts = app(SavingsStore::class)->forUser($user);
         $totalSavings = $savingsAccounts->sum('current_balance');
         $emergencyTarget = $monthlyExpenditure * 6;
         $emergencyShortfall = max(0, $emergencyTarget - $totalSavings);
@@ -460,7 +462,8 @@ class UserContextBuilder
         $spouseInvestmentIsa = InvestmentAccount::where('user_id', $spouse->id)
             ->where('account_type', 'isa')
             ->sum('isa_subscription_current_year');
-        $spouseSavingsIsa = SavingsAccount::where('user_id', $spouse->id)
+        $spouseSavingsIsa = app(SavingsStore::class)->forUser($spouse)
+            ->where('user_id', $spouse->id)
             ->whereIn('account_type', ['isa', 'cash_isa'])
             ->where('isa_subscription_year', $taxYear)
             ->sum('isa_subscription_amount');
@@ -490,7 +493,7 @@ class UserContextBuilder
     /**
      * Provide the UKTaxCalculator for the ResolvesIncome trait.
      */
-    protected function getIncomeTaxCalculator(): \App\Services\UKTaxCalculator
+    protected function getIncomeTaxCalculator(): UKTaxCalculator
     {
         return $this->taxCalculator;
     }

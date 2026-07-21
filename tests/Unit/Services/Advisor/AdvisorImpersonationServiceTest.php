@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Advisor\AdvisorImpersonationService;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Sanctum\TransientToken;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 beforeEach(function () {
@@ -154,4 +155,47 @@ it('logs enter and exit to AuditLog', function () {
     expect($exitLog)->not->toBeNull()
         ->and($exitLog->metadata['advisor_id'])->toBe($this->advisor->id)
         ->and($exitLog->metadata['client_id'])->toBe($client->id);
+});
+
+describe('TransientToken (stateful SPA auth) handling', function () {
+    beforeEach(function () {
+        $this->advisor->withAccessToken(new TransientToken);
+    });
+
+    it('aborts enterClientProfile with 503 when current token is transient', function () {
+        $client = User::factory()->create();
+        AdvisorClient::factory()->create([
+            'advisor_id' => $this->advisor->id,
+            'client_id' => $client->id,
+            'status' => 'active',
+        ]);
+
+        expect(fn () => $this->service->enterClientProfile($this->advisor, $client))
+            ->toThrow(HttpException::class, 'Advisor impersonation is not supported under cookie-based SPA authentication. Use a personal access token.');
+
+        expect(Cache::has('advisor_impersonation:'))->toBeFalse()
+            ->and(AuditLog::where('action', 'enter_client')->exists())->toBeFalse();
+    });
+
+    it('silently no-ops exitClientProfile when current token is transient', function () {
+        $this->service->exitClientProfile($this->advisor);
+
+        expect(AuditLog::where('action', 'exit_client')->exists())->toBeFalse();
+    });
+
+    it('returns false from isImpersonating when current token is transient', function () {
+        expect($this->service->isImpersonating($this->advisor))->toBeFalse();
+    });
+
+    it('returns null from getImpersonatedClientId when current token is transient', function () {
+        expect($this->service->getImpersonatedClientId($this->advisor))->toBeNull();
+    });
+
+    it('does not write empty-suffix cache key when current token is transient', function () {
+        $this->service->isImpersonating($this->advisor);
+        $this->service->getImpersonatedClientId($this->advisor);
+        $this->service->exitClientProfile($this->advisor);
+
+        expect(Cache::has('advisor_impersonation:'))->toBeFalse();
+    });
 });

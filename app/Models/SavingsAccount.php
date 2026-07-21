@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +18,12 @@ use Illuminate\Support\Facades\Crypt;
 
 class SavingsAccount extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'savings_account';
+    }
 
     protected $fillable = [
         'user_id',
@@ -52,6 +59,13 @@ class SavingsAccount extends Model
         'beneficiary_dob',
         // Retirement planning
         'include_in_retirement',
+        // Canonical derived columns (sub-project 1, pass 1 — materialised by SavingsStore)
+        'balance_gbp',
+        'balance_gbp_calculated_at',
+        'annual_interest_projected_gbp',
+        'annual_interest_projected_gbp_calculated_at',
+        'isa_allowance_used_pct',
+        'isa_allowance_used_pct_calculated_at',
     ];
 
     protected $hidden = [
@@ -72,6 +86,13 @@ class SavingsAccount extends Model
         'planned_lump_sum_date' => 'date',
         'beneficiary_dob' => 'date',
         'include_in_retirement' => 'boolean',
+        // Canonical derived columns (sub-project 1, pass 1)
+        'balance_gbp' => 'decimal:2',
+        'balance_gbp_calculated_at' => 'datetime',
+        'annual_interest_projected_gbp' => 'decimal:2',
+        'annual_interest_projected_gbp_calculated_at' => 'datetime',
+        'isa_allowance_used_pct' => 'decimal:2',
+        'isa_allowance_used_pct_calculated_at' => 'datetime',
     ];
 
     /**
@@ -87,7 +108,7 @@ class SavingsAccount extends Model
      */
     public function jointOwner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'joint_owner_id');
+        return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
     }
 
     /**
@@ -120,7 +141,7 @@ class SavingsAccount extends Model
                 }
                 try {
                     return Crypt::decryptString($value);
-                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                } catch (DecryptException $e) {
                     return $value;
                 }
             },

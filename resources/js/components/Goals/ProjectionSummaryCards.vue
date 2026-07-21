@@ -27,8 +27,8 @@
     </div>
 
     <!-- Events Summary -->
-    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-      <p class="text-sm text-purple-600 font-medium">Life Events</p>
+    <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+      <p class="text-sm text-violet-600 font-medium">Life Events</p>
       <div class="mt-2 space-y-1">
         <div class="flex justify-between text-sm">
           <span>

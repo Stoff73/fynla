@@ -98,15 +98,15 @@
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>
-              <span>Taking your 25% tax-free lump sum alone does not trigger the MPAA.</span>
+              <span>Taking your 25% tax-free lump sum alone does not trigger the Money Purchase Annual Allowance.</span>
             </li>
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>
-              <span>Carry forward cannot be used for the MPAA &mdash; it is a hard &pound;10,000 limit.</span>
+              <span>Carry forward cannot be used for the Money Purchase Annual Allowance &mdash; it is a hard &pound;10,000 limit.</span>
             </li>
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 flex-shrink-0"></span>
-              <span>Once triggered, the MPAA applies for the rest of your life.</span>
+              <span>Once triggered, the Money Purchase Annual Allowance applies for the rest of your life.</span>
             </li>
           </ul>
         </div>

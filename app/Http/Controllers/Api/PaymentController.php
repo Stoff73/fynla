@@ -7,20 +7,27 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Jobs\FireAwinConversionJob;
-use App\Mail\DataDeletionConfirmation;
-use App\Mail\PaymentConfirmation;
 use App\Mail\SubscriptionCancellation;
+use App\Models\DiscountCode;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Models\TierConfiguration;
 use App\Models\User;
+use App\Services\Account\AccountDeletionService;
 use App\Services\Marketing\AwinTrackingService;
-use App\Services\Payment\DataPurgeService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\InvoiceService;
+use App\Services\Payment\PaymentFinalizationService;
+use App\Services\Payment\PaymentSettlementService;
+use App\Services\Payment\RevolutOrderVerifier;
 use App\Services\Payment\RevolutService;
-use App\Services\Payment\ReferralService;
 use App\Services\Payment\RevolutSubscriptionService;
+use App\Services\Payment\SubscriptionEntitlementService;
+use App\Services\Payment\SubscriptionStatusService;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierCollapseLock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +35,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response;
 
 class PaymentController extends Controller
 {
@@ -40,9 +50,15 @@ class PaymentController extends Controller
         private readonly RevolutSubscriptionService $subscriptionService,
         private readonly DiscountCodeService $discountCodeService,
         private readonly InvoiceService $invoiceService,
-        private readonly DataPurgeService $purgeService,
-        private readonly ReferralService $referralService,
-        private readonly AwinTrackingService $awinTracking
+        private readonly AccountDeletionService $deletionService,
+        private readonly PaymentSettlementService $paymentSettlementService,
+        private readonly PaymentFinalizationService $paymentFinalizationService,
+        private readonly AwinTrackingService $awinTracking,
+        private readonly TierConfigurationStore $tierStore,
+        private readonly RevolutOrderVerifier $orderVerifier,
+        private readonly TierCollapseLock $tierCollapseLock,
+        private readonly SubscriptionStatusService $subscriptionStatusService,
+        private readonly SubscriptionEntitlementService $entitlements,
     ) {}
 
     /**
@@ -52,19 +68,79 @@ class PaymentController extends Controller
      */
     public function plans(): JsonResponse
     {
-        $plans = SubscriptionPlan::active()->orderBy('sort_order')->get();
+        // Single source of truth: the purchasable plans ARE the paid tiers from
+        // tier_configurations (admin-editable). Labels and pricing come straight
+        // from each tier; the feature bullets are derived from the tier's
+        // capability matrix (and its quota deltas for the top tier). Editing a
+        // tier in the admin screen therefore updates this modal directly — there
+        // is no parallel SubscriptionPlan pricing to keep in sync. The modal
+        // sends the tier key to checkout, which routes through createTierOrder.
+        $tiers = $this->tierStore->allActiveOrdered()->values();
 
-        return response()->json([
-            'plans' => $plans->map(fn (SubscriptionPlan $plan) => [
-                'slug' => $plan->slug,
-                'name' => $plan->name,
-                'monthly_price' => $plan->monthly_price,
-                'yearly_price' => $plan->yearly_price,
-                'launch_monthly_price' => $plan->launch_monthly_price,
-                'launch_yearly_price' => $plan->launch_yearly_price,
-                'features' => $plan->features,
-            ]),
-        ]);
+        $plans = [];
+        foreach ($tiers as $i => $tier) {
+            if ($tier->tier === 'free') {
+                continue; // Free is the baseline, never a purchasable plan.
+            }
+            $previous = $i > 0 ? $tiers[$i - 1] : null;
+            $plans[] = [
+                'slug' => $tier->tier,
+                'name' => $tier->display_name,
+                'monthly_price' => $tier->price_monthly_pence,
+                'yearly_price' => $tier->price_annual_pence,
+                'launch_monthly_price' => null,
+                'launch_yearly_price' => null,
+                'features' => $this->tierFeatureBullets($tier, $previous),
+            ];
+        }
+
+        return response()->json(['plans' => $plans]);
+    }
+
+    /**
+     * Human-readable feature bullets for a paid tier, derived entirely from
+     * tier_configurations: the modules newly unlocked versus the tier below,
+     * plus — when a tier unlocks no new modules (e.g. the top tier) — its quota
+     * upgrades. Keeps the upgrade modal in lock-step with the admin tier config.
+     */
+    private function tierFeatureBullets(TierConfiguration $tier, ?TierConfiguration $previous): array
+    {
+        $labels = [
+            'investment' => 'Unlimited investments',
+            'savings_account' => 'Unlimited savings',
+            'pension_account' => 'Unlimited pensions',
+            'letter_to_spouse' => 'Letter to Spouse / Expression of Wishes',
+            'estate' => 'Estate Planning — Wills, Trusts and Powers of Attorney',
+            'what_if' => 'What If Scenarios',
+            'holistic_plan' => 'Holistic Plan',
+            'investments_exotic' => 'Advanced investment types',
+            'retirement_decumulation' => 'Retirement decumulation planning',
+        ];
+        $rank = ['none' => 0, 'teaser' => 1, 'limited' => 2, 'full' => 3];
+
+        $current = $tier->capability_matrix ?? [];
+        $below = $previous?->capability_matrix ?? [];
+
+        $features = [];
+        if ($previous) {
+            $features[] = 'Everything in '.$previous->display_name;
+        }
+        foreach ($labels as $key => $label) {
+            $now = $rank[$current[$key] ?? 'none'] ?? 0;
+            $was = $rank[$below[$key] ?? 'none'] ?? 0;
+            if ($now >= 3 && $now > $was) {
+                $features[] = $label;
+            }
+        }
+        // A tier that unlocks no new modules versus the one below (the top tier
+        // shares the full matrix) is differentiated by its quotas instead.
+        if ($previous && count($features) <= 1) {
+            $features[] = 'More document uploads and storage';
+            $features[] = 'Higher Fyn AI allowance';
+            $features[] = 'Longer history and projections';
+        }
+
+        return $features;
     }
 
     /**
@@ -83,12 +159,55 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,family,pro',
+            'plan' => ['required', 'string', Rule::in(TierConfigurationStore::paidTiers())],
             'billing_cycle' => 'required|string|in:monthly,yearly',
             'discount_code' => 'nullable|string|max:50',
         ]);
 
-        $plan = SubscriptionPlan::findBySlug($request->input('plan'));
+        if ($this->entitlements->activePremiumFor($user) !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Premium is already active until the end of your current access period.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $planSlugInput = $request->input('plan');
+        $billingCycle = $request->input('billing_cycle');
+
+        // ── Tier-key path (SP2) ─────────────────────────────────────────
+        if (in_array($planSlugInput, TierConfigurationStore::TIERS, true)) {
+            // Paid tier: resolve price from the store.
+            try {
+                $tierConfig = $this->tierStore->forTier($planSlugInput);
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'Tier configuration not found'], 404);
+            }
+
+            $amount = $billingCycle === 'monthly'
+                ? $tierConfig->price_monthly_pence
+                : $tierConfig->price_annual_pence;
+            $description = "{$tierConfig->display_name} — ".ucfirst($billingCycle);
+
+            try {
+                return $this->tierCollapseLock->run(
+                    fn (): JsonResponse => $this->createTierOrder(
+                        $request,
+                        $user,
+                        $planSlugInput,
+                        $billingCycle,
+                        $amount,
+                        $description,
+                        $tierConfig->display_name,
+                    ),
+                    "user:{$user->id}",
+                );
+            } catch (\Throwable $e) {
+                return $this->errorResponse($e, 'Creating tier payment order');
+            }
+        }
+        // ────────────────────────────────────────────────────────────────
+
+        $plan = SubscriptionPlan::findBySlug($planSlugInput);
         if (! $plan) {
             return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
         }
@@ -130,26 +249,6 @@ class PaymentController extends Controller
 
             $discountCode = $discountResult['discount'];
 
-            // Handle trial extension separately — no payment needed
-            if ($discountCode->type === 'trial_extension') {
-                $subscription = $user->subscription;
-                if ($subscription && $subscription->trial_ends_at) {
-                    $subscription->update([
-                        'trial_ends_at' => $subscription->trial_ends_at->addDays($discountCode->value),
-                    ]);
-                    $user->update([
-                        'trial_ends_at' => $subscription->trial_ends_at,
-                    ]);
-                    $this->discountCodeService->apply($discountCode, $user->id, 0, 0);
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => "Trial extended by {$discountCode->value} days.",
-                    'trial_extension' => true,
-                ]);
-            }
-
             $discountAmount = $discountResult['discount_amount'];
             $finalAmount = $discountResult['final_amount'];
         }
@@ -159,10 +258,12 @@ class PaymentController extends Controller
             $subscription = $user->subscription ?? $user->subscription()->create([
                 'plan' => $plan->slug,
                 'billing_cycle' => $billingCycle,
-                'status' => 'trialing',
+                'status' => Subscription::STATUS_PENDING,
                 'amount' => 0,
-                'current_period_start' => now(),
-                'current_period_end' => now(),
+                'current_period_start' => null,
+                'current_period_end' => null,
+                'auto_renew' => false,
+                'payment_method_saved' => false,
             ]);
 
             // Ensure Revolut customer exists
@@ -263,6 +364,313 @@ class PaymentController extends Controller
         }
     }
 
+    // ── Tier checkout helper (SP2) ─────────────────────────────────────
+
+    /**
+     * Create a Revolut order for Premium.
+     *
+     * Mirrors the legacy createOrder flow but sources price from
+     * TierConfigurationStore rather than SubscriptionPlan. Any submitted
+     * discount is revalidated here so the displayed, charged and persisted
+     * amounts remain identical.
+     *
+     * Price-lock: the amount stored on the Payment record is the source of
+     * truth for what the subscriber was charged. Renewal via webhook will
+     * read Subscription.amount (set by confirmPayment from Payment.amount).
+     */
+    private function createTierOrder(
+        Request $request,
+        User $user,
+        string $tierKey,
+        string $billingCycle,
+        int $amount,
+        string $description,
+        string $displayName,
+    ): JsonResponse {
+        $payment = null;
+
+        try {
+            $currentSubscription = Subscription::query()
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->first();
+            if ($this->entitlements->activePremiumFor($user) !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Premium is already active until the end of your current access period.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            $subscription = $currentSubscription ?? $user->subscription()->create([
+                'plan' => $tierKey,
+                'billing_cycle' => $billingCycle,
+                'status' => Subscription::STATUS_PENDING,
+                'amount' => 0,
+                'current_period_start' => null,
+                'current_period_end' => null,
+                'auto_renew' => false,
+                'payment_method_saved' => false,
+            ]);
+
+            $replacementConflict = $this->cancelPendingTierOrders(
+                $user,
+                $tierKey,
+                $billingCycle,
+                $request->input('discount_code'),
+            );
+            if ($replacementConflict !== null) {
+                return $replacementConflict;
+            }
+
+            if (! $user->revolut_customer_id) {
+                $this->subscriptionService->createCustomer($user);
+                $user->refresh();
+            }
+
+            $baseUrl = config('services.revolut.sandbox')
+                ? 'https://fynla.org'
+                : config('app.url');
+            $redirectUrl = $baseUrl.'/checkout?plan='.$tierKey
+                .'&cycle='.$billingCycle.'&status=complete';
+
+            $draft = DB::transaction(function () use (
+                $request,
+                $user,
+                $subscription,
+                $tierKey,
+                $billingCycle,
+                $amount,
+                $description,
+            ): array {
+                $discountCode = null;
+                $discountAmount = 0;
+                $finalAmount = $amount;
+
+                if ($request->filled('discount_code')) {
+                    $discountResult = $this->discountCodeService->validateForReservation(
+                        $request->input('discount_code'),
+                        $user->id,
+                        $tierKey,
+                        $billingCycle,
+                        $amount,
+                    );
+
+                    if (! $discountResult['valid']) {
+                        return [
+                            'error' => $discountResult['message'],
+                        ];
+                    }
+
+                    $discountCode = $discountResult['discount'];
+                    $discountAmount = $discountResult['discount_amount'];
+                    $finalAmount = $discountResult['final_amount'];
+                }
+
+                $payment = Payment::create([
+                    'subscription_id' => $subscription->id,
+                    'user_id' => $user->id,
+                    'revolut_order_id' => 'pending_'.Str::uuid(),
+                    'amount' => $finalAmount,
+                    'currency' => 'GBP',
+                    'status' => 'pending',
+                    'description' => $description,
+                    'plan_slug' => $tierKey,
+                    'billing_cycle' => $billingCycle,
+                    'discount_code_id' => $discountCode?->id,
+                    'discount_amount' => $discountAmount,
+                ]);
+
+                return [
+                    'payment' => $payment,
+                    'discount_code' => $discountCode,
+                    'discount_amount' => $discountAmount,
+                    'final_amount' => $finalAmount,
+                ];
+            });
+
+            if (isset($draft['error'])) {
+                return response()->json(['success' => false, 'message' => $draft['error']], 422);
+            }
+
+            $payment = $draft['payment'];
+            $discountCode = $draft['discount_code'];
+            $discountAmount = $draft['discount_amount'];
+            $finalAmount = $draft['final_amount'];
+            $orderDescription = $discountCode
+                ? "{$description} (Code: {$discountCode->code})"
+                : $description;
+
+            if (config('awin.enabled') && ! $user->is_admin) {
+                $payment->forceFill([
+                    'awin_order_ref' => $this->awinTracking->orderRefFor($payment),
+                    'awin_cks' => $request->cookie('awc') ?: null,
+                    'awin_customer_acquisition' => $this->awinTracking->isCustomerAcquisition($user, $payment->id)
+                        ? 'new'
+                        : 'existing',
+                ])->save();
+            }
+
+            $merchantReference = "payment_{$payment->id}";
+            try {
+                $revolutOrder = $this->revolutService->createOrderWithCustomer(
+                    $finalAmount,
+                    'GBP',
+                    $orderDescription,
+                    $redirectUrl,
+                    $user->revolut_customer_id,
+                    $merchantReference,
+                    $user->email,
+                    false
+                );
+            } catch (\Throwable $creationFailure) {
+                try {
+                    $revolutOrder = $this->revolutService->findOrderByMerchantReference($merchantReference);
+                } catch (\Throwable $reconciliationFailure) {
+                    Log::warning('Revolut tier order outcome remains uncertain', [
+                        'payment_id' => $payment->id,
+                        'create_error' => $creationFailure->getMessage(),
+                        'reconciliation_error' => $reconciliationFailure->getMessage(),
+                    ]);
+                    throw $creationFailure;
+                }
+
+                if ($revolutOrder === null) {
+                    throw $creationFailure;
+                }
+            }
+
+            $payment->update([
+                'revolut_order_id' => $revolutOrder['id'],
+                'revolut_payment_data' => [
+                    'order_id' => $revolutOrder['id'],
+                    'token' => $revolutOrder['token'],
+                    'state' => $revolutOrder['state'],
+                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
+                ],
+            ]);
+
+            Log::info('Revolut tier order created', [
+                'user_id' => $user->id,
+                'tier' => $tierKey,
+                'full_price' => $amount,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $finalAmount,
+                'discount_code' => $discountCode?->code,
+                'revolut_order_id' => $revolutOrder['id'],
+            ]);
+
+            return response()->json([
+                'token' => $revolutOrder['token'],
+                'order_id' => $revolutOrder['id'],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Creating tier payment order');
+        }
+    }
+
+    private function cancelPendingTierOrders(
+        User $user,
+        string $tierKey,
+        string $billingCycle,
+        ?string $requestedDiscountCode,
+    ): ?JsonResponse {
+        $pendingPayments = Payment::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($pendingPayments as $pendingPayment) {
+            $reconciledOrder = null;
+
+            if (str_starts_with($pendingPayment->revolut_order_id, 'pending_')) {
+                try {
+                    $reconciledOrder = $this->revolutService->findOrderByMerchantReference(
+                        "payment_{$pendingPayment->id}"
+                    );
+                } catch (\Throwable) {
+                    $reconciledOrder = null;
+                }
+
+                if ($reconciledOrder === null) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your previous checkout is still being reconciled. Please try again shortly.',
+                    ], Response::HTTP_CONFLICT);
+                }
+
+                $pendingPayment->update([
+                    'revolut_order_id' => $reconciledOrder['id'],
+                    'revolut_payment_data' => $reconciledOrder,
+                ]);
+            }
+
+            $remoteOrder = $reconciledOrder ?? $this->revolutService->getOrder($pendingPayment->revolut_order_id);
+            $remoteState = strtolower((string) ($remoteOrder['state'] ?? 'unknown'));
+            $existingDiscountCode = strtoupper((string) ($pendingPayment->discountCode?->code ?? ''));
+            $requestedCode = strtoupper(trim((string) $requestedDiscountCode));
+            $sameTerms = $pendingPayment->plan_slug === $tierKey
+                && $pendingPayment->billing_cycle === $billingCycle
+                && $existingDiscountCode === $requestedCode;
+
+            if ($remoteState === 'pending' && $sameTerms && isset($remoteOrder['token'])) {
+                return response()->json([
+                    'token' => $remoteOrder['token'],
+                    'order_id' => $remoteOrder['id'],
+                ]);
+            }
+
+            if (! $sameTerms && $requestedCode !== '' && ! DiscountCode::where('code', $requestedCode)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The requested checkout terms are not valid.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            if (in_array($remoteState, ['completed', 'processing'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your previous payment is already being processed. Please wait for it to complete.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            if ($remoteState === 'pending' || ($remoteState === 'authorised' && ! $sameTerms)) {
+                try {
+                    $remoteOrder = $this->revolutService->cancelOrder($pendingPayment->revolut_order_id);
+                    $remoteState = strtolower((string) ($remoteOrder['state'] ?? 'unknown'));
+                } catch (\Throwable $e) {
+                    $latestOrder = $this->revolutService->getOrder($pendingPayment->revolut_order_id);
+                    $latestState = strtolower((string) ($latestOrder['state'] ?? 'unknown'));
+
+                    if (in_array($latestState, ['completed', 'processing'], true)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Your previous payment is already being processed. Please wait for it to complete.',
+                        ], Response::HTTP_CONFLICT);
+                    }
+
+                    throw $e;
+                }
+            }
+
+            if (! in_array($remoteState, ['cancelled', 'failed'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your previous checkout cannot be replaced yet. Please try again shortly.',
+                ], Response::HTTP_CONFLICT);
+            }
+
+            $pendingPayment->update([
+                'status' => 'failed',
+                'revolut_payment_data' => $remoteOrder,
+            ]);
+        }
+
+        return null;
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+
     /**
      * Confirm a completed payment and activate the subscription.
      *
@@ -294,164 +702,37 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
+        if (! in_array($payment->status, ['pending', 'completed'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment can no longer be completed',
+            ], Response::HTTP_CONFLICT);
+        }
+
         try {
             // Verify order state with Revolut: GET /api/orders/{order_id}
             $revolutOrder = $this->revolutService->getOrder($orderId);
-            $state = $revolutOrder['state'];
-            $captureMode = $revolutOrder['capture_mode'] ?? 'automatic';
+            $verificationFailure = $this->orderVerifier->completedOrderFailure($payment, $revolutOrder);
 
-            $acceptableStates = $captureMode === 'manual'
-                ? ['completed', 'authorised', 'processing', 'pending']
-                : ['completed', 'processing', 'pending'];
-
-            if (! in_array($state, $acceptableStates)) {
-                Log::warning('Revolut order not in acceptable state for confirmation', [
+            if ($verificationFailure !== null) {
+                Log::warning('Revolut order failed completion verification', [
                     'order_id' => $orderId,
-                    'state' => $state,
-                    'capture_mode' => $captureMode,
-                    'acceptable_states' => $acceptableStates,
+                    'state' => $revolutOrder['state'] ?? null,
+                    'reason' => $verificationFailure,
                 ]);
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment has not been completed yet',
-                    'state' => $state,
+                    'message' => $verificationFailure,
+                    'state' => $revolutOrder['state'] ?? null,
                 ], 400);
             }
 
-            // Activate subscription in DB transaction
-            $result = DB::transaction(function () use ($user, $orderId, $revolutOrder) {
-                $payment = Payment::where('revolut_order_id', $orderId)
-                    ->where('user_id', $user->id)
-                    ->lockForUpdate()
-                    ->first();
+            $payment = $this->tierCollapseLock->run(function () use ($payment, $revolutOrder): Payment {
+                $settledPayment = $this->paymentSettlementService->settle($payment, $revolutOrder);
 
-                if (! $payment) {
-                    throw new \RuntimeException("Payment not found for order: {$orderId}");
-                }
-
-                // Idempotent: if already completed, return early
-                if ($payment->status === 'completed') {
-                    return ['already_completed' => true, 'payment' => $payment];
-                }
-
-                // Read plan and billing cycle from the Payment record (source of truth)
-                $planSlug = $payment->plan_slug;
-                $billingCycle = $payment->billing_cycle;
-                $isUpgrade = ! empty($payment->upgrade_from_plan);
-
-                $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
-                $fullPrice = $subscriptionPlan
-                    ? $subscriptionPlan->getPriceForCycle($billingCycle)
-                    : $payment->amount;
-
-                // Update Payment
-                $payment->update([
-                    'status' => 'completed',
-                    'revolut_payment_data' => $revolutOrder,
-                ]);
-
-                // Update Subscription
-                $subscription = $payment->subscription;
-                $subscriptionUpdate = [
-                    'status' => 'active',
-                    'plan' => $planSlug,
-                    'billing_cycle' => $billingCycle,
-                    'amount' => $fullPrice,
-                    'revolut_order_id' => $orderId,
-                    'cancelled_at' => null,
-                    'cancellation_reason' => null,
-                ];
-
-                // Upgrades keep existing period dates; new subscriptions set fresh dates
-                if (! $isUpgrade) {
-                    $subscriptionUpdate['current_period_start'] = now();
-                    $subscriptionUpdate['current_period_end'] = $billingCycle === 'monthly'
-                        ? now()->addMonth()
-                        : now()->addYear();
-                }
-
-                $subscription->update($subscriptionUpdate);
-
-                // Update User denormalised fields
-                $user->update([
-                    'plan' => $planSlug,
-                    'trial_ends_at' => null,
-                ]);
-
-                return ['already_completed' => false, 'payment' => $payment, 'subscription' => $subscription];
-            });
-
-            // Post-transaction: emails, invoice, discount usage
-            // Run if this call activated the payment, OR if webhook beat us but
-            // post-transaction work (invoice, discount) hasn't been done yet.
-            $payment = $result['payment'];
-            $needsPostTransaction = ! $result['already_completed'] || $payment->invoice_id === null;
-            if ($needsPostTransaction) {
-
-                // Apply discount code usage
-                if ($payment->discount_code_id && $payment->discountCode) {
-                    try {
-                        $this->discountCodeService->apply(
-                            $payment->discountCode,
-                            $user->id,
-                            $payment->id,
-                            (int) ($payment->amount + $payment->discount_amount)
-                        );
-                    } catch (\Exception $e) {
-                        Log::error('Failed to apply discount code usage', [
-                            'payment_id' => $payment->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-
-                // Set auto-renew flags on every completed payment — discount
-                // code payments bypass Revolut subscriptions but still renew.
-                $subscription = $result['subscription'] ?? $payment->subscription;
-                if (! $subscription->auto_renew) {
-                    $subscription->update([
-                        'auto_renew' => true,
-                        'payment_method_saved' => true,
-                    ]);
-                }
-
-                // Generate invoice then send confirmation email with PDF attached.
-                // Invoice is a legal requirement — if generation fails, log the
-                // error but still attempt the email (without attachment) so the
-                // user is notified. The invoice can be regenerated manually.
-                try {
-                    $this->invoiceService->generateInvoice($payment, $payment->discountCode);
-                } catch (\Exception $e) {
-                    Log::error('CRITICAL: Failed to generate invoice — legal requirement', [
-                        'payment_id' => $payment->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-
-                try {
-                    $payment->refresh();
-                    Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
-                } catch (\Exception $e) {
-                    Log::error('Failed to send payment confirmation email', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Apply referral bonus if user was referred
-                if ($user->referred_by_code) {
-                    try {
-                        $this->referralService->applyReferralBonus($user, $payment->billing_cycle);
-                    } catch (\Throwable $e) {
-                        Log::error('Failed to apply referral bonus', [
-                            'user_id' => $user->id,
-                            'referred_by_code' => $user->referred_by_code,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
+                return $this->paymentFinalizationService->finalize($settledPayment);
+            }, "user:{$user->id}");
 
             // Fire Awin conversion (idempotent — job short-circuits if
             // awin_fired_at is already set). Dispatched from both confirm and
@@ -500,7 +781,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,family,pro',
+            'plan' => ['required', 'string', Rule::in(TierConfigurationStore::paidTiers())],
         ]);
 
         $subscription = $user->subscription;
@@ -512,35 +793,76 @@ class PaymentController extends Controller
         $currentPlanSlug = $subscription->plan;
         $newPlanSlug = $request->input('plan');
 
-        $currentIndex = array_search($currentPlanSlug, self::PLAN_ORDER);
-        $newIndex = array_search($newPlanSlug, self::PLAN_ORDER);
+        // For tier-key upgrades: use the canonical tier order for comparison;
+        // for legacy slugs: use the legacy PLAN_ORDER.
+        $tierOrder = TierConfigurationStore::TIERS;
+        $isNewTierKey = in_array($newPlanSlug, TierConfigurationStore::TIERS, true);
+        $isCurrentTierKey = in_array($currentPlanSlug, TierConfigurationStore::TIERS, true);
 
-        if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
-            return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
-        }
-
-        $currentPlan = SubscriptionPlan::findBySlug($currentPlanSlug);
-        $newPlan = SubscriptionPlan::findBySlug($newPlanSlug);
-
-        if (! $currentPlan || ! $newPlan) {
-            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+        if ($isNewTierKey || $isCurrentTierKey) {
+            // Both must be tier keys for a valid tier-to-tier upgrade comparison.
+            $currentIndex = array_search($currentPlanSlug, $tierOrder);
+            $newIndex = array_search($newPlanSlug, $tierOrder);
+            if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
+                return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
+            }
+        } else {
+            $currentIndex = array_search($currentPlanSlug, self::PLAN_ORDER);
+            $newIndex = array_search($newPlanSlug, self::PLAN_ORDER);
+            if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
+                return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
+            }
         }
 
         $billingCycle = $subscription->billing_cycle;
 
-        // Get effective prices (launch price if available)
-        $currentPrice = $currentPlan->getLaunchPriceForCycle($billingCycle) ?? $currentPlan->getPriceForCycle($billingCycle);
-        $newPrice = $newPlan->getLaunchPriceForCycle($billingCycle) ?? $newPlan->getPriceForCycle($billingCycle);
+        // Resolve prices — tier keys read from TierConfigurationStore; legacy slugs from SubscriptionPlan.
+        if ($isCurrentTierKey) {
+            try {
+                $currentTierConfig = $this->tierStore->forTier($currentPlanSlug);
+                $currentPrice = $billingCycle === 'monthly'
+                    ? $currentTierConfig->price_monthly_pence
+                    : $currentTierConfig->price_annual_pence;
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'Current tier configuration not found'], 404);
+            }
+        } else {
+            $currentPlan = SubscriptionPlan::findBySlug($currentPlanSlug);
+            if (! $currentPlan) {
+                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+            }
+            $currentPrice = $currentPlan->getLaunchPriceForCycle($billingCycle) ?? $currentPlan->getPriceForCycle($billingCycle);
+        }
+
+        if ($isNewTierKey) {
+            if ($newPlanSlug === 'free') {
+                return response()->json(['success' => false, 'message' => 'Cannot upgrade to Free tier via payment'], 422);
+            }
+            try {
+                $newTierConfig = $this->tierStore->forTier($newPlanSlug);
+                $newPrice = $billingCycle === 'monthly'
+                    ? $newTierConfig->price_monthly_pence
+                    : $newTierConfig->price_annual_pence;
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'New tier configuration not found'], 404);
+            }
+        } else {
+            $newPlan = SubscriptionPlan::findBySlug($newPlanSlug);
+            if (! $newPlan) {
+                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+            }
+            $newPrice = $newPlan->getLaunchPriceForCycle($billingCycle) ?? $newPlan->getPriceForCycle($billingCycle);
+        }
         $priceDiff = $newPrice - $currentPrice;
 
         if ($billingCycle === 'yearly') {
             $monthlyDiff = (int) round($priceDiff / 12);
-            $monthsUsed = (int) $subscription->current_period_start->diffInMonths(now());
-            $monthsRemaining = max(1, 12 - $monthsUsed);
+            $monthsRemaining = $this->yearlyMonthsRemaining($subscription);
             $upgradeAmount = $monthlyDiff * $monthsRemaining;
         } else {
             // Monthly: charge the full month difference
             $upgradeAmount = $priceDiff;
+            $monthsRemaining = 1;
         }
 
         // Minimum charge of 1p (Revolut requires > 0)
@@ -549,96 +871,119 @@ class PaymentController extends Controller
         $description = 'Upgrade: '.ucfirst($currentPlanSlug)." \u{2192} ".ucfirst($newPlanSlug);
 
         try {
-            $payment = Payment::create([
-                'subscription_id' => $subscription->id,
-                'user_id' => $user->id,
-                'revolut_order_id' => 'pending',
-                'amount' => $upgradeAmount,
-                'currency' => 'GBP',
-                'status' => 'pending',
-                'description' => $description,
-                'plan_slug' => $newPlanSlug,
-                'billing_cycle' => $billingCycle,
-                'upgrade_from_plan' => $currentPlanSlug,
-            ]);
-
-            $baseUrl = config('services.revolut.sandbox')
-                ? 'https://fynla.org'
-                : config('app.url');
-            $redirectUrl = $baseUrl.'/checkout?plan='.$newPlanSlug
-                .'&cycle='.$billingCycle.'&upgrade=true&status=complete';
-
-            $revolutOrder = $this->revolutService->createOrder(
+            return $this->tierCollapseLock->run(function () use (
+                $subscription,
+                $user,
                 $upgradeAmount,
-                'GBP',
                 $description,
-                $redirectUrl,
-                "upgrade_{$payment->id}",
-                $user->email
-            );
+                $newPlanSlug,
+                $billingCycle,
+                $currentPlanSlug,
+                $monthsRemaining,
+            ): JsonResponse {
+                $existingCheckout = $this->cancelPendingTierOrders($user, $newPlanSlug, $billingCycle, null);
+                if ($existingCheckout !== null) {
+                    return $existingCheckout;
+                }
 
-            $payment->update([
-                'revolut_order_id' => $revolutOrder['id'],
-                'revolut_payment_data' => [
-                    'order_id' => $revolutOrder['id'],
+                $payment = Payment::create([
+                    'subscription_id' => $subscription->id,
+                    'user_id' => $user->id,
+                    'revolut_order_id' => 'pending_'.Str::uuid(),
+                    'amount' => $upgradeAmount,
+                    'currency' => 'GBP',
+                    'status' => 'pending',
+                    'description' => $description,
+                    'plan_slug' => $newPlanSlug,
+                    'billing_cycle' => $billingCycle,
+                    'upgrade_from_plan' => $currentPlanSlug,
+                ]);
+
+                $baseUrl = config('services.revolut.sandbox')
+                    ? 'https://fynla.org'
+                    : config('app.url');
+                $redirectUrl = $baseUrl.'/checkout?plan='.$newPlanSlug
+                    .'&cycle='.$billingCycle.'&upgrade=true&status=complete';
+
+                $merchantReference = "payment_{$payment->id}";
+                try {
+                    $revolutOrder = $this->revolutService->createOrder(
+                        $upgradeAmount,
+                        'GBP',
+                        $description,
+                        $redirectUrl,
+                        $merchantReference,
+                        $user->email
+                    );
+                } catch (\Throwable $creationFailure) {
+                    try {
+                        $revolutOrder = $this->revolutService->findOrderByMerchantReference($merchantReference);
+                    } catch (\Throwable $reconciliationFailure) {
+                        Log::warning('Revolut upgrade order outcome remains uncertain', [
+                            'payment_id' => $payment->id,
+                            'create_error' => $creationFailure->getMessage(),
+                            'reconciliation_error' => $reconciliationFailure->getMessage(),
+                        ]);
+                        throw $creationFailure;
+                    }
+
+                    if ($revolutOrder === null) {
+                        throw $creationFailure;
+                    }
+                }
+
+                $payment->update([
+                    'revolut_order_id' => $revolutOrder['id'],
+                    'revolut_payment_data' => [
+                        'order_id' => $revolutOrder['id'],
+                        'token' => $revolutOrder['token'],
+                        'state' => $revolutOrder['state'],
+                        'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
+                    ],
+                ]);
+
+                return response()->json([
                     'token' => $revolutOrder['token'],
-                    'state' => $revolutOrder['state'],
-                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
-                ],
-            ]);
-
-            return response()->json([
-                'token' => $revolutOrder['token'],
-                'order_id' => $revolutOrder['id'],
-                'upgrade_amount' => $upgradeAmount,
-                'new_plan' => $newPlanSlug,
-                'months_remaining' => $billingCycle === 'yearly' ? (12 - (int) $subscription->current_period_start->diffInMonths(now())) : 1,
-            ]);
+                    'order_id' => $revolutOrder['id'],
+                    'upgrade_amount' => $upgradeAmount,
+                    'new_plan' => $newPlanSlug,
+                    'months_remaining' => $monthsRemaining,
+                ]);
+            }, "user:{$user->id}");
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Creating upgrade order');
         }
     }
 
     /**
-     * Get the current trial and subscription status for the authenticated user.
+     * Whole months remaining in a yearly billing period, computed from days.
      *
-     * GET /api/payment/trial-status
+     * Day-based on purpose: Carbon's month arithmetic clamps non-existent
+     * month-end days (e.g. 31 Jan + 1 month → 28 Feb), so the old
+     * 12 - current_period_start->diffInMonths(now()) systematically
+     * under-counted elapsed months for subscriptions started on the 29th-31st
+     * and therefore OVER-billed the proration (a 31 Mar yearly start reported
+     * 10 months remaining mid-June instead of 9). Days are unambiguous.
+     *
+     * Rounded to the nearest whole month and clamped to [1, 12]; round (not
+     * floor/ceil) is what keeps the existing 3-month → 9 and 6-month → 6
+     * proration contracts consistent.
      */
-    public function trialStatus(Request $request): JsonResponse
+    private function yearlyMonthsRemaining(Subscription $subscription): int
     {
-        $user = $request->user();
-        $subscription = $user->subscription;
+        $start = $subscription->current_period_start;
+        $end = $subscription->current_period_end ?? $start->copy()->addYear();
 
-        $paymentEnabled = config('app.payment_enabled', false);
+        $totalDays = max(1, $start->diffInDays($end));
+        $daysRemaining = max(0, now()->diffInDays($end, false));
 
-        if (! $subscription) {
-            return response()->json([
-                'has_subscription' => false,
-                'payment_enabled' => $paymentEnabled,
-            ]);
-        }
+        return max(1, min(12, (int) round($daysRemaining / ($totalDays / 12))));
+    }
 
-        return response()->json([
-            'has_subscription' => true,
-            'plan' => $subscription->plan,
-            'billing_cycle' => $subscription->billing_cycle,
-            'status' => $subscription->status,
-            'trial_ends_at' => $subscription->trial_ends_at?->toISOString(),
-            'days_remaining' => $subscription->daysLeftInTrial(),
-            'progress' => $subscription->trialProgress(),
-            'amount' => $subscription->amount,
-            'current_period_start' => $subscription->current_period_start?->toISOString(),
-            'current_period_end' => $subscription->current_period_end?->toISOString(),
-            'cancelled_at' => $subscription->cancelled_at?->toISOString(),
-            'data_retention_starts_at' => $paymentEnabled ? $subscription->data_retention_starts_at?->toISOString() : null,
-            'grace_period_ends_at' => $paymentEnabled ? $subscription->gracePeriodEndsAt()?->toISOString() : null,
-            'is_in_grace_period' => $paymentEnabled && $subscription->isInGracePeriod(),
-            'payment_enabled' => $paymentEnabled,
-            'auto_renew' => $subscription->auto_renew ?? false,
-            'next_renewal_date' => ($subscription->status === 'active' && $subscription->auto_renew)
-                ? $subscription->current_period_end?->toISOString()
-                : null,
-        ]);
+    /** Get the canonical subscription and entitlement status. */
+    public function subscriptionStatus(Request $request): JsonResponse
+    {
+        return response()->json($this->subscriptionStatusService->forUser($request->user()));
     }
 
     /**
@@ -666,6 +1011,13 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'No subscription found'], 404);
         }
 
+        if (! $subscription->auto_renew) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This Premium access period does not renew automatically.',
+            ], Response::HTTP_CONFLICT);
+        }
+
         try {
             // Cancel Revolut subscription if it exists
             if ($subscription->revolut_subscription_id) {
@@ -680,7 +1032,7 @@ class PaymentController extends Controller
             }
 
             $accessUntil = DB::transaction(function () use ($subscription, $request) {
-                $locked = \App\Models\Subscription::where('id', $subscription->id)->lockForUpdate()->first();
+                $locked = Subscription::where('id', $subscription->id)->lockForUpdate()->first();
 
                 if (! in_array($locked->status, ['active', 'past_due'])) {
                     return null;
@@ -797,31 +1149,12 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'Data deletion is only available during the grace period'], 403);
         }
 
-        $firstName = $user->first_name;
-        $email = $user->email;
-
         try {
-            $result = $this->purgeService->purgeUserData($user);
-
-            Log::info('User initiated data deletion', [
-                'user_id' => $user->id,
-                'records_deleted' => $result['records_deleted'],
-                'tables_purged' => $result['tables_purged'],
-            ]);
-
-            // Send deletion confirmation email
-            try {
-                Mail::to($email)->send(new DataDeletionConfirmation($firstName ?? 'User', $email));
-            } catch (\Exception $e) {
-                Log::error('Failed to send data deletion confirmation email', [
-                    'email' => $email,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $this->deletionService->deleteAccount($user, 'user_requested', 'expiration_modal');
 
             return response()->json([
                 'success' => true,
-                'message' => 'All your data has been permanently deleted.',
+                'message' => 'Your account has been deleted.',
             ]);
         } catch (\Throwable $e) {
             Log::error('User-initiated data deletion failed', [
@@ -844,17 +1177,29 @@ class PaymentController extends Controller
 
         $request->validate([
             'code' => 'required|string|max:50',
-            'plan' => 'required|string|in:student,standard,family,pro',
+            'plan' => ['required', 'string', Rule::in(TierConfigurationStore::paidTiers())],
             'billing_cycle' => 'required|string|in:monthly,yearly',
         ]);
 
-        $plan = SubscriptionPlan::findBySlug($request->input('plan'));
-        if (! $plan) {
-            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
-        }
-
+        $planSlugInput = $request->input('plan');
         $billingCycle = $request->input('billing_cycle');
-        $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
+
+        if (in_array($planSlugInput, TierConfigurationStore::TIERS, true)) {
+            try {
+                $tierConfig = $this->tierStore->forTier($planSlugInput);
+                $amount = $billingCycle === 'monthly'
+                    ? $tierConfig->price_monthly_pence
+                    : $tierConfig->price_annual_pence;
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'Tier configuration not found'], 404);
+            }
+        } else {
+            $plan = SubscriptionPlan::findBySlug($planSlugInput);
+            if (! $plan) {
+                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+            }
+            $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
+        }
 
         $result = $this->discountCodeService->validate(
             $request->input('code'),
@@ -924,7 +1269,7 @@ class PaymentController extends Controller
      *
      * GET /api/payment/invoices/{invoice}/download
      */
-    public function downloadInvoice(Request $request, Invoice $invoice): \Symfony\Component\HttpFoundation\Response
+    public function downloadInvoice(Request $request, Invoice $invoice): Response
     {
         $user = $request->user();
 
@@ -950,7 +1295,7 @@ class PaymentController extends Controller
     /**
      * Send a cancellation confirmation email to the user.
      */
-    private function sendCancellationEmail(User $user, \App\Models\Subscription $subscription): void
+    private function sendCancellationEmail(User $user, Subscription $subscription): void
     {
         try {
             Mail::to($user->email)->send(new SubscriptionCancellation($user, $subscription));

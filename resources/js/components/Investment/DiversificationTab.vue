@@ -65,11 +65,9 @@
               </div>
             </div>
           </div>
-          <div class="mb-3">
-            <span class="inline-block px-4 py-2 rounded-full text-lg font-semibold" :class="getScoreBadge(data.diversification_label)">
-              {{ data.diversification_label }}
-            </span>
-          </div>
+          <p class="text-2xl font-semibold mb-2" :class="getLabelTextColour(data.diversification_label)">
+            {{ data.diversification_label }}
+          </p>
           <p class="text-sm text-neutral-500">
             {{ getDiversificationDescription(data.diversification_label) }}
           </p>
@@ -334,6 +332,16 @@ export default {
       if (score >= 60) return 'text-violet-600';
       if (score >= 40) return 'text-violet-600';
       return 'text-neutral-500';
+    },
+
+    getLabelTextColour(label) {
+      const classes = {
+        'Excellent': 'text-spring-600',
+        'Good': 'text-violet-600',
+        'Fair': 'text-violet-600',
+        'Poor': 'text-raspberry-600',
+      };
+      return classes[label] || 'text-neutral-500';
     },
 
     getScoreBadge(label) {

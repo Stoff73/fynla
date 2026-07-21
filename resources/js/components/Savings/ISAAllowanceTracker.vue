@@ -9,7 +9,7 @@
     <div v-if="lisaEligible" class="mb-4 p-3 bg-eggshell-500 rounded-lg border border-light-gray">
       <div class="flex justify-between items-baseline mb-2">
         <span class="text-sm font-semibold text-neutral-500">Lifetime ISA</span>
-        <span class="text-xs text-neutral-500">{{ formatCurrency(4000) }} limit</span>
+        <span class="text-xs text-neutral-500">{{ formatCurrency(lisaAllowance) }} limit</span>
       </div>
       <div class="w-full bg-savannah-200 rounded-full h-2 mb-2">
         <div
@@ -49,7 +49,7 @@
           <!-- Stocks & Shares ISA -->
           <div
             v-if="stocksISAUsed > 0"
-            class="bg-purple-500 flex items-center justify-center text-xs text-white font-medium"
+            class="bg-violet-500 flex items-center justify-center text-xs text-white font-medium"
             :style="{ width: stocksISAPercent + '%' }"
             :title="`Stocks ISA: ${formatCurrency(stocksISAUsed)}`"
           >
@@ -71,7 +71,7 @@
 
       <div class="text-center p-3 bg-eggshell-500 rounded-lg">
         <p class="text-sm text-neutral-500 mb-1">Stocks & Shares ISA</p>
-        <p class="text-lg font-bold text-purple-700">{{ formatCurrency(stocksISAUsed) }}</p>
+        <p class="text-lg font-bold text-violet-700">{{ formatCurrency(stocksISAUsed) }}</p>
       </div>
 
       <div class="text-center p-3 bg-eggshell-500 rounded-lg">
@@ -88,7 +88,7 @@
       <p class="text-sm text-neutral-500">
         <span class="font-medium">Tax year {{ currentTaxYear }}:</span>
         <template v-if="lisaEligible">
-          You can save up to {{ formatCurrency(overallAllowance) }} across all ISAs ({{ formatCurrency(4000) }} Lifetime ISA + {{ formatCurrency(totalAllowance) }} other ISAs).
+          You can save up to {{ formatCurrency(overallAllowance) }} across all ISAs ({{ formatCurrency(lisaAllowance) }} Lifetime ISA + {{ formatCurrency(totalAllowance) }} other ISAs).
         </template>
         <template v-else>
           You can save up to {{ formatCurrency(totalAllowance) }} across all tax-free savings accounts (ISAs).
@@ -102,7 +102,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import { LIFETIME_ISA_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'ISAAllowanceTracker',
@@ -114,6 +114,12 @@ export default {
     ...mapGetters('auth', ['currentUser']),
     ...mapState('netWorth', ['overview']),
     ...mapState('investment', { investmentAccounts: 'accounts' }),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance', 'lifetimeIsaAllowance']),
+
+    // Lifetime ISA annual allowance (API-backed) or fallback constant (2026/27: £4,000)
+    lisaAllowance() {
+      return this.lifetimeIsaAllowance ?? LIFETIME_ISA_ALLOWANCE;
+    },
 
     userAge() {
       const dob = this.currentUser?.date_of_birth;
@@ -135,13 +141,13 @@ export default {
 
     // The full ISA allowance from store (API-backed) or fallback
     overallAllowance() {
-      return this.isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE;
+      return this.isaAllowance?.total_allowance || this.isaAnnualAllowance;
     },
 
     // The ISA allowance excluding LISA when LISA-eligible
     totalAllowance() {
       const full = this.overallAllowance;
-      return this.lisaEligible ? full - 4000 : full;
+      return this.lisaEligible ? full - this.lisaAllowance : full;
     },
 
     currentTaxYear() {
@@ -193,15 +199,15 @@ export default {
       const used = lisaAccounts.reduce((sum, a) => {
         return sum + parseFloat(a.isa_subscription_current_year || a.annual_contribution || 0);
       }, 0);
-      return Math.min(used, 4000);
+      return Math.min(used, this.lisaAllowance);
     },
 
     lisaRemaining() {
-      return 4000 - this.lisaUsed;
+      return this.lisaAllowance - this.lisaUsed;
     },
 
     lisaPercentUsed() {
-      return (this.lisaUsed / 4000) * 100;
+      return (this.lisaUsed / this.lisaAllowance) * 100;
     },
 
     lisaBonusEarned() {

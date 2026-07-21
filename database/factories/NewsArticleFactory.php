@@ -20,15 +20,15 @@ class NewsArticleFactory extends Factory
         $title = fake()->sentence(6);
 
         return [
-            'slug'             => Str::slug($title).'-'.fake()->unique()->numberBetween(1000, 9999),
-            'title'            => rtrim($title, '.'),
-            'summary'          => fake()->sentence(20),
-            'body'             => fake()->paragraphs(6, true),
-            'image_url'        => null,
-            'author_name'      => 'The Fynla Team',
-            'status'           => 'published',
-            'published_at'     => now(),
-            'meta_title'       => null,
+            'slug' => Str::slug($title).'-'.fake()->unique()->numberBetween(1000, 9999),
+            'title' => rtrim($title, '.'),
+            'summary' => fake()->sentence(20),
+            'body' => fake()->paragraphs(6, true),
+            'image_url' => null,
+            'author_name' => 'The Fynla Team',
+            'status' => 'published',
+            'published_at' => now(),
+            'meta_title' => null,
             'meta_description' => null,
         ];
     }

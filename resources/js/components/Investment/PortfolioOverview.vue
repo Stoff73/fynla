@@ -179,7 +179,6 @@ import { mapGetters } from 'vuex';
 import AssetAllocationChart from './AssetAllocationChart.vue';
 import GeographicAllocationMap from './GeographicAllocationMap.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import { TAX_CONFIG } from '@/constants/taxConfig';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -216,6 +215,7 @@ export default {
       'analysis',
       'loading',
     ]),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
 
     formattedTotalValue() {
       return this.formatCurrency(this.totalPortfolioValue);
@@ -419,7 +419,7 @@ export default {
 
     getIsaRemaining(account) {
       const contributions = this.getIsaContributions(account);
-      return Math.max(0, TAX_CONFIG.ISA_ANNUAL_ALLOWANCE - contributions);
+      return Math.max(0, this.isaAnnualAllowance - contributions);
     },
 
     getIsaRemainingClass(account) {

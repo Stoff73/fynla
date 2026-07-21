@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Constants\TaxDefaults;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,6 +23,18 @@ class UpdateInvestmentAccountRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * The investment_accounts.country column is NOT NULL DEFAULT 'United Kingdom'.
+     * On update, dropping a null country preserves whatever value is already in
+     * the row instead of failing the FK with an explicit NULL.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
+            $this->offsetUnset('country');
+        }
     }
 
     /**
@@ -53,7 +66,7 @@ class UpdateInvestmentAccountRequest extends FormRequest
 
             // ISA specific
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
-            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.\App\Constants\TaxDefaults::ISA_ALLOWANCE,
+            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,
 
             // Contributions
             'monthly_contribution_amount' => 'nullable|numeric|min:0',

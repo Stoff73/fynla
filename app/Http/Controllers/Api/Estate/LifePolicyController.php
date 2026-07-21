@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\User;
 use App\Services\Estate\LifePolicyStrategyService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -66,11 +68,11 @@ class LifePolicyController extends Controller
                 // Use CURRENT IHT liability (not projected - life insurance covers today's liability)
                 $ihtLiability = $ihtSummary['current']['iht_liability'];
                 $yearsUntilDeath = (int) $ihtSummary['projected']['years_to_death'];
-                $currentAge = \Carbon\Carbon::parse($user->date_of_birth)->age;
+                $currentAge = Carbon::parse($user->date_of_birth)->age;
 
                 // Get spouse data for joint policy calculation
-                $spouse = $user->spouse_id ? \App\Models\User::find($user->spouse_id) : null;
-                $spouseAge = $spouse && $spouse->date_of_birth ? \Carbon\Carbon::parse($spouse->date_of_birth)->age : null;
+                $spouse = $user->spouse_id ? User::find($user->spouse_id) : null;
+                $spouseAge = $spouse && $spouse->date_of_birth ? Carbon::parse($spouse->date_of_birth)->age : null;
                 $spouseGender = $spouse ? $spouse->gender : null;
 
             } else {
@@ -97,7 +99,7 @@ class LifePolicyController extends Controller
                 // Use CURRENT IHT liability (not projected - life insurance covers today's liability)
                 $ihtLiability = $ihtSummary['current']['iht_liability'];
                 $yearsUntilDeath = (int) $ihtSummary['projected']['years_to_death'];
-                $currentAge = \Carbon\Carbon::parse($user->date_of_birth)->age;
+                $currentAge = Carbon::parse($user->date_of_birth)->age;
 
                 $spouseAge = null;
                 $spouseGender = null;

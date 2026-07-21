@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\SavingsMarketRate;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\SavingsMarketRateStore;
 use Illuminate\Database\Seeder;
 
 class SavingsMarketRatesSeeder extends Seeder
@@ -12,12 +13,16 @@ class SavingsMarketRatesSeeder extends Seeder
     /**
      * Seed UK savings market benchmark rates for 2025/26.
      *
-     * Re-runnable: uses updateOrCreate on the composite key (rate_key + tax_year).
+     * Re-runnable: creates a missing baseline row by (rate_key, tax_year)
+     * and preserves admin-managed values when that row already exists.
+     *
      * To update rates, modify the values below and run:
      *   php artisan db:seed --class=SavingsMarketRatesSeeder --force
      */
     public function run(): void
     {
+        $store = app(SavingsMarketRateStore::class);
+
         $taxYear = '2025/26';
         $effectiveFrom = '2025-04-06';
 
@@ -35,17 +40,19 @@ class SavingsMarketRatesSeeder extends Seeder
         ];
 
         foreach ($rates as $rate) {
-            SavingsMarketRate::updateOrCreate(
-                [
-                    'rate_key' => $rate['rate_key'],
-                    'tax_year' => $taxYear,
-                ],
-                [
-                    'label' => $rate['label'],
-                    'rate' => $rate['rate'],
-                    'effective_from' => $effectiveFrom,
-                ]
-            );
+            $existing = $store->findByKeyAndTaxYear($rate['rate_key'], $taxYear);
+
+            $payload = [
+                'rate_key' => $rate['rate_key'],
+                'label' => $rate['label'],
+                'rate' => $rate['rate'],
+                'tax_year' => $taxYear,
+                'effective_from' => $effectiveFrom,
+            ];
+
+            if (! $existing) {
+                $store->create($payload, IngestSource::SEEDER);
+            }
         }
     }
 }

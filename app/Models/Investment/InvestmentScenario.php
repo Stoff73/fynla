@@ -62,5 +62,4 @@ class InvestmentScenario extends Model
     {
         return $query->where('scenario_type', $type);
     }
-
 }

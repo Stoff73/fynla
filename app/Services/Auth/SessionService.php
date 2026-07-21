@@ -55,9 +55,16 @@ class SessionService
     public function revokeAllExceptCurrent(User $user): int
     {
         $currentToken = request()->user()?->currentAccessToken();
-        $currentTokenId = $currentToken?->id;
+        $currentTokenId = $currentToken instanceof PersonalAccessToken ? $currentToken->id : null;
 
-        $sessions = UserSession::forUser($user->id)->with('token')->get();
+        $sessions = UserSession::forUser($user->id)->with('token')->latestActivity()->get();
+
+        if ($currentTokenId === null) {
+            // SPA cookie / TransientToken or tinker context: identify the current session
+            // as the one with the most recent activity and preserve it.
+            $currentTokenId = $sessions->first()?->token_id;
+        }
+
         $revokedCount = 0;
 
         foreach ($sessions as $session) {
@@ -93,7 +100,7 @@ class SessionService
     {
         $currentToken = $user->currentAccessToken();
 
-        if (! $currentToken) {
+        if (! ($currentToken instanceof PersonalAccessToken)) {
             return;
         }
 

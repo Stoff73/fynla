@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Chattel;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Chattel
+ * @mixin Chattel
  */
 class ChattelResource extends JsonResource
 {
@@ -36,6 +37,7 @@ class ChattelResource extends JsonResource
             'category' => $this->chattel_type,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'purchase_price' => $this->purchase_price,
             'current_value' => $this->current_value,
             'purchase_date' => $this->purchase_date?->toDateString(),
@@ -76,8 +78,8 @@ class ChattelResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'household' => $this->whenLoaded('household'),
             'trust' => $this->whenLoaded('trust'),
 

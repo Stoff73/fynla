@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Constants\TaxDefaults;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +22,18 @@ class StoreInvestmentAccountRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * The investment_accounts.country column is NOT NULL DEFAULT 'United Kingdom'.
+     * Drop the key when it arrives null/empty so the DB default kicks in instead
+     * of a 23000 FK 500. Confirmed against prod laravel.log 2026-05-07 12:15.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
+            $this->offsetUnset('country');
+        }
     }
 
     /**
@@ -47,7 +60,7 @@ class StoreInvestmentAccountRequest extends FormRequest
 
             // ISA specific
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
-            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.\App\Constants\TaxDefaults::ISA_ALLOWANCE,
+            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,
 
             // Ownership
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],

@@ -6,6 +6,8 @@ namespace App\Services\Goals;
 
 use App\Models\LifeEvent;
 use App\Models\User;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\LifeEventStore;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -17,6 +19,10 @@ use Illuminate\Support\Collection;
  */
 class LifeEventService
 {
+    public function __construct(
+        private readonly LifeEventStore $lifeEventStore,
+    ) {}
+
     /**
      * Get all events for a user, optionally including household (spouse) events.
      */
@@ -306,7 +312,7 @@ class LifeEventService
     /**
      * Create a new life event.
      */
-    public function createEvent(int $userId, array $data): LifeEvent
+    public function createEvent(User $user, array $data, IngestSource $source = IngestSource::FORM): LifeEvent
     {
         // Auto-determine impact_type from event_type if not provided
         if (! isset($data['impact_type'])) {
@@ -315,11 +321,7 @@ class LifeEventService
                 : 'expense';
         }
 
-        $data['user_id'] = $userId;
-
-        $event = LifeEvent::create($data);
-
-        return $event;
+        return $this->lifeEventStore->create($data, $user, $source);
     }
 
     /**

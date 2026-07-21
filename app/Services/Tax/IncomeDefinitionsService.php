@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
 
 class IncomeDefinitionsService
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     public function calculate(int $userId): array
@@ -23,20 +24,26 @@ class IncomeDefinitionsService
         $components = $this->getIncomeComponents($user);
         $totalIncome = array_sum($components);
 
-        // 2. Net Income
+        // 2. Net Income — taxable income after net-pay pension relief and the
+        // Gift Aid gross-up. Feeds Adjusted Net Income (with the Blind Person's
+        // Allowance) for the Personal Allowance taper only.
         $pensionRelief = $pensionContributions['employee'];
         $giftAidGross = $this->calculateGiftAidGrossUp($user);
         $netIncome = $totalIncome - $pensionRelief - $giftAidGross;
 
-        // 3. Adjusted Net Income
+        // 3. Adjusted Net Income (ITA 2007 s58) — drives the Personal Allowance taper.
         $bpa = $user->is_registered_blind ? $this->taxConfig->getBlindPersonsAllowance() : 0.0;
         $adjustedNetIncome = $netIncome - $bpa;
 
-        // 4. Threshold Income
-        $thresholdIncome = $adjustedNetIncome - $pensionContributions['employee'];
+        // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay
+        // employee contributions only, deducted once. Gift Aid and the Blind
+        // Person's Allowance do NOT reduce it (those belong to Adjusted Net Income).
+        $thresholdIncome = $totalIncome - $pensionContributions['employee'];
 
-        // 5. Adjusted Income
-        $adjustedIncome = $thresholdIncome + $pensionContributions['employer'];
+        // 5. Adjusted Income (FA 2004 s228ZA) — total income plus employer
+        // contributions (equivalently threshold income plus both the employee
+        // and employer pension inputs).
+        $adjustedIncome = $totalIncome + $pensionContributions['employer'];
 
         // Ensure no negative values
         $totalIncome = max(0.0, $totalIncome);
@@ -85,12 +92,11 @@ class IncomeDefinitionsService
      */
     private function calculateRentalIncome(User $user): float
     {
-        $properties = Property::where('property_type', 'buy_to_let')
-            ->where(function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->orWhere('joint_owner_id', $user->id);
-            })
-            ->get();
+        // PropertyStore::forUserByType is joint-aware (user_id = ? OR joint_owner_id = ?)
+        // + property_type filter. The loop below applies ownership_percentage per row so
+        // joint records correctly contribute the user's share — joint-aware is intentional,
+        // no primary-only filter. Same pattern as UserProfileService:197 (PR 5d).
+        $properties = $this->propertyStore->forUserByType($user, 'buy_to_let');
 
         $total = 0.0;
         foreach ($properties as $property) {

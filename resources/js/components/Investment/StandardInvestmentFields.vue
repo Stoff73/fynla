@@ -306,7 +306,7 @@
           type="number"
           step="0.01"
           min="0"
-          :max="ISA_ALLOWANCE"
+          :max="isaAnnualAllowance"
           class="w-full border border-violet-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
           placeholder="0.00"
         />
@@ -403,28 +403,28 @@
             <div
               v-if="cashISAUsed > 0"
               class="bg-violet-500 h-full"
-              :style="{ width: (cashISAUsed / ISA_ALLOWANCE * 100) + '%' }"
+              :style="{ width: (cashISAUsed / isaAnnualAllowance * 100) + '%' }"
               :title="`Cash ISA: ${formatCurrency(cashISAUsed)}`"
             ></div>
             <!-- S&S ISA portion (existing subscriptions) -->
             <div
               v-if="otherStocksISAUsed > 0"
               class="bg-violet-500 h-full"
-              :style="{ width: (otherStocksISAUsed / ISA_ALLOWANCE * 100) + '%' }"
+              :style="{ width: (otherStocksISAUsed / isaAnnualAllowance * 100) + '%' }"
               :title="`Other Stocks & Shares ISAs: ${formatCurrency(otherStocksISAUsed)}`"
             ></div>
             <!-- This account's subscription -->
             <div
               v-if="thisAccountSubscription > 0"
               class="bg-spring-500 h-full"
-              :style="{ width: (thisAccountSubscription / ISA_ALLOWANCE * 100) + '%' }"
+              :style="{ width: (thisAccountSubscription / isaAnnualAllowance * 100) + '%' }"
               :title="`This account: ${formatCurrency(thisAccountSubscription)}`"
             ></div>
             <!-- Planned contributions (lighter shade) -->
             <div
               v-if="plannedAnnualContribution > 0"
               class="bg-violet-400 h-full"
-              :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
+              :style="{ width: Math.min(plannedAnnualContribution / isaAnnualAllowance * 100, 100 - totalUsedPercent) + '%' }"
               :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
             ></div>
           </div>
@@ -514,9 +514,9 @@
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'StandardInvestmentFields',
@@ -581,13 +581,9 @@ export default {
 
   emits: ['update:modelValue', 'confirm-fee', 'switch-fee-to-fixed'],
 
-  data() {
-    return {
-      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE, // Fallback from taxConfig.js; prefer API value
-    };
-  },
-
   computed: {
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
+
     localData: {
       get() {
         return this.modelValue;
@@ -749,15 +745,15 @@ export default {
     },
 
     totalRemainingAllowance() {
-      return Math.max(0, this.ISA_ALLOWANCE - this.totalWithPlanned);
+      return Math.max(0, this.isaAnnualAllowance - this.totalWithPlanned);
     },
 
     totalUsedPercent() {
-      return Math.min(100, (this.totalISAUsed / this.ISA_ALLOWANCE) * 100);
+      return Math.min(100, (this.totalISAUsed / this.isaAnnualAllowance) * 100);
     },
 
     totalRemainingAllowanceClass() {
-      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-raspberry-600';
+      if (this.totalWithPlanned > this.isaAnnualAllowance) return 'text-raspberry-600';
       if (this.totalRemainingAllowance < 2000) return 'text-violet-600';
       return 'text-spring-600';
     },

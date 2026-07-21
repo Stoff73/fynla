@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Models\DeviceToken;
 use App\Models\NotificationPreference;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 describe('SendDailyInsightNotifications', function () {
     it('runs successfully', function () {

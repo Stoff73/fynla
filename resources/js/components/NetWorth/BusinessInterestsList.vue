@@ -73,7 +73,7 @@
         </div>
         <div class="summary-item">
           <span class="summary-label">Total Value (Your Share)</span>
-          <span class="summary-value text-purple-600">{{ formatCurrency(totalValue) }}</span>
+          <span class="summary-value text-violet-600">{{ formatCurrency(totalValue) }}</span>
         </div>
       </div>
     </div>

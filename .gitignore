@@ -38,14 +38,14 @@ yarn-error.log
 # Claude local settings
 .claude/settings.local.json
 
-# Claude skills (local only)
-.claude/skills/session-end/
-
 # Claude worktrees (temporary, created by Agent isolation or manual git worktree add)
 .claude/worktrees/
 
 # Claude runtime state
 .claude/scheduled_tasks.lock
+
+# Claude per-machine memory (never commit — a contributor's memory was once committed here)
+.claude/projects/
 
 # Design source files and screenshots (root-level)
 /*.png
@@ -65,6 +65,8 @@ yarn-error.log
 
 # build files
 /public/build/
+/public/m-build/
+/public/m-e2e-build/
 
 # Capacitor
 ios/App/Pods/
@@ -92,3 +94,4 @@ CSJTODO.md
 March/*/CSJTODO.md
 mcp-servers/
 fynlaBrain/
+.smoke-evidence/

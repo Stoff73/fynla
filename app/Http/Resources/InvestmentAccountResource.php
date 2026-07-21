@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Investment\InvestmentAccount;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Investment\InvestmentAccount
+ * @mixin InvestmentAccount
  */
 class InvestmentAccountResource extends JsonResource
 {
@@ -35,6 +36,7 @@ class InvestmentAccountResource extends JsonResource
             'contribution_frequency' => $this->contribution_frequency,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'country' => $this->country,
             'tax_year' => $this->tax_year,
             'platform_fee_percent' => $this->platform_fee_percent,
@@ -88,8 +90,8 @@ class InvestmentAccountResource extends JsonResource
 
             // Relationships
             'holdings' => HoldingResource::collection($this->whenLoaded('holdings')),
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
 
             // Links
             'links' => [

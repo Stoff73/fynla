@@ -11,12 +11,13 @@ use App\Http\Requests\Retirement\ScenarioRequest;
 use App\Http\Requests\Retirement\StoreDBPensionRequest;
 use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
+use App\Http\Resources\DCPensionResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
@@ -26,6 +27,13 @@ use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\RetirementStrategyService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\TierGate;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -51,7 +59,10 @@ class RetirementController extends Controller
         private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly GoalStrategyService $goalStrategy,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly PensionStore $pensionStore,
+        private readonly PensionNormaliser $pensionNormaliser,
+        private readonly TierGate $tierGate,
     ) {}
 
     /**
@@ -89,11 +100,19 @@ class RetirementController extends Controller
             }
         }
 
+        $pensions = $this->pensionStore->forUser($user);
+
         $data = [
             'profile' => $profile,
-            'dc_pensions' => DCPension::where('user_id', $user->id)->with('holdings')->get(),
-            'db_pensions' => DBPension::where('user_id', $user->id)->get(),
-            'state_pension' => StatePension::where('user_id', $user->id)->first(),
+            'dc_pensions' => $pensions['dc'],
+            'db_pensions' => $pensions['db'],
+            'state_pension' => $pensions['state'],
+            // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the gate's
+            // primary-owner DC+DB count (PensionStore:442); state pension is excluded as it
+            // isn't a count-gated "pension account". Keeps "X of Y used" honest vs canCreate.
+            'account_count' => DCPension::where('user_id', $user->id)->count()
+                + DBPension::where('user_id', $user->id)->count(),
+            'account_limit' => $this->tierGate->hardLimit($user, PensionStore::ENTITY_KEY),
             'life_events' => $lifeEvents,
             'life_event_impact' => $lifeEventImpact,
             'goal_strategies' => $goalStrategies,
@@ -138,7 +157,7 @@ class RetirementController extends Controller
                 'message' => 'DC pension projections generated successfully',
                 'data' => $projections,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pension not found',
@@ -304,7 +323,6 @@ class RetirementController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        $data['user_id'] = $user->id;
 
         // Auto-assign main risk level if user has a risk profile
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
@@ -312,64 +330,87 @@ class RetirementController extends Controller
             $data['risk_preference'] = $riskProfile->risk_level;
         }
 
-        // Extract holdings before creating pension (not a model field)
+        // Extract holdings before creating pension (holdings get their own
+        // store in Pass 6; for now they remain a controller responsibility).
         $holdings = $data['holdings'] ?? [];
         unset($data['holdings']);
 
         $pension = null;
 
-        DB::transaction(function () use ($data, $holdings, &$pension) {
-            $pension = DCPension::create($data);
+        try {
+            DB::transaction(function () use ($data, $holdings, $user, &$pension) {
+                $canonical = $this->pensionNormaliser->fromFormDc($data);
+                $pension = $this->pensionStore->createDc($canonical, $user, IngestSource::FORM);
 
-            if (! empty($holdings)) {
-                $hasCashHolding = false;
+                $this->seedHoldingsForDcPension($pension, $holdings);
+            });
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pension limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
+        }
 
-                foreach ($holdings as $holdingData) {
-                    $currentValue = ($pension->current_fund_value * $holdingData['allocation_percent']) / 100;
-
-                    if (($holdingData['asset_type'] ?? '') === 'cash') {
-                        $hasCashHolding = true;
-                    }
-
-                    $pension->holdings()->create([
-                        'holdable_type' => DCPension::class,
-                        'holdable_id' => $pension->id,
-                        'security_name' => $holdingData['security_name'],
-                        'asset_type' => $holdingData['asset_type'] ?? 'fund',
-                        'allocation_percent' => $holdingData['allocation_percent'],
-                        'current_value' => $currentValue,
-                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
-                        'cost_basis' => $holdingData['cost_basis'] ?? null,
-                    ]);
-                }
-
-                // Auto-create cash holding for remainder
-                $totalAllocated = collect($holdings)->sum('allocation_percent');
-                if ($totalAllocated < 100 && ! $hasCashHolding) {
-                    $remainderPercent = 100 - $totalAllocated;
-                    $pension->holdings()->create([
-                        'holdable_type' => DCPension::class,
-                        'holdable_id' => $pension->id,
-                        'security_name' => 'Cash',
-                        'asset_type' => 'cash',
-                        'allocation_percent' => $remainderPercent,
-                        'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
-                    ]);
-                }
-            }
-        });
-
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
-
-        // Load holdings for response
         $pension->load('holdings');
 
         return response()->json([
             'success' => true,
             'message' => 'DC pension added successfully',
-            'data' => $pension,
+            'data' => new DCPensionResource($pension),
         ], 201);
+    }
+
+    /**
+     * Holdings seeding helper. Lifted from the original storeDCPension/
+     * updateDCPension bodies. Holdings move into HoldingsStore in Pass 6.
+     */
+    private function seedHoldingsForDcPension(DCPension $pension, array $holdings): void
+    {
+        if (empty($holdings)) {
+            return;
+        }
+
+        $hasCashHolding = false;
+
+        foreach ($holdings as $holdingData) {
+            $currentValue = ($pension->current_fund_value * $holdingData['allocation_percent']) / 100;
+
+            if (($holdingData['asset_type'] ?? '') === 'cash') {
+                $hasCashHolding = true;
+            }
+
+            $pension->holdings()->create([
+                'holdable_type' => DCPension::class,
+                'holdable_id' => $pension->id,
+                'security_name' => $holdingData['security_name'],
+                'asset_type' => $holdingData['asset_type'] ?? 'fund',
+                'allocation_percent' => $holdingData['allocation_percent'],
+                'current_value' => $currentValue,
+                'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                'cost_basis' => $holdingData['cost_basis'] ?? null,
+            ]);
+        }
+
+        $totalAllocated = collect($holdings)->sum('allocation_percent');
+        if ($totalAllocated < 100 && ! $hasCashHolding) {
+            $remainderPercent = 100 - $totalAllocated;
+            $pension->holdings()->create([
+                'holdable_type' => DCPension::class,
+                'holdable_id' => $pension->id,
+                'security_name' => 'Cash',
+                'asset_type' => 'cash',
+                'allocation_percent' => $remainderPercent,
+                'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
+            ]);
+        }
     }
 
     /**
@@ -378,63 +419,31 @@ class RetirementController extends Controller
     public function updateDCPension(StoreDCPensionRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DCPension::where('user_id', $user->id)->findOrFail($id);
-
         $data = $request->validated();
 
-        // Extract holdings before updating pension (not a model field)
         $holdings = $data['holdings'] ?? null;
         unset($data['holdings']);
 
-        DB::transaction(function () use ($pension, $data, $holdings) {
-            $pension->update($data);
+        $pension = null;
+        try {
+            $pension = DB::transaction(function () use ($id, $data, $holdings, $user) {
+                $canonical = $this->pensionNormaliser->fromFormDc($data);
+                $updated = $this->pensionStore->updateDc($id, $canonical, $user, IngestSource::FORM);
 
-            // Sync holdings if provided
-            if ($holdings !== null) {
-                // Delete existing holdings
-                $pension->holdings()->delete();
-
-                $hasCashHolding = false;
-
-                foreach ($holdings as $holdingData) {
-                    $currentValue = ($pension->current_fund_value * $holdingData['allocation_percent']) / 100;
-
-                    if (($holdingData['asset_type'] ?? '') === 'cash') {
-                        $hasCashHolding = true;
-                    }
-
-                    $pension->holdings()->create([
-                        'holdable_type' => DCPension::class,
-                        'holdable_id' => $pension->id,
-                        'security_name' => $holdingData['security_name'],
-                        'asset_type' => $holdingData['asset_type'] ?? 'fund',
-                        'allocation_percent' => $holdingData['allocation_percent'],
-                        'current_value' => $currentValue,
-                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
-                        'cost_basis' => $holdingData['cost_basis'] ?? null,
-                    ]);
+                if ($holdings !== null) {
+                    $updated->holdings()->delete();
+                    $this->seedHoldingsForDcPension($updated, $holdings);
                 }
 
-                // Auto-create cash holding for remainder
-                $totalAllocated = collect($holdings)->sum('allocation_percent');
-                if ($totalAllocated < 100 && ! $hasCashHolding) {
-                    $remainderPercent = 100 - $totalAllocated;
-                    $pension->holdings()->create([
-                        'holdable_type' => DCPension::class,
-                        'holdable_id' => $pension->id,
-                        'security_name' => 'Cash',
-                        'asset_type' => 'cash',
-                        'allocation_percent' => $remainderPercent,
-                        'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
-                    ]);
-                }
-            }
-        });
+                return $updated;
+            });
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'DC pension not found or unauthorized'], 404);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
 
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
-
-        // Load holdings for response
         $pension->load('holdings');
 
         return response()->json([
@@ -450,11 +459,13 @@ class RetirementController extends Controller
     public function destroyDCPension(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DCPension::where('user_id', $user->id)->findOrFail($id);
 
-        $pension->delete();
+        try {
+            $this->pensionStore->deleteDc($id, $user, 'user_requested');
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'DC pension not found or unauthorized'], 404);
+        }
 
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
 
         return response()->json([
@@ -470,11 +481,24 @@ class RetirementController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        $data['user_id'] = $user->id;
 
-        $pension = DBPension::create($data);
+        try {
+            $canonical = $this->pensionNormaliser->fromFormDb($data);
+            $pension = $this->pensionStore->createDb($canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pension limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
+        }
 
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
 
         return response()->json([
@@ -490,11 +514,16 @@ class RetirementController extends Controller
     public function updateDBPension(StoreDBPensionRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DBPension::where('user_id', $user->id)->findOrFail($id);
 
-        $pension->update($request->validated());
+        try {
+            $canonical = $this->pensionNormaliser->fromFormDb($request->validated());
+            $pension = $this->pensionStore->updateDb($id, $canonical, $user, IngestSource::FORM);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'DB pension not found or unauthorized'], 404);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
 
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
 
         return response()->json([
@@ -510,11 +539,13 @@ class RetirementController extends Controller
     public function destroyDBPension(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DBPension::where('user_id', $user->id)->findOrFail($id);
 
-        $pension->delete();
+        try {
+            $this->pensionStore->deleteDb($id, $user, 'user_requested');
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'DB pension not found or unauthorized'], 404);
+        }
 
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
 
         return response()->json([
@@ -529,14 +560,14 @@ class RetirementController extends Controller
     public function updateStatePension(UpdateStatePensionRequest $request): JsonResponse
     {
         $user = $request->user();
-        $data = $request->validated();
 
-        $statePension = StatePension::updateOrCreate(
-            ['user_id' => $user->id],
-            $data
-        );
+        try {
+            $canonical = $this->pensionNormaliser->fromFormState($request->validated());
+            $statePension = $this->pensionStore->upsertState($canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
 
-        // Invalidate cache
         $this->invalidateRetirementCache($user->id);
 
         return response()->json([
@@ -562,7 +593,9 @@ class RetirementController extends Controller
 
         // If a specific pension ID is provided, verify ownership
         if ($dcPensionId) {
-            $pension = DCPension::where('user_id', $user->id)->findOrFail($dcPensionId);
+            if ($this->pensionStore->find($dcPensionId, 'dc', $user) === null) {
+                return response()->json(['success' => false, 'message' => 'DC pension not found or unauthorized'], 404);
+            }
         }
 
         $analysis = $this->agent->analyzeDCPensionPortfolio($user->id, $dcPensionId);
@@ -723,9 +756,7 @@ class RetirementController extends Controller
     {
         $user = $request->user();
 
-        $pension = DCPension::with('holdings')
-            ->where('user_id', $user->id)
-            ->find($id);
+        $pension = $this->pensionStore->find($id, 'dc', $user)?->load('holdings');
 
         if (! $pension) {
             return response()->json([
@@ -780,10 +811,14 @@ class RetirementController extends Controller
     {
         $this->cacheInvalidation->invalidateForUser($userId);
 
-        // Clear individual pension portfolio caches (resource-specific keys)
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        foreach ($dcPensions as $pension) {
-            Cache::forget("dc_pension_{$pension->id}_portfolio");
+        // Clear individual pension portfolio caches (resource-specific keys).
+        // Use the store's read API rather than touching DCPension directly.
+        $user = User::find($userId);
+        if ($user) {
+            $dcPensions = $this->pensionStore->forUserByType($user, 'dc');
+            foreach ($dcPensions as $pension) {
+                Cache::forget("dc_pension_{$pension->id}_portfolio");
+            }
         }
     }
 }

@@ -70,6 +70,22 @@ const NAV_TRIGGERS = [
   'where is', 'where are', 'how do i find', 'find my',
 ];
 
+// Meta-conversational patterns — the user is asking Fyn a question or
+// making a complaint ABOUT the conversation/Fyn's behaviour, not issuing
+// a navigation command. These must always reach the LLM, even if they
+// also happen to contain a NAV_TRIGGER substring (e.g. "a personalised
+// view") and a topic keyword (e.g. "protection"). A genuine navigation
+// command is an imperative addressed to the app, never a question to Fyn.
+const META_CONVERSATIONAL = [
+  "why can't you", 'why cant you', "why won't you", 'why wont you',
+  "why don't you", 'why dont you', "why didn't you", 'why didnt you',
+  "why aren't you", 'why arent you', 'why are you', 'why is it',
+  'why cannot you', "can't you", 'cant you', "couldn't you", 'couldnt you',
+  'how come', 'you said', 'you told me', 'you mentioned',
+  'i asked', 'when i ask', 'when i asked',
+  "i'm asking", 'im asking', 'i am asking',
+];
+
 /**
  * Attempt to match a user message to a navigation route.
  *
@@ -82,8 +98,18 @@ export function matchNavigationIntent(message) {
 
   const lower = message.toLowerCase().trim();
 
-  // Must contain a navigation trigger phrase
-  const hasTrigger = NAV_TRIGGERS.some(trigger => lower.includes(trigger));
+  // A question or complaint directed at Fyn is never a navigation command —
+  // send it to the LLM so it can answer with conversation context.
+  if (META_CONVERSATIONAL.some(pattern => lower.includes(pattern))) return null;
+
+  // Must contain a navigation trigger phrase, matched at word boundaries —
+  // a bare trigger like "view"/"show"/"open" must NOT match inside another
+  // word ("overview", "review", "shown", "reopen"). Triggers are plain
+  // [a-z ] strings; \b sits between an alphanumeric and a non-alphanumeric.
+  const hasTrigger = NAV_TRIGGERS.some((trigger) => {
+    const escaped = trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`).test(lower);
+  });
   if (!hasTrigger) return null;
 
   // Find the best matching route (longest keyword match wins)

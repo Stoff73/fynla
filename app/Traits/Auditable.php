@@ -68,7 +68,10 @@ trait Auditable
      */
     protected function auditInTests(): bool
     {
-        return false;
+        // Default no-op (false): production behaviour is unchanged and the
+        // test suite stays audit-free unless a test explicitly opts in via
+        // config(['audit.in_tests' => true]) to exercise the audit path.
+        return (bool) config('audit.in_tests', false);
     }
 
     /**

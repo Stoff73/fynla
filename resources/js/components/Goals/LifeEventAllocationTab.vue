@@ -288,8 +288,8 @@ export default {
       const classes = {
         goals: 'bg-violet-100 text-violet-800',
         isa: 'bg-spring-100 text-spring-800',
-        pension: 'bg-indigo-100 text-indigo-800',
-        bond: 'bg-purple-100 text-purple-800',
+        pension: 'bg-violet-100 text-violet-800',
+        bond: 'bg-violet-100 text-violet-800',
         cash: 'bg-savannah-100 text-horizon-500',
       };
       return classes[step] || 'bg-savannah-100 text-horizon-500';

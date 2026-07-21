@@ -47,7 +47,7 @@
           <div class="mt-2 pt-2 border-t border-horizon-500">
             <span
               class="inline-block px-2 py-0.5 rounded text-xs"
-              :class="event.type === 'goal' ? 'bg-raspberry-600' : 'bg-purple-600'"
+              :class="event.type === 'goal' ? 'bg-raspberry-600' : 'bg-violet-600'"
             >
               {{ event.type === 'goal' ? 'Goal' : 'Life Event' }}
             </span>

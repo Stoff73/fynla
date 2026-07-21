@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeUsage;
+use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\DiscountCodeService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->service = new DiscountCodeService();
+    $this->service = new DiscountCodeService;
     $this->user = User::factory()->create();
     // Seed tax config for RefreshDatabase
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 describe('calculateDiscount', function () {
@@ -33,10 +36,6 @@ describe('calculateDiscount', function () {
         expect($this->service->calculateDiscount($code, 1099))->toBe(1099);
     });
 
-    it('returns zero for trial extension', function () {
-        $code = DiscountCode::factory()->trialExtension(14)->create();
-        expect($this->service->calculateDiscount($code, 1099))->toBe(0);
-    });
 });
 
 describe('validate', function () {
@@ -69,6 +68,20 @@ describe('validate', function () {
         $result = $this->service->validate('OFF', $this->user->id, 'standard', 'monthly', 1099);
         expect($result['valid'])->toBeFalse()
             ->and($result['message'])->toContain('no longer active');
+    });
+
+    it('rejects the retired trial extension discount type', function () {
+        DiscountCode::factory()->create([
+            'code' => 'LEGACYTRIAL',
+            'type' => 'trial_extension',
+            'value' => 14,
+            'is_active' => true,
+        ]);
+
+        $result = $this->service->validate('LEGACYTRIAL', $this->user->id, 'premium', 'monthly', 699);
+
+        expect($result['valid'])->toBeFalse()
+            ->and($result['message'])->toContain('no longer supported');
     });
 
     it('rejects expired code', function () {
@@ -224,8 +237,8 @@ describe('apply', function () {
         $code = DiscountCode::factory()->percentage(20)->create(['code' => 'APPLY20']);
 
         // Create a real payment to satisfy FK constraint
-        $subscription = \App\Models\Subscription::factory()->create(['user_id' => $this->user->id]);
-        $payment = \App\Models\Payment::create([
+        $subscription = Subscription::factory()->create(['user_id' => $this->user->id]);
+        $payment = Payment::create([
             'subscription_id' => $subscription->id,
             'user_id' => $this->user->id,
             'revolut_order_id' => 'test-order-123',

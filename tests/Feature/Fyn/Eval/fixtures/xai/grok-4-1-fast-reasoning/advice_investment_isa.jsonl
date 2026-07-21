@@ -1,0 +1,243 @@
+{"__meta":{"provider":"xai","model":"grok-4-1-fast-reasoning","scenario_id":"advice_investment_isa","recorded_at":"2026-04-27T18:39:51+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"a705ae8","conversation_id":205,"event_count":242,"duration_ms":17093}}
+{"type":"title","title":"Should I contribute more to my Stocks & Shares ISA?"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"tool_use","tool":"get_tax_information","status":"running"}
+{"type":"tool_use","tool":"get_tax_information","status":"complete"}
+{"type":"tool_use","tool":"get_tax_information","status":"running"}
+{"type":"tool_use","tool":"get_tax_information","status":"complete"}
+{"type":"content","text":"Your"}
+{"type":"content","text":" Vanguard"}
+{"type":"content","text":" Stocks"}
+{"type":"content","text":" and"}
+{"type":"content","text":" Shares"}
+{"type":"content","text":" Individual"}
+{"type":"content","text":" Savings"}
+{"type":"content","text":" Account"}
+{"type":"content","text":" currently"}
+{"type":"content","text":" holds"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"0"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" with"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"20"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" this"}
+{"type":"content","text":" tax"}
+{"type":"content","text":" year's"}
+{"type":"content","text":" allowance"}
+{"type":"content","text":" remaining"}
+{"type":"content","text":" unused"}
+{"type":"content","text":"."}
+{"type":"content","text":" With"}
+{"type":"content","text":" your"}
+{"type":"content","text":" monthly"}
+{"type":"content","text":" surplus"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"3"}
+{"type":"content","text":","}
+{"type":"content","text":"293"}
+{"type":"content","text":"."}
+{"type":"content","text":"30"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" you"}
+{"type":"content","text":" have"}
+{"type":"content","text":" capacity"}
+{"type":"content","text":" to"}
+{"type":"content","text":" contribute"}
+{"type":"content","text":","}
+{"type":"content","text":" but"}
+{"type":"content","text":" your"}
+{"type":"content","text":" emergency"}
+{"type":"content","text":" fund"}
+{"type":"content","text":" covers"}
+{"type":"content","text":" **"}
+{"type":"content","text":"0"}
+{"type":"content","text":" months"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" expenditure"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" it"}
+{"type":"content","text":" could"}
+{"type":"content","text":" be"}
+{"type":"content","text":" worth"}
+{"type":"content","text":" priorit"}
+{"type":"content","text":"ising"}
+{"type":"content","text":" **"}
+{"type":"content","text":"3"}
+{"type":"content","text":" months"}
+{"type":"content","text":"**"}
+{"type":"content","text":" (\u00a3"}
+{"type":"content","text":"7"}
+{"type":"content","text":","}
+{"type":"content","text":"500"}
+{"type":"content","text":")"}
+{"type":"content","text":" in"}
+{"type":"content","text":" easy"}
+{"type":"content","text":"-access"}
+{"type":"content","text":" savings"}
+{"type":"content","text":" first"}
+{"type":"content","text":" for"}
+{"type":"content","text":" security"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Once"}
+{"type":"content","text":" that's"}
+{"type":"content","text":" in"}
+{"type":"content","text":" place"}
+{"type":"content","text":":\n"}
+{"type":"content","text":"1"}
+{"type":"content","text":"."}
+{"type":"content","text":" Consider"}
+{"type":"content","text":" regular"}
+{"type":"content","text":" contributions"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" ISA"}
+{"type":"content","text":" up"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" surplus"}
+{"type":"content","text":" ("}
+{"type":"content","text":"e"}
+{"type":"content","text":".g"}
+{"type":"content","text":"."}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"500"}
+{"type":"content","text":"-"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"1"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"/month"}
+{"type":"content","text":"**)"}
+{"type":"content","text":" to"}
+{"type":"content","text":" utilise"}
+{"type":"content","text":" tax"}
+{"type":"content","text":"-free"}
+{"type":"content","text":" growth"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" the"}
+{"type":"content","text":" value"}
+{"type":"content","text":" of"}
+{"type":"content","text":" investments"}
+{"type":"content","text":" can"}
+{"type":"content","text":" go"}
+{"type":"content","text":" down"}
+{"type":"content","text":" as"}
+{"type":"content","text":" well"}
+{"type":"content","text":" as"}
+{"type":"content","text":" up"}
+{"type":"content","text":","}
+{"type":"content","text":" and"}
+{"type":"content","text":" past"}
+{"type":"content","text":" performance"}
+{"type":"content","text":" is"}
+{"type":"content","text":" not"}
+{"type":"content","text":" a"}
+{"type":"content","text":" reliable"}
+{"type":"content","text":" indicator"}
+{"type":"content","text":" of"}
+{"type":"content","text":" future"}
+{"type":"content","text":" results"}
+{"type":"content","text":".\n"}
+{"type":"content","text":"2"}
+{"type":"content","text":"."}
+{"type":"content","text":" Add"}
+{"type":"content","text":" your"}
+{"type":"content","text":" fund"}
+{"type":"content","text":" holdings"}
+{"type":"content","text":" to"}
+{"type":"content","text":" this"}
+{"type":"content","text":" account"}
+{"type":"content","text":" for"}
+{"type":"content","text":" a"}
+{"type":"content","text":" personalised"}
+{"type":"content","text":" fees"}
+{"type":"content","text":" and"}
+{"type":"content","text":" diversification"}
+{"type":"content","text":" review"}
+{"type":"content","text":".\n"}
+{"type":"content","text":"3"}
+{"type":"content","text":"."}
+{"type":"content","text":" Tax"}
+{"type":"content","text":" rules"}
+{"type":"content","text":" depend"}
+{"type":"content","text":" on"}
+{"type":"content","text":" your"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":" and"}
+{"type":"content","text":" may"}
+{"type":"content","text":" change"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" contributions"}
+{"type":"content","text":" get"}
+{"type":"content","text":" income"}
+{"type":"content","text":" tax"}
+{"type":"content","text":" relief"}
+{"type":"content","text":" indirectly"}
+{"type":"content","text":" via"}
+{"type":"content","text":" the"}
+{"type":"content","text":" wrapper"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"I"}
+{"type":"content","text":" can"}
+{"type":"content","text":" help"}
+{"type":"content","text":" add"}
+{"type":"content","text":" an"}
+{"type":"content","text":" easy"}
+{"type":"content","text":"-access"}
+{"type":"content","text":" savings"}
+{"type":"content","text":" account"}
+{"type":"content","text":" for"}
+{"type":"content","text":" your"}
+{"type":"content","text":" emergency"}
+{"type":"content","text":" fund"}
+{"type":"content","text":" if"}
+{"type":"content","text":" you'd"}
+{"type":"content","text":" like"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"What"}
+{"type":"content","text":" amount"}
+{"type":"content","text":" were"}
+{"type":"content","text":" you"}
+{"type":"content","text":" thinking"}
+{"type":"content","text":" of"}
+{"type":"content","text":" contributing"}
+{"type":"content","text":","}
+{"type":"content","text":" or"}
+{"type":"content","text":" shall"}
+{"type":"content","text":" we"}
+{"type":"content","text":" build"}
+{"type":"content","text":" that"}
+{"type":"content","text":" emergency"}
+{"type":"content","text":" pot"}
+{"type":"content","text":" first"}
+{"type":"content","text":"?\n\n"}
+{"type":"content","text":"For"}
+{"type":"content","text":" regulated"}
+{"type":"content","text":" advice"}
+{"type":"content","text":" personal"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":","}
+{"type":"content","text":" speak"}
+{"type":"content","text":" to"}
+{"type":"content","text":" a"}
+{"type":"content","text":" qualified"}
+{"type":"content","text":" financial"}
+{"type":"content","text":" adviser"}
+{"type":"content","text":"."}
+{"type":"done","message_id":325,"input_tokens":15810,"output_tokens":341}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Models\UserConsent;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
@@ -160,7 +161,7 @@ describe('Data Erasure', function () {
             'is_preview_user' => true,
         ]);
 
-        $response = $this->actingAs($previewUser)
+        $response = $this->actingAs($previewUser, 'sanctum')
             ->postJson('/api/auth/gdpr/erasure', [
                 'confirm' => true,
             ]);
@@ -253,10 +254,10 @@ describe('Immediate Self-Service Deletion', function () {
 
     it('initiates deletion for user with 2FA enabled', function () {
         // Enable 2FA for user
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET12345678901234567890'),
-        ]);
+        ])->save();
 
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/gdpr/erasure/initiate', [
@@ -276,7 +277,7 @@ describe('Immediate Self-Service Deletion', function () {
             'is_preview_user' => true,
         ]);
 
-        $response = $this->actingAs($previewUser)
+        $response = $this->actingAs($previewUser, 'sanctum')
             ->postJson('/api/auth/gdpr/erasure/initiate', [
                 'type' => 'account',
             ]);
@@ -360,7 +361,7 @@ describe('Immediate Self-Service Deletion', function () {
     it('rejects execution with wrong confirmation phrase', function () {
         // For this test, we need to manually set up a verified session in cache
         $sessionToken = str_repeat('a', 64);
-        \Illuminate\Support\Facades\Cache::put("deletion_session:{$this->user->id}", [
+        Cache::put("deletion_session:{$this->user->id}", [
             'token' => $sessionToken,
             'type' => 'account',
             'verified' => true,
@@ -383,7 +384,7 @@ describe('Immediate Self-Service Deletion', function () {
 
     it('validates confirmation phrase is case-sensitive', function () {
         $sessionToken = str_repeat('b', 64);
-        \Illuminate\Support\Facades\Cache::put("deletion_session:{$this->user->id}", [
+        Cache::put("deletion_session:{$this->user->id}", [
             'token' => $sessionToken,
             'type' => 'account',
             'verified' => true,
@@ -451,10 +452,10 @@ describe('Immediate Self-Service Deletion', function () {
 
     it('rejects resend for user with 2FA', function () {
         // Enable 2FA
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET12345678901234567890'),
-        ]);
+        ])->save();
 
         // Initiate deletion
         $initiateResponse = $this->actingAs($this->user)

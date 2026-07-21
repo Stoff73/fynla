@@ -1,0 +1,84 @@
+id: handoff_edit_pension_balance
+category: 04-handoffs
+description: |
+  Post-onboarding inline-capture handoff for an EDIT — user updates the
+  current_value of an existing DC pension. AdviceFyn detects update intent
+  and emits `delegate_to_capture`; handleInlineCapture invokes
+  `update_record(dc_pension, …, fields: { current_value: 52000 })`;
+  control returns to AdviceFyn.
+
+  Asserts:
+    - update_record called with the pre-existing entity_id (not created).
+    - dc_pensions row count is unchanged (still 1).
+    - Updated current_value matches user statement (£52,000 → 52000.00).
+    - No persona_state_change / capturing-pill SSE.
+
+input:
+  turns:
+    - user: "My Standard Life pension is now worth £52,000."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: true
+  dc_pensions:
+    - { provider: Standard Life, scheme_type: workplace, current_value: 45000, monthly_contribution: 250 }
+
+expected_classifications:
+  - data_entry
+
+expected_internal_tool_calls:
+  - tool: delegate_to_capture
+    args: { entity_types: [dc_pension] }
+
+expected_tool_calls:
+  - tool: update_record
+    args: { entity_type: dc_pension, fields: { current_value: 52000 } }
+
+expected_sse_events:
+  - { type: tool_use, name: update_record }
+  - { type: entity_updated, entity_type: dc_pension }
+  - { type: content }
+  - { type: done }
+
+forbidden_sse_events:
+  - persona_state_change
+  - quick_replies
+
+expected_db_writes:
+  dc_pensions: 1
+
+expected_db_field_after:
+  table: dc_pensions
+  where: { provider: Standard Life }
+  field: current_value
+  expected: 52000.00
+
+forbidden_outputs:
+  - "switching to capture mode"
+  - "let me hand you over"
+  - "I'll need you to fill in"
+
+forbidden_tools:
+  - create_pension
+  - delete_record
+
+eval_focus:
+  module: retirement
+  expected_entity_count: 0
+  expected_update_count: 1
+  recall_floor: 100
+  precision_floor: 100
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms: 8000
+
+tags:
+  - regression-band-0
+  - handoff
+  - inline-capture
+  - edit
+  - retirement

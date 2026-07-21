@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Investment\Recommendation;
 
 use App\Services\TaxConfigService;
+use Carbon\Carbon;
 
 /**
  * Safety checks that can reduce the surplus available to the waterfall.
@@ -312,7 +313,7 @@ class SafetyCheckService
                 continue;
             }
 
-            $monthsUntil = now()->diffInMonths(\Carbon\Carbon::parse($expectedDate), false);
+            $monthsUntil = now()->diffInMonths(Carbon::parse($expectedDate), false);
             if ($monthsUntil >= 0 && $monthsUntil <= 12) {
                 $total += (float) ($event['amount'] ?? 0);
             }

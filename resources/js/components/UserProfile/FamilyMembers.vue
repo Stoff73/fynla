@@ -332,7 +332,7 @@ export default {
 
     const getRelationshipBadgeClass = (relationship) => {
       const classes = {
-        spouse: 'bg-purple-100 text-purple-800',
+        spouse: 'bg-violet-100 text-violet-800',
         child: 'bg-light-blue-100 text-horizon-600',
         step_child: 'bg-light-blue-100 text-horizon-600',
         parent: 'bg-spring-100 text-spring-800',

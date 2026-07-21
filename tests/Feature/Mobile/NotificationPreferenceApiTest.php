@@ -9,7 +9,7 @@ describe('Notification Preferences API', function () {
     it('returns default preferences for new user', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/notifications/preferences');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/notifications/preferences');
 
         $response->assertOk()
             ->assertJson([
@@ -23,13 +23,16 @@ describe('Notification Preferences API', function () {
                     'security_alerts' => true,
                     'payment_alerts' => true,
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.lifecycle_empty_trialer')
+            ->assertJsonMissingPath('data.lifecycle_engaged_trialer')
+            ->assertJsonMissingPath('data.lifecycle_cancelled_trialer');
     });
 
     it('updates specific preferences', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->putJson('/api/v1/mobile/notifications/preferences', [
+        $response = $this->actingAs($user, 'sanctum')->putJson('/api/v1/mobile/notifications/preferences', [
             'market_updates' => true,
             'fyn_daily_insight' => false,
         ]);
@@ -50,7 +53,7 @@ describe('Notification Preferences API', function () {
     it('validates boolean types', function () {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->putJson('/api/v1/mobile/notifications/preferences', [
+        $this->actingAs($user, 'sanctum')->putJson('/api/v1/mobile/notifications/preferences', [
             'policy_renewals' => 'not-a-boolean',
         ])->assertUnprocessable();
     });

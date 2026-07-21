@@ -103,7 +103,7 @@
           </div>
         </div>
         <p class="text-xs text-neutral-500 mt-4">
-          * Assumes higher rate taxpayer (20% Capital Gains Tax rate)
+          * Assumes higher rate taxpayer (24% Capital Gains Tax rate)
         </p>
       </div>
     </div>
@@ -138,7 +138,7 @@
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { CGT_ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import { CGT_HIGHER_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'TaxFees',
@@ -158,6 +158,7 @@ export default {
       'isaAllowancePercentage',
       'analysis',
     ]),
+    ...mapGetters('taxConfig', ['cgtAnnualAllowance', 'isaAnnualAllowance', 'cgtHigherRate']),
 
     taxEfficiencyLabel() {
       if (this.taxEfficiencyScore >= 80) return 'Highly Efficient';
@@ -183,18 +184,18 @@ export default {
     },
 
     isaAllowanceAmount() {
-      return ISA_ANNUAL_ALLOWANCE;
+      return this.isaAnnualAllowance;
     },
 
     cgtAllowanceAmount() {
-      return CGT_ANNUAL_ALLOWANCE;
+      return this.cgtAnnualAllowance;
     },
   },
 
   methods: {
     calculateCGT(unrealisedGain) {
-      const taxableGain = Math.max(0, unrealisedGain - CGT_ANNUAL_ALLOWANCE);
-      const cgtRate = 0.20; // Higher rate taxpayer
+      const taxableGain = Math.max(0, unrealisedGain - this.cgtAnnualAllowance);
+      const cgtRate = this.cgtHigherRate ?? CGT_HIGHER_RATE; // Higher rate taxpayer (2026/27: 24%)
       return taxableGain * cgtRate;
     },
   },

@@ -7,9 +7,12 @@ use App\Models\Estate\IHTProfile;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\AssetLiquidityAnalyzer;
+use App\Services\Estate\AvailableNrbCalculator;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Settings\AssumptionsService;
+use App\Services\TaxConfigService;
+use App\Services\Trust\IHTPeriodicChargeCalculator;
 
 beforeEach(function () {
     // Ensure active tax configuration exists
@@ -18,10 +21,10 @@ beforeEach(function () {
     }
 
     $this->liquidityAnalyzer = new AssetLiquidityAnalyzer;
-    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $taxConfig = app(TaxConfigService::class);
     $assumptionsService = app(AssumptionsService::class);
     $riskPreferenceService = app(RiskPreferenceService::class);
-    $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer, $taxConfig, $assumptionsService, $riskPreferenceService);
+    $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer, $taxConfig, $assumptionsService, $riskPreferenceService, new AvailableNrbCalculator($taxConfig), new IHTPeriodicChargeCalculator($taxConfig));
 
     $this->user = new User([
         'id' => 1,

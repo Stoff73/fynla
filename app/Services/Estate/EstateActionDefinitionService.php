@@ -5,13 +5,21 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Constants\TaxDefaults;
+use App\Models\CashAccount;
+use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
+use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\EstateActionDefinition;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
@@ -31,7 +39,9 @@ class EstateActionDefinitionService
     use StructuredLogging;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -131,7 +141,7 @@ class EstateActionDefinitionService
         $results = [];
         foreach ($policies as $policy) {
             $vars = [
-                'policy_value' => '£'.number_format((float) ($policy->cover_amount ?? 0), 0),
+                'policy_value' => '£'.number_format((float) ($policy->sum_assured ?? 0), 0),
             ];
             $results[] = $this->buildRecommendation($definition, $vars, $priority);
             $priority++;
@@ -289,8 +299,9 @@ class EstateActionDefinitionService
         // This is a periodic reminder that triggers for any user
         // who has pensions or life insurance policies
         $hasPolicies = LifeInsurancePolicy::where('user_id', $user->id)->exists();
-        $hasPensions = \App\Models\DCPension::where('user_id', $user->id)->exists()
-            || \App\Models\DBPension::where('user_id', $user->id)->exists();
+        $store = app(PensionStore::class);
+        $hasPensions = $store->forUserByType($user, 'dc')->isNotEmpty()
+            || $store->forUserByType($user, 'db')->isNotEmpty();
 
         if (! $hasPolicies && ! $hasPensions) {
             return [];
@@ -330,32 +341,38 @@ class EstateActionDefinitionService
     {
         $total = 0.0;
 
-        // Properties
-        $total += (float) \App\Models\Property::where('user_id', $user->id)->sum('current_value');
+        // Properties — primary-owner-only (filter the joint-aware Collection), matching
+        // the Savings line below and the pre-PR-5a behaviour. PropertyStore::forUser returns
+        // user_id = ? OR joint_owner_id = ?; appending where('user_id', $user->id) restores
+        // single-count semantics for joint properties.
+        $total += (float) $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id)
+            ->sum('current_value');
 
         // Investment accounts
-        $total += (float) \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+        $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
 
         // Savings accounts
-        $total += (float) \App\Models\SavingsAccount::where('user_id', $user->id)->sum('current_balance');
+        $savingsCollection = app(SavingsStore::class)->forUser($user);
+        $total += (float) $savingsCollection->where('user_id', $user->id)->sum('current_balance');
 
         // Cash accounts
-        $total += (float) \App\Models\CashAccount::where('user_id', $user->id)->sum('current_balance');
+        $total += (float) CashAccount::where('user_id', $user->id)->sum('current_balance');
 
         // Estate assets
-        $total += (float) \App\Models\Estate\Asset::where('user_id', $user->id)->sum('current_value');
+        $total += (float) Asset::where('user_id', $user->id)->sum('current_value');
 
         // DC Pensions (death benefit)
-        $total += (float) \App\Models\DCPension::where('user_id', $user->id)->sum('current_fund_value');
+        $total += (float) app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
 
         // Life insurance (death benefit adds to estate if not in trust)
         $total += (float) LifeInsurancePolicy::where('user_id', $user->id)
             ->where('in_trust', false)
-            ->sum('cover_amount');
+            ->sum('sum_assured');
 
-        // Subtract liabilities
-        $total -= (float) \App\Models\Mortgage::where('user_id', $user->id)->sum('current_balance');
-        $total -= (float) \App\Models\Estate\Liability::where('user_id', $user->id)->sum('amount');
+        // Subtract liabilities (mortgages primary-only via MortgageStore — matches pre-PR-5a $user_id semantics)
+        $total -= (float) $this->mortgageStore->forUserPrimaryOnly($user)->sum('outstanding_balance');
+        $total -= (float) Liability::where('user_id', $user->id)->sum('current_balance');
 
         return max(0.0, $total);
     }

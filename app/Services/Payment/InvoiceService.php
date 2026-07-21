@@ -9,6 +9,7 @@ use App\Models\DiscountCode;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -16,11 +17,28 @@ use Illuminate\Support\Facades\Storage;
 
 class InvoiceService
 {
+    public function __construct(private readonly TierConfigurationStore $tierStore) {}
+
     /**
      * Generate an invoice for a completed payment.
      */
     public function generateInvoice(Payment $payment, ?DiscountCode $discount = null): Invoice
     {
+        $payment->refresh();
+        if ($payment->invoice_id !== null) {
+            return Invoice::findOrFail($payment->invoice_id);
+        }
+
+        $existingInvoice = Invoice::where('payment_id', $payment->id)->first();
+        if ($existingInvoice !== null) {
+            if ($existingInvoice->pdf_path === null || ! Storage::exists($existingInvoice->pdf_path)) {
+                $existingInvoice->update(['pdf_path' => $this->generatePdf($existingInvoice)]);
+            }
+            $payment->update(['invoice_id' => $existingInvoice->id]);
+
+            return $existingInvoice;
+        }
+
         $subscription = $payment->subscription;
         $user = $payment->user;
 
@@ -43,13 +61,13 @@ class InvoiceService
             'currency' => $payment->currency ?? 'GBP',
             'discount_code' => $discount?->code,
             'discount_description' => $discount ? $this->describeDiscount($discount) : null,
-            'plan_name' => ucfirst($payment->plan_slug ?? $subscription->plan),
+            'plan_name' => $this->resolvePlanName($payment->plan_slug ?? $subscription->plan),
             'billing_cycle' => $payment->billing_cycle ?? $subscription->billing_cycle,
             'period_start' => $subscription->current_period_start,
             'period_end' => $subscription->current_period_end,
             'next_renewal_date' => $subscription->auto_renew ? $nextRenewalDate : null,
             'issued_at' => now(),
-            'billing_name' => trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')),
+            'billing_name' => trim(($user->first_name ?? '').' '.($user->surname ?? '')),
             'billing_address' => $this->buildAddress($user),
             'billing_email' => $user->email,
         ]);
@@ -137,12 +155,30 @@ class InvoiceService
         return count($lines) > 0 ? implode("\n", $lines) : null;
     }
 
+    /**
+     * Resolve a human-readable plan name for invoice line items.
+     * For canonical tier-based plans the display name comes from
+     * TierConfigurationStore so a single admin edit propagates to all new invoices.
+     * Legacy plan slugs (student/standard/family/pro) fall back to ucfirst.
+     */
+    private function resolvePlanName(?string $planSlug): string
+    {
+        if ($planSlug && in_array($planSlug, TierConfigurationStore::TIERS, true)) {
+            try {
+                return $this->tierStore->forTier($planSlug)->display_name;
+            } catch (\Throwable) {
+                // Store unavailable — fall through to fallback
+            }
+        }
+
+        return ucfirst((string) $planSlug);
+    }
+
     private function describeDiscount(DiscountCode $discount): string
     {
         return match ($discount->type) {
             'percentage' => "{$discount->value}% off",
-            'fixed_amount' => '£' . number_format($discount->value / 100, 2) . ' off',
-            'trial_extension' => "{$discount->value} extra trial days",
+            'fixed_amount' => '£'.number_format($discount->value / 100, 2).' off',
             default => 'Discount applied',
         };
     }

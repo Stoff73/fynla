@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Auth\TokenRefreshController;
+use App\Http\Controllers\Api\V1\Mobile\DeviceController;
+use App\Http\Controllers\Api\V1\Mobile\InsightsController;
+use App\Http\Controllers\Api\V1\Mobile\MobileAchievementsController;
+use App\Http\Controllers\Api\V1\Mobile\MobileDashboardController;
+use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
+use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\Mobile\ShareController;
+use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,44 +39,75 @@ Route::get('/health', function () {
     ]);
 })->name('api.v1.health');
 
+Route::middleware(['auth:sanctum', 'native.client'])
+    ->prefix('native')
+    ->group(function () {
+        Route::get('/health', fn () => response()->json([
+            'success' => true,
+            'data' => ['api_version' => 'v1'],
+        ]))->name('api.v1.native.health');
+    });
+
+Route::prefix('/native/auth')->middleware('native.client')->group(function () {
+    Route::post('/session/refresh', [NativeSessionController::class, 'refresh'])
+        ->middleware('throttle:native-session');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/session/exchange', [NativeSessionController::class, 'exchange'])
+            ->middleware('throttle:native-session');
+        Route::get('/session', [NativeSessionController::class, 'show']);
+        Route::delete('/session', [NativeSessionController::class, 'destroy']);
+    });
+});
+
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
     // Auth token refresh
-    Route::post('/auth/refresh-token', [\App\Http\Controllers\Api\V1\Auth\TokenRefreshController::class, 'refresh'])
+    Route::post('/auth/refresh-token', [TokenRefreshController::class, 'refresh'])
         ->middleware('throttle:device-registration')
         ->name('api.v1.auth.refresh-token');
 
     // Mobile dashboard — aggregated summary of all modules
-    Route::get('/mobile/dashboard', [\App\Http\Controllers\Api\V1\Mobile\MobileDashboardController::class, 'index'])
+    Route::get('/mobile/dashboard', [MobileDashboardController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.dashboard');
 
+    // Mobile achievements — earned badges, next actions, financial milestones
+    Route::get('/mobile/achievements', [MobileAchievementsController::class, 'index'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements');
+
+    // WP-5c-ii — load-more pages of completed actions (25/page)
+    Route::get('/mobile/achievements/completed', [MobileAchievementsController::class, 'completed'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.completed');
+
     // Module summaries — individual module analysis
-    Route::get('/mobile/modules/{module}', [\App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController::class, 'show'])
+    Route::get('/mobile/modules/{module}', [ModuleSummaryController::class, 'show'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.modules.show');
 
     // Daily insights — Fyn contextual insight
-    Route::get('/mobile/insights/daily', [\App\Http\Controllers\Api\V1\Mobile\InsightsController::class, 'daily'])
+    Route::get('/mobile/insights/daily', [InsightsController::class, 'daily'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.insights.daily');
 
     // Device registration
-    Route::post('/mobile/devices', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'store'])
+    Route::post('/mobile/devices', [DeviceController::class, 'store'])
         ->middleware('throttle:device-registration')
         ->name('api.v1.mobile.devices.store');
-    Route::get('/mobile/devices', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'index'])
+    Route::get('/mobile/devices', [DeviceController::class, 'index'])
         ->name('api.v1.mobile.devices.index');
-    Route::delete('/mobile/devices/{deviceId}', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'destroy'])
+    Route::delete('/mobile/devices/{deviceId}', [DeviceController::class, 'destroy'])
         ->name('api.v1.mobile.devices.destroy');
 
     // Notification preferences
-    Route::get('/mobile/notifications/preferences', [\App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController::class, 'show'])
+    Route::get('/mobile/notifications/preferences', [NotificationPreferenceController::class, 'show'])
         ->name('api.v1.mobile.notifications.preferences.show');
-    Route::put('/mobile/notifications/preferences', [\App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController::class, 'update'])
+    Route::put('/mobile/notifications/preferences', [NotificationPreferenceController::class, 'update'])
         ->name('api.v1.mobile.notifications.preferences.update');
 
     // Social share
-    Route::get('/mobile/share/{type}/{id?}', [\App\Http\Controllers\Api\V1\Mobile\ShareController::class, 'show'])
+    Route::get('/mobile/share/{type}/{id?}', [ShareController::class, 'show'])
         ->name('api.v1.mobile.share');
 });

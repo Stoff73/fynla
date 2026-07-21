@@ -88,7 +88,7 @@
                 </div>
                 <div class="tax-rate-item">
                   <p class="rate-label">Income Tax (Interest in Possession)</p>
-                  <p class="rate-value">20% other income, 8.75% dividends</p>
+                  <p class="rate-value">20% other income, 10.75% dividends</p>
                 </div>
                 <div class="tax-rate-item">
                   <p class="rate-label">Capital Gains Tax</p>
@@ -119,7 +119,7 @@
               <div class="charges-grid">
                 <div class="charge-item">
                   <p class="charge-label">Entry Charge</p>
-                  <p class="charge-value">20% on gifts exceeding £{{ ihtNilRateBand.toLocaleString() }} Nil Rate Band</p>
+                  <p class="charge-value">20% on gifts exceeding £{{ (ihtNilRateBand || 0).toLocaleString() }} Nil Rate Band</p>
                 </div>
                 <div class="charge-item">
                   <p class="charge-label">Periodic Charge</p>
@@ -223,7 +223,6 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
-import { IHT_NIL_RATE_BAND } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -241,7 +240,6 @@ export default {
 
   data() {
     return {
-      ihtNilRateBand: IHT_NIL_RATE_BAND,
       loading: false,
       error: null,
       showTrustModal: false,
@@ -263,7 +261,7 @@ export default {
           type: 'interest_in_possession',
           name: 'Interest in Possession',
           description: 'Life tenant receives all income, capital passes to remaindermen.',
-          incomeTax: '20% / 8.75% (dividends)',
+          incomeTax: '20% / 10.75% (dividends)',
           iht: 'May be in life tenant\'s estate',
           isRPT: false,
         },
@@ -322,6 +320,7 @@ export default {
   computed: {
     ...mapState('trusts', ['trusts']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
+    ...mapGetters('taxConfig', ['ihtNilRateBand']),
 
     currentTaxYear() {
       return getCurrentTaxYear();

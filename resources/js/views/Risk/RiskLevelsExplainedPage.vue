@@ -114,7 +114,7 @@
                       title="Cash"
                     ></div>
                     <div
-                      class="bg-purple-500"
+                      class="bg-violet-500"
                       :style="{ width: level.asset_allocation?.alternatives + '%' }"
                       title="Alternatives"
                     ></div>

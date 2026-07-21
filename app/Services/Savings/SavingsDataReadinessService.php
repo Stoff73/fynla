@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Savings;
 
+use App\Events\Eval\GateChecked;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -49,14 +50,35 @@ class SavingsDataReadinessService
         $blocking = $collection->where('level', 'blocking');
         $warnings = $collection->where('level', 'warning');
         $info = $collection->where('level', 'info');
+        $canProceed = $blocking->where('passed', false)->isEmpty();
+
+        event(new GateChecked(
+            gate: 'data_readiness',
+            module: 'savings',
+            passed: $canProceed,
+            context: [
+                'blocking' => $blocking->where('passed', false)->pluck('key')->all(),
+                'warnings' => $warnings->where('passed', false)->pluck('key')->all(),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
+
+        $totalChecks = count($checks);
+        $passedChecks = $collection->where('passed', true)->count();
 
         return [
-            'can_proceed' => $blocking->where('passed', false)->isEmpty(),
+            'can_proceed' => $canProceed,
             'blocking' => array_values($blocking->toArray()),
             'warnings' => array_values($warnings->toArray()),
             'info' => array_values($info->toArray()),
-            'total_checks' => count($checks),
-            'passed_checks' => $collection->where('passed', true)->count(),
+            'total_checks' => $totalChecks,
+            'passed_checks' => $passedChecks,
+            // M12 — canonical key shared with Estate / Investment / Protection
+            // / Retirement readiness services.
+            'completeness_percent' => $totalChecks > 0
+                ? round(($passedChecks / $totalChecks) * 100, 1)
+                : 0.0,
         ];
     }
 
