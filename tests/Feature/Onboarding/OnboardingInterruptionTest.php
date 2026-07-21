@@ -9,8 +9,28 @@ use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\Fyn\FynStreamHarness;
 
 uses(RefreshDatabase::class);
+
+/**
+ * Scripts the shared FynLoop advice turn with one text answer.
+ *
+ * FynLoop::run() makes TWO scripted LLM calls in sequence against the same
+ * client — the planner's forced `plan` tool call, then the reasoner's
+ * streamed answer — so the harness must queue both turns (see
+ * tests/Feature/Fyn/FynLoopPlannerTest.php's "plans reason then streams the
+ * reasoner answer" case, the canonical precedent for this exact two-turn
+ * shape). FynStreamHarness::bind() forces the Anthropic provider and binds
+ * Anthropic\Client — the idiom every FynLoop-driving suite uses.
+ */
+function scriptedFynClientWithText(string $text): void
+{
+    FynStreamHarness::fake()
+        ->toolTurn('plan', ['action_type' => 'reason', 'prompt_template_id' => 'advice_default'])
+        ->textTurn($text)
+        ->bind();
+}
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -110,4 +130,37 @@ it('accepting the store offer routes the original message through inline capture
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
     expect($texts)->not->toContain("didn't catch that");
     expect(collect($received)->where('type', 'tool_use')->pluck('tool'))->toContain('create_savings_account');
+});
+
+it('answers a module-level question inline from data then resumes the walk', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    // Scripted advice turn: one text chunk. The global Pest hook binds an
+    // empty scripted client; rebind with a single content event so the
+    // FynLoop advice turn voices an answer.
+    scriptedFynClientWithText('Your pension is on track — you hold one workplace pension.');
+
+    [$user, $conversation] = interruptionUser();
+
+    $received = driveDirector($user, $conversation, 'Am I on track for retirement?');
+
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->toContain('pension');
+    expect($texts)->not->toContain("didn't catch that");
+
+    // The walk resumed at the same step.
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+
+    // Event-ordering hard gate: the advice answer's content event must
+    // arrive strictly before the re-emitted step's quick_replies event, and
+    // there must be exactly one terminal `done` — the one closing the
+    // re-emitted step, not the FynLoop advice turn's own terminal marker
+    // (which would otherwise end the SSE turn before the walk re-renders).
+    $types = collect($received)->pluck('type');
+    $contentIndex = $types->search('content');
+    $quickRepliesIndex = $types->search('quick_replies');
+    expect($contentIndex)->not->toBeFalse();
+    expect($quickRepliesIndex)->not->toBeFalse();
+    expect($quickRepliesIndex)->toBeGreaterThan($contentIndex);
+    expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(1);
 });

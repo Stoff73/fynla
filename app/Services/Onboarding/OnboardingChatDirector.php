@@ -13,11 +13,13 @@ use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\AI\AdviceFyn;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Fyn\FynVerifyEditTurnInstructions;
 use App\Services\AI\Loop\FynLoop;
+use App\Services\AI\Loop\SessionMode;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
@@ -1476,7 +1478,70 @@ final class OnboardingChatDirector
         ?string $primary,
         ?string $currentRoute
     ): ?\Generator {
-        return null; // Task 3 / Task 4
+        if ($primary === null) {
+            return null;
+        }
+
+        $level = AdviceFyn::engineCallLevelFor($primary);
+
+        if ($level === 'holistic') {
+            return $this->deferQuestion($user, $conversation, $currentStateId, $state, $message); // Task 4
+        }
+
+        return (function () use ($user, $conversation, $currentStateId, $state, $message, $currentRoute): \Generator {
+            // Resolved lazily via the container rather than constructor-
+            // injected: AdviceFyn constructor-injects this director (so its
+            // delegate_to_capture handoff can reach handleInlineCapture),
+            // and ctor-injecting AdviceFyn back here would form a container
+            // cycle. Same service-locator precedent as buildSectionAdvice's
+            // app(ComposedTaxPlanService::class).
+            $readOnlyTools = app(AdviceFyn::class)->buildToolList($user);
+
+            $advice = $this->fynLoop->run(
+                SessionMode::Advice,
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                $readOnlyTools,
+                persistUserMessage: false,
+            );
+
+            // The advice turn ends with its own terminal `done` event
+            // (HasAiChat::chat's closing yield). Drop it here rather than
+            // relaying it — a `done` reaching the frontend ends the SSE
+            // turn, which would cut the response off before the re-emitted
+            // step below renders. Mirrors handleInlineCapture holding the
+            // upstream terminal marker for the same reason: exactly one
+            // `done` must close this turn, and it belongs to the re-emitted
+            // step, not the inline advice answer.
+            foreach ($advice as $event) {
+                if (($event['type'] ?? '') === 'done') {
+                    continue;
+                }
+
+                yield $event;
+            }
+
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+        })();
+    }
+
+    /**
+     * Task 3 stub — a holistic-level question mid-onboarding is deferred
+     * rather than answered inline (a full orchestrateAnalysis call is too
+     * heavy to run mid-walk). Task 4 replaces this with the real deferral
+     * flow (acknowledge + offer to answer after onboarding); for now it
+     * just re-emits the current step so the walk isn't interrupted.
+     */
+    private function deferQuestion(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message
+    ): \Generator {
+        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
 
     private function handleInformationInterruption(
