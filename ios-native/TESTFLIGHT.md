@@ -52,12 +52,11 @@ archive command below — nothing else changes.
    export (`-allowProvisioningUpdates`). If a command below fails with an
    authentication error, open Xcode → Settings → Accounts, confirm the
    `99S3M8JLLF` team is listed, and click "Download Manual Profiles" once.
-3. **(Optional, removes every interactive gate)** App Store Connect API key —
-   Users and Access → Integrations → App Store Connect API → Team Keys →
-   generate with **App Manager** role. Download the `.p8` once, note the Key
-   ID and Issuer ID, and place the file at
-   `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8`. With the key in
-   place, every step below runs headlessly (`-authenticationKeyPath/…ID/…IssuerID`).
+3. **API key (DONE 2026-07-21)** — key "FynlaAI", ID `683FKHT7SL`, issuer
+   `8fad68f9-bd52-4057-98ca-7c179a862d60`, installed at
+   `~/.appstoreconnect/private_keys/AuthKey_683FKHT7SL.p8`. App Manager
+   role: uploads and API provisioning run headlessly; only Xcode's cloud
+   signing is out of its reach (see the signing note below).
 
 ## Build → archive → upload (repeat for every build)
 
@@ -95,11 +94,39 @@ PLIST
 xcodebuild -exportArchive \
   -archivePath build/Fynla-Staging.xcarchive \
   -exportOptionsPlist build/ExportOptions.plist \
-  -allowProvisioningUpdates
-# With an API key, append:
-#   -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8 \
-#   -authenticationKeyID <KEYID> -authenticationKeyIssuerID <ISSUERID>
+  -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_683FKHT7SL.p8 \
+  -authenticationKeyID 683FKHT7SL \
+  -authenticationKeyIssuerID 8fad68f9-bd52-4057-98ca-7c179a862d60
 ```
+
+**Signing note (as proven on 2026-07-21):** the FynlaAI API key has the App
+Manager role, which can archive with `-allowProvisioningUpdates` but is NOT
+allowed to mint distribution certificates through Xcode's cloud signing
+("Cloud signing permission error" — that path needs an Admin key). The
+working setup instead uses a real distribution identity created once via the
+App Store Connect API and installed locally:
+
+- Apple Distribution certificate `G4DATT2CZB` (expires 2027-07-21), private
+  key held in the local `fynla-dist` keychain (password `fynla-temp-2026`,
+  added to the user keychain search list).
+- App Store profile "Fynla Dev App Store" installed under
+  `~/Library/MobileDevice/Provisioning Profiles/`.
+- `ExportOptions.plist` therefore uses **manual** signing:
+
+```xml
+<key>signingStyle</key><string>manual</string>
+<key>signingCertificate</key><string>Apple Distribution</string>
+<key>provisioningProfiles</key>
+<dict><key>org.fynla.app.dev</key><string>Fynla Dev App Store</string></dict>
+```
+
+These survive between uploads — day-to-day releases are just: bump build
+number → archive → exportArchive. Only when the certificate expires
+(2027-07) does the one-time identity setup repeat.
+
+The production app (`org.fynla.app`) will need its own App Store profile
+against the same certificate when its time comes — one extra
+`POST /v1/profiles` call.
 
 Xcode GUI equivalent: open the project, select the `Fynla-Staging` scheme +
 "Any iOS Device", Product → Archive, then in the Organizer choose
