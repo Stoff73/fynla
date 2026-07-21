@@ -206,3 +206,9 @@ manual fixture launch screenshot + journey suite.
 |------|-------------|
 | Achievements tabs | **DONE** — /m ma-* transcription: white tab card (14/700 neutral500 on horizon100 + horizon200 border; active white on horizon500), ma-badge styling (earned = spring border + 8% tint + spring-600 status; unearned = savannah at 0.55 opacity), uppercase section labels, dd/mm/yyyy dates, Show-more as full-width raspberry m-btn, History as hairline label/date rows with an onAppear infinite-scroll sentinel (/m's IntersectionObserver equivalent), coin loader + /m-styled state cards. Verified via 3 new parity captures (tabs 14–16). |
 | Level-up celebration overlay | **KEPT (native acknowledgement flow).** Serves the server's pending-celebration state; the /m fireworks skin remains deferred under ledger D8. |
+
+## 2026-07-21 — sweep item 8 (user chat-bubble check) — RESOLVED
+
+| Item | Disposition |
+|------|-------------|
+| User chat-bubble style | **VERIFIED against live /m and matched.** dashboard.css defines only `.md-fyn__msg--fyn` — there is NO `--user` rule. Computed-style probe on csjones (logged-in john, live Fyn overlay): user messages render full-width, LEFT-aligned, transparent background, no border-radius/padding on the wrapper, body colour #1F2A44 at 15px/400. Native `FynMessageView` previously invented a right-aligned grey user bubble — now renders user turns as /m does (plain left-aligned text, Fyn bubbles keep the white card + horizon100 hairline). If CSJ prefers a styled user bubble, add the CSS to /m FIRST, then mirror natively (both surfaces, Rule 19). |
