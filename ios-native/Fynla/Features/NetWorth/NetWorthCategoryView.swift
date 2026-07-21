@@ -1,10 +1,17 @@
 import SwiftUI
 
+// Transcribes /m's net-worth category sub-page (resources/mobile/views/
+// modules/NetWorthCategory.vue): gradient page hero, Back + Edit details
+// pills, category identity card, dark total hero with the item-count
+// sub-line, and the Items/Breakdown list with 15/700 rows (raspberry
+// liability values), horizon-200 hairlines and the 11/700 field chips.
+// Whole-pound amounts.
 struct NetWorthCategoryView: View {
     let categoryKey: String
     let model: NetWorthModel
     let onOpenFyn: (String) -> Void
     let onOpenSubscription: () -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -17,8 +24,6 @@ struct NetWorthCategoryView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Net Worth")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("net-worth.category.screen")
     }
@@ -27,7 +32,7 @@ struct NetWorthCategoryView: View {
     private func loadedState(_ category: NetWorthCategory) -> some View {
         switch model.state {
         case .idle, .loading:
-            ScreenStateView(state: .loading)
+            DashboardLoadingView(message: "Loading your accounts…")
         case let .loaded(snapshot):
             content(category, snapshot: snapshot)
         case let .offline(previous):
@@ -51,64 +56,50 @@ struct NetWorthCategoryView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text(category.title)
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text(category.subtitle)
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-
-                if offline {
-                    Text("You're offline. Showing the last loaded values.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.primaryText)
-                        .padding(FynlaSpacing.medium)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(FynlaColor.Token.savannah100.color)
-                        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-                }
-
-                hero(category, snapshot: snapshot)
-                itemCard(category, snapshot: snapshot)
-
-                Button("Update \(category.title.lowercased()) with Fyn") {
-                    onOpenFyn(editPrompt(category, snapshot: snapshot))
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: FynlaSpacing.minimumInteractiveTarget
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Net Worth",
+                    subtitle: "Everything you own, less what you owe"
                 )
-                .accessibilityIdentifier("net-worth.category.edit-with-fyn")
+
+                MobilePageActions(
+                    onBack: { dismiss() },
+                    editDetails: { onOpenFyn("What would you like to update?") }
+                )
+
+                Group {
+                    MobileDetailHeader(title: category.title, subtitle: category.subtitle)
+
+                    if offline {
+                        offlineNotice
+                    }
+
+                    hero(category, snapshot: snapshot)
+                    itemCard(category, snapshot: snapshot)
+                }
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
+    // m-hero — dark card: category total + item-count sub.
     private func hero(
         _ category: NetWorthCategory,
         snapshot: NetWorthSnapshot
     ) -> some View {
         let isLiability = category == .liabilities
         let rows = itemCount(category, snapshot: snapshot)
-        return VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(isLiability ? "Total owed" : "Total value")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(total(category, snapshot: snapshot))
-            Text("Across \(rows) \(isLiability ? (rows == 1 ? "type" : "types") + " of debt" : (rows == 1 ? "item" : "items")).")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-        }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        return MobileHeroCard(
+            label: isLiability ? "Total owed" : "Total value",
+            metric: MoneyFormatter.gbpWhole(total(category, snapshot: snapshot)),
+            sub: isLiability
+                ? "Across \(rows) \(rows == 1 ? "type" : "types") of debt."
+                : "Across \(rows) \(rows == 1 ? "item" : "items")."
+        )
+        .accessibilityIdentifier("net-worth.category.total")
     }
 
     @ViewBuilder
@@ -117,70 +108,90 @@ struct NetWorthCategoryView: View {
         snapshot: NetWorthSnapshot
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(category == .liabilities ? "Breakdown" : "Items")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .padding(.bottom, FynlaSpacing.small)
+            Text((category == .liabilities ? "Breakdown" : "Items").uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.bottom, 4)
 
             if category == .liabilities {
                 if snapshot.liabilityRows.isEmpty {
                     emptyMessage
                 } else {
-                    ForEach(snapshot.liabilityRows) { row in
-                        itemRow(name: row.title, value: row.value, fields: [])
+                    ForEach(Array(snapshot.liabilityRows.enumerated()), id: \.offset) { index, row in
+                        itemRow(
+                            name: row.title,
+                            value: row.value,
+                            fields: [],
+                            isDebt: true,
+                            isLast: index == snapshot.liabilityRows.count - 1
+                        )
                     }
                 }
             } else if let items = snapshot.section(for: category)?.items,
                       !items.isEmpty
             {
-                ForEach(items) { item in
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                     itemRow(
                         name: item.name,
                         value: item.value,
-                        fields: fields(for: item, category: category)
+                        fields: fields(for: item, category: category),
+                        isDebt: false,
+                        isLast: index == items.count - 1
                     )
                 }
             } else {
                 emptyMessage
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // mnwc-item — name/value head + field chips, horizon-200 hairlines.
     private func itemRow(
         name: String,
         value: Decimal,
-        fields: [String]
+        fields: [String],
+        isDebt: Bool,
+        isLast: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.medium) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(name)
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.primaryText)
-                Spacer(minLength: FynlaSpacing.small)
-                Text(MoneyFormatter.gbp(value))
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.primaryText)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                Spacer(minLength: 8)
+                Text(MoneyFormatter.gbpWhole(value))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(
+                        isDebt
+                            ? FynlaColor.Token.raspberry500.color
+                            : FynlaColor.Token.horizon500.color
+                    )
+                    .lineLimit(1)
             }
             if !fields.isEmpty {
-                Text(fields.joined(separator: " · "))
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                FlowChips(fields: fields)
+                    .padding(.top, 6)
             }
         }
-        .padding(.vertical, FynlaSpacing.medium)
-        .overlay(alignment: .bottom) { Divider() }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) {
+            if !isLast {
+                FynlaColor.Token.horizon200.color.frame(height: 1)
+            }
+        }
         .accessibilityElement(children: .combine)
     }
 
     private var emptyMessage: some View {
         Text("Nothing recorded in this category yet.")
-            .font(FynlaTypography.body)
-            .foregroundStyle(FynlaColor.secondaryText)
-            .padding(.vertical, FynlaSpacing.small)
+            .font(.system(size: 14))
+            .foregroundStyle(FynlaColor.Token.neutral500.color)
+            .padding(.vertical, 8)
     }
 
     private func total(
@@ -218,7 +229,7 @@ struct NetWorthCategoryView: View {
                 values.append("Defined Contribution")
             }
             if let annual = item.annualPension, annual > 0 {
-                values.append("\(MoneyFormatter.gbp(annual)) a year")
+                values.append("\(MoneyFormatter.gbpWhole(annual)) a year")
             }
         case .cash:
             if item.isISA == true { values.append("ISA") }
@@ -226,7 +237,10 @@ struct NetWorthCategoryView: View {
         case .business:
             appendTitle(item.businessType, to: &values)
             if let percentage = item.ownershipPercentage {
-                values.append("\(MoneyFormatter.percentage(percentage)) owned")
+                let rounded = Int(
+                    NSDecimalNumber(decimal: percentage).doubleValue.rounded()
+                )
+                values.append("\(rounded)% owned")
             }
         case .chattels:
             appendTitle(item.chattelType, to: &values)
@@ -259,18 +273,14 @@ struct NetWorthCategoryView: View {
         }
     }
 
-    private func editPrompt(
-        _ category: NetWorthCategory,
-        snapshot: NetWorthSnapshot
-    ) -> String {
-        let names = category == .liabilities
-            ? snapshot.liabilityRows.map { Optional($0.title) }
-            : snapshot.section(for: category)?.items.map { Optional($0.name) } ?? []
-        return FynEditIntent.message(
-            updateScope: category.title.lowercased(),
-            addPhrase: "I'd like to add \(category == .liabilities ? "a liability" : "an asset").",
-            names: names
-        )
+    private var offlineNotice: some View {
+        Text("You're offline. Showing the last loaded values.")
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FynlaColor.Token.savannah100.color)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {
@@ -279,5 +289,78 @@ struct NetWorthCategoryView: View {
             retry: state.canRetry ? { Task { await model.load() } } : nil,
             openSubscription: state.canUpgrade ? onOpenSubscription : nil
         )
+    }
+}
+
+// mnwc-item__field chips — 11/700 neutral600 on horizon100 capsules,
+// wrapping with 6pt gaps.
+private struct FlowChips: View {
+    let fields: [String]
+
+    var body: some View {
+        FlowLayout(spacing: 6) {
+            ForEach(fields.indices, id: \.self) { index in
+                Text(fields[index])
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.neutral600.color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(FynlaColor.Token.horizon100.color)
+                    .clipShape(Capsule())
+            }
+        }
+    }
+}
+
+// Minimal wrapping layout for the field chips.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Void
+    ) -> CGSize {
+        let width = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: width == .infinity ? x : width, height: y + rowHeight)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Void
+    ) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            subview.place(
+                at: CGPoint(x: x, y: y),
+                anchor: .topLeading,
+                proposal: .unspecified
+            )
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }
