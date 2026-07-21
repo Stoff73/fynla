@@ -38,7 +38,13 @@ class DetectNewArticles extends Command
 
         $dryRun = (bool) $this->option('dry-run');
 
-        $existingIds = PipelineArticle::query()->pluck('insight_article_id')->all();
+        // Only insight-sourced rows carry an insight_article_id; document-sourced
+        // rows have NULL there. Filtering nulls out is essential — a NULL inside
+        // whereNotIn() makes SQL `NOT IN (NULL, …)` match nothing.
+        $existingIds = PipelineArticle::query()
+            ->whereNotNull('insight_article_id')
+            ->pluck('insight_article_id')
+            ->all();
 
         $newArticles = InsightArticle::published()
             ->whereNotIn('id', $existingIds)

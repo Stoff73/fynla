@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs\Pipeline;
 
+use App\Mail\Pipeline\ScriptReadyForReviewMail;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
 use App\Services\Pipeline\Google\GoogleDriveService;
@@ -15,6 +16,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
@@ -106,19 +108,28 @@ class ProcessInsightArticleJob implements ShouldQueue
 
             $uploaded = $drive->uploadMarkdownAsGoogleDoc($docTitle, $markdown);
 
+            // Tracker-sheet logging is best-effort: the script is already in
+            // Drive, so a Sheets outage/timeout must not fail the pipeline.
             $sheetRow = null;
             $sheetId = config('pipeline.google.tracker_sheet_id');
             if (is_string($sheetId) && $sheetId !== '') {
-                $sheetRow = $sheets->appendRow($sheetId, [
-                    now()->toIso8601String(),
-                    $slug,
-                    $title,
-                    $uploaded['webViewLink'],
-                    'Script Ready',
-                    '',
-                    '',
-                    '',
-                ]);
+                try {
+                    $sheetRow = $sheets->appendRow($sheetId, [
+                        now()->toIso8601String(),
+                        $slug,
+                        $title,
+                        $uploaded['webViewLink'],
+                        'Script Ready',
+                        '',
+                        '',
+                        '',
+                    ]);
+                } catch (Throwable $e) {
+                    Log::channel('pipeline')->warning('Tracker sheet append failed (non-fatal).', [
+                        'pipeline_article_id' => $article->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $article->update([
@@ -144,10 +155,19 @@ class ProcessInsightArticleJob implements ShouldQueue
                 ]),
             ]);
 
-            // The script does not require review/approval — it is generated and
-            // uploaded straight to the Marketing Automation Drive folder above.
-            // No notification email is sent (per product decision: the article
-            // formatting is the human gate, the script is not).
+            // Notify marketing: the script is ready (no approval needed — it's
+            // already in Drive) and the article is waiting in the admin panel for
+            // formatting review + push to dev/live. Non-fatal: a mail failure
+            // must not fail the pipeline.
+            try {
+                Mail::to((string) config('pipeline.notifications.script_ready_to'))
+                    ->queue(new ScriptReadyForReviewMail($article->fresh()));
+            } catch (Throwable $e) {
+                Log::channel('pipeline')->warning('Script-ready notification failed (non-fatal).', [
+                    'pipeline_article_id' => $article->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             Log::channel('pipeline')->info('Script generated and delivered to Drive.', [
                 'pipeline_article_id' => $article->id,

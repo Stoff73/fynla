@@ -141,19 +141,28 @@ class ProcessVideoJob implements ShouldQueue
                 'last_error' => null,
             ]);
 
+            // Best-effort tracker logging — clips are already rendered, so a
+            // Sheets outage/timeout must not fail the video stage.
             if ($article->tracking_sheet_row_id !== null) {
                 $sheetId = (string) config('pipeline.google.tracker_sheet_id');
                 if ($sheetId !== '') {
-                    $sheets->appendRow($sheetId, [
-                        now()->toIso8601String(),
-                        $slug,
-                        $article->sourceTitle(),
-                        $article->script_drive_url,
-                        'Video Ready',
-                        $article->source_video_drive_url,
-                        implode("\n", $signedUrls),
-                        'captions: burned',
-                    ]);
+                    try {
+                        $sheets->appendRow($sheetId, [
+                            now()->toIso8601String(),
+                            $slug,
+                            $article->sourceTitle(),
+                            $article->script_drive_url,
+                            'Video Ready',
+                            $article->source_video_drive_url,
+                            implode("\n", $signedUrls),
+                            'captions: burned',
+                        ]);
+                    } catch (Throwable $e) {
+                        Log::channel('pipeline')->warning('Tracker sheet append failed (non-fatal).', [
+                            'pipeline_article_id' => $article->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 
