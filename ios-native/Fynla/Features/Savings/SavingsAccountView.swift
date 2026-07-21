@@ -1,15 +1,21 @@
 import SwiftUI
 
+// Transcribes /m's savings account sub-page (resources/mobile/views/modules/
+// SavingsAccount.vue): gradient page hero, Back + Edit details pills, provider
+// identity card, dark full-balance hero with joint share + ISA/emergency-fund
+// tags, and the Balance & interest / Account information / ISA details row
+// cards. Whole-pound amounts; interest maths is /m-parity (ledger P0-1).
 struct SavingsAccountView: View {
     let accountID: Int
     let model: SavingsModel
     let onOpenFyn: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
             switch model.accountState {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                DashboardLoadingView(message: "Loading this account…")
             case let .loaded(account):
                 content(account)
             case .offline:
@@ -25,173 +31,157 @@ struct SavingsAccountView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Savings")
-        .navigationBarTitleDisplayMode(.inline)
         .task(id: accountID) { await model.loadAccount(id: accountID) }
         .accessibilityIdentifier("savings.account.screen")
     }
 
     private func content(_ account: SavingsAccount) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text(account.displayName)
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text(accountTypeLabel(account.accountType))
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Savings and emergency fund",
+                    subtitle: "Your cash, emergency-fund runway and ISA allowance"
+                )
 
-                hero(account)
-                detailCard(title: "Balance & interest") {
-                    detailRow("Full balance", MoneyFormatter.gbp(account.fullBalanceValue))
-                    if account.isJoint,
-                       let percentage = account.ownershipPercentage,
-                       let userShare = account.userShare
-                    {
-                        detailRow(
-                            "Your share (\(MoneyFormatter.percentage(percentage)))",
-                            MoneyFormatter.gbp(userShare)
-                        )
-                    }
-                    detailRow(
-                        "Interest rate",
-                        account.interestRate.map(MoneyFormatter.percentage) ?? "—"
+                MobilePageActions(
+                    onBack: { dismiss() },
+                    editDetails: { onOpenFyn("What would you like to update?") }
+                )
+
+                Group {
+                    MobileDetailHeader(
+                        title: account.provider ?? account.institution ?? "Savings account",
+                        subtitle: accountTypeLabel(account.accountType)
                     )
-                    detailRow("Monthly interest", MoneyFormatter.gbp(monthlyInterest(account)))
-                    detailRow("Annual interest", MoneyFormatter.gbp(annualInterest(account)))
-                }
 
-                detailCard(title: "Account information") {
-                    detailRow("Provider", account.provider ?? account.institution ?? "—")
-                    detailRow("Account type", accountTypeLabel(account.accountType))
-                    detailRow("Access", accessTypeLabel(account.accessType))
-                    if account.accessType == "notice", let days = account.noticePeriodDays {
-                        detailRow("Notice period", "\(days) days")
-                    }
-                    if account.accessType == "fixed", let maturity = account.maturityDate {
-                        detailRow("Maturity date", dateLabel(maturity))
-                    }
-                    if let country = account.country, !country.isEmpty {
-                        detailRow("Country", country)
-                    }
-                    if let ownership = account.ownershipType {
-                        detailRow("Ownership", ownershipLabel(ownership))
-                    }
-                    if let owner = account.ownerName, !owner.isEmpty {
-                        detailRow("Owner", owner)
-                    }
-                    if let jointOwner = account.jointOwnerName, !jointOwner.isEmpty {
-                        detailRow("Joint owner", jointOwner)
-                    }
-                }
+                    hero(account)
 
-                if account.isISA {
-                    detailCard(title: "ISA details") {
-                        detailRow("ISA type", isaTypeLabel(account.isaType))
-                        if let year = account.isaSubscriptionYear {
-                            detailRow("Subscription year", year)
-                        }
-                        if let amount = account.isaSubscriptionAmount {
-                            detailRow("Subscribed this year", MoneyFormatter.gbp(amount))
-                        }
-                        detailRow("Interest", "Tax-free")
+                    MobileDetailCard(title: "Balance & interest", rows: balanceRows(account))
+                    MobileDetailCard(title: "Account information", rows: infoRows(account))
+                    if account.isISA {
+                        MobileDetailCard(title: "ISA details", rows: isaRows(account))
                     }
                 }
+                .padding(.horizontal, 16)
 
-                Button("Update this account with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "savings",
-                            addPhrase: "I'd like to add a bank account.",
-                            names: [account.displayName]
-                        )
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(maxWidth: .infinity, minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("savings.account.edit-with-fyn")
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
     }
 
+    // m-hero — dark card: full balance + joint share + tags.
     private func hero(_ account: SavingsAccount) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Full balance")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(account.fullBalanceValue)
-                .accessibilityIdentifier("savings.account.balance")
-            if account.isJoint,
-               let percentage = account.ownershipPercentage,
-               let userShare = account.userShare
-            {
-                Text("Your share (\(MoneyFormatter.percentage(percentage))): \(MoneyFormatter.gbp(userShare))")
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
-            }
-            HStack(spacing: FynlaSpacing.xSmall) {
-                if account.isEmergencyFund { tag("Emergency fund") }
-                if account.isISA { tag("ISA") }
+        MobileHeroCard(
+            label: "Full balance",
+            metric: MoneyFormatter.gbpWhole(account.fullBalanceValue),
+            sub: account.isJoint
+                ? account.ownershipPercentage.map {
+                    "Your share (\(MoneyFormatter.percentage($0))): \(MoneyFormatter.gbpWhole(userShare(account)))"
+                }
+                : nil
+        ) {
+            if account.isEmergencyFund || account.isISA {
+                HStack(spacing: 6) {
+                    if account.isEmergencyFund {
+                        tag(
+                            "Emergency fund",
+                            color: FynlaColor.Token.spring600.color,
+                            background: FynlaColor.Token.spring500.color.opacity(0.12)
+                        )
+                    }
+                    if account.isISA {
+                        tag(
+                            "ISA",
+                            color: FynlaColor.Token.violet500.color,
+                            background: FynlaColor.Token.violet500.color.opacity(0.12)
+                        )
+                    }
+                }
+                .padding(.top, 12)
             }
         }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .accessibilityIdentifier("savings.account.balance")
     }
 
-    private func tag(_ title: String) -> some View {
+    private func tag(_ title: String, color: Color, background: Color) -> some View {
         Text(title)
-            .font(FynlaTypography.caption)
-            .foregroundStyle(FynlaColor.focus)
-            .padding(.horizontal, FynlaSpacing.xSmall)
-            .padding(.vertical, FynlaSpacing.micro)
-            .background(FynlaColor.Token.savannah100.color)
-            .clipShape(Capsule())
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
-    private func detailCard<Content: View>(
-        title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-            content()
+    private func balanceRows(_ account: SavingsAccount) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = [
+            ("Full balance", MoneyFormatter.gbpWhole(account.fullBalanceValue)),
+        ]
+        if account.isJoint, let percentage = account.ownershipPercentage {
+            rows.append((
+                "Your share (\(MoneyFormatter.percentage(percentage)))",
+                MoneyFormatter.gbpWhole(userShare(account))
+            ))
         }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        rows.append(("Interest rate", rateLabel(account.interestRate)))
+        rows.append(("Monthly interest", MoneyFormatter.gbpWhole(annualInterest(account) / 12)))
+        rows.append(("Annual interest", MoneyFormatter.gbpWhole(annualInterest(account))))
+        return rows
     }
 
-    private func detailRow(_ key: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
-            Text(key)
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            Spacer()
-            Text(value)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
-                .multilineTextAlignment(.trailing)
+    private func infoRows(_ account: SavingsAccount) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = [
+            ("Provider", account.provider ?? account.institution ?? "—"),
+            ("Account type", accountTypeLabel(account.accountType)),
+            ("Access", accessTypeLabel(account.accessType)),
+        ]
+        if account.accessType == "notice", let days = account.noticePeriodDays {
+            rows.append(("Notice period", "\(days) days"))
         }
-        .padding(.vertical, FynlaSpacing.xSmall)
-        .overlay(alignment: .bottom) { Divider() }
-        .accessibilityElement(children: .combine)
+        if account.accessType == "fixed", let maturity = account.maturityDate {
+            rows.append(("Maturity date", dateLabel(maturity)))
+            rows.append(("Time to maturity", timeToMaturity(maturity)))
+        }
+        if let country = account.country, !country.isEmpty {
+            rows.append(("Country", country))
+        }
+        if let ownership = account.ownershipType {
+            rows.append(("Ownership", ownershipLabel(ownership)))
+        }
+        return rows
     }
 
+    private func isaRows(_ account: SavingsAccount) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = [
+            ("ISA type", isaTypeLabel(account.isaType)),
+        ]
+        if let year = account.isaSubscriptionYear, !year.isEmpty {
+            rows.append(("Subscription year", year))
+        }
+        if let amount = account.isaSubscriptionAmount {
+            rows.append(("Subscribed this year", MoneyFormatter.gbpWhole(amount)))
+        }
+        rows.append(("Interest", "Tax-free"))
+        return rows
+    }
+
+    // /m userShare: explicit user_share, else joint split, else full balance.
+    private func userShare(_ account: SavingsAccount) -> Decimal {
+        if let share = account.userShare { return share }
+        if account.isJoint, let percentage = account.ownershipPercentage {
+            return account.fullBalanceValue * percentage / 100
+        }
+        return account.fullBalanceValue
+    }
+
+    // ponytail: client-side simple-interest estimate is /m-parity (ledger P0-1).
     private func annualInterest(_ account: SavingsAccount) -> Decimal {
         account.fullBalanceValue * (account.interestRate ?? 0) / 100
     }
 
-    private func monthlyInterest(_ account: SavingsAccount) -> Decimal {
-        annualInterest(account) / 12
+    private func rateLabel(_ rate: Decimal?) -> String {
+        guard let rate else { return "—" }
+        return String(format: "%.2f%%", NSDecimalNumber(decimal: rate).doubleValue)
     }
 
     private func accountTypeLabel(_ value: String?) -> String {
@@ -242,15 +232,33 @@ struct SavingsAccountView: View {
         return map[value] ?? value.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
-    private func dateLabel(_ value: String) -> String {
+    private func parsedDate(_ value: String) -> Date? {
         let input = DateFormatter()
         input.locale = Locale(identifier: "en_US_POSIX")
         input.dateFormat = "yyyy-MM-dd"
-        guard let date = input.date(from: value) else { return "—" }
+        return input.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+    }
+
+    private func dateLabel(_ value: String) -> String {
+        guard let date = parsedDate(value) else { return "—" }
         let output = DateFormatter()
         output.locale = Locale(identifier: "en_GB")
         output.dateFormat = "dd/MM/yyyy"
         return output.string(from: date)
+    }
+
+    // /m timeToMaturity: days under a month, else months, else years+months.
+    private func timeToMaturity(_ value: String) -> String {
+        guard let date = parsedDate(value) else { return "—" }
+        let days = Int(ceil(date.timeIntervalSinceNow / 86_400))
+        if days <= 0 { return "Matured" }
+        if days < 31 { return "\(days) days" }
+        let months = Int(ceil(Double(days) / 30.44))
+        let years = months / 12
+        let remainder = months % 12
+        if years == 0 { return "\(remainder) \(remainder == 1 ? "month" : "months")" }
+        if remainder == 0 { return "\(years) \(years == 1 ? "year" : "years")" }
+        return "\(years) \(years == 1 ? "year" : "years"), \(remainder) \(remainder == 1 ? "month" : "months")"
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {

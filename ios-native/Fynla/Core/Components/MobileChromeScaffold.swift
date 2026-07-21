@@ -136,6 +136,70 @@ struct MobileHeroCard<Extra: View>: View {
     }
 }
 
+// m-card m-detail-rows: uppercase section label + /m's m-detail-row list
+// (14 key neutral500 left, 14/700 horizon500 right, hairline-separated,
+// none under the last row).
+struct MobileDetailCard: View {
+    let title: String
+    let rows: [(key: String, value: String)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title.uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.bottom, 12)
+            ForEach(rows.indices, id: \.self) { index in
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(rows[index].key)
+                        .font(.system(size: 14))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    Spacer(minLength: 8)
+                    Text(rows[index].value)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                        .multilineTextAlignment(.trailing)
+                }
+                .padding(.vertical, 10)
+                .overlay(alignment: .bottom) {
+                    if index != rows.count - 1 {
+                        FynlaColor.Token.horizon100.color.frame(height: 1)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// m-card m-detail-header: sub-page identity card — m-h1 24/900 + 14 sub.
+struct MobileDetailHeader: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 24, weight: .black))
+                .foregroundStyle(FynlaColor.Token.horizon500.color)
+            Text(subtitle)
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
 // md-page-actions: Back pill (sub-pages) + "Edit details" pill that opens Fyn
 // pre-asked with the page's holdings.
 struct MobilePageActions: View {
