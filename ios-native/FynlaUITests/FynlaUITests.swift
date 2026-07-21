@@ -244,8 +244,26 @@ final class FynlaUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["settings.account.email"].label, "example@example.test")
         XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Free")
         XCTAssertEqual(app.switches["settings.face-id"].value as? String, "0")
-        XCTAssertTrue(app.buttons["app.unlocked.lock"].isHittable)
-        XCTAssertTrue(app.buttons["app.unlocked.sign-out"].isHittable)
+        // The security card pushes Lock/Sign out below the fold on small
+        // devices — scroll until each is genuinely hittable (not covered by
+        // the Fyn dock). Quarter-screen drags rather than full swipes so the
+        // mid-page Lock button is not scrolled straight past.
+        let scroll = app.scrollViews.firstMatch
+        for identifier in ["app.unlocked.lock", "app.unlocked.sign-out"] {
+            let button = app.buttons[identifier]
+            var scrolls = 0
+            while !button.isHittable, scrolls < 8 {
+                scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                    .press(
+                        forDuration: 0.05,
+                        thenDragTo: scroll.coordinate(
+                            withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)
+                        )
+                    )
+                scrolls += 1
+            }
+            XCTAssertTrue(button.isHittable)
+        }
     }
 
     @MainActor

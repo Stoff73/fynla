@@ -165,7 +165,10 @@ enum NavigationDestinationFactory {
         case .taxStrategy:
             TaxStrategyView(
                 model: taxStrategyModel,
+                firstName: settingsModel.greetingFirstName,
+                onboardingCompleted: settingsModel.onboardingCompleted,
                 onRoute: onRoute,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .holisticPlan:

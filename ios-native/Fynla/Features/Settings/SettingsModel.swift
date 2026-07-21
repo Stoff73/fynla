@@ -65,6 +65,11 @@ final class SettingsModel {
         return name?.split(separator: " ").first.map(String.init)
     }
 
+    // Mirrors /m's store.user.onboarding_completed (Tax Strategy intro gate).
+    var onboardingCompleted: Bool {
+        userProvider()?.onboardingCompleted == true
+    }
+
     private(set) var plan: SettingsPlan = .loading
     private(set) var faceIDEnabled = false
     private(set) var canEnableFaceID = false

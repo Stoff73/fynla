@@ -210,11 +210,21 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #if FYNLA_UI_TESTING
+        let taxStrategyModel = uiTestMode == nil
+            ? TaxStrategyModel(
+                client: LiveTaxStrategyClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : TaxStrategyUITestComposition.model()
+        #else
         let taxStrategyModel = TaxStrategyModel(
             client: LiveTaxStrategyClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let holisticPlanModel = HolisticPlanModel(
             client: LiveHolisticPlanClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -259,7 +269,8 @@ struct FynlaApp: App {
                 firstName: "Example",
                 surname: "User",
                 name: "Example User",
-                email: "example@example.test"
+                email: "example@example.test",
+                onboardingCompleted: true
             )
         }
         #else

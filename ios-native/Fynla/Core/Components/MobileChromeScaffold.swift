@@ -83,6 +83,9 @@ struct MobileHeroCard<Extra: View>: View {
     let metric: String
     var metricSuffix: String?
     var sub: String?
+    // /m occasionally tints the metric (e.g. Tax Strategy's .mts-available
+    // headroom count in spring-600); default stays the white m-metric.
+    var metricColor: Color
     @ViewBuilder var extra: Extra
 
     init(
@@ -90,12 +93,14 @@ struct MobileHeroCard<Extra: View>: View {
         metric: String,
         metricSuffix: String? = nil,
         sub: String? = nil,
+        metricColor: Color = .white,
         @ViewBuilder extra: () -> Extra = { EmptyView() }
     ) {
         self.label = label
         self.metric = metric
         self.metricSuffix = metricSuffix
         self.sub = sub
+        self.metricColor = metricColor
         self.extra = extra()
     }
 
@@ -108,7 +113,7 @@ struct MobileHeroCard<Extra: View>: View {
                 Text(metric)
                     .font(.system(size: 44, weight: .black))
                     .kerning(-0.5)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(metricColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 if let metricSuffix {

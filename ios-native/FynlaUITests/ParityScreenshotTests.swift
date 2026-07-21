@@ -59,6 +59,32 @@ final class ParityScreenshotTests: XCTestCase {
         expenditure.tap()
         _ = app.otherElements["expenditure.screen"].waitForExistence(timeout: 5)
         attach(app, name: "07-expenditure")
+
+        menu.tap()
+        let taxStrategy = app.buttons["navigation.tax-strategy"]
+        XCTAssertTrue(taxStrategy.waitForExistence(timeout: 3))
+        taxStrategy.tap()
+        _ = app.staticTexts["tax-strategy.intro"].waitForExistence(timeout: 5)
+        attach(app, name: "08-tax-strategy-top")
+
+        app.swipeUp()
+        attach(app, name: "09-tax-strategy-mid")
+
+        // Precise part-screen drag: a full swipe leaves the dark headroom
+        // hero inside the dock-occluded band between frames.
+        let scroll = app.scrollViews.firstMatch
+        scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            .press(
+                forDuration: 0.05,
+                thenDragTo: scroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)
+                )
+            )
+        attach(app, name: "10-tax-strategy-hero-allowances")
+
+        app.swipeUp()
+        app.swipeUp()
+        attach(app, name: "11-tax-strategy-bottom")
     }
 
     @MainActor

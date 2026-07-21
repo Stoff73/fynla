@@ -38,6 +38,10 @@ struct SettingsView: View {
                     minHeight: FynlaSpacing.minimumInteractiveTarget
                 )
                 .accessibilityIdentifier("app.unlocked.sign-out")
+
+                // Clears the shell's docked Fyn bar, which otherwise covers
+                // Sign out at full scroll on small devices.
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
             .padding(FynlaSpacing.standard)
         }

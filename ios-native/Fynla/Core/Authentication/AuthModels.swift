@@ -138,6 +138,9 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
     let email: String
     // Gates the drawer's Admin section, mirroring /m's store.user?.is_admin.
     let isAdmin: Bool?
+    // Gates the Tax Strategy personalised intro, mirroring /m's
+    // store.user.onboarding_completed.
+    let onboardingCompleted: Bool?
 
     init(
         id: Int,
@@ -145,7 +148,8 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         surname: String?,
         name: String?,
         email: String,
-        isAdmin: Bool? = nil
+        isAdmin: Bool? = nil,
+        onboardingCompleted: Bool? = nil
     ) {
         self.id = id
         self.firstName = firstName
@@ -153,6 +157,7 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         self.name = name
         self.email = email
         self.isAdmin = isAdmin
+        self.onboardingCompleted = onboardingCompleted
     }
 
     enum CodingKeys: String, CodingKey {
@@ -162,6 +167,7 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         case name
         case email
         case isAdmin = "is_admin"
+        case onboardingCompleted = "onboarding_completed"
     }
 }
 
