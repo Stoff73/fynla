@@ -386,3 +386,53 @@ it('answers a question asked at a grouped-extract step instead of retrying blind
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
+
+it('suppresses the interruption advice answer when A1 already answered the question this turn', function () {
+    // Reviewer-flagged double-answer bug: A1's grouped-extract answer-the-
+    // user-first buffer (handleGroupedExtractTurn, ~line 2352) already
+    // voices a (deliberately figure-redacted) answer when the extraction
+    // model emits prose instead of calling its tool. Before this guard,
+    // emitRetry unconditionally called handleInterruption afterwards, which
+    // routed the SAME question through the advice-mode reasoner for a
+    // SECOND, independently-sourced (and potentially un-redacted) answer.
+    // Only ONE scripted LLM call — the extraction turn — should fire here;
+    // if the guard regresses, handleInterruption's advice-mode call fires
+    // a second time and $calls climbs to 2.
+    $calls = 0;
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function () use (&$calls) {
+            $calls++;
+
+            // Extraction call: the model emits an A1-style prose answer
+            // (no £ figures, so it survives filterOffScriptContent) but
+            // calls neither the capture tool nor errors — a clean
+            // no-capture turn that falls into the emitRetry path.
+            return (function () {
+                yield ['type' => 'content', 'text' => 'People typically track spending across housing, food, and transport.'];
+                yield ['type' => 'done', 'message_id' => 200];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $received = driveDirector($user, $conversation, 'What do I spend each month?');
+
+    $contentTexts = collect($received)->where('type', 'content')->pluck('text');
+
+    // Exactly two content events: the A1 answer, then the scripted retry
+    // text — never a third, second-sourced advice-loop answer.
+    expect($contentTexts)->toHaveCount(2);
+    expect($contentTexts->first())->toContain('housing, food, and transport');
+    expect($contentTexts->last())->not->toContain('housing, food, and transport')
+        ->and($contentTexts->last())->toContain("didn't catch both pieces");
+
+    // Only the extraction call fired — the guard stopped emitRetry from
+    // ever invoking handleInterruption's second (advice-mode) LLM call.
+    expect($calls)->toBe(1);
+
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
+});

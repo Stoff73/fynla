@@ -2349,8 +2349,10 @@ final class OnboardingChatDirector
             // A1 — the user asked a question that yielded no extraction.
             // Deliver the definitional answer (personal figures stripped)
             // before the scripted re-ask so the question is not ignored.
+            $a1AnswerEmitted = false;
             if ($userAskedQuestion && $answerBuffer !== '') {
                 $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
+                $a1AnswerEmitted = ($answer !== '');
                 if ($answer !== '') {
                     $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
                         'metadata' => [
@@ -2392,7 +2394,7 @@ final class OnboardingChatDirector
                 return;
             }
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message, answerAlreadyVoiced: $a1AnswerEmitted);
 
             return;
         }
@@ -2520,15 +2522,22 @@ final class OnboardingChatDirector
         array $state,
         string $currentStateId,
         User $user,
-        string $userMessage
+        string $userMessage,
+        bool $answerAlreadyVoiced = false
     ): \Generator {
-        $interruption = $this->handleInterruption(
-            $user, $conversation, $currentStateId, $state, $userMessage
-        );
-        if ($interruption !== null) {
-            yield from $interruption;
+        // A1 already voiced a (figure-redacted) answer to this question
+        // this turn — skip a second, independently-sourced interruption
+        // answer, which would duplicate it and could unredact figures A1
+        // deliberately withheld.
+        if (! ($answerAlreadyVoiced && $this->writeIntentClassifier->isQuestion($userMessage))) {
+            $interruption = $this->handleInterruption(
+                $user, $conversation, $currentStateId, $state, $userMessage
+            );
+            if ($interruption !== null) {
+                yield from $interruption;
 
-            return;
+                return;
+            }
         }
 
         $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
