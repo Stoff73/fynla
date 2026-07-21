@@ -86,6 +86,7 @@ enum NavigationDestinationFactory {
         case .balanceHistory:
             BalanceHistoryView(
                 model: balanceHistoryModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case let .savings(accountID):
