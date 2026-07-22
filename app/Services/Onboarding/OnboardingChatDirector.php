@@ -378,7 +378,28 @@ final class OnboardingChatDirector
         // Interpret the user answer against the current state.
         $interpretation = $this->interpretAnswer($state, $message);
 
-        if (! $interpretation['ok']) {
+        // Volunteered-record guard (live bug, csjones /m campaign expenditure
+        // step: "I have a Halifax fixed term savings account with £1,500 in
+        // it" was grabbed by parseExpenditureAmount's greedy £-figure match
+        // and recorded as monthly spending — the volunteered account was
+        // never offered). A free_text state with a value_parser (e.g.
+        // parseExpenditureAmount, parseIncomeAmount) matches on ANY embedded
+        // number, so it can succeed on a sentence that is actually a
+        // volunteered record for a completely different entity. The
+        // interruption dispatcher below only ever ran on interpretation
+        // FAILURE, so a successful-but-wrong parse never reached it. Classify
+        // BEFORE accepting a successful parse on these states so the store
+        // offer fires instead of silently persisting the wrong figure.
+        // Bubble states are exact-match (unaffected) and grouped/delegated
+        // states own their own capture handling (unaffected) — this only
+        // ever applies to free_text states carrying a value_parser.
+        $isParserState = ($state['turn_type'] ?? 'free_text') === 'free_text'
+            && ($state['value_parser'] ?? null) !== null;
+        $volunteeredRecord = $interpretation['ok']
+            && $isParserState
+            && $this->writeIntentClassifier->classify($message) !== null;
+
+        if (! $interpretation['ok'] || $volunteeredRecord) {
             $interruption = $this->handleInterruption(
                 $user, $conversation, $currentStateId, $state, $message, $currentRoute
             );
@@ -388,7 +409,11 @@ final class OnboardingChatDirector
                 return;
             }
 
-            // Can't parse the answer — re-ask without advancing.
+            // Can't parse the answer — re-ask without advancing. Also the
+            // fallback for a volunteered-record classification whose
+            // interruption handling declined to fire (e.g. it was also
+            // question-phrased but the query classifier found no primary
+            // topic) — never silently accept the parsed value in that case.
             yield [
                 'type' => 'content',
                 'text' => $interpretation['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?",

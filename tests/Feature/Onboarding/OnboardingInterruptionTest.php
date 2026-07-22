@@ -6,6 +6,7 @@ use Anthropic\Client;
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\ExpenditureProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Models\UserConsent;
@@ -1169,4 +1170,108 @@ it('discards a poisoned awaiting-detail payload whose original is a question', f
     expect($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
     expect($texts)->not->toContain('I can only help with');
+});
+
+// ── Fix: a volunteered record must never be swallowed by an amount/date
+// parser at a free_text state (live bug, csjones /m campaign expenditure
+// step). parseExpenditureAmount and parseIncomeAmount both extract ANY
+// embedded £-figure, so "I have a Halifax fixed term savings account with
+// £1,500 in it" parsed successfully (£1,500) and was recorded as monthly
+// spending — the volunteered savings account was never offered. The
+// interruption dispatcher only ever ran on interpretation FAILURE, so a
+// successful-but-wrong parse never reached it. Site A now classifies BEFORE
+// accepting a parser result on free_text states; a non-null write intent
+// routes through the same store-offer path as an unparseable answer. ─────────
+
+it('does not record a volunteered savings account as expenditure and offers to store it instead', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+    $received = driveDirector($user, $conversation, 'I have a Halifax fixed term savings account with £1,500 in it');
+
+    $offer = collect($received)->firstWhere('type', 'quick_replies');
+    expect($offer)->not->toBeNull();
+    expect($offer['prompt_text'])->toContain('save');
+    expect(array_column($offer['bubbles'], 'id'))->toBe(['store_now', 'store_later']);
+
+    // No capture_complete receipt — expenditure was never touched.
+    expect(collect($received)->where('type', 'capture_complete'))->toHaveCount(0);
+
+    $user->refresh();
+    expect($user->monthly_expenditure)->toBeNull();
+    expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
+    // The walk did not advance — it's still parked at expenditure.
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+    $pending = $user->onboarding_fyn_context['pending_interruption_store'] ?? null;
+    expect($pending)->not->toBeNull();
+    expect($pending['message'])->toBe('I have a Halifax fixed term savings account with £1,500 in it');
+    expect($pending['intent']['entity_type'] ?? null)->toBe('savings_account');
+});
+
+it('does not record a volunteered pension as expenditure and offers to store it instead', function () {
+    // Same class of bug as above, exercised with a different entity type
+    // (pension, as in the live bug report's income-step description) at the
+    // same real free_text/value_parser state — the codebase has no dedicated
+    // free-text income-amount capture state (income is captured via the
+    // grouped_extract base_work step, which has its own separate capture
+    // handling and is out of scope here); base_expenditure is the only real
+    // state that greedily parses "any embedded number" the way an income
+    // amount parser would.
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+    $received = driveDirector($user, $conversation, 'I have a pension worth £40,000');
+
+    $offer = collect($received)->firstWhere('type', 'quick_replies');
+    expect($offer)->not->toBeNull();
+    expect(array_column($offer['bubbles'], 'id'))->toBe(['store_now', 'store_later']);
+
+    expect(collect($received)->where('type', 'capture_complete'))->toHaveCount(0);
+
+    $user->refresh();
+    expect($user->monthly_expenditure)->toBeNull();
+    expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+    $pending = $user->onboarding_fyn_context['pending_interruption_store'] ?? null;
+    expect($pending)->not->toBeNull();
+    expect($pending['intent']['entity_type'] ?? null)->toBe('pension');
+});
+
+it('still records a genuine plain-amount expenditure answer and advances', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+    $received = driveDirector($user, $conversation, 'About £1,800 a month');
+
+    // No store-offer bubbles — advancing to profile_review_expenditure emits
+    // its OWN quick_replies (its "Looks correct" confirm bubble), which is
+    // expected; only the store_now/store_later shape would indicate the
+    // guard misfired.
+    $offer = collect($received)->firstWhere('type', 'quick_replies');
+    if ($offer !== null) {
+        expect(array_column($offer['bubbles'], 'id'))->not->toBe(['store_now', 'store_later']);
+    }
+    $receipt = collect($received)->firstWhere('type', 'capture_complete');
+    expect($receipt)->not->toBeNull();
+    expect($receipt['summary'])->toContain('1,800');
+
+    $user->refresh();
+    expect((float) $user->monthly_expenditure)->toBe(1800.0);
+    expect((float) ExpenditureProfile::where('user_id', $user->id)->value('total_monthly_expenditure'))
+        ->toBe(1800.0);
+    expect($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+});
+
+it('still records a genuine "roughly Nk" expenditure answer and advances', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+    $received = driveDirector($user, $conversation, 'roughly 2k');
+
+    $offer = collect($received)->firstWhere('type', 'quick_replies');
+    if ($offer !== null) {
+        expect(array_column($offer['bubbles'], 'id'))->not->toBe(['store_now', 'store_later']);
+    }
+    expect(collect($received)->firstWhere('type', 'capture_complete'))->not->toBeNull();
+
+    $user->refresh();
+    expect((float) $user->monthly_expenditure)->toBe(2000.0);
 });
