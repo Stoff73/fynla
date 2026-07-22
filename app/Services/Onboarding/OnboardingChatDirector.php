@@ -840,7 +840,21 @@ final class OnboardingChatDirector
             return;
         }
 
-        $promptText = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+        // A state's prompt_text may open with a one-off introduction (e.g.
+        // path_choice's "Hi, I'm Fyn — welcome to Fynla"). Every emission of a
+        // state after the first assistant message already exists in this
+        // conversation is a RE-emission — resume Continue, interruption
+        // re-emits, retry fallthroughs — so once that introduction has been
+        // shown once, swap in reprompt_text (when the state defines one)
+        // instead of replaying the full prompt_text. Evaluated before this
+        // turn's own message(s) are persisted below, so the very first
+        // emission (nothing persisted yet) always keeps the full prompt_text.
+        $effectiveState = $state;
+        if (isset($state['reprompt_text']) && $conversation->messages()->where('role', 'assistant')->exists()) {
+            $effectiveState['prompt_text'] = $state['reprompt_text'];
+        }
+
+        $promptText = OnboardingStateMachine::resolvePromptText($effectiveState, $user, '', $conversation);
         $layoutMode = (string) ($state['layout'] ?? 'wide');
         $skipLink = $state['skip_link'] ?? null;
 

@@ -31,6 +31,12 @@ use Illuminate\Support\Facades\Log;
  *   turn_type:    'bubbles' | 'free_text' | 'delegated' | 'terminal'
  *   prompt_text:  string | callable(User): string
  *                 (uses {first_name} / {selection} template tokens when string)
+ *   reprompt_text: string | callable(User): string | omitted
+ *                 (optional) — used instead of prompt_text by
+ *                 OnboardingChatDirector::emitTurnForState whenever the
+ *                 conversation already has a persisted assistant message,
+ *                 so a one-off introduction sentence in prompt_text is never
+ *                 replayed on resume/interruption/retry re-emissions.
  *   bubbles:      array<{id, label}>  — only for turn_type='bubbles', NO ICONS
  *   capture_field: 'users.column_name' | null
  *                 (null for scratch-pad-only or FamilyMember-creating states)
@@ -341,6 +347,12 @@ final class OnboardingStateMachine
             self::STATE_PATH_CHOICE => [
                 'turn_type' => 'bubbles',
                 'prompt_text' => "Hi {first_name}, I'm Fyn — welcome to Fynla. I'll help you set up your financial plan. To start, do you want to follow a life-stage journey or pick a single module focus?",
+                // Re-emissions (resume Continue, interruption re-emits, retry
+                // fallthroughs) use this instead of prompt_text once the
+                // conversation already has an assistant message — the "Hi,
+                // I'm Fyn — welcome to Fynla" introduction is shown exactly
+                // once per conversation. See OnboardingChatDirector::emitTurnForState.
+                'reprompt_text' => 'Do you want to follow a life-stage journey or pick a single module focus?',
                 'bubbles' => [
                     ['id' => 'journey', 'label' => 'Follow a journey'],
                     ['id' => 'focus', 'label' => 'Pick a focus'],
