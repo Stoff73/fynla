@@ -8,7 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/frontend/setup.js'],
-    exclude: [...configDefaults.exclude, 'tests/E2E/**'],
+    exclude: [...configDefaults.exclude, 'tests/E2E/**', '.worktrees/**'],
     maxWorkers: 2,
     minWorkers: 1,
     coverage: {

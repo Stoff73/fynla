@@ -12,7 +12,10 @@ works is **Fynla-Staging**. It needs its own App Store Connect app record
 (`org.fynla.app.dev`) so its builds never touch the live `org.fynla.app`
 listing.
 
-Team: `99S3M8JLLF` (set in `Configurations/Base.xcconfig`). Versioning:
+Team: `99S3M8JLLF`, set locally in a git-ignored
+`Configurations/Local.xcconfig` (`DEVELOPMENT_TEAM = 99S3M8JLLF`), picked up
+via `#include? "Local.xcconfig"` at the bottom of `Base.xcconfig` — the team
+ID itself is never committed; create the file once per machine. Versioning:
 `MARKETING_VERSION` 1.0 / `CURRENT_PROJECT_VERSION` — every upload needs a
 build number that has not been used for that version on that app record.
 Encryption compliance is declared in `Configurations/Info.plist`

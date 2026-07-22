@@ -273,6 +273,10 @@ describe('/m Fyn stream event parity', () => {
       messages: [],
       $nextTick: (callback) => callback(),
       scrollFyn: vi.fn(),
+      // loadTranscript routes non-ok responses through the mixin's
+      // auth-expiry helper; this harness's response is ok, so a no-op
+      // returning false (not handled) keeps the real flow.
+      handleAuthExpiry: vi.fn(() => false),
     };
 
     await onboardingChat.methods.loadTranscript.call(vm, 7);

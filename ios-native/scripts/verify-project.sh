@@ -48,7 +48,7 @@ grep -Fq 'PRODUCT_BUNDLE_IDENTIFIER = org.fynla.app' "$NATIVE/Configurations/Pro
 grep -Fq 'FYNLA_API_BASE_URL = https:/$()/fynla.org' "$NATIVE/Configurations/Production.xcconfig"
 grep -Fq 'FYNLA_ENVIRONMENT = production' "$NATIVE/Configurations/Production.xcconfig"
 
-if grep -R -E 'DEVELOPMENT_TEAM[[:space:]]*=' "$NATIVE" --include='*.pbxproj' --include='*.xcconfig'; then
+if grep -R -E 'DEVELOPMENT_TEAM[[:space:]]*=' "$NATIVE" --include='*.pbxproj' --include='*.xcconfig' --exclude='Local.xcconfig'; then
   echo 'personal development team must not be committed' >&2
   exit 1
 fi
