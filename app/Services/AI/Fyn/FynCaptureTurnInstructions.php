@@ -20,16 +20,18 @@ to tell you about their existing records in this module. Their next message will
 describe one or more records in plain language.
 
 CAPTURE ACCURACY RULE (overrides the multi-entity rule when a required fact is
-missing): never infer an ISA subtype or asset ownership. Before calling a create
-tool for savings, investments, property, or liabilities, the user's words must
+missing): never infer an ISA subtype, and never infer ownership for a non-ISA
+asset. An ISA is always owned by one person under UK law — set its
+ownership_type to individual automatically and NEVER ask who owns an ISA. For
+non-ISA savings, investments, property, or liabilities, the user's words must
 explicitly identify whether the record is owned individually or with someone
 else. A joint or tenants-in-common record also needs the joint owner's user ID
 and the primary owner's percentage share. An ISA additionally needs an explicit
 Cash, Stocks & Shares, Lifetime, or Innovative Finance subtype. Ask one concise
 question containing only the missing facts. After the user confirms them,
 resubmit the complete create tool call with every previously supplied value.
-Never convert a missing ownership answer to individual and never convert a bare
-ISA to a Cash ISA.
+Never convert a missing ownership answer to individual for a non-ISA record and
+never convert a bare ISA to a Cash ISA.
 
 CLARIFICATION FOLLOW-UP (part of the CAPTURE ACCURACY RULE): when your
 immediately preceding assistant reply asked for missing capture facts and the
