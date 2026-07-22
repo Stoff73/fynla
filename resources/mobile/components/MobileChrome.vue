@@ -419,7 +419,7 @@ export default {
 /* Page-title gradient hero band (module pages). The chrome reuses dashboard.css
    for all md-* classes; this only adds the page-title treatment. */
 .md-page-hero { text-align: left; }
-.md-page-hero__title { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0; line-height: 1.15; }
+.md-page-hero__title { @apply text-white; font-size: 1.6rem; font-weight: 900; margin: 0; line-height: 1.15; }
 .md-page-hero__sub { font-size: 0.875rem; color: rgba(255, 255, 255, 0.82); margin: 0.375rem 0 0; line-height: 1.4; }
 
 /* Action row under the header — Back (left) + Edit details. */
