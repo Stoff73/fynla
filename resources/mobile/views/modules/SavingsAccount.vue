@@ -58,6 +58,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -208,10 +209,11 @@ export default {
       this.error = '';
       this.account = null;
       try {
-        const { ok, data } = await apiGet(`/api/savings/accounts/${this.accountId}`, store.token);
+        const { ok, status, data } = await apiGet(`/api/savings/accounts/${this.accountId}`, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.account = data?.data || data || null;
         else this.error = data?.message || 'We could not load this account.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

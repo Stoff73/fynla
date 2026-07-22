@@ -65,8 +65,9 @@ it('requires explicit ownership and ISA subtype before creating an asset', funct
     $rendered = FynCaptureTurnInstructions::render('SaveTax', 'create_savings_account');
 
     expect($rendered)->toContain('CAPTURE ACCURACY RULE')
-        ->and($rendered)->toContain('never infer an ISA subtype or asset ownership')
-        ->and($rendered)->toContain('Never convert a missing ownership answer to individual')
+        ->and($rendered)->toContain('never infer an ISA subtype, and never infer ownership for a non-ISA')
+        ->and($rendered)->toContain('NEVER ask who owns an ISA')
+        ->and($rendered)->toContain('Never convert a missing ownership answer to individual for a non-ISA record')
         ->and($rendered)->toContain('never convert a bare')
         ->and($rendered)->toContain('ISA to a Cash ISA');
 });

@@ -63,7 +63,7 @@
               <!-- WP-2 — the same mark-done the dashboard actions carry, keyed
                    on the same stable recommendation_id so completion syncs
                    across every surface. -->
-              <button type="button" class="mts-rec__done" :disabled="marking === rec.recommendation_id" @click="markDone(rec)">
+              <button type="button" class="mts-rec__done" :disabled="marking !== null" @click="markDone(rec)">
                 Mark as done
               </button>
               <span v-if="rec.requires_advice" class="mts-rec__advice">Speak to an adviser</span>
@@ -139,6 +139,7 @@
 <script>
 import { store } from '../store.js';
 import { apiGet, apiPost } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -256,7 +257,8 @@ export default {
       this.error = '';
       this.dashboard = null;
       try {
-        const { ok, data } = await apiGet('/api/tax-strategy', store.token);
+        const { ok, status, data } = await apiGet('/api/tax-strategy', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.dashboard = data?.data || data || {};
         else this.error = data?.message || 'We could not load your tax position.';
       } catch {

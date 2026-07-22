@@ -67,6 +67,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 
@@ -120,10 +121,11 @@ export default {
       this.loading = true;
       this.error = '';
       try {
-        const { ok, data } = await apiGet('/api/investment', store.token);
+        const { ok, status, data } = await apiGet('/api/investment', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.accounts = (data?.data || data || {}).accounts || [];
         else this.error = data?.message || 'We could not load this account.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

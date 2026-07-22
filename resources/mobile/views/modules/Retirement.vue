@@ -122,6 +122,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet, apiPost } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
 import { buildEditPrompt } from '../../utils/editPrompt.js';
@@ -297,6 +298,7 @@ export default {
           apiPost('/api/retirement/analyze', {}, store.token),
         ]);
         if (generation !== this.loadGeneration) return;
+        if (handleAuthExpiry(indexRes, this.$router)) return;
         if (indexRes.ok) {
           this.data = indexRes.data?.data || indexRes.data || {};
         } else {

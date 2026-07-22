@@ -68,6 +68,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
 
@@ -108,7 +109,8 @@ export default {
       this.payload = null;
       this.netWorth = null;
       try {
-        const { ok, data } = await apiGet('/api/estate', store.token);
+        const { ok, status, data } = await apiGet('/api/estate', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (!ok) {
           this.error = data?.message || 'We could not load your estate position.';
           return;

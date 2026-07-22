@@ -440,6 +440,10 @@ const actions = {
         // FR-M7 — tracks whether this turn streamed to completion (vs was queued
         // or errored) so the finally only pops the next queued turn on success.
         let streamedToCompletion = false;
+        // A 401/419 mid-stream means aiChatService already redirected to login
+        // (see api.js handleAuthExpiry) — skip the error banner and the
+        // empty-response fallback below so they don't flash behind the redirect.
+        let authExpired = false;
 
         commit('SET_STREAMING', true);
         commit('SET_STREAMING_TEXT', '');
@@ -799,6 +803,12 @@ const actions = {
             if (error.name === 'AbortError') {
                 return;
             }
+            // aiChatService already redirected to login (handleAuthExpiry) —
+            // don't overwrite that with an error banner.
+            if (error.authExpired) {
+                authExpired = true;
+                return;
+            }
             logger.error('Chat streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
@@ -816,7 +826,8 @@ const actions = {
             // (BS-13 RED until session 89).
             const producedNewMessages = state.messages.length > preStreamMessageCount;
             if (
-                state.streaming
+                !authExpired
+                && state.streaming
                 && !state.streamingText
                 && !producedNewMessages
                 && !state.error
@@ -1011,6 +1022,9 @@ const actions = {
             streamedToCompletion = true;
         } catch (error) {
             if (error.name === 'AbortError') return;
+            // aiChatService already redirected to login (handleAuthExpiry) —
+            // don't overwrite that with an error banner.
+            if (error.authExpired) return;
             logger.error('Queued-turn streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
@@ -1107,10 +1121,13 @@ const actions = {
                 { signal: abortController.signal },
             );
         } catch (error) {
-            logger.error('[chat] postAction failed', error);
-            commit('SET_ERROR', 'Could not complete that action. Please try again.');
             commit('SET_STREAMING', false);
             commit('SET_ABORT_CONTROLLER', null);
+            // aiChatService already redirected to login (handleAuthExpiry) —
+            // don't overwrite that with an error banner.
+            if (error.authExpired) return;
+            logger.error('[chat] postAction failed', error);
+            commit('SET_ERROR', 'Could not complete that action. Please try again.');
             return;
         }
 
@@ -1348,11 +1365,16 @@ const actions = {
                 from: fromParam,
             });
         } catch (error) {
+            commit('SET_STREAMING', false);
+            commit('SET_LOADING', false);
+            // aiChatService already redirected to login (handleAuthExpiry) — a
+            // fallback to startNewConversation here would silently abandon
+            // onboarding behind the redirect instead of letting the user
+            // re-authenticate and resume where they left off.
+            if (error.authExpired) return;
             // 503 disabled / 409 already_completed / 403 preview_mode — fall back
             // to a normal empty chat so the user can still talk to Fyn.
             logger.warn('[onboarding] /start failed, falling back to normal chat', error);
-            commit('SET_STREAMING', false);
-            commit('SET_LOADING', false);
             await dispatch('startNewConversation');
             return;
         }

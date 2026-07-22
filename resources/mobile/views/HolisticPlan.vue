@@ -68,6 +68,7 @@
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 import { upgradeMixin } from '../mixins/upgrade.js';
 
@@ -157,6 +158,7 @@ export default {
       this.plan = null;
       try {
         const { ok, status, data } = await apiGet('/api/holistic/composite-plan', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) {
           this.plan = data?.data || {};
         } else if (status === 403 && ['capability_denied', 'upgrade_required'].includes(data?.error)) {

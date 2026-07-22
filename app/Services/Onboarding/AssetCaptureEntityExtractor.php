@@ -192,8 +192,12 @@ final class AssetCaptureEntityExtractor
      * missing details: Yes, it's owned individually by me". We never
      * default ownership — an entity with no matching phrase is returned
      * unchanged, mirroring CaptureAccuracyGate's own "never assume
-     * ownership" contract (joint ISAs are illegal under UK law, so
-     * ownership must always be an explicit user statement).
+     * ownership" contract. The one exception is ISA entities: an ISA has
+     * exactly one legal owner under UK law, so the per-type extractors
+     * (extractOneSavingsAccount, extractOneInvestmentAccount) already stamp
+     * ownership_type: 'individual' before this method runs — deterministic,
+     * never inferred from phrasing — and the `??=` below leaves that value
+     * untouched.
      *
      * @param  list<array<string, mixed>>  $entities
      * @return list<array<string, mixed>>
@@ -699,6 +703,10 @@ final class AssetCaptureEntityExtractor
         }
         if ($isIsa) {
             $input['is_isa'] = true;
+            // An ISA has exactly one legal owner under UK law — deterministic,
+            // no phrasing needed (unlike attachOwnership() below, which never
+            // assumes ownership for non-ISA entities).
+            $input['ownership_type'] = 'individual';
         }
 
         return $input;
@@ -878,6 +886,12 @@ final class AssetCaptureEntityExtractor
         }
         if ($value !== null) {
             $input['current_value'] = $value;
+        }
+        if (in_array($accountType, ['stocks_shares_isa', 'lifetime_isa'], true)) {
+            // An ISA has exactly one legal owner under UK law — deterministic,
+            // no phrasing needed (unlike attachOwnership() below, which never
+            // assumes ownership for non-ISA entities).
+            $input['ownership_type'] = 'individual';
         }
 
         return $input;

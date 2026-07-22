@@ -1,5 +1,27 @@
-import api, { apiBaseURL } from './api';
+import api, { apiBaseURL, handleAuthExpiry } from './api';
 import { getToken } from './tokenStorage';
+
+/**
+ * These four SSE endpoints use raw fetch() (axios doesn't support streaming)
+ * and so bypass the axios response interceptor in api.js entirely — a 401/419
+ * here would otherwise dead-end the turn behind a generic error message
+ * instead of re-authenticating like every other request in the app. Mirrors
+ * the interceptor's behaviour (removeToken + redirect to login) via the
+ * shared handleAuthExpiry() helper, then throws a distinguishable error so
+ * store catch blocks can skip their own error banner / fallback — the
+ * redirect is already in flight.
+ */
+function isAuthExpired(response) {
+    return response.status === 401 || response.status === 419;
+}
+
+async function throwAuthExpired(response) {
+    await handleAuthExpiry();
+    const err = new Error(`Session expired: ${response.status}`);
+    err.authExpired = true;
+    err.status = response.status;
+    throw err;
+}
 
 const aiChatService = {
     /**
@@ -68,6 +90,10 @@ const aiChatService = {
             signal,
         });
 
+        if (isAuthExpired(response)) {
+            await throwAuthExpired(response);
+        }
+
         if (!response.ok) {
             // FR-M7 — past the queue depth cap the backend rejects with 429.
             // Surface a typed marker so the store can tell the user gently.
@@ -126,6 +152,10 @@ const aiChatService = {
             credentials: isCapacitor ? 'omit' : 'same-origin',
             signal,
         });
+
+        if (isAuthExpired(response)) {
+            await throwAuthExpired(response);
+        }
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
@@ -214,6 +244,10 @@ const aiChatService = {
             signal,
         });
 
+        if (isAuthExpired(response)) {
+            await throwAuthExpired(response);
+        }
+
         if (!response.ok) {
             // Non-SSE JSON failures (409, 503, 403) — surface the reason
             // so the store action can fall back to the normal chat path.
@@ -263,6 +297,10 @@ const aiChatService = {
             credentials: isCapacitor ? 'omit' : 'same-origin',
             signal,
         });
+
+        if (isAuthExpired(response)) {
+            await throwAuthExpired(response);
+        }
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');

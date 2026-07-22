@@ -137,3 +137,24 @@ describe('WriteIntentClassifier::classify — negative cases', function () {
         expect($this->classifier->classify('I also think I should save more'))->toBeNull();
     });
 });
+
+describe('WriteIntentClassifier::classify — genuine amount-parser answers (OnboardingChatDirector parse-guard regression)', function () {
+    // OnboardingChatDirector's free_text/value_parser states (e.g.
+    // base_expenditure) now consult classify() before accepting a
+    // successful parse, so a false positive here would block a genuine
+    // amount answer from ever being recorded. None of these three plain
+    // amount answers contain a WRITE_VERB_PATTERNS verb, so they must all
+    // classify as null — pinned so the parse-guard fix can never regress
+    // ordinary onboarding answers.
+    it('returns null for "About £1,800 a month"', function () {
+        expect($this->classifier->classify('About £1,800 a month'))->toBeNull();
+    });
+
+    it('returns null for "£72,000"', function () {
+        expect($this->classifier->classify('£72,000'))->toBeNull();
+    });
+
+    it('returns null for "roughly 2k"', function () {
+        expect($this->classifier->classify('roughly 2k'))->toBeNull();
+    });
+});
