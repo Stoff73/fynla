@@ -40,6 +40,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
         $schedule->command('payments:reconcile-pending --older-than=15')->everyTenMinutes()->withoutOverlapping();
+        $schedule->command('apple:notifications:recover')
+            ->everyTenMinutes()
+            ->withoutOverlapping();
 
         $schedule->job(new PublishScheduledInsightsJob)->everyFiveMinutes();
 

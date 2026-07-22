@@ -125,7 +125,7 @@ function canonicalDcPensionSnapshot(DCPension $p): array
 it('persists field-identical canonical rows for the same DC pension via form, fyn and upload', function () {
     // Premium keeps this parity test independent from Free caps.
     // (pension_account, DC + DB combined) — so a free user would also pass.
-    $user = User::factory()->create([
+    $user = User::factory()->withActivePremiumSubscription()->create([
         'is_preview_user' => false,
         'tier' => 'premium',
         // years_to_drawdown calculator requires user.date_of_birth — pin it
@@ -232,7 +232,7 @@ it('persists field-identical canonical rows for the same DB pension via form and
     // ready hook for when extraction adds DB recognition; we exercise it
     // here so the contract surface is locked, but the production-path
     // story for DB is form + fyn today.
-    $user = User::factory()->create([
+    $user = User::factory()->withActivePremiumSubscription()->create([
         'is_preview_user' => false,
         'tier' => 'premium',
         'date_of_birth' => '1985-01-15',

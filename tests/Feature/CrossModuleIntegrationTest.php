@@ -40,7 +40,7 @@ class CrossModuleIntegrationTest extends TestCase
         // cross-module path including /api/estate/net-worth (gated by
         // TeaserGate::isFull since SP2 PR7). Matches the canonical
         // EstateApiTest setup.
-        $this->user = User::factory()->create([
+        $this->user = User::factory()->withActivePremiumSubscription()->create([
             'email' => 'test@example.com',
             'password' => bcrypt('password'),
             'tier' => 'premium',

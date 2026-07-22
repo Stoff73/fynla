@@ -112,6 +112,7 @@ use App\Http\Controllers\Api\TaxYearController;
 use App\Http\Controllers\Api\UserMetricsController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\Webhooks\AppleNotificationController;
 use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -128,6 +129,9 @@ use Illuminate\Support\Facades\Route;
 
 // Contact form (public, rate-limited)
 Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('throttle:3,5');
+
+Route::post('/webhooks/apple/v2', AppleNotificationController::class)
+    ->name('api.webhooks.apple.v2');
 
 // Authentication routes
 Route::prefix('auth')->group(function () {

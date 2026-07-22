@@ -40,6 +40,96 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testFreeSubscriptionShowsLocalizedStoreKitChoicesAndRestore() throws {
+        let app = openSubscription(mode: "subscription-free")
+
+        XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("£6.99"))
+        XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("1 month"))
+        XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("£59.99"))
+        XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("1 year"))
+        XCTAssertTrue(app.buttons["subscription.purchase"].isHittable)
+        XCTAssertTrue(app.buttons["subscription.restore"].isHittable)
+    }
+
+    @MainActor
+    func testApplePremiumSuppressesPurchaseAndOffersSystemManagement() throws {
+        let app = openSubscription(mode: "subscription-apple-premium")
+
+        XCTAssertTrue(
+            element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.buttons["subscription.manage-apple"].isHittable)
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+        XCTAssertFalse(app.buttons["subscription.restore"].exists)
+    }
+
+    @MainActor
+    func testWebPremiumHasManagementInformationAndNoPurchaseCTA() throws {
+        let app = openSubscription(mode: "subscription-web-premium")
+
+        XCTAssertTrue(
+            element("subscription.web-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Billing managed on the web"].exists)
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+        XCTAssertFalse(app.buttons["subscription.manage-apple"].exists)
+    }
+
+    @MainActor
+    func testUnavailableSubscriptionCanRetrySafely() throws {
+        let app = openSubscription(mode: "subscription-unavailable")
+
+        XCTAssertTrue(
+            element("subscription.unavailable", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.buttons["Try again"].isHittable)
+    }
+
+    @MainActor
+    func testPendingPurchaseDoesNotOfferAnotherPurchaseTap() throws {
+        let app = openSubscription(mode: "subscription-purchase-pending")
+
+        app.buttons["subscription.purchase"].tap()
+        XCTAssertTrue(
+            element("subscription.pending", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+        XCTAssertTrue(app.staticTexts["subscription.message"].exists)
+    }
+
+    @MainActor
+    func testVerifiedPurchaseBecomesApplePremiumOnlyAfterServerAck() throws {
+        let app = openSubscription(mode: "subscription-purchase-success")
+
+        app.buttons["subscription.purchase"].tap()
+        XCTAssertTrue(
+            element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+    }
+
+    @MainActor
+    func testCancelledPurchaseRemainsFreeWithoutAnError() throws {
+        let app = openSubscription(mode: "subscription-purchase-cancelled")
+
+        app.buttons["subscription.purchase"].tap()
+        XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["subscription.message"].exists)
+    }
+
+    @MainActor
+    func testRestoreReconcilesAndLoadsApplePremium() throws {
+        let app = openSubscription(mode: "subscription-restore-success")
+
+        app.buttons["subscription.restore"].tap()
+        XCTAssertTrue(
+            element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+    }
+
+    @MainActor
     func testFaceIDOptInIsReachableAfterFullAuthentication() throws {
         let app = app(mode: "face-id-opt-in")
         app.launch()
@@ -553,6 +643,24 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 3))
         assertReachable(field, in: app)
         field.tap()
+        let hasKeyboardFocus = NSPredicate(format: "hasKeyboardFocus == true")
+        var focusExpectation = XCTNSPredicateExpectation(
+            predicate: hasKeyboardFocus,
+            object: field
+        )
+        if XCTWaiter.wait(for: [focusExpectation], timeout: 1) != .completed {
+            field.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)
+            ).tap()
+            focusExpectation = XCTNSPredicateExpectation(
+                predicate: hasKeyboardFocus,
+                object: field
+            )
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [focusExpectation], timeout: 2),
+                .completed
+            )
+        }
         field.typeText(value)
     }
 
@@ -571,6 +679,18 @@ final class FynlaUITests: XCTestCase {
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-fynla-ui-test-mode", mode] + additionalArguments
+        return app
+    }
+
+    @MainActor
+    private func openSubscription(mode: String) -> XCUIApplication {
+        let app = app(mode: mode)
+        app.launch()
+        XCTAssertTrue(app.buttons["app.unlocked.settings"].waitForExistence(timeout: 3))
+        app.buttons["app.unlocked.settings"].tap()
+        XCTAssertTrue(app.buttons["settings.premium"].waitForExistence(timeout: 3))
+        app.buttons["settings.premium"].tap()
+        XCTAssertTrue(element("subscription.screen", in: app).waitForExistence(timeout: 3))
         return app
     }
 }

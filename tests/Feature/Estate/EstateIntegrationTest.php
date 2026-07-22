@@ -22,7 +22,7 @@ beforeEach(function () {
 describe('Complete estate planning workflow', function () {
     it('completes full estate planning analysis from setup to recommendations', function () {
         // 1. Create user and authenticate (Premium = full Estate module access)
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'first_name' => 'John',
             'surname' => 'Doe',
             'email' => 'john@example.com',
@@ -142,7 +142,7 @@ describe('Complete estate planning workflow', function () {
 
 describe('IHT calculation with multiple scenarios', function () {
     it('shows IHT reduction through gifting strategy', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
             'tier' => 'premium',
         ]);
@@ -183,7 +183,7 @@ describe('IHT calculation with multiple scenarios', function () {
     });
 
     it('shows IHT reduction through charitable giving', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
             'tier' => 'premium',
         ]);
@@ -217,7 +217,7 @@ describe('IHT calculation with multiple scenarios', function () {
 
 describe('Cache behavior', function () {
     it('caches estate analysis results', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
             'tier' => 'premium',
         ]);
@@ -250,7 +250,7 @@ describe('Cache behavior', function () {
     });
 
     it('invalidates cache when asset is updated', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'date_of_birth' => Carbon::now()->subYears(55),
             'tier' => 'premium',
         ]);

@@ -27,7 +27,7 @@ class PropertyControllerTest extends TestCase
         // tier from tier_configurations. Without this seed, the inner
         // firstOrFail() bubbles up as ModelNotFoundException → 404.
         $this->seed(TierConfigurationSeeder::class);
-        $this->user = User::factory()->create(['tier' => 'premium']);
+        $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
         $this->token = $this->user->createToken('test-token')->plainTextToken;
     }
 
