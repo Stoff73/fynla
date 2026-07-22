@@ -88,11 +88,19 @@ final class CaptureAccuracyGate
             $missing[] = 'ownership_type';
             $reasons[] = 'Investment accounts can only be recorded as individually or jointly owned';
         }
-        if ($isIsaWrite && $argumentOwnership !== 'individual') {
-            $missing[] = 'ownership_type';
-            $reasons[] = 'An ISA must be recorded as individually owned';
-        }
-        if (! is_string($argumentOwnership)
+
+        if ($isIsaWrite) {
+            // An ISA has exactly one legal owner under UK law, so Fyn never
+            // asks who owns it: an absent ownership_type is allowed (the
+            // write handler defaults it to individual downstream). The one
+            // case still blocked is an explicit non-individual value — a
+            // joint/tenants-in-common/trust ISA can never legally be
+            // persisted, so the joint-ISA-illegal guard stays absolute.
+            if ($argumentOwnership !== null && $argumentOwnership !== 'individual') {
+                $missing[] = 'ownership_type';
+                $reasons[] = 'An ISA must be recorded as individually owned';
+            }
+        } elseif (! is_string($argumentOwnership)
             || ! in_array($argumentOwnership, ['individual', 'joint', 'tenants_in_common', 'trust'], true)
             || $textOwnership === null
             || $argumentOwnership !== $textOwnership) {
