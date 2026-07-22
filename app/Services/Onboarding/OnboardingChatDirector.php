@@ -1559,6 +1559,52 @@ final class OnboardingChatDirector
                 yield $event;
             }
 
+            // Review finding I-1 — this turn's tool list keeps
+            // delegate_to_capture, so a question-phrased write ("Can you add
+            // my ISA?") can trigger FynLoop::interceptHandoff →
+            // handleInlineCapture → a gate clarification mid-advice-turn.
+            // Unconditionally re-emitting the walk step below would bury that
+            // clarification with no pending flag armed. Mirror
+            // resolvePendingInterruptionCapture's post-capture check: inspect
+            // the latest persisted assistant message and, when it is asking
+            // for a missing detail, arm pending_interruption_store instead of
+            // re-emitting the step, so the next reply is treated as the
+            // awaited detail rather than a fresh walk answer.
+            $latestAssistant = $conversation->messages()
+                ->where('role', 'assistant')
+                ->latest('id')
+                ->first(['id', 'content']);
+
+            if ($latestAssistant !== null
+                && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+                // WriteIntentClassifier::classify() short-circuits to null for
+                // any message that looks like a question (the same check that
+                // routed this message into handleQuestionInterruption in the
+                // first place — see isQuestion()/looksLikeQuestion()), so in
+                // practice this always falls back to the generic shape below.
+                // Still call it first rather than hardcoding: if that
+                // precedence ever changes, a real classification wins.
+                $intent = $this->writeIntentClassifier->classify($message);
+
+                $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                $context['pending_interruption_store'] = [
+                    'message' => $message,
+                    'intent' => $intent ?? [
+                        'reason' => 'question_phrased_write',
+                        'entity_type' => 'savings_account',
+                        'fields_needed' => [],
+                    ],
+                    'state_id' => $currentStateId,
+                    'awaiting_detail' => true,
+                ];
+                $user->onboarding_fyn_context = $context;
+                $user->save();
+
+                yield ['type' => 'done', 'message_id' => $latestAssistant->id];
+
+                return;
+            }
+
             yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
         })();
     }
@@ -5797,7 +5843,20 @@ PROMPT;
                 : null;
             $persistedMessage ??= $newAssistantMessages->latest('id')->first();
 
-            if ($persistedMessage !== null) {
+            // Review finding M-2 — a fully-rescued call (every entry above
+            // moved from $pendingWriteFailures into $rescuedContentOffsets,
+            // so $failureText is never appended) can compute an empty
+            // $persistedText when the earliest rescued content_offset is 0:
+            // the tool call was the very first thing in the turn, so there is
+            // no safe narration prefix to keep. Blanking an existing row to
+            // '' would persist a genuinely empty assistant message — strictly
+            // worse than the stale (now-superseded) narration it already
+            // holds. Skip the update in that case and leave the original
+            // content in place, rather than deleting the row: nothing else in
+            // this method tracks whether other yielded events (e.g.
+            // capture_complete's message_id) still reference this row, so a
+            // silent no-op is the safe, simple choice.
+            if ($persistedMessage !== null && $persistedText !== '') {
                 $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
                 $persistedMessage->update([
                     'content' => $persistedText,
@@ -5805,7 +5864,7 @@ PROMPT;
                         ? array_merge($metadata, ['capture_write_failed' => true])
                         : $metadata,
                 ]);
-            } elseif ($persistedText !== '') {
+            } elseif ($persistedMessage === null && $persistedText !== '') {
                 $this->saveMessage($conversation, 'assistant', $persistedText, [
                     'metadata' => $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
                 ]);

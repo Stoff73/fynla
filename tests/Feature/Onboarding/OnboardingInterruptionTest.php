@@ -364,6 +364,67 @@ it('rescues a gate-blocked create_savings_account via deterministic ownership ga
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
 
+// ── Fix: a fully-rescued write with no narration before the failing tool
+// call must never blank the persisted assistant row to '' (review finding
+// M-2). handleInlineCapture computes a "safe prefix" of content events
+// preceding the earliest rescued content_offset; when the tool call was the
+// very first thing in the turn that offset is 0, so the safe prefix — and
+// therefore the text it would write back to the row — is empty. Overwriting
+// the row's real content ("Understood.", persisted by the underlying model
+// stream) with '' would leave a genuinely blank assistant message in the
+// transcript.
+
+it('never blanks the persisted assistant row when a rescued write has no narration before the failing tool call', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    [$user, $conversation] = interruptionUser();
+
+    // Turn 1: user volunteers a savings account mid-onboarding. Pure
+    // classifier path (handleInformationInterruption) — no LLM call.
+    driveDirector($user, $conversation, 'I have £15,000 in a Halifax savings account at 4.1% interest');
+
+    // Simulate having already been asked once for ownership — skips the
+    // "Yes, save it" acceptance turn (irrelevant to the mechanism under
+    // test).
+    $user->refresh();
+    $context = $user->onboarding_fyn_context;
+    $context['pending_interruption_store']['awaiting_detail'] = true;
+    $user->onboarding_fyn_context = $context;
+    $user->save();
+
+    // Turn 2: a BARE tool call — no preceding narration — is the model's
+    // first LLM call this turn, so the failure's content_offset is 0. The
+    // model's second LLM call (after seeing the tool error) narrates
+    // "Understood." — that is what the underlying stream persists as the
+    // row's real content before this deterministic pass runs. The model
+    // omits ownership_type again; the deterministic gap-fill rescues it from
+    // the user's own wording.
+    FynStreamHarness::fake()
+        ->toolTurn('create_savings_account', [
+            'account_name' => 'Halifax Savings Account',
+            'account_type' => 'easy_access',
+            'institution' => 'Halifax',
+            'current_balance' => 15000.0,
+            'interest_rate' => 4.1,
+        ])
+        ->textTurn('Understood.')
+        ->bind();
+
+    driveDirector($user->refresh(), $conversation, "Yes, it's owned individually by me");
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account)->not->toBeNull()
+        ->and($account->ownership_type)->toBe('individual');
+
+    // No assistant row in the transcript was left with blank content — the
+    // rescued turn either kept its original (stale but non-empty) narration
+    // or never touched the row at all.
+    $blankAssistantMessages = $conversation->messages()
+        ->where('role', 'assistant')
+        ->where('content', '')
+        ->count();
+    expect($blankAssistantMessages)->toBe(0);
+});
+
 // ── Fix: gap-fill evidence override survives an interposed store-offer
 // affirmation (live conversation 164 — the exact two-step store-offer
 // shape) ─────────────────────────────────────────────────────────────────
@@ -492,6 +553,51 @@ it('answers a module-level question inline from data then resumes the walk', fun
     expect($quickRepliesIndex)->not->toBeFalse();
     expect($quickRepliesIndex)->toBeGreaterThan($contentIndex);
     expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(1);
+});
+
+// ── Fix: question-branch nested capture clarification must not be buried
+// (review finding I-1). The inline advice turn's tool list keeps
+// delegate_to_capture, so a question-phrased write ("Can you add my ISA?")
+// can surface a gate clarification as the advice answer itself. Mirrors
+// resolvePendingInterruptionCapture's post-capture check: when the latest
+// persisted assistant content is clarification-shaped, arm
+// pending_interruption_store with awaiting_detail instead of unconditionally
+// re-emitting the walk step on top of it.
+
+it('arms the pending store offer instead of burying the clarification when a question-phrased write turns up a gate clarification', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    $clarification = 'I need to confirm ownership before I can save this — is it individually owned by you?';
+    scriptedFynClientWithText($clarification);
+
+    [$user, $conversation] = interruptionUser();
+
+    $received = driveDirector($user, $conversation, 'Can you add my ISA for me?');
+
+    // The clarification is passed straight through as the live question — it
+    // must not be buried under a re-emitted walk step.
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->toContain('individually owned');
+    expect(collect($received)->where('type', 'quick_replies'))->toBeEmpty();
+    expect(collect($received)->pluck('type')->filter(fn ($t) => $t === 'done'))->toHaveCount(1);
+
+    $user->refresh();
+    $pending = $user->onboarding_fyn_context['pending_interruption_store'] ?? null;
+    expect($pending)->not->toBeNull();
+    expect($pending['awaiting_detail'] ?? null)->toBeTrue();
+    expect($pending['message'] ?? null)->toBe('Can you add my ISA for me?');
+    expect($pending['state_id'] ?? null)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    // WriteIntentClassifier::classify() short-circuits to null for any
+    // message that looks like a question — the same check that routed this
+    // message into handleQuestionInterruption in the first place — so the
+    // generic fallback shape is armed rather than a real classification.
+    expect($pending['intent'] ?? null)->toBe([
+        'reason' => 'question_phrased_write',
+        'entity_type' => 'savings_account',
+        'fields_needed' => [],
+    ]);
+
+    // The walk step pointer itself never moved.
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
 
 it('defers a holistic question with a promise and parks it on the conversation', function () {
