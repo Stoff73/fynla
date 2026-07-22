@@ -64,13 +64,74 @@ actor APIClient {
                 accessToken: refreshedToken,
                 correlationID: correlationID
             )
+        } else if result.response.statusCode == 401,
+                  !request.method.permitsAuthenticationReplay,
+                  accessToken != nil,
+                  let tokenRefresher
+        {
+            // Mutating requests are never replayed, but refreshing here means
+            // the user's immediate retry succeeds instead of failing again on
+            // the lapsed token.
+            _ = try? await tokenRefresher.refreshAccessToken()
         }
 
         return try decode(
             Value.self,
             data: result.data,
             response: result.response,
+            correlationID: correlationID,
+            responseDecoding: request.responseDecoding
+        )
+    }
+
+    func sendData<Value>(_ request: APIRequest<Value>) async throws -> Data {
+        let correlationID = requestID()
+        let accessToken = await tokenProvider.accessToken()
+        var result = try await perform(
+            request,
+            accessToken: accessToken,
             correlationID: correlationID
+        )
+
+        if result.response.statusCode == 401,
+           request.method.permitsAuthenticationReplay,
+           accessToken != nil,
+           let tokenRefresher,
+           let refreshedToken = try await tokenRefresher.refreshAccessToken()
+        {
+            result = try await perform(
+                request,
+                accessToken: refreshedToken,
+                correlationID: correlationID
+            )
+        }
+
+        guard (200..<300).contains(result.response.statusCode) else {
+            throw mapError(
+                data: result.data,
+                response: result.response,
+                requestID: result.response.value(forHTTPHeaderField: "X-Request-ID")
+                    ?? correlationID
+            )
+        }
+        return result.data
+    }
+
+    func sendRawResponse<Value>(
+        _ request: APIRequest<Value>
+    ) async throws -> APIRawResponse {
+        let correlationID = requestID()
+        let accessToken = await tokenProvider.accessToken()
+        let result = try await perform(
+            request,
+            accessToken: accessToken,
+            correlationID: correlationID
+        )
+        return APIRawResponse(
+            statusCode: result.response.statusCode,
+            data: result.data,
+            requestID: result.response.value(forHTTPHeaderField: "X-Request-ID")
+                ?? correlationID
         )
     }
 
@@ -99,7 +160,8 @@ actor APIClient {
         _ type: Value.Type,
         data: Data,
         response: HTTPURLResponse,
-        correlationID: String
+        correlationID: String,
+        responseDecoding: APIResponseDecoding
     ) throws -> Value {
         let responseRequestID = response.value(forHTTPHeaderField: "X-Request-ID")
             ?? correlationID
@@ -113,6 +175,9 @@ actor APIClient {
         }
 
         do {
+            if responseDecoding == .raw {
+                return try JSONDecoder().decode(Value.self, from: data)
+            }
             let envelope = try JSONDecoder().decode(APIEnvelope<Value>.self, from: data)
             guard envelope.success else {
                 throw APIError.decoding(requestID: responseRequestID)
@@ -143,8 +208,22 @@ actor APIClient {
             return .conflict(message: body?.message)
         case 422:
             return .validation(body?.errors ?? [:])
-        case 426:
-            return .upgradeRequired(message: body?.message ?? "Upgrade required.")
+        case 426 where body?.error == "native_update_required":
+            guard let message = body?.message,
+                  let minimumVersion = body?.minimumVersion,
+                  let minimumBuild = body?.minimumBuild,
+                  let appStoreURL = body?.appStoreURL
+            else {
+                return .server(status: response.statusCode, requestID: requestID)
+            }
+            return .nativeUpdateRequired(
+                NativeUpdateRequirement(
+                    message: message,
+                    minimumVersion: minimumVersion,
+                    minimumBuild: minimumBuild,
+                    appStoreURL: appStoreURL
+                )
+            )
         case 429:
             return .rateLimited(retryAfter: retryAfter(from: response))
         default:
@@ -174,10 +253,28 @@ actor APIClient {
     }
 }
 
+struct APIRawResponse: Sendable {
+    let statusCode: Int
+    let data: Data
+    let requestID: String?
+}
+
 private struct ErrorEnvelope: Decodable, Sendable {
     let error: String?
     let message: String?
     let errors: [String: [String]]?
+    let minimumVersion: String?
+    let minimumBuild: Int?
+    let appStoreURL: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case error
+        case message
+        case errors
+        case minimumVersion = "minimum_version"
+        case minimumBuild = "minimum_build"
+        case appStoreURL = "app_store_url"
+    }
 }
 
 private extension URLError.Code {

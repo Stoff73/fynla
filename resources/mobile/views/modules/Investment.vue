@@ -68,6 +68,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
@@ -123,7 +124,8 @@ export default {
       this.error = '';
       this.payload = null;
       try {
-        const { ok, data } = await apiGet('/api/investment', store.token);
+        const { ok, status, data } = await apiGet('/api/investment', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your investments.';
       } catch {

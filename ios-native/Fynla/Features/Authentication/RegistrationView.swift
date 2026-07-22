@@ -287,7 +287,13 @@ extension View {
 
     @ViewBuilder
     func fynlaNewPasswordInput() -> some View {
-        #if os(iOS)
+        #if os(iOS) && !FYNLA_UI_TESTING
+        // Simulator (not real devices) covers `.newPassword` secure fields
+        // with its own "Automatic Strong Password" suggestion view during
+        // UI Test automation, which intercepts taps/typing meant for the
+        // field itself. Real users still get the Strong Password suggestion
+        // in every non-UI-testing build; only the automated test build
+        // skips it so XCUITest interacts with the field directly.
         self.textContentType(.newPassword)
         #else
         self

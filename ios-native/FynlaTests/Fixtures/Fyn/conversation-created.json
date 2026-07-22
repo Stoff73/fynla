@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "id": 321,
+    "title": null,
+    "message_count": 0,
+    "status": "active"
+  }
+}

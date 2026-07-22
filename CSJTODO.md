@@ -1,5 +1,46 @@
 # CSJTODO — Fynla
 
+*Last updated: 2026-07-21 — context-clear wrap, session 2. Everything asked
+today is DONE: /m-parity sweep complete; CSJ directives (avatar rule,
+fireworks, nudges) executed; better-in-the-app Fyn bubble live on csjones;
+SaveTax campaign live E2E green on web AND native (2 real defects fixed);
+**TestFlight build 1.0(1) of Fynla Dev uploaded and VALID — CSJ invited as
+internal tester**. Handover: July/July21Updates/handover-2026-07-21-session-2-clear.md.*
+
+## 2026-07-21 — session 2 (all delivered)
+
+- [x] Better-in-the-app Fyn bubble at the campaign terminal (Pest-pinned, deployed to csjones, seen live).
+- [x] SaveTax campaign E2E: /m funnel → register → onboarding → synthesis → tax strategy; native login pull-through with real amounts; fireworks fired live.
+- [x] Fixed: tolerant native API decoding (string decimals + {}-null — Savings/Retirement were undecodable live); pension rows whole-pound.
+- [x] TestFlight: bundle org.fynla.app.dev registered (+Push/Assoc Domains), distribution cert G4DATT2CZB + App Store profile via API, build uploaded, internal group + CSJ invite. Guide: ios-native/TESTFLIGHT.md.
+- [ ] **CSJ: install the TestFlight build** (invite emailed to c.jones@csjones.co) and report.
+- [ ] **NOTE: csjones now runs `codex/savetax-allowance-ctas`** (dev merged in at eec2a1a), not `dev`.
+- [ ] Debt noted: keychain password in TESTFLIGHT.md (rotate before prod flow); code-relay script scratchpad-only; framed{} duplicated 18×; TolerantDecoding non-optional string-token gap.
+
+## 2026-07-21 — /m-parity sweep (session 2: COMPLETE)
+
+- [x] **"Left in the Sweep" — ALL DONE, pushed to pkg7:** Tax Strategy, Holistic Plan, all six sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history), Achievements tab content, hero persistence across loading/error states (all 18 screens), Income/Expenditure fixture stubs, user chat-bubble corrected to /m (no user-bubble CSS — verified live), `.module` dev stub removed. Bug found+fixed while looping: Settings Sign out sat under the Fyn dock on small phones.
+- [x] **CSJ directives 2026-07-21 executed:** Rule 15 amended — the Fyn character is ALWAYS allowed everywhere (committed on both branches; never re-raise). Level-up fireworks transcribed from /m's GamificationCelebration (shell + in-chat surfaces; ack matches /m's instant non-fatal contract). Onboarding "Finish your personalised tax plan with Fyn" nudge + KYC unlock bubble transcribed from /m Dashboard.vue. All screenshot-verified; journeys + parity + unit suites green.
+- [x] Shell chrome + dashboard + drawer + Fyn transcribed from /m; milestone banners moved below the level card (BOTH surfaces — CSJ direction); dark m-hero correction across all converted screens.
+- [x] Module screens transcribed: Income, Expenditure, Net Worth, Savings, Investments, Protection, Goals, Estate, Retirement (+ Achievements header).
+- [x] Audit P0s/P1s: consent no-toggle fix; six client-side-calc items = /m-parity KEEPs (evidenced); tolerant enum decodes; export timeout; write-401 refresh; verify-project.sh fixed + in CI; webhook limiter Pest test green.
+- [ ] **/m milestone-banner fix awaits CSJ build + deploy to csjones** (main repo commit 2772831 on codex/savetax-allowance-ctas).
+- [ ] Remaining deferred (engineering-internal): diagnostics wiring (P1-9 design call); legacy SubscriptionPlanSeeder note (backend). csjones-only bug-report FAB deliberately not ported.
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (green in CI) — don't chase.
+
+
+## 2026-07-20 — iOS audit + /m parity remediation (session dissolved, see handover)
+
+- [ ] **Blocking question for CSJ:** CSJ said the iOS parity work went "on the wrong path" — next session must ask what was wrong BEFORE resuming. Local pkg7 commits are unpushed pending that answer (undo = `git reset --hard origin/codex/ios-package7-platform-release` in `/Users/CSJ/Desktop/fynla-ios-package7`).
+- [x] Full iOS audit report → `July/July20Updates/ios-audit-report-2026-07-20.md` (delta + remediation list).
+- [x] Local commits on pkg7 branch (UNPUSHED): pkg4-tip merge; login rebuilt to /m; dashboard/menu/Fyn-dock rebuilt to /m; Lock/Sign-out restored; placeholder tint; Apple webhook named rate limiter. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` (on the branch).
+- [ ] P0 remaining: 5 client-side financial calcs; 35 National Insurance years fallback; consent toggles (delete ai_chat toggle, required consents display-only).
+- [ ] P1 remaining: verify-project.sh into CI; enum decode tolerance; Retirement silent failures; export poll timeout; write-path 401 refresh; diagnostics wiring; balance-history magic values; minor copy fixes.
+- [ ] Module-by-module /m parity sweep (detail/functionality/states/intent/design) for all remaining screens.
+- [ ] Webhook limiter Pest test (code committed; test deleted — blocked by worktree .env/bridge venv gap).
+- [ ] Ledger decisions for CSJ: Fyn dock avatar (mascot ban vs /m match); level-up fireworks + Fyn nudges (ledger D8).
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (pre-existing; green in CI). Nothing deployed anywhere.
+
 *Last updated: 2026-07-18 — Native Swift Package 3 automated gate is green in draft PR #633; the next inference continues Packages 4–7 while preserving the open actual-Chrome and physical-iPhone evidence gates.*
 
 ## 2026-07-18 — Native Swift Packages 3–7

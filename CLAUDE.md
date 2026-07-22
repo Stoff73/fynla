@@ -233,7 +233,7 @@ The only exception is when the user explicitly says "standalone" / "chrome-less"
 
 **Other surfaces — ASK CSJ first** (modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, non-card empty states, settings, admin, onboarding wizards, mobile app). Default is NO icon; don't guess or copy nearby patterns.
 
-**Specific bans anywhere (even the side nav):** emoji in any string/label/bubble/tooltip/AI-response/system-prompt/commit-message/comment/doc/markdown/JSON/DB-row/migration; Unicode-as-icons (★ ✓ ✗ → ← ⚠ ℹ); `::before`/`::after` glyph or icon-font injection; icon fonts as a class (font-awesome, material-icons, any webfont); mascot/character images as inline icons (the Fyn character is allowed only as a large illustrated hero on public pages, never as a button/nav/card icon).
+**Specific bans anywhere (even the side nav):** emoji in any string/label/bubble/tooltip/AI-response/system-prompt/commit-message/comment/doc/markdown/JSON/DB-row/migration; Unicode-as-icons (★ ✓ ✗ → ← ⚠ ℹ); `::before`/`::after` glyph or icon-font injection; icon fonts as a class (font-awesome, material-icons, any webfont); mascot/character images as inline icons — **EXCEPT the Fyn character, which is ALWAYS allowed, everywhere, at any size (CSJ direction 2026-07-21):** dock avatars, chat headers and bubbles, buttons, nav, cards, and any other surface, on web, `/m`, and native. The Fyn avatar never counts as a banned icon; never strip it, flag it in audits, or raise it as a decision.
 
 **Enforcement (forward-only — existing violations grandfathered):** all current violations stay (e.g. `goalIcons.js` emoji 🔥🎯📈⭐🏆, `AdminDashboard.vue` ▲▼ arrows) — don't rip them out, flag them in audits, or "tidy them up" while editing nearby. Everything new complies strictly from the moment it lands, no grace period. If a plan shows icons on a banned surface, strip them BEFORE coding and flag the plan. Remove an existing violation only if CSJ specifically asks. When in doubt, ASK CSJ.
 
@@ -340,6 +340,8 @@ Step-by-step build + deploy commands for both environments live in **`deploy/DEP
 - Credentials live only in each server's `.env` (gitignored) — never in the repo or chat.
 
 ## Mobile App (Capacitor iOS)
+
+**Status 2026-07-20 — the native SwiftUI app (third client) is the successor in flight.** Packages 1–3 (API readiness/contract freeze, SwiftUI foundation, native auth + Face ID) are merged to `dev`; Packages 4–7 (StoreKit/entitlements, dashboard + Fyn, financial modules, platform/release) are the open PR chain #634 → #636 → #635 → #637. The pkg7 branch (worktree `/Users/CSJ/Desktop/fynla-ios-package7`) additionally carries the 2026-07-20 audit remediation and the CSJ-directed **/m-parity rework** (every native screen must match `/m` on detail, functionality, states, intent, and design — dispositions in `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` on that branch). Nothing native has shipped; the Capacitor target below remains the legacy shipped app until Package 7 replaces it, and `/m` stays permanent regardless (Rule 19).
 
 Full conventions in `resources/js/CLAUDE.md` (Mobile section) + the `mobile_capacitor_patterns.md` memory. Load-bearing essentials:
 

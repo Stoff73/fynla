@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "data": {
+    "income_summary": {
+      "user": {
+        "employment": 72500,
+        "self_employment": 4250.50,
+        "dividend": 1200,
+        "interest": 350.25,
+        "other": 0,
+        "total": 78300.75,
+        "employer": "Northstar Ltd",
+        "occupation": "Product designer"
+      },
+      "spouse": {
+        "employment": 48000,
+        "self_employment": 0,
+        "dividend": 0,
+        "interest": 0,
+        "other": 0,
+        "total": 48000,
+        "employer": null,
+        "occupation": null
+      }
+    }
+  }
+}

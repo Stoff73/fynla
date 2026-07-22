@@ -59,6 +59,39 @@ it('emits a welcome-back greeting with Continue / Something else bubbles on resu
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
 });
 
+it('persists the Continue / Something else bubbles on the welcome-back greeting', function () {
+    // Regression: the greeting's bubbles rode only in the live SSE stream, so
+    // any transcript-only render (/m dock remount, the native app) showed a
+    // welcome-back with no way to respond. The persisted row must carry the
+    // same metadata.bubbles + action_bubbles every other onboarding turn does.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'first_name' => 'Chris',
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PATH_CHOICE,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    foreach (app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'resume') as $_) {
+        // drain the generator
+    }
+
+    $greeting = $conversation->messages()
+        ->where('metadata->is_resume_greeting', true)
+        ->first();
+
+    expect($greeting)->not->toBeNull();
+    expect($greeting->metadata['action_bubbles'] ?? false)->toBeTrue();
+    expect(array_column($greeting->metadata['bubbles'] ?? [], 'id'))
+        ->toBe(['continue', 'something_else']);
+});
+
 it('keeps only the latest welcome-back greeting across repeated resumes', function () {
     // Regression: the web resume flow calls action=resume on every chat open.
     // Without pruning, each call persisted a new welcome-back, so the mobile
@@ -117,6 +150,95 @@ it('re-emits the current state on continue', function () {
     // it would on a fresh first turn.
     $quick = collect($received)->firstWhere('type', 'quick_replies');
     expect($quick)->not->toBeNull();
+});
+
+/**
+ * CSJ regression (csjones conversation 63): STATE_PATH_CHOICE.prompt_text
+ * opens with the full "Hi {first_name}, I'm Fyn — welcome to Fynla"
+ * introduction. Every re-emission of the state — resume Continue,
+ * interruption re-emits, retry fallthroughs — was persisting that whole
+ * introduction again, stacking multiple "welcome to Fynla" rows in one
+ * conversation's transcript. The introduction must appear exactly once per
+ * conversation; every subsequent emission uses reprompt_text instead.
+ */
+it('emits the full welcome introduction on the very first turn of a conversation', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'first_name' => 'Chris',
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PATH_CHOICE,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->emitFirstTurn($user, $conversation) as $event) {
+        $received[] = $event;
+    }
+
+    $quick = collect($received)->firstWhere('type', 'quick_replies');
+    expect($quick)->not->toBeNull();
+    expect($quick['prompt_text'])->toContain('welcome to Fynla');
+    expect(array_column($quick['bubbles'], 'id'))->toBe(['journey', 'focus']);
+
+    $persisted = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
+    expect($persisted->content)->toContain('welcome to Fynla');
+});
+
+it('drops the welcome introduction on re-emission once an assistant message already exists', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'first_name' => 'Chris',
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PATH_CHOICE,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $director = app(OnboardingChatDirector::class);
+
+    // First-ever emission — the full introduction, as above.
+    foreach ($director->emitFirstTurn($user, $conversation) as $_) {
+        // drain
+    }
+
+    // Re-emission — a resume "Continue" replays the same current state.
+    // The conversation now already has a persisted assistant message, so
+    // the introduction sentence must not be repeated.
+    $received = [];
+    foreach ($director->handleAction($user, $conversation, 'continue') as $event) {
+        $received[] = $event;
+    }
+
+    $quick = collect($received)->firstWhere('type', 'quick_replies');
+    expect($quick)->not->toBeNull();
+    expect($quick['prompt_text'])->not->toContain('welcome to Fynla');
+    expect($quick['prompt_text'])->not->toContain("I'm Fyn");
+    expect($quick['prompt_text'])->toContain('life-stage journey or pick a single module focus');
+    // Bubbles are unchanged by the reprompt swap.
+    expect(array_column($quick['bubbles'], 'id'))->toBe(['journey', 'focus']);
+
+    // The persisted row for the re-emission is the reprompt, not a second
+    // copy of the introduction — exactly one "welcome to Fynla" row exists
+    // across the whole conversation.
+    $persisted = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
+    expect($persisted->content)->not->toContain('welcome to Fynla');
+    expect(
+        $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('content', 'like', '%welcome to Fynla%')
+            ->count()
+    )->toBe(1);
 });
 
 it('deletes prior messages and resets to path_choice on restart', function () {

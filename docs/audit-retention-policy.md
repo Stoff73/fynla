@@ -10,7 +10,7 @@
 
 ## 1. Purpose
 
-This policy sets the retention windows applied to the AI tool-call audit chain (`ai_audit_events`). It is the documented half of D4 (Audit integrity) level 3 in Rubric-A — the other three sub-criteria (HMAC signing, key outside application runtime, weekly integrity-verification job) are already live as code.
+This policy sets the retention windows applied to the AI tool-call audit chain (`ai_audit_events`) and the non-personal App Store notification audit (`apple_notification_logs`). It is the documented half of D4 (Audit integrity) level 3 in Rubric-A — the other three sub-criteria (HMAC signing, key outside application runtime, weekly integrity-verification job) are already live as code.
 
 It does **not** cover the broader application audit log (`audit_logs`), user-data retention on subscription cancellation, or chat-message retention. Those are governed by separate policies referenced in §6.
 
@@ -20,6 +20,7 @@ It does **not** cover the broader application audit log (`audit_logs`), user-dat
 |---|---|---|
 | **Long retention (advice + writes)** | 7 years (2,555 days) | Any `ai_audit_events` row where `operation = 'write'` OR `tool_name = 'get_recommendations'` |
 | **Short retention (general)** | 2 years (730 days) | All other rows: read-tool dispatches (`operation = 'read'`), classifier hits (`operation = 'classify'`), handoff chrome (`operation = 'handoff'`), stripped events (`status = 'stripped'`) |
+| **Apple notification audit** | 7 years (2,555 days) | Non-personal `apple_notification_logs` idempotency and processing evidence |
 
 **Why these durations.** Seven years matches FCA record-keeping guidance for advice and recommendation activity — every row that either persisted user data (`operation = 'write'`) or returned personalised recommendations (`tool_name = 'get_recommendations'`) is regulator-relevant and stays for the full window. Two years is sufficient for operational reconciliation on read-only and infrastructural rows (which carry no advice content) while keeping table size bounded.
 
@@ -27,14 +28,17 @@ The window starts at row `created_at` (set automatically by `AuditChainService::
 
 ## 3. Enforcement
 
-A scheduled job prunes rows that have aged past their window.
+The existing scheduled audit-retention paths prune rows that have aged past
+their window.
 
-| Field | Value |
-|---|---|
-| Job class | `App\Jobs\AiAuditRetentionJob` |
-| Schedule | Weekly, Sundays 04:00 UTC (`app/Console/Kernel.php:40`) |
-| Action on aged rows | Hard delete |
-| Log output | `Log::info('[AiAuditRetentionJob] Pruned aged audit rows', …)` |
+| Data | Retention path | Schedule |
+|---|---|---|
+| `ai_audit_events` | `App\Jobs\AiAuditRetentionJob` | Weekly, Sundays 04:00 UTC |
+| `apple_notification_logs` | `audit:purge` (`App\Console\Commands\PurgeAuditLogs`) | Weekly, Sundays 03:00 UTC |
+
+Both paths hard-delete expired rows and report their deleted counts. The Apple
+notification path uses bounded delete batches and the configured
+`retention.apple_notification_audit_days` cutoff.
 
 The chain-integrity verifier runs immediately after retention each week:
 
@@ -91,12 +95,28 @@ There is no `--dry-run` flag at present — the row counts are visible after the
 
 If a chat-message or advice-log retention policy is later required for regulatory reasons, it would be authored as a separate document and a separate job, sharing the deletion-not-mutation discipline of this policy.
 
-## 7. Change control
+## 7. Apple notification audit retention
+
+`apple_notification_logs` deliberately has no user foreign key, account token,
+transaction identifier, decoded payload or raw JWS. It retains only the
+notification UUID, environment, type/subtype, SHA-256 payload evidence,
+processing status/error and timestamps. Verified account erasure therefore
+does not delete in-window rows. The scheduled general `audit:purge` command
+hard-deletes rows whose `created_at` is older than
+`retention.apple_notification_audit_days` (2,555 days) in bounded batches.
+
+The schema allowlist and both the retention and account-erasure behaviour are
+pinned by focused Pest tests. Adding personal identifiers or raw signed data to
+this table requires a new privacy review and policy change.
+
+## 8. Change control
 
 Changes to the retention windows or to the job's behaviour require:
 
 1. Spec amendment to `April/April24Updates/spec/01-invariants.md` §INV-2.10.2.
-2. Code change to `app/Jobs/AiAuditRetentionJob.php` constants `SEVEN_YEARS_DAYS` / `TWO_YEARS_DAYS` and selection clauses.
+2. Code change to the relevant retention path: `app/Jobs/AiAuditRetentionJob.php`
+   for AI events, or `config/retention.php` and
+   `app/Console/Commands/PurgeAuditLogs.php` for Apple notification audit.
 3. Update to this document with a new effective date.
 4. Pest coverage update (the job has a sibling test that pins the window math; reduction would loosen it).
 

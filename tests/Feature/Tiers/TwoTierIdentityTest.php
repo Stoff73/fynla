@@ -33,7 +33,7 @@ it('returns Premium as the only selectable billing plan', function () {
 
 it('resolves canonical users only to Free or Premium', function () {
     $free = new User(['tier' => 'free']);
-    $premium = new User(['tier' => 'premium']);
+    $premium = User::factory()->withActivePremiumSubscription()->create();
     $resolver = app(TierResolver::class);
 
     expect($resolver->resolve($free))->toBe('free')

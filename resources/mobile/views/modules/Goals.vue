@@ -73,6 +73,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildEditPrompt } from '../../utils/editPrompt.js';
 
@@ -151,6 +152,7 @@ export default {
           apiGet('/api/goals', store.token),
           apiGet('/api/goals/dashboard-overview', store.token),
         ]);
+        if (handleAuthExpiry(listRes, this.$router)) return;
         if (listRes.ok) {
           this.goals = listRes.data?.data?.goals || listRes.data?.goals || [];
         } else {
@@ -160,7 +162,7 @@ export default {
         if (overviewRes.ok) {
           this.overview = overviewRes.data?.data || overviewRes.data || null;
         }
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

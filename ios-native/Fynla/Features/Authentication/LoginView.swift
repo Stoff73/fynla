@@ -11,34 +11,98 @@ struct LoginView: View {
     @State private var resendTask: Task<Void, Never>?
     @State private var countdownTask: Task<Void, Never>?
     @FocusState private var focusedField: LoginField?
+    @FocusState private var verificationCodeIsFocused: Bool
 
     var body: some View {
         Group {
             switch model.step {
-            case let .verification(maskedEmail):
-                verification(maskedEmail: maskedEmail)
-            case .signIn:
-                signIn
+            case .signIn, .verification:
+                brandPage
             case .multiFactor, .restoration, .authenticated:
                 LoadingView(message: "Continuing securely")
             }
         }
-        .background(FynlaColor.pageBackground.ignoresSafeArea())
         .onDisappear(perform: clearSecrets)
     }
 
-    private var signIn: some View {
+    // Mirrors the /m login (resources/mobile/views/Login.vue): gradient brand
+    // page, logo, one white card whose form swaps between the credentials and
+    // verification steps.
+    private var brandPage: some View {
         ScrollView {
-            VStack(spacing: FynlaSpacing.large) {
-                authHeader(
-                    title: "Sign in to Fynla",
-                    detail: "Use your email and password. We will confirm your identity before opening your financial plan."
-                )
+            VStack(spacing: 0) {
+                Image("LogoFynlaLight")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 40)
+                    .padding(.top, FynlaSpacing.xLarge)
+                    .padding(.bottom, FynlaSpacing.xLarge)
+                    .accessibilityLabel("Fynla")
 
-                VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
+                card
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, FynlaSpacing.standard)
+            .padding(.bottom, FynlaSpacing.xLarge)
+        }
+        .background(loginGradient.ignoresSafeArea())
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    private var loginGradient: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: FynlaColor.Token.horizon500.color, location: 0),
+                .init(color: FynlaColor.Token.loginGradientMid.color, location: 0.55),
+                .init(color: FynlaColor.Token.loginGradientBottom.color, location: 1),
+            ],
+            startPoint: UnitPoint(x: 0.33, y: 0),
+            endPoint: UnitPoint(x: 0.67, y: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var card: some View {
+        Group {
+            if case let .verification(maskedEmail) = model.step {
+                verificationForm(maskedEmail: maskedEmail)
+            } else {
+                credentialsForm
+            }
+        }
+        .padding(FynlaSpacing.large)
+        .frame(maxWidth: 416)
+        .background(FynlaColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.cardCornerRadius, style: .continuous))
+        .shadow(
+            color: FynlaColor.Token.horizon500.color.opacity(0.32),
+            radius: 20,
+            y: 18
+        )
+    }
+
+    // Step 1 — email + password, matching /m copy and layout.
+    private var credentialsForm: some View {
+        VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
+            Text("Sign in")
+                .font(FynlaTypography.sectionTitle)
+                .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityAddTraits(.isHeader)
+
+            Text("Welcome back. Sign in to your Fynla account.")
+                .font(FynlaTypography.bodySmall)
+                .foregroundStyle(FynlaColor.secondaryText)
+
+            VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
+                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
                     fieldLabel("Email address")
-                    TextField("Email address", text: $model.email)
-                        .fynlaEmailInput()
+                    TextField(
+                        "",
+                        text: $model.email,
+                        prompt: Text("you@example.com")
+                            .foregroundStyle(FynlaColor.secondaryText.opacity(0.6))
+                    )
+                    .fynlaEmailInput()
                         .fynlaAuthField(
                             identifier: "login.email",
                             isFocused: focusedField == .email,
@@ -46,10 +110,17 @@ struct LoginView: View {
                         )
                         .focused($focusedField, equals: .email)
                     fieldError(model.fieldErrors[.email], identifier: "login.email.error")
+                }
 
+                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
                     fieldLabel("Password")
-                    SecureField("Password", text: $password)
-                        .fynlaCurrentPasswordInput()
+                    SecureField(
+                        "",
+                        text: $password,
+                        prompt: Text("••••••••")
+                            .foregroundStyle(FynlaColor.secondaryText.opacity(0.6))
+                    )
+                    .fynlaCurrentPasswordInput()
                         .fynlaAuthField(
                             identifier: "login.password",
                             isFocused: focusedField == .password,
@@ -58,97 +129,185 @@ struct LoginView: View {
                         .focused($focusedField, equals: .password)
                     fieldError(model.fieldErrors[.password], identifier: "login.password.error")
                 }
+            }
 
-                status
+            messageBanner
 
-                if model.lockoutRemainingSeconds > 0 {
-                    Text("Try again in \(model.lockoutRemainingSeconds) seconds.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.Token.raspberry700.color)
-                        .accessibilityIdentifier("login.lockoutCountdown")
-                }
+            lockoutCountdown
 
-                VStack(spacing: FynlaSpacing.medium) {
-                    FynlaButton(
-                        "Sign in",
-                        isLoading: model.isSubmitting,
-                        isDisabled: model.isSubmitting || model.isLocked
-                    ) { submitLogin() }
-                    .accessibilityIdentifier("login.submit")
+            FynlaButton(
+                "Sign in",
+                isLoading: model.isSubmitting,
+                loadingTitle: "Signing in…",
+                isDisabled: model.isSubmitting || model.isLocked
+            ) { submitLogin() }
+            .accessibilityIdentifier("login.submit")
 
-                    Button("Forgot your password?") {
-                        leaveLoginFlow(forgotPassword)
-                    }
-                        .fynlaAuthTextAction()
-                        .accessibilityIdentifier("login.forgotPassword")
-
-                    FynlaButton("Create account", variant: .secondary) {
+            VStack(spacing: FynlaSpacing.small) {
+                HStack(spacing: FynlaSpacing.xSmall) {
+                    Text("New to Fynla?")
+                        .font(FynlaTypography.caption)
+                        .foregroundStyle(FynlaColor.secondaryText)
+                    Button("Create an account") {
                         leaveLoginFlow(createAccount)
                     }
+                    .font(FynlaTypography.caption.weight(.semibold))
+                    .foregroundStyle(FynlaColor.primaryAction)
                     .accessibilityIdentifier("registration.createAccount")
                 }
+
+                Button("Forgot your password?") {
+                    leaveLoginFlow(forgotPassword)
+                }
+                .font(FynlaTypography.caption.weight(.semibold))
+                .foregroundStyle(FynlaColor.primaryAction)
+                .accessibilityIdentifier("login.forgotPassword")
             }
-            .fynlaAuthPagePadding()
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
         }
     }
 
-    private func verification(maskedEmail: String) -> some View {
-        ScrollView {
-            VStack(spacing: FynlaSpacing.large) {
-                authHeader(
-                    title: "Verify your sign in",
-                    detail: "Enter the code sent to \(maskedEmail)."
+    // Step 2 — verification code, matching /m: info banner, six digit boxes,
+    // explicit submit (no auto-submit), resend + switch-account actions.
+    private func verificationForm(maskedEmail: String) -> some View {
+        VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
+            Text("Enter verification code")
+                .font(FynlaTypography.sectionTitle)
+                .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityAddTraits(.isHeader)
+
+            HStack(alignment: .top, spacing: FynlaSpacing.medium) {
+                // Envelope glyph mirrors the /m verification banner
+                // (CSJ-directed /m design match, 2026-07-20).
+                Image(systemName: "envelope")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(FynlaColor.primaryAction)
+                    .frame(width: 36, height: 36)
+                    .background(FynlaColor.surface)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+
+                (
+                    Text("We sent a 6-digit code to ")
+                    + Text(maskedEmail).fontWeight(.bold)
+                    + Text(". Enter it below to continue.")
                 )
-
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    fieldLabel("Six-digit verification code")
-                    TextField("Six-digit verification code", text: constrainedCode)
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
-                        .multilineTextAlignment(.center)
-                        .fynlaVerificationKeyboard()
-                        .fynlaAuthField(
-                            identifier: "login.verification.code",
-                            isFocused: false,
-                            isError: model.messageIsError
-                        )
-                        .disabled(model.isSubmitting || model.isLocked)
-                }
-
-                status
-
-                if model.lockoutRemainingSeconds > 0 {
-                    Text("Try again in \(model.lockoutRemainingSeconds) seconds.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.Token.raspberry700.color)
-                        .accessibilityIdentifier("login.lockoutCountdown")
-                }
-
-                VStack(spacing: FynlaSpacing.medium) {
-                    FynlaButton(
-                        "Verify sign in",
-                        isLoading: model.isSubmitting,
-                        isDisabled: model.isSubmitting || model.isLocked || code.isEmpty
-                    ) { submitVerification() }
-                    .accessibilityIdentifier("login.verification.submit")
-
-                    FynlaButton(
-                        "Send a new code",
-                        variant: .secondary,
-                        isDisabled: model.isSubmitting || model.isLocked || !model.canResendVerification
-                    ) { resendVerification() }
-                    .accessibilityIdentifier("login.verification.resend")
-
-                    Button("Cancel and sign in again") { cancel() }
-                        .fynlaAuthTextAction()
-                        .accessibilityIdentifier("login.verification.cancel")
-                }
+                .font(FynlaTypography.bodySmall)
+                .foregroundStyle(FynlaColor.secondaryText)
             }
-            .fynlaAuthPagePadding()
+            .padding(FynlaSpacing.standard)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FynlaColor.Token.raspberry100.color)
+            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius, style: .continuous))
+
+            verificationCodeInput
+
+            messageBanner
+
+            lockoutCountdown
+
+            FynlaButton(
+                "Verify and continue",
+                isLoading: model.isSubmitting,
+                loadingTitle: "Verifying…",
+                isDisabled: model.isSubmitting || model.isLocked || code.count != 6
+            ) { submitVerification() }
+            .accessibilityIdentifier("login.verification.submit")
+
+            HStack {
+                Button(resendTask == nil ? "Resend code" : "Sending…") {
+                    resendVerification()
+                }
+                .font(FynlaTypography.caption.weight(.semibold))
+                .foregroundStyle(
+                    model.canResendVerification
+                        ? FynlaColor.primaryAction
+                        : FynlaColor.secondaryText
+                )
+                .disabled(
+                    model.isSubmitting
+                        || model.isLocked
+                        || !model.canResendVerification
+                )
+                .accessibilityIdentifier("login.verification.resend")
+
+                Spacer()
+
+                Button("Use a different account", action: cancel)
+                    .font(FynlaTypography.caption.weight(.semibold))
+                    .foregroundStyle(FynlaColor.primaryAction)
+                    .accessibilityIdentifier("login.verification.cancel")
+            }
+            .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+
+            Text("Didn't receive the email? Check your spam folder.")
+                .font(FynlaTypography.caption)
+                .foregroundStyle(FynlaColor.secondaryText)
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("login.verification.step")
+        .onAppear { verificationCodeIsFocused = true }
     }
 
+    private var verificationCodeInput: some View {
+        ZStack {
+            HStack(spacing: FynlaSpacing.small) {
+                ForEach(0..<6, id: \.self) { index in
+                    verificationDigit(at: index)
+                }
+            }
+
+            TextField("Verification code", text: constrainedCode)
+                .fynlaVerificationKeyboard()
+                .focused($verificationCodeIsFocused)
+                .foregroundStyle(Color.clear)
+                .tint(.clear)
+                .opacity(0.02)
+                .disabled(model.isSubmitting || model.isLocked)
+                .accessibilityLabel("Six-digit verification code")
+                .accessibilityIdentifier("login.verification.code")
+        }
+        .frame(minHeight: 56)
+        .contentShape(Rectangle())
+        .onTapGesture { verificationCodeIsFocused = true }
+    }
+
+    private func verificationDigit(at index: Int) -> some View {
+        let digits = Array(code)
+        let value = index < digits.count ? String(digits[index]) : ""
+        let isCurrent = verificationCodeIsFocused && index == min(code.count, 5)
+        let borderColor = model.messageIsError
+            ? FynlaColor.Token.raspberry500.color
+            : (isCurrent || !value.isEmpty
+                ? FynlaColor.focus
+                : FynlaColor.Token.horizon200.color)
+
+        return Text(value)
+            .font(.system(.title2, design: .default, weight: .bold))
+            .foregroundStyle(FynlaColor.primaryText)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .background(
+                model.messageIsError
+                    ? FynlaColor.Token.raspberry100.color
+                    : FynlaColor.pageBackground
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius, style: .continuous)
+                    .stroke(borderColor, lineWidth: isCurrent ? 2.5 : 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius, style: .continuous))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Digit \(index + 1)")
+            .accessibilityValue(value.isEmpty ? "Empty" : value)
+            .accessibilityIdentifier("login.verification.digit.\(index)")
+    }
+
+    // /m renders errors as a tinted banner on both steps.
     @ViewBuilder
-    private var status: some View {
+    private var messageBanner: some View {
         if let message = model.message {
             Text(message)
                 .font(FynlaTypography.bodySmall)
@@ -157,9 +316,29 @@ struct LoginView: View {
                         ? FynlaColor.Token.raspberry700.color
                         : FynlaColor.secondaryText
                 )
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
+                .padding(FynlaSpacing.medium)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    model.messageIsError
+                        ? FynlaColor.Token.raspberry100.color
+                        : FynlaColor.pageBackground
+                )
+                .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius, style: .continuous))
                 .accessibilityLabel(model.messageIsError ? "Error: \(message)" : message)
                 .accessibilityIdentifier("login.message")
+        }
+    }
+
+    // Lockout feedback is a native extra: the server enforces lockouts on
+    // every client and /m only surfaces the error text.
+    @ViewBuilder
+    private var lockoutCountdown: some View {
+        if model.lockoutRemainingSeconds > 0 {
+            Text("Try again in \(model.lockoutRemainingSeconds) seconds.")
+                .font(FynlaTypography.bodySmall)
+                .foregroundStyle(FynlaColor.Token.raspberry700.color)
+                .accessibilityIdentifier("login.lockoutCountdown")
         }
     }
 
@@ -219,6 +398,7 @@ struct LoginView: View {
 
     private func cancel() {
         cancelWorkAndClearSecrets()
+        verificationCodeIsFocused = false
         model.cancel()
     }
 
@@ -240,20 +420,6 @@ struct LoginView: View {
     private func clearSecrets() {
         password = ""
         code = ""
-    }
-
-    private func authHeader(title: String, detail: String) -> some View {
-        VStack(spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .multilineTextAlignment(.center)
-                .accessibilityAddTraits(.isHeader)
-            Text(detail)
-                .font(FynlaTypography.body)
-                .foregroundStyle(FynlaColor.secondaryText)
-                .multilineTextAlignment(.center)
-        }
     }
 
     private func fieldLabel(_ value: String) -> some View {

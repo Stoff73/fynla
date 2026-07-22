@@ -16,6 +16,34 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testLiveDevLoginVerificationReachesDashboard() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let email = environment["FYNLA_LIVE_EMAIL"],
+              let password = environment["FYNLA_LIVE_PASSWORD"],
+              let verificationCode = environment["FYNLA_LIVE_VERIFICATION_CODE"]
+        else {
+            throw XCTSkip("Live dev acceptance credentials were not supplied.")
+        }
+
+        let app = XCUIApplication()
+        app.launch()
+        type(email, into: "login.email", in: app)
+        type(password, into: "login.password", in: app, secure: true)
+        app.buttons["login.submit"].tap()
+
+        XCTAssertTrue(
+            app.otherElements["login.verification.step"]
+                .waitForExistence(timeout: 20)
+        )
+        Thread.sleep(forTimeInterval: 15)
+        type(verificationCode, into: "login.verification.code", in: app)
+        app.buttons["login.verification.submit"].tap()
+
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 30))
+        XCTAssertTrue(element("dashboard.screen", in: app).waitForExistence(timeout: 30))
+    }
+
+    @MainActor
     func testSignedOutShellUsesTheOfflineUITestComposition() throws {
         let app = app(mode: "signed-out")
         app.launch()
@@ -33,10 +61,251 @@ final class FynlaUITests: XCTestCase {
 
         let shell = element("app.unlocked", in: app)
         XCTAssertTrue(shell.waitForExistence(timeout: 3))
+        XCTAssertTrue(element("dashboard.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("dashboard.greeting", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("dashboard.level", in: app).exists)
+        XCTAssertTrue(element("dashboard.panel.savings", in: app).exists)
+    }
+
+    @MainActor
+    func testLevelWheelOpensAchievementsWithoutLeavingTheApp() throws {
+        // Mirrors /m: achievements open from the level wheel — the drawer has
+        // no Achievements entry.
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let level = app.buttons["dashboard.level"]
+        XCTAssertTrue(level.waitForExistence(timeout: 3))
+        // Tap the wheel zone: the card's centre is covered by the overlapping
+        // milestone nudge (faithful to /m's -9rem layout).
+        level.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+
         XCTAssertTrue(
-            app.staticTexts["Your secure workspace is ready."]
-                .waitForExistence(timeout: 3)
+            element("achievements.screen", in: app).waitForExistence(timeout: 3)
         )
+        // /m titles this page "Your progress" (Achievements.vue).
+        XCTAssertTrue(app.staticTexts["Your progress"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testNativeFynOpensThePersistedConversationAndSendsAReply() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let open = app.buttons["fyn.open"]
+        XCTAssertTrue(open.waitForExistence(timeout: 3))
+        open.tap()
+
+        XCTAssertTrue(element("fyn.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["What would you like to focus on first?"].exists)
+
+        let reply = app.buttons["fyn.reply.savings"]
+        XCTAssertTrue(reply.isHittable)
+        reply.tap()
+        XCTAssertTrue(app.staticTexts["Let's work through savings."].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testNativeBugReportReviewsMetadataBeforeSubmitting() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        // Mirrors /m: Report a problem lives in the Fyn chat header, not the
+        // drawer.
+        let openFyn = app.buttons["fyn.open"]
+        XCTAssertTrue(openFyn.waitForExistence(timeout: 3))
+        openFyn.tap()
+
+        let reportProblem = app.buttons["fyn.report"]
+        XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
+        reportProblem.tap()
+
+        // Reporting a problem chains two sequential animated transitions —
+        // the Fyn fullScreenCover dismisses, then (only once .onDisappear
+        // fires) the bug report screen is pushed onto the navigation stack.
+        // That chain comfortably finishes within 3s on local hardware but
+        // can exceed it on the CI simulator under load.
+        let description = app.textViews["bug-report.description"]
+        XCTAssertTrue(description.waitForExistence(timeout: 8))
+        description.tap()
+        description.typeText("The native dashboard did not refresh.")
+        // Dismiss the keyboard (it covers the review button on small devices).
+        app.buttons["bug-report.keyboard-done"].tap()
+        app.buttons["bug-report.review"].tap()
+
+        XCTAssertTrue(app.staticTexts["Technical details included"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Conversation text, financial values, network contents, passwords, tokens and purchase signatures are not attached."].exists)
+        // The review metadata rows push the submit button below the fold on
+        // small devices — scroll until it is genuinely hittable (not covered
+        // by the Fyn dock).
+        let submit = app.buttons["bug-report.submit"]
+        var submitScrolls = 0
+        while !submit.isHittable, submitScrolls < 4 {
+            app.swipeUp()
+            submitScrolls += 1
+        }
+        submit.tap()
+
+        XCTAssertTrue(
+            element("bug-report.submitted", in: app).waitForExistence(timeout: 3)
+        )
+    }
+
+    @MainActor
+    func testFreeSubscriptionShowsLocalizedStoreKitChoicesAndRestore() throws {
+        let app = openSubscription(mode: "subscription-free")
+
+        XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("£6.99"))
+        XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("1 month"))
+        XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("£59.99"))
+        XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("1 year"))
+        XCTAssertTrue(app.buttons["subscription.purchase"].isHittable)
+        XCTAssertTrue(app.buttons["subscription.restore"].isHittable)
+    }
+
+    @MainActor
+    func testApplePremiumSuppressesPurchaseAndOffersSystemManagement() throws {
+        let app = openSubscription(mode: "subscription-apple-premium")
+
+        XCTAssertTrue(
+            element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.buttons["subscription.manage-apple"].isHittable)
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+        XCTAssertFalse(app.buttons["subscription.restore"].exists)
+    }
+
+    @MainActor
+    func testWebPremiumHasManagementInformationAndNoPurchaseCTA() throws {
+        let app = openSubscription(mode: "subscription-web-premium")
+
+        XCTAssertTrue(
+            element("subscription.web-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Billing managed on the web"].exists)
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+        XCTAssertFalse(app.buttons["subscription.manage-apple"].exists)
+    }
+
+    @MainActor
+    func testUnavailableSubscriptionCanRetrySafely() throws {
+        let app = openSubscription(mode: "subscription-unavailable")
+
+        XCTAssertTrue(
+            element("subscription.unavailable", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.buttons["Try again"].isHittable)
+    }
+
+    @MainActor
+    func testPendingPurchaseDoesNotOfferAnotherPurchaseTap() throws {
+        let app = openSubscription(mode: "subscription-purchase-pending")
+
+        app.buttons["subscription.purchase"].tap()
+        XCTAssertTrue(
+            element("subscription.pending", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+        XCTAssertTrue(app.staticTexts["subscription.message"].exists)
+    }
+
+    @MainActor
+    func testVerifiedPurchaseBecomesApplePremiumOnlyAfterServerAck() throws {
+        let app = openSubscription(mode: "subscription-purchase-success")
+
+        app.buttons["subscription.purchase"].tap()
+        XCTAssertTrue(
+            element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+    }
+
+    @MainActor
+    func testCancelledPurchaseRemainsFreeWithoutAnError() throws {
+        let app = openSubscription(mode: "subscription-purchase-cancelled")
+
+        app.buttons["subscription.purchase"].tap()
+        XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["subscription.message"].exists)
+    }
+
+    @MainActor
+    func testRestoreReconcilesAndLoadsApplePremium() throws {
+        let app = openSubscription(mode: "subscription-restore-success")
+
+        app.buttons["subscription.restore"].tap()
+        XCTAssertTrue(
+            element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["subscription.purchase"].exists)
+    }
+
+    @MainActor
+    func testSettingsShowsAccountFreePlanAndFaceIDOff() throws {
+        let app = openSettings(mode: "subscription-free")
+
+        XCTAssertEqual(app.staticTexts["settings.account.name"].label, "Example User")
+        XCTAssertEqual(app.staticTexts["settings.account.email"].label, "example@example.test")
+        XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Free")
+        XCTAssertEqual(app.switches["settings.face-id"].value as? String, "0")
+        // The security card pushes Lock/Sign out below the fold on small
+        // devices — scroll until each is genuinely hittable (not covered by
+        // the Fyn dock). Quarter-screen drags rather than full swipes so the
+        // mid-page Lock button is not scrolled straight past.
+        let scroll = app.scrollViews.firstMatch
+        for identifier in ["app.unlocked.lock", "app.unlocked.sign-out"] {
+            let button = app.buttons[identifier]
+            var scrolls = 0
+            while !button.isHittable, scrolls < 8 {
+                scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                    .press(
+                        forDuration: 0.05,
+                        thenDragTo: scroll.coordinate(
+                            withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)
+                        )
+                    )
+                scrolls += 1
+            }
+            XCTAssertTrue(button.isHittable)
+        }
+    }
+
+    @MainActor
+    func testSettingsPreservesAppleAndWebBillingWording() throws {
+        let apple = openSettings(mode: "subscription-apple-premium")
+        XCTAssertTrue(
+            apple.staticTexts["settings.plan.detail"].label.contains("App Store")
+        )
+        apple.terminate()
+
+        let web = openSettings(mode: "subscription-web-premium")
+        XCTAssertTrue(
+            web.staticTexts["settings.plan.detail"].label.contains("website")
+        )
+    }
+
+    @MainActor
+    func testSettingsUnavailablePlanAndSignOutRemainUsable() throws {
+        let app = openSettings(mode: "subscription-unavailable")
+
+        XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Unavailable")
+        app.buttons["app.unlocked.sign-out"].tap()
+        XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testSettingsShowsEnabledFaceIDAfterProtectedUnlock() throws {
+        let app = app(mode: "face-id-unlock-success")
+        app.launch()
+        XCTAssertTrue(app.buttons["app.locked.unlock"].waitForExistence(timeout: 3))
+        app.buttons["app.locked.unlock"].tap()
+        XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        XCTAssertTrue(app.buttons["navigation.settings"].waitForExistence(timeout: 3))
+        app.buttons["navigation.settings"].tap()
+
+        XCTAssertEqual(app.switches["settings.face-id"].value as? String, "1")
     }
 
     @MainActor
@@ -164,8 +433,10 @@ final class FynlaUITests: XCTestCase {
         fillValidRegistration(in: app)
         app.buttons["registration.submit"].tap()
 
+        // Submitting triggers a network round-trip before the server-side
+        // field errors render; 3s is tight under CI/loaded-machine conditions.
         XCTAssertTrue(
-            app.staticTexts["registration.firstName.error"].waitForExistence(timeout: 3)
+            app.staticTexts["registration.firstName.error"].waitForExistence(timeout: 8)
         )
         XCTAssertTrue(app.staticTexts["registration.email.error"].exists)
         XCTAssertEqual(
@@ -319,6 +590,22 @@ final class FynlaUITests: XCTestCase {
         let app = app(mode: "login-verification")
         app.launch()
         submitValidLogin(in: app)
+
+        XCTAssertTrue(
+            app.otherElements["login.verification.step"].waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Enter verification code"].exists)
+        XCTAssertTrue(app.buttons["login.verification.submit"].exists)
+        XCTAssertTrue(app.buttons["login.verification.cancel"].exists)
+        XCTAssertTrue(
+            app.staticTexts["Didn't receive the email? Check your spam folder."].exists
+        )
+        for index in 0..<6 {
+            XCTAssertTrue(
+                app.otherElements["login.verification.digit.\(index)"].exists,
+                "Missing verification digit box \(index + 1)"
+            )
+        }
 
         let resend = app.buttons["login.verification.resend"]
         XCTAssertTrue(resend.waitForExistence(timeout: 3))
@@ -535,8 +822,10 @@ final class FynlaUITests: XCTestCase {
     private func reachVerification(in app: XCUIApplication) {
         fillValidRegistration(in: app)
         app.buttons["registration.submit"].tap()
+        // Submitting triggers a network round-trip before the verification
+        // step renders; 3s is tight under CI/loaded-machine conditions.
         XCTAssertTrue(
-            app.textFields["registration.verification.code"].waitForExistence(timeout: 3)
+            app.textFields["registration.verification.code"].waitForExistence(timeout: 8)
         )
     }
 
@@ -550,10 +839,71 @@ final class FynlaUITests: XCTestCase {
         let field = secure
             ? app.secureTextFields[identifier]
             : app.textFields[identifier]
-        XCTAssertTrue(field.waitForExistence(timeout: 3))
-        assertReachable(field, in: app)
-        field.tap()
-        field.typeText(value)
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+
+        // The CI simulator (GitHub's macos-26 runner) settles keyboard focus
+        // noticeably slower than local hardware, especially immediately
+        // after a screen transition (cold launch, in-card step swap,
+        // multi-factor hand-off). Poll for the condition we actually care
+        // about — hasKeyboardFocus — re-tapping between attempts in case the
+        // first tap landed mid-transition. Always use `field.tap()` (never a
+        // blind `.coordinate(...)` tap): once a keyboard is already on
+        // screen from a previous field, a stale normalized-offset coordinate
+        // can land on the keyboard itself instead of the field, silently
+        // typing stray letters into whichever field is still focused rather
+        // than advancing focus at all.
+        //
+        // `isHittable` can also false-positive here: a field can be clear of
+        // every view in the app's own hierarchy yet still be visually
+        // covered by the system keyboard, which XCUITest's hit-testing does
+        // not treat as an occluding element since the keyboard belongs to a
+        // different process. That leaves `assertReachable` satisfied on the
+        // very first check — no swipe happens — while the field's on-screen
+        // position is actually still behind the keyboard, so the tap lands
+        // on dead keyboard chrome and does nothing (no error, no focus
+        // change). Force an extra swipe on every retry (not just the first
+        // attempt) so a field sitting right at the keyboard's edge gets
+        // scrolled unambiguously clear of it before the next tap.
+        let hasKeyboardFocus = NSPredicate(format: "hasKeyboardFocus == true")
+        var focused = false
+        for attempt in 0..<5 where !focused {
+            if attempt > 0 {
+                app.swipeUp()
+            }
+            assertReachable(field, in: app)
+            field.tap()
+            let focusExpectation = XCTNSPredicateExpectation(
+                predicate: hasKeyboardFocus,
+                object: field
+            )
+            focused = XCTWaiter.wait(for: [focusExpectation], timeout: 2) == .completed
+        }
+        XCTAssertTrue(focused, "\(identifier) never gained keyboard focus")
+
+        if secure {
+            // Simulator's transient "Automatic Strong Password" AutoFill
+            // overlay for adjacent password / confirm-password fields can
+            // still be settling in immediately after focus is gained,
+            // silently swallowing most synthesized keystrokes even though
+            // the field is genuinely focused (confirmed via the
+            // accessibility dump: the real field shows `Keyboard Focused`
+            // with only a fragment of the typed value). Typing the whole
+            // string in one synthesized burst appears to race whatever is
+            // settling; type one character at a time instead. The masked
+            // bullet count is the only observable signal for a secure
+            // field — verify it matches what was typed and clear-and-retry
+            // if characters still went missing.
+            for _ in 0..<5 {
+                for character in value {
+                    field.typeText(String(character))
+                }
+                if ((field.value as? String)?.count ?? 0) == value.count { return }
+                field.typeText(String(repeating: "\u{8}", count: value.count + 10))
+            }
+            XCTFail("\(identifier) did not accept the typed value")
+        } else {
+            field.typeText(value)
+        }
     }
 
     @MainActor
@@ -571,6 +921,27 @@ final class FynlaUITests: XCTestCase {
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-fynla-ui-test-mode", mode] + additionalArguments
+        return app
+    }
+
+    @MainActor
+    private func openSubscription(mode: String) -> XCUIApplication {
+        let app = openSettings(mode: mode)
+        XCTAssertTrue(app.buttons["settings.premium"].waitForExistence(timeout: 3))
+        app.buttons["settings.premium"].tap()
+        XCTAssertTrue(element("subscription.screen", in: app).waitForExistence(timeout: 3))
+        return app
+    }
+
+    @MainActor
+    private func openSettings(mode: String) -> XCUIApplication {
+        let app = app(mode: mode)
+        app.launch()
+        XCTAssertTrue(app.buttons["navigation.open"].waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        XCTAssertTrue(app.buttons["navigation.settings"].waitForExistence(timeout: 3))
+        app.buttons["navigation.settings"].tap()
+        XCTAssertTrue(element("settings.screen", in: app).waitForExistence(timeout: 3))
         return app
     }
 }

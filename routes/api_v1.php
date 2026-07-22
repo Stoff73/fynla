@@ -11,6 +11,11 @@ use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
+use App\Http\Controllers\Api\V1\Native\NativeEntitlementController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppleReconciliationController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppleTransactionController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\PurchaseAuthorizationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,16 +44,22 @@ Route::get('/health', function () {
     ]);
 })->name('api.v1.health');
 
-Route::middleware(['auth:sanctum', 'native.client'])
+Route::middleware(['auth:sanctum', 'native.client', 'native.version'])
     ->prefix('native')
     ->group(function () {
         Route::get('/health', fn () => response()->json([
             'success' => true,
-            'data' => ['api_version' => 'v1'],
+            'data' => [
+                'api_version' => 'v1',
+                'storekit_purchase_enabled' => (bool) config(
+                    'native.storekit_purchase_enabled',
+                    false,
+                ),
+            ],
         ]))->name('api.v1.native.health');
     });
 
-Route::prefix('/native/auth')->middleware('native.client')->group(function () {
+Route::prefix('/native/auth')->middleware(['native.client', 'native.version'])->group(function () {
     Route::post('/session/refresh', [NativeSessionController::class, 'refresh'])
         ->middleware('throttle:native-session');
 
@@ -59,6 +70,48 @@ Route::prefix('/native/auth')->middleware('native.client')->group(function () {
         Route::delete('/session', [NativeSessionController::class, 'destroy']);
     });
 });
+
+Route::get('/native/storekit/account-token', AppAccountTokenController::class)
+    ->middleware(['native.client', 'native.version', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.storekit.account-token');
+
+Route::get('/native/storekit/purchase-authorization', PurchaseAuthorizationController::class)
+    ->middleware(['native.client', 'native.version', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.storekit.purchase-authorization');
+
+Route::get('/native/entitlement', NativeEntitlementController::class)
+    ->middleware(['native.client', 'native.version', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.entitlement');
+
+Route::post('/native/storekit/transactions', AppleTransactionController::class)
+    ->middleware([
+        'native.client',
+        'native.version',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.transactions.store');
+
+Route::post('/native/storekit/reconcile', [AppleReconciliationController::class, 'reconcile'])
+    ->middleware([
+        'native.client',
+        'native.version',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.reconcile');
+
+Route::get('/native/storekit/status', [AppleReconciliationController::class, 'status'])
+    ->middleware([
+        'native.client',
+        'native.version',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.status');
 
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {

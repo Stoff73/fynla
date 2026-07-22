@@ -53,6 +53,7 @@ struct FynlaButton: View {
     private let accessibilityLabel: String
     private let variant: Variant
     private let isLoading: Bool
+    private let loadingTitle: String
     private let isDisabled: Bool
     private let action: @MainActor () -> Void
 
@@ -61,6 +62,7 @@ struct FynlaButton: View {
         variant: Variant = .primary,
         accessibilityLabel: String? = nil,
         isLoading: Bool = false,
+        loadingTitle: String = "Please wait…",
         isDisabled: Bool = false,
         action: @escaping @MainActor () -> Void
     ) {
@@ -70,13 +72,14 @@ struct FynlaButton: View {
         self.accessibilityLabel = accessibilityLabel ?? title
         self.variant = variant
         self.isLoading = isLoading
+        self.loadingTitle = loadingTitle
         self.isDisabled = isDisabled
         self.action = action
     }
 
     var body: some View {
         Button(action: action) {
-            Text(isLoading ? "Please wait…" : title)
+            Text(isLoading ? loadingTitle : title)
                 .font(FynlaTypography.button)
                 .multilineTextAlignment(.center)
                 .frame(

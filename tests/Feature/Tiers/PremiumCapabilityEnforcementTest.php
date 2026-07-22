@@ -35,7 +35,7 @@ it('denies Free users at every implemented Premium capability boundary', functio
 ]);
 
 it('does not stop Premium requests at the capability boundary', function (string $method, string $uri) {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create();
 
     $response = $this->actingAs($user, 'sanctum')->json($method, $uri);
 
@@ -71,8 +71,7 @@ it('removes detailed expenditure fields from Free responses', function () {
 });
 
 it('returns detailed expenditure fields to Premium', function () {
-    $premium = User::factory()->create([
-        'tier' => 'premium',
+    $premium = User::factory()->withActivePremiumSubscription()->create([
         'monthly_expenditure' => 1000,
         'food_groceries' => 300,
     ]);

@@ -76,6 +76,7 @@ class PreviewWriteInterceptor
         'api/ai-chat/onboarding',    // Allow onboarding start/status — controller enforces preview block with 403 (FR-M9)
         'api/v1/auth/refresh-token', // Allow mobile token refresh in preview mode
         'api/v1/mobile/devices',     // Allow device registration in preview mode
+        'api/v1/native/storekit',    // StoreKit routes enforce their own fail-closed preview boundary
         'api/advisor/clients/*/enter',    // Allow advisor impersonation start
         'api/advisor/exit',                // Allow advisor impersonation end
         'api/bug-report',                  // Allow preview users to file bug reports

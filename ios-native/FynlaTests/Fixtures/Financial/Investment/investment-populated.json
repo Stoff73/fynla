@@ -1,0 +1,63 @@
+{
+  "success": true,
+  "data": {
+    "accounts": [
+      {
+        "id": 21,
+        "account_name": "Main ISA",
+        "account_type": "stocks_and_shares_isa",
+        "provider": "Example Investments",
+        "platform": "Example Platform",
+        "current_value": 48000,
+        "contributions_ytd": 6000,
+        "monthly_contribution_amount": 500,
+        "ownership_type": "individual",
+        "ownership_percentage": 100,
+        "country": "UK",
+        "isa_subscription_current_year": 6000,
+        "holdings": [
+          {
+            "id": 201,
+            "asset_type": "global_equity",
+            "security_name": "Global Index Fund",
+            "ticker": "GLBL",
+            "allocation_percent": 75,
+            "current_value": 36000,
+            "cost_basis": 30000,
+            "gain_loss": 6000,
+            "gain_loss_percent": 20
+          },
+          {
+            "id": 202,
+            "asset_type": "bonds",
+            "security_name": "UK Bond Fund",
+            "allocation_percent": 25,
+            "current_value": 12000,
+            "gain_loss": -500,
+            "gain_loss_percent": -4
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "account_name": "General account",
+        "account_type": "gia",
+        "provider": "Example Wealth",
+        "platform": null,
+        "current_value": 12000,
+        "contributions_ytd": 0,
+        "monthly_contribution_amount": 0,
+        "ownership_type": "joint",
+        "ownership_percentage": 50,
+        "country": "UK",
+        "holdings": []
+      }
+    ],
+    "account_count": 2,
+    "account_limit": 2,
+    "risk_profile": {
+      "risk_category": "moderately_adventurous",
+      "risk_level": 7
+    }
+  }
+}

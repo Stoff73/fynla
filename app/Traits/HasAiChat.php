@@ -984,6 +984,14 @@ trait HasAiChat
                             'landed' => $writeLanded,
                             'message' => $isToolError ? (string) ($toolResult['message'] ?? 'The write failed.') : null,
                             'result' => $toolResult,
+                            // The raw tool-call arguments the model emitted. Internal-only
+                            // (this event never reaches the frontend — INV-2.4.1) — carried
+                            // so a gate-blocked clarification_required call can be rescued by
+                            // OnboardingChatDirector's deterministic gap-fill, which merges
+                            // these fields with the extractor's own parse (ownership_type,
+                            // chiefly) rather than losing the model's otherwise-correct
+                            // institution/balance/account_type parsing (live conversation 164).
+                            'input' => $functionArgs,
                         ];
                     }
 

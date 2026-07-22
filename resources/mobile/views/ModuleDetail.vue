@@ -45,6 +45,7 @@
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -172,10 +173,11 @@ export default {
       this.error = '';
       this.summary = null;
       try {
-        const { ok, data } = await apiGet(`/api/v1/mobile/modules/${this.slug}`, store.token);
+        const { ok, status, data } = await apiGet(`/api/v1/mobile/modules/${this.slug}`, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.summary = data?.data?.summary ?? data?.summary ?? data?.data ?? data ?? {};
         else this.error = data?.message || 'We could not load this module.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

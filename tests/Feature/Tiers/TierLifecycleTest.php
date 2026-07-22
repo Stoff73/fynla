@@ -48,8 +48,9 @@ it('revokes tier access when a cancelled premium subscription expires past its p
         'amount' => 1499,
     ]);
 
-    // Sanity: BEFORE the sweep the customer still resolves as premium.
-    expect(app(TierResolver::class)->resolve($user->fresh()))->toBe('premium');
+    // Exact expiry is already non-entitling even before the denormalised cache
+    // columns are cleaned up by the sweep.
+    expect(app(TierResolver::class)->resolve($user->fresh()))->toBe('free');
 
     $count = app(SubscriptionExpiryService::class)->expireCancelledSubscriptions();
 
@@ -185,8 +186,9 @@ it('revokes tier access when a premium fixed-term subscription FINISHES via the 
     // Revolut subscription id the FINISHED payload resolves against.
     $subscription->forceFill(['revolut_subscription_id' => 'sub_finished_t2'])->save();
 
-    // Sanity: BEFORE the webhook the customer still resolves as premium.
-    expect(app(TierResolver::class)->resolve($user->fresh()))->toBe('premium');
+    // Exact expiry is already non-entitling even before the provider event
+    // cleans up the denormalised user cache columns.
+    expect(app(TierResolver::class)->resolve($user->fresh()))->toBe('free');
 
     // Drive the REAL webhook HTTP endpoint. Only the Revolut HTTP boundary
     // (signature verification) is mocked — handleSubscriptionFinished takes

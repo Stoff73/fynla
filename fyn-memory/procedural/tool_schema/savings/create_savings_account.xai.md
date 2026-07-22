@@ -91,7 +91,7 @@ effective_from: 2026-06-11
             "ownership_type": {
                 "type": "string",
                 "enum": ["individual", "joint", "tenants_in_common", "trust"],
-                "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual. ISAs must be individual."
+                "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual — but when the user's own words state ownership (e.g. \"owned individually\", \"just me\", \"only mine\", \"individual ownership\", \"joint with my wife\"), that IS explicit confirmation: set the matching enum value. ISAs must be individual."
             },
             "joint_owner_id": {
                 "type": ["integer", "null"],

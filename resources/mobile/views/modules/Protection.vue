@@ -72,6 +72,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildEditPrompt } from '../../utils/editPrompt.js';
 
@@ -240,10 +241,11 @@ export default {
       this.error = '';
       this.payload = null;
       try {
-        const { ok, data } = await apiGet('/api/protection', store.token);
+        const { ok, status, data } = await apiGet('/api/protection', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your protection cover.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

@@ -77,7 +77,7 @@ beforeEach(function () {
 });
 
 it('persists field-identical canonical rows for the same individual property via form, fyn and upload', function () {
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false, 'tier' => 'premium']);
     $normaliser = new PropertyNormaliser;
     $store = app(PropertyStore::class);
 
@@ -185,7 +185,7 @@ it('persists field-identical canonical rows for a tenants_in_common property via
     // property-only. The Savings/Investment/Estate stores deliberately
     // exclude tenants_in_common; only PropertyStore::validateCanonical
     // allows it. This test locks that contract.
-    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false, 'tier' => 'premium']);
     $normaliser = new PropertyNormaliser;
     $store = app(PropertyStore::class);
 

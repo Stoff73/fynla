@@ -56,8 +56,10 @@
           </button>
         </div>
 
-        <!-- Callout: rank statement + focus-area carousel + actions -->
-        <div class="md-callout" role="note">
+        <!-- Callout: rank statement + focus-area carousel + actions. When the
+             next-milestone nudge is present it already clears the level
+             card's overflow, so the callout drops its clearance margin. -->
+        <div class="md-callout" :class="{ 'md-callout--below-nudge': nextMilestone }" role="note">
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
             <div class="md-callout__top-copy">
@@ -339,9 +341,10 @@
         </div>
       </div>
 
-      <!-- Advice prompt chips — only outside onboarding (onboarding uses bubbles). -->
-      <div v-if="suggestions.length && !onboardingActive" class="md-fyn__prompts" aria-label="Suggested questions">
-        <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" @click="send(s)">{{ s }}</button>
+      <!-- Advice prompt chips — only outside onboarding (onboarding uses bubbles),
+           and only once the user record is loaded (see showSuggestionPills). -->
+      <div v-if="showSuggestionPills" class="md-fyn__prompts" aria-label="Suggested questions">
+        <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" :disabled="sending" @click="send(s)">{{ s }}</button>
       </div>
 
       <form class="md-fyn__compose" @submit.prevent="send()">
@@ -558,6 +561,16 @@ export default {
         .slice(0, 3)
         .map((a) => `How do I "${a.title}"?`);
     },
+    // Advice prompt pills must not render until the user's onboarding state is
+    // actually known. onboardingActive is false both when onboarding is genuinely
+    // finished AND while store.user is still null (a token-only arrival, or a
+    // non-fatal loadUser() failure) — so without this a mid-onboarding user could
+    // see and tap advice pills that route them wrongly before their real state
+    // resolves. Requiring store.user keeps pills hidden until it loads; a failed
+    // loadUser() leaves them hidden, the safe default.
+    showSuggestionPills() {
+      return this.suggestions.length && !this.onboardingActive && !!store.user;
+    },
     fynInsight() {
       return this.data?.fyn_insight || '';
     },
@@ -670,6 +683,7 @@ export default {
       }
       try {
         const res = await apiGet('/api/v1/mobile/dashboard', store.token);
+        if (this.handleAuthExpiry(res)) return;
         if (!res.ok) {
           if (!silent) this.error = 'We could not load your dashboard. Please try again.';
           return;
@@ -779,7 +793,10 @@ export default {
       this.nudgeDismissed = true;
       try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch { /* private mode — in-memory dismissal still applies */ }
     },
-    openFynForCapture(module) {
+    // Awaits openFyn() before sending — same fix as openRecChat: openFyn()'s
+    // initFyn() may fire the async startOnboarding() stream, and sending while
+    // that's still in flight silently no-ops (this.sending stays true).
+    async openFynForCapture(module) {
       const prompts = {
         protection: 'Help me add my protection cover details',
         savings: 'Help me add my savings details',
@@ -789,7 +806,7 @@ export default {
         goals: 'Help me set a financial goal',
         tax: 'Help me complete my tax strategy details',
       };
-      this.openFyn();
+      await this.openFyn();
       this.send(prompts[module] || 'Help me add my financial details');
     },
     // Mark / unmark a recommendation action complete. Optimistic toggle, then
@@ -897,14 +914,19 @@ export default {
       this.drawerOpen = false;
       window.setTimeout(() => { this.drawerMounted = false; }, 300);
     },
-    openFyn() {
+    // Returns the open+init promise chain so callers that need to send a message
+    // right after opening (e.g. openRecChat) can await it — initFyn may fire the
+    // async, unawaited startOnboarding() stream, and sending while that's still
+    // in flight silently no-ops (this.sending stays true). Callers that just open
+    // the dock (button @click handlers) can ignore the return value; awaiting is
+    // optional for them since nothing here changes their fire-and-forget usage.
+    async openFyn() {
       this.fynMounted = true;
-      this.$nextTick(async () => {
-        this.fynOpen = true;
-        this.scrollFyn();
-        await this.initFyn();
-        this.$nextTick(() => { this.$refs.fynInput?.focus(); });
-      });
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      await this.initFyn();
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); });
     },
     closeFyn() {
       this.fynOpen = false;
@@ -935,13 +957,19 @@ export default {
       // (re-entry was desktop-only — Rule 19).
       const from = this.$route.query.from || null;
       if (this.onboardingActive || this.onboardingNeedsStart || from) {
-        this.startOnboarding(from);
-      } else if (!this.messages.length) {
+        // Returned (not fire-and-forget) so openFyn()'s caller can await the
+        // full stream settling — startOnboarding sets this.sending = true
+        // synchronously and only clears it in its own finally block, so a
+        // caller that sends a follow-up message right after opening (e.g.
+        // openRecChat) must wait for this to actually finish, not just start.
+        return this.startOnboarding(from);
+      }
+      if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }
     },
-    openRecChat(rec) {
-      this.openFyn();
+    async openRecChat(rec) {
+      await this.openFyn();
       this.send(`How do I "${rec.title}"?`);
     },
     // Populate store.user so the greeting / drawer show the real name. The mobile

@@ -48,20 +48,28 @@ grep -Fq 'PRODUCT_BUNDLE_IDENTIFIER = org.fynla.app' "$NATIVE/Configurations/Pro
 grep -Fq 'FYNLA_API_BASE_URL = https:/$()/fynla.org' "$NATIVE/Configurations/Production.xcconfig"
 grep -Fq 'FYNLA_ENVIRONMENT = production' "$NATIVE/Configurations/Production.xcconfig"
 
-if grep -R -E 'DEVELOPMENT_TEAM[[:space:]]*=' "$NATIVE" --include='*.pbxproj' --include='*.xcconfig'; then
+if grep -R -E 'DEVELOPMENT_TEAM[[:space:]]*=' "$NATIVE" --include='*.pbxproj' --include='*.xcconfig' --exclude='Local.xcconfig'; then
   echo 'personal development team must not be committed' >&2
   exit 1
 fi
 
-if grep -R -E 'Capacitor|CocoaPods|WKWebView' "$NATIVE" --include='*.swift' --include='*.pbxproj' --include='*.xcconfig'; then
+# Forbidden legacy DEPENDENCIES only: importing Capacitor/WebKit, or pod /
+# Capacitor SDK build artefacts. LegacyCapacitorCleanup is the sanctioned
+# exception — it imports WebKit precisely to delete the legacy app's
+# WKWebView data during migration.
+if grep -R -E '^[[:space:]]*import[[:space:]]+(Capacitor|WebKit)' \
+    "$NATIVE" --include='*.swift' --exclude='LegacyCapacitorCleanup.swift' \
+  || grep -R -E 'Pods/|CocoaPods|Capacitor\.framework|CapacitorCordova' \
+    "$NATIVE" --include='*.pbxproj' --include='*.xcconfig'; then
   echo 'native target contains a forbidden legacy dependency' >&2
   exit 1
 fi
 
-while IFS= read -r source_icon; do
-  relative="${source_icon#"$SOURCE_ICONS/"}"
-  cmp "$source_icon" "$NATIVE_ICONS/$relative"
-done < <(find "$SOURCE_ICONS" -maxdepth 1 -type f -name '*.png' | sort)
+cmp "$SOURCE_ICONS/Contents.json" "$NATIVE_ICONS/Contents.json"
+while IFS= read -r native_icon; do
+  relative="${native_icon#"$NATIVE_ICONS/"}"
+  cmp "$SOURCE_ICONS/$relative" "$native_icon"
+done < <(find "$NATIVE_ICONS" -maxdepth 1 -type f -name '*.png' | sort)
 
 project_listing="$(xcodebuild -project "$PROJECT" -list -json)"
 printf '%s' "$project_listing" | grep -Fq 'Fynla-Staging'

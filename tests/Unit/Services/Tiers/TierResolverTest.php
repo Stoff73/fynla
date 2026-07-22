@@ -2,13 +2,25 @@
 
 declare(strict_types=1);
 
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Tiers\TierResolver;
 
 beforeEach(fn () => $this->resolver = app(TierResolver::class));
 
-it('resolves an explicit users.tier value', function () {
+it('does not resolve a stale explicit users tier without a live provider grant', function () {
     $u = User::factory()->create(['tier' => 'premium']);
+    expect($this->resolver->resolve($u))->toBe('free');
+});
+
+it('resolves a live Revolut Premium grant regardless of the users tier cache', function () {
+    $u = User::factory()->create(['tier' => 'free']);
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $u->id,
+        'status' => 'active',
+        'current_period_end' => now()->addMonth(),
+    ]);
+
     expect($this->resolver->resolve($u))->toBe('premium');
 });
 

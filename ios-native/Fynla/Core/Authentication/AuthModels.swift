@@ -136,6 +136,37 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
     let surname: String?
     let name: String?
     let email: String
+    // Gates the drawer's Admin section, mirroring /m's store.user?.is_admin.
+    let isAdmin: Bool?
+    // Gates the Tax Strategy personalised intro, mirroring /m's
+    // store.user.onboarding_completed.
+    let onboardingCompleted: Bool?
+    // Drive /m's onboardingActive (onboardingChat mixin): incomplete-or-
+    // campaign users with a non-null step get the onboarding nudge.
+    let onboardingFynStep: String?
+    let activeCampaign: String?
+
+    init(
+        id: Int,
+        firstName: String?,
+        surname: String?,
+        name: String?,
+        email: String,
+        isAdmin: Bool? = nil,
+        onboardingCompleted: Bool? = nil,
+        onboardingFynStep: String? = nil,
+        activeCampaign: String? = nil
+    ) {
+        self.id = id
+        self.firstName = firstName
+        self.surname = surname
+        self.name = name
+        self.email = email
+        self.isAdmin = isAdmin
+        self.onboardingCompleted = onboardingCompleted
+        self.onboardingFynStep = onboardingFynStep
+        self.activeCampaign = activeCampaign
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -143,6 +174,10 @@ struct AuthenticatedUser: Decodable, Sendable, Equatable {
         case surname
         case name
         case email
+        case isAdmin = "is_admin"
+        case onboardingCompleted = "onboarding_completed"
+        case onboardingFynStep = "onboarding_fyn_step"
+        case activeCampaign = "active_campaign"
     }
 }
 

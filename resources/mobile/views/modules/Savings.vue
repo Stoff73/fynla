@@ -125,6 +125,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
 import { buildEditPrompt } from '../../utils/editPrompt.js';
@@ -247,7 +248,8 @@ export default {
       this.error = '';
       this.payload = null;
       try {
-        const { ok, data } = await apiGet('/api/savings', store.token);
+        const { ok, status, data } = await apiGet('/api/savings', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your bank accounts.';
       } catch {

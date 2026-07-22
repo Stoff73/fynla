@@ -47,6 +47,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -152,10 +153,11 @@ export default {
         ? '/api/net-worth/overview'
         : '/api/net-worth/assets-summary-detailed';
       try {
-        const { ok, data } = await apiGet(path, store.token);
+        const { ok, status, data } = await apiGet(path, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load this category.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

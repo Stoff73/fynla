@@ -45,6 +45,31 @@ it('allows an explicitly individual Cash ISA', function (): void {
     expect($result)->toBe(['allowed' => true]);
 });
 
+it('never asks who owns an ISA — no ownership argument and no ownership evidence is allowed', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'My Cash ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 20000,
+        // ownership_type deliberately absent — an ISA has exactly one legal
+        // owner under UK law, so the gate must never demand confirmation.
+    ], 'My Cash ISA has £20,000.');
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('never asks who owns a Stocks & Shares ISA — no ownership argument and no ownership evidence is allowed', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_investment_account', [
+        'account_name' => 'My Vanguard ISA',
+        'account_type' => 'isa',
+        'isa_type' => 'stocks_and_shares',
+        'current_value' => 20000,
+        // ownership_type deliberately absent.
+    ], 'My Vanguard Stocks & Shares ISA is worth £20,000.');
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
 it('blocks an ISA tool whose subtype contradicts the users words', function (): void {
     $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
         'account_name' => 'ISA',
@@ -355,6 +380,68 @@ it('blocks joint ownership for an ISA before the write handler', function (): vo
     expect($result['allowed'])->toBeFalse()
         ->and($result['missing'])->toContain('ownership_type')
         ->and($result['reason'])->toContain('ISA must be recorded as individually owned');
+});
+
+it('never persists a joint ISA end to end — blocked before any write', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+    $user->update(['spouse_id' => $spouse->id]);
+    $spouse->update(['spouse_id' => $user->id]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'My Cash ISA is jointly owned 50/50 with my spouse and has £20,000.',
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+        'account_name' => 'Cash ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 20000,
+        'ownership_type' => 'joint',
+        'joint_owner_id' => $spouse->id,
+        'ownership_percentage' => 50,
+    ], $user, $conversation->id);
+
+    expect($result['clarification_required'] ?? false)->toBeTrue()
+        ->and($result['reason'] ?? '')->toContain('ISA must be recorded as individually owned')
+        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(0)
+        ->and(SavingsAccount::whereNotNull('joint_owner_id')->count())->toBe(0);
+});
+
+it('never asks who owns an ISA — the live-reproduced sentence saves without a clarification round trip', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'A Cash ISA with Moneybox, £8,000 balance, £4,000 added this tax year, owned by me',
+    ]);
+
+    // "owned by me" does not match any ownershipFromText() phrase (solely /
+    // mine alone / just me / only me / individually) — this is the exact
+    // live repro: the model correctly infers individual ownership from the
+    // user's words, but the old generic evidence check still demanded a
+    // matching regex phrase and blocked the write.
+    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+        'account_name' => 'Moneybox Cash ISA',
+        'institution' => 'Moneybox',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 8000,
+        'isa_subscription_amount' => 4000,
+        'ownership_type' => 'individual',
+    ], $user, $conversation->id);
+
+    expect($result['success'] ?? false)->toBeTrue()
+        ->and($result['clarification_required'] ?? false)->toBeFalse();
+
+    $account = SavingsAccount::where('user_id', $user->id)->sole();
+    expect($account->ownership_type)->toBe('individual')
+        ->and($account->is_isa)->toBeTrue();
 });
 
 it('rejects a partial percentage on an individually owned record', function (): void {
@@ -974,6 +1061,10 @@ it('fails closed when an ownership write has no conversation evidence', function
 });
 
 it('carries missing accuracy facts across successive clarification turns', function (): void {
+    // An ISA no longer needs ownership evidence at all (see the ISA
+    // ownership tests above), so isa_subtype is the only fact left that
+    // still needs accumulating across turns for an ISA — two turns, not
+    // three.
     $this->seed(TierConfigurationSeeder::class);
     $user = User::factory()->create(['is_preview_user' => false]);
     $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
@@ -985,7 +1076,7 @@ it('carries missing accuracy facts across successive clarification turns', funct
         'ownership_type' => 'individual',
     ];
 
-    foreach (['I have an ISA with £20,000', 'Cash', 'Individually'] as $index => $message) {
+    foreach (['I have an ISA with £20,000', 'Cash'] as $index => $message) {
         AiMessage::create([
             'conversation_id' => $conversation->id,
             'role' => 'user',
@@ -998,7 +1089,7 @@ it('carries missing accuracy facts across successive clarification turns', funct
             $conversation->id,
         );
 
-        if ($index < 2) {
+        if ($index < 1) {
             expect($result['clarification_required'] ?? false)->toBeTrue();
         }
     }
@@ -1167,26 +1258,35 @@ it('does not let stale duplicate captures pollute a retried group clarification'
 });
 
 it('clears unresolved capture evidence when onboarding is restarted', function (): void {
+    // Uses a non-ISA joint account: an ISA no longer needs ownership
+    // evidence at all (an ISA has exactly one legal owner under UK law, so
+    // the gate never demands confirmation — see the ISA ownership tests
+    // above), so this scenario — proving a pre-restart clarification fact
+    // does not leak into a post-restart attempt — now needs a fact the
+    // generic (non-ISA) evidence check still requires.
     $this->seed(TierConfigurationSeeder::class);
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
         'onboarding_fyn_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
     ]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+    $user->update(['spouse_id' => $spouse->id]);
+    $spouse->update(['spouse_id' => $user->id]);
     $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
     AiMessage::create([
         'conversation_id' => $conversation->id,
         'role' => 'user',
-        'content' => 'My Restart ISA has £20,000 and is individually owned.',
+        'content' => 'My Restart Saver has £20,000 and is jointly owned with my spouse.',
     ]);
     $arguments = [
-        'account_name' => 'Restart ISA',
+        'account_name' => 'Restart Saver',
         'institution' => 'Restart Bank',
-        'account_type' => 'cash_isa',
-        'is_isa' => true,
+        'account_type' => 'easy_access',
         'current_balance' => 20000,
-        'ownership_type' => 'individual',
-        'ownership_percentage' => 100,
+        'ownership_type' => 'joint',
+        'joint_owner_id' => $spouse->id,
+        'ownership_percentage' => 50,
     ];
 
     $firstAttempt = app(CoordinatingAgent::class)->executeTool(
@@ -1196,7 +1296,7 @@ it('clears unresolved capture evidence when onboarding is restarted', function (
         $conversation->id,
     );
     expect($firstAttempt['clarification_required'] ?? false)->toBeTrue()
-        ->and($firstAttempt['missing'] ?? [])->toContain('isa_subtype');
+        ->and($firstAttempt['missing'] ?? [])->toContain('ownership_percentage');
 
     iterator_to_array(
         app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'restart'),
@@ -1205,7 +1305,7 @@ it('clears unresolved capture evidence when onboarding is restarted', function (
     AiMessage::create([
         'conversation_id' => $conversation->id,
         'role' => 'user',
-        'content' => 'It is a Cash ISA.',
+        'content' => 'My share is 50%.',
     ]);
 
     $afterRestart = app(CoordinatingAgent::class)->executeTool(
@@ -1215,6 +1315,9 @@ it('clears unresolved capture evidence when onboarding is restarted', function (
         $conversation->id,
     );
 
+    // The pre-restart "jointly owned with my spouse" evidence must not leak
+    // into this post-restart attempt — restart deletes conversation
+    // history, so ownership_type has to be re-confirmed from scratch.
     expect($afterRestart['clarification_required'] ?? false)->toBeTrue()
         ->and($afterRestart['missing'] ?? [])->toContain('ownership_type')
         ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);

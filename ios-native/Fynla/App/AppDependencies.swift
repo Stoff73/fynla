@@ -114,6 +114,40 @@ struct AppDependencies: Sendable {
         )
     }
 
+    func makeFynClient() -> LiveFynClient {
+        LiveFynClient(
+            apiClient: makeAPIClient(),
+            environment: environment,
+            version: appVersion,
+            build: appBuild,
+            transport: httpTransport,
+            tokenProvider: accessTokenProvider,
+            // F1: same shared refresher `makeAPIClient()` defaults to, so the
+            // SSE chat path gets the identical one-shot 401 refresh as every
+            // other authenticated request instead of duplicating it.
+            tokenRefresher: tokenRefresher,
+            requestID: requestID
+        )
+    }
+
+    func makeBugReportMetadata(
+        route: String,
+        nativeSessionUUID: String
+    ) -> BugReportMetadata {
+        BugReportMetadata(
+            appVersion: appVersion,
+            appBuild: appBuild,
+            environment: environment.name.rawValue,
+            route: route,
+            requestCorrelationID: nil,
+            nativeSessionUUID: nativeSessionUUID
+        )
+    }
+
+    func makePushDeviceMetadata(osVersion: String) -> PushDeviceMetadata {
+        PushDeviceMetadata(appVersion: appVersion, osVersion: osVersion)
+    }
+
     func authenticatedSession(
         accessTokenProvider: any AccessTokenProviding,
         tokenRefresher: any AccessTokenRefreshing

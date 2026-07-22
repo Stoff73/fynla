@@ -1,0 +1,7 @@
+{
+  "success":true,
+  "data":{
+    "modules":{"protection":{"status":"not_configured"},"savings":{"status":"not_configured"},"investment":{"status":"unavailable","message":"Unable to load module data at this time."},"retirement":{"status":"not_configured"},"estate":{"status":"not_configured"},"goals":{"status":"not_configured"}},
+    "net_worth":{"total":1000,"breakdown":{"assets":{"cash":1000},"liabilities":{},"total_assets":1000,"total_liabilities":0}},"alerts":[],"fyn_insight":null,"cached_at":"2026-07-18T09:00:00Z","focus_areas":[],"next_actions":[],"level":{"level":1,"level_name":"Starter","next_level_name":"Building","progress_percent":0,"actions_completed":0,"actions_total":4,"actions_to_next":4},"percentile":2,"new_milestones":[],"next_milestone":null
+  }
+}
