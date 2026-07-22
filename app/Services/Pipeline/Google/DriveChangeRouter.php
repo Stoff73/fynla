@@ -36,7 +36,7 @@ class DriveChangeRouter
             }
 
             $parents = is_array($file['parents'] ?? null) ? $file['parents'] : [];
-            $name = strtolower((string) ($file['name'] ?? ''));
+            $name = strtolower(trim((string) ($file['name'] ?? '')));
             $mime = (string) ($file['mimeType'] ?? '');
 
             if ($articlesId !== null && in_array($articlesId, $parents, true)

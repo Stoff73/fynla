@@ -144,6 +144,8 @@ class DetectNewVideos extends Command
 
     private function slugFromFilename(string $filename): ?string
     {
+        // Drive filenames sometimes carry stray leading/trailing whitespace.
+        $filename = trim($filename);
         $lower = strtolower($filename);
         foreach (['.mp4', '.mov'] as $ext) {
             if (str_ends_with($lower, $ext)) {
