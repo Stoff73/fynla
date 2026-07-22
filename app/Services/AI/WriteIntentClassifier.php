@@ -59,6 +59,7 @@ final class WriteIntentClassifier
         'savings_account' => [
             'cash isa', 'help to buy isa', 'lifetime isa', 'lisa',
             'savings account', 'easy access account', 'fixed-rate account',
+            'fixed term account', 'notice account',
             'current account', 'instant access',
         ],
         'investment_account' => [
@@ -133,7 +134,7 @@ final class WriteIntentClassifier
             return null;
         }
 
-        $matchedVerb = $this->firstMatch($normalised, self::WRITE_VERB_PATTERNS);
+        $matchedVerb = $this->firstVerbMatch($normalised);
         if ($matchedVerb === null) {
             return null;
         }
@@ -213,6 +214,30 @@ final class WriteIntentClassifier
         }
 
         return false;
+    }
+
+    /**
+     * Matches WRITE_VERB_PATTERNS against the message, tolerating a single
+     * "also" interposed between the pronoun/contraction and the verb — e.g.
+     * "I also have a Halifax account" doesn't contain the literal "i have"
+     * substring, so the plain match misses it (live csjones report). Retried
+     * only when the literal match fails, so it cannot change the result for
+     * any message the literal pass already resolves — the existing
+     * precedence order is untouched.
+     */
+    private function firstVerbMatch(string $haystack): ?string
+    {
+        $matched = $this->firstMatch($haystack, self::WRITE_VERB_PATTERNS);
+        if ($matched !== null) {
+            return $matched;
+        }
+
+        $deAdverbed = preg_replace('/\b(i\'ve|we\'ve|i|we)\s+also\s+/', '$1 ', $haystack);
+        if ($deAdverbed === null || $deAdverbed === $haystack) {
+            return null;
+        }
+
+        return $this->firstMatch($deAdverbed, self::WRITE_VERB_PATTERNS);
     }
 
     private function firstMatch(string $haystack, array $needles): ?string

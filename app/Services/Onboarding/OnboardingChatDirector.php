@@ -80,6 +80,15 @@ final class OnboardingChatDirector
      */
     private const MAX_ADVICE_CHAIN = 6;
 
+    /**
+     * Phrases that let the user back out of a pending_interruption_store
+     * awaiting_detail clarification loop instead of being forced to keep
+     * answering. Matched against the start of the lowercased, trimmed reply.
+     * Deliberately excludes "no" alone — that can be genuine detail content
+     * (e.g. "no interest").
+     */
+    private const AWAITING_DETAIL_ESCAPE_PHRASES = ['not now', 'stop', 'forget it', 'leave it', 'cancel'];
+
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingPromptBuilder $promptBuilder,
@@ -250,6 +259,21 @@ final class OnboardingChatDirector
             $user->save();
 
             if ($awaitingDetail) {
+                // Escape hatch — without this, every reply while awaiting the
+                // missing detail is treated as that detail, with no way for
+                // the user to back out of the clarification loop. Checked
+                // BEFORE the merged-detail handling below. "no" alone is
+                // deliberately NOT an escape phrase — it may be genuine
+                // detail content (e.g. "no interest").
+                foreach (self::AWAITING_DETAIL_ESCAPE_PHRASES as $escapePhrase) {
+                    if (str_starts_with($reply, $escapePhrase)) {
+                        yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
+                        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                        return;
+                    }
+                }
+
                 $merged = "Original capture details: {$pending['message']}\n"
                     ."Requested missing details: {$message}";
                 yield from $this->resolvePendingInterruptionCapture(

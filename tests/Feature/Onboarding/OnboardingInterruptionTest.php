@@ -269,6 +269,35 @@ it('routes the missing-detail reply into inline capture as the merged message an
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
 
+// ── Fix: escape phrase while awaiting_detail — every reply used to be
+// treated as the missing detail with no way out ───────────────────────────
+
+it('escapes the awaiting-detail loop when the user says "Forget it" instead of supplying the missing detail', function () {
+    [$user, $conversation] = interruptionUser();
+    driveDirector($user, $conversation, 'I have £15,000 in a Halifax savings account at 4.1% interest');
+
+    $user->refresh();
+    $context = $user->onboarding_fyn_context;
+    $context['pending_interruption_store']['awaiting_detail'] = true;
+    $user->onboarding_fyn_context = $context;
+    $user->save();
+
+    $received = driveDirector($user->refresh(), $conversation, 'Forget it');
+
+    // No capture was attempted — no tool call was emitted for this turn.
+    expect(collect($received)->where('type', 'tool_use'))->toBeEmpty();
+
+    $texts = collect($received)->where('type', 'content')->pluck('text');
+    expect($texts->first(fn ($t) => str_contains($t, "we'll cover it during setup")))->not->toBeNull();
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+
+    // The walk's current step is re-emitted.
+    expect(collect($received)->where('type', 'quick_replies')->count())->toBeGreaterThan(0);
+});
+
 // ── Fix: deterministic ownership gap-fill rescues gate-blocked captures
 // (live conversation 164, user 271) ─────────────────────────────────────
 //

@@ -46,6 +46,29 @@ describe('WriteIntentClassifier::classify — positive cases (write intents)', f
         expect($result)->not->toBeNull();
         expect($result['entity_type'])->toBe('goal');
     });
+
+    it('tolerates "also" interposed between the pronoun and the verb (live csjones miss)', function () {
+        // Live miss: "i have" is a literal WRITE_VERB_PATTERNS entry, but
+        // "i also have" doesn't contain that exact substring, so the verb
+        // match silently failed. "savings account" is a substring of
+        // "fixed term savings account", so once the verb tolerates the
+        // interposed adverb this resolves to savings_account.
+        $result = $this->classifier->classify('I also have a Halifax fixed term savings account with £1,500 in it');
+        expect($result)->not->toBeNull();
+        expect($result['entity_type'])->toBe('savings_account');
+    });
+
+    it('tolerates "also" interposed after a contraction ("i\'ve also got")', function () {
+        $result = $this->classifier->classify("I've also got a Nationwide savings account with £2,000 in it");
+        expect($result)->not->toBeNull();
+        expect($result['entity_type'])->toBe('savings_account');
+    });
+
+    it('matches a bare "notice account" entity keyword (live csjones miss)', function () {
+        $result = $this->classifier->classify('I have a Santander notice account with £3,000 in it');
+        expect($result)->not->toBeNull();
+        expect($result['entity_type'])->toBe('savings_account');
+    });
 });
 
 describe('WriteIntentClassifier::classify — F-6 interrogative guard', function () {
@@ -104,5 +127,13 @@ describe('WriteIntentClassifier::classify — negative cases', function () {
     it('returns null when verb matches but no entity does', function () {
         // "I have an idea" — verb but no entity_type keyword
         expect($this->classifier->classify('i have an idea about my finances'))->toBeNull();
+    });
+
+    it('does not over-match on "also" when there is no verb+entity pair', function () {
+        // Guards the adverb tolerance above: "i also think" strips down to
+        // "i think", which isn't a WRITE_VERB_PATTERNS entry, so this must
+        // stay null rather than the adverb-loosening accidentally widening
+        // the match.
+        expect($this->classifier->classify('I also think I should save more'))->toBeNull();
     });
 });
