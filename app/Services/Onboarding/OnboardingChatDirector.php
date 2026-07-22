@@ -1646,7 +1646,7 @@ final class OnboardingChatDirector
                 ->where('role', 'assistant')
                 ->where('id', '>', $assistantBaselineId)
                 ->latest('id')
-                ->first(['id', 'content', 'persona']);
+                ->first(['id', 'content', 'persona', 'metadata']);
 
             // Review finding I-1 — this turn's tool list keeps
             // delegate_to_capture, so a question-phrased write ("Can you add
@@ -1675,7 +1675,17 @@ final class OnboardingChatDirector
                 return;
             }
 
-            if ($this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+            // Structured turn intent (Task 2): a stamped row states outright
+            // whether the capture turn is waiting on a missing detail; the
+            // content heuristic remains for legacy rows only.
+            $latestAssistantIntent = is_array($latestAssistant->metadata)
+                ? ($latestAssistant->metadata['turn_intent'] ?? null)
+                : null;
+            $latestRequestsClarification = is_string($latestAssistantIntent) && $latestAssistantIntent !== ''
+                ? $latestAssistantIntent === FynTurnIntent::CaptureClarification->value
+                : $this->captureResponseRequestsClarification((string) $latestAssistant->content);
+
+            if ($latestRequestsClarification) {
                 // WriteIntentClassifier::classify() short-circuits to null for
                 // any message that looks like a question (the same check that
                 // routed this message into handleQuestionInterruption in the
@@ -1861,11 +1871,18 @@ final class OnboardingChatDirector
         // An A1 / interruption ANSWER must never re-arm the store flag
         // either — it is not a fresh capture clarification, even when this
         // lookup falls back to a stale row (e.g. handleInlineCapture
-        // persisted nothing new this turn).
+        // persisted nothing new this turn). Structured turn intent (Task 2):
+        // a stamped row re-arms ONLY when it is a capture clarification; the
+        // tag + content heuristics remain for legacy rows only.
+        $latestAssistantIntent = $latestAssistantMetadata['turn_intent'] ?? null;
+        $latestRequestsClarification = is_string($latestAssistantIntent) && $latestAssistantIntent !== ''
+            ? $latestAssistantIntent === FynTurnIntent::CaptureClarification->value
+            : (($latestAssistantMetadata['is_interruption_answer'] ?? false) !== true
+                && $latestAssistant !== null
+                && $this->captureResponseRequestsClarification((string) $latestAssistant->content));
         if (! $recordCreated
             && $latestAssistant !== null
-            && ($latestAssistantMetadata['is_interruption_answer'] ?? false) !== true
-            && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+            && $latestRequestsClarification) {
             $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
             $context['pending_interruption_store'] = [
                 'message' => $captureMessage,
@@ -5311,6 +5328,29 @@ PROMPT;
 
         foreach ($assistantMessages as $assistantMessage) {
             $metadata = is_array($assistantMessage->metadata) ? $assistantMessage->metadata : [];
+
+            // Structured turn intent (Task 2): a stamped row answers the
+            // question the heuristics below approximate — only a capture
+            // clarification arms the merge; greetings and interruption
+            // answers are transparent; any other stamped intent means no
+            // capture is pending. Heuristics remain for legacy rows only.
+            $turnIntent = $metadata['turn_intent'] ?? null;
+            if (is_string($turnIntent) && $turnIntent !== '') {
+                if ($turnIntent === FynTurnIntent::CaptureClarification->value) {
+                    $clarificationFound = true;
+
+                    continue;
+                }
+                if (in_array($turnIntent, [
+                    FynTurnIntent::ResumeGreeting->value,
+                    FynTurnIntent::InterruptionAnswer->value,
+                ], true)) {
+                    continue;
+                }
+
+                return $message;
+            }
+
             if (($metadata['is_resume_greeting'] ?? false) === true
                 || ($metadata['is_interruption_answer'] ?? false) === true) {
                 continue;

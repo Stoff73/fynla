@@ -1275,3 +1275,56 @@ it('still records a genuine "roughly Nk" expenditure answer and advances', funct
     $user->refresh();
     expect((float) $user->monthly_expenditure)->toBe(2000.0);
 });
+
+// ── Task 2 (structured turn intent): the followup/merge scans prefer the
+// enum. A row stamped turn_intent=interruption_answer — with NO legacy
+// is_interruption_answer boolean — must be skipped by
+// mergeUnresolvedCaptureMessage's scan exactly as the tagged rows are, so
+// the genuine on-script reply reaches the state's own parser unmerged (the
+// conv-168 shape pinned via the enum rather than the tag). ────────────────
+
+it('skips an enum-stamped interruption answer in the merge scan without the legacy tag', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    // Previous user turn — a statement, not a question, so the
+    // userAskedQuestion early-return cannot mask the scan.
+    $conversation->messages()->create(['role' => 'user', 'content' => 'I was born in March 1988.']);
+
+    // The advisory answer row carries ONLY the enum (future rows stop
+    // writing the boolean), with question-shaped wording the legacy
+    // heuristic mistakes for a capture clarification.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I need your date of birth and pension details. Would you like me to help you add those now?',
+        'metadata' => ['turn_intent' => 'interruption_answer'],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => '14 March 1988']);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'mergeUnresolvedCaptureMessage');
+    $merged = $method->invoke(app(OnboardingChatDirector::class), $conversation, '14 March 1988');
+
+    expect($merged)->toBe('14 March 1988');
+});
+
+it('merges on an enum-stamped capture clarification even when the wording defeats the legacy heuristic', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $conversation->messages()->create(['role' => 'user', 'content' => 'I have a savings account with Halifax.']);
+
+    // The stamp says clarification; the terse wording carries none of the
+    // legacy heuristic's cues. The enum must win.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'One detail is missing before that saves.',
+        'metadata' => ['turn_intent' => 'capture_clarification'],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => 'It holds £12,000.']);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'mergeUnresolvedCaptureMessage');
+    $merged = $method->invoke(app(OnboardingChatDirector::class), $conversation, 'It holds £12,000.');
+
+    expect($merged)->toBe(
+        "Original capture details: I have a savings account with Halifax.\n"
+        .'Requested missing details: It holds £12,000.'
+    );
+});
