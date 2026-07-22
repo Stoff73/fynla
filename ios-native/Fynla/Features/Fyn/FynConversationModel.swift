@@ -24,10 +24,31 @@ enum FynConversationPhase: Sendable, Equatable {
     case consentRequired
     case tokenLimited(String)
     case failed(String)
+    /// F2/F1: the SSE open's one-shot refresh-and-replay (see
+    /// `LiveFynClient.open`) could not renew the session. Distinct from
+    /// `.failed` so the composer can show "session expired" rather than a
+    /// generic error.
+    case sessionExpired
 
     var isBusy: Bool {
         switch self {
         case .loading, .accepting, .streaming, .queued:
+            true
+        default:
+            false
+        }
+    }
+
+    /// F2: `.failed` and `.sessionExpired` are the two phases nothing else
+    /// naturally clears — every other phase (`.offline`, `.rateLimited`,
+    /// `.acceptanceUncertain`, `.consentRequired`, `.tokenLimited`,
+    /// `.stillAnswering`) already has its own designed recovery path
+    /// (retry button, next send, etc). `open()` re-entering from these two
+    /// is what lets the dock's `.task { open() }` self-heal on next
+    /// appearance instead of freezing forever.
+    var isRecoverableFailure: Bool {
+        switch self {
+        case .failed, .sessionExpired:
             true
         default:
             false
@@ -73,7 +94,10 @@ final class FynConversationModel {
     var unknownEventNames: [String] { reduction.unknownEventNames }
 
     func open(conversationID preferredID: String? = nil) async {
-        guard phase == .idle else { return }
+        // F2(a): re-entering from `.failed`/`.sessionExpired` (instead of
+        // only `.idle`) is what makes the dock's `.task { open() }` self-heal
+        // on the next appearance rather than freezing until sign-out.
+        guard phase == .idle || phase.isRecoverableFailure else { return }
         phase = .loading
         shouldCloseAndRefresh = false
 
@@ -153,7 +177,20 @@ final class FynConversationModel {
 
     func send(_ submittedText: String) async {
         let text = submittedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, phase == .idle else { return }
+        guard !text.isEmpty else { return }
+        // F2(b): the smallest coherent fix — fold a stuck `.failed` back to
+        // `.idle` right before the send attempt, so the tap that looked dead
+        // is the one that recovers. `.sessionExpired` is deliberately left
+        // alone: it means the shared refresher couldn't renew the session
+        // (see `LiveFynClient.open`), which normally already routes sign-out
+        // through the existing session machinery (`PrivacyLockController` /
+        // `AuthenticationCoordinator.requireFullLogin()` flips `AppSession`
+        // to `.signedOut`, which unmounts this view and calls
+        // `stopAndClear()`); pretending a send will work would be wrong.
+        if case .failed = phase {
+            phase = .idle
+        }
+        guard phase == .idle else { return }
         let gestureID = makeID()
         await performSend(text, idempotencyKey: gestureID, appendUser: true)
     }
@@ -193,6 +230,11 @@ final class FynConversationModel {
     }
 
     func chooseReply(_ reply: FynReply) async {
+        // F2(b): same fold-back as `send()` — a reply bubble tapped while
+        // `.failed` should recover instead of silently no-op'ing.
+        if case .failed = phase {
+            phase = .idle
+        }
         guard phase == .idle, let conversationID else { return }
         consumeReplies()
 
@@ -389,6 +431,14 @@ final class FynConversationModel {
         apply(try await client.loadConversation(id: id))
     }
 
+    /// F3 audit (2026-07-22): mirrors /m's `loadTranscript` rule exactly —
+    /// `resources/mobile/mixins/onboardingChat.js` does
+    /// `mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; })`,
+    /// stripping bubbles from every message except the LAST one, regardless
+    /// of role. This is byte-for-byte the same rule below. When the last row
+    /// is a user reply to an already-answered offer, /m shows no tappable
+    /// bubbles either (the offer above it was stripped because it isn't
+    /// last) — that is intentional parity, not a native-only regression.
     private func apply(_ transcript: FynTranscript) {
         var messages = transcript.messages.map(\.fynMessage)
         if messages.count > 1 {
@@ -471,6 +521,8 @@ final class FynConversationModel {
             phase = .rateLimited(retryAfter: retryAfter)
         case FynClientError.consentRequired:
             phase = .consentRequired
+        case FynClientError.authExpired:
+            phase = .sessionExpired
         case let FynClientError.unexpectedStatus(_, requestID):
             phase = .failed(requestID.map { "Fyn could not respond. Request \($0)." }
                 ?? "Fyn could not respond. Please try again.")

@@ -176,6 +176,11 @@ struct FynView: View {
             status(message, id: "token-limit")
         case let .failed(message):
             status(message, id: "failure")
+        case .sessionExpired:
+            status(
+                "Your session expired — please sign in again.",
+                id: "session-expired"
+            )
         case .idle:
             EmptyView()
         }
