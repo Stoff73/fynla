@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -113,6 +114,42 @@ it('stamps deferred_promise on the defer promise and step_prompt on the re-emitt
         ->latest('id')
         ->first();
     expect($reEmitted->metadata['turn_intent'] ?? null)->toBe('step_prompt');
+});
+
+it('refines a no-tool clarification capture turn from capture_ack to capture_clarification', function () {
+    // The shared pipeline stamps every data_capture persist capture_ack by
+    // default. A turn that captured nothing and asked for a missing fact is
+    // a clarification — the director must refine the stamp so Task 2-4
+    // readers (which prefer the enum) still arm the followup.
+    [$user, $conversation] = turnIntentUser();
+
+    // Arm pending_interruption_store via the deterministic offer path.
+    drainDirectorMessage($user, $conversation, 'I have a Cash ISA with Barclays with £30,000 in it');
+
+    $clarification = 'Is the account owned by just you, or held jointly? I need that before I can save it.';
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function () use ($clarification, $conversation) {
+            // Mimic HasAiChat: persist the streamed text with the default
+            // capture_ack stamp the pipeline writes for data_capture turns.
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $clarification,
+                'metadata' => ['turn_intent' => 'capture_ack'],
+            ]);
+            yield ['type' => 'content', 'text' => $clarification];
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    drainDirectorMessage($user->refresh(), $conversation, 'Yes, save it');
+
+    $row = $conversation->messages()
+        ->where('role', 'assistant')
+        ->where('content', $clarification)
+        ->first();
+    expect($row)->not->toBeNull();
+    expect($row->metadata['turn_intent'] ?? null)->toBe('capture_clarification');
 });
 
 it('stamps deferred_raise and celebration on the done turn', function () {

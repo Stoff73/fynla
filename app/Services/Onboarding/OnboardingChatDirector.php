@@ -3663,6 +3663,7 @@ PROMPT;
         // immediately follow the clarification with a false "I've saved..."
         // verification announcement even though no write was attempted.
         if ($modelRequestedClarification && ! $capturedSomething) {
+            $this->tagCaptureClarification($conversation, $assistantBaselineId);
             $this->recordProgress(
                 $user,
                 $currentStateId,
@@ -5387,6 +5388,31 @@ PROMPT;
     }
 
     /**
+     * Stamp the most recently persisted assistant message (created after
+     * $afterId) as a capture clarification. The shared pipeline stamps every
+     * data_capture persist capture_ack by default; a turn that captured
+     * nothing and asked for a missing fact is a clarification — the intent
+     * Task 2-4 read-side consumers key their followup arming on.
+     */
+    private function tagCaptureClarification(AiConversation $conversation, int $afterId): void
+    {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $afterId)
+            ->latest('id')
+            ->first();
+
+        if ($message === null) {
+            return;
+        }
+
+        $metadata = is_array($message->metadata) ? $message->metadata : [];
+        $message->update(['metadata' => array_merge($metadata, [
+            'turn_intent' => FynTurnIntent::CaptureClarification->value,
+        ])]);
+    }
+
+    /**
      * Decide whether a (possibly question-bearing) message also carries a
      * substantive answer to the scripted prompt. Used by the
      * `advance_on_answered_question` gate so a linear delegated step advances
@@ -6106,6 +6132,20 @@ PROMPT;
         } else {
             foreach ($contentEvents as $contentEvent) {
                 yield $contentEvent;
+            }
+
+            // A no-tool clarification turn (the model asked for a missing
+            // fact without attempting a write) persists through the pipeline
+            // with the default capture_ack stamp — refine it so read-side
+            // consumers see the clarification.
+            if ($recordsCreated === [] && $llmEmittedFills === []) {
+                $modelText = implode('', array_map(
+                    static fn (array $event): string => (string) ($event['text'] ?? ''),
+                    $contentEvents,
+                ));
+                if ($modelText !== '' && $this->captureResponseRequestsClarification($modelText)) {
+                    $this->tagCaptureClarification($conversation, $assistantBaselineId);
+                }
             }
         }
 
