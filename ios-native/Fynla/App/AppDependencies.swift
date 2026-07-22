@@ -122,6 +122,10 @@ struct AppDependencies: Sendable {
             build: appBuild,
             transport: httpTransport,
             tokenProvider: accessTokenProvider,
+            // F1: same shared refresher `makeAPIClient()` defaults to, so the
+            // SSE chat path gets the identical one-shot 401 refresh as every
+            // other authenticated request instead of duplicating it.
+            tokenRefresher: tokenRefresher,
             requestID: requestID
         )
     }

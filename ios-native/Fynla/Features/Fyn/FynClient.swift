@@ -12,6 +12,13 @@ enum FynClientError: Error, Sendable, Equatable {
     case acceptanceUncertain
     case unexpectedStatus(Int, requestID: String?)
     case invalidEvent
+    /// F1: the SSE open received a 401 and the one-shot refresh-and-replay
+    /// (see `LiveFynClient.open(path:body:headers:)`) could not recover —
+    /// either no refresher was configured, the refresh itself failed, or
+    /// the replay was rejected too. Distinct from `unexpectedStatus` so
+    /// `FynConversationModel` can show "session expired" instead of a
+    /// generic failure (F2).
+    case authExpired
 }
 
 protocol FynClient: Sendable {
@@ -44,6 +51,7 @@ struct LiveFynClient: FynClient {
     private let build: String
     private let transport: any HTTPTransport
     private let tokenProvider: any AccessTokenProviding
+    private let tokenRefresher: (any AccessTokenRefreshing)?
     private let requestID: @Sendable () -> String
 
     init(
@@ -53,6 +61,7 @@ struct LiveFynClient: FynClient {
         build: String,
         transport: any HTTPTransport,
         tokenProvider: any AccessTokenProviding,
+        tokenRefresher: (any AccessTokenRefreshing)? = nil,
         requestID: @escaping @Sendable () -> String
     ) {
         self.apiClient = apiClient
@@ -61,6 +70,7 @@ struct LiveFynClient: FynClient {
         self.build = build
         self.transport = transport
         self.tokenProvider = tokenProvider
+        self.tokenRefresher = tokenRefresher
         self.requestID = requestID
     }
 
@@ -165,6 +175,21 @@ struct LiveFynClient: FynClient {
         return stream
     }
 
+    /// F1: unlike `APIClient.send`, the SSE open used to build its own
+    /// request with a single `tokenProvider.accessToken()` snapshot and had
+    /// no path back to the reactive 401 refresh `APIClient` already does
+    /// (`APIClient.swift:56-76`). A 401 here now gets the same one-shot
+    /// treatment: refresh via the shared `tokenRefresher` (the same
+    /// `PrivacyLockController` instance `APIClient` uses — see
+    /// `AppDependencies.makeFynClient()`), then replay the SSE open exactly
+    /// once with the fresh token. The replay is safe because
+    /// `SSEClientError.unexpectedStatus` can only be thrown by
+    /// `SSEClient.stream(_:)` before it starts yielding events (the status
+    /// check happens before the parsing `AsyncThrowingStream` body runs),
+    /// so catching it here always means "no event has been consumed yet" —
+    /// never a mid-stream retry. If the refresh or the replay fails, that
+    /// failure surfaces as `FynClientError.authExpired` (F2) instead of the
+    /// generic `unexpectedStatus`.
     private func open<Body: Encodable & Sendable>(
         path: String,
         body: Body,
@@ -173,36 +198,30 @@ struct LiveFynClient: FynClient {
         var requestHeaders = headers
         requestHeaders["Accept"] = "text/event-stream"
         let correlationID = requestID()
-        let request = try APIRequest<FynNoResponse>(
-            path: path,
-            method: .post,
-            body: JSONEncoder().encode(body),
-            headers: requestHeaders
-        ).urlRequest(
-            baseURL: environment.apiBaseURL,
-            clientName: environment.clientName,
-            version: version,
-            build: build,
-            requestID: correlationID,
-            accessToken: await tokenProvider.accessToken()
-        )
+        let bodyData = try JSONEncoder().encode(body)
 
         do {
-            switch try await SSEClient(transport: transport).stream(request) {
-            case let .queued(queued):
-                return .queued(
-                    messageID: String(queued.messageID),
-                    queuePosition: queued.queuePosition
-                )
-            case let .stream(stream):
-                return .stream(decoded(stream))
-            }
+            let request = try streamRequest(
+                path: path,
+                bodyData: bodyData,
+                headers: requestHeaders,
+                correlationID: correlationID,
+                accessToken: await tokenProvider.accessToken()
+            )
+            return try await performStream(request)
         } catch let error as SSEClientError {
             switch error {
             case .unexpectedStatus(409, _):
                 throw FynClientError.busy
             case .unexpectedStatus(403, _):
                 throw FynClientError.consentRequired
+            case .unexpectedStatus(401, _):
+                return try await replayAfterRefresh(
+                    path: path,
+                    bodyData: bodyData,
+                    headers: requestHeaders,
+                    correlationID: correlationID
+                )
             case let .rateLimited(seconds, _):
                 throw FynClientError.rateLimited(
                     retryAfter: seconds.map(Duration.seconds)
@@ -212,6 +231,74 @@ struct LiveFynClient: FynClient {
             default:
                 throw error
             }
+        }
+    }
+
+    private func replayAfterRefresh(
+        path: String,
+        bodyData: Data,
+        headers: [String: String],
+        correlationID: String
+    ) async throws -> FynStreamResult {
+        guard let tokenRefresher else {
+            throw FynClientError.authExpired
+        }
+
+        let refreshedToken: String?
+        do {
+            refreshedToken = try await tokenRefresher.refreshAccessToken()
+        } catch {
+            throw FynClientError.authExpired
+        }
+        guard let refreshedToken else {
+            throw FynClientError.authExpired
+        }
+
+        do {
+            let request = try streamRequest(
+                path: path,
+                bodyData: bodyData,
+                headers: headers,
+                correlationID: correlationID,
+                accessToken: refreshedToken
+            )
+            return try await performStream(request)
+        } catch {
+            throw FynClientError.authExpired
+        }
+    }
+
+    private func streamRequest(
+        path: String,
+        bodyData: Data,
+        headers: [String: String],
+        correlationID: String,
+        accessToken: String?
+    ) throws -> URLRequest {
+        try APIRequest<FynNoResponse>(
+            path: path,
+            method: .post,
+            body: bodyData,
+            headers: headers
+        ).urlRequest(
+            baseURL: environment.apiBaseURL,
+            clientName: environment.clientName,
+            version: version,
+            build: build,
+            requestID: correlationID,
+            accessToken: accessToken
+        )
+    }
+
+    private func performStream(_ request: URLRequest) async throws -> FynStreamResult {
+        switch try await SSEClient(transport: transport).stream(request) {
+        case let .queued(queued):
+            return .queued(
+                messageID: String(queued.messageID),
+                queuePosition: queued.queuePosition
+            )
+        case let .stream(stream):
+            return .stream(decoded(stream))
         }
     }
 
