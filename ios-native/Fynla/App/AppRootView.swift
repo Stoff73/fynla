@@ -223,7 +223,16 @@ struct AppRootView: View {
         }
         .preferredColorScheme(.light)
         .task {
+            // Skip the legacy Capacitor cleanup under UI-test automation:
+            // fresh test containers carry no legacy website data, and the
+            // WKWebsiteDataStore touch launches WebKit's network process,
+            // whose fault logging trips an XCTAutomationSupport NULL-strcmp
+            // crash that kills the app under test at boot (six identical
+            // simulator crash artifacts + the two registration UI-test
+            // timeouts, 2026-07-22).
+            #if !FYNLA_UI_TESTING
             _ = try? await legacyCapacitorCleanup.runIfNeeded()
+            #endif
             if let privacyLockController {
                 await privacyLockController.completeLaunch()
                 await privacyLockController.refreshFaceIDOffer()

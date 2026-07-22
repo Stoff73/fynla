@@ -120,8 +120,13 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
         reportProblem.tap()
 
+        // Reporting a problem chains two sequential animated transitions —
+        // the Fyn fullScreenCover dismisses, then (only once .onDisappear
+        // fires) the bug report screen is pushed onto the navigation stack.
+        // That chain comfortably finishes within 3s on local hardware but
+        // can exceed it on the CI simulator under load.
         let description = app.textViews["bug-report.description"]
-        XCTAssertTrue(description.waitForExistence(timeout: 3))
+        XCTAssertTrue(description.waitForExistence(timeout: 8))
         description.tap()
         description.typeText("The native dashboard did not refresh.")
         // Dismiss the keyboard (it covers the review button on small devices).
@@ -428,8 +433,10 @@ final class FynlaUITests: XCTestCase {
         fillValidRegistration(in: app)
         app.buttons["registration.submit"].tap()
 
+        // Submitting triggers a network round-trip before the server-side
+        // field errors render; 3s is tight under CI/loaded-machine conditions.
         XCTAssertTrue(
-            app.staticTexts["registration.firstName.error"].waitForExistence(timeout: 3)
+            app.staticTexts["registration.firstName.error"].waitForExistence(timeout: 8)
         )
         XCTAssertTrue(app.staticTexts["registration.email.error"].exists)
         XCTAssertEqual(
@@ -815,8 +822,10 @@ final class FynlaUITests: XCTestCase {
     private func reachVerification(in app: XCUIApplication) {
         fillValidRegistration(in: app)
         app.buttons["registration.submit"].tap()
+        // Submitting triggers a network round-trip before the verification
+        // step renders; 3s is tight under CI/loaded-machine conditions.
         XCTAssertTrue(
-            app.textFields["registration.verification.code"].waitForExistence(timeout: 3)
+            app.textFields["registration.verification.code"].waitForExistence(timeout: 8)
         )
     }
 
@@ -830,28 +839,71 @@ final class FynlaUITests: XCTestCase {
         let field = secure
             ? app.secureTextFields[identifier]
             : app.textFields[identifier]
-        XCTAssertTrue(field.waitForExistence(timeout: 3))
-        assertReachable(field, in: app)
-        field.tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+
+        // The CI simulator (GitHub's macos-26 runner) settles keyboard focus
+        // noticeably slower than local hardware, especially immediately
+        // after a screen transition (cold launch, in-card step swap,
+        // multi-factor hand-off). Poll for the condition we actually care
+        // about — hasKeyboardFocus — re-tapping between attempts in case the
+        // first tap landed mid-transition. Always use `field.tap()` (never a
+        // blind `.coordinate(...)` tap): once a keyboard is already on
+        // screen from a previous field, a stale normalized-offset coordinate
+        // can land on the keyboard itself instead of the field, silently
+        // typing stray letters into whichever field is still focused rather
+        // than advancing focus at all.
+        //
+        // `isHittable` can also false-positive here: a field can be clear of
+        // every view in the app's own hierarchy yet still be visually
+        // covered by the system keyboard, which XCUITest's hit-testing does
+        // not treat as an occluding element since the keyboard belongs to a
+        // different process. That leaves `assertReachable` satisfied on the
+        // very first check — no swipe happens — while the field's on-screen
+        // position is actually still behind the keyboard, so the tap lands
+        // on dead keyboard chrome and does nothing (no error, no focus
+        // change). Force an extra swipe on every retry (not just the first
+        // attempt) so a field sitting right at the keyboard's edge gets
+        // scrolled unambiguously clear of it before the next tap.
         let hasKeyboardFocus = NSPredicate(format: "hasKeyboardFocus == true")
-        var focusExpectation = XCTNSPredicateExpectation(
-            predicate: hasKeyboardFocus,
-            object: field
-        )
-        if XCTWaiter.wait(for: [focusExpectation], timeout: 1) != .completed {
-            field.coordinate(
-                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)
-            ).tap()
-            focusExpectation = XCTNSPredicateExpectation(
+        var focused = false
+        for attempt in 0..<5 where !focused {
+            if attempt > 0 {
+                app.swipeUp()
+            }
+            assertReachable(field, in: app)
+            field.tap()
+            let focusExpectation = XCTNSPredicateExpectation(
                 predicate: hasKeyboardFocus,
                 object: field
             )
-            XCTAssertEqual(
-                XCTWaiter.wait(for: [focusExpectation], timeout: 2),
-                .completed
-            )
+            focused = XCTWaiter.wait(for: [focusExpectation], timeout: 2) == .completed
         }
-        field.typeText(value)
+        XCTAssertTrue(focused, "\(identifier) never gained keyboard focus")
+
+        if secure {
+            // Simulator's transient "Automatic Strong Password" AutoFill
+            // overlay for adjacent password / confirm-password fields can
+            // still be settling in immediately after focus is gained,
+            // silently swallowing most synthesized keystrokes even though
+            // the field is genuinely focused (confirmed via the
+            // accessibility dump: the real field shows `Keyboard Focused`
+            // with only a fragment of the typed value). Typing the whole
+            // string in one synthesized burst appears to race whatever is
+            // settling; type one character at a time instead. The masked
+            // bullet count is the only observable signal for a secure
+            // field — verify it matches what was typed and clear-and-retry
+            // if characters still went missing.
+            for _ in 0..<5 {
+                for character in value {
+                    field.typeText(String(character))
+                }
+                if ((field.value as? String)?.count ?? 0) == value.count { return }
+                field.typeText(String(repeating: "\u{8}", count: value.count + 10))
+            }
+            XCTFail("\(identifier) did not accept the typed value")
+        } else {
+            field.typeText(value)
+        }
     }
 
     @MainActor
