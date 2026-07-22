@@ -184,6 +184,105 @@ class GoogleDriveService
     }
 
     /**
+     * A cursor marking "now" in the Drive change stream. Store it, then feed it
+     * to listChanges() later to get everything that changed since.
+     */
+    public function getStartPageToken(): string
+    {
+        $response = Http::withToken($this->oauth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/changes/startPageToken', [
+                'supportsAllDrives' => 'true',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Drive getStartPageToken failed: HTTP '.$response->status());
+        }
+
+        return (string) $response->json('startPageToken');
+    }
+
+    /**
+     * Register a push-notification channel: Google POSTs $address whenever
+     * anything in the Drive changes. $token is echoed back in every ping's
+     * X-Goog-Channel-Token header so the receiver can verify authenticity.
+     *
+     * @return array{id:string,resourceId:string,expiration:?int}
+     */
+    public function watchChanges(string $channelId, string $pageToken, string $address, string $token, int $ttlSeconds = 604800): array
+    {
+        $response = Http::withToken($this->oauth->accessToken())
+            ->timeout(30)
+            ->post(self::API_ROOT.'/changes/watch?'.http_build_query([
+                'pageToken' => $pageToken,
+                'supportsAllDrives' => 'true',
+                'includeItemsFromAllDrives' => 'true',
+            ]), [
+                'id' => $channelId,
+                'type' => 'web_hook',
+                'address' => $address,
+                'token' => $token,
+                'expiration' => (string) ((time() + $ttlSeconds) * 1000),
+            ]);
+
+        if (! $response->successful()) {
+            Log::channel('pipeline')->error('Drive watchChanges failed.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new RuntimeException('Drive watchChanges failed: HTTP '.$response->status());
+        }
+
+        return [
+            'id' => (string) $response->json('id'),
+            'resourceId' => (string) $response->json('resourceId'),
+            'expiration' => $response->json('expiration') !== null ? (int) $response->json('expiration') : null,
+        ];
+    }
+
+    /**
+     * List everything that changed since $pageToken. Each change includes the
+     * file's id/name/mimeType/parents so callers can route it.
+     *
+     * @return array{changes:list<array<string,mixed>>,newStartPageToken:?string,nextPageToken:?string}
+     */
+    public function listChanges(string $pageToken): array
+    {
+        $response = Http::withToken($this->oauth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/changes', [
+                'pageToken' => $pageToken,
+                'fields' => 'newStartPageToken,nextPageToken,changes(fileId,removed,file(id,name,mimeType,parents,trashed))',
+                'pageSize' => 100,
+                'supportsAllDrives' => 'true',
+                'includeItemsFromAllDrives' => 'true',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Drive listChanges failed: HTTP '.$response->status());
+        }
+
+        return [
+            'changes' => array_values($response->json('changes', [])),
+            'newStartPageToken' => $response->json('newStartPageToken'),
+            'nextPageToken' => $response->json('nextPageToken'),
+        ];
+    }
+
+    /**
+     * Stop a previously-registered push channel.
+     */
+    public function stopChannel(string $channelId, string $resourceId): void
+    {
+        Http::withToken($this->oauth->accessToken())
+            ->timeout(30)
+            ->post(self::API_ROOT.'/channels/stop', [
+                'id' => $channelId,
+                'resourceId' => $resourceId,
+            ]);
+    }
+
+    /**
      * Download a Drive file's binary content to a local path. Streams to
      * avoid loading multi-GB videos into memory.
      */

@@ -61,19 +61,30 @@ class Kernel extends ConsoleKernel
         $schedule->command('fyn:episodic:reconcile')->daily();
         $schedule->command('fyn:episodic:cold-archive')->weekly();
 
-        // Marketing pipeline — article + video detection, clip approval, social.
+        // Marketing pipeline — article + video detection. Polled every few
+        // minutes (config('pipeline.poll_frequency_minutes', 5)) so new Drive
+        // files / published articles enter the pipeline within minutes without
+        // waiting for a daily scan. The Drive webhook (when configured) triggers
+        // the same commands instantly; this polling is the always-on safety net.
+        // withoutOverlapping stops a slow run stacking on the next tick.
+        $pollEvery = max(1, (int) config('pipeline.poll_frequency_minutes', 5));
+
         $schedule->command('pipeline:detect-new-article-docs')
-            ->dailyAt(config('pipeline.article_docs_schedule', '06:45'));
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
 
         $schedule->command('pipeline:detect-new-articles')
-            ->dailyAt(config('pipeline.detect_schedule', '07:00'));
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
 
         // CMS DocumentArticles → same script pipeline.
         $schedule->command('pipeline:detect-new-document-articles')
-            ->dailyAt(config('pipeline.detect_schedule', '07:00'));
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
 
         $schedule->command('pipeline:detect-new-videos')
-            ->dailyAt(config('pipeline.video.detect_schedule', '07:30'));
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
+
+        // Real-time Drive trigger — re-register the change webhook before it
+        // expires (no-op when PIPELINE_DRIVE_WEBHOOK_URL is unset).
+        $schedule->command('pipeline:drive-watch')->dailyAt('05:00')->withoutOverlapping();
 
         // Quarterly (1 Jan / 1 Apr / 1 Jul / 1 Oct) housekeeping reminder.
         $schedule->command('pipeline:audit-social-videos')

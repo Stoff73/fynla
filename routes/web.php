@@ -745,6 +745,12 @@ Route::get('/mockup/dashboard', function () {
 Route::get('/pipeline/oauth/google/callback', [\App\Http\Controllers\Pipeline\GoogleOAuthController::class, 'callback'])
     ->name('pipeline.oauth.google.callback');
 
+// Marketing pipeline — Google Drive change webhook (real-time trigger).
+// Google POSTs here on any Drive change; the X-Goog-Channel-Token header is the
+// auth (verified in the controller). CSRF-exempt (see VerifyCsrfToken).
+Route::post('/pipeline/drive/webhook', [\App\Http\Controllers\Pipeline\DriveWebhookController::class, 'handle'])
+    ->name('pipeline.drive.webhook');
+
 // Marketing pipeline — signed clip download for the tracker sheet review link.
 // Signature enforces 30-day expiry (see PIPELINE_SIGNED_URL_TTL_DAYS).
 Route::get('/pipeline/clips/{slug}/{filename}', [\App\Http\Controllers\Pipeline\SignedClipDownloadController::class, 'download'])

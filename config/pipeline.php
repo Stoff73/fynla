@@ -30,6 +30,11 @@ return [
 
     'detect_schedule' => env('PIPELINE_DETECT_SCHEDULE', '07:00'),
 
+    // How often (minutes) the detect commands poll for new Drive files /
+    // published articles. The Drive webhook triggers instantly; this is the
+    // always-on safety net.
+    'poll_frequency_minutes' => (int) env('PIPELINE_POLL_FREQUENCY_MINUTES', 5),
+
     /*
     |--------------------------------------------------------------------------
     | Queue Name
@@ -61,6 +66,25 @@ return [
         'oauth_redirect_uri' => env('GOOGLE_OAUTH_REDIRECT_URI'),
         'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID', '1HR5oTck5ZQuAviTvAMdJEoNpPIcd-75P'),
         'tracker_sheet_id' => env('PIPELINE_GOOGLE_TRACKER_SHEET_ID'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Drive change webhook (real-time trigger)
+    |--------------------------------------------------------------------------
+    |
+    | When configured, `pipeline:drive-watch` registers a Google Drive push
+    | channel so new files trigger the detectors instantly. The webhook URL must
+    | be public HTTPS (dev/live only — Google cannot reach localhost); the token
+    | is echoed back on every ping so we can verify it. Leave the URL blank to
+    | rely purely on the every-few-minutes polling safety net.
+    |
+    */
+
+    'drive' => [
+        'webhook_url' => env('PIPELINE_DRIVE_WEBHOOK_URL'),
+        'webhook_token' => env('PIPELINE_DRIVE_WEBHOOK_TOKEN'),
+        'channel_ttl_seconds' => (int) env('PIPELINE_DRIVE_CHANNEL_TTL_SECONDS', 604800),
     ],
 
     /*
