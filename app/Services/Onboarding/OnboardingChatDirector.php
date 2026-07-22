@@ -615,7 +615,10 @@ final class OnboardingChatDirector
         // verbatim via loadConversation) shows a repeated "Welcome back" on
         // startup. Remove any earlier ones before persisting this one.
         $conversation->messages()
-            ->where('metadata->is_resume_greeting', true)
+            ->where(function ($query): void {
+                $query->where('metadata->is_resume_greeting', true)
+                    ->orWhere('metadata->turn_intent', FynTurnIntent::ResumeGreeting->value);
+            })
             ->delete();
 
         // Persist the bubbles with the greeting (same metadata.bubbles pattern

@@ -1476,3 +1476,71 @@ it('recognises an explicit Innovative Finance ISA subtype', function (): void {
 
     expect($result)->toBe(['allowed' => true]);
 });
+
+// ── Task 3 (structured turn intent): the evidence-window boundary reads the
+// enum. A stamped row is a boundary iff step_prompt/verify_prompt — an A1
+// interruption answer carrying onboarding_step (its persisted shape) must
+// no longer sever the entity sentence from the ownership detail. ───────────
+
+it('does not treat an enum-stamped interruption answer as the evidence-window boundary', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'I have a Santander savings account with £9,000 in it.',
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Salary sacrifice swaps salary for employer pension contributions.',
+        'metadata' => [
+            'onboarding_step' => 'campaign_bank_accounts',
+            'is_interruption_answer' => true,
+            'turn_intent' => 'interruption_answer',
+        ],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Just me.',
+    ]);
+
+    $evidenceMethod = new ReflectionMethod(CoordinatingAgent::class, 'recentUserMessageEvidence');
+    $evidenceMethod->setAccessible(true);
+
+    expect($evidenceMethod->invoke(app(CoordinatingAgent::class), $conversation->id))
+        ->toBe("I have a Santander savings account with £9,000 in it.\nJust me.");
+});
+
+it('treats an enum-stamped step prompt as the evidence-window boundary', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'I have a Santander savings account with £9,000 in it.',
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Now your pensions — do you have a workplace pension?',
+        'metadata' => [
+            'onboarding_step' => 'campaign_pensions',
+            'turn_intent' => 'step_prompt',
+        ],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Just me.',
+    ]);
+
+    $evidenceMethod = new ReflectionMethod(CoordinatingAgent::class, 'recentUserMessageEvidence');
+    $evidenceMethod->setAccessible(true);
+
+    expect($evidenceMethod->invoke(app(CoordinatingAgent::class), $conversation->id))
+        ->toBe('Just me.');
+});

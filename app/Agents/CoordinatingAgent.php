@@ -9,6 +9,7 @@ use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
 use App\Constants\ValidationLimits;
+use App\Enums\FynTurnIntent;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
@@ -5040,6 +5041,19 @@ class CoordinatingAgent extends BaseAgent
             ->get(['id', 'metadata'])
             ->first(function (AiMessage $message): bool {
                 $metadata = is_array($message->metadata) ? $message->metadata : [];
+
+                // Structured turn intent (Task 3): a stamped row is a
+                // boundary iff it is a deterministic prompt (step or verify).
+                // The onboarding_step heuristic remains for legacy rows only
+                // — an A1 interruption answer carries onboarding_step and
+                // must no longer sever the evidence window.
+                $turnIntent = $metadata['turn_intent'] ?? null;
+                if (is_string($turnIntent) && $turnIntent !== '') {
+                    return in_array($turnIntent, [
+                        FynTurnIntent::StepPrompt->value,
+                        FynTurnIntent::VerifyPrompt->value,
+                    ], true);
+                }
 
                 return isset($metadata['onboarding_step'])
                     && ($metadata['capture_write_failed'] ?? false) !== true
