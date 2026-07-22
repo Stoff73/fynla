@@ -683,6 +683,7 @@ export default {
       }
       try {
         const res = await apiGet('/api/v1/mobile/dashboard', store.token);
+        if (this.handleAuthExpiry(res)) return;
         if (!res.ok) {
           if (!silent) this.error = 'We could not load your dashboard. Please try again.';
           return;
@@ -792,7 +793,10 @@ export default {
       this.nudgeDismissed = true;
       try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch { /* private mode — in-memory dismissal still applies */ }
     },
-    openFynForCapture(module) {
+    // Awaits openFyn() before sending — same fix as openRecChat: openFyn()'s
+    // initFyn() may fire the async startOnboarding() stream, and sending while
+    // that's still in flight silently no-ops (this.sending stays true).
+    async openFynForCapture(module) {
       const prompts = {
         protection: 'Help me add my protection cover details',
         savings: 'Help me add my savings details',
@@ -802,7 +806,7 @@ export default {
         goals: 'Help me set a financial goal',
         tax: 'Help me complete my tax strategy details',
       };
-      this.openFyn();
+      await this.openFyn();
       this.send(prompts[module] || 'Help me add my financial details');
     },
     // Mark / unmark a recommendation action complete. Optimistic toggle, then

@@ -318,14 +318,19 @@ export default {
       this.closeDrawer();
       this.$router.push('/login');
     },
-    openFyn() {
+    // Returns the open+init promise chain (mirrors Dashboard.vue's openFyn) so
+    // callers that need to send a message right after opening (openFynWith,
+    // verifyAnswer) can await it — initFyn may fire the async, unawaited
+    // resumeOnboardingInDock() stream, and sending while that's still in flight
+    // silently no-ops (this.sending stays true). Callers that just open the dock
+    // (the bare @click="openFyn" bindings) can ignore the return value.
+    async openFyn() {
       this.fynMounted = true;
-      this.$nextTick(() => {
-        this.fynOpen = true;
-        this.scrollFyn();
-        this.initFyn();
-        this.$nextTick(() => this.$refs.fynInput?.focus());
-      });
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      await this.initFyn();
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); });
     },
     closeFyn() {
       this.fynOpen = false;
@@ -333,9 +338,10 @@ export default {
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
     // Open Fyn and immediately ask a preset question (e.g. from "Edit details").
-    openFynWith(message) {
-      this.openFyn();
-      this.$nextTick(() => { if (message) this.send(message); });
+    // Awaits openFyn() before sending — see the comment on openFyn() for why.
+    async openFynWith(message) {
+      await this.openFyn();
+      if (message) this.send(message);
     },
     // Onboarding verify actions (on-page, in place of the nudge banner). Both
     // send the verify-confirm answer the chat bubbles would, so the director's
@@ -352,10 +358,12 @@ export default {
     // continues the same session. Without awaiting the resume, send()'s
     // ensureConversation() runs while conversationId is still null and starts a
     // brand-new conversation — the prior transcript would look lost. fynStarted
-    // is set first so initFyn's fire-and-forget resume doesn't double-run.
+    // is set first so initFyn's own resume (now awaited by openFyn) doesn't
+    // double-run; openFyn() is awaited too (same open-race fix as elsewhere)
+    // so the dock is fully open before we resume + send.
     async verifyAnswer(answer) {
       this.fynStarted = true;
-      this.openFyn();
+      await this.openFyn();
       if (this.onboardingActive && !this.conversationId) {
         await this.resumeOnboardingInDock();
       }
@@ -381,7 +389,13 @@ export default {
       // client-side-nav case), so this adds no delay in the common path.
       await this.loadUser();
       if (this.onboardingActive) {
-        this.resumeOnboardingInDock();
+        // Returned (not fire-and-forget) so openFyn()'s caller can await the
+        // full resume stream settling — resumeOnboardingInDock sets
+        // this.sending = true synchronously and only clears it in its own
+        // finally block, so a caller that sends a follow-up right after
+        // opening (openFynWith, verifyAnswer) must wait for this to actually
+        // finish, not just start.
+        return this.resumeOnboardingInDock();
       } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }

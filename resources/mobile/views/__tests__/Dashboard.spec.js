@@ -20,6 +20,7 @@ vi.mock('../../api.js', () => ({
   apiStream: vi.fn(() => Promise.resolve({ ok: true, status: 200, text: '' })),
 }));
 
+import { apiGet } from '../../api.js';
 import Dashboard from '../Dashboard.vue';
 import { store } from '../../store.js';
 
@@ -128,5 +129,92 @@ describe('Dashboard.vue — openRecChat awaits openFyn() (D3: rec-chat race)', (
     resolveOpen();
     await tapPromise;
     expect(sendSpy).toHaveBeenCalledWith('How do I "Top up your ISA"?');
+  });
+});
+
+// Adjacent instance of the D3 race (flagged, not fixed, in the CSJ report):
+// openFynForCapture had the identical unawaited openFyn() -> immediate send()
+// shape as openRecChat. Same fix applies — await openFyn() before sending.
+describe('Dashboard.vue — openFynForCapture awaits openFyn() (D3 adjacent: capture-nudge race)', () => {
+  it('does not send() until openFyn()\'s promise settles', async () => {
+    store.token = 'live-token';
+    store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null, active_campaign: null };
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    let resolveOpen;
+    const openPromise = new Promise((resolve) => { resolveOpen = resolve; });
+    const openSpy = vi.spyOn(wrapper.vm, 'openFyn').mockReturnValue(openPromise);
+    const sendSpy = vi.spyOn(wrapper.vm, 'send').mockImplementation(() => {});
+
+    const tapPromise = wrapper.vm.openFynForCapture('savings');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(openSpy).toHaveBeenCalled();
+    expect(sendSpy).not.toHaveBeenCalled();
+
+    resolveOpen();
+    await tapPromise;
+    expect(sendSpy).toHaveBeenCalledWith('Help me add my savings details');
+  });
+});
+
+// Adjacent instance of D1 (dead-token dead-end), flagged in the CSJ report:
+// load()'s dashboard fetch had the same "generic dead-end error on a failed
+// response" shape as the chat paths, but for a different code path (dashboard
+// load, not chat). A 401 must now route through handleAuthExpiry (logout +
+// redirect) instead of rendering the generic "could not load your dashboard"
+// error message.
+describe('Dashboard.vue — load() routes a 401 through handleAuthExpiry', () => {
+  it('logs out and redirects to /m login on a 401, without setting the generic error', async () => {
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/v1/mobile/dashboard') {
+        return Promise.resolve({ ok: false, status: 401, data: {} });
+      }
+      return Promise.resolve({ ok: true, status: 200, data: { data: {} } });
+    });
+    store.token = 'dead-token';
+    store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null, active_campaign: null };
+    const push = vi.fn();
+    const wrapper = mount(Dashboard, {
+      global: {
+        mocks: {
+          $route: { path: '/dashboard', query: {} },
+          $router: { push },
+        },
+        stubs: { GamificationCelebration: true },
+      },
+    });
+    await flushPromises();
+
+    expect(push).toHaveBeenCalledWith('/login');
+    expect(store.token).toBeNull();
+    expect(wrapper.vm.error).toBe('');
+  });
+
+  it('shows the generic error on a non-401 failure (unchanged behaviour)', async () => {
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/v1/mobile/dashboard') {
+        return Promise.resolve({ ok: false, status: 500, data: {} });
+      }
+      return Promise.resolve({ ok: true, status: 200, data: { data: {} } });
+    });
+    store.token = 'live-token';
+    store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null, active_campaign: null };
+    const push = vi.fn();
+    const wrapper = mount(Dashboard, {
+      global: {
+        mocks: {
+          $route: { path: '/dashboard', query: {} },
+          $router: { push },
+        },
+        stubs: { GamificationCelebration: true },
+      },
+    });
+    await flushPromises();
+
+    expect(push).not.toHaveBeenCalledWith('/login');
+    expect(store.token).toBe('live-token');
+    expect(wrapper.vm.error).toBe('We could not load your dashboard. Please try again.');
   });
 });
