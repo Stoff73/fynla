@@ -16,6 +16,7 @@ use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
 use App\Constants\QuerySchemas;
+use App\Enums\FynTurnIntent;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiAbortEvent;
 use App\Models\AiAdviceLog;
@@ -1149,6 +1150,15 @@ trait HasAiChat
         // prompt view for every post-F-8 row. The forensic requirement —
         // admin-only data, never user-exposed — overrides the bloat
         // concern. Restored to verbatim.)
+        // Structured turn intent — the shared pipeline emits either a
+        // data-capture acknowledgement or an advice answer, keyed off the
+        // persona it already tracks. The director's after-the-fact helpers
+        // (failure voice, interruption-answer tag) overwrite this when the
+        // row turns out to be something more specific.
+        $messageMetadata['turn_intent'] = ($this->personaOverride === 'data_capture'
+            ? FynTurnIntent::CaptureAck
+            : FynTurnIntent::AdviceAnswer)->value;
+
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
@@ -1157,7 +1167,7 @@ trait HasAiChat
             'assembled_context' => $this->assembledContext,
             'tool_calls' => $fullToolCalls ?: null,
             'tool_results' => $fullToolResults ?: null,
-        ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
+        ], ['metadata' => $messageMetadata]);
 
         if ($this->personaOverride !== null) {
             $assistantExtra['persona'] = $this->personaOverride;

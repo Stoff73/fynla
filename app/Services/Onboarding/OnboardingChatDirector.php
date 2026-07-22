@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Enums\FynTurnIntent;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
@@ -626,6 +627,7 @@ final class OnboardingChatDirector
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_resume_greeting' => true,
+                'turn_intent' => FynTurnIntent::ResumeGreeting->value,
                 'bubbles' => [
                     ['id' => 'continue', 'label' => 'Continue'],
                     ['id' => 'something_else', 'label' => 'Something else'],
@@ -671,7 +673,10 @@ final class OnboardingChatDirector
 
         if ($user->onboarding_fyn_step === null) {
             $message = $this->saveMessage($conversation, 'assistant', 'No problem — what can I help you with?', [
-                'metadata' => ['is_pause_handoff' => true],
+                'metadata' => [
+                    'is_pause_handoff' => true,
+                    'turn_intent' => FynTurnIntent::TerminalNote->value,
+                ],
             ]);
             yield ['type' => 'content', 'text' => 'No problem — what can I help you with?'];
             yield ['type' => 'done', 'message_id' => $message->id];
@@ -715,6 +720,7 @@ final class OnboardingChatDirector
             'metadata' => [
                 'paused_at_step' => $currentStateId,
                 'is_pause_handoff' => true,
+                'turn_intent' => FynTurnIntent::TerminalNote->value,
             ],
         ]);
 
@@ -909,6 +915,15 @@ final class OnboardingChatDirector
             'mode' => $layoutMode,
         ];
 
+        // Verify sub-flow prompts are their own intent — the evidence
+        // boundary (Task 3) treats step_prompt and verify_prompt alike, but
+        // consumers must be able to tell the families apart.
+        $turnIntent = match (true) {
+            $turnType === 'terminal' => FynTurnIntent::TerminalNote,
+            str_starts_with($stateId, 'campaign_verify_') => FynTurnIntent::VerifyPrompt,
+            default => FynTurnIntent::StepPrompt,
+        };
+
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
 
@@ -922,7 +937,7 @@ final class OnboardingChatDirector
             }
             yield $event;
 
-            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId];
+            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -964,7 +979,7 @@ final class OnboardingChatDirector
             // same bubbles on resume; an onboarding_advance between parts makes
             // the /m chat open a fresh bubble. Single-part prompts behave
             // exactly as before (one content event, one saved message).
-            $metadata = ['onboarding_step' => $stateId];
+            $metadata = ['onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -1021,7 +1036,11 @@ final class OnboardingChatDirector
         if ($text !== null && $text !== '') {
             yield ['type' => 'content', 'text' => $text];
             $this->saveMessage($conversation, 'assistant', $text, [
-                'metadata' => ['onboarding_step' => $stateId, 'advice_section' => $section],
+                'metadata' => [
+                    'onboarding_step' => $stateId,
+                    'advice_section' => $section,
+                    'turn_intent' => FynTurnIntent::AdviceAnswer->value,
+                ],
             ]);
         }
 
@@ -1712,7 +1731,10 @@ final class OnboardingChatDirector
 
         $promise = "Good question — that one deserves a proper answer, so I'll come back to it once your setup is done and I can see the full picture.";
         $saved = $this->saveMessage($conversation, 'assistant', $promise, [
-            'metadata' => ['onboarding_step' => $currentStateId],
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'turn_intent' => FynTurnIntent::DeferredPromise->value,
+            ],
         ]);
 
         yield ['type' => 'content', 'text' => $promise];
@@ -1766,6 +1788,7 @@ final class OnboardingChatDirector
             $saved = $this->saveMessage($conversation, 'assistant', $offer, [
                 'metadata' => [
                     'bubbles' => $bubbles,
+                    'turn_intent' => FynTurnIntent::InterruptionOffer->value,
                 ],
             ]);
 
@@ -2617,6 +2640,7 @@ final class OnboardingChatDirector
                         'metadata' => [
                             'onboarding_step' => $currentStateId,
                             'is_interruption_answer' => true,
+                            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
                         ],
                     ]);
                     yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
@@ -2805,6 +2829,7 @@ final class OnboardingChatDirector
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_retry' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2834,6 +2859,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_terminal_error' => true,
                 'error_type' => $captureError['error_type'] ?? 'unknown',
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2860,6 +2886,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_clarification' => true,
                 'clarification_type' => 'pension_history_total_vs_per_year',
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2929,6 +2956,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_partial_retry' => true,
                 'missing_fields' => $missing,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -3120,7 +3148,11 @@ final class OnboardingChatDirector
 
         $text = $this->buildIncomeChallenge($mismatch, $user);
         $this->saveMessage($conversation, 'assistant', $text, [
-            'metadata' => ['onboarding_step' => $stateId, 'income_challenge' => true],
+            'metadata' => [
+                'onboarding_step' => $stateId,
+                'income_challenge' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ],
         ]);
 
         yield [
@@ -3181,7 +3213,12 @@ final class OnboardingChatDirector
             ['id' => 'no', 'label' => 'No, change it'],
         ];
         $this->saveMessage($conversation, 'assistant', $text, [
-            'metadata' => ['onboarding_step' => $stateId, 'dob_confirm' => true, 'bubbles' => $bubbles],
+            'metadata' => [
+                'onboarding_step' => $stateId,
+                'dob_confirm' => true,
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ],
         ]);
 
         yield [
@@ -4841,7 +4878,10 @@ PROMPT;
 
         $prompt = 'Earlier you asked me something — want to pick that up now that your plan is set up?';
         $saved = $this->saveMessage($conversation, 'assistant', $prompt, [
-            'metadata' => ['bubbles' => $bubbles],
+            'metadata' => [
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::DeferredRaise->value,
+            ],
         ]);
 
         yield [
@@ -4891,7 +4931,10 @@ PROMPT;
             $conversation,
             'assistant',
             $appNote,
-            ['metadata' => ['onboarding_step' => $stateId]]
+            ['metadata' => [
+                'onboarding_step' => $stateId,
+                'turn_intent' => FynTurnIntent::TerminalNote->value,
+            ]]
         );
 
         // The user taps a button to view their plan rather than being
@@ -4913,7 +4956,11 @@ PROMPT;
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => $stateId, 'bubbles' => $bubbles]]
+            ['metadata' => [
+                'onboarding_step' => $stateId,
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::Celebration->value,
+            ]]
         );
 
         yield [
@@ -5333,7 +5380,10 @@ PROMPT;
         }
 
         $metadata = is_array($message->metadata) ? $message->metadata : [];
-        $message->update(['metadata' => array_merge($metadata, ['is_interruption_answer' => true])]);
+        $message->update(['metadata' => array_merge($metadata, [
+            'is_interruption_answer' => true,
+            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
+        ])]);
     }
 
     /**
@@ -5512,7 +5562,10 @@ PROMPT;
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => OnboardingStateMachine::STATE_DONE]]
+            ['metadata' => [
+                'onboarding_step' => OnboardingStateMachine::STATE_DONE,
+                'turn_intent' => FynTurnIntent::Celebration->value,
+            ]]
         );
 
         yield [
@@ -5636,6 +5689,7 @@ PROMPT;
             'metadata' => array_merge($metadata, [
                 'onboarding_step' => $stateId,
                 'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ]),
         ];
 
@@ -5668,6 +5722,11 @@ PROMPT;
             'metadata' => array_merge($metadata, [
                 'onboarding_step' => $stateId,
                 $metadataFlag => true,
+                // Success/read-back is a verify acknowledgement; a failure or
+                // clarification asks the user for another input.
+                'turn_intent' => in_array($metadataFlag, ['verify_edit_success', 'verify_edit_readback'], true)
+                    ? FynTurnIntent::VerifyAck->value
+                    : FynTurnIntent::CaptureClarification->value,
             ]),
         ];
 
@@ -6023,17 +6082,25 @@ PROMPT;
             // this method tracks whether other yielded events (e.g.
             // capture_complete's message_id) still reference this row, so a
             // silent no-op is the safe, simple choice.
+            $captureIntent = $pendingWriteFailures !== []
+                ? FynTurnIntent::CaptureClarification->value
+                : FynTurnIntent::CaptureAck->value;
             if ($persistedMessage !== null && $persistedText !== '') {
                 $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
                 $persistedMessage->update([
                     'content' => $persistedText,
-                    'metadata' => $pendingWriteFailures !== []
-                        ? array_merge($metadata, ['capture_write_failed' => true])
-                        : $metadata,
+                    'metadata' => array_merge(
+                        $metadata,
+                        ['turn_intent' => $captureIntent],
+                        $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    ),
                 ]);
             } elseif ($persistedMessage === null && $persistedText !== '') {
                 $this->saveMessage($conversation, 'assistant', $persistedText, [
-                    'metadata' => $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    'metadata' => array_merge(
+                        ['turn_intent' => $captureIntent],
+                        $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    ),
                 ]);
             }
         } else {
@@ -6101,7 +6168,10 @@ PROMPT;
                     $sentence = "That's a milestone: ".lcfirst($mint['label']);
                     yield ['type' => 'content', 'text' => $sentence];
                     $this->saveMessage($conversation, 'assistant', $sentence, [
-                        'metadata' => ['milestone_ack' => $mint['type']],
+                        'metadata' => [
+                            'milestone_ack' => $mint['type'],
+                            'turn_intent' => FynTurnIntent::Celebration->value,
+                        ],
                     ]);
                 }
             } catch (\Throwable) {
