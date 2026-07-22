@@ -103,7 +103,7 @@ it('freezes registration authentication and Free entitlement response shapes', f
 });
 
 it('freezes Premium entitlement keys and canonical value types', function (): void {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     Subscription::factory()->create([
         'user_id' => $user->id,
         'plan' => 'premium',

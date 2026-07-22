@@ -180,6 +180,30 @@ final class PrivacyLockController: AccessTokenRefreshing {
         shouldOfferFaceID = false
     }
 
+    func disableFaceID() async throws {
+        guard canUnlockWithFaceID, !isFaceIDChoiceInProgress else {
+            throw PrivacyLockControllerError.unavailable
+        }
+        isFaceIDChoiceInProgress = true
+        defer { isFaceIDChoiceInProgress = false }
+
+        if let accessTokenRefreshTask {
+            _ = try? await accessTokenRefreshTask.value
+        }
+
+        do {
+            try await keychainClient.delete()
+        } catch KeychainError.itemNotFound {
+            // The local outcome is already the requested disabled state.
+        }
+
+        authenticationCoordinator.declineBiometricPersistence()
+        await preference.setFaceIDEnabled(false)
+        canUnlockWithFaceID = false
+        shouldOfferFaceID = false
+        lastUnlockFailure = nil
+    }
+
     func unlock() async {
         guard appSession.state == .authenticatedLocked,
               canUnlockWithFaceID,

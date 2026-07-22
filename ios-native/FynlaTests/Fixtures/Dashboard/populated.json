@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "data": {
+    "modules": {
+      "protection": {"status":"active","total_coverage":300000,"policy_count":2,"critical_gaps":1,"has_income_protection":true},
+      "savings": {"status":"active","total_savings":42500.25,"total_accounts":3,"emergency_fund_months":5.2,"emergency_fund_status":"Building"},
+      "investment": {"status":"active","portfolio_value":119500.25,"accounts_count":2,"holdings_count":8},
+      "retirement": {"status":"active","years_to_retirement":19,"pot_value":185000,"projected_income":26000,"target_income":32000,"income_gap":6000,"total_pensions":3},
+      "estate": {"status":"active","net_estate":347250.50,"iht_liability":0,"effective_tax_rate":0},
+      "goals": {"status":"active","total_goals":2,"completed_goals":1,"total_target":50000,"total_saved":22000}
+    },
+    "net_worth": {
+      "total": 347250.50,
+      "breakdown": {
+        "assets": {"property":165000,"savings":42500.25,"investments":119500.25,"pensions":185000,"business":0,"chattels":0,"cash":0},
+        "liabilities": {"mortgages":150000,"other_liabilities":14750},
+        "total_assets": 512000.50,
+        "total_liabilities": 164750
+      }
+    },
+    "alerts": [{"id":201,"module":"Savings","severity":"important","title":"Emergency Fund Below Target","message":"Your emergency fund is still building.","action_link":"/savings","action_text":"Add to Emergency Fund","created_at":"2026-07-18T09:00:00Z"}],
+    "fyn_insight": "Your financial plan is taking shape. Regular reviews help ensure you stay on track with your goals.",
+    "cached_at": "2026-07-18T09:00:00Z",
+    "focus_areas": [{"key":"top","label":"Top actions","locked":false,"stat":"1 action","actions":[{"id":"saving-1","type":"recommendation","module":"savings","title":"Build your emergency fund","meta":"You could save £1,200","value":1200,"done":false,"action":{"kind":"navigate","payload":"/savings"}}]}],
+    "next_actions": [{"id":"saving-1","type":"recommendation","module":"savings","title":"Build your emergency fund","meta":"You could save £1,200","value":1200,"done":false,"action":{"kind":"navigate","payload":"/savings"}}],
+    "level": {"level":3,"level_name":"Growing","next_level_name":"Established","progress_percent":50,"actions_completed":2,"actions_total":4,"actions_to_next":2},
+    "percentile": 68,
+    "new_milestones": [{"type":"net_worth","threshold":250000,"label":"Your net worth has passed £250,000.","share_type":"net_worth_milestone"}],
+    "next_milestone": {"group":"Wealth","title":"Reach £500,000 net worth","steps":"Keep building your assets.","route":"m-net-worth"},
+    "entitlement": {"tier":"free","provider":null,"status":"free","renews":false,"current_period_end":null,"capabilities":{"dashboard":"full","holistic_plan":"preview"},"limits":{"savings_account":2}}
+  }
+}

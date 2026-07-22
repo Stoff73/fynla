@@ -100,7 +100,7 @@ it('allows the first ten mortgages for a free-tier user', function () {
 });
 
 it('does NOT enforce the cap for a Premium user (unlimited)', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(MortgageStore::class);
 
     $property = Property::factory()->create(['user_id' => $user->id]);

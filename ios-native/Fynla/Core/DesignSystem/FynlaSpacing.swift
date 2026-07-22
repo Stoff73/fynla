@@ -10,5 +10,6 @@ enum FynlaSpacing {
     static let xLarge: CGFloat = 32
 
     static let buttonCornerRadius: CGFloat = 8
+    static let cardCornerRadius: CGFloat = 20
     static let minimumInteractiveTarget: CGFloat = 44
 }

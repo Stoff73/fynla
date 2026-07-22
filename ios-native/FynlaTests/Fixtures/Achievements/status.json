@@ -1,0 +1,13 @@
+{
+  "level": 3,
+  "level_name": "Builder",
+  "level_label": "Level 3",
+  "progress_percent": 25,
+  "next_level_name": "Planner",
+  "next_actions": [],
+  "pending_celebration": {
+    "level": 3,
+    "level_name": "Builder",
+    "next_actions": []
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "type": "emergency_fund",
+        "category": "cash_management",
+        "priority": "high",
+        "title": "Build your emergency fund",
+        "description": "Build a cash reserve before taking more investment risk.",
+        "estimated_annual_tax_saved": null,
+        "requires_advice": false,
+        "required_monthly_cost": 300,
+        "claim_tier": "calculation",
+        "sequence_position": 1,
+        "conflict_note": null,
+        "module": "savings",
+        "affordability": "fits",
+        "surplus_consumed_to_here": 300
+      },
+      {
+        "type": "increase_pension_contribution",
+        "category": "pension",
+        "priority": "high",
+        "title": "Increase your pension contribution",
+        "description": "Use more of your available monthly surplus for retirement.",
+        "estimated_annual_tax_saved": 1200,
+        "requires_advice": true,
+        "required_monthly_cost": 250,
+        "claim_tier": "calculation",
+        "sequence_position": 2,
+        "conflict_note": "Complete your emergency fund first.",
+        "module": "retirement",
+        "affordability": "partially_fits",
+        "surplus_consumed_to_here": 450
+      },
+      {
+        "type": "bed_and_isa",
+        "category": "investment",
+        "priority": "medium",
+        "title": "Move investments into your ISA",
+        "description": "Use available ISA allowance where appropriate.",
+        "estimated_annual_tax_saved": 450,
+        "requires_advice": false,
+        "required_lump_sum": 5000,
+        "claim_tier": "calculation",
+        "sequence_position": 3,
+        "conflict_note": null,
+        "module": "investment",
+        "affordability": "beyond_current_surplus",
+        "surplus_consumed_to_here": 450
+      }
+    ],
+    "by_module": {},
+    "locked": [
+      {
+        "strategy_type": "salary_sacrifice_ni",
+        "missing": ["employment_income"],
+        "module": "tax"
+      }
+    ],
+    "available_monthly_surplus": 600,
+    "goal_commitments": 150,
+    "effective_surplus": 450,
+    "near_term_capital": 10000,
+    "goals": {}
+  }
+}

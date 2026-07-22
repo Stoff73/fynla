@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tiers;
 
 use App\Models\User;
-use App\Services\Payment\SubscriptionEntitlementService;
+use App\Services\Billing\PremiumEntitlementResolver;
 use App\Services\Stores\TierConfigurationStore;
 
 class TierResolver
@@ -13,7 +13,7 @@ class TierResolver
     private const LEGACY_PAID_PLANS = ['student', 'standard', 'family', 'pro'];
 
     public function __construct(
-        private readonly SubscriptionEntitlementService $entitlements,
+        private readonly PremiumEntitlementResolver $entitlements,
     ) {}
 
     /**
@@ -25,20 +25,7 @@ class TierResolver
      */
     public function resolve(User $user): string
     {
-        if ($user->tier === 'premium') {
-            $latest = $user->subscriptions()->latest('id')->first();
-            if ($latest !== null
-                && $latest->status === 'pending'
-                && $this->entitlements->activePremiumFor($user) === null) {
-                return 'free';
-            }
-        }
-
-        if (in_array($user->tier, TierConfigurationStore::TIERS, true)) {
-            return $user->tier;
-        }
-
-        return 'free';
+        return $this->entitlements->resolve($user)->tier;
     }
 
     /**

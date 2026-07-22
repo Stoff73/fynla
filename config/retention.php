@@ -16,6 +16,17 @@ return [
     'account_years' => (int) env('ACCOUNT_RETENTION_YEARS', 7),
 
     /*
+    |--------------------------------------------------------------------------
+    | Non-personal Apple notification audit retention (days)
+    |--------------------------------------------------------------------------
+    | Notification audit rows contain only an Apple notification UUID,
+    | allowlisted event descriptors, processing state and SHA-256 evidence.
+    | They are retained independently of account erasure for seven years and
+    | pruned by the existing scheduled `audit:purge` command.
+    */
+    'apple_notification_audit_days' => 2555,
+
+    /*
     | Reminder emails sent before a scheduled deletion fires.
     | Days before `deletion_scheduled_for` to send each reminder.
     */
