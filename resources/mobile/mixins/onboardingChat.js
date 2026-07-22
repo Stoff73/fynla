@@ -83,9 +83,26 @@ export default {
       if (b) b.scrollTop = b.scrollHeight;
     },
 
+    // A 401 on any chat request means the /m session token has died server-side
+    // (e.g. a cache-backed session lost on a deploy cache-clear) — every further
+    // request would fail the exact same way. Every api.js helper (apiGet/apiPost/
+    // apiStream) resolves with { ok, status } rather than throwing on a non-2xx
+    // response, so callers check the returned object, not a try/catch. Log out
+    // locally and send the user to the /m login screen instead of stranding them
+    // behind a "something went wrong" bubble with no way forward. Returns true
+    // when it handled the response, so callers can bail out immediately without
+    // also rendering an error bubble.
+    handleAuthExpiry(res) {
+      if (!res || res.status !== 401) return false;
+      store.logout();
+      this.$router.push('/login');
+      return true;
+    },
+
     async ensureConversation() {
       if (this.conversationId) return this.conversationId;
       const res = await apiPost('/api/ai-chat/conversations', {}, store.token);
+      if (this.handleAuthExpiry(res)) return null;
       this.conversationId = res.data?.data?.id ?? res.data?.id ?? res.data?.conversation?.id ?? null;
       return this.conversationId;
     },
@@ -105,15 +122,16 @@ export default {
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
       try {
-        await apiStream(
+        const result = await apiStream(
           '/api/ai-chat/onboarding/start',
           from ? { from } : {},
           store.token,
           (piece) => this.appendFynText(cursor, piece),
           (ev) => this.handleFynEvent(cursor, ev),
         );
+        if (this.handleAuthExpiry(result)) return;
         if (this.resumeId) {
-          await this.streamFynAction(this.resumeId, 'resume', cursor);
+          if (await this.streamFynAction(this.resumeId, 'resume', cursor)) return;
         }
         this.finalizeCaptureReply(cursor);
         if (!this.resumeId && !cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -152,13 +170,14 @@ export default {
         // /onboarding/start emits a `resume` event carrying the existing
         // conversation id (captured by handleFynEvent → this.conversationId).
         const probe = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
-        await apiStream(
+        const result = await apiStream(
           '/api/ai-chat/onboarding/start',
           {},
           store.token,
           () => {},
           (ev) => this.handleFynEvent(probe, ev),
         );
+        if (this.handleAuthExpiry(result)) return;
         if (this.conversationId) {
           await this.loadTranscript(this.conversationId);
         } else if (!this.messages.length) {
@@ -181,6 +200,7 @@ export default {
     async loadTranscript(conversationId) {
       await loadMobileSubscriptionStatus();
       const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
+      if (this.handleAuthExpiry(res)) return;
       const msgs = (res && res.ok && (res.data?.data?.messages || res.data?.messages)) || [];
       if (!msgs.length) return;
       const mapped = msgs.map((m) => {
@@ -210,24 +230,27 @@ export default {
     // Stream a director action (resume / continue / something_else) into the
     // given cursor's reply, rendering the turn it produces — e.g. the welcome-
     // back summary + Continue / Something else bubbles on resume, or the saved
-    // step's turn on continue.
+    // step's turn on continue. Returns true when the request 401'd and was
+    // handled (logout + redirect), so callers can skip further processing.
     async streamFynAction(conversationId, action, cursor) {
       cursor.got = false;
       cursor.reply.text = '';
       cursor.reply.bubbles = [];
       try {
-        await apiStream(
+        const result = await apiStream(
           `/api/ai-chat/conversations/${conversationId}/action`,
           { action },
           store.token,
           (piece) => this.appendFynText(cursor, piece),
           (ev) => this.handleFynEvent(cursor, ev),
         );
+        if (this.handleAuthExpiry(result)) return true;
       } catch {
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
         }
       }
+      return false;
     },
 
     // Run a resume action bubble (Continue / Something else): stream the turn it
@@ -239,7 +262,7 @@ export default {
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
       try {
-        await this.streamFynAction(this.conversationId, action, cursor);
+        if (await this.streamFynAction(this.conversationId, action, cursor)) return;
         this.finalizeCaptureReply(cursor);
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
@@ -463,6 +486,9 @@ export default {
       try {
         const cid = await this.ensureConversation();
         if (!cid) {
+          // ensureConversation already logged out + redirected on a 401 (which
+          // nulls store.token) — don't also render a failure bubble behind it.
+          if (!store.token) return;
           cursor.reply.text = 'Sorry, I could not start a conversation just now.';
           return;
         }
@@ -475,11 +501,12 @@ export default {
           },
           (ev) => this.handleFynEvent(cursor, ev),
         );
+        if (this.handleAuthExpiry(result)) return;
         // 202 = queued behind an in-flight turn (cross-surface double-send or
         // a lock still held). Stream the queued reply once the lock frees
         // instead of showing a false failure while the message sits queued.
         if (result && result.queued) {
-          await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor);
+          if (await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor)) return;
         }
         this.finalizeCaptureReply(cursor);
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -504,12 +531,14 @@ export default {
 
     // Stream a queued message's reply (202 path). The stream endpoint 409s
     // while the prior turn still holds the conversation lock, so retry on a
-    // short backoff; give up honestly rather than pretending it failed.
+    // short backoff; give up honestly rather than pretending it failed. Returns
+    // true when a 401 was hit and handled (logout + redirect), so send() can
+    // skip the rest of its post-processing.
     async streamQueuedReply(cid, messageId, cursor) {
       if (!messageId) {
         cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
         cursor.got = true;
-        return;
+        return false;
       }
       for (let attempt = 0; attempt < 8; attempt += 1) {
         const res = await apiStream(
@@ -521,11 +550,13 @@ export default {
           },
           (ev) => this.handleFynEvent(cursor, ev),
         );
-        if (!res || res.status !== 409) return; // streamed (or a real error — send() falls back)
+        if (this.handleAuthExpiry(res)) return true;
+        if (!res || res.status !== 409) return false; // streamed (or a real error — send() falls back)
         await new Promise((resolve) => { setTimeout(resolve, 1500); });
       }
       cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
       cursor.got = true;
+      return false;
     },
 
     appendFynText(cursor, piece) {
