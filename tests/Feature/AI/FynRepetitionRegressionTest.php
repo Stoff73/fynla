@@ -24,10 +24,11 @@ final class RepetitionCountingAgent extends CoordinatingAgent
         ?int $conversationId = null,
         ?array $classification = null,
         ?array $kycResult = null,
+        ?string $evidenceOverride = null,
     ): array {
         $this->executions[$toolName][] = $input;
 
-        return parent::executeTool($toolName, $input, $user, $conversationId, $classification, $kycResult);
+        return parent::executeTool($toolName, $input, $user, $conversationId, $classification, $kycResult, $evidenceOverride);
     }
 
     /** @return list<array<string, mixed>> */
