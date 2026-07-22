@@ -2528,7 +2528,16 @@ final class OnboardingChatDirector
             $a1AnswerEmitted = false;
             if ($userAskedQuestion && $answerBuffer !== '') {
                 $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
-                $a1AnswerEmitted = ($answer !== '');
+                // A re-ask ("I still need your gross annual income. Could
+                // you share that?") is prose, but it is not an answer — it
+                // asks the user for a fact rather than telling them
+                // anything. Treating it as "already answered" suppressed
+                // emitRetry's interruption dispatcher below and left the
+                // user's real question unanswered. Reuse the established
+                // clarification heuristic so a genuine A1 answer (no
+                // trailing question) still suppresses the duplicate
+                // interruption call, but a re-ask does not.
+                $a1AnswerEmitted = ($answer !== '') && ! $this->captureResponseRequestsClarification($answer);
                 if ($answer !== '') {
                     $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
                         'metadata' => [
