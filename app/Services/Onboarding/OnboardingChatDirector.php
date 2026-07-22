@@ -1547,6 +1547,12 @@ final class OnboardingChatDirector
             // app(ComposedTaxPlanService::class).
             $readOnlyTools = app(AdviceFyn::class)->buildToolList($user);
 
+            // Baseline so the post-turn lookup below only ever considers a
+            // row THIS turn persisted — never a stale earlier message.
+            $assistantBaselineId = (int) ($conversation->messages()
+                ->where('role', 'assistant')
+                ->max('id') ?? 0);
+
             $advice = $this->fynLoop->run(
                 SessionMode::Advice,
                 $user,
@@ -1573,24 +1579,40 @@ final class OnboardingChatDirector
                 yield $event;
             }
 
+            $latestAssistant = $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('id', '>', $assistantBaselineId)
+                ->latest('id')
+                ->first(['id', 'content', 'persona']);
+
             // Review finding I-1 — this turn's tool list keeps
             // delegate_to_capture, so a question-phrased write ("Can you add
             // my ISA?") can trigger FynLoop::interceptHandoff →
             // handleInlineCapture → a gate clarification mid-advice-turn.
-            // Unconditionally re-emitting the walk step below would bury that
-            // clarification with no pending flag armed. Mirror
-            // resolvePendingInterruptionCapture's post-capture check: inspect
-            // the latest persisted assistant message and, when it is asking
-            // for a missing detail, arm pending_interruption_store instead of
-            // re-emitting the step, so the next reply is treated as the
-            // awaited detail rather than a fresh walk answer.
-            $latestAssistant = $conversation->messages()
-                ->where('role', 'assistant')
-                ->latest('id')
-                ->first(['id', 'content']);
+            // That handoff is the ONLY route to a genuine capture
+            // clarification here — handleInlineCapture always streams under
+            // persona 'data_capture' (see its own fynLoop->stream call),
+            // while a plain advice answer streams under 'advice'. Gate the
+            // clarification-arm on that persona rather than on content shape
+            // alone: a plain informational answer routinely closes with its
+            // own offer ("Would you like me to help you add those now?"),
+            // which is clarification-shaped by coincidence, not because a
+            // capture attempt is waiting on a missing detail (live
+            // conversation 168, msg 19558-19563 — "Am I on track for
+            // retirement?" got exactly that answer, then the genuine
+            // on-script "14 March 1988" DOB reply was hijacked into a bogus
+            // capture merge instead of reaching campaign_dob's own parser).
+            if ($latestAssistant === null || $latestAssistant->persona !== 'data_capture') {
+                if ($latestAssistant !== null) {
+                    $this->tagInterruptionAnswer($conversation, $assistantBaselineId);
+                }
 
-            if ($latestAssistant !== null
-                && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
+            if ($this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
                 // WriteIntentClassifier::classify() short-circuits to null for
                 // any message that looks like a question (the same check that
                 // routed this message into handleQuestionInterruption in the
@@ -1764,10 +1786,18 @@ final class OnboardingChatDirector
         $latestAssistant = $conversation->messages()
             ->where('role', 'assistant')
             ->latest('id')
-            ->first(['content']);
+            ->first(['content', 'metadata']);
+        $latestAssistantMetadata = $latestAssistant !== null && is_array($latestAssistant->metadata)
+            ? $latestAssistant->metadata
+            : [];
 
+        // An A1 / interruption ANSWER must never re-arm the store flag
+        // either — it is not a fresh capture clarification, even when this
+        // lookup falls back to a stale row (e.g. handleInlineCapture
+        // persisted nothing new this turn).
         if (! $recordCreated
             && $latestAssistant !== null
+            && ($latestAssistantMetadata['is_interruption_answer'] ?? false) !== true
             && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
             $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
             $context['pending_interruption_store'] = [
@@ -2542,7 +2572,7 @@ final class OnboardingChatDirector
                     $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
                         'metadata' => [
                             'onboarding_step' => $currentStateId,
-                            'is_question_answer' => true,
+                            'is_interruption_answer' => true,
                         ],
                     ]);
                     yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
@@ -3565,6 +3595,14 @@ PROMPT;
         $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
             && $this->messageHasSubstantiveAnswer($message);
         if ($userAskedQuestion && ! $capturedSomething && ! $advanceOnAnsweredQuestion) {
+            // A1 — this turn's whole content was a plain answer to the
+            // user's question (no capture, no clarification — that branch
+            // already returned above). Tag the just-persisted answer so
+            // mergeUnresolvedCaptureMessage's followup scan and
+            // resolvePendingInterruptionCapture's re-arm check never mistake
+            // its own wording for a genuine capture clarification.
+            $this->tagInterruptionAnswer($conversation, $assistantBaselineId);
+
             $this->recordProgress(
                 $user,
                 $currentStateId,
@@ -5181,7 +5219,8 @@ PROMPT;
 
         foreach ($assistantMessages as $assistantMessage) {
             $metadata = is_array($assistantMessage->metadata) ? $assistantMessage->metadata : [];
-            if (($metadata['is_resume_greeting'] ?? false) === true) {
+            if (($metadata['is_resume_greeting'] ?? false) === true
+                || ($metadata['is_interruption_answer'] ?? false) === true) {
                 continue;
             }
 
@@ -5219,6 +5258,38 @@ PROMPT;
 
         return "Original capture details: {$previousUserMessage->content}\n"
             ."Requested missing details: {$message}";
+    }
+
+    /**
+     * Tag the most recently persisted assistant message (created after
+     * $afterId) as an A1 / interruption ANSWER. Used for turns that persist
+     * through the underlying chat pipeline's own saveMessage rather than this
+     * director's — the interruption dispatcher's plain advisory answer in
+     * handleQuestionInterruption, and the delegated capture turn's own A1
+     * answer in handleAssetCaptureTurn — so the flag can still be applied
+     * after the fact, mirroring persistFailedCaptureResponse's pattern.
+     *
+     * Read by mergeUnresolvedCaptureMessage's followup scan and
+     * resolvePendingInterruptionCapture's re-arm check so neither treats
+     * this answer's own wording — which often ends in a question, e.g.
+     * "Would you like me to help you add those now?" — as grounds to hijack
+     * the NEXT reply into the merged-detail / capture-followup path. The
+     * state's own parser must see that next reply untouched.
+     */
+    private function tagInterruptionAnswer(AiConversation $conversation, int $afterId): void
+    {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $afterId)
+            ->latest('id')
+            ->first();
+
+        if ($message === null) {
+            return;
+        }
+
+        $metadata = is_array($message->metadata) ? $message->metadata : [];
+        $message->update(['metadata' => array_merge($metadata, ['is_interruption_answer' => true])]);
     }
 
     /**

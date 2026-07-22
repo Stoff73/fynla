@@ -567,7 +567,60 @@ it('answers a module-level question inline from data then resumes the walk', fun
 it('arms the pending store offer instead of burying the clarification when a question-phrased write turns up a gate clarification', function () {
     $this->seed(TierConfigurationSeeder::class);
     $clarification = 'I need to confirm ownership before I can save this — is it individually owned by you?';
-    scriptedFynClientWithText($clarification);
+
+    // Realistic handoff simulation (mirrors AdviceFynRoutesWritesViaHandoffTest's
+    // fynBindMocks idiom): the advice-mode reasoner call emits the synthetic
+    // `handoff` event FynLoop::interceptHandoff consumes, which routes into a
+    // SEPARATE data_capture-persona call (handleInlineCapture's own
+    // fynLoop->stream) that is what actually narrates the clarification. This
+    // is the real mechanics the is_interruption_answer fix distinguishes from
+    // a plain advisory answer that merely happens to end in a question — see
+    // OnboardingChatDirector::handleQuestionInterruption, which now gates the
+    // clarification-arm on persona 'data_capture' rather than on content
+    // shape alone. A plain scripted text turn (no handoff, persona 'advice')
+    // would no longer arm the store offer under that fix, so this test must
+    // exercise the real handoff shape to keep pinning genuine I-1 behaviour.
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (
+            User $userArg,
+            AiConversation $conversationArg,
+            string $messageArg,
+            ?string $currentRoute = null,
+            ?string $systemPromptOverride = null,
+            ?array $allowedTools = null,
+            bool $persistUserMessage = true,
+            ?array $toolsListOverride = null,
+            ?string $personaOverride = null,
+            ?string $providerOverride = null,
+        ) use ($clarification) {
+            if ($personaOverride === 'data_capture') {
+                return (function () use ($clarification, $conversationArg) {
+                    // Mirrors what the real chatWithPromptOverride
+                    // implementation persists (see
+                    // driveDirectorWithScriptedCaptureTurn's own comment
+                    // above) — handleQuestionInterruption's post-turn persona
+                    // check inspects a real row, not a mocked event stream.
+                    $conversationArg->messages()->create([
+                        'role' => 'assistant',
+                        'content' => $clarification,
+                        'persona' => 'data_capture',
+                    ]);
+                    yield ['type' => 'content', 'text' => $clarification];
+                    yield ['type' => 'done'];
+                })();
+            }
+
+            return (function () {
+                yield ['type' => 'handoff', 'handoff_type' => 'delegate_to_capture', 'payload' => [
+                    'reason' => 'user wants to add an ISA',
+                    'entity_types' => ['savings_account'],
+                    'fields_needed' => ['institution', 'balance'],
+                ]];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser();
 
@@ -927,4 +980,166 @@ it('routes the interruption dispatcher\'s answer through when the A1 prose is on
     // The walk stayed on the grouped-extract step; nothing advanced blind.
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
+});
+
+// ── Fix: an interruption ANSWER must not arm the capture-followup path, so
+// the state's own deterministic parser still handles the next reply (live
+// conversation 168, msg 19558-19563) ───────────────────────────────────────
+//
+// "Am I on track for retirement?" got a plain advisory answer that happened
+// to close with its own offer ("Would you like me to help you add those
+// now?"). Before this fix, handleQuestionInterruption's
+// captureResponseRequestsClarification check treated that offer as a genuine
+// capture clarification and armed pending_interruption_store — so the user's
+// NEXT reply, the genuine on-script "14 March 1988" DOB answer, was merged
+// into a bogus "Original capture details: Am I on track for retirement? /
+// Requested missing details: 14 March 1988" capture-turn message instead of
+// reaching base_personal's own extraction tool.
+
+it("tags the interruption dispatcher's plain advisory answer and lets the DOB extraction handle the genuine on-script reply instead of hijacking it into a bogus capture merge", function () {
+    $advisoryAnswer = 'To give you personalised guidance on whether you\'re on track for retirement, '
+        .'I need your date of birth and pension details. Would you like me to help you add those now?';
+
+    // Partial mock over the REAL CoordinatingAgent instance: chatWithPromptOverride
+    // is stubbed for the two LLM-driven calls this scenario needs (the
+    // grouped_extract state's own extraction attempt, then the interruption
+    // dispatcher's advice-mode reasoner call); every other method — crucially
+    // executeTool, which hydrateFromParking calls directly and
+    // deterministically for the second user turn below — passes through to
+    // the real implementation, so a genuine "14 March 1988" DOB capture is
+    // exercised for real rather than re-mocked.
+    $calls = 0;
+    $mock = Mockery::mock(app(CoordinatingAgent::class));
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (...$args) use (&$calls, $advisoryAnswer) {
+            $calls++;
+            /** @var AiConversation $conversationArg */
+            $conversationArg = $args[1];
+            $personaOverride = $args[8] ?? null;
+
+            if ($calls === 1) {
+                // base_personal's own extraction attempt: the model neither
+                // captures the DOB nor emits prose — a clean no-capture turn
+                // that falls into emitRetry.
+                return (function () {
+                    yield ['type' => 'done', 'message_id' => 700];
+                })();
+            }
+
+            // emitRetry -> handleInterruption -> handleQuestionInterruption's
+            // advice-mode reasoner call (persona 'advice'). Mirrors the live
+            // content exactly (msg 19561) — a plain advisory answer that
+            // happens to end in a clarification-shaped offer, with NO
+            // delegate_to_capture handoff and no capture tool call at all —
+            // mirroring what the real chatWithPromptOverride implementation
+            // persists (see driveDirectorWithScriptedCaptureTurn's own
+            // comment above) so handleQuestionInterruption's post-turn
+            // persona check inspects a real row.
+            $conversationArg->messages()->create([
+                'role' => 'assistant',
+                'content' => $advisoryAnswer,
+                'persona' => $personaOverride,
+            ]);
+
+            return (function () use ($advisoryAnswer) {
+                yield ['type' => 'content', 'text' => $advisoryAnswer];
+                yield ['type' => 'done', 'message_id' => 701];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $received = driveDirector($user, $conversation, 'Am I on track for retirement?');
+
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
+    expect($texts)->toContain('Would you like me to help you add those now?');
+
+    // The plain advisory answer must NOT arm pending_interruption_store — it
+    // is tagged is_interruption_answer instead, and the walk resumed
+    // normally on the SAME state (never buried, never advanced blind).
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $advisoryMessage = $conversation->messages()
+        ->where('role', 'assistant')
+        ->where('content', $advisoryAnswer)
+        ->first();
+    expect($advisoryMessage)->not->toBeNull();
+    expect($advisoryMessage->metadata['is_interruption_answer'] ?? null)->toBeTrue();
+
+    // The genuine on-script DOB reply must route straight back through the
+    // state's own deterministic path (OnboardingFactExtractor parks it,
+    // hydrateFromParking commits it via a direct executeTool call — no
+    // LLM turn at all) rather than through a merged "Original capture
+    // details: ... / Requested missing details: ..." capture turn built from
+    // the unrelated interrupting question.
+    driveDirector($user->refresh(), $conversation, '14 March 1988');
+
+    // No extra LLM call fired — the deterministic parking hydration handled
+    // it, proving the reply never routed through resolvePendingInterruptionCapture
+    // / handleInlineCapture's LLM-driven merge path.
+    expect($calls)->toBe(2);
+
+    $user->refresh();
+    expect($user->date_of_birth?->format('Y-m-d'))->toBe('1988-03-14');
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+});
+
+it('still arms pending_interruption_store for a genuine capture clarification reached via a real delegate_to_capture handoff', function () {
+    // Sanity check (task item 2): a REAL capture clarification (untagged,
+    // reachable only via a genuine delegate_to_capture handoff — see the
+    // "arms the pending store offer..." test above) still routes to the
+    // followup/merge path. Re-asserts the same behaviour from a
+    // grouped_extract state to confirm the fix is scoped to plain advisory
+    // answers, not to clarifications generally.
+    $clarification = 'I need to confirm the balance before I can save this — how much is in the account?';
+
+    $mock = Mockery::mock(app(CoordinatingAgent::class));
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (...$args) use ($clarification) {
+            /** @var AiConversation $conversationArg */
+            $conversationArg = $args[1];
+            $personaOverride = $args[8] ?? null;
+
+            if ($personaOverride === 'data_capture') {
+                return (function () use ($clarification, $conversationArg) {
+                    $conversationArg->messages()->create([
+                        'role' => 'assistant',
+                        'content' => $clarification,
+                        'persona' => 'data_capture',
+                    ]);
+                    yield ['type' => 'content', 'text' => $clarification];
+                    yield ['type' => 'done'];
+                })();
+            }
+
+            if ($personaOverride === 'advice') {
+                return (function () {
+                    yield ['type' => 'handoff', 'handoff_type' => 'delegate_to_capture', 'payload' => [
+                        'reason' => 'user wants to add a savings account',
+                        'entity_types' => ['savings_account'],
+                        'fields_needed' => ['balance'],
+                    ]];
+                })();
+            }
+
+            // base_personal's own extraction attempt: no capture, no prose.
+            return (function () {
+                yield ['type' => 'done', 'message_id' => 800];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    driveDirector($user, $conversation, 'Can you add my savings account for me?');
+
+    $user->refresh();
+    $pending = $user->onboarding_fyn_context['pending_interruption_store'] ?? null;
+    expect($pending)->not->toBeNull();
+    expect($pending['awaiting_detail'] ?? null)->toBeTrue();
 });
