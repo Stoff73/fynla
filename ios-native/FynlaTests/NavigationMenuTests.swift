@@ -3,9 +3,13 @@ import Testing
 
 @Suite("Native navigation menu")
 struct NavigationMenuTests {
+    // The drawer transcribes /m's navSections (MobileChrome.vue) exactly:
+    // Dashboard, then Cash Management / Finances / Family / Planning. The
+    // native-only Share / Settings / Lock / Sign out entries live in the
+    // account section of the view, not in this data.
     @Test
-    func mirrorsTheMobileRouteGroupsAndLabels() {
-        let sections = NavigationMenuSection.version1
+    func mirrorsTheMobileDrawerGroupsAndLabels() {
+        let sections = NavigationMenuSection.mDrawer
 
         #expect(sections.map(\.title) == [
             nil,
@@ -13,11 +17,9 @@ struct NavigationMenuTests {
             "Finances",
             "Family",
             "Planning",
-            "Account",
         ])
         #expect(sections.flatMap(\.items).map(\.label) == [
             "Dashboard",
-            "Achievements",
             "Income",
             "Expenditure",
             "Net Worth",
@@ -29,12 +31,9 @@ struct NavigationMenuTests {
             "Goals",
             "Tax Strategy",
             "Holistic Plan",
-            "Report a problem",
-            "Settings",
         ])
         #expect(sections.flatMap(\.items).map(\.route) == [
             .dashboard,
-            .achievements,
             .income,
             .expenditure,
             .netWorth(category: nil),
@@ -46,23 +45,40 @@ struct NavigationMenuTests {
             .goals,
             .taxStrategy,
             .holisticPlan,
-            .bugReport,
-            .settings,
         ])
     }
 
     @Test
-    func marksPackageSixRoutesAsStagedWithoutHidingImplementedDestinations() {
-        let items = NavigationMenuSection.version1.flatMap(\.items)
-        let implemented = items.filter { !$0.isStaged }.map(\.route)
-
-        #expect(implemented == [.dashboard, .achievements, .bugReport, .settings])
+    func everyDrawerDestinationHasAStableTextTitle() {
+        for item in NavigationMenuSection.mDrawer.flatMap(\.items) {
+            #expect(NavigationDestinationFactory.title(for: item.route) == item.label)
+        }
     }
 
     @Test
-    func everyVersionOneDestinationHasAStableTextTitle() {
-        for item in NavigationMenuSection.version1.flatMap(\.items) {
-            #expect(NavigationDestinationFactory.title(for: item.route) == item.label)
-        }
+    func everyPackageSixRouteShapeHasANativeDestination() {
+        let routes: [AppRoute] = [
+            .income,
+            .expenditure,
+            .netWorth(category: nil),
+            .netWorth(category: "properties"),
+            .protection(policyType: nil, id: nil),
+            .protection(policyType: "life", id: 41),
+            .savings(accountID: nil),
+            .savings(accountID: 42),
+            .investment(accountID: nil),
+            .investment(accountID: 43),
+            .retirement(pensionType: nil, id: nil),
+            .retirement(pensionType: "dc", id: 44),
+            .estate,
+            .goals,
+            .taxStrategy,
+            .holisticPlan,
+        ]
+
+        #expect(Set(routes).count == 16)
+        #expect(routes.allSatisfy {
+            !NavigationDestinationFactory.title(for: $0).isEmpty
+        })
     }
 }

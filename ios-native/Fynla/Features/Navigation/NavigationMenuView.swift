@@ -2,8 +2,10 @@ import SwiftUI
 
 struct NavigationMenuItem: Equatable, Identifiable, Sendable {
     let label: String
+    // SF Symbol mirroring /m's drawer NAV_ICON glyphs (CSJ /m design match,
+    // 2026-07-20).
+    let icon: String
     let route: AppRoute
-    let isStaged: Bool
 
     var id: AppRoute { route }
 }
@@ -14,99 +16,265 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
 
     var id: String { title ?? "Primary" }
 
-    static let version1: [NavigationMenuSection] = [
+    // Transcribes /m's drawer navSections (MobileChrome.vue) exactly: the same
+    // groups, labels, order and routes. Native-only entries (Settings, Lock)
+    // live in the account section below, not here.
+    static let mDrawer: [NavigationMenuSection] = [
         NavigationMenuSection(
             title: nil,
             items: [
-                NavigationMenuItem(label: "Dashboard", route: .dashboard, isStaged: false),
-                NavigationMenuItem(label: "Achievements", route: .achievements, isStaged: false),
+                NavigationMenuItem(label: "Dashboard", icon: "house", route: .dashboard),
             ]
         ),
         NavigationMenuSection(
             title: "Cash Management",
             items: [
-                NavigationMenuItem(label: "Income", route: .income, isStaged: true),
-                NavigationMenuItem(label: "Expenditure", route: .expenditure, isStaged: true),
+                NavigationMenuItem(label: "Income", icon: "sterlingsign.circle", route: .income),
+                NavigationMenuItem(label: "Expenditure", icon: "doc.plaintext", route: .expenditure),
             ]
         ),
         NavigationMenuSection(
             title: "Finances",
             items: [
-                NavigationMenuItem(label: "Net Worth", route: .netWorth(category: nil), isStaged: true),
-                NavigationMenuItem(label: "Savings", route: .savings(accountID: nil), isStaged: true),
-                NavigationMenuItem(label: "Investments", route: .investment(accountID: nil), isStaged: true),
-                NavigationMenuItem(label: "Retirement", route: .retirement(pensionType: nil, id: nil), isStaged: true),
+                NavigationMenuItem(label: "Net Worth", icon: "chart.bar", route: .netWorth(category: nil)),
+                NavigationMenuItem(label: "Savings", icon: "creditcard", route: .savings(accountID: nil)),
+                NavigationMenuItem(label: "Investments", icon: "chart.line.uptrend.xyaxis", route: .investment(accountID: nil)),
+                NavigationMenuItem(label: "Retirement", icon: "clock", route: .retirement(pensionType: nil, id: nil)),
             ]
         ),
         NavigationMenuSection(
             title: "Family",
             items: [
-                NavigationMenuItem(label: "Protection", route: .protection(policyType: nil, id: nil), isStaged: true),
-                NavigationMenuItem(label: "Estate Planning", route: .estate, isStaged: true),
+                NavigationMenuItem(label: "Protection", icon: "checkmark.shield", route: .protection(policyType: nil, id: nil)),
+                NavigationMenuItem(label: "Estate Planning", icon: "building.columns", route: .estate),
             ]
         ),
         NavigationMenuSection(
             title: "Planning",
             items: [
-                NavigationMenuItem(label: "Goals", route: .goals, isStaged: true),
-                NavigationMenuItem(label: "Tax Strategy", route: .taxStrategy, isStaged: true),
-                NavigationMenuItem(label: "Holistic Plan", route: .holisticPlan, isStaged: true),
-            ]
-        ),
-        NavigationMenuSection(
-            title: "Account",
-            items: [
-                NavigationMenuItem(label: "Report a problem", route: .bugReport, isStaged: false),
-                NavigationMenuItem(label: "Settings", route: .settings, isStaged: false),
+                NavigationMenuItem(label: "Goals", icon: "star", route: .goals),
+                NavigationMenuItem(label: "Tax Strategy", icon: "doc.text", route: .taxStrategy),
+                NavigationMenuItem(label: "Holistic Plan", icon: "square.stack.3d.up", route: .holisticPlan),
             ]
         ),
     ]
 }
 
+// The /m drawer (md-drawer in MobileChrome.vue/Dashboard.vue): white panel,
+// user head with circular close, grouped icon links with hairline section
+// dividers, admin section for admins, then Share Fynla / Settings / Lock /
+// Sign out. The shell presents it sliding in from the left over a backdrop.
 struct NavigationMenuView: View {
-    let includeStagedDestinations: Bool
+    let account: SettingsAccount?
+    let activeRoute: AppRoute
+    let adminURL: URL
+    let shareClient: any ShareContentClient
     let onSelect: (AppRoute) -> Void
+    let onLock: () -> Void
+    let onSignOut: () -> Void
     let onDismiss: () -> Void
 
+    @Environment(\.openURL) private var openURL
+    @State private var shareContent: ShareContent?
+    @State private var isFetchingShare = false
+
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(visibleSections) { section in
-                    Section(section.title ?? "") {
-                        ForEach(section.items) { item in
-                            Button(item.label) {
-                                onSelect(item.route)
-                            }
-                            .font(FynlaTypography.body)
-                            .foregroundStyle(FynlaColor.primaryText)
-                            .frame(
-                                maxWidth: .infinity,
-                                minHeight: FynlaSpacing.minimumInteractiveTarget,
-                                alignment: .leading
-                            )
-                            .accessibilityIdentifier("navigation.\(identifier(for: item.route))")
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Menu")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close", action: onDismiss)
-                        .accessibilityIdentifier("navigation.close")
-                }
-            }
+        VStack(spacing: 0) {
+            head
+            navigation
         }
+        .frame(maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea())
+        .sheet(item: $shareContent) { content in
+            ShareContentSheet(content: content)
+        }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("navigation.menu")
     }
 
-    private var visibleSections: [NavigationMenuSection] {
-        NavigationMenuSection.version1.compactMap { section in
-            let items = section.items.filter {
-                includeStagedDestinations || !$0.isStaged
+    // Drawer head — user name + email, circular eggshell close (md-drawer__head).
+    private var head: some View {
+        HStack(alignment: .center, spacing: FynlaSpacing.medium) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(account?.name ?? "Your account")
+                    .font(.system(size: 17, weight: .heavy))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    .lineLimit(1)
+                Text(account?.email ?? "")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .lineLimit(1)
             }
-            guard !items.isEmpty else { return nil }
-            return NavigationMenuSection(title: section.title, items: items)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("navigation.account")
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    .frame(width: 36, height: 36)
+                    .background(FynlaColor.Token.eggshell500.color)
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Close menu")
+            .accessibilityIdentifier("navigation.close")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 18)
+        .overlay(alignment: .bottom) {
+            FynlaColor.Token.lightGray.color.frame(height: 1)
+        }
+    }
+
+    private var navigation: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(NavigationMenuSection.mDrawer.enumerated()), id: \.element.id) { index, section in
+                    if index > 0 {
+                        sectionDivider
+                    }
+                    sectionView(section)
+                }
+
+                if account?.isAdmin == true {
+                    sectionDivider
+                    groupLabel("Admin")
+                    // Opens the desktop Admin Panel (no native equivalent),
+                    // mirroring /m's gotoAdmin.
+                    link(label: "Admin Panel", icon: "gearshape", isActive: false) {
+                        onDismiss()
+                        openURL(adminURL)
+                    }
+                    .accessibilityIdentifier("navigation.admin")
+                }
+
+                sectionDivider
+                accountSection
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func sectionView(_ section: NavigationMenuSection) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let title = section.title {
+                groupLabel(title)
+            }
+            ForEach(section.items) { item in
+                link(
+                    label: item.label,
+                    icon: item.icon,
+                    isActive: item.route == activeRoute
+                ) {
+                    onSelect(item.route)
+                }
+                .accessibilityIdentifier("navigation.\(identifier(for: item.route))")
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    // Share Fynla (server-provided referral copy, /m doShare('app_referral')),
+    // then the native-only Settings + Lock entries, then Sign out in raspberry.
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            link(label: "Share Fynla", icon: "square.and.arrow.up", isActive: false) {
+                fetchShare()
+            }
+            .disabled(isFetchingShare)
+            .accessibilityIdentifier("navigation.share")
+
+            link(label: "Settings", icon: "slider.horizontal.3", isActive: activeRoute == .settings) {
+                onSelect(.settings)
+            }
+            .accessibilityIdentifier("navigation.settings")
+
+            link(label: "Lock", icon: "lock", isActive: false) {
+                onLock()
+            }
+            .accessibilityIdentifier("navigation.lock")
+
+            link(
+                label: "Sign out",
+                icon: "rectangle.portrait.and.arrow.right",
+                isActive: false,
+                tint: FynlaColor.Token.raspberry600.color
+            ) {
+                onSignOut()
+            }
+            .accessibilityIdentifier("navigation.sign-out")
+        }
+        .padding(.top, 4)
+        .padding(.vertical, 4)
+    }
+
+    private var sectionDivider: some View {
+        FynlaColor.Token.lightGray.color
+            .frame(height: 1)
+            .padding(.vertical, 4)
+    }
+
+    private func groupLabel(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.system(size: 12, weight: .semibold))
+            .kerning(0.6)
+            .foregroundStyle(FynlaColor.Token.neutral400.color)
+            .padding(.horizontal, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+    }
+
+    // One drawer link (md-drawer__link): 20pt icon + 14pt label; the active
+    // route gets the light-blue fill.
+    private func link(
+        label: String,
+        icon: String,
+        isActive: Bool,
+        tint: Color? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(
+                        tint ?? (isActive
+                            ? FynlaColor.Token.horizon500.color
+                            : FynlaColor.Token.neutral500.color)
+                    )
+                    .frame(width: 20, height: 20)
+                    .accessibilityHidden(true)
+                Text(label)
+                    .font(.system(size: 14, weight: isActive ? .semibold : .medium))
+                    .foregroundStyle(
+                        tint ?? (isActive
+                            ? FynlaColor.Token.horizon500.color
+                            : FynlaColor.Token.neutral600.color)
+                    )
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+            .background(isActive ? FynlaColor.Token.lightBlue100.color : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func fetchShare() {
+        guard !isFetchingShare else { return }
+        isFetchingShare = true
+        Task { @MainActor in
+            defer { isFetchingShare = false }
+            // Fall back to the generic app URL if the endpoint fails — same
+            // net effect as /m's silent no-op, but the tap still shares.
+            let content = (try? await shareClient.content(for: "app_referral"))
+                ?? ShareContent(title: "Fynla", text: nil, url: "https://fynla.org")
+            shareContent = content
         }
     }
 

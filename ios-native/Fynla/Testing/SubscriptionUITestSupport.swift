@@ -45,6 +45,10 @@ private actor SubscriptionUITestAPI: SubscriptionAPI {
         }
     }
 
+    func authorizePurchase() async throws -> Bool {
+        true
+    }
+
     func appAccountToken() async throws -> UUID {
         .uiTestAccount
     }

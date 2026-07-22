@@ -176,6 +176,54 @@ struct SubscriptionModelTests {
     }
 
     @Test
+    func serverPurchaseSwitchBlocksStoreKitButLeavesRestoreAndAcknowledgementWorking() async {
+        let restored = SignedStoreTransaction.testing(
+            id: 52,
+            originalID: 50,
+            productID: StoreProductIdentifier.annual,
+            appAccountToken: .testAccount,
+            signedJWS: "restored.while.disabled"
+        )
+        let api = SubscriptionAPISpy(
+            entitlements: [.free, .applePremium],
+            purchaseAuthorized: false
+        )
+        let store = StoreProductsSpy(
+            products: [.monthly, .annual],
+            purchaseOutcome: .userCancelled,
+            currentEntitlements: [restored]
+        )
+        let model = SubscriptionModel(api: api, storeKit: store)
+        await model.load()
+
+        await model.purchase()
+        #expect(await api.purchaseAuthorizationCount() == 1)
+        #expect(await store.purchaseCount() == 0)
+        #expect(model.message == "New App Store purchases are temporarily unavailable. You can still restore an existing purchase.")
+
+        await model.restore()
+        #expect(model.state == .applePremium(.applePremium))
+    }
+
+    @Test
+    func runtimePolicyHidesPurchaseInitiationWithoutCallingTheServer() async {
+        let api = SubscriptionAPISpy(entitlements: [.free])
+        let store = StoreProductsSpy(products: [.monthly, .annual])
+        let model = SubscriptionModel(
+            api: api,
+            storeKit: store,
+            purchaseEnabled: { false }
+        )
+        await model.load()
+
+        #expect(model.isPurchaseEnabled == false)
+        #expect(model.canPurchase == false)
+        await model.purchase()
+        #expect(await api.purchaseAuthorizationCount() == 0)
+        #expect(await store.purchaseCount() == 0)
+    }
+
+    @Test
     func pendingPurchaseSurvivesLockUnlockReloadAndStillBlocksRetry() async {
         let store = StoreProductsSpy(
             products: [.monthly, .annual],
@@ -218,7 +266,10 @@ struct SubscriptionModelTests {
         #expect(model.state.isPending)
 
         store.sendUpdate(transaction)
-        await eventually { await finish.count == 1 }
+        await eventually {
+            await finish.count == 1
+                && model.state == .applePremium(.applePremium)
+        }
 
         #expect(model.state == .applePremium(.applePremium))
         #expect(await store.purchaseCount() == 1)
@@ -346,7 +397,10 @@ struct SubscriptionModelTests {
         await model.start()
 
         store.sendUpdate(transaction)
-        await eventually { await finish.count == 1 }
+        await eventually {
+            await finish.count == 1
+                && model.state == .applePremium(.applePremium)
+        }
 
         #expect(model.state == .applePremium(.applePremium))
         #expect(await api.acknowledgedJWS() == ["update.header.payload"])
@@ -440,6 +494,8 @@ private actor SuspendedFirstEntitlementAPI: SubscriptionAPI {
 
     func appAccountToken() async throws -> UUID { .testAccount }
 
+    func authorizePurchase() async throws -> Bool { true }
+
     func acknowledge(_ transaction: SignedStoreTransaction) async throws -> Bool {
         true
     }
@@ -507,18 +563,22 @@ private actor SubscriptionAPISpy: SubscriptionAPI {
     private let loadGate: LoadGate?
     private let acknowledgement: Bool
     private let events: EventRecorder?
+    private let purchaseAuthorized: Bool
     private var submittedJWS: [String] = []
+    private var authorizationCount = 0
 
     init(
         entitlements: [NativeEntitlement],
         loadGate: LoadGate? = nil,
         acknowledgement: Bool = true,
-        events: EventRecorder? = nil
+        events: EventRecorder? = nil,
+        purchaseAuthorized: Bool = true
     ) {
         self.entitlements = entitlements
         self.loadGate = loadGate
         self.acknowledgement = acknowledgement
         self.events = events
+        self.purchaseAuthorized = purchaseAuthorized
     }
 
     func entitlement() async throws -> NativeEntitlement {
@@ -529,6 +589,11 @@ private actor SubscriptionAPISpy: SubscriptionAPI {
 
     func appAccountToken() async throws -> UUID {
         .testAccount
+    }
+
+    func authorizePurchase() async throws -> Bool {
+        authorizationCount += 1
+        return purchaseAuthorized
     }
 
     func acknowledge(_ transaction: SignedStoreTransaction) async throws -> Bool {
@@ -542,6 +607,8 @@ private actor SubscriptionAPISpy: SubscriptionAPI {
     }
 
     func acknowledgedJWS() -> [String] { submittedJWS }
+
+    func purchaseAuthorizationCount() -> Int { authorizationCount }
 }
 
 private actor StoreProductsSpy: StoreKitClient {
@@ -705,8 +772,9 @@ private extension SubscriptionUIState {
     }
 }
 
+@MainActor
 private func eventually(
-    _ condition: @escaping @Sendable () async -> Bool
+    _ condition: @escaping @MainActor @Sendable () async -> Bool
 ) async {
     for _ in 0..<100 where !(await condition()) {
         await Task.yield()

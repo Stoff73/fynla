@@ -21,7 +21,7 @@ describe('Will Builder API', function () {
             // middle_name=null override prevents the 30% factory flake where
             // fake()->optional(0.3)->firstName() inserts a middle name and
             // breaks the full_name='James Carter' assertion.
-            $user = User::factory()->create([
+            $user = User::factory()->withActivePremiumSubscription()->create([
                 'first_name' => 'James',
                 'middle_name' => null,
                 'surname' => 'Carter',
@@ -51,7 +51,7 @@ describe('Will Builder API', function () {
 
     describe('GET /estate/will-builder', function () {
         it('returns null when no draft exists', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
             $response = $this->actingAs($user, 'sanctum')->getJson('/api/estate/will-builder');
 
@@ -60,7 +60,7 @@ describe('Will Builder API', function () {
         });
 
         it('returns existing draft', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             $response = $this->actingAs($user, 'sanctum')->getJson('/api/estate/will-builder');
@@ -73,7 +73,7 @@ describe('Will Builder API', function () {
 
     describe('POST /estate/will-builder', function () {
         it('creates a new will document draft', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
             $response = $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [
                 'will_type' => 'simple',
@@ -99,7 +99,7 @@ describe('Will Builder API', function () {
         });
 
         it('validates required fields', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
 
             $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [])
                 ->assertStatus(422);
@@ -108,7 +108,7 @@ describe('Will Builder API', function () {
 
     describe('PUT /estate/will-builder/{id}', function () {
         it('saves step data incrementally', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             $response = $this->actingAs($user, 'sanctum')->putJson("/api/estate/will-builder/{$doc->id}", [
@@ -127,7 +127,7 @@ describe('Will Builder API', function () {
         });
 
         it('prevents access to another users document', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $otherUser = User::factory()->create();
             $doc = WillDocument::factory()->create(['user_id' => $otherUser->id]);
 
@@ -140,7 +140,7 @@ describe('Will Builder API', function () {
 
     describe('POST /estate/will-builder/{id}/complete', function () {
         it('marks a valid document as complete', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $doc = WillDocument::factory()->create([
                 'user_id' => $user->id,
                 'executors' => [['name' => 'John Smith', 'address' => '10 High St']],
@@ -164,7 +164,7 @@ describe('Will Builder API', function () {
         });
 
         it('rejects completion with validation errors', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $doc = WillDocument::factory()->create([
                 'user_id' => $user->id,
                 'executors' => [],
@@ -183,7 +183,7 @@ describe('Will Builder API', function () {
                 'middle_name' => null,
                 'surname' => 'Carter',
             ]);
-            $user = User::factory()->create([
+            $user = User::factory()->withActivePremiumSubscription()->create([
                 'first_name' => 'James',
                 'surname' => 'Carter',
                 'spouse_id' => $spouse->id,
@@ -213,7 +213,7 @@ describe('Will Builder API', function () {
 
     describe('DELETE /estate/will-builder/{id}', function () {
         it('soft-deletes a draft', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             $this->actingAs($user, 'sanctum')->deleteJson("/api/estate/will-builder/{$doc->id}")
@@ -225,7 +225,7 @@ describe('Will Builder API', function () {
         });
 
         it('prevents deleting another users document', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $other = User::factory()->create();
             $doc = WillDocument::factory()->create(['user_id' => $other->id]);
 
@@ -236,7 +236,7 @@ describe('Will Builder API', function () {
 
     describe('GET /estate/will-builder/{id}/validate', function () {
         it('returns validation warnings', function () {
-            $user = User::factory()->create(['tier' => 'premium']);
+            $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
             $doc = WillDocument::factory()->create([
                 'user_id' => $user->id,
                 'executors' => [],

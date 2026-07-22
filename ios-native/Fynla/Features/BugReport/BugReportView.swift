@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BugReportView: View {
     @Bindable var model: BugReportModel
+    @FocusState private var descriptionFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -20,10 +21,22 @@ struct BugReportView: View {
                 }
             }
             .padding(FynlaSpacing.standard)
+            // /m's md-bottom-pad: clears the docked Fyn bar so the last
+            // controls scroll fully into reach.
+            .padding(.bottom, 80)
         }
         .background(FynlaColor.pageBackground)
         .navigationTitle("Report a problem")
         .navigationBarTitleDisplayMode(.inline)
+        // The Review button sits under the keyboard on small screens; Done
+        // dismisses it so the button is reachable.
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { descriptionFocused = false }
+                    .accessibilityIdentifier("bug-report.keyboard-done")
+            }
+        }
         .accessibilityIdentifier("bug-report.screen")
     }
 
@@ -42,6 +55,7 @@ struct BugReportView: View {
             )
             .lineLimit(4...10)
             .textFieldStyle(.roundedBorder)
+            .focused($descriptionFocused)
             .accessibilityIdentifier("bug-report.description")
 
             Picker("Area", selection: $model.category) {

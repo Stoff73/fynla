@@ -105,7 +105,6 @@ struct AppRouterTests {
         [
             .dashboard,
             .achievements,
-            .module("savings"),
             .income,
             .expenditure,
             .netWorth(category: "property"),

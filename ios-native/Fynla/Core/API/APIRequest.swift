@@ -74,7 +74,9 @@ struct APIRequest<Response: Decodable & Sendable>: Sendable {
             request.setValue(value, forHTTPHeaderField: name)
         }
 
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if request.value(forHTTPHeaderField: "Accept") == nil {
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+        }
         request.setValue(clientName, forHTTPHeaderField: "X-Fynla-Client")
         request.setValue(version, forHTTPHeaderField: "X-Fynla-Version")
         request.setValue(build, forHTTPHeaderField: "X-Fynla-Build")

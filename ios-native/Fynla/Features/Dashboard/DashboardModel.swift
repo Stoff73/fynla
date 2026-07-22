@@ -89,6 +89,7 @@ final class DashboardModel {
         case .validation,
              .forbidden,
              .upgradeRequired,
+             .nativeUpdateRequired,
              .rateLimited,
              .conflict:
             state = .failed(requestID: nil)

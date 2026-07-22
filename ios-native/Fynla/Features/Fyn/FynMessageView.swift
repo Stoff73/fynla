@@ -6,25 +6,33 @@ struct FynMessageView: View {
     let onReply: (FynReply) -> Void
 
     var body: some View {
-        VStack(
-            alignment: message.role == .user ? .trailing : .leading,
-            spacing: FynlaSpacing.small
-        ) {
+        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
             HStack {
-                if message.role == .user { Spacer(minLength: FynlaSpacing.large) }
                 VStack(alignment: .leading, spacing: FynlaSpacing.small) {
                     Text(markdownText)
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.primaryText)
+                        .font(.system(size: 15))
+                        .foregroundStyle(
+                            message.role == .fyn
+                                ? FynlaColor.Token.horizon600.color
+                                : FynlaColor.Token.horizon500.color
+                        )
                         .textSelection(.enabled)
                     deliveryText
                     if let capture = message.capture {
                         FynCaptureConfirmationView(capture: capture)
                     }
                 }
-                .padding(FynlaSpacing.medium)
-                .background(messageBackground)
-                .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(message.role == .fyn ? Color.white : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    // /m's Fyn bubbles carry a hairline border (md-fyn__msg--fyn).
+                    if message.role == .fyn {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(FynlaColor.Token.horizon100.color, lineWidth: 1)
+                    }
+                }
                 if message.role == .fyn { Spacer(minLength: FynlaSpacing.large) }
             }
 
@@ -32,16 +40,13 @@ struct FynMessageView: View {
                 FynQuickRepliesView(replies: message.replies, onReply: onReply)
             }
         }
-        .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+        // /m defines no .md-fyn__msg--user rule, so user messages render
+        // live as full-width, left-aligned plain text in the body colour —
+        // verified on csjones by computed-style probe (sweep item 8).
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(message.role == .user ? "You" : "Fyn")
         .accessibilityIdentifier("fyn.message.\(message.id)")
-    }
-
-    private var messageBackground: Color {
-        message.role == .user
-            ? FynlaColor.Token.horizon200.color.opacity(0.35)
-            : FynlaColor.surface
     }
 
     @ViewBuilder

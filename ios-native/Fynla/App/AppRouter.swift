@@ -3,10 +3,10 @@ import Observation
 enum AppRoute: Hashable, Sendable {
     case dashboard
     case achievements
-    case module(String)
     case income
     case expenditure
     case netWorth(category: String?)
+    case balanceHistory
     case protection(policyType: String?, id: Int?)
     case savings(accountID: Int?)
     case investment(accountID: Int?)
@@ -37,6 +37,13 @@ final class AppRouter {
     func navigate(to route: AppRoute) -> Bool {
         guard canNavigate(to: route) else { return false }
         path.append(route)
+        return true
+    }
+
+    @discardableResult
+    func open(_ route: AppRoute) -> Bool {
+        guard canNavigate(to: route) else { return false }
+        path = route == .dashboard ? [] : [route]
         return true
     }
 

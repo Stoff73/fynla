@@ -1,0 +1,154 @@
+import XCTest
+
+// Captures the rebuilt /m-parity surfaces as attachments so the shell,
+// drawer, dashboard sections and Fyn overlay can be reviewed side-by-side
+// against /m renders. Not a behavioural test — journeys are covered by
+// FynlaUITests.
+final class ParityScreenshotTests: XCTestCase {
+    @MainActor
+    func testCapturesParitySurfaces() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-fynla-ui-test-mode", "unlocked"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["dashboard.level"].waitForExistence(timeout: 5))
+        attach(app, name: "01-dashboard-top")
+
+        app.swipeUp()
+        attach(app, name: "02-dashboard-callout")
+
+        app.swipeUp()
+        app.swipeUp()
+        attach(app, name: "03-dashboard-finances")
+
+        app.swipeDown()
+        app.swipeDown()
+        app.swipeDown()
+
+        let menu = app.buttons["navigation.open"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3))
+        menu.tap()
+        XCTAssertTrue(app.buttons["navigation.close"].waitForExistence(timeout: 3))
+        attach(app, name: "04-drawer")
+
+        app.buttons["navigation.close"].tap()
+
+        // Capture harness, not a behaviour test: the drawer-close and
+        // fullScreenCover animations can briefly drop elements from the
+        // accessibility snapshot, so waits here are best-effort. The journey
+        // assertions live in FynlaUITests.
+        let fyn = app.buttons["fyn.open"]
+        _ = fyn.waitForExistence(timeout: 5)
+        fyn.tap()
+        _ = app.buttons["fyn.close"].waitForExistence(timeout: 5)
+        attach(app, name: "05-fyn")
+
+        app.buttons["fyn.close"].tap()
+
+        _ = menu.waitForExistence(timeout: 5)
+        menu.tap()
+        let income = app.buttons["navigation.income"]
+        XCTAssertTrue(income.waitForExistence(timeout: 3))
+        income.tap()
+        _ = app.otherElements["income.screen"].waitForExistence(timeout: 5)
+        attach(app, name: "06-income")
+
+        menu.tap()
+        let expenditure = app.buttons["navigation.expenditure"]
+        XCTAssertTrue(expenditure.waitForExistence(timeout: 3))
+        expenditure.tap()
+        _ = app.otherElements["expenditure.screen"].waitForExistence(timeout: 5)
+        attach(app, name: "07-expenditure")
+
+        menu.tap()
+        let taxStrategy = app.buttons["navigation.tax-strategy"]
+        XCTAssertTrue(taxStrategy.waitForExistence(timeout: 3))
+        taxStrategy.tap()
+        _ = app.staticTexts["tax-strategy.intro"].waitForExistence(timeout: 5)
+        attach(app, name: "08-tax-strategy-top")
+
+        app.swipeUp()
+        attach(app, name: "09-tax-strategy-mid")
+
+        // Precise part-screen drag: a full swipe leaves the dark headroom
+        // hero inside the dock-occluded band between frames.
+        let scroll = app.scrollViews.firstMatch
+        scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            .press(
+                forDuration: 0.05,
+                thenDragTo: scroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)
+                )
+            )
+        attach(app, name: "10-tax-strategy-hero-allowances")
+
+        app.swipeUp()
+        app.swipeUp()
+        attach(app, name: "11-tax-strategy-bottom")
+
+        menu.tap()
+        let holisticPlan = app.buttons["navigation.holistic-plan"]
+        XCTAssertTrue(holisticPlan.waitForExistence(timeout: 3))
+        holisticPlan.tap()
+        _ = app.otherElements["holistic-plan.effective-surplus"].waitForExistence(timeout: 5)
+        attach(app, name: "12-holistic-plan-top")
+
+        app.swipeUp()
+        attach(app, name: "13-holistic-plan-bottom")
+
+        menu.tap()
+        let dashboard = app.buttons["navigation.dashboard"]
+        XCTAssertTrue(dashboard.waitForExistence(timeout: 3))
+        dashboard.tap()
+        let level = app.buttons["dashboard.level"]
+        XCTAssertTrue(level.waitForExistence(timeout: 5))
+        level.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+        XCTAssertTrue(app.buttons["achievements.tab.achievements"].waitForExistence(timeout: 5))
+        attach(app, name: "14-achievements-tab")
+
+        app.buttons["achievements.tab.milestones"].tap()
+        attach(app, name: "15-milestones-tab")
+
+        app.buttons["achievements.tab.history"].tap()
+        attach(app, name: "16-history-tab")
+    }
+
+    // Level-up fireworks takeover + onboarding nudge, opted in by launch
+    // arguments so they never cover the ordinary journey tests.
+    @MainActor
+    func testCapturesCelebrationAndOnboardingNudge() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-fynla-ui-test-mode", "unlocked",
+            "-fynla-pending-celebration",
+            "-fynla-onboarding-active",
+        ]
+        app.launch()
+
+        // Cold first launches under instrumentation can take >5s to reach
+        // the shell; wait on the CTA button — the modal container itself
+        // (animating, children-contained) does not resolve as an element.
+        XCTAssertTrue(
+            app.buttons["achievements.celebration.continue"].waitForExistence(timeout: 20)
+        )
+        sleep(1)
+        attach(app, name: "17-level-up-fireworks")
+
+        app.buttons["achievements.celebration.continue"].tap()
+        XCTAssertTrue(
+            app.buttons["dashboard.fyn-nudge"].waitForExistence(timeout: 3)
+        )
+        attach(app, name: "18-onboarding-nudge")
+
+        app.buttons["dashboard.fyn-nudge.dismiss"].tap()
+        XCTAssertFalse(app.buttons["dashboard.fyn-nudge"].exists)
+    }
+
+    @MainActor
+    private func attach(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

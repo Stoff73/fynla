@@ -131,6 +131,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('throttle:3,5');
 
 Route::post('/webhooks/apple/v2', AppleNotificationController::class)
+    ->middleware('throttle:apple-webhook')
     ->name('api.webhooks.apple.v2');
 
 // Authentication routes

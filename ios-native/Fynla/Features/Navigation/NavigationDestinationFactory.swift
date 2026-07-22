@@ -5,10 +5,10 @@ enum NavigationDestinationFactory {
         switch route {
         case .dashboard: "Dashboard"
         case .achievements: "Achievements"
-        case let .module(slug): slug.replacingOccurrences(of: "-", with: " ").capitalized
         case .income: "Income"
         case .expenditure: "Expenditure"
         case .netWorth: "Net Worth"
+        case .balanceHistory: "Balance History"
         case .protection: "Protection"
         case .savings: "Savings"
         case .investment: "Investments"
@@ -27,9 +27,26 @@ enum NavigationDestinationFactory {
         for route: AppRoute,
         subscriptionModel: SubscriptionModel,
         achievementsModel: AchievementsModel,
+        incomeModel: IncomeModel,
+        expenditureModel: ExpenditureModel,
+        netWorthModel: NetWorthModel,
+        balanceHistoryModel: BalanceHistoryModel,
+        savingsModel: SavingsModel,
+        investmentModel: InvestmentModel,
+        retirementModel: RetirementModel,
+        protectionModel: ProtectionModel,
+        estateModel: EstateModel,
+        goalsModel: GoalsModel,
+        taxStrategyModel: TaxStrategyModel,
+        holisticPlanModel: HolisticPlanModel,
+        settingsModel: SettingsModel,
+        privacySettingsModel: PrivacySettingsModel,
+        dataExportModel: DataExportModel,
+        accountDeletionModel: AccountDeletionModel,
+        pushCoordinator: PushRegistrationCoordinator,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
-        privacyLockController: PrivacyLockController?,
+        onOpenFyn: @escaping (String) -> Void,
         onRoute: @escaping (AppRoute) -> Void
     ) -> some View {
         switch route {
@@ -37,13 +54,140 @@ enum NavigationDestinationFactory {
             AchievementsView(model: achievementsModel, onRoute: onRoute)
         case .bugReport:
             BugReportView(model: bugReportModel)
+        case .income:
+            IncomeView(
+                model: incomeModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .expenditure:
+            ExpenditureView(
+                model: expenditureModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case let .netWorth(category):
+            if let category {
+                NetWorthCategoryView(
+                    categoryKey: category,
+                    model: netWorthModel,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            } else {
+                NetWorthView(
+                    model: netWorthModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case .balanceHistory:
+            BalanceHistoryView(
+                model: balanceHistoryModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case let .savings(accountID):
+            if let accountID {
+                SavingsAccountView(
+                    accountID: accountID,
+                    model: savingsModel,
+                    onOpenFyn: onOpenFyn
+                )
+            } else {
+                SavingsView(
+                    model: savingsModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case let .investment(accountID):
+            if let accountID {
+                InvestmentAccountView(
+                    accountID: accountID,
+                    model: investmentModel,
+                    onOpenFyn: onOpenFyn
+                )
+            } else {
+                InvestmentView(
+                    model: investmentModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case let .retirement(pensionType, pensionID):
+            if let pensionType {
+                RetirementPensionView(
+                    pensionType: pensionType,
+                    pensionID: pensionID,
+                    model: retirementModel,
+                    onOpenFyn: onOpenFyn
+                )
+            } else {
+                RetirementView(
+                    model: retirementModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case let .protection(policyType, policyID):
+            if let policyType, let policyID {
+                ProtectionPolicyView(
+                    policyTypeKey: policyType,
+                    policyID: policyID,
+                    model: protectionModel,
+                    onOpenFyn: onOpenFyn
+                )
+            } else {
+                ProtectionView(
+                    model: protectionModel,
+                    onRoute: onRoute,
+                    onOpenFyn: onOpenFyn,
+                    onOpenSubscription: { onRoute(.settings) }
+                )
+            }
+        case .estate:
+            EstateView(
+                model: estateModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .goals:
+            GoalsView(
+                model: goalsModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .taxStrategy:
+            TaxStrategyView(
+                model: taxStrategyModel,
+                firstName: settingsModel.greetingFirstName,
+                onboardingCompleted: settingsModel.onboardingCompleted,
+                onRoute: onRoute,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
+        case .holisticPlan:
+            HolisticPlanView(
+                model: holisticPlanModel,
+                onOpenFyn: onOpenFyn,
+                onOpenSubscription: { onRoute(.settings) }
+            )
         case .settings:
             SettingsView(
+                model: settingsModel,
                 subscriptionModel: subscriptionModel,
                 appleManager: appleManager,
-                privacyLockController: privacyLockController
+                privacySettingsModel: privacySettingsModel,
+                dataExportModel: dataExportModel,
+                accountDeletionModel: accountDeletionModel,
+                pushCoordinator: pushCoordinator
             )
-        default:
+        case .dashboard:
             StagedNativeDestinationView(title: title(for: route))
         }
     }

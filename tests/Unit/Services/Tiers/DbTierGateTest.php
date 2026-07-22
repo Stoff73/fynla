@@ -24,7 +24,7 @@ it('enforces the free savings cap of 2', function () {
 });
 
 it('treats Premium as unlimited', function () {
-    $u = User::factory()->create(['tier' => 'premium']);
+    $u = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     expect($this->gate->canCreate($u, 'savings_account', 9999))->toBeTrue()
         ->and($this->gate->hardLimit($u, 'savings_account'))->toBeNull();
 });

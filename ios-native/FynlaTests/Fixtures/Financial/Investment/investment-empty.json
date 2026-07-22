@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "accounts": [],
+    "account_count": 0,
+    "account_limit": null,
+    "risk_profile": null
+  }
+}

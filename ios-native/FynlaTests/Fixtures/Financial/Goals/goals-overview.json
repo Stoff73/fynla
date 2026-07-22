@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "total_goals": 2,
+    "on_track_count": 2,
+    "total_target": 60000,
+    "total_current": 40000,
+    "overall_progress": 66.7
+  }
+}
