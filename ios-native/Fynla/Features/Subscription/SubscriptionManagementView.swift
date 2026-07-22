@@ -80,31 +80,46 @@ struct SubscriptionManagementView: View {
             )
 
             if !isPending {
-                VStack(alignment: .leading, spacing: FynlaSpacing.medium) {
-                    Text("Choose Premium")
-                        .font(FynlaTypography.sectionTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("Unlock all Premium planning capabilities and higher limits.")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                if model.isPurchaseEnabled {
+                    VStack(alignment: .leading, spacing: FynlaSpacing.medium) {
+                        Text("Choose Premium")
+                            .font(FynlaTypography.sectionTitle)
+                            .foregroundStyle(FynlaColor.primaryText)
+                        Text("Unlock all Premium planning capabilities and higher limits.")
+                            .font(FynlaTypography.body)
+                            .foregroundStyle(FynlaColor.secondaryText)
 
-                    ForEach(products, id: \.id) { product in
-                        productButton(
-                            product,
-                            selected: product.id == selectedProductID
-                        )
+                        ForEach(products, id: \.id) { product in
+                            productButton(
+                                product,
+                                selected: product.id == selectedProductID
+                            )
+                        }
                     }
-                }
 
-                FynlaButton(
-                    "Subscribe to Premium",
-                    accessibilityLabel: "Subscribe to Premium",
-                    isLoading: model.isPurchasing,
-                    isDisabled: !model.canPurchase
-                ) {
-                    Task { await model.purchase() }
+                    FynlaButton(
+                        "Subscribe to Premium",
+                        accessibilityLabel: "Subscribe to Premium",
+                        isLoading: model.isPurchasing,
+                        isDisabled: !model.canPurchase
+                    ) {
+                        Task { await model.purchase() }
+                    }
+                    .accessibilityIdentifier("subscription.purchase")
+                } else {
+                    Text("New App Store subscriptions are temporarily unavailable. You can still restore an existing purchase.")
+                        .font(FynlaTypography.bodySmall)
+                        .foregroundStyle(FynlaColor.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(FynlaSpacing.standard)
+                        .background(FynlaColor.Token.savannah100.color)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: FynlaSpacing.buttonCornerRadius
+                            )
+                        )
+                        .accessibilityIdentifier("subscription.purchase-disabled")
                 }
-                .accessibilityIdentifier("subscription.purchase")
             }
 
             FynlaButton(

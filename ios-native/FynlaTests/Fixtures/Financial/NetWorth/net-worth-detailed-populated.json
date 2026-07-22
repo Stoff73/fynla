@@ -1,0 +1,106 @@
+{
+  "success": true,
+  "data": {
+    "pensions": {
+      "count": 2,
+      "total_value": 550000,
+      "items": [
+        {
+          "id": 31,
+          "type": "dc",
+          "name": "Northstar Workplace Pension",
+          "provider": "Northstar Pensions",
+          "value": 150000
+        },
+        {
+          "id": 32,
+          "type": "db",
+          "name": "Former Employer Pension",
+          "provider": "Former Employer",
+          "value": 400000,
+          "annual_pension": 20000
+        }
+      ]
+    },
+    "property": {
+      "count": 1,
+      "total_value": 400000,
+      "items": [
+        {
+          "id": 41,
+          "name": "12 Example Road",
+          "type": "main_residence",
+          "value": 400000,
+          "ownership_type": "joint"
+        }
+      ]
+    },
+    "investments": {
+      "count": 1,
+      "total_value": 75000,
+      "items": [
+        {
+          "id": 51,
+          "name": "Example Investments - Stocks And Shares Isa",
+          "account_type": "stocks_and_shares_isa",
+          "provider": "Example Investments",
+          "value": 75000,
+          "ownership_type": "individual"
+        }
+      ]
+    },
+    "cash": {
+      "count": 1,
+      "total_value": 25000,
+      "items": [
+        {
+          "id": 61,
+          "name": "Example Bank - Easy Access",
+          "account_type": "easy_access",
+          "institution": "Example Bank",
+          "value": 25000,
+          "is_isa": false,
+          "is_emergency_fund": true
+        }
+      ]
+    },
+    "business": {
+      "count": 1,
+      "total_value": 60000,
+      "items": [
+        {
+          "id": 71,
+          "name": "Example Consulting Ltd",
+          "business_type": "limited_company",
+          "value": 60000,
+          "full_value": 120000,
+          "ownership_type": "joint",
+          "ownership_percentage": 50,
+          "annual_revenue": 150000,
+          "annual_profit": 45000,
+          "is_primary_owner": true
+        }
+      ]
+    },
+    "chattels": {
+      "count": 1,
+      "total_value": 12000,
+      "items": [
+        {
+          "id": 81,
+          "name": "Classic Car",
+          "chattel_type": "vehicle",
+          "value": 12000,
+          "full_value": 24000,
+          "ownership_type": "joint",
+          "ownership_percentage": 50,
+          "make": "Example",
+          "model": "Roadster",
+          "year": 1972,
+          "registration_number": "EX72 MPL",
+          "is_primary_owner": true
+        }
+      ]
+    }
+  }
+}

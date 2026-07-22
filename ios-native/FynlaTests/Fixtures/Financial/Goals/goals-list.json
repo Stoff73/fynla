@@ -1,0 +1,40 @@
+{
+  "success": true,
+  "data": {
+    "goals": [
+      {
+        "id": 61,
+        "name": "Home deposit",
+        "goal_name": "Home deposit",
+        "goal_type": "home_deposit",
+        "display_goal_type": "Home deposit",
+        "target_amount": 50000,
+        "current_amount": 30000,
+        "target_date": "2028-07-18",
+        "status": "active",
+        "progress_percentage": 60,
+        "amount_remaining": 20000,
+        "days_remaining": 730,
+        "months_remaining": 24,
+        "is_on_track": true
+      },
+      {
+        "id": 62,
+        "name": "Emergency buffer",
+        "goal_name": "Emergency buffer",
+        "goal_type": "emergency_fund",
+        "display_goal_type": "Emergency fund",
+        "target_amount": 10000,
+        "current_amount": 10000,
+        "target_date": "2026-12-31",
+        "status": "completed",
+        "progress_percentage": 100,
+        "amount_remaining": 0,
+        "days_remaining": 0,
+        "months_remaining": 0,
+        "is_on_track": true
+      }
+    ],
+    "count": 2
+  }
+}

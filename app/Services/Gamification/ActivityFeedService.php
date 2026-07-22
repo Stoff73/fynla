@@ -58,7 +58,7 @@ final class ActivityFeedService
      * event returned — hidden plumbing rows still advance the cursor), or
      * null when the ledger is exhausted.
      *
-     * @return array{events: list<array{kind: string, label: string, occurred_at: string|null}>, next_cursor: int|null}
+     * @return array{events: list<array{id: string, kind: string, label: string, occurred_at: string|null}>, next_cursor: int|null}
      */
     public function feed(User $user, int $limit = 50, ?int $beforeId = null): array
     {
@@ -84,6 +84,7 @@ final class ActivityFeedService
                 if ($event === null) {
                     return null;
                 }
+                $event['id'] = (string) $award->id;
                 $event['occurred_at'] = $award->created_at?->toIso8601String();
 
                 return $event;

@@ -17,6 +17,7 @@ enum SSEStreamResult: Sendable {
 
 enum SSEClientError: Error, Sendable, Equatable {
     case unexpectedStatus(Int, requestID: String?)
+    case rateLimited(retryAfterSeconds: Double?, requestID: String?)
     case invalidQueuedResponse
     case queuedResponseTooLarge(maximumBytes: Int)
     case eventBufferOverflow(maximumEvents: Int)
@@ -48,6 +49,15 @@ actor SSEClient {
 
         if status == 202 {
             return .queued(try await queuedResult(from: source.bytes))
+        }
+
+        if status == 429 {
+            throw SSEClientError.rateLimited(
+                retryAfterSeconds: source.response
+                    .value(forHTTPHeaderField: "Retry-After")
+                    .flatMap(Double.init),
+                requestID: source.response.value(forHTTPHeaderField: "X-Request-ID")
+            )
         }
 
         guard (200..<300).contains(status) else {

@@ -23,7 +23,10 @@ it('accepts the native health route with valid iOS client headers', function ():
         ->assertOk()
         ->assertExactJson([
             'success' => true,
-            'data' => ['api_version' => 'v1'],
+            'data' => [
+                'api_version' => 'v1',
+                'storekit_purchase_enabled' => false,
+            ],
         ]);
 });
 

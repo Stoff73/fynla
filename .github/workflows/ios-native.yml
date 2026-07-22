@@ -47,6 +47,9 @@ jobs:
       - name: Record Xcode version
         run: xcodebuild -version
 
+      - name: Verify the native project structure
+        run: ios-native/scripts/verify-project.sh
+
       - name: Create and boot an iPhone 11 simulator
         id: simulator
         shell: bash

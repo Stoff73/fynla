@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "data": {
+    "total_assets": 0,
+    "total_liabilities": 0,
+    "net_worth": 0,
+    "as_of_date": "2026-07-18",
+    "breakdown": {
+      "pensions": 0,
+      "property": 0,
+      "investments": 0,
+      "cash": 0,
+      "business": 0,
+      "chattels": 0
+    },
+    "has_db_pensions": false,
+    "liabilities_breakdown": {
+      "mortgages": 0,
+      "loans": 0,
+      "credit_cards": 0,
+      "other": 0
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "expenditure": {
+      "monthly_expenditure": 3250.50,
+      "annual_expenditure": 39006,
+      "categories": {
+        "food_groceries": 650,
+        "transport_fuel": 280.50,
+        "clothing_personal_care": 125,
+        "entertainment_dining": 300,
+        "childcare": 0,
+        "other_expenditure": 175
+      }
+    }
+  }
+}

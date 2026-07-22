@@ -3,10 +3,10 @@ import Observation
 enum AppRoute: Hashable, Sendable {
     case dashboard
     case achievements
-    case module(String)
     case income
     case expenditure
     case netWorth(category: String?)
+    case balanceHistory
     case protection(policyType: String?, id: Int?)
     case savings(accountID: Int?)
     case investment(accountID: Int?)
@@ -15,6 +15,7 @@ enum AppRoute: Hashable, Sendable {
     case goals
     case taxStrategy
     case holisticPlan
+    case bugReport
     case settings
 
     var requiresUnlockedSession: Bool {
@@ -40,6 +41,13 @@ final class AppRouter {
     }
 
     @discardableResult
+    func open(_ route: AppRoute) -> Bool {
+        guard canNavigate(to: route) else { return false }
+        path = route == .dashboard ? [] : [route]
+        return true
+    }
+
+    @discardableResult
     func removeLast() -> Bool {
         guard !path.isEmpty else { return false }
         path.removeLast()
@@ -48,6 +56,13 @@ final class AppRouter {
 
     func reset() {
         path.removeAll(keepingCapacity: false)
+    }
+
+    @discardableResult
+    func restore(_ routes: [AppRoute]) -> Bool {
+        guard routes.allSatisfy(canNavigate) else { return false }
+        path = routes
+        return true
     }
 
     private func canNavigate(to route: AppRoute) -> Bool {

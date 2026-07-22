@@ -1,0 +1,50 @@
+{
+  "success": true,
+  "data": {
+    "needs": {
+      "human_capital": 300000,
+      "debt_protection": 210000,
+      "final_expenses": 7500,
+      "education_funding": 0,
+      "income_protection_need": 45000
+    },
+    "coverage": {
+      "life_coverage": 250000,
+      "critical_illness_coverage": 0,
+      "income_protection_coverage": 30000,
+      "disability_coverage": 0,
+      "sickness_illness_coverage": 0,
+      "total_coverage": 250000,
+      "total_income_coverage": 30000
+    },
+    "gaps": {
+      "total_need": 517500,
+      "total_coverage": 250000,
+      "total_gap": 267500,
+      "gaps_by_category": {
+        "human_capital_gap": 260000,
+        "debt_protection_gap": 0,
+        "final_expenses_gap": 7500,
+        "education_funding_gap": 0,
+        "income_protection_gap": 15000,
+        "disability_coverage_gap": 0,
+        "sickness_illness_gap": 0
+      },
+      "coverage_allocated": {
+        "debt_covered": 210000,
+        "human_capital_covered": 40000,
+        "final_expenses_covered": 0,
+        "education_covered": 0
+      },
+      "income_replacement_coverage": 30000
+    },
+    "recommendations": [
+      {
+        "priority": 1,
+        "category": "Life Insurance",
+        "action": "Review life insurance cover",
+        "rationale": "A human capital gap remains."
+      }
+    ]
+  }
+}
