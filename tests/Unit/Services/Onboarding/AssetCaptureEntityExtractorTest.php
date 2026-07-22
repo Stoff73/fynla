@@ -198,6 +198,177 @@ describe('findMissing (protection)', function () {
     });
 });
 
+// ─── Ownership parsing (deterministic gap-fill rescue — live conversation
+// 164, user 271): grok omitted ownership_type on four consecutive turns
+// even after the user stated ownership explicitly. Conservative regex only
+// — never default ownership (Rule 6: joint ISAs are illegal under UK law,
+// so ownership must always be an explicit user statement). ────────────────
+
+describe('extractForFocus — ownership parsing', function () {
+    it('maps "owned individually by me" to individual ownership', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            "Original capture details: I have £15,000 in a Halifax savings account\n"
+            .'Requested missing details: Yes, it\'s owned individually by me'
+        );
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['ownership_type'])->toBe('individual');
+        expect($out[0]['institution'])->toBe('Halifax');
+        expect($out[0]['current_balance'])->toEqual(15000.0);
+    });
+
+    it('maps "individual ownership" wording to individual', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            "Original capture details: £15,000 with Halifax savings account\n"
+            .'Requested missing details: Individual ownership — owned only by me, nobody else'
+        );
+
+        expect($out[0]['ownership_type'])->toBe('individual');
+    });
+
+    it('maps "just me" / "only mine" to individual', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            "I have £5,000 in a Monzo savings account. It's just me on the account."
+        );
+
+        expect($out[0]['ownership_type'])->toBe('individual');
+    });
+
+    it('maps "on my own" to individual', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            'I have £5,000 in a Monzo savings account, I hold it on my own.'
+        );
+
+        expect($out[0]['ownership_type'])->toBe('individual');
+    });
+
+    it('maps "solely mine" / "solely owned" to individual', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            'I have £5,000 in a Monzo savings account, solely mine.'
+        );
+
+        expect($out[0]['ownership_type'])->toBe('individual');
+    });
+
+    it('maps "joint" / "jointly" wording to joint', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            'We have £20,000 in a Barclays savings account, held jointly.'
+        );
+
+        expect($out[0]['ownership_type'])->toBe('joint');
+    });
+
+    it('maps "with my wife/husband/partner/spouse" to joint', function (string $relation) {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            "I have £20,000 in a Barclays savings account with my {$relation}."
+        );
+
+        expect($out[0]['ownership_type'])->toBe('joint');
+    })->with(['wife', 'husband', 'partner', 'spouse']);
+
+    it('maps "both of us" to joint', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            "We have £20,000 in a Barclays savings account — it's owned by both of us."
+        );
+
+        expect($out[0]['ownership_type'])->toBe('joint');
+    });
+
+    it('does not set ownership_type when no phrase is present', function () {
+        $out = $this->extractor->extractForFocus(
+            'savings',
+            'I have £15,000 in a Halifax savings account'
+        );
+
+        expect($out)->toHaveCount(1);
+        expect($out[0])->not->toHaveKey('ownership_type');
+    });
+
+    it('never attaches ownership to non-ownership-gated focuses (protection)', function () {
+        $out = $this->extractor->extractForFocus(
+            'protection',
+            'Aviva life insurance £300k, owned individually by me'
+        );
+
+        expect($out)->toHaveCount(1);
+        expect($out[0])->not->toHaveKey('ownership_type');
+    });
+});
+
+// ─── mergeWithLlmInput ──────────────────────────────────────────────
+
+describe('mergeWithLlmInput', function () {
+    it('keeps the LLM base fields and fills only the missing ownership_type', function () {
+        $missing = [
+            [
+                'institution' => 'Halifax',
+                'account_name' => 'Halifax Savings Account',
+                'account_type' => 'easy_access',
+                'current_balance' => 15000.0,
+                'ownership_type' => 'individual',
+            ],
+        ];
+        $llmInputs = [
+            [
+                'account_name' => 'Halifax Savings',
+                'institution' => 'Halifax',
+                'account_type' => 'easy_access',
+                'current_balance' => 15000.0,
+                'interest_rate' => 4.1,
+            ],
+        ];
+
+        $merged = $this->extractor->mergeWithLlmInput('savings', $missing, $llmInputs);
+
+        expect($merged)->toHaveCount(1);
+        // LLM fields kept as base.
+        expect($merged[0]['account_name'])->toBe('Halifax Savings');
+        expect($merged[0]['interest_rate'])->toEqual(4.1);
+        // Extractor supplies the missing ownership_type.
+        expect($merged[0]['ownership_type'])->toBe('individual');
+    });
+
+    it('does not override an ownership_type already present in the LLM input', function () {
+        $missing = [
+            ['institution' => 'Halifax', 'ownership_type' => 'individual'],
+        ];
+        $llmInputs = [
+            ['institution' => 'Halifax', 'ownership_type' => 'joint'],
+        ];
+
+        $merged = $this->extractor->mergeWithLlmInput('savings', $missing, $llmInputs);
+
+        expect($merged[0]['ownership_type'])->toBe('joint');
+    });
+
+    it('leaves entities unchanged when no LLM input matches their identity', function () {
+        $missing = [
+            ['institution' => 'Monzo', 'ownership_type' => 'individual'],
+        ];
+        $llmInputs = [
+            ['institution' => 'Halifax'],
+        ];
+
+        $merged = $this->extractor->mergeWithLlmInput('savings', $missing, $llmInputs);
+
+        expect($merged)->toBe($missing);
+    });
+
+    it('returns the extracted list unchanged when there is no LLM input at all', function () {
+        $missing = [['institution' => 'Monzo', 'ownership_type' => 'individual']];
+
+        expect($this->extractor->mergeWithLlmInput('savings', $missing, []))->toBe($missing);
+    });
+});
+
 // ─── toolNameForFocus ───────────────────────────────────────────────
 
 describe('toolNameForFocus', function () {

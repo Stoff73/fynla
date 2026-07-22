@@ -225,3 +225,10 @@
 - Open: actual Google Chrome `/m` acceptance and physical-iPhone Face ID/registration/relock/Keychain/diagnostic evidence.
 - Status: source/docs committed and pushed; only Xcode's generated per-user UI state remains intentionally untracked and must never be committed.
 - Next: read the Package 4 plan, refresh `origin/dev`, preserve Save Tax isolation, close any available Package 3 manual gates, then continue with one isolated branch and separate PR each for Packages 4, 5, 6 and 7.
+
+## 2026-07-21 — session 2 (clear)
+- Handover: [[handover-2026-07-21-session-2-clear]]
+- Branch: codex/savetax-allowance-ctas (main) / pkg7 @ b27fa48
+- Done: /m-parity sweep COMPLETE; fireworks + nudges + avatar rule (CSJ directives); better-in-the-app bubble live on csjones; SaveTax live E2E (web + native, 2 defects fixed); TestFlight build 1.0(1) VALID, CSJ invited.
+- Note: csjones now runs codex/savetax-allowance-ctas (dev merged in), not dev.
+- Next: CSJ installs TestFlight build; /m milestone-banner build+deploy still CSJ's call; pkg4–7 PR chain open.

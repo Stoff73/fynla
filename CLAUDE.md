@@ -341,6 +341,8 @@ Step-by-step build + deploy commands for both environments live in **`deploy/DEP
 
 ## Mobile App (Capacitor iOS)
 
+**Status 2026-07-20 — the native SwiftUI app (third client) is the successor in flight.** Packages 1–3 (API readiness/contract freeze, SwiftUI foundation, native auth + Face ID) are merged to `dev`; Packages 4–7 (StoreKit/entitlements, dashboard + Fyn, financial modules, platform/release) are the open PR chain #634 → #636 → #635 → #637. The pkg7 branch (worktree `/Users/CSJ/Desktop/fynla-ios-package7`) additionally carries the 2026-07-20 audit remediation and the CSJ-directed **/m-parity rework** (every native screen must match `/m` on detail, functionality, states, intent, and design — dispositions in `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` on that branch). Nothing native has shipped; the Capacitor target below remains the legacy shipped app until Package 7 replaces it, and `/m` stays permanent regardless (Rule 19).
+
 Full conventions in `resources/js/CLAUDE.md` (Mobile section) + the `mobile_capacitor_patterns.md` memory. Load-bearing essentials:
 
 - **Build:** `./deploy/mobile/build-ios.sh` (web assets + `npx cap sync ios`). NEVER `npx vite build` alone — changes won't reach the iOS app. After any mobile change, `php artisan cache:clear` (mobile dashboard cached 5 min/user).

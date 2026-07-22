@@ -56,8 +56,10 @@
           </button>
         </div>
 
-        <!-- Callout: rank statement + focus-area carousel + actions -->
-        <div class="md-callout" role="note">
+        <!-- Callout: rank statement + focus-area carousel + actions. When the
+             next-milestone nudge is present it already clears the level
+             card's overflow, so the callout drops its clearance margin. -->
+        <div class="md-callout" :class="{ 'md-callout--below-nudge': nextMilestone }" role="note">
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
             <div class="md-callout__top-copy">

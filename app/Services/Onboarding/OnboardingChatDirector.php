@@ -13,16 +13,20 @@ use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\AI\AdviceFyn;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Fyn\FynVerifyEditTurnInstructions;
 use App\Services\AI\Loop\FynLoop;
+use App\Services\AI\Loop\SessionMode;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\QueryClassifier;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\WriteIntentClassifier;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -76,6 +80,15 @@ final class OnboardingChatDirector
      */
     private const MAX_ADVICE_CHAIN = 6;
 
+    /**
+     * Phrases that let the user back out of a pending_interruption_store
+     * awaiting_detail clarification loop instead of being forced to keep
+     * answering. Matched against the start of the lowercased, trimmed reply.
+     * Deliberately excludes "no" alone — that can be genuine detail content
+     * (e.g. "no interest").
+     */
+    private const AWAITING_DETAIL_ESCAPE_PHRASES = ['not now', 'stop', 'forget it', 'leave it', 'cancel'];
+
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingPromptBuilder $promptBuilder,
@@ -86,6 +99,8 @@ final class OnboardingChatDirector
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly FynLoop $fynLoop,
         private readonly ProceduralVersionHolder $proceduralVersions,
+        private readonly QueryClassifier $queryClassifier,
+        private readonly WriteIntentClassifier $writeIntentClassifier,
     ) {}
 
     /**
@@ -224,6 +239,67 @@ final class OnboardingChatDirector
             // re-captures and re-runs the confirm check.
         }
 
+        // Interruption store-offer resolution (pending_interruption_store parked by
+        // handleInformationInterruption). The user is answering "want me to save
+        // that now?" — handle it before any normal turn routing.
+        //
+        // The awaiting_detail check runs BEFORE the yes/no matching. Once the
+        // capture turn has voiced a clarifying question (re-armed below via
+        // resolvePendingInterruptionCapture), the user's next reply IS the
+        // missing detail regardless of its wording — it must not be
+        // misrouted into the plain accept branch just because it happens to
+        // start with "yes" (e.g. "Yes, individually owned by me").
+        if (isset($context['pending_interruption_store'])) {
+            $pending = $context['pending_interruption_store'];
+            $reply = mb_strtolower(trim($message));
+            $awaitingDetail = ($pending['awaiting_detail'] ?? false) === true;
+
+            unset($context['pending_interruption_store']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if ($awaitingDetail) {
+                // Escape hatch — without this, every reply while awaiting the
+                // missing detail is treated as that detail, with no way for
+                // the user to back out of the clarification loop. Checked
+                // BEFORE the merged-detail handling below. "no" alone is
+                // deliberately NOT an escape phrase — it may be genuine
+                // detail content (e.g. "no interest").
+                foreach (self::AWAITING_DETAIL_ESCAPE_PHRASES as $escapePhrase) {
+                    if (str_starts_with($reply, $escapePhrase)) {
+                        yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
+                        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                        return;
+                    }
+                }
+
+                $merged = "Original capture details: {$pending['message']}\n"
+                    ."Requested missing details: {$message}";
+                yield from $this->resolvePendingInterruptionCapture(
+                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute
+                );
+
+                return;
+            }
+
+            if (str_starts_with($reply, 'yes')) {
+                yield from $this->resolvePendingInterruptionCapture(
+                    $user, $conversation, $currentStateId, $state, (string) $pending['message'], $pending, $currentRoute
+                );
+
+                return;
+            }
+
+            if (str_starts_with($reply, 'not now') || str_starts_with($reply, 'no')) {
+                yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+            // Anything else: the user moved on — fall through to normal routing.
+        }
+
         // Phase 4e — stamp the active onboarding workflow procedure version onto
         // the turn so persistEpisode can bind it onto the episode. Recorded only
         // when the corpus actually supplies the workflow procedure (the merge
@@ -284,6 +360,15 @@ final class OnboardingChatDirector
         $interpretation = $this->interpretAnswer($state, $message);
 
         if (! $interpretation['ok']) {
+            $interruption = $this->handleInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $currentRoute
+            );
+            if ($interruption !== null) {
+                yield from $interruption;
+
+                return;
+            }
+
             // Can't parse the answer — re-ask without advancing.
             yield [
                 'type' => 'content',
@@ -488,10 +573,20 @@ final class OnboardingChatDirector
             ->where('metadata->is_resume_greeting', true)
             ->delete();
 
+        // Persist the bubbles with the greeting (same metadata.bubbles pattern
+        // as every other onboarding turn) so a transcript-only render — the /m
+        // dock remount and the native app — still offers Continue / Something
+        // else. Without this the stored greeting is a dead end: the choices
+        // existed only in the live SSE stream.
         $message = $this->saveMessage($conversation, 'assistant', $greeting, [
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_resume_greeting' => true,
+                'bubbles' => [
+                    ['id' => 'continue', 'label' => 'Continue'],
+                    ['id' => 'something_else', 'label' => 'Something else'],
+                ],
+                'action_bubbles' => true,
             ],
         ]);
 
@@ -1380,6 +1475,302 @@ final class OnboardingChatDirector
         ];
     }
 
+    /**
+     * Interruption intelligence (CSJ 2026-07-21): free text that failed
+     * interpretation at a capture step is not noise — classify it and respond.
+     * Returns null when nothing matched, so the caller's existing retry fires.
+     */
+    private function handleInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $currentRoute = null
+    ): ?\Generator {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            $primary = $this->queryClassifier->classify($message, $currentRoute)['primary'] ?? null;
+
+            return $this->handleQuestionInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $primary, $currentRoute
+            );
+        }
+
+        if ($this->writeIntentClassifier->classify($message) !== null) {
+            return $this->handleInformationInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $currentRoute
+            );
+        }
+
+        return null;
+    }
+
+    private function handleQuestionInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $primary,
+        ?string $currentRoute
+    ): ?\Generator {
+        if ($primary === null) {
+            return null;
+        }
+
+        $level = AdviceFyn::engineCallLevelFor($primary);
+
+        if ($level === 'holistic') {
+            return $this->deferQuestion($user, $conversation, $currentStateId, $state, $message); // Task 4
+        }
+
+        return (function () use ($user, $conversation, $currentStateId, $state, $message, $currentRoute): \Generator {
+            // Resolved lazily via the container rather than constructor-
+            // injected: AdviceFyn constructor-injects this director (so its
+            // delegate_to_capture handoff can reach handleInlineCapture),
+            // and ctor-injecting AdviceFyn back here would form a container
+            // cycle. Same service-locator precedent as buildSectionAdvice's
+            // app(ComposedTaxPlanService::class).
+            $readOnlyTools = app(AdviceFyn::class)->buildToolList($user);
+
+            $advice = $this->fynLoop->run(
+                SessionMode::Advice,
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                $readOnlyTools,
+                persistUserMessage: false,
+            );
+
+            // The advice turn ends with its own terminal `done` event
+            // (HasAiChat::chat's closing yield). Drop it here rather than
+            // relaying it — a `done` reaching the frontend ends the SSE
+            // turn, which would cut the response off before the re-emitted
+            // step below renders. Mirrors handleInlineCapture holding the
+            // upstream terminal marker for the same reason: exactly one
+            // `done` must close this turn, and it belongs to the re-emitted
+            // step, not the inline advice answer.
+            foreach ($advice as $event) {
+                if (($event['type'] ?? '') === 'done') {
+                    continue;
+                }
+
+                yield $event;
+            }
+
+            // Review finding I-1 — this turn's tool list keeps
+            // delegate_to_capture, so a question-phrased write ("Can you add
+            // my ISA?") can trigger FynLoop::interceptHandoff →
+            // handleInlineCapture → a gate clarification mid-advice-turn.
+            // Unconditionally re-emitting the walk step below would bury that
+            // clarification with no pending flag armed. Mirror
+            // resolvePendingInterruptionCapture's post-capture check: inspect
+            // the latest persisted assistant message and, when it is asking
+            // for a missing detail, arm pending_interruption_store instead of
+            // re-emitting the step, so the next reply is treated as the
+            // awaited detail rather than a fresh walk answer.
+            $latestAssistant = $conversation->messages()
+                ->where('role', 'assistant')
+                ->latest('id')
+                ->first(['id', 'content']);
+
+            if ($latestAssistant !== null
+                && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+                // WriteIntentClassifier::classify() short-circuits to null for
+                // any message that looks like a question (the same check that
+                // routed this message into handleQuestionInterruption in the
+                // first place — see isQuestion()/looksLikeQuestion()), so in
+                // practice this always falls back to the generic shape below.
+                // Still call it first rather than hardcoding: if that
+                // precedence ever changes, a real classification wins.
+                $intent = $this->writeIntentClassifier->classify($message);
+
+                $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                $context['pending_interruption_store'] = [
+                    'message' => $message,
+                    'intent' => $intent ?? [
+                        'reason' => 'question_phrased_write',
+                        'entity_type' => 'savings_account',
+                        'fields_needed' => [],
+                    ],
+                    'state_id' => $currentStateId,
+                    'awaiting_detail' => true,
+                ];
+                $user->onboarding_fyn_context = $context;
+                $user->save();
+
+                yield ['type' => 'done', 'message_id' => $latestAssistant->id];
+
+                return;
+            }
+
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+        })();
+    }
+
+    /**
+     * A holistic-level question mid-onboarding is deferred rather than
+     * answered inline (a full orchestrateAnalysis call is too heavy to run
+     * mid-walk). Park it on the conversation's `deferred_questions`
+     * metadata, voice a promise to come back to it, then re-emit the
+     * current step so the walk isn't interrupted. Task 5 consumes
+     * `deferred_questions` at the completion terminals.
+     */
+    private function deferQuestion(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message
+    ): \Generator {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $deferred = $metadata['deferred_questions'] ?? [];
+        $deferred[] = ['question' => $message, 'state_id' => $currentStateId];
+        $metadata['deferred_questions'] = $deferred;
+        $conversation->update(['metadata' => $metadata]);
+
+        $promise = "Good question — that one deserves a proper answer, so I'll come back to it once your setup is done and I can see the full picture.";
+        $saved = $this->saveMessage($conversation, 'assistant', $promise, [
+            'metadata' => ['onboarding_step' => $currentStateId],
+        ]);
+
+        yield ['type' => 'content', 'text' => $promise];
+
+        // Mid-stream done: finalises this message only; the stream ends when
+        // the generator exhausts (consumers treat done per-message, not
+        // per-turn) — verified safe: the controller only ends the SSE stream
+        // once this generator itself exhausts, and web/`/m`/native all treat
+        // `done` as a per-message finaliser, not a stream terminator.
+        yield ['type' => 'done', 'message_id' => $saved->id];
+        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+    }
+
+    private function handleInformationInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $currentRoute
+    ): ?\Generator {
+        $intent = $this->writeIntentClassifier->classify($message);
+        if ($intent === null) {
+            return null;
+        }
+
+        return (function () use ($user, $conversation, $currentStateId, $message, $intent): \Generator {
+            $offer = 'That sounds like something worth saving. Want me to save it to your plan now? We can also come back to it during setup.';
+            $bubbles = [
+                ['id' => 'store_now', 'label' => 'Yes, save it'],
+                ['id' => 'store_later', 'label' => 'Not now'],
+            ];
+
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pending_interruption_store'] = [
+                'message' => $message,
+                'intent' => $intent,
+                'state_id' => $currentStateId,
+            ];
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            // No onboarding_step here on purpose: CoordinatingAgent::
+            // recentUserMessageEvidence treats any assistant message carrying
+            // onboarding_step (that isn't a capture failure or resume greeting)
+            // as the evidence-window boundary. The offer is a transient
+            // interruption prompt — stamping it as a step turn cut the user's
+            // original entity sentence out of CaptureAccuracyGate's evidence,
+            // so ownership could never be confirmed against the entity (live
+            // conversation 164 infinite clarification loop).
+            $saved = $this->saveMessage($conversation, 'assistant', $offer, [
+                'metadata' => [
+                    'bubbles' => $bubbles,
+                ],
+            ]);
+
+            yield [
+                'type' => 'quick_replies',
+                'prompt_text' => $offer,
+                'bubbles' => $bubbles,
+            ];
+            yield ['type' => 'done', 'message_id' => $saved->id];
+        })();
+    }
+
+    /**
+     * Run handleInlineCapture for a pending interruption-store message, then
+     * decide whether to re-arm pending_interruption_store (the capture turn
+     * is still asking a clarifying question — e.g. CaptureAccuracyGate
+     * blocked the write pending ownership) or resume the current walk step.
+     * Shared by the plain "yes" accept and the awaiting_detail merged-reply
+     * resolution above so the two paths cannot drift and a clarification
+     * question is never buried under the walk's re-prompt (live msg 19433).
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $pending
+     */
+    private function resolvePendingInterruptionCapture(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $captureMessage,
+        array $pending,
+        ?string $currentRoute
+    ): \Generator {
+        $captureContext = CaptureContext::fromArray([
+            'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
+            'entity_types' => [$pending['intent']['entity_type'] ?? 'savings_account'],
+            'fields_needed' => $pending['intent']['fields_needed'] ?? [],
+        ]);
+
+        // Record-creation is authoritative over content-sniffing: a rescued
+        // write (deterministic gap-fill) can leave the model's own stale
+        // clarification-shaped narration in the persisted content even
+        // after the fix above trims the worst of it — so re-arming must
+        // never fire when handleInlineCapture actually persisted a record
+        // for the pending intent this turn (live conversation 164,
+        // msg 19465). Consume events explicitly (rather than `yield from`)
+        // so this can be tracked while still forwarding every event
+        // untouched.
+        $recordCreated = false;
+        foreach ($this->handleInlineCapture(
+            $user, $conversation, $captureMessage, $captureContext, $currentRoute
+        ) as $captureEvent) {
+            $captureEventType = $captureEvent['type'] ?? '';
+            if ($captureEventType === 'entity_created'
+                || ($captureEventType === 'capture_complete' && ($captureEvent['records_created'] ?? []) !== [])) {
+                $recordCreated = true;
+            }
+
+            yield $captureEvent;
+        }
+
+        $latestAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first(['content']);
+
+        if (! $recordCreated
+            && $latestAssistant !== null
+            && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pending_interruption_store'] = [
+                'message' => $captureMessage,
+                'intent' => $pending['intent'],
+                'state_id' => $pending['state_id'],
+                'awaiting_detail' => true,
+            ];
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+    }
+
     private function retryTextForParser(string $parser): string
     {
         return match ($parser) {
@@ -2093,7 +2484,7 @@ final class OnboardingChatDirector
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
         }
@@ -2120,8 +2511,10 @@ final class OnboardingChatDirector
             // A1 — the user asked a question that yielded no extraction.
             // Deliver the definitional answer (personal figures stripped)
             // before the scripted re-ask so the question is not ignored.
+            $a1AnswerEmitted = false;
             if ($userAskedQuestion && $answerBuffer !== '') {
                 $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
+                $a1AnswerEmitted = ($answer !== '');
                 if ($answer !== '') {
                     $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
                         'metadata' => [
@@ -2163,7 +2556,7 @@ final class OnboardingChatDirector
                 return;
             }
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message, answerAlreadyVoiced: $a1AnswerEmitted);
 
             return;
         }
@@ -2274,14 +2667,41 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Emit a retry turn for a failed grouped_extract. The retry text is
-     * saved as a real assistant message (so it survives the frontend's
-     * streamingText finally block that clears unflushed text), then a
-     * content + done event are yielded to close the turn cleanly. The
+     * Emit a retry turn for a failed grouped_extract. Site C hook (Task 6) —
+     * tries the same interruption intelligence Site A uses before falling
+     * back to the blind scripted retry: a question or volunteered write
+     * intent buried in an unparseable grouped-extract reply gets answered or
+     * offered a store, exactly as it would mid-walk. Only when
+     * handleInterruption declines (the message is neither a question nor a
+     * classified write intent) does the retry text below fire. The retry
+     * text is saved as a real assistant message (so it survives the
+     * frontend's streamingText finally block that clears unflushed text),
+     * then a content + done event are yielded to close the turn cleanly. The
      * user stays on the current state so they can try again.
      */
-    private function emitRetry(AiConversation $conversation, array $state, string $currentStateId): \Generator
-    {
+    private function emitRetry(
+        AiConversation $conversation,
+        array $state,
+        string $currentStateId,
+        User $user,
+        string $userMessage,
+        bool $answerAlreadyVoiced = false
+    ): \Generator {
+        // A1 already voiced a (figure-redacted) answer to this question
+        // this turn — skip a second, independently-sourced interruption
+        // answer, which would duplicate it and could unredact figures A1
+        // deliberately withheld.
+        if (! ($answerAlreadyVoiced && $this->writeIntentClassifier->isQuestion($userMessage))) {
+            $interruption = $this->handleInterruption(
+                $user, $conversation, $currentStateId, $state, $userMessage
+            );
+            if ($interruption !== null) {
+                yield from $interruption;
+
+                return;
+            }
+        }
+
         $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
 
         $message = $this->saveMessage($conversation, 'assistant', $retryText, [
@@ -4285,6 +4705,53 @@ PROMPT;
         return ['id' => $id, 'label' => $label, 'route' => $route];
     }
 
+    /**
+     * Raise any holistic questions parked by `deferQuestion` mid-walk, once
+     * the walk is done and the full picture is available. Shared by both
+     * completion terminals (`emitDoneTurn`, `emitTerminalNavigationTurn`) —
+     * ordering contract pinned by CampaignReentryExitTest: deferred raise →
+     * app note → celebration/route bubble last, so the tappable route bubble
+     * stays the latest turn. Clears `deferred_questions` from the conversation
+     * metadata after emitting, preserving every other key (`source` is the
+     * resume-lookup pivot and must survive).
+     */
+    private function emitDeferredQuestions(AiConversation $conversation): \Generator
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $deferred = $metadata['deferred_questions'] ?? [];
+        if ($deferred === []) {
+            return;
+        }
+
+        unset($metadata['deferred_questions']);
+        $conversation->update(['metadata' => $metadata]);
+
+        $bubbles = [];
+        foreach (array_values($deferred) as $i => $entry) {
+            $bubbles[] = [
+                'id' => 'deferred_'.$i,
+                'label' => mb_substr((string) ($entry['question'] ?? ''), 0, 60),
+            ];
+        }
+
+        $prompt = 'Earlier you asked me something — want to pick that up now that your plan is set up?';
+        $saved = $this->saveMessage($conversation, 'assistant', $prompt, [
+            'metadata' => ['bubbles' => $bubbles],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $prompt,
+            'bubbles' => $bubbles,
+        ];
+
+        // Mid-stream done: finalises this message only; the stream ends when
+        // the generator exhausts (consumers treat done per-message, not
+        // per-turn) — see the matching note on deferQuestion's mid-stream
+        // done for the same reasoning.
+        yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
     private function emitTerminalNavigationTurn(
         User $user,
         AiConversation $conversation,
@@ -4299,6 +4766,28 @@ PROMPT;
         $selection = $user->onboarding_fyn_selection ?? '';
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        yield from $this->emitDeferredQuestions($conversation);
+
+        // CSJ direction 2026-07-21: before the celebration lands, tell the
+        // completing user the experience is better in the app — its own Fyn
+        // bubble (both surfaces open a fresh bubble per quick_replies frame),
+        // ahead of the celebration so the route bubble stays the latest
+        // (tappable) turn.
+        $appNote = "By the way — the Fynla experience is even better in the app. Everything you've just set up will be there the moment you sign in.";
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $appNote,
+            'bubbles' => [],
+        ];
+
+        $this->saveMessage(
+            $conversation,
+            'assistant',
+            $appNote,
+            ['metadata' => ['onboarding_step' => $stateId]]
+        );
 
         // The user taps a button to view their plan rather than being
         // auto-navigated, so the celebration message lands first. The
@@ -4848,6 +5337,8 @@ PROMPT;
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_DONE) ?? [];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user);
 
+        yield from $this->emitDeferredQuestions($conversation);
+
         yield ['type' => 'content', 'text' => $celebration];
 
         $assistantMessage = $this->saveMessage(
@@ -5091,8 +5582,18 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        /** @var array<string, array{message: string, content_offset: int, tier_limit: bool}> $pendingWriteFailures */
+        /** @var array<string, array{message: string, content_offset: int, tier_limit: bool, tool: string}> $pendingWriteFailures */
         $pendingWriteFailures = [];
+
+        // Raw tool-call arguments from every gate-blocked (clarification_required)
+        // LLM attempt this turn, keyed by tool name. The deterministic gap-fill
+        // below merges these onto its own extracted fields (LLM input as base,
+        // extractor fills only missing keys — see
+        // AssetCaptureEntityExtractor::mergeWithLlmInput) so a call the LLM
+        // otherwise got right except for a dropped ownership_type can still be
+        // rescued (live conversation 164).
+        /** @var array<string, list<array<string, mixed>>> $llmClarificationInputs */
+        $llmClarificationInputs = [];
 
         /** @var list<array<string, mixed>> $presentationActions */
         $presentationActions = [];
@@ -5183,6 +5684,16 @@ PROMPT;
                     $toolCallId = $tool.':'.(++$writeResultSequence);
                 }
 
+                // The LLM's own arguments for a gate-blocked attempt — remembered
+                // so the deterministic gap-fill below can retry with them as its
+                // base (see AssetCaptureEntityExtractor::mergeWithLlmInput).
+                if ($explicitFailure && ($result['error_type'] ?? null) === 'clarification_required' && $tool !== '__unknown__') {
+                    $rawInput = (array) ($event['input'] ?? []);
+                    if ($rawInput !== []) {
+                        $llmClarificationInputs[$tool][] = $rawInput;
+                    }
+                }
+
                 if (! $explicitFailure && $landed === true) {
                     continue;
                 }
@@ -5196,6 +5707,7 @@ PROMPT;
                             : 'The information could not be saved.',
                         'content_offset' => $retryContentOffset ?? count($contentEvents),
                         'tier_limit' => ($result['reason'] ?? null) === 'tier_limit_reached',
+                        'tool' => $tool,
                     ];
                 }
 
@@ -5219,29 +5731,105 @@ PROMPT;
             yield $event;
         }
 
-        if ($pendingWriteFailures !== []) {
-            $firstFailure = array_values($pendingWriteFailures)[0];
-            $messageText = $firstFailure['message'];
-            $failureText = $firstFailure['tier_limit']
-                ? $messageText
-                : "I couldn't save that — ".rtrim($messageText, '.').'. '
-                    .'Give me the missing detail and I will try again.';
-            $safeContentEvents = array_slice(
-                $contentEvents,
-                0,
-                min(array_column($pendingWriteFailures, 'content_offset')),
-            );
+        // Deterministic multi-entity gap-fill runs BEFORE the write-failure
+        // resolution below (rather than after, as it did previously) so a
+        // gate-blocked LLM tool call that the gap-fill goes on to rescue —
+        // merged with the LLM's own correct fields, see
+        // AssetCaptureEntityExtractor::mergeWithLlmInput — never surfaces as
+        // "I couldn't save that" once the record has, in fact, just been
+        // saved (live conversation 164).
+        /** @var list<string> $gapFilledTools */
+        $gapFilledTools = [];
+        foreach ($this->emitGapFillFromCaptureContext(
+            $user,
+            $conversation,
+            $context,
+            $message,
+            $llmEmittedFills,
+            $llmClarificationInputs,
+        ) as $gapFillEvent) {
+            if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+                $recordsCreated[] = [
+                    'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
+                    'id' => $gapFillEvent['entity_id'] ?? null,
+                    'name' => (string) ($gapFillEvent['name'] ?? ''),
+                ];
+                $gapFilledTools[] = (string) ($gapFillEvent['tool'] ?? '');
+            }
+
+            yield $gapFillEvent;
+        }
+
+        // A tool the gap-fill just rescued is no longer an unresolved
+        // failure — drop its pending entry before deciding what failure
+        // text (if any) to surface. Per-tool granularity (not per-entity):
+        // sufficient for the single-entity interruption-retry flow this
+        // fixes (AssetCaptureEntityExtractor's own class doc: "under-filling
+        // is the acceptable degradation"). The rescued entries' own
+        // content_offset is kept (not discarded with the entry) — see
+        // $rescuedContentOffsets below: the model's own narration AFTER a
+        // failing tool call is still stale once that call is rescued, even
+        // though the failure entry itself is gone.
+        /** @var list<int> $rescuedContentOffsets */
+        $rescuedContentOffsets = [];
+        if ($gapFilledTools !== []) {
+            foreach ($pendingWriteFailures as $failedToolCallId => $failure) {
+                if (in_array($failure['tool'] ?? null, $gapFilledTools, true)) {
+                    $rescuedContentOffsets[] = $failure['content_offset'];
+                    unset($pendingWriteFailures[$failedToolCallId]);
+                }
+            }
+        }
+
+        // Any tool call that failed this turn — whether still unresolved or
+        // since rescued by the gap-fill — taints every content event
+        // narrated after it. WP-1's capture_write_failed directive
+        // ("tell the user plainly what could not be saved") routinely makes
+        // the model narrate its OWN apology in the very next continuation
+        // ("I couldn't save that — I need you to confirm..."); that text is
+        // ordinary `content`, not the deterministic wrap-text below, so the
+        // gap-fill unset above never touches it. Left alone it survives
+        // untouched into both the SSE stream and the row the underlying
+        // stream already persisted (live conversation 164, msg 19465) even
+        // though the write it was apologising for has, in fact, just
+        // succeeded. Truncating at the earliest offset among ALL of this
+        // turn's failed attempts — resolved or not — drops that stale
+        // narration in both cases.
+        if ($pendingWriteFailures !== [] || $rescuedContentOffsets !== []) {
+            $safeOffset = min(array_merge(
+                array_column($pendingWriteFailures, 'content_offset'),
+                $rescuedContentOffsets,
+            ));
+            $safeContentEvents = array_slice($contentEvents, 0, $safeOffset);
             $safeModelText = implode('', array_map(
                 static fn (array $event): string => (string) ($event['text'] ?? ''),
                 $safeContentEvents,
             ));
-            $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
-            $persistedFailureText = $safeModelText.$failureSeparator.$failureText;
 
-            foreach ($safeContentEvents as $safeContentEvent) {
-                yield $safeContentEvent;
+            if ($pendingWriteFailures !== []) {
+                $firstFailure = array_values($pendingWriteFailures)[0];
+                $messageText = $firstFailure['message'];
+                $failureText = $firstFailure['tier_limit']
+                    ? $messageText
+                    : "I couldn't save that — ".rtrim($messageText, '.').'. '
+                        .'Give me the missing detail and I will try again.';
+                $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
+                $persistedText = $safeModelText.$failureSeparator.$failureText;
+
+                foreach ($safeContentEvents as $safeContentEvent) {
+                    yield $safeContentEvent;
+                }
+                yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
+            } else {
+                // Every failed attempt this turn was rescued — no failure
+                // text to surface, just the safe prefix (if any) narrated
+                // before the now-superseded failing call.
+                $persistedText = $safeModelText;
+
+                foreach ($safeContentEvents as $safeContentEvent) {
+                    yield $safeContentEvent;
+                }
             }
-            yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
 
             $modelText = implode('', array_map(
                 static fn (array $event): string => (string) ($event['text'] ?? ''),
@@ -5255,15 +5843,30 @@ PROMPT;
                 : null;
             $persistedMessage ??= $newAssistantMessages->latest('id')->first();
 
-            if ($persistedMessage !== null) {
+            // Review finding M-2 — a fully-rescued call (every entry above
+            // moved from $pendingWriteFailures into $rescuedContentOffsets,
+            // so $failureText is never appended) can compute an empty
+            // $persistedText when the earliest rescued content_offset is 0:
+            // the tool call was the very first thing in the turn, so there is
+            // no safe narration prefix to keep. Blanking an existing row to
+            // '' would persist a genuinely empty assistant message — strictly
+            // worse than the stale (now-superseded) narration it already
+            // holds. Skip the update in that case and leave the original
+            // content in place, rather than deleting the row: nothing else in
+            // this method tracks whether other yielded events (e.g.
+            // capture_complete's message_id) still reference this row, so a
+            // silent no-op is the safe, simple choice.
+            if ($persistedMessage !== null && $persistedText !== '') {
                 $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
                 $persistedMessage->update([
-                    'content' => $persistedFailureText,
-                    'metadata' => array_merge($metadata, ['capture_write_failed' => true]),
+                    'content' => $persistedText,
+                    'metadata' => $pendingWriteFailures !== []
+                        ? array_merge($metadata, ['capture_write_failed' => true])
+                        : $metadata,
                 ]);
-            } else {
-                $this->saveMessage($conversation, 'assistant', $persistedFailureText, [
-                    'metadata' => ['capture_write_failed' => true],
+            } elseif ($persistedMessage === null && $persistedText !== '') {
+                $this->saveMessage($conversation, 'assistant', $persistedText, [
+                    'metadata' => $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
                 ]);
             }
         } else {
@@ -5303,14 +5906,6 @@ PROMPT;
                 ['inline' => true],
             );
         }
-
-        yield from $this->emitGapFillFromCaptureContext(
-            $user,
-            $conversation,
-            $context,
-            $message,
-            $llmEmittedFills,
-        );
 
         // Emit a single closing capture_complete event so AiChatPanel.vue can
         // render the rich record-card bubble (one card per record) instead of
@@ -5421,6 +6016,7 @@ PROMPT;
      * skipped rather than aborting the turn.
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @param  array<string, list<array<string, mixed>>>  $llmClarificationInputs  raw tool-call arguments from gate-blocked LLM attempts this turn, keyed by tool name
      * @return \Generator<array<string, mixed>>
      */
     private function emitGapFillFromCaptureContext(
@@ -5429,11 +6025,12 @@ PROMPT;
         CaptureContext $context,
         string $message,
         array $llmEmittedFills,
+        array $llmClarificationInputs = [],
     ): \Generator {
         $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
 
         foreach ($focuses as $focus) {
-            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills);
+            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs);
         }
     }
 
@@ -5442,6 +6039,7 @@ PROMPT;
      * entities the LLM dropped.
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @param  array<string, list<array<string, mixed>>>  $llmClarificationInputs  raw tool-call arguments from gate-blocked LLM attempts this turn, keyed by tool name
      * @return \Generator<array<string, mixed>>
      */
     private function runExtractorForFocus(
@@ -5450,6 +6048,7 @@ PROMPT;
         string $focus,
         string $message,
         array $llmEmittedFills,
+        array $llmClarificationInputs = [],
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($focus);
         if ($tool === null) {
@@ -5459,6 +6058,11 @@ PROMPT;
         try {
             $extracted = $this->entityExtractor->extractForFocus($focus, $message);
             $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills, $user);
+            // Merge precedence: the LLM's own gate-blocked arguments are the
+            // base (institution/balance/account_type already reached the gate
+            // unmodified), the extractor only fills keys the LLM's call left
+            // unset — chiefly ownership_type (live conversation 164).
+            $missing = $this->entityExtractor->mergeWithLlmInput($focus, $missing, $llmClarificationInputs[$tool] ?? []);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Inline-capture gap-fill extraction failed', [
                 'user_id' => $user->id,
@@ -5489,7 +6093,13 @@ PROMPT;
             ];
 
             try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
+                $result = $this->coordinatingAgent->executeTool(
+                    $tool,
+                    $input,
+                    $user,
+                    $conversation->id,
+                    evidenceOverride: $this->verbatimEvidenceFromCaptureMessage($message),
+                );
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
                     'user_id' => $user->id,
@@ -5528,12 +6138,73 @@ PROMPT;
                 ];
             }
 
+            // A direct-write handler (e.g. handleCreateSavingsAccount)
+            // returns `created: true` on success. Surfacing this lets
+            // handleInlineCapture fold a gap-fill rescue into the same
+            // capture_complete summary and drop a matching pending write
+            // failure that the LLM's own attempt on this tool left behind
+            // (see the pendingWriteFailures/$gapFilledTools cleanup there).
+            if (($result['created'] ?? false) === true) {
+                yield [
+                    'type' => 'entity_created',
+                    'entity_type' => (string) ($result['entity_type'] ?? ''),
+                    'entity_id' => $result['entity_id'] ?? null,
+                    'name' => (string) ($result['name'] ?? ''),
+                    'tool' => $tool,
+                ];
+            }
+
             yield [
                 'type' => 'tool_use',
                 'tool' => $tool,
                 'status' => 'complete',
             ];
         }
+    }
+
+    /**
+     * Build a CaptureAccuracyGate evidence override from the gap-fill's own
+     * capture message — verbatim user words, never fabricated. The message
+     * may be the interruption-retry merge ("Original capture details: ...\n
+     * Requested missing details: ...", see resolvePendingInterruptionCapture)
+     * and, across repeated clarification rounds, that prefix pair can nest
+     * (the prior round's already-merged message becomes the next round's
+     * "Original capture details:" body). Splitting on newlines and stripping
+     * every leading occurrence of either prefix from each line recovers the
+     * plain sentences the user actually typed, in order, with no synthetic
+     * chain-walking — sidestepping CaptureAccuracyGate's DB-evidence
+     * chain-walk, which an interposed turn (e.g. "Yes, save it") can sever
+     * before it reaches the clarifying detail (live conversation 164).
+     */
+    private function verbatimEvidenceFromCaptureMessage(string $message): string
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $message) ?: [$message];
+        $stripped = array_map(
+            fn (string $line): string => $this->stripCaptureMergePrefixes($line),
+            $lines,
+        );
+
+        return implode("\n", array_values(array_filter(
+            $stripped,
+            static fn (string $line): bool => $line !== '',
+        )));
+    }
+
+    /**
+     * Strip every leading "Original capture details:" / "Requested missing
+     * details:" prefix from a single line (repeated occurrences included —
+     * see verbatimEvidenceFromCaptureMessage).
+     */
+    private function stripCaptureMergePrefixes(string $line): string
+    {
+        $line = trim($line);
+        $prefixPattern = '/^(?:Original capture details:|Requested missing details:)\s*/i';
+
+        while (preg_match($prefixPattern, $line) === 1) {
+            $line = trim(preg_replace($prefixPattern, '', $line, 1) ?? '');
+        }
+
+        return $line;
     }
 
     /**

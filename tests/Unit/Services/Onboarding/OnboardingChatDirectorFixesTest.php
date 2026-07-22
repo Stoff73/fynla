@@ -269,3 +269,58 @@ describe('capture_spouse_details surfaces the entered income', function () {
             ->and($result['details']['annual_income'])->toBe(0.0);
     });
 });
+
+// ── Fix: gap-fill evidence override (live conversation 164) ────────────────
+//
+// verbatimEvidenceFromCaptureMessage() builds the CaptureAccuracyGate
+// evidence override the deterministic gap-fill passes to
+// CoordinatingAgent::executeTool() — see
+// tests/Feature/Onboarding/OnboardingInterruptionTest.php's "rescues the
+// gate-blocked write across an interposed 'Yes, save it' turn" for the
+// full end-to-end regression. This covers the prefix-stripping helper in
+// isolation, including the nested-prefix case a second clarification round
+// produces.
+
+function invokeVerbatimEvidenceFromCaptureMessage(string $message): string
+{
+    $director = app(OnboardingChatDirector::class);
+    $reflection = new ReflectionMethod($director, 'verbatimEvidenceFromCaptureMessage');
+    $reflection->setAccessible(true);
+
+    return $reflection->invoke($director, $message);
+}
+
+describe('OnboardingChatDirector::verbatimEvidenceFromCaptureMessage', function () {
+    it('returns a plain single-sentence message unchanged', function () {
+        expect(invokeVerbatimEvidenceFromCaptureMessage(
+            'I have a Halifax fixed term savings account with £1,500 in it'
+        ))->toBe('I have a Halifax fixed term savings account with £1,500 in it');
+    });
+
+    it('strips the merged interruption-retry prefixes onto separate lines', function () {
+        $merged = "Original capture details: I have a Halifax fixed term savings account with £1,500 in it\n"
+            .'Requested missing details: Just me';
+
+        expect(invokeVerbatimEvidenceFromCaptureMessage($merged))->toBe(
+            "I have a Halifax fixed term savings account with £1,500 in it\nJust me"
+        );
+    });
+
+    it('strips repeated nested prefixes accumulated across multiple clarification rounds', function () {
+        $roundOne = "Original capture details: I have a Halifax fixed term savings account with £1,500 in it\n"
+            .'Requested missing details: an unclear first answer';
+        $roundTwo = "Original capture details: {$roundOne}\n"
+            .'Requested missing details: Just me';
+
+        expect(invokeVerbatimEvidenceFromCaptureMessage($roundTwo))->toBe(
+            "I have a Halifax fixed term savings account with £1,500 in it\n"
+            ."an unclear first answer\n"
+            .'Just me'
+        );
+    });
+
+    it('drops empty lines produced by stripping', function () {
+        expect(invokeVerbatimEvidenceFromCaptureMessage("Original capture details: \nRequested missing details: Just me"))
+            ->toBe('Just me');
+    });
+});

@@ -279,7 +279,18 @@ describe('delegated capture turn answers a question (A1)', function () {
 });
 
 describe('grouped_extract turn answers a question before re-asking (A1)', function () {
-    it('emits the answer and the scripted retry when a question yields no extraction', function () {
+    // Onboarding Interruption Intelligence Task 6 — emitRetry tries
+    // handleInterruption before falling back to the blind scripted
+    // retry_text (OnboardingChatDirector.php ~line 2518). BUT: when the A1
+    // buffer (handleGroupedExtractTurn, ~line 2352) has already voiced a
+    // (deliberately figure-redacted) answer to the user's question this
+    // turn, a subsequent independently-sourced handleInterruption advice
+    // answer would duplicate it and could unredact figures A1 withheld — so
+    // emitRetry's answerAlreadyVoiced guard skips handleInterruption
+    // entirely in that case and falls straight to the scripted retry_text
+    // tail. These two cases exercise that guard: exactly one answer (the A1
+    // one) plus the retry text, never a second advice-loop answer.
+    it('emits only the extraction turn\'s own A1 answer plus the retry text — the interruption dispatcher is suppressed', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -294,25 +305,32 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
         ]);
 
         // Model answers the question but emits no onboarding_field_captured —
-        // the no-capture path fires emitRetry.
+        // the no-capture path falls into emitRetry, which would try
+        // handleInterruption first, but the guard under test skips that
+        // because A1 already answered this question this turn.
         $received = driveCaptureTurn($user, $conversation, 'what do you mean by marital status?', [
             ['type' => 'content', 'text' => 'Marital status means whether you are single, married, or in a civil partnership. It affects allowances you can share.'],
             ['type' => 'done', 'message_id' => 1],
         ]);
 
-        $contentTexts = array_column(
+        $contentTexts = array_values(array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
-        );
-        $joined = implode(' | ', $contentTexts);
+        ));
 
-        // Both the answer AND the scripted retry are present.
+        // Exactly two content events: the A1 answer, then the scripted
+        // retry text — never a duplicate from the (suppressed) interruption
+        // dispatcher's own advice call.
         $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($joined)->toContain('Marital status means whether you are single')
-            ->and($joined)->toContain($retry);
+        expect($contentTexts)->toHaveCount(2);
+        expect($contentTexts[0])->toContain('Marital status means whether you are single');
+        expect($contentTexts[1])->toBe($retry);
+
+        // The walk stayed on the grouped-extract step — no blind advance.
+        expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 
-    it('strips personal figures from a grouped_extract answer but keeps the retry', function () {
+    it('strips personal figures from the grouped_extract turn own A1 answer and still emits the retry', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -334,15 +352,22 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             ['type' => 'done', 'message_id' => 1],
         ]);
 
-        $contentTexts = array_column(
+        $contentTexts = array_values(array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
-        );
-        $joined = implode(' | ', $contentTexts);
+        ));
 
+        // The FIRST content event is the grouped_extract turn's own A1
+        // buffer — filterOffScriptContent(allowAnswer: true) still strips
+        // the user's personal figure from it.
+        expect($contentTexts[0] ?? '')->toContain('Your income sets which tax band applies.')
+            ->and($contentTexts[0] ?? '')->not->toContain('£110,000');
+
+        // Because A1 already answered, emitRetry's guard suppresses the
+        // interruption dispatcher's advice-mode call and falls straight to
+        // the scripted retry text instead — exactly one answer, never a
+        // duplicate.
         $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($joined)->toContain('Your income sets which tax band applies.')
-            ->and($joined)->not->toContain('£110,000')
-            ->and($joined)->toContain($retry);
+        expect($contentTexts[1] ?? null)->toBe($retry);
     });
 });
