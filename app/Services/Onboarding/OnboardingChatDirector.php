@@ -1654,16 +1654,36 @@ final class OnboardingChatDirector
             'entity_types' => [$pending['intent']['entity_type'] ?? 'savings_account'],
             'fields_needed' => $pending['intent']['fields_needed'] ?? [],
         ]);
-        yield from $this->handleInlineCapture(
+
+        // Record-creation is authoritative over content-sniffing: a rescued
+        // write (deterministic gap-fill) can leave the model's own stale
+        // clarification-shaped narration in the persisted content even
+        // after the fix above trims the worst of it — so re-arming must
+        // never fire when handleInlineCapture actually persisted a record
+        // for the pending intent this turn (live conversation 164,
+        // msg 19465). Consume events explicitly (rather than `yield from`)
+        // so this can be tracked while still forwarding every event
+        // untouched.
+        $recordCreated = false;
+        foreach ($this->handleInlineCapture(
             $user, $conversation, $captureMessage, $captureContext, $currentRoute
-        );
+        ) as $captureEvent) {
+            $captureEventType = $captureEvent['type'] ?? '';
+            if ($captureEventType === 'entity_created'
+                || ($captureEventType === 'capture_complete' && ($captureEvent['records_created'] ?? []) !== [])) {
+                $recordCreated = true;
+            }
+
+            yield $captureEvent;
+        }
 
         $latestAssistant = $conversation->messages()
             ->where('role', 'assistant')
             ->latest('id')
             ->first(['content']);
 
-        if ($latestAssistant !== null
+        if (! $recordCreated
+            && $latestAssistant !== null
             && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
             $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
             $context['pending_interruption_store'] = [
@@ -5675,38 +5695,71 @@ PROMPT;
         // text (if any) to surface. Per-tool granularity (not per-entity):
         // sufficient for the single-entity interruption-retry flow this
         // fixes (AssetCaptureEntityExtractor's own class doc: "under-filling
-        // is the acceptable degradation").
+        // is the acceptable degradation"). The rescued entries' own
+        // content_offset is kept (not discarded with the entry) — see
+        // $rescuedContentOffsets below: the model's own narration AFTER a
+        // failing tool call is still stale once that call is rescued, even
+        // though the failure entry itself is gone.
+        /** @var list<int> $rescuedContentOffsets */
+        $rescuedContentOffsets = [];
         if ($gapFilledTools !== []) {
             foreach ($pendingWriteFailures as $failedToolCallId => $failure) {
                 if (in_array($failure['tool'] ?? null, $gapFilledTools, true)) {
+                    $rescuedContentOffsets[] = $failure['content_offset'];
                     unset($pendingWriteFailures[$failedToolCallId]);
                 }
             }
         }
 
-        if ($pendingWriteFailures !== []) {
-            $firstFailure = array_values($pendingWriteFailures)[0];
-            $messageText = $firstFailure['message'];
-            $failureText = $firstFailure['tier_limit']
-                ? $messageText
-                : "I couldn't save that — ".rtrim($messageText, '.').'. '
-                    .'Give me the missing detail and I will try again.';
-            $safeContentEvents = array_slice(
-                $contentEvents,
-                0,
-                min(array_column($pendingWriteFailures, 'content_offset')),
-            );
+        // Any tool call that failed this turn — whether still unresolved or
+        // since rescued by the gap-fill — taints every content event
+        // narrated after it. WP-1's capture_write_failed directive
+        // ("tell the user plainly what could not be saved") routinely makes
+        // the model narrate its OWN apology in the very next continuation
+        // ("I couldn't save that — I need you to confirm..."); that text is
+        // ordinary `content`, not the deterministic wrap-text below, so the
+        // gap-fill unset above never touches it. Left alone it survives
+        // untouched into both the SSE stream and the row the underlying
+        // stream already persisted (live conversation 164, msg 19465) even
+        // though the write it was apologising for has, in fact, just
+        // succeeded. Truncating at the earliest offset among ALL of this
+        // turn's failed attempts — resolved or not — drops that stale
+        // narration in both cases.
+        if ($pendingWriteFailures !== [] || $rescuedContentOffsets !== []) {
+            $safeOffset = min(array_merge(
+                array_column($pendingWriteFailures, 'content_offset'),
+                $rescuedContentOffsets,
+            ));
+            $safeContentEvents = array_slice($contentEvents, 0, $safeOffset);
             $safeModelText = implode('', array_map(
                 static fn (array $event): string => (string) ($event['text'] ?? ''),
                 $safeContentEvents,
             ));
-            $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
-            $persistedFailureText = $safeModelText.$failureSeparator.$failureText;
 
-            foreach ($safeContentEvents as $safeContentEvent) {
-                yield $safeContentEvent;
+            if ($pendingWriteFailures !== []) {
+                $firstFailure = array_values($pendingWriteFailures)[0];
+                $messageText = $firstFailure['message'];
+                $failureText = $firstFailure['tier_limit']
+                    ? $messageText
+                    : "I couldn't save that — ".rtrim($messageText, '.').'. '
+                        .'Give me the missing detail and I will try again.';
+                $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
+                $persistedText = $safeModelText.$failureSeparator.$failureText;
+
+                foreach ($safeContentEvents as $safeContentEvent) {
+                    yield $safeContentEvent;
+                }
+                yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
+            } else {
+                // Every failed attempt this turn was rescued — no failure
+                // text to surface, just the safe prefix (if any) narrated
+                // before the now-superseded failing call.
+                $persistedText = $safeModelText;
+
+                foreach ($safeContentEvents as $safeContentEvent) {
+                    yield $safeContentEvent;
+                }
             }
-            yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
 
             $modelText = implode('', array_map(
                 static fn (array $event): string => (string) ($event['text'] ?? ''),
@@ -5723,12 +5776,14 @@ PROMPT;
             if ($persistedMessage !== null) {
                 $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
                 $persistedMessage->update([
-                    'content' => $persistedFailureText,
-                    'metadata' => array_merge($metadata, ['capture_write_failed' => true]),
+                    'content' => $persistedText,
+                    'metadata' => $pendingWriteFailures !== []
+                        ? array_merge($metadata, ['capture_write_failed' => true])
+                        : $metadata,
                 ]);
-            } else {
-                $this->saveMessage($conversation, 'assistant', $persistedFailureText, [
-                    'metadata' => ['capture_write_failed' => true],
+            } elseif ($persistedText !== '') {
+                $this->saveMessage($conversation, 'assistant', $persistedText, [
+                    'metadata' => $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
                 ]);
             }
         } else {

@@ -71,6 +71,33 @@ final class FynStreamHarness
     }
 
     /**
+     * An assistant turn that streams narration text FIRST, then a tool_use
+     * block, within the SAME model turn (stop_reason=tool_use) — the live
+     * event shape a capture turn actually produces ("I'll record that for
+     * you now." narrated before the create_* call the gate then blocks).
+     * `toolTurn` alone cannot reproduce this: it emits a pure tool_use block
+     * with no preceding text, which under-tests handleInlineCapture's
+     * content-buffering-until-write-outcome-known logic (live conversation
+     * 164, msg 19465).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function textThenToolTurn(string $text, string $tool, array $input = [], string $id = 'toolu_test'): self
+    {
+        $this->turns[] = [
+            RawContentBlockStartEvent::with(TextBlock::with(null, ''), 0),
+            RawContentBlockDeltaEvent::with(TextDelta::with($text), 0),
+            RawContentBlockStopEvent::with(0),
+            RawContentBlockStartEvent::with(ToolUseBlock::with(id: $id, input: [], name: $tool), 1),
+            RawContentBlockDeltaEvent::with(InputJSONDelta::with(json_encode($input, JSON_THROW_ON_ERROR)), 1),
+            RawContentBlockStopEvent::with(1),
+            RawMessageDeltaEvent::with(['stopReason' => 'tool_use'], ['outputTokens' => 20]),
+        ];
+
+        return $this;
+    }
+
+    /**
      * One assistant iteration containing multiple parallel tool calls.
      *
      * @param  list<array{tool: string, input?: array<string, mixed>, id: string}>  $calls

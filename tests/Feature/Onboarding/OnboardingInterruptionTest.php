@@ -389,15 +389,20 @@ it('rescues the gate-blocked write across an interposed "Yes, save it" turn inst
     // The model pattern-locks on its own prior failing tool call and OMITS
     // ownership_type AGAIN (mirroring live conversation 164) — the
     // deterministic gap-fill must rescue it despite the interposed "Yes,
-    // save it" turn.
+    // save it" turn. Live event shape (msg 19465): the model narrates
+    // BEFORE calling the (still-failing) tool — textThenToolTurn, not a
+    // bare toolTurn — so handleInlineCapture's content-buffering-until-
+    // write-outcome-known path is genuinely exercised. A bare toolTurn
+    // (no preceding narration) let the earlier version of this test pass
+    // even when a rescued write failed to suppress the failure text.
     FynStreamHarness::fake()
-        ->toolTurn('create_savings_account', [
+        ->textThenToolTurn("I'll record that for you now.", 'create_savings_account', [
             'account_name' => 'Halifax Fixed Term Bond',
             'account_type' => 'fixed_term',
             'institution' => 'Halifax',
             'current_balance' => 1500.0,
         ])
-        ->textTurn('Understood.')
+        ->textTurn("I couldn't save that — I need you to confirm whether you own it individually or with someone else.")
         ->bind();
 
     $received = driveDirector($user->refresh(), $conversation, 'Just me');
@@ -407,6 +412,15 @@ it('rescues the gate-blocked write across an interposed "Yes, save it" turn inst
         ->and($account->institution)->toBe('Halifax')
         ->and((float) $account->current_balance)->toEqual(1500.0)
         ->and($account->ownership_type)->toBe('individual');
+
+    // A rescued write must never surface as "I couldn't save that" — the
+    // model's own narration ("I'll record that for you now.") should be
+    // the whole of the streamed/persisted content, not that text glued to
+    // the deterministic failure message (live conversation 164, msg 19465).
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->not->toContain("couldn't save");
+    $persisted = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
+    expect($persisted->content)->not->toContain("couldn't save");
 
     // The pending flag is consumed (not re-armed) — the rescued write is
     // never mistaken for a still-unresolved clarification.
