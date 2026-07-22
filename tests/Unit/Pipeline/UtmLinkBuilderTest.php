@@ -13,10 +13,7 @@ beforeEach(function () {
 });
 
 it('builds a UTM URL from an insight article slug', function () {
-    $article = new App\Models\Insights\InsightArticle();
-    $article->slug = 'isa-allowance-2025-26';
-
-    $url = $this->builder->forArticle($article, 'instagram', 1);
+    $url = $this->builder->forArticle('isa-allowance-2025-26', 'instagram', 1);
 
     expect($url)->toContain('https://fynla.org/insights/isa-allowance-2025-26?')
         ->and($url)->toContain('utm_source=instagram')
@@ -53,17 +50,11 @@ it('preserves existing query parameters on a custom URL', function () {
 });
 
 it('rejects an unknown platform', function () {
-    $article = new App\Models\Insights\InsightArticle();
-    $article->slug = 'x';
-
-    expect(fn () => $this->builder->forArticle($article, 'linkedin', 1))
+    expect(fn () => $this->builder->forArticle('x', 'linkedin', 1))
         ->toThrow(\InvalidArgumentException::class);
 });
 
 it('rejects a clip index below 1', function () {
-    $article = new App\Models\Insights\InsightArticle();
-    $article->slug = 'x';
-
-    expect(fn () => $this->builder->forArticle($article, 'instagram', 0))
+    expect(fn () => $this->builder->forArticle('x', 'instagram', 0))
         ->toThrow(\InvalidArgumentException::class);
 });

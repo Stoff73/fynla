@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Mail\Pipeline;
 
-use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\ClipApproval;
 use App\Models\Pipeline\PipelineArticle;
 use Illuminate\Bus\Queueable;
@@ -24,7 +23,6 @@ class ClipsAwaitingApprovalMail extends Mailable
      */
     public function __construct(
         public PipelineArticle $pipelineArticle,
-        public InsightArticle $article,
         public array $approvals,
         public array $signedClipUrls,
     ) {}
@@ -32,7 +30,7 @@ class ClipsAwaitingApprovalMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: sprintf('Clips awaiting approval — %s', $this->article->title),
+            subject: sprintf('Clips awaiting approval — %s', $this->pipelineArticle->sourceTitle()),
         );
     }
 
@@ -57,8 +55,8 @@ class ClipsAwaitingApprovalMail extends Mailable
         return new Content(
             view: 'emails.pipeline.clips-awaiting-approval',
             with: [
-                'articleTitle' => $this->article->title,
-                'articleSlug' => $this->article->slug,
+                'articleTitle' => $this->pipelineArticle->sourceTitle(),
+                'articleSlug' => $this->pipelineArticle->sourceSlug(),
                 'clipCount' => count($this->approvals),
                 'clips' => $rows,
                 'approveAllUrl' => $base.'/pipeline/clips/approve-all/'.$this->pipelineArticle->id.'/'.$this->approveAllToken(),

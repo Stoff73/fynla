@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Mail\Pipeline;
 
-use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\PipelineArticle;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -19,14 +18,13 @@ class PostApprovalReadyMail extends Mailable
 
     public function __construct(
         public PipelineArticle $pipelineArticle,
-        public InsightArticle $article,
         public int $postCount,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Posts ready to review — '.$this->article->title,
+            subject: 'Posts ready to review — '.($this->pipelineArticle->sourceTitle() ?? 'article'),
         );
     }
 
@@ -37,8 +35,8 @@ class PostApprovalReadyMail extends Mailable
         return new Content(
             view: 'emails.pipeline.posts-approval-ready',
             with: [
-                'articleTitle' => $this->article->title,
-                'articleSlug' => $this->article->slug,
+                'articleTitle' => $this->pipelineArticle->sourceTitle() ?? 'Untitled article',
+                'articleSlug' => $this->pipelineArticle->sourceSlug() ?? '',
                 'postCount' => $this->postCount,
                 'approvalUrl' => $baseUrl.'/admin/pipeline/posts?article_id='.$this->pipelineArticle->id,
             ],

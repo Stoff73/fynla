@@ -70,4 +70,22 @@ class PipelineArticle extends Model
     {
         return $this->insightArticle?->summary ?? $this->documentArticle?->description;
     }
+
+    /**
+     * Whether the source article is live (published) on the public site. Social
+     * posts link to /insights/{slug}, so we must never schedule a post for an
+     * article that isn't live — the link would 404.
+     */
+    public function sourceIsPublished(): bool
+    {
+        if ($this->insightArticle !== null) {
+            return $this->insightArticle->status === 'published';
+        }
+
+        if ($this->documentArticle !== null) {
+            return $this->documentArticle->isPublished();
+        }
+
+        return false;
+    }
 }

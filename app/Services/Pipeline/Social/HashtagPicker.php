@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Social;
 
-use App\Models\Insights\InsightArticle;
 use App\Services\Pipeline\AnthropicOpusClient;
 use RuntimeException;
 
@@ -28,7 +27,7 @@ class HashtagPicker
     /**
      * @return list<string> Hashtags including the leading '#'.
      */
-    public function pick(InsightArticle $article, string $platform, ?int $count = null): array
+    public function pick(string $title, ?string $summary, string $platform, ?int $count = null): array
     {
         $target = $count ?? (int) config('pipeline.social.default_hashtag_count', 3);
         $min = (int) config('pipeline.social.hashtag_min', 2);
@@ -36,16 +35,32 @@ class HashtagPicker
         $target = max($min, min($max, $target));
 
         $banned = array_map('strtolower', (array) config('pipeline.social.banned_hashtags', []));
+        $system = $this->systemBlocks($platform, $target, $banned);
+        $user = $this->userMessage($title, $summary);
 
-        $completion = $this->anthropic->complete(
-            $this->systemBlocks($platform, $target, $banned),
-            [[
+        // Retry once on a non-JSON reply before failing (LLMs occasionally
+        // wrap the array in prose or truncate it).
+        $tags = null;
+        $lastError = null;
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $completion = $this->anthropic->complete($system, [[
                 'role' => 'user',
-                'content' => $this->userMessage($article),
-            ]],
-        );
+                'content' => $user,
+            ]]);
+            try {
+                $tags = $this->parse($completion['text']);
+                break;
+            } catch (\Throwable $e) {
+                $lastError = $e;
+            }
+        }
 
-        $tags = $this->parse($completion['text']);
+        if ($tags === null) {
+            throw new RuntimeException(
+                'HashtagPicker could not parse a JSON response after 2 attempts: '.$lastError?->getMessage(),
+                previous: $lastError,
+            );
+        }
 
         $tags = $this->normaliseAndFilter($tags, $banned, $min, $max);
         if ($tags === []) {
@@ -90,13 +105,13 @@ class HashtagPicker
         ]];
     }
 
-    private function userMessage(InsightArticle $article): string
+    private function userMessage(string $title, ?string $summary): string
     {
         return sprintf(
             "Article title: %s\n\nArticle summary: %s\n\nArticle category: %s",
-            $article->title,
-            $article->summary ?? '(no summary)',
-            $article->category ?? 'financial-planning',
+            $title,
+            ($summary === null || $summary === '') ? '(no summary)' : $summary,
+            'financial-planning',
         );
     }
 

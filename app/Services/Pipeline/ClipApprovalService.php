@@ -39,7 +39,7 @@ class ClipApprovalService
      *
      * @return list<ClipApproval>
      */
-    public function createForArticle(PipelineArticle $article): array
+    public function createForArticle(PipelineArticle $article, ?int $fullClipIndex = null): array
     {
         $clipPaths = is_array($article->clip_paths) ? $article->clip_paths : [];
         if ($clipPaths === []) {
@@ -64,6 +64,7 @@ class ClipApprovalService
                 'pipeline_article_id' => $article->id,
                 'clip_index' => $clipIndex,
                 'clip_path' => $path,
+                'clip_kind' => $clipIndex === $fullClipIndex ? 'full' : 'short',
                 'status' => 'pending',
                 'approve_token' => Str::random(48),
                 'reject_token' => Str::random(48),
@@ -109,8 +110,12 @@ class ClipApprovalService
     }
 
     /**
-     * Manual reject. Blocks the article from downstream composition
-     * until the clip is regenerated (Stage 3 rerun).
+     * Manual reject. The rejected clip is EXCLUDED from the run, not a blocker —
+     * every approved clip still moves forward. For a SHORT (highlight) clip
+     * under the regen cap we dispatch RegenerateClipJob, which uses the
+     * rejection reason as feedback to pick a DIFFERENT moment, re-crops, and
+     * re-notifies. The FULL clip (or a short at the cap) can't be re-picked, so
+     * it's terminally excluded and we re-evaluate the gate immediately.
      */
     public function reject(ClipApproval $approval, string $reason, ?int $actorId = null, bool $viaEmail = false): ClipApproval
     {
@@ -125,6 +130,30 @@ class ClipApprovalService
             'approved_at' => now(),
             'approved_via_email' => $viaEmail,
         ]);
+
+        $maxRegen = (int) config('pipeline.clip_approval.max_regenerations', 3);
+        if ($approval->clip_kind === 'short' && (int) $approval->regen_count < $maxRegen) {
+            \App\Jobs\Pipeline\RegenerateClipJob::dispatch(
+                $approval->pipeline_article_id,
+                $approval->clip_index,
+                $reason,
+            );
+
+            Log::channel('pipeline')->info('Clip rejected — regeneration queued.', [
+                'clip_approval_id' => $approval->id,
+                'pipeline_article_id' => $approval->pipeline_article_id,
+                'clip_index' => $approval->clip_index,
+                'regen_count' => $approval->regen_count,
+            ]);
+        } else {
+            // Terminal exclusion (the full clip, or a short at the regen cap):
+            // this may be the final decision for the article, so re-evaluate the
+            // gate — the remaining approved clips should proceed without it.
+            $article = $approval->pipelineArticle()->first();
+            if ($article !== null) {
+                $this->maybeFireDownstream($article);
+            }
+        }
 
         return $approval->fresh();
     }
@@ -183,10 +212,23 @@ class ClipApprovalService
     }
 
     /**
-     * If every clip for an article is decided (approved/auto/rejected)
-     * AND at least one is approved AND none are rejected, dispatch
-     * ComposePostsJob. Rejected clips block downstream until Stage 3
-     * regenerates them.
+     * Public re-evaluation hook. RegenerateClipJob calls this after a failed
+     * regeneration (the clip is now terminally excluded) so the article can
+     * still proceed with whatever clips are approved.
+     */
+    public function evaluateDownstream(PipelineArticle $article): void
+    {
+        $this->maybeFireDownstream($article);
+    }
+
+    /**
+     * Fire ComposePostsJob once every clip has reached a SETTLED state and at
+     * least one is approved. Rejected clips are EXCLUDED from composition (not
+     * blocking): any combination of approved clips still moves forward, so one
+     * bad clip never freezes the whole article.
+     *
+     * A clip is NOT yet settled if it's pending, or if it's a rejected SHORT
+     * clip still under the regen cap (a regenerated replacement is inbound).
      */
     private function maybeFireDownstream(PipelineArticle $article): void
     {
@@ -195,16 +237,26 @@ class ClipApprovalService
             return;
         }
 
-        $anyPending = $rows->contains(fn ($r) => $r->status === 'pending');
-        if ($anyPending) {
+        $maxRegen = (int) config('pipeline.clip_approval.max_regenerations', 3);
+
+        $inProgress = $rows->contains(function ($r) use ($maxRegen) {
+            if ($r->status === 'pending') {
+                return true;
+            }
+
+            // A rejected short under the cap is mid-regeneration — wait for it.
+            return $r->status === 'rejected'
+                && $r->clip_kind === 'short'
+                && (int) $r->regen_count < $maxRegen;
+        });
+        if ($inProgress) {
             return;
         }
 
-        $anyRejected = $rows->contains(fn ($r) => $r->status === 'rejected');
-        if ($anyRejected) {
-            Log::channel('pipeline')->info('Clip approvals decided but a rejection blocks compose.', [
+        $anyApproved = $rows->contains(fn ($r) => in_array($r->status, ['approved', 'auto_approved'], true));
+        if (! $anyApproved) {
+            Log::channel('pipeline')->info('All clips rejected — nothing to compose.', [
                 'pipeline_article_id' => $article->id,
-                'rejected_count' => $rows->where('status', 'rejected')->count(),
             ]);
 
             return;
@@ -214,8 +266,10 @@ class ClipApprovalService
         // downstream will simply skip in-flight variants).
         if ($article->status === 'scripted' || $article->status === 'rendered') {
             ComposePostsJob::dispatch($article->fresh());
-            Log::channel('pipeline')->info('All clips approved — ComposePostsJob dispatched.', [
+            Log::channel('pipeline')->info('Clips settled — ComposePostsJob dispatched (rejected clips excluded).', [
                 'pipeline_article_id' => $article->id,
+                'approved' => $rows->whereIn('status', ['approved', 'auto_approved'])->count(),
+                'excluded' => $rows->where('status', 'rejected')->count(),
             ]);
         }
     }

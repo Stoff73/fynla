@@ -77,6 +77,19 @@ class ComposePostsJob implements ShouldQueue
             return;
         }
 
+        // Publish guard: never compose (and therefore never schedule) posts for
+        // an article that isn't live — every post links to /insights/{slug}, so
+        // a non-live article would send followers to a 404. This is a HOLD, not
+        // a failure: publish the article, then re-run compose to proceed.
+        if (! $article->sourceIsPublished()) {
+            Log::channel('pipeline')->warning('Compose held — source article is not live yet.', [
+                'pipeline_article_id' => $article->id,
+                'slug' => $article->sourceSlug(),
+            ]);
+
+            return;
+        }
+
         $run = PipelineRun::create([
             'pipeline_article_id' => $article->id,
             'stage' => 'compose',
@@ -85,11 +98,27 @@ class ComposePostsJob implements ShouldQueue
         ]);
 
         try {
+            $title = $article->sourceTitle() ?? '';
+            $summary = $article->sourceSummary();
+            $slug = $article->sourceSlug() ?? '';
+
+            // Rejected clips are excluded from the run — compose only the
+            // approved ones. (No approval rows at all = clip-approval gate is
+            // off; compose every clip, preserving the direct-compose path.)
+            $rejectedIndices = \App\Models\Pipeline\ClipApproval::where('pipeline_article_id', $article->id)
+                ->where('status', 'rejected')
+                ->pluck('clip_index')
+                ->map(fn ($i) => (int) $i)
+                ->all();
+
             $created = 0;
             foreach (range(1, $clipCount) as $clipIndex) {
+                if (in_array($clipIndex, $rejectedIndices, true)) {
+                    continue;
+                }
                 foreach (self::PLATFORMS as $platform) {
-                    $captions = $composer->compose($insight, $platform);
-                    $hashList = $hashtags->pick($insight, $platform);
+                    $captions = $composer->compose($title, $summary, $platform);
+                    $hashList = $hashtags->pick($title, $summary, $platform);
 
                     foreach (['A', 'B'] as $variant) {
                         $existing = PipelinePost::where('pipeline_article_id', $article->id)
@@ -108,7 +137,7 @@ class ComposePostsJob implements ShouldQueue
                             'platform' => $platform,
                             'caption' => $captions[$variant],
                             'hashtags' => $hashList,
-                            'destination_url_default' => $links->forArticle($insight, $platform, $clipIndex),
+                            'destination_url_default' => $links->forArticle($slug, $platform, $clipIndex),
                             'destination_type' => 'article',
                             'status' => 'awaiting_approval',
                         ]);
@@ -127,7 +156,7 @@ class ComposePostsJob implements ShouldQueue
             ]);
 
             Mail::to((string) config('pipeline.notifications.script_ready_to'))
-                ->queue(new PostApprovalReadyMail($article->fresh(), $insight, $created));
+                ->queue(new PostApprovalReadyMail($article->fresh(), $created));
 
             Log::channel('pipeline')->info('Posts composed + approval email sent.', [
                 'pipeline_article_id' => $article->id,

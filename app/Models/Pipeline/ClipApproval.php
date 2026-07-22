@@ -17,6 +17,7 @@ class ClipApproval extends Model
 
     protected $casts = [
         'clip_index' => 'integer',
+        'regen_count' => 'integer',
         'token_expires_at' => 'datetime',
         'scheduled_at' => 'datetime',
         'approved_at' => 'datetime',

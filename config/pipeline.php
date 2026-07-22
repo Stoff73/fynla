@@ -201,6 +201,9 @@ return [
         'enabled' => env('PIPELINE_CLIP_APPROVAL_ENABLED', true),
         'auto_approve_minutes_before_post' => (int) env('PIPELINE_CLIP_AUTO_APPROVE_MINUTES', 10),
         'auto_approve_cron_frequency_minutes' => (int) env('PIPELINE_CLIP_AUTO_APPROVE_CRON_MINUTES', 5),
+        // Rejecting a SHORT clip regenerates a different highlight from the
+        // reviewer's feedback, up to this many times per clip slot.
+        'max_regenerations' => (int) env('PIPELINE_CLIP_MAX_REGENERATIONS', 3),
     ],
 
     /*

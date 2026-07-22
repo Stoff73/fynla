@@ -42,7 +42,10 @@ class VideoCropService
             '-of', 'default=noprint_wrappers=1:nokey=1',
             $videoPath,
         ]);
-        $process->setTimeout(60);
+        // 300s, not 60s: a freshly-downloaded large source (e.g. a 150MB+ .mov)
+        // is often still being scanned by the OS antivirus on first read, which
+        // can block ffprobe well past a minute. Once scanned it returns in <1s.
+        $process->setTimeout(300);
         $process->mustRun();
 
         return (float) trim($process->getOutput());

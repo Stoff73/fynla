@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Social;
 
-use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\PipelineCampaign;
 use InvalidArgumentException;
 
@@ -31,12 +30,12 @@ class UtmLinkBuilder
 
     private const VALID_PLATFORMS = ['instagram', 'facebook', 'tiktok'];
 
-    public function forArticle(InsightArticle $article, string $platform, int $clipIndex): string
+    public function forArticle(string $slug, string $platform, int $clipIndex): string
     {
         return $this->build(
-            baseUrl: $this->articleUrl($article->slug),
+            baseUrl: $this->articleUrl($slug),
             platform: $platform,
-            campaignSlug: $article->slug,
+            campaignSlug: $slug,
             clipIndex: $clipIndex,
         );
     }

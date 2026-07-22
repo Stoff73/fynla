@@ -7,7 +7,6 @@ namespace App\Jobs\Pipeline;
 use App\Mail\Pipeline\ClipsReadyForReviewMail;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
-use App\Services\Pipeline\CaptionBuilder;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\GoogleSheetsService;
 use App\Services\Pipeline\HighlightSelectorService;
@@ -31,11 +30,11 @@ use Throwable;
  * Flow (per InsightArticle):
  *   1. Download source video from Drive → storage/app/social/source/{slug}.mp4
  *   2. ffprobe → duration
- *   3. Whisper transcribe (local, free) → JSON + SRT sidecars
- *   4. If duration > MAX_WHOLE_VIDEO_SECONDS: Claude picks 1–3 highlights;
- *      else: whole video is the single "highlight".
- *   5. For each highlight: build clip-scoped SRT + FFmpeg crop+burn →
- *      storage/app/social/video/{slug}/clip-N.mp4
+ *   3. Whisper transcribe (local, free) → used only to choose highlights
+ *   4. If duration > MAX_WHOLE_VIDEO_SECONDS: Claude picks a couple of short
+ *      (20–30s) highlights AND we keep the full video; else: full video only.
+ *   5. For each range: FFmpeg centre-crop to 9:16 (NO burned captions — those
+ *      are added in the editing stage) → storage/app/social/video/{slug}/clip-N.mp4
  *   6. Update tracker sheet row with signed download URLs.
  *   7. Email marketing@fynla.org.
  *
@@ -49,8 +48,11 @@ class ProcessVideoJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    /** Videos ≤ this length are cropped whole rather than highlight-picked. */
+    /** Videos ≤ this length only produce the single full clip (no separate shorts). */
     public const MAX_WHOLE_VIDEO_SECONDS = 75;
+
+    /** How many short (20–30s) highlight clips to cut alongside the full clip. */
+    public const SHORT_CLIP_COUNT = 2;
 
     public int $tries = 1;
 
@@ -66,7 +68,6 @@ class ProcessVideoJob implements ShouldQueue
         GoogleSheetsService $sheets,
         LocalWhisperTranscriber $whisper,
         HighlightSelectorService $highlights,
-        CaptionBuilder $captions,
         VideoCropService $cropper,
     ): void {
         $article = $this->pipelineArticle->fresh();
@@ -108,20 +109,41 @@ class ProcessVideoJob implements ShouldQueue
             $transcriptPath = $whisper->transcribe($sourcePath);
             $transcript = $whisper->load($transcriptPath);
 
-            $clipRanges = $duration > self::MAX_WHOLE_VIDEO_SECONDS
-                ? $highlights->select($article->sourceTitle() ?? '', $article->sourceSummary(), $transcript)
-                : [['start' => 0.0, 'end' => $duration, 'reason' => 'Short video — kept whole.']];
+            // Build the clip set: a couple of short (20–30s) highlight clips for
+            // social PLUS the full video, uncut. Captions are NOT burned in —
+            // they're added later in the editing stage — so each range is just a
+            // crop. Very short sources (≤ the whole-video cap) only yield the
+            // full clip, since it already qualifies as a short clip on its own.
+            $fullClip = ['start' => 0.0, 'end' => $duration, 'reason' => 'Full video, uncut — for editing / long-form use.'];
+
+            $shortClips = [];
+            if ($duration > self::MAX_WHOLE_VIDEO_SECONDS) {
+                // Short highlights are best-effort — if the selector can't find a
+                // usable 20–30s moment (e.g. off-topic or low-coherence audio),
+                // we still ship the full clip rather than failing the whole stage.
+                try {
+                    $shortClips = $highlights->select(
+                        $article->sourceTitle() ?? '',
+                        $article->sourceSummary(),
+                        $transcript,
+                        self::SHORT_CLIP_COUNT,
+                    );
+                } catch (Throwable $e) {
+                    Log::channel('pipeline')->warning('No short highlight clips selected — shipping full clip only.', [
+                        'pipeline_article_id' => $article->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            $clipRanges = array_merge($shortClips, [$fullClip]);
 
             @mkdir($clipsDir, 0755, true);
 
             $clipPaths = [];
             foreach ($clipRanges as $index => $range) {
                 $clipNumber = $index + 1;
-                $srtPath = $clipsDir.DIRECTORY_SEPARATOR."clip-{$clipNumber}.srt";
-                $captions->buildSrt($transcript, $srtPath, $range['start'], $range['end']);
-
                 $clipPath = $clipsDir.DIRECTORY_SEPARATOR."clip-{$clipNumber}.mp4";
-                $cropper->cropAndBurn($sourcePath, $clipPath, $range['start'], $range['end'], $srtPath);
+                $cropper->cropAndBurn($sourcePath, $clipPath, $range['start'], $range['end']);
                 $clipPaths[] = $clipPath;
             }
 
@@ -135,7 +157,7 @@ class ProcessVideoJob implements ShouldQueue
                 'source_video_duration_s' => (int) round($duration),
                 'transcript_path' => $transcriptPath,
                 'clip_paths' => $clipPaths,
-                'captions_burned' => true,
+                'captions_burned' => false,
                 'clips_generated_at' => now(),
                 'status' => 'rendered',
                 'last_error' => null,
@@ -192,19 +214,19 @@ class ProcessVideoJob implements ShouldQueue
             //      false → clips rendered but nothing dispatched; marketing
             //      handles composition manually via tinker.
             if (config('pipeline.clip_approval.enabled', true)) {
+                // The full clip is always the last one appended above.
                 $approvals = app(\App\Services\Pipeline\ClipApprovalService::class)
-                    ->createForArticle($article->fresh());
+                    ->createForArticle($article->fresh(), count($clipPaths));
 
                 Mail::to((string) config('pipeline.notifications.script_ready_to'))
                     ->queue(new \App\Mail\Pipeline\ClipsAwaitingApprovalMail(
                         $article->fresh(),
-                        $insight,
                         $approvals,
                         $signedUrls,
                     ));
             } else {
                 Mail::to((string) config('pipeline.notifications.script_ready_to'))
-                    ->queue(new ClipsReadyForReviewMail($article->fresh(), $insight, $signedUrls));
+                    ->queue(new ClipsReadyForReviewMail($article->fresh(), $signedUrls));
 
                 if (config('pipeline.social.compose_after_render')) {
                     \App\Jobs\Pipeline\ComposePostsJob::dispatch($article->fresh());

@@ -44,7 +44,7 @@ class ClipApprovalActionController extends Controller
 
         return response($this->page(
             'Clip approved',
-            'Clip '.$approval->clip_index.' for <strong>'.e($approval->pipelineArticle->insightArticle?->title ?? 'this article').'</strong> is now approved. If every clip on this article is decided, composition and scheduling will start automatically.'
+            'Clip '.$approval->clip_index.' for <strong>'.e($approval->pipelineArticle->sourceTitle() ?? 'this article').'</strong> is now approved. If every clip on this article is decided, composition and scheduling will start automatically.'
         ));
     }
 

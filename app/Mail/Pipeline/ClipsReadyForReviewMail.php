@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Mail\Pipeline;
 
-use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\PipelineArticle;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -20,14 +19,13 @@ class ClipsReadyForReviewMail extends Mailable
     /** @param  list<string>  $signedClipUrls */
     public function __construct(
         public PipelineArticle $pipelineArticle,
-        public InsightArticle $article,
         public array $signedClipUrls,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Clips ready — '.$this->article->title,
+            subject: 'Clips ready — '.$this->pipelineArticle->sourceTitle(),
         );
     }
 
@@ -36,8 +34,8 @@ class ClipsReadyForReviewMail extends Mailable
         return new Content(
             view: 'emails.pipeline.clips-ready',
             with: [
-                'articleTitle' => $this->article->title,
-                'articleSlug' => $this->article->slug,
+                'articleTitle' => $this->pipelineArticle->sourceTitle(),
+                'articleSlug' => $this->pipelineArticle->sourceSlug(),
                 'clipCount' => count($this->signedClipUrls),
                 'clipUrls' => $this->signedClipUrls,
                 'trackerUrl' => 'https://docs.google.com/spreadsheets/d/'.

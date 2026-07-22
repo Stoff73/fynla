@@ -57,6 +57,18 @@ class SchedulePostJob implements ShouldQueue
             return;
         }
 
+        // Defence in depth: even though ComposePostsJob already gates on this,
+        // re-check at post time — the article could have been unpublished in the
+        // window between compose and schedule. Never post a link to a dead page.
+        if (! optional($post->pipelineArticle)->sourceIsPublished()) {
+            Log::channel('pipeline')->warning('SchedulePost held — source article is not live.', [
+                'post_id' => $post->id,
+                'pipeline_article_id' => $post->pipeline_article_id,
+            ]);
+
+            return;
+        }
+
         $clipPath = $this->resolveClipPath($post);
         if ($clipPath === null || ! is_file($clipPath)) {
             $this->fail($post, "Clip file not found for post {$post->id}.");

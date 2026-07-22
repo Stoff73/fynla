@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Social;
 
-use App\Models\Insights\InsightArticle;
 use App\Services\Pipeline\AnthropicOpusClient;
 use RuntimeException;
 
@@ -35,25 +34,37 @@ class PostComposer
     /**
      * @return array{A: string, B: string, audience_b: string}
      */
-    public function compose(InsightArticle $article, string $platform): array
+    public function compose(string $title, ?string $summary, string $platform): array
     {
         $audienceB = $this->pickTestAudience();
+        $system = $this->systemBlocks($platform, $audienceB);
+        $user = $this->userMessage($title, $summary);
 
-        $completion = $this->anthropic->complete(
-            $this->systemBlocks($platform, $audienceB),
-            [[
+        // LLMs occasionally return non-JSON (a stray preamble, a truncated
+        // object). Retry once before failing the whole compose stage.
+        $lastError = null;
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $completion = $this->anthropic->complete($system, [[
                 'role' => 'user',
-                'content' => $this->userMessage($article),
-            ]],
+                'content' => $user,
+            ]]);
+            try {
+                $data = $this->parse($completion['text']);
+
+                return [
+                    'A' => (string) ($data['variant_a'] ?? ''),
+                    'B' => (string) ($data['variant_b'] ?? ''),
+                    'audience_b' => $audienceB,
+                ];
+            } catch (\Throwable $e) {
+                $lastError = $e;
+            }
+        }
+
+        throw new RuntimeException(
+            'Post composer could not parse a JSON response after 2 attempts: '.$lastError?->getMessage(),
+            previous: $lastError,
         );
-
-        $data = $this->parse($completion['text']);
-
-        return [
-            'A' => (string) ($data['variant_a'] ?? ''),
-            'B' => (string) ($data['variant_b'] ?? ''),
-            'audience_b' => $audienceB,
-        ];
     }
 
     private function pickTestAudience(): string
@@ -118,12 +129,12 @@ class PostComposer
         ]];
     }
 
-    private function userMessage(InsightArticle $article): string
+    private function userMessage(string $title, ?string $summary): string
     {
         return sprintf(
             "Article title: %s\n\nArticle summary: %s",
-            $article->title,
-            $article->summary ?? '(no summary)',
+            $title,
+            ($summary === null || $summary === '') ? '(no summary)' : $summary,
         );
     }
 

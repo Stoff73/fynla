@@ -8,7 +8,6 @@ use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\OAuthCredential;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
-use App\Services\Pipeline\CaptionBuilder;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\GoogleSheetsService;
 use App\Services\Pipeline\HighlightSelectorService;
@@ -59,7 +58,6 @@ it('skips articles not in a runnable state', function () {
         app(GoogleSheetsService::class),
         app(LocalWhisperTranscriber::class),
         app(HighlightSelectorService::class),
-        app(CaptionBuilder::class),
         app(VideoCropService::class),
     );
 
@@ -86,7 +84,6 @@ it('records a fail run when the source video record is missing its Drive file ID
         app(GoogleSheetsService::class),
         app(LocalWhisperTranscriber::class),
         app(HighlightSelectorService::class),
-        app(CaptionBuilder::class),
         app(VideoCropService::class),
     ))->toThrow(\RuntimeException::class);
 

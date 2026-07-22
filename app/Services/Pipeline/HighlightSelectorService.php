@@ -7,11 +7,12 @@ namespace App\Services\Pipeline;
 use RuntimeException;
 
 /**
- * Given a Whisper transcript for a source video that's too long to post
- * as-is, ask Claude Opus to pick 1–3 highlight moments to clip. Returns
+ * Given a Whisper transcript for a source video, ask Claude Opus to pick a
+ * couple of short (20–30s) highlight moments to clip for social. Returns
  * start/end timestamps and a one-line reason per highlight.
  *
- * Not called for videos ≤ 75s — those are cropped whole.
+ * Captions are NOT burned into clips — they're added later in the editing
+ * stage — so the transcript here is used only for choosing the moments.
  */
 class HighlightSelectorService
 {
@@ -23,13 +24,16 @@ class HighlightSelectorService
      * @param  array{segments: list<array{start:float,end:float,text:string}>,text:string}  $transcript
      * @return list<array{start:float,end:float,reason:string}>
      */
-    public function select(string $articleTitle, ?string $articleSummary, array $transcript, int $maxHighlights = 3): array
+    /**
+     * @param  list<array{start:float,end:float}>  $avoidRanges  previously-rejected ranges to steer away from
+     */
+    public function select(string $articleTitle, ?string $articleSummary, array $transcript, int $maxHighlights = 3, array $avoidRanges = [], ?string $feedback = null): array
     {
         $completion = $this->anthropic->complete(
             $this->systemBlocks(),
             [[
                 'role' => 'user',
-                'content' => $this->userMessage($articleTitle, $articleSummary, $transcript, $maxHighlights),
+                'content' => $this->userMessage($articleTitle, $articleSummary, $transcript, $maxHighlights, $avoidRanges, $feedback),
             ]],
         );
 
@@ -46,12 +50,12 @@ class HighlightSelectorService
         $picked = [];
         foreach ($data['highlights'] ?? [] as $highlight) {
             $start = max(0.0, (float) ($highlight['start'] ?? 0));
-            $end = min($totalDuration, (float) ($highlight['end'] ?? $start + 30));
-            if ($end - $start < 5) {
+            $end = min($totalDuration, (float) ($highlight['end'] ?? $start + 25));
+            if ($end - $start < 12) {
                 continue;
             }
-            if ($end - $start > 75) {
-                $end = $start + 75;
+            if ($end - $start > 30) {
+                $end = $start + 30;
             }
 
             $picked[] = [
@@ -85,7 +89,7 @@ class HighlightSelectorService
             best short vertical clips for Instagram Reels, Facebook Reels and TikTok.
 
             Selection criteria:
-            - Each moment must be 20–75 seconds long. Aim for ~60s where possible.
+            - Each moment must be 20–30 seconds long. Aim for ~25s.
             - Prefer moments that stand alone — a viewer with no context should get
               the point.
             - Prefer moments with a clear hook in the first two sentences.
@@ -100,7 +104,7 @@ class HighlightSelectorService
               "highlights": [
                 {
                   "start": 34.0,
-                  "end": 92.5,
+                  "end": 59.0,
                   "reason": "One-sentence justification for picking this moment."
                 }
               ]
@@ -113,7 +117,7 @@ class HighlightSelectorService
         ]];
     }
 
-    private function userMessage(string $title, ?string $summary, array $transcript, int $maxHighlights): string
+    private function userMessage(string $title, ?string $summary, array $transcript, int $maxHighlights, array $avoidRanges = [], ?string $feedback = null): string
     {
         $lines = [];
         $lines[] = "Article this video supports: {$title}";
@@ -121,6 +125,18 @@ class HighlightSelectorService
             $lines[] = 'Article summary: '.$summary;
         }
         $lines[] = "Pick up to {$maxHighlights} highlights.";
+
+        if ($avoidRanges !== []) {
+            $ranges = implode(', ', array_map(
+                static fn (array $r) => sprintf('%.1f–%.1fs', $r['start'] ?? 0, $r['end'] ?? 0),
+                $avoidRanges,
+            ));
+            $lines[] = "IMPORTANT: a previous pick was rejected. Do NOT reuse these ranges: {$ranges}. Choose a genuinely different moment.";
+        }
+        if ($feedback !== null && trim($feedback) !== '') {
+            $lines[] = 'Reviewer feedback to address: '.trim($feedback);
+        }
+
         $lines[] = '';
         $lines[] = '--- Transcript (start–end seconds, text) ---';
 
