@@ -258,7 +258,25 @@ final class OnboardingChatDirector
             $user->onboarding_fyn_context = $context;
             $user->save();
 
-            if ($awaitingDetail) {
+            // Poisoned-payload discard: a question can never be capture
+            // details. Flags armed before the persona-gate fix (live
+            // conversation 168 — "Am I on track for retirement?" stored as
+            // the pending message with awaiting_detail) would otherwise merge
+            // the question into every subsequent capture attempt forever.
+            // Strip the accumulated merge prefixes, look at the original
+            // first line, and if it is a question drop the flag entirely so
+            // this message reaches the state's normal handling below.
+            $pendingOriginal = trim((string) preg_replace(
+                '/^(?:Original capture details:\s*)+/u',
+                '',
+                strtok((string) ($pending['message'] ?? ''), "\n") ?: ''
+            ));
+            if ($awaitingDetail && $pendingOriginal !== '' && $this->userAskedQuestion($pendingOriginal)) {
+                $awaitingDetail = false;
+                $pending = null;
+            }
+
+            if ($pending !== null && $awaitingDetail) {
                 // Escape hatch — without this, every reply while awaiting the
                 // missing detail is treated as that detail, with no way for
                 // the user to back out of the clarification loop. Checked
@@ -283,7 +301,7 @@ final class OnboardingChatDirector
                 return;
             }
 
-            if (str_starts_with($reply, 'yes')) {
+            if ($pending !== null && str_starts_with($reply, 'yes')) {
                 yield from $this->resolvePendingInterruptionCapture(
                     $user, $conversation, $currentStateId, $state, (string) $pending['message'], $pending, $currentRoute
                 );
@@ -291,13 +309,14 @@ final class OnboardingChatDirector
                 return;
             }
 
-            if (str_starts_with($reply, 'not now') || str_starts_with($reply, 'no')) {
+            if ($pending !== null && (str_starts_with($reply, 'not now') || str_starts_with($reply, 'no'))) {
                 yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
                 yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
 
                 return;
             }
-            // Anything else: the user moved on — fall through to normal routing.
+            // Anything else (or a discarded poisoned payload): the user moved
+            // on — fall through to normal routing.
         }
 
         // Phase 4e — stamp the active onboarding workflow procedure version onto

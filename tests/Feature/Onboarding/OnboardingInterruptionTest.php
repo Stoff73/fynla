@@ -1143,3 +1143,30 @@ it('still arms pending_interruption_store for a genuine capture clarification re
     expect($pending)->not->toBeNull();
     expect($pending['awaiting_detail'] ?? null)->toBeTrue();
 });
+
+it('discards a poisoned awaiting-detail payload whose original is a question', function () {
+    // Live conversation 168: flags armed before the persona-gate fix stored a
+    // QUESTION as the pending capture message. On read, such payloads must be
+    // dropped so the user's next on-script answer reaches the state's normal
+    // handling instead of a bogus capture merge.
+    [$user, $conversation] = interruptionUser();
+    $context = ['pending_interruption_store' => [
+        'message' => 'Original capture details: Am I on track for retirement?'
+            ."\nRequested missing details: 14 March 1988",
+        'intent' => ['reason' => 'question_phrased_write', 'entity_type' => 'savings_account', 'fields_needed' => []],
+        'state_id' => OnboardingStateMachine::STATE_PATH_CHOICE,
+        'awaiting_detail' => true,
+    ]];
+    $user->onboarding_fyn_context = $context;
+    $user->save();
+
+    $received = driveDirector($user, $conversation, 'Follow a journey');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+    // The bubble answer reached path_choice's own interpretation and advanced
+    // the walk — no capture merge hijacked it.
+    expect($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($texts)->not->toContain('I can only help with');
+});
