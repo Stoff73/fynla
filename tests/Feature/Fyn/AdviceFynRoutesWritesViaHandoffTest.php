@@ -133,7 +133,8 @@ it('AdviceFyn intercepts delegate_to_capture handoff and routes through handleIn
     // The inline-capture chain runs and its events surface to the user.
     expect($types)->toContain('tool_use');
     expect($types)->toContain('entity_created');
-    expect($types)->toContain('done');
+    expect(array_count_values($types)['done'] ?? 0)->toBe(1)
+        ->and($types[array_key_last($types)])->toBe('done');
 });
 
 it('AdviceFyn routes create_what_if_scenario through the handoff (no analytics carve-out)', function (): void {
@@ -171,5 +172,6 @@ it('AdviceFyn routes create_what_if_scenario through the handoff (no analytics c
     // the navigation event so the UI routes to the scenario view.
     expect($types)->toContain('tool_use');
     expect($types)->toContain('navigation');
-    expect($types)->toContain('done');
+    expect(array_count_values($types)['done'] ?? 0)->toBe(1)
+        ->and($types[array_key_last($types)])->toBe('done');
 });

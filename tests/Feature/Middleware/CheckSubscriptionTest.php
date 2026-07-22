@@ -35,6 +35,41 @@ it('allows a free user (no subscription) to perform writes', function () {
     expect($response->status())->not->toBe(403);
 });
 
+it('allows Free writes while checkout is pending without granting Premium', function () {
+    $user = User::factory()->create(['tier' => 'free']);
+    Subscription::factory()->pending()->create([
+        'user_id' => $user->id,
+    ]);
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/savings/accounts', [
+        'account_name' => 'Pending Checkout Savings',
+        'account_type' => 'easy_access',
+        'current_balance' => 100,
+        'ownership_type' => 'individual',
+    ]);
+
+    expect($response->json('error') ?? '')->not->toBe('subscription_required');
+    expect($response->status())->not->toBe(403)
+        ->and($user->fresh()->tier)->toBe('free');
+});
+
+it('does not inherit stale Premium capabilities through a newer pending checkout', function () {
+    $user = User::factory()->create(['tier' => 'premium', 'plan' => 'premium']);
+    Subscription::factory()->plan('premium')->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'auto_renew' => false,
+        'current_period_end' => now()->subMinute(),
+    ]);
+    Subscription::factory()->pending()->plan('premium')->create(['user_id' => $user->id]);
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/holistic/analyze')
+        ->assertForbidden()
+        ->assertJsonPath('error', 'capability_denied');
+});
+
 it('blocks writes for a churned paid user with a terminal subscription past grace', function () {
     $user = User::factory()->create(['tier' => null, 'plan' => 'pro']);
     Subscription::factory()->expired()->create([

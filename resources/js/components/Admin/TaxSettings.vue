@@ -2827,26 +2827,28 @@ export default {
         if (pet.taper_relief && Array.isArray(pet.taper_relief)) {
           const reliefSchedule = pet.taper_relief;
 
-          // Check that years are in ascending order
+          // Bands are stored as { min_years, max_years, tax_rate } — check the
+          // bands are in ascending order by their starting year.
           for (let i = 1; i < reliefSchedule.length; i++) {
-            if (reliefSchedule[i].years <= reliefSchedule[i - 1].years) {
-              errors.push('Potentially Exempt Transfer taper relief years must be in ascending order');
+            if (reliefSchedule[i].min_years <= reliefSchedule[i - 1].min_years) {
+              errors.push('Potentially Exempt Transfer taper relief bands must be in ascending order');
               break;
             }
           }
 
-          // Check that the last year matches years_to_exemption
+          // The final band is the fully-exempt band; its starting year marks the
+          // point gifts become exempt and must match years_to_exemption.
           if (reliefSchedule.length > 0) {
-            const lastYear = reliefSchedule[reliefSchedule.length - 1].years;
-            if (lastYear !== yearsToExemption) {
+            const lastBandStart = reliefSchedule[reliefSchedule.length - 1].min_years;
+            if (lastBandStart !== yearsToExemption) {
               errors.push(`Potentially Exempt Transfer taper relief schedule must end at ${yearsToExemption} years (years to exemption)`);
             }
           }
 
-          // Validate rates are between 0-1
+          // Validate tax rates are between 0-1
           reliefSchedule.forEach((relief, i) => {
-            if (relief.rate < 0 || relief.rate > 1) {
-              errors.push(`Potentially Exempt Transfer taper relief year ${relief.years} rate must be between 0 and 1`);
+            if (relief.tax_rate < 0 || relief.tax_rate > 1) {
+              errors.push(`Potentially Exempt Transfer taper relief band ${i + 1} rate must be between 0 and 1`);
             }
           });
         }

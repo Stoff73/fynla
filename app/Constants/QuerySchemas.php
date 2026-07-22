@@ -78,6 +78,30 @@ final class QuerySchemas
      */
     public const OUT_OF_REMIT = 'out_of_remit';
 
+    // Required-data vocabulary. These values describe the minimum data needed
+    // for the primary question, independently of related query classifications.
+    public const REQUIREMENT_DATE_OF_BIRTH = 'date_of_birth';
+
+    public const REQUIREMENT_INCOME = 'income';
+
+    public const REQUIREMENT_EXPENDITURE = 'expenditure';
+
+    public const REQUIREMENT_PROTECTION = 'protection';
+
+    public const REQUIREMENT_SAVINGS = 'savings';
+
+    public const REQUIREMENT_LIABILITIES = 'liabilities';
+
+    public const REQUIREMENT_RETIREMENT = 'retirement';
+
+    public const REQUIREMENT_INVESTMENT = 'investment';
+
+    public const REQUIREMENT_ESTATE = 'estate';
+
+    public const REQUIREMENT_GOALS = 'goals';
+
+    public const REQUIREMENT_PROPERTY = 'property';
+
     // ─── Type Groups ─────────────────────────────────────────────────
 
     /**
@@ -103,6 +127,32 @@ final class QuerySchemas
         self::INCOME,
         self::HOLISTIC_HEALTH,
         self::AFFORDABILITY,
+    ];
+
+    /**
+     * Minimum user data required to answer each advice query type. Only the
+     * primary query type is evaluated by KycGateChecker.
+     */
+    public const REQUIRED_DATA = [
+        self::PROTECTION_COVER => [self::REQUIREMENT_DATE_OF_BIRTH, self::REQUIREMENT_INCOME, self::REQUIREMENT_EXPENDITURE],
+        self::PROTECTION_POLICY => [self::REQUIREMENT_PROTECTION],
+        self::SAVINGS_EMERGENCY => [self::REQUIREMENT_INCOME, self::REQUIREMENT_EXPENDITURE],
+        self::SAVINGS_ACCOUNTS => [self::REQUIREMENT_SAVINGS],
+        self::SAVINGS_DEBT => [self::REQUIREMENT_INCOME, self::REQUIREMENT_EXPENDITURE, self::REQUIREMENT_LIABILITIES],
+        self::RETIREMENT_CONTRIBUTION => [self::REQUIREMENT_INCOME, self::REQUIREMENT_RETIREMENT],
+        self::RETIREMENT_READINESS => [self::REQUIREMENT_DATE_OF_BIRTH, self::REQUIREMENT_INCOME, self::REQUIREMENT_RETIREMENT],
+        self::RETIREMENT_DECUMULATION => [self::REQUIREMENT_DATE_OF_BIRTH, self::REQUIREMENT_RETIREMENT],
+        self::INVESTMENT_PORTFOLIO => [self::REQUIREMENT_INVESTMENT],
+        self::INVESTMENT_FEES => [self::REQUIREMENT_INVESTMENT],
+        self::INVESTMENT_TAX => [self::REQUIREMENT_INCOME, self::REQUIREMENT_INVESTMENT],
+        self::ESTATE_IHT => [self::REQUIREMENT_ESTATE, self::REQUIREMENT_PROPERTY],
+        self::ESTATE_PLANNING => [self::REQUIREMENT_ESTATE],
+        self::GOALS_PROGRESS => [self::REQUIREMENT_GOALS],
+        self::TAX_OPTIMISATION => [self::REQUIREMENT_INCOME],
+        self::PROPERTY => [self::REQUIREMENT_PROPERTY],
+        self::INCOME => [self::REQUIREMENT_INCOME],
+        self::HOLISTIC_HEALTH => [self::REQUIREMENT_DATE_OF_BIRTH, self::REQUIREMENT_INCOME, self::REQUIREMENT_EXPENDITURE],
+        self::AFFORDABILITY => [self::REQUIREMENT_INCOME, self::REQUIREMENT_EXPENDITURE],
     ];
 
     /**
@@ -225,17 +275,22 @@ final class QuerySchemas
             // ("show me my billing", "billing page"). The narrower
             // history|cycle|date pattern above stays for related-type signal.
             '/\bbilling\b/i',
-            '/\bsubscription\s+(status|plan|active|cancelled|paused|trial|trialing|renew(al|s)?)\b/i',
+            '/\bsubscription\s+(status|plan|active|cancelled|paused|renew(al|s)?)\b/i',
             // Bare "subscription" ("show my subscription", "my subscription")
-            // EXCEPT the ISA-subscription savings concept ("ISA subscription
-            // limit") — fixed-width negative lookbehind, case-insensitive.
-            '/\b(?<!isa\s)subscription\b/i',
+            // EXCEPT any question that also names an ISA. "Which account
+            // contains the subscription?" is still an ISA-usage question even
+            // though the two words are not adjacent.
+            '/^(?!.*\bisa\b).*\bsubscription\b/i',
             '/\bnext\s+(charge|payment|bill|invoice)\b/i',
             '/\bwhen\s+(am\s+i\s+)?charged\b/i',
-            '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',
+            '/\bwhen\s+(does|will)\s+my\s+(subscription|plan)\b/i',
             '/\bwhat\s+(am\s+i\s+)?paying\s+(for\s+)?fynla\b/i',
-            '/\bcurrent\s+plan\b/i',
-            '/\bmy\s+plan\b/i',
+            // "My plan" is normally the user's financial plan in Fynla, not
+            // their paid subscription. Keep billing classification behind an
+            // explicit product/subscription signal so advice questions such as
+            // "using the figures in my plan" retain their financial context.
+            '/\b(current|my)\s+(fynla|subscription|pricing|membership)\s+plan\b/i',
+            '/\b(which|what)\s+(fynla\s+)?plan\s+(am\s+i|are\s+we)\s+on\b/i',
         ],
         self::HOLISTIC_HEALTH => [
             '/\bnet\s+worth\b/i',
@@ -363,12 +418,14 @@ final class QuerySchemas
             '/\bestate\s+plan/i',
         ],
         self::GOALS_PROGRESS => [
-            '/\bgoal\s+(track|progress|on\s+track)/i',
-            '/\b(am\s+i|are\s+we)\s+on\s+track\b/i',
-            '/\bcontribution\s+(adequate|enough|target)/i',
+            '/\bgoals?\s+(track|progress|on\s+track)/i',
+            '/\blife\s+events?\s+(track|progress|on\s+track)/i',
+            '/\b(am\s+i|are\s+we)\s+on\s+track.{0,40}\b(goals?|life\s+events?)\b/i',
+            '/\b(goals?|life\s+events?)\s+contributions?\s+(adequate|enough|on\s+track|target)/i',
         ],
         self::TAX_OPTIMISATION => [
             '/\btax\s+(plan|optimi[sz]|efficien|strateg|saving|position)/i',
+            '/\b(mov(e|ing)|transfer(ring)?)\b.{0,80}\b(savings?|cash)\b.{0,80}\b(isa|individual\s+savings\s+account)\b/i',
             '/\bspousal\s+transfer\b/i',
             '/\bcapital\s+gains\s+tax\b/i',
             '/\bcgt\b/i',
@@ -400,43 +457,6 @@ final class QuerySchemas
     ];
 
     // ─── KYC Requirements ────────────────────────────────────────────
-
-    /**
-     * Universal KYC requirements checked for all advice types.
-     */
-    public const UNIVERSAL_KYC = [
-        'date_of_birth' => 'Date of birth',
-        'marital_status' => 'Marital status',
-        'employment_status' => 'Employment status',
-        'income' => 'Gross annual income',
-        'expenditure' => 'Monthly expenditure',
-    ];
-
-    /**
-     * Additional KYC requirements per module (on top of universal).
-     */
-    public const MODULE_KYC = [
-        'protection' => [
-            'family_members' => 'Dependants and their ages',
-            'existing_protection' => 'Existing protection policies (or confirmed none)',
-            'liabilities' => 'Debts and liabilities',
-        ],
-        'savings' => [
-            'savings_accounts' => 'Existing savings accounts',
-        ],
-        'retirement' => [
-            'pensions' => 'At least one pension record',
-            'target_retirement_age' => 'Target retirement age',
-        ],
-        'investment' => [
-            'risk_profile' => 'Completed risk profile',
-            'investment_accounts' => 'At least one investment account',
-        ],
-        'estate' => [
-            'assets' => 'At least one asset (property, savings, investments, or pensions)',
-            'family_members' => 'Family members',
-        ],
-    ];
 
     // ─── Required Tools Per Query Type ───────────────────────────────
 

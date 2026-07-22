@@ -20,20 +20,32 @@ class SecurityHeaders
         $response = $next($request);
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        // SP3: /m (host), /m/landing (HTML landing placeholder) and /m/app*
-        // (isolated mobile SPA) are intentionally same-origin framed (host embeds
-        // the landing initially, then user navigates the iframe to /m/app).
-        // Every other route stays DENY. The 'm/app/' clause covers the bare
-        // trailing-slash refresh case — inner router is
-        // createWebHistory('/m/app/'), so /m/app/ (no sub-segment) is a
-        // legitimate path that must keep SAMEORIGIN.
-        $isMobileFramed = $request->is('m')
+        // SP3: /m (host) + /m/app* (isolated mobile SPA) are intentionally
+        // same-origin framed. The /m host now embeds the REAL responsive funnel
+        // (homepage → /savetax → /savetax/plan → register → /m/app), so ANY
+        // document being loaded inside that same-origin iframe must also be
+        // SAMEORIGIN-frameable. iOS Safari + Chromium send Sec-Fetch-Dest: iframe
+        // for framed loads — that is the discriminator. SAMEORIGIN still blocks
+        // cross-origin clickjacking; it only permits our own same-origin frame.
+        // 'm/app/' covers the bare trailing-slash inner-router base.
+        $fetchDest = strtolower((string) $request->header('Sec-Fetch-Dest'));
+        $isFramedLoad = $fetchDest === 'iframe' || $fetchDest === 'frame';
+        $isMobileFramed = $isFramedLoad
+            || $request->is('m')
             || $request->is('m/landing')
             || $request->is('m/app')
             || $request->is('m/app/')
             || $request->is('m/app/*');
         $response->headers->set('X-Frame-Options', $isMobileFramed ? 'SAMEORIGIN' : 'DENY');
+        // The framing decision varies by Sec-Fetch-Dest, so cacheable public
+        // pages (homepage/savetax are public, max-age=300) must not serve a
+        // cached DENY into the frame, nor a cached SAMEORIGIN top-level.
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $existingVary = (string) $response->headers->get('Vary');
+        $response->headers->set(
+            'Vary',
+            trim($existingVary === '' ? 'Sec-Fetch-Dest' : $existingVary.', Sec-Fetch-Dest', ', ')
+        );
 
         // HSTS in production only
         if (app()->environment('production')) {
@@ -62,8 +74,8 @@ class SecurityHeaders
         // Capacitor mobile app origins
         $capacitor = 'capacitor://localhost http://localhost';
 
-        // In local dev, Vite serves assets from localhost:5173 and uses WebSocket for HMR
-        if (app()->environment('local')) {
+        // In local and E2E, Vite serves assets from localhost:5173 and uses WebSocket for HMR.
+        if (app()->environment(['local', 'e2e'])) {
             $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173 http://localhost:5174 ws://localhost:5174 http://127.0.0.1:5174 ws://127.0.0.1:5174';
             $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut} {$plausible} {$ga} {$awin} {$metaPixel}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite} {$revolut} {$ga} {$awin} {$metaPixel}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut} {$plausible} {$capacitor} {$ga} {$awin} {$metaPixel}; frame-src 'self' {$revolut}";
         } else {

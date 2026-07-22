@@ -15,9 +15,9 @@ use App\Services\Stores\TierGate;
 use App\Services\Tiers\RevolutTierVariationSync;
 use App\Services\Tiers\TierResolver;
 use Database\Seeders\RolesPermissionsSeeder;
-use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -30,17 +30,37 @@ afterEach(function () {
     Mockery::close();
 });
 
+it('creates the Premium Revolut plan without a trial duration', function () {
+    Http::fake([
+        '*/subscription-plans' => Http::response([
+            'id' => 'revolut_premium_plan',
+            'variations' => [['id' => 'revolut_premium_monthly']],
+        ]),
+    ]);
+
+    $result = app(RevolutSubscriptionService::class)->upsertTierPlan('Premium', 699);
+
+    expect($result)->toBe([
+        'id' => 'revolut_premium_monthly',
+        'plan_id' => 'revolut_premium_plan',
+    ]);
+
+    Http::assertSent(function ($request): bool {
+        return str_ends_with($request->url(), '/subscription-plans')
+            && $request['name'] === 'Fynla Premium Tier'
+            && ! array_key_exists('trial_duration', $request->data());
+    });
+});
+
 // ── Task 5.1 Step 1: Sync pushes price + writes back variation id ──────────
 
-it('pushes each paid tier price to Revolut and writes back the variation id', function () {
+it('pushes the Premium price to Revolut and writes back the variation id', function () {
     $actor = User::factory()->create();
 
     $fakeClient = Mockery::mock(RevolutSubscriptionService::class);
 
-    // Each paid tier (tier1, tier2, tier3) should receive exactly one upsertTierPlan call.
-    // The mock returns a unique variation id per call so we can assert the write-back.
     $fakeClient->shouldReceive('upsertTierPlan')
-        ->times(3)  // tier1, tier2, tier3 — free is skipped
+        ->once()
         ->andReturnUsing(function (string $displayName, int $pricePence) {
             return ['id' => 'rev_var_'.strtolower(str_replace(' ', '_', $displayName))];
         });
@@ -49,24 +69,16 @@ it('pushes each paid tier price to Revolut and writes back the variation id', fu
     $sync = new RevolutTierVariationSync($fakeClient, $store);
     $sync->run($actor);
 
-    // Each paid tier now has a variation id written back via the store.
-    expect(TierConfiguration::where('tier', 'tier1')->first()->revolut_plan_variation_id)
-        ->toBe('rev_var_tier_1');
-
-    expect(TierConfiguration::where('tier', 'tier2')->first()->revolut_plan_variation_id)
-        ->toBe('rev_var_tier_2');
-
-    expect(TierConfiguration::where('tier', 'tier3')->first()->revolut_plan_variation_id)
-        ->toBe('rev_var_tier_3');
+    expect(TierConfiguration::where('tier', 'premium')->first()->revolut_plan_variation_id)
+        ->toBe('rev_var_premium');
 });
 
 it('skips the free tier because it has no monthly price', function () {
     $actor = User::factory()->create();
 
     $fakeClient = Mockery::mock(RevolutSubscriptionService::class);
-    // free tier: price_monthly_pence = 0, so upsertTierPlan must never be called for it.
     $fakeClient->shouldReceive('upsertTierPlan')
-        ->times(3)  // only the three paid tiers
+        ->once()
         ->andReturn(['id' => 'rev_var_test']);
 
     $store = app(TierConfigurationStore::class);
@@ -77,27 +89,19 @@ it('skips the free tier because it has no monthly price', function () {
         ->toBeNull();
 });
 
-it('continues syncing remaining tiers when one tier call fails', function () {
+it('contains a Premium sync failure without changing its variation id', function () {
     $actor = User::factory()->create();
-    $callCount = 0;
 
     $fakeClient = Mockery::mock(RevolutSubscriptionService::class);
     $fakeClient->shouldReceive('upsertTierPlan')
-        ->times(3)
-        ->andReturnUsing(function () use (&$callCount) {
-            $callCount++;
-            if ($callCount === 1) {
-                throw new RuntimeException('Revolut API error');
-            }
-
-            return ['id' => "rev_var_{$callCount}"];
-        });
+        ->once()
+        ->andThrow(new RuntimeException('Revolut API error'));
 
     $store = app(TierConfigurationStore::class);
     $sync = new RevolutTierVariationSync($fakeClient, $store);
 
-    // Should not throw — partial failure is tolerated
     expect(fn () => $sync->run($actor))->not->toThrow(Throwable::class);
+    expect(TierConfiguration::where('tier', 'premium')->first()->revolut_plan_variation_id)->toBeNull();
 });
 
 // ── Task 5.1 Step 1: Price-lock assertion ─────────────────────────────────
@@ -108,7 +112,7 @@ it('continues syncing remaining tiers when one tier call fails', function () {
 //       ? ($subscriptionPlan->getLaunchPrice ?? $subscriptionPlan->getPrice)
 //       : $subscription->amount;                                     // line 60-62
 //
-// For tier keys (tier1/tier2/tier3) there is no SubscriptionPlan row, so
+// For the Premium tier key there is no SubscriptionPlan row, so
 // findBySlug() returns null and the renewal falls through to $subscription->amount
 // — the value stored at payment confirmation time. This is the price-lock: the
 // billed amount is read from the subscription row's locked amount, NOT from a
@@ -119,13 +123,13 @@ it('continues syncing remaining tiers when one tier call fails', function () {
 // new price and bills from the subscription row.
 //
 it('does NOT change the price an existing subscriber is billed when the tier price changes (price-lock)', function () {
-    // Arrange — user with an active tier1 subscription locked at 499p
+    // Arrange — user with an active premium subscription locked at 499p
     $user = User::factory()->create();
     $originalAmountPence = 499;
 
     $subscription = Subscription::factory()->create([
         'user_id' => $user->id,
-        'plan' => 'tier1',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
         'status' => 'active',
         'amount' => $originalAmountPence,
@@ -136,11 +140,11 @@ it('does NOT change the price an existing subscriber is billed when the tier pri
     // Simulate the tier store price being changed AFTER the subscription was created.
     // (This is what a RevolutTierVariationSync run would do — it updates the store
     // but must NOT retroactively change the subscriber's billed amount.)
-    TierConfiguration::where('tier', 'tier1')->update(['price_monthly_pence' => 999]);
+    TierConfiguration::where('tier', 'premium')->update(['price_monthly_pence' => 999]);
 
     // Act — simulate what SubscriptionRenewalService does when the renewal webhook fires.
     // It looks up the SubscriptionPlan by the plan slug stored on the subscription.
-    $planSlug = $subscription->plan;                              // 'tier1'
+    $planSlug = $subscription->plan;                              // 'premium'
     $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug); // returns null (no SubscriptionPlan for tier keys)
 
     // This is the actual billing path — null coalescence to $subscription->amount.
@@ -162,12 +166,12 @@ it('does NOT change the price an existing subscriber is billed when the tier pri
 // do. NO Fynla billing logic is mocked. It proves the price-lock guarantee
 // end-to-end:
 //
-//   1. createOrder(tier1) at the current store price → Payment.amount captured
+//   1. createOrder(premium) at the current store price → Payment.amount captured
 //      from TierConfigurationStore at order time.
 //   2. confirmPayment → Subscription.amount becomes the captured price (NOT
 //      the placeholder amount:0 the subscription is created with, NOT a live
 //      re-read of the tier config).
-//   3. Admin bumps TierConfiguration tier1 price via the store.
+//   3. Admin bumps TierConfiguration premium price via the store.
 //   4. The existing subscription's amount is UNCHANGED (price-locked).
 //   5. The SubscriptionRenewalService billing path bills the locked amount,
 //      not the new store price.
@@ -177,8 +181,8 @@ it('locks an existing tier subscriber to their original price across a store pri
     $admin = User::factory()->create();
 
     // The store price at the time the subscriber checks out.
-    $tier1 = $store->forTier('tier1');
-    $priceAtOrderTime = $tier1->price_monthly_pence; // seeded 499p
+    $premium = $store->forTier('premium');
+    $priceAtOrderTime = $premium->price_monthly_pence; // seeded 499p
     expect($priceAtOrderTime)->toBeGreaterThan(0);
 
     $user = User::factory()->create(['revolut_customer_id' => 'cust_pricelock']);
@@ -206,17 +210,17 @@ it('locks an existing tier subscriber to their original price across a store pri
         ]);
     app()->instance(RevolutService::class, $revolut);
 
-    // Step 1: real createOrder for tier1 — price resolved from the store.
+    // Step 1: real createOrder for premium — price resolved from the store.
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/payment/create-order', [
-            'plan' => 'tier1',
+            'plan' => 'premium',
             'billing_cycle' => 'monthly',
         ])->assertOk();
 
     $payment = Payment::where('user_id', $user->id)->latest()->first();
     expect($payment)->not->toBeNull()
         ->and((int) $payment->amount)->toBe($priceAtOrderTime) // captured store price, NOT 0
-        ->and($payment->plan_slug)->toBe('tier1');
+        ->and($payment->plan_slug)->toBe('premium');
 
     // Step 2: real confirmPayment — activates the subscription.
     $this->actingAs($user, 'sanctum')
@@ -225,17 +229,17 @@ it('locks an existing tier subscriber to their original price across a store pri
 
     $subscription = $user->fresh()->subscription;
     expect($subscription->status)->toBe('active')
-        ->and($subscription->plan)->toBe('tier1')
+        ->and($subscription->plan)->toBe('premium')
         // The locked amount is the price captured at order time, NOT the
         // placeholder amount:0 the subscription row was created with.
         ->and((int) $subscription->amount)->toBe($priceAtOrderTime);
 
     $lockedAmount = (int) $subscription->amount;
 
-    // Step 3: admin raises the tier1 price via the store (the legitimate
+    // Step 3: admin raises the premium price via the store (the legitimate
     // write path — mirrors what an admin price change / sync run does).
     $store->updateTier(
-        'tier1',
+        'premium',
         ['price_monthly_pence' => $priceAtOrderTime + 1000],
         $admin,
         IngestSource::ADMIN,
@@ -269,10 +273,10 @@ it('locks an existing tier subscriber to their original price across a store pri
 // canonical users.tier, that a legacy purchase does NOT (grandfather logic
 // owns those), and that the resolved gate gives the paid (not Free) cap.
 
-it('sets canonical users.tier on a tier1 purchase via confirmPayment and resolves as tier1 (not Free)', function () {
+it('sets canonical users.tier on a premium purchase via confirmPayment and resolves as premium (not Free)', function () {
     $user = User::factory()->create(['revolut_customer_id' => 'cust_tiercol']);
     $orderId = '22222222-2222-2222-2222-222222222222';
-    $priceAtOrderTime = app(TierConfigurationStore::class)->forTier('tier1')->price_monthly_pence;
+    $priceAtOrderTime = app(TierConfigurationStore::class)->forTier('premium')->price_monthly_pence;
 
     $revolut = Mockery::mock(RevolutService::class);
     $revolut->shouldReceive('createOrderWithCustomer')->once()->andReturn([
@@ -286,7 +290,7 @@ it('sets canonical users.tier on a tier1 purchase via confirmPayment and resolve
     app()->instance(RevolutService::class, $revolut);
 
     $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-        'plan' => 'tier1', 'billing_cycle' => 'monthly',
+        'plan' => 'premium', 'billing_cycle' => 'monthly',
     ])->assertOk();
 
     $this->actingAs($user, 'sanctum')->postJson('/api/payment/confirm', [
@@ -296,32 +300,32 @@ it('sets canonical users.tier on a tier1 purchase via confirmPayment and resolve
     $fresh = $user->fresh();
 
     // (a) BOTH columns written: plan (legacy billing-compat) AND tier (canonical).
-    expect($fresh->tier)->toBe('tier1')
-        ->and($fresh->plan)->toBe('tier1');
+    expect($fresh->tier)->toBe('premium')
+        ->and($fresh->plan)->toBe('premium');
 
     // (b) TierResolver resolves to the paid tier, NOT 'free'.
     expect(app(TierResolver::class)->resolve($fresh))
-        ->toBe('tier1');
+        ->toBe('premium');
 
-    // (c) The resolved gate gives the tier1 cap (unlimited / null for
+    // (c) The resolved gate gives the premium cap (unlimited / null for
     //     savings_account), NOT the Free cap of 3. This is the concrete
     //     "paying customer is NOT gated as Free" proof.
     $gate = app(TierGate::class);
     $freeCap = app(TierConfigurationStore::class)->capFor('free', 'savings_account');
-    $tier1Cap = app(TierConfigurationStore::class)->capFor('tier1', 'savings_account');
+    $premiumCap = app(TierConfigurationStore::class)->capFor('premium', 'savings_account');
 
-    expect($freeCap)->toBe(3)              // Free is capped at 3 (seeder)
-        ->and($tier1Cap)->toBeNull()       // tier1 is unlimited (seeder)
-        ->and($gate->hardLimit($fresh, 'savings_account'))->toBe($tier1Cap)
+    expect($freeCap)->toBe(2)
+        ->and($premiumCap)->toBeNull()       // premium is unlimited (seeder)
+        ->and($gate->hardLimit($fresh, 'savings_account'))->toBe($premiumCap)
         ->and($gate->hardLimit($fresh, 'savings_account'))->not->toBe($freeCap)
         // Paying customer can create well beyond the Free cap of 3.
         ->and($gate->canCreate($fresh, 'savings_account', 50))->toBeTrue();
 });
 
-it('sets canonical users.tier on a tier2 purchase via the Revolut webhook path', function () {
+it('sets canonical users.tier on a premium purchase via the Revolut webhook path', function () {
     $user = User::factory()->create(['revolut_customer_id' => 'cust_webhook']);
     $orderId = '33333333-3333-3333-3333-333333333333';
-    $priceAtOrderTime = app(TierConfigurationStore::class)->forTier('tier2')->price_monthly_pence;
+    $priceAtOrderTime = app(TierConfigurationStore::class)->forTier('premium')->price_monthly_pence;
 
     // Step 1: real createOrder so a pending Payment + subscription exist.
     $createMock = Mockery::mock(RevolutService::class);
@@ -332,7 +336,7 @@ it('sets canonical users.tier on a tier2 purchase via the Revolut webhook path',
     app()->instance(RevolutService::class, $createMock);
 
     $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-        'plan' => 'tier2', 'billing_cycle' => 'monthly',
+        'plan' => 'premium', 'billing_cycle' => 'monthly',
     ])->assertOk();
 
     $payment = Payment::where('user_id', $user->id)->latest()->first();
@@ -357,45 +361,16 @@ it('sets canonical users.tier on a tier2 purchase via the Revolut webhook path',
     ])->assertOk();
 
     $fresh = $user->fresh();
-    expect($fresh->tier)->toBe('tier2')
-        ->and($fresh->plan)->toBe('tier2')
-        ->and(app(TierResolver::class)->resolve($fresh))->toBe('tier2');
+    expect($fresh->tier)->toBe('premium')
+        ->and($fresh->plan)->toBe('premium')
+        ->and(app(TierResolver::class)->resolve($fresh))->toBe('premium');
 });
 
-it('does NOT set users.tier for a legacy (pro) purchase — grandfather logic owns those', function () {
-    $this->seed(SubscriptionPlanSeeder::class);
-
-    $user = User::factory()->create(['revolut_customer_id' => 'cust_legacy']);
-    $orderId = '44444444-4444-4444-4444-444444444444';
-
-    $revolut = Mockery::mock(RevolutService::class);
-    $revolut->shouldReceive('createOrderWithCustomer')->andReturn([
-        'id' => $orderId, 'token' => 'tok_legacy', 'state' => 'pending',
-        'created_at' => now()->toIso8601String(),
-    ]);
-    $revolut->shouldReceive('getOrder')->with($orderId)->andReturn([
-        'id' => $orderId, 'state' => 'completed', 'capture_mode' => 'automatic',
-        'amount' => 1999, 'currency' => 'GBP',
-    ]);
-    app()->instance(RevolutService::class, $revolut);
+it('rejects a legacy plan key for a new purchase', function () {
+    $user = User::factory()->create();
 
     $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
         'plan' => 'pro', 'billing_cycle' => 'monthly',
-    ])->assertOk();
-
-    $this->actingAs($user, 'sanctum')->postJson('/api/payment/confirm', [
-        'order_id' => $orderId,
-    ])->assertOk();
-
-    $fresh = $user->fresh();
-
-    // Legacy slug written to plan; tier stays NULL (A9/§5.2 — grandfather
-    // logic via isGrandfatheredLegacyPaid owns legacy paid subscribers).
-    expect($fresh->plan)->toBe('pro')
-        ->and($fresh->tier)->toBeNull()
-        // Resolver still returns 'free' for gating arithmetic on a legacy
-        // user (unchanged behaviour), but isGrandfatheredLegacyPaid flags
-        // them so the gate never narrows their access.
-        ->and(app(TierResolver::class)->resolve($fresh))->toBe('free')
-        ->and(app(TierResolver::class)->isGrandfatheredLegacyPaid($fresh))->toBeTrue();
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('plan');
 });

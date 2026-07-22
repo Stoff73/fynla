@@ -10,7 +10,7 @@ use App\Services\NetWorth\NetWorthService;
 use App\Services\TaxConfigService;
 
 /**
- * Cheap Inheritance Tax exposure signal for the Free/Tier1 Estate teaser.
+ * Cheap Inheritance Tax exposure signal for the Free Estate teaser.
  *
  * Intentionally avoids running the full Estate engine — it uses the canonical
  * net-worth figure (spec §10.2) and NRB/RNRB from TaxConfigService (Rule #3).

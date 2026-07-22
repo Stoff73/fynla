@@ -19,7 +19,7 @@ class EstateActionDefinitionSeeder extends Seeder
 {
     public function run(): void
     {
-        $definitions = $this->getDefinitions();
+        $definitions = array_merge($this->getDefinitions(), $this->getStrategyDefinitions());
 
         foreach ($definitions as $definition) {
             EstateActionDefinition::updateOrCreate(
@@ -27,6 +27,75 @@ class EstateActionDefinitionSeeder extends Seeder
                 $definition
             );
         }
+    }
+
+    /**
+     * source='strategy' catalogue rows for the cross-module plan composer.
+     * strategy_type matches the slugs EstateRecommendationAdapter emits when
+     * definition_key is absent; required_data keys are drawn from
+     * ModuleAvailabilityProvider::forModule('estate').
+     *
+     * Semantic note on required_data and locking:
+     * A strategy is "locked" (surfaced as an unlock prompt) when its required_data
+     * are NOT all true in the availability map. So required_data = ['will_in_place']
+     * means the strategy locks when the user has NO will — i.e. when we most want
+     * to surface it, the data point being absent IS the signal. This mirrors how
+     * Retirement treats required_data and is intentional.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getStrategyDefinitions(): array
+    {
+        $rows = [
+            [
+                'strategy_type' => 'make_a_will',
+                'category' => 'Will',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['will_in_place'],
+                'sequencing' => ['do_before' => ['register_lpa', 'reduce_iht_exposure'], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'register_lpa',
+                'category' => 'Lasting Power of Attorney',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['lpa_registered'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'reduce_iht_exposure',
+                'category' => 'Inheritance Tax',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['estate_value_known'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'gift_to_reduce_estate',
+                'category' => 'Inheritance Tax',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['estate_value_known'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+        ];
+
+        return array_map(static function (array $row): array {
+            return array_merge([
+                'key' => 'strategy_'.$row['strategy_type'],
+                'source' => 'strategy',
+                'title_template' => $row['strategy_type'],
+                'description_template' => 'Computed by the estate plan source.',
+                'action_template' => null,
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'estate_protection',
+                'trigger_config' => [],
+                'is_enabled' => true,
+                'sort_order' => 100,
+                'notes' => 'Strategy catalogue row for the cross-module plan composer.',
+            ], $row);
+        }, $rows);
     }
 
     private function getDefinitions(): array

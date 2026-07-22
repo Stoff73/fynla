@@ -32,8 +32,6 @@ class SubscriptionFactory extends Factory
             'plan' => $plan,
             'billing_cycle' => $billingCycle,
             'status' => 'active',
-            'trial_started_at' => null,
-            'trial_ends_at' => null,
             'current_period_start' => now(),
             'current_period_end' => $billingCycle === 'monthly' ? now()->addMonth() : now()->addYear(),
             'revolut_order_id' => 'rev_'.fake()->uuid(),
@@ -42,14 +40,12 @@ class SubscriptionFactory extends Factory
     }
 
     /**
-     * A trialing subscription.
+     * A pending checkout that does not confer paid entitlement.
      */
-    public function trialing(): static
+    public function pending(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'trialing',
-            'trial_started_at' => now(),
-            'trial_ends_at' => now()->addDays(14),
+            'status' => Subscription::STATUS_PENDING,
             'current_period_start' => null,
             'current_period_end' => null,
             'revolut_order_id' => null,

@@ -27,10 +27,10 @@ describe('MFA Status', function () {
     });
 
     it('returns MFA enabled status for user with MFA', function () {
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET123456'),
-        ]);
+        ])->save();
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/auth/mfa/status');
@@ -78,10 +78,10 @@ describe('MFA Setup', function () {
 
 describe('MFA Disable', function () {
     it('disables MFA with valid password', function () {
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET123456'),
-        ]);
+        ])->save();
 
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/mfa/disable', [
@@ -98,10 +98,10 @@ describe('MFA Disable', function () {
     });
 
     it('requires password field', function () {
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET123456'),
-        ]);
+        ])->save();
 
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/mfa/disable', []);
@@ -121,14 +121,14 @@ describe('MFA Disable', function () {
 
 describe('MFA Recovery Codes', function () {
     it('regenerates recovery codes', function () {
-        $this->user->update([
+        $this->user->forceFill([
             'mfa_enabled' => true,
             'mfa_secret' => encrypt('TESTSECRET123456'),
             'mfa_recovery_codes' => json_encode([
                 hash('sha256', 'old-code-1'),
                 hash('sha256', 'old-code-2'),
             ]),
-        ]);
+        ])->save();
 
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/mfa/recovery-codes', [

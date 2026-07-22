@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Anthropic\Client;
 use App\Agents\CoordinatingAgent;
 use App\Constants\QuerySchemas;
 use App\Models\AiConversation;
@@ -10,6 +11,8 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\QueryClassifier;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Tests\Support\Fyn\ScriptedAnthropicClient;
 
 uses(RefreshDatabase::class);
 
@@ -41,6 +44,15 @@ function bindAdviceStreamWithPayload(array $payload): void
     $classifier->shouldReceive('classify')
         ->andReturn(['primary' => QuerySchemas::DATA_ENTRY, 'related' => []]);
     app()->instance(QueryClassifier::class, $classifier);
+
+    // The planner (FynLoop item 5) runs before the reasoner on every advice
+    // turn. Pin the provider to Anthropic and bind an empty scripted client so
+    // the real Planner's call returns no tool input and degrades to a default
+    // reason — fast, deterministic, no network — routing the turn straight to the
+    // scripted reasoner below. (The suite's default provider is xAI via the env,
+    // whose real client would otherwise make a live call here.)
+    Cache::put('ai_provider', 'anthropic');
+    app()->instance(Client::class, new ScriptedAnthropicClient([]));
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     // Flag-gated collaborator call under FYN_PROMPT_ARCH=unified (now the
@@ -127,6 +139,15 @@ it('does NOT emit handoff_error when only reason is missing — recovers via Cap
     $classifier->shouldReceive('classify')
         ->andReturn(['primary' => QuerySchemas::DATA_ENTRY, 'related' => []]);
     app()->instance(QueryClassifier::class, $classifier);
+
+    // The planner (FynLoop item 5) runs before the reasoner on every advice
+    // turn. Pin the provider to Anthropic and bind an empty scripted client so
+    // the real Planner's call returns no tool input and degrades to a default
+    // reason — fast, deterministic, no network — routing the turn straight to the
+    // scripted reasoner below. (The suite's default provider is xAI via the env,
+    // whose real client would otherwise make a live call here.)
+    Cache::put('ai_provider', 'anthropic');
+    app()->instance(Client::class, new ScriptedAnthropicClient([]));
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     // Flag-gated collaborator call under FYN_PROMPT_ARCH=unified (now the

@@ -32,14 +32,20 @@ const state = {
     // True while the current conversation is a Fyn-driven onboarding
     // conversation (started via startOnboardingConversation, i.e. the
     // "Quick start with Fyn" CTA). AppLayout reads this to activate the
-    // wide-chat wrapper + dashboard blur on /dashboard routes — the
-    // onboarding surface is not tied to a specific URL path.
+    // wide-chat wrapper on /dashboard routes — the onboarding surface is
+    // not tied to a specific URL path.
     isOnboardingActive: false,
     // Set true when the backend emits a consent_required event (either as
     // a 403 on send or as a mid-stream SSE event after withdrawal). UI
     // components watch this getter to surface a re-consent prompt; the
     // existing /settings GDPR consent UI handles the actual re-grant.
     consentRequired: false,
+    // FR-M14 — true while the planner runs (before any content), so the UI can
+    // show "Fyn is thinking…". Cleared on the first content token or done.
+    thinking: false,
+    // FR-M9 — { conversation_id, message } when the user has an unfinished
+    // conversation to resume; surfaced as a prompt on chat open.
+    pendingResumption: null,
 };
 
 const getters = {
@@ -64,6 +70,8 @@ const getters = {
     previewCta: (state) => state.previewCta,
     isOnboardingActive: (state) => state.isOnboardingActive,
     consentRequired: (state) => state.consentRequired,
+    thinking: (state) => state.thinking,
+    pendingResumption: (state) => state.pendingResumption,
 };
 
 const mutations = {
@@ -87,8 +95,31 @@ const mutations = {
         state.messages.push(message);
     },
 
+    // FR-M7 — flip a turn's queue status (queued / processing / answered /
+    // cancelled) so its bubble re-renders greyed / pulsing / normal, and swap the
+    // optimistic temp id for the real backend id so cancel/stream calls target it.
+    SET_MESSAGE_STATUS(state, { id, status, realId = null }) {
+        const message = state.messages.find((m) => m.id === id);
+        if (!message) return;
+        message.status = status;
+        if (realId !== null) message.id = realId;
+    },
+
+    REMOVE_MESSAGE(state, id) {
+        const index = state.messages.findIndex((m) => m.id === id);
+        if (index !== -1) state.messages.splice(index, 1);
+    },
+
     SET_STREAMING(state, streaming) {
         state.streaming = streaming;
+    },
+
+    SET_THINKING(state, thinking) {
+        state.thinking = thinking;
+    },
+
+    SET_PENDING_RESUMPTION(state, pending) {
+        state.pendingResumption = pending;
     },
 
     SET_STREAMING_TEXT(state, text) {
@@ -195,6 +226,35 @@ const mutations = {
         state.consentRequired = false;
     },
 };
+
+function addPresentationAction(commit, state, event) {
+    if (event.action !== 'subscription_options') return;
+
+    if (state.streamingText) {
+        commit('ADD_MESSAGE', {
+            id: 'action_text_' + Date.now(),
+            role: 'assistant',
+            content: state.streamingText,
+            created_at: new Date().toISOString(),
+        });
+        commit('SET_STREAMING_TEXT', '');
+    }
+
+    commit('ADD_MESSAGE', {
+        id: 'action_' + Date.now(),
+        role: 'action',
+        content: '',
+        metadata: {
+            action: event.action,
+            reason: event.reason,
+            entity_key: event.entity_key,
+            current_count: event.current_count,
+            limit: event.limit,
+            tier: event.tier,
+        },
+        created_at: new Date().toISOString(),
+    });
+}
 
 const actions = {
     /**
@@ -307,6 +367,7 @@ const actions = {
                 const bubbles = m?.metadata?.bubbles;
                 const skipLink = m?.metadata?.skip_link || null;
                 const actionBubbles = Boolean(m?.metadata?.action_bubbles);
+                const presentationActions = Array.isArray(m?.metadata?.actions) ? m.metadata.actions : [];
                 const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
 
                 if (m.role === 'assistant' && hasBubbles) {
@@ -324,6 +385,16 @@ const actions = {
                 } else {
                     normalised.push(m);
                 }
+
+                presentationActions
+                    .filter(action => action?.action === 'subscription_options')
+                    .forEach((action, index) => normalised.push({
+                        id: `action_${m.id}_${index}`,
+                        role: 'action',
+                        content: '',
+                        metadata: action,
+                        created_at: m.created_at,
+                    }));
             }
             commit('SET_MESSAGES', normalised);
         } catch (error) {
@@ -357,13 +428,18 @@ const actions = {
         // the DB — otherwise the user sees their own "<script>...</script>"
         // input rendered as visible text in the bubble (escaped, but ugly).
         const displayMessage = stripTags(message);
+        const tempId = 'temp_' + Date.now();
 
         commit('ADD_MESSAGE', {
-            id: 'temp_' + Date.now(),
+            id: tempId,
             role: 'user',
             content: displayMessage,
             created_at: new Date().toISOString(),
         });
+
+        // FR-M7 — tracks whether this turn streamed to completion (vs was queued
+        // or errored) so the finally only pops the next queued turn on success.
+        let streamedToCompletion = false;
 
         commit('SET_STREAMING', true);
         commit('SET_STREAMING_TEXT', '');
@@ -391,6 +467,23 @@ const actions = {
                 { signal: abortController.signal },
             );
 
+            // FR-M7 — a turn sent while another is still streaming is QUEUED (or
+            // rejected past the depth cap); the service returns a typed marker
+            // instead of a stream reader. Render the optimistic bubble greyed
+            // (with its real backend id for cancel / stream-next) and stop here —
+            // it will be streamed when the in-flight turn finishes.
+            if (reader && reader.queued) {
+                commit('SET_MESSAGE_STATUS', { id: tempId, status: 'queued', realId: reader.messageId });
+                commit('SET_STREAMING', false);
+                return;
+            }
+            if (reader && reader.rejected) {
+                commit('REMOVE_MESSAGE', tempId);
+                commit('SET_ERROR', reader.message || 'You have a few messages already waiting — let Fyn answer those first.');
+                commit('SET_STREAMING', false);
+                return;
+            }
+
             const decoder = new TextDecoder();
             let buffer = '';
 
@@ -410,7 +503,15 @@ const actions = {
                         const event = JSON.parse(line.slice(6));
 
                         switch (event.type) {
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
 
@@ -422,16 +523,24 @@ const actions = {
                                 break;
 
                             case 'navigation':
-                                commit('ADD_MESSAGE', {
-                                    id: 'nav_' + Date.now(),
-                                    role: 'navigation',
-                                    content: event.description || '',
-                                    metadata: {
-                                        route_path: event.route_path,
-                                        description: event.description,
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
+                                // Only render a visible navigation bubble when the
+                                // event carries a human description (advice-mode
+                                // "taking you to X"). Onboarding navigation sends an
+                                // empty description — it's an action, not a message —
+                                // so it must not render a bubble; rendering it
+                                // previously leaked the internal state id as chat text.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: {
+                                            route_path: event.route_path,
+                                            description: event.description,
+                                        },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
 
@@ -460,6 +569,10 @@ const actions = {
                                     },
                                     created_at: new Date().toISOString(),
                                 });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'quick_replies':
@@ -493,8 +606,21 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
-                                // Informational — the director transitioned from one
-                                // state to another. No UI change yet; logged for debug.
+                                // The director split a multi-part prompt (e.g. the
+                                // funnel recap → the income question) with this marker.
+                                // Flush the current streaming text into its own bubble
+                                // so the next part starts fresh — matching the /m dock
+                                // and the resume render, where the DB rows are separate
+                                // messages. Without this the parts merge into one bubble.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
@@ -521,6 +647,15 @@ const actions = {
                                 // Phase 13 — orchestrator fires this after data-capture
                                 // Fyn emits capture_complete. Records are added to the
                                 // message stream as a record-card bubble for the UI.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'capture_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 commit('ADD_MESSAGE', {
                                     id: 'capture_' + Date.now(),
                                     role: 'capture_complete',
@@ -616,7 +751,15 @@ const actions = {
                                 // privacy policy. If consent has been withdrawn
                                 // (e.g. by support action or a GDPR request),
                                 // the user has to contact support to restore it.
-                                commit('SET_ERROR', 'AI chat consent has been withdrawn. Contact Fynla support to restore your AI features.');
+                                commit('SET_ERROR', 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.');
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
                                 break;
 
                             case 'error':
@@ -648,6 +791,9 @@ const actions = {
                     }
                 }
             }
+            // FR-M7 — the in-flight turn streamed to completion; the finally
+            // pops the next queued turn for this conversation.
+            streamedToCompletion = true;
         } catch (error) {
             // Don't show error if the user intentionally cancelled
             if (error.name === 'AbortError') {
@@ -680,8 +826,250 @@ const actions = {
                 commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
             }
             commit('SET_STREAMING', false);
+            commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
+
+            // FR-M7 — now the in-flight turn is done, pop the next queued turn
+            // (if any). Fire-and-forget: streamNextQueued opens its own stream.
+            if (streamedToCompletion) {
+                dispatch('streamNextQueued');
+            }
+        }
+    },
+
+    /**
+     * FR-M7 — stream the next queued turn for the current conversation once the
+     * in-flight one has finished (frontend-driven transport). Fired from
+     * sendMessage's finally and chains from its own until the queue is empty.
+     *
+     * v1 auto-streams advice-mode queues only. Onboarding is a guided bubble flow
+     * where concurrent free-text is rare; a queued onboarding turn is left queued
+     * (the user can cancel it) rather than risk dropping the director's rich
+     * bubble events through this advice-focused consumer.
+     */
+    async streamNextQueued({ commit, dispatch, state, rootState }) {
+        if (!state.currentConversation || state.streaming || state.isOnboardingActive) return;
+
+        const queued = state.messages.find((m) => m.status === 'queued');
+        if (!queued) return;
+
+        commit('SET_MESSAGE_STATUS', { id: queued.id, status: 'processing' });
+        commit('SET_STREAMING', true);
+        commit('SET_STREAMING_TEXT', '');
+        commit('SET_ERROR', null);
+
+        const abortController = new AbortController();
+        commit('SET_ABORT_CONTROLLER', abortController);
+        const currentRoute = rootState.route?.path || window.location.pathname;
+        let streamedToCompletion = false;
+
+        try {
+            const reader = await aiChatService.streamQueuedMessage(
+                state.currentConversation.id,
+                queued.id,
+                currentRoute,
+                { signal: abortController.signal },
+            );
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+
+                    try {
+                        const event = JSON.parse(line.slice(6));
+
+                        switch (event.type) {
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
+                            case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
+                                commit('APPEND_STREAMING_TEXT', event.text);
+                                break;
+                            case 'title':
+                                commit('UPDATE_CONVERSATION_TITLE', {
+                                    conversationId: state.currentConversation.id,
+                                    title: event.title,
+                                });
+                                break;
+                            case 'navigation':
+                                // See the streaming handler above — only advice-mode
+                                // navigation (non-empty description) renders a bubble;
+                                // onboarding navigation is action-only and must not
+                                // leak its state id as chat text.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: { route_path: event.route_path, description: event.description },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
+                                commit('SET_PENDING_NAVIGATION', event.route_path);
+                                break;
+                            case 'entity_created':
+                                commit('ADD_MESSAGE', {
+                                    id: 'entity_' + Date.now(),
+                                    role: 'entity_created',
+                                    content: event.name || '',
+                                    metadata: { entity_type: event.entity_type, entity_id: event.entity_id },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+                            case 'action':
+                                addPresentationAction(commit, state, event);
+                                break;
+                            case 'capture_complete':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'capture_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                commit('ADD_MESSAGE', {
+                                    id: 'capture_' + Date.now(),
+                                    role: 'capture_complete',
+                                    content: event.summary || '',
+                                    metadata: {
+                                        records_created: event.records_created || [],
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+                            case 'handoff_error':
+                                commit('ADD_MESSAGE', {
+                                    id: 'handoff_error_' + Date.now(),
+                                    role: 'assistant',
+                                    content: event.message || "I couldn't pick up that request — could you try again?",
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+                            case 'token_limit':
+                                commit('SET_TOKEN_LIMIT', {
+                                    reached: true,
+                                    resetAt: event.reset_at,
+                                    secondsUntilReset: event.seconds_until_reset,
+                                });
+                                break;
+                            case 'consent_required':
+                                commit('SET_CONSENT_REQUIRED', true);
+                                commit('SET_STREAMING', false);
+                                break;
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
+                            case 'error':
+                                commit('SET_ERROR', event.message);
+                                break;
+                            case 'done':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: event.message_id || 'msg_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                break;
+                            default:
+                                logger.debug('[chat] queued-turn: unhandled event', event.type);
+                        }
+                    } catch {
+                        // Skip malformed SSE lines
+                    }
+                }
+            }
+
+            // The queued turn has been answered — flip its bubble to normal
+            // (stable id) so it reads like any other answered turn.
+            commit('SET_MESSAGE_STATUS', { id: queued.id, status: 'answered' });
+            streamedToCompletion = true;
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            logger.error('Queued-turn streaming error:', error);
+            commit('SET_ERROR', 'Connection lost. Please try again.');
+        } finally {
+            commit('SET_STREAMING', false);
+            commit('SET_THINKING', false);
+            commit('SET_STREAMING_TEXT', '');
+            commit('SET_ABORT_CONTROLLER', null);
+            if (streamedToCompletion) {
+                dispatch('streamNextQueued');
+            }
+        }
+    },
+
+    /**
+     * FR-M7 scenario 4 — cancel a still-queued turn before it streams.
+     */
+    async cancelQueued({ commit, state }, messageId) {
+        if (!state.currentConversation) return;
+        try {
+            await aiChatService.cancelQueuedMessage(state.currentConversation.id, messageId);
+            commit('SET_MESSAGE_STATUS', { id: messageId, status: 'cancelled' });
+        } catch (error) {
+            logger.error('Failed to cancel queued message:', error);
+        }
+    },
+
+    /**
+     * FR-M9 — on chat open, check for an unfinished conversation to resume.
+     */
+    async fetchResumption({ commit }) {
+        try {
+            const { data } = await aiChatService.getResumption();
+            if (data?.has_pending) {
+                commit('SET_PENDING_RESUMPTION', {
+                    conversationId: data.conversation_id,
+                    message: data.message,
+                });
+            } else {
+                commit('SET_PENDING_RESUMPTION', null);
+            }
+        } catch (e) {
+            // Non-fatal — resumption is an enhancement, not a blocker.
+            logger.debug('[chat] resumption check failed', e);
+        }
+    },
+
+    /**
+     * FR-M9 — acknowledge the resumption (continue OR start fresh both clear it
+     * server-side and dismiss the prompt).
+     */
+    async acknowledgeResumption({ commit, state }) {
+        const pending = state.pendingResumption;
+        commit('SET_PENDING_RESUMPTION', null);
+        if (pending?.conversationId) {
+            try {
+                await aiChatService.clearResumption(pending.conversationId);
+            } catch (e) {
+                logger.debug('[chat] clearResumption failed', e);
+            }
         }
     },
 
@@ -745,7 +1133,15 @@ const actions = {
                         const event = JSON.parse(line.slice(6));
 
                         switch (event.type) {
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
 
@@ -774,6 +1170,17 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
+                                // See sendMessage handler — flush the streaming text so
+                                // a split multi-part prompt renders as separate bubbles.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
@@ -790,6 +1197,18 @@ const actions = {
 
                             case 'skip_link':
                                 commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'done':
@@ -820,6 +1239,7 @@ const actions = {
             }
         } finally {
             commit('SET_STREAMING', false);
+            commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
         }
@@ -874,7 +1294,7 @@ const actions = {
      * conversation. If onboarding is already complete or the feature flag
      * is off, falls back to a normal startNewConversation.
      */
-    async startOnboardingConversation({ commit, dispatch, state, rootState }, payload = {}) {
+    async startOnboardingConversation({ commit, dispatch, state }, payload = {}) {
         // Forward the optional `from` entry-source identifier so the
         // onboarding director can pre-select the campaign / journey via
         // config('onboarding.campaign_map') / journey_map.
@@ -886,7 +1306,7 @@ const actions = {
         commit('SET_MESSAGES', []);
         commit('SET_STREAMING_TEXT', '');
         // Phase 13 — Fyn-driven onboarding is active. Unlocks the wide-chat
-        // wrapper + dashboard blur in AppLayout regardless of URL path.
+        // wrapper in AppLayout regardless of URL path.
         commit('SET_IS_ONBOARDING_ACTIVE', true);
         commit('SET_ONBOARDING_LAYOUT', 'wide');
 
@@ -976,7 +1396,15 @@ const actions = {
                                 }
                                 return;
 
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
 
@@ -1000,7 +1428,30 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
+                                // See sendMessage handler — flush the streaming text so
+                                // a split multi-part prompt renders as separate bubbles.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'done':

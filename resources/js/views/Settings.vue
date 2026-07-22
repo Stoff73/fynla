@@ -30,7 +30,7 @@
               </p>
             </div>
             <button
-              v-if="!subscriptionLoading && activePlanSlug !== 'pro'"
+              v-if="!subscriptionLoading && showUpgradeEntry"
               @click="showPlanModal = true"
               class="btn-primary"
             >
@@ -66,17 +66,12 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
-
-const PLAN_NAMES = {
-  student: 'Student Plan',
-  standard: 'Standard Plan',
-  family: 'Family Plan',
-  pro: 'Pro Plan',
-};
+import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 
 export default {
   name: 'Settings',
@@ -89,35 +84,26 @@ export default {
 
   setup() {
     const router = useRouter();
+    const store = useStore();
     const showPlanModal = ref(false);
     const subscriptionData = ref(null);
     const subscriptionLoading = ref(true);
 
-    const activePlanSlug = computed(() => {
-      if (!subscriptionData.value) return null;
-      if (subscriptionData.value.status === 'active') return subscriptionData.value.plan;
-      return null;
-    });
+    const presentation = computed(() => getSubscriptionPresentation(subscriptionData.value));
 
-    const planDisplayName = computed(() => {
-      if (!subscriptionData.value) return 'Free Trial';
-      if (subscriptionData.value.status === 'trialing') {
-        const days = subscriptionData.value.days_remaining;
-        if (days !== undefined && days !== null) {
-          return `Free Trial (${days} ${days === 1 ? 'day' : 'days'} remaining)`;
-        }
-        return 'Free Trial';
-      }
-      if (subscriptionData.value.status === 'active' && subscriptionData.value.plan) {
-        return PLAN_NAMES[subscriptionData.value.plan] || subscriptionData.value.plan;
-      }
-      return 'Free Trial';
-    });
+    const activePlanSlug = computed(() => presentation.value.showUpgrade
+      ? 'free'
+      : subscriptionData.value?.tier || 'free');
+
+    const planDisplayName = computed(() => presentation.value.label);
+
+    const showUpgradeEntry = computed(() => presentation.value.showUpgrade
+      && !store.getters['preview/isPreviewMode']);
 
     const fetchSubscription = async () => {
       subscriptionLoading.value = true;
       try {
-        const response = await api.get('/payment/trial-status');
+        const response = await api.get('/payment/subscription-status');
         subscriptionData.value = response.data;
       } catch {
         // Silently fail
@@ -126,10 +112,12 @@ export default {
       }
     };
 
-    const handlePlanSelect = ({ plan, billingCycle, isUpgrade }) => {
+    const handlePlanSelect = ({ plan, billingCycle }) => {
       showPlanModal.value = false;
-      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      router.push(`/payment/checkout?plan=${plan}&billing=${billingCycle}${upgradeParam}`);
+      router.push({
+        path: '/checkout',
+        query: { plan, cycle: billingCycle },
+      });
     };
 
     onMounted(() => {
@@ -141,6 +129,7 @@ export default {
       subscriptionLoading,
       activePlanSlug,
       planDisplayName,
+      showUpgradeEntry,
       handlePlanSelect,
     };
   },

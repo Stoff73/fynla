@@ -89,6 +89,23 @@ describe('SavingsAccountNormaliser::fromFyn', function () {
             ->toBe('easy_access');
     });
 
+    it('defaults an untyped account to current_account, not a savings type', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromFyn([
+            'account_name' => 'Barclays', 'current_balance' => 5000,
+        ]);
+
+        expect($canonical['account_type'])->toBe('current_account')
+            ->and($canonical['access_type'])->toBe('immediate');
+    });
+
+    it('keeps an explicit savings type when the user stipulates one', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromFyn([
+            'account_name' => 'Marcus', 'account_type' => 'easy_access', 'current_balance' => 5000,
+        ]);
+
+        expect($canonical['account_type'])->toBe('easy_access');
+    });
+
     it('infers cash_isa when is_isa is true and account_type is not an ISA variant', function () {
         $canonical = (new SavingsAccountNormaliser)->fromFyn([
             'account_name' => 'X',

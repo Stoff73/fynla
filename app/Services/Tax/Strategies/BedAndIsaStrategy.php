@@ -17,9 +17,9 @@ use App\Services\TaxConfigService;
  * Strategy #6 — Bed & ISA Capital Gains Harvest within the Annual Exempt Amount.
  *
  * Fires when the user has non-ISA holdings with positive unrealised gains
- * AND remaining ISA allowance to absorb the proceeds. Saving =
- * min(total_unrealised_gain, AEA) × CGT rate for the user's band, sized
- * by the proceeds that fit inside the remaining ISA allowance.
+ * AND remaining ISA allowance to absorb the proceeds. Saving = the gains
+ * embedded in the proceeds that fit inside the remaining ISA allowance
+ * (capped at min(total_unrealised_gain, AEA)) × CGT rate for the user's band.
  */
 final class BedAndIsaStrategy implements TaxStrategy
 {
@@ -38,6 +38,13 @@ final class BedAndIsaStrategy implements TaxStrategy
 
         $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
         $isaRemaining = max(0, $isaAllowance - $isaUsed);
+
+        // Shared-allowance allocation pass: a higher-saving ISA strategy may
+        // already have claimed part of the one overall allowance — only the
+        // remaining pool capacity is available to this evaluation.
+        if ($context->isaPoolCap !== null) {
+            $isaRemaining = min($isaRemaining, max(0.0, $context->isaPoolCap));
+        }
 
         if ($isaRemaining <= 0 || $aea <= 0) {
             return [];
@@ -102,6 +109,17 @@ final class BedAndIsaStrategy implements TaxStrategy
             $totalCurrentValueWithGain * ($realisableGains / $totalUnrealisedGain),
         );
 
+        // The gains actually crystallised are only those embedded in the
+        // proceeds that fit inside the remaining ISA allowance (whether the
+        // clip came from the user's own subscriptions or a shared-pool cap) —
+        // the honest saving on the smaller amount, not the full AEA figure.
+        if ($totalCurrentValueWithGain > 0.0) {
+            $realisableGains = min(
+                $realisableGains,
+                $proceeds * ($totalUnrealisedGain / $totalCurrentValueWithGain),
+            );
+        }
+
         $saving = $realisableGains * $cgtRate;
         if ($saving < 1) {
             return [];
@@ -112,17 +130,18 @@ final class BedAndIsaStrategy implements TaxStrategy
             category: StrategyCategory::Allowance,
             priority: StrategyPriority::Medium,
             title: sprintf(
-                'Bed & ISA — shelter £%s of gains tax-free this year',
+                'Bed & ISA — potentially shelter £%s of gains this year',
                 number_format((int) round($realisableGains)),
             ),
             description: sprintf(
-                'You hold £%s of unrealised gains outside your ISA. Selling around £%s of holdings and rebuying them inside the ISA crystallises gains within your £%s tax-free Capital Gains allowance — saving roughly £%s on a future sale and sheltering all future growth.',
+                'You hold £%s of unrealised gains outside your ISA. Selling around £%s of holdings and rebuying them inside an ISA could crystallise up to £%s within the annual exempt amount and could avoid roughly £%s of tax on a future sale, but only if you have not already used the allowance. Confirm gains and losses elsewhere this tax year, ISA subscriptions, dealing costs and market risk before acting; future growth inside the ISA is sheltered.',
                 number_format((int) round($totalUnrealisedGain)),
                 number_format((int) round($proceeds)),
-                number_format((int) $aea),
+                number_format((int) round($realisableGains)),
                 number_format((int) round($saving)),
             ),
             estimatedAnnualTaxSaved: round($saving, 2),
+            requiresAdvice: true,
             extra: [
                 'total_unrealised_gain' => round($totalUnrealisedGain, 2),
                 'realisable_within_aea' => round($realisableGains, 2),

@@ -59,6 +59,7 @@ final class WriteIntentClassifier
         'savings_account' => [
             'cash isa', 'help to buy isa', 'lifetime isa', 'lisa',
             'savings account', 'easy access account', 'fixed-rate account',
+            'fixed term account', 'notice account',
             'current account', 'instant access',
         ],
         'investment_account' => [
@@ -133,32 +134,66 @@ final class WriteIntentClassifier
             return null;
         }
 
-        $matchedVerb = $this->firstMatch($normalised, self::WRITE_VERB_PATTERNS);
+        $matchedVerb = $this->firstVerbMatch($normalised);
         if ($matchedVerb === null) {
             return null;
+        }
+
+        // June13Updates — keyword-precedence guard. When the message names a
+        // goal explicitly ("add a goal to save for a house deposit"), that
+        // goal noun is the OBJECT of the write; any asset keyword present
+        // ("house") only describes what the goal is FOR. ENTITY_KEYWORDS
+        // lists property/savings/etc. before goal, so without this check an
+        // incidental asset word wins and the message mis-routes to that
+        // asset's capture. Prefer the explicit goal noun. This is a pure
+        // precedence change: `goal` is already the last entry, so any message
+        // caught here would have produced a non-null result anyway — the
+        // conservative false-positive contract (verb required, question
+        // guard) is untouched.
+        $goalKeyword = $this->firstMatch($normalised, self::ENTITY_KEYWORDS['goal']);
+        if ($goalKeyword !== null) {
+            return $this->buildResult('goal', $matchedVerb, $goalKeyword);
         }
 
         foreach (self::ENTITY_KEYWORDS as $entityType => $keywords) {
             $matchedEntity = $this->firstMatch($normalised, $keywords);
             if ($matchedEntity !== null) {
-                return [
-                    'entity_type' => $entityType,
-                    'matched_verb' => $matchedVerb,
-                    'matched_entity_keyword' => $matchedEntity,
-                    'fields_needed' => $this->fieldsNeededFor($entityType),
-                    'reason' => sprintf(
-                        'Detected write intent (%s) for %s — phrase "%s".',
-                        $matchedVerb,
-                        $entityType,
-                        $matchedEntity,
-                    ),
-                ];
+                return $this->buildResult($entityType, $matchedVerb, $matchedEntity);
             }
         }
 
         // Verb matched but no entity matched — ambiguous, return null so the
         // LLM still owns the turn. We do NOT fabricate an entity_type guess.
         return null;
+    }
+
+    /**
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}
+     */
+    private function buildResult(string $entityType, string $matchedVerb, string $matchedEntity): array
+    {
+        return [
+            'entity_type' => $entityType,
+            'matched_verb' => $matchedVerb,
+            'matched_entity_keyword' => $matchedEntity,
+            'fields_needed' => $this->fieldsNeededFor($entityType),
+            'reason' => sprintf(
+                'Detected write intent (%s) for %s — phrase "%s".',
+                $matchedVerb,
+                $entityType,
+                $matchedEntity,
+            ),
+        ];
+    }
+
+    /**
+     * Public question check for callers that need the same advice-vs-write
+     * discrimination on a raw message (WP-1: the capture-continuation rule
+     * must not treat a mid-capture question as the awaited answer).
+     */
+    public function isQuestion(string $message): bool
+    {
+        return $this->looksLikeQuestion(strtolower(trim($message)));
     }
 
     /**
@@ -179,6 +214,30 @@ final class WriteIntentClassifier
         }
 
         return false;
+    }
+
+    /**
+     * Matches WRITE_VERB_PATTERNS against the message, tolerating a single
+     * "also" interposed between the pronoun/contraction and the verb — e.g.
+     * "I also have a Halifax account" doesn't contain the literal "i have"
+     * substring, so the plain match misses it (live csjones report). Retried
+     * only when the literal match fails, so it cannot change the result for
+     * any message the literal pass already resolves — the existing
+     * precedence order is untouched.
+     */
+    private function firstVerbMatch(string $haystack): ?string
+    {
+        $matched = $this->firstMatch($haystack, self::WRITE_VERB_PATTERNS);
+        if ($matched !== null) {
+            return $matched;
+        }
+
+        $deAdverbed = preg_replace('/\b(i\'ve|we\'ve|i|we)\s+also\s+/', '$1 ', $haystack);
+        if ($deAdverbed === null || $deAdverbed === $haystack) {
+            return null;
+        }
+
+        return $this->firstMatch($deAdverbed, self::WRITE_VERB_PATTERNS);
     }
 
     private function firstMatch(string $haystack, array $needles): ?string

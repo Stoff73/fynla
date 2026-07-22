@@ -11,12 +11,12 @@ use Database\Seeders\TierConfigurationSeeder;
 beforeEach(fn () => $this->seed(TierConfigurationSeeder::class));
 
 it('a store price change shows on the public pricing endpoint', function () {
-    app(TierConfigurationStore::class)->updateTier('tier2',
+    app(TierConfigurationStore::class)->updateTier('premium',
         ['price_monthly_pence' => 1234], User::factory()->create(['is_admin' => true]), IngestSource::ADMIN);
 
     $this->getJson('/api/pricing-config')
-        ->assertJsonPath('data.2.tier', 'tier2')
-        ->assertJsonPath('data.2.price_monthly_pence', 1234);
+        ->assertJsonPath('data.1.tier', 'premium')
+        ->assertJsonPath('data.1.price_monthly_pence', 1234);
 });
 
 it('capabilityFor returns teaser for the free tier on the estate key (CheckSubscription middleware wiring deferred to PR7)', function () {

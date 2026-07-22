@@ -182,12 +182,14 @@
         <a href="/pricing" class="nav-link" data-nav-link="/pricing">Pricing</a>
       </div>
 
-      <!-- Right: Sign in -->
+      <!-- Right: Sign in / Register -->
       <div class="nav-actions">
         <a href="/login" class="nav-signin-btn" data-nav-link="/login">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           Sign in
         </a>
+        <span class="nav-actions__sep" aria-hidden="true">/</span>
+        <a href="/register" class="nav-register-link" data-nav-link="/register">Register</a>
       </div>
 
       <!-- Mobile hamburger -->
@@ -255,6 +257,7 @@
 
         <a href="/pricing" class="mobile-menu__link" data-nav-link="/pricing">Pricing</a>
         <a href="/login" class="mobile-menu__link" data-nav-link="/login">Sign in</a>
+        <a href="/register" class="mobile-menu__link" data-nav-link="/register">Register</a>
       </div>
     </div>
   </nav>

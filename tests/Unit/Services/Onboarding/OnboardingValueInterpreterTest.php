@@ -25,6 +25,37 @@ describe('OnboardingValueInterpreter::parseDateOfBirth', function () {
             ->toBe('1980-01-12');
     });
 
+    it('parses slashed short-year dates to the plausible century', function () {
+        expect(OnboardingValueInterpreter::parseDateOfBirth('19/02/82'))
+            ->toBe('1982-02-19');
+    });
+
+    it('parses dashed and dotted short-year dates', function () {
+        expect(OnboardingValueInterpreter::parseDateOfBirth('19-2-82'))->toBe('1982-02-19')
+            ->and(OnboardingValueInterpreter::parseDateOfBirth('19.02.82'))->toBe('1982-02-19');
+    });
+
+    it('parses textual-month short-year dates', function () {
+        expect(OnboardingValueInterpreter::parseDateOfBirth('19 Feb 82'))
+            ->toBe('1982-02-19');
+    });
+
+    it('extracts a short-year date embedded in prose', function () {
+        expect(OnboardingValueInterpreter::parseDateOfBirth('I was born on 19/02/82'))
+            ->toBe('1982-02-19');
+    });
+
+    it('resolves a low two-digit year forward when only this century is adult-plausible', function () {
+        // '07 → 2007 (age ~19) qualifies; 1907 (age ~119) does not.
+        expect(OnboardingValueInterpreter::parseDateOfBirth('05/06/07'))
+            ->toBe('2007-06-05');
+    });
+
+    it('rejects a two-digit year where neither century gives a plausible age', function () {
+        // 2012 → under 18; 1912 → over 105.
+        expect(OnboardingValueInterpreter::parseDateOfBirth('01/01/12'))->toBeNull();
+    });
+
     it('rejects relative references', function () {
         expect(OnboardingValueInterpreter::parseDateOfBirth('yesterday'))->toBeNull()
             ->and(OnboardingValueInterpreter::parseDateOfBirth('today'))->toBeNull();

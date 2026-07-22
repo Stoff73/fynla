@@ -10,6 +10,7 @@ use App\Services\Payment\RevolutService;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -18,20 +19,17 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(SubscriptionPlanSeeder::class);
+    Mail::fake();
 });
 
-it('generates invoice when webhook beats confirmPayment (race condition)', function () {
-    // Arrange: create user with subscription and a payment that
-    // the webhook has already marked as 'completed' — but with no invoice
-    $user = User::factory()->create(['plan' => 'standard']);
+it('generates the invoice when the webhook is the only completion callback', function () {
+    $user = User::factory()->create(['plan' => 'free']);
     $subscription = Subscription::create([
         'user_id' => $user->id,
         'plan' => 'standard',
         'billing_cycle' => 'yearly',
-        'status' => 'active',
-        'amount' => 10000,
-        'current_period_start' => now(),
-        'current_period_end' => now()->addYear(),
+        'status' => 'pending',
+        'amount' => 0,
     ]);
 
     $orderId = (string) Str::uuid();
@@ -41,21 +39,16 @@ it('generates invoice when webhook beats confirmPayment (race condition)', funct
         'revolut_order_id' => $orderId,
         'amount' => 10000,
         'currency' => 'GBP',
-        'status' => 'completed',        // Webhook already set this
+        'status' => 'pending',
         'description' => 'Standard Yearly',
         'plan_slug' => 'standard',
         'billing_cycle' => 'yearly',
         'discount_amount' => 0,
-        'invoice_id' => null,            // No invoice — webhook doesn't generate one
-        'revolut_payment_data' => ['state' => 'completed', 'id' => $orderId],
+        'invoice_id' => null,
     ]);
 
-    // Verify precondition: payment is completed but has no invoice
-    expect($payment->status)->toBe('completed');
-    expect($payment->invoice_id)->toBeNull();
-
-    // Mock RevolutService so it doesn't call the real API
     $mockRevolut = Mockery::mock(RevolutService::class);
+    $mockRevolut->shouldReceive('verifyWebhookSignature')->once()->andReturnTrue();
     $mockRevolut->shouldReceive('getOrder')
         ->with($orderId)
         ->andReturn([
@@ -67,19 +60,19 @@ it('generates invoice when webhook beats confirmPayment (race condition)', funct
         ]);
     $this->app->instance(RevolutService::class, $mockRevolut);
 
-    // Act: call confirmPayment (simulating frontend onSuccess callback)
-    $response = $this->actingAs($user, 'sanctum')
-        ->postJson('/api/payment/confirm', ['order_id' => $orderId]);
+    $this->postJson('/api/webhooks/revolut', [
+        'event' => 'ORDER_COMPLETED',
+        'order_id' => $orderId,
+        'merchant_order_ext_ref' => "payment_{$payment->id}",
+    ], [
+        'Revolut-Signature' => 'v1=stub',
+        'Revolut-Request-Timestamp' => (string) (int) (microtime(true) * 1000),
+    ])->assertOk();
 
-    // Assert: response is success
-    $response->assertOk();
-    $response->assertJsonPath('success', true);
-
-    // Assert: invoice was generated despite 'already_completed'
     $payment->refresh();
+    expect($payment->status)->toBe('completed');
     expect($payment->invoice_id)->not->toBeNull();
 
-    // Assert: invoice record exists with correct amounts
     $invoice = Invoice::find($payment->invoice_id);
     expect($invoice)->not->toBeNull();
     expect($invoice->user_id)->toBe($user->id);
@@ -88,7 +81,6 @@ it('generates invoice when webhook beats confirmPayment (race condition)', funct
     expect($invoice->status)->toBe('issued');
     expect($invoice->pdf_path)->not->toBeNull();
 
-    // Assert: PDF file was created
     expect(Storage::exists($invoice->pdf_path))->toBeTrue();
 
     Mockery::close();

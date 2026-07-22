@@ -31,6 +31,7 @@ class SendRenewalReminderEmails extends Command
         $targetDate = Carbon::now()->addDays(7)->startOfDay();
 
         $subscriptions = Subscription::where('status', 'active')
+            ->where('auto_renew', true)
             ->whereDate('current_period_end', $targetDate->toDateString())
             ->with('user')
             ->get();

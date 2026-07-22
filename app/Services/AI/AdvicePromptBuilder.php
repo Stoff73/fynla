@@ -161,8 +161,8 @@ class AdvicePromptBuilder
             // (April/April9Updates/fynQuickStartBugs.md) that originally motivated the
             // EmptyDataGuard substitution is closed by those guards plus the KYC BLOCKED
             // block at Layer 9 (KycGateChecker emits MANDATORY instructions stronger than
-            // EmptyDataGuard ever did, with field-level missing data and exact navigation
-            // routes). The structural prompt swap was the root of the eval/live divergence
+            // EmptyDataGuard ever did, with field-level missing data and exact page
+            // labels). The structural prompt swap was the root of the eval/live divergence
             // captured in April27Updates/eval-system-vs-live-flow-audit.md — same code
             // path is now guaranteed to assemble the same prompt structure for every user.
             $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
@@ -173,10 +173,10 @@ class AdvicePromptBuilder
             $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
         }
 
-        // Layer 7: Data Completeness (DYNAMIC/user) — per-module READY/BLOCKED via
-        // PrerequisiteGateService → 5 × DataReadinessService. Field-level tracking
-        // of every blocking + warning check per module.
-        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+        // Layer 7: Data Completeness (DYNAMIC/user). Advice turns use the
+        // primary-question KYC result; other callers retain the full module
+        // readiness matrix.
+        $prerequisiteState = $this->buildPrerequisiteStateContext($user, $classification, $kycResult);
         $layers[] = $this->buildDataCompletenessBlock($prerequisiteState);
 
         // Layer 7b: Review Due (DYNAMIC/user)
@@ -268,7 +268,7 @@ You MUST pass these arguments:
 OMITTING `reason` BREAKS THE HANDOFF. Always include it. Always include `entity_types`.
 
 **ANTI-PATTERNS — these are FORBIDDEN for write intents:**
-- Calling `navigate_to_page` to send the user to the relevant page so they fill the form themselves. The user asked YOU to add the record. Use `delegate_to_capture`.
+- Calling a navigation tool to send the user to the relevant page so they fill the form themselves. The user asked YOU to add the record. Use `delegate_to_capture`.
 - Calling `create_*`, `update_*`, or `delete_*` tools directly. Those tools are not in your tool list — Advice Fyn is read-only.
 - Replying with text like "I've added", "I've recorded", "I've noted", "I'll take you to..." without first calling `delegate_to_capture`. That fabricates success.
 - Asking the user follow-up questions ("what's the start date?") before calling `delegate_to_capture`. Call the tool first with whatever the user gave you; the handoff captures the rest.
@@ -313,17 +313,17 @@ PROMPT;
 When the user asks anything about billing, invoices, charges, payment, receipts, the next charge, or their subscription:
 
 - ALWAYS call BOTH `get_subscription_status` AND `list_invoices` in the same turn (parallel tool_use blocks if your provider supports them, otherwise sequential).
-- Open your reply with the subscription line — state the plan name and whether the subscription is active, trialing, paused, or cancelled. Use the exact word "active" when status is `active` and "trialing" when status is `trialing`.
+- Open your reply with the subscription line — state the tier display name and whether the subscription is free, pending, active, past due, cancelled, or expired. Use the tool's exact public status and never describe `pending` as a trial.
 - On the next line, state the invoice count using the phrasing "You have N invoice(s)" (e.g. "You have 3 invoices."). The literal digit + " invoice" must appear so users see the count at a glance.
 - Then list the invoices — most recent first, one per line, including invoice number, issued date, and amount in pounds.
 - Do NOT add a manual link or instruct the user to navigate to a settings page. The system surfaces a Subscription Management CTA card automatically from the subscription-status tool result.
 
 Required pattern. User: "Where's my invoice?" → call `get_subscription_status` AND `list_invoices` → reply:
-"You're on the Standard monthly plan (active).
+"You're on Premium monthly (active).
 You have 3 invoices.
-- FYN-INV-000003 — issued 25 April 2026, £10.99
-- FYN-INV-000002 — issued 25 March 2026, £10.99
-- FYN-INV-000001 — issued 25 February 2026, £10.99"
+- FYN-INV-000003 — issued 25 April 2026, £6.99
+- FYN-INV-000002 — issued 25 March 2026, £6.99
+- FYN-INV-000001 — issued 25 February 2026, £6.99"
 </billing_guidance>
 PROMPT;
     }
@@ -472,7 +472,17 @@ PROMPT;
             $lines = [];
             $modules = $analysis['module_analysis'] ?? [];
 
-            // Net worth from dedicated service
+            // Derive which modules are in scope for this classification.
+            // Empty array means "no constraint" (holistic, null, or non-module queries)
+            // — all module blocks render. A non-empty array means only those modules
+            // render their detailed sections; net worth, surplus, goals, life events,
+            // and recommendations always render for cross-module insight.
+            $scopedModules = is_array($classification)
+                ? QuerySchemas::getModulesForClassification($classification)
+                : [];
+            $renderModule = static fn (string $m): bool => $scopedModules === [] || in_array($m, $scopedModules, true);
+
+            // Net worth from dedicated service — always rendered (cross-module overview)
             try {
                 $netWorthService = app(NetWorthService::class);
                 $netWorthData = $netWorthService->calculateNetWorth($user);
@@ -483,7 +493,7 @@ PROMPT;
                 // Fall through — individual modules below will provide partial data
             }
 
-            // Available surplus
+            // Available surplus — always rendered (cross-module cashflow)
             $surplus = $analysis['available_surplus'] ?? 0;
             if ($surplus !== 0) {
                 $formatted = number_format(abs($surplus), 2);
@@ -491,8 +501,8 @@ PROMPT;
                 $lines[] = "- {$label}: £{$formatted}";
             }
 
-            // Savings
-            if (isset($modules['savings'])) {
+            // Savings — module-scoped
+            if ($renderModule('savings') && isset($modules['savings'])) {
                 $s = $modules['savings'];
                 if (($s['total_savings'] ?? 0) > 0) {
                     $lines[] = '- Total savings: £'.number_format($s['total_savings'], 2);
@@ -502,16 +512,16 @@ PROMPT;
                 }
             }
 
-            // Investments
-            if (isset($modules['investment'])) {
+            // Investments — module-scoped
+            if ($renderModule('investment') && isset($modules['investment'])) {
                 $inv = $modules['investment'];
                 if (($inv['total_portfolio_value'] ?? 0) > 0) {
                     $lines[] = '- Investment portfolio: £'.number_format($inv['total_portfolio_value'], 0);
                 }
             }
 
-            // Retirement
-            if (isset($modules['retirement'])) {
+            // Retirement — module-scoped
+            if ($renderModule('retirement') && isset($modules['retirement'])) {
                 $ret = $modules['retirement'];
                 if (($ret['total_pension_value'] ?? 0) > 0) {
                     $lines[] = '- Total pension value: £'.number_format($ret['total_pension_value'], 0);
@@ -524,8 +534,8 @@ PROMPT;
                 }
             }
 
-            // Protection
-            if (isset($modules['protection'])) {
+            // Protection — module-scoped
+            if ($renderModule('protection') && isset($modules['protection'])) {
                 $prot = $modules['protection'];
                 if (($prot['full_analysis']['total_cover'] ?? 0) > 0) {
                     $lines[] = '- Total life cover: £'.number_format($prot['full_analysis']['total_cover'], 0);
@@ -535,12 +545,14 @@ PROMPT;
                 }
             }
 
-            // Property
-            $ownsProperty = $this->propertyStore->forUserWithJointOwner($user)->isNotEmpty();
-            $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
+            // Property ownership indicator — module-scoped
+            if ($renderModule('property')) {
+                $ownsProperty = $this->propertyStore->forUserWithJointOwner($user)->isNotEmpty();
+                $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
+            }
 
-            // Estate (IHT-specific)
-            if (isset($modules['estate'])) {
+            // Estate (Inheritance Tax) — module-scoped
+            if ($renderModule('estate') && isset($modules['estate'])) {
                 $est = $modules['estate'];
                 if (($est['iht_liability'] ?? 0) > 0) {
                     $lines[] = '- Estimated Inheritance Tax liability: £'.number_format($est['iht_liability'], 0);
@@ -995,9 +1007,12 @@ PROMPT;
 
     // ─── Layer 7: Data Completeness ──────────────────────────────────
 
-    public function buildPrerequisiteStateContext(User $user): string
-    {
-        return $this->prerequisiteGate->buildCompletenessContext($user);
+    public function buildPrerequisiteStateContext(
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): string {
+        return $this->prerequisiteGate->buildCompletenessContext($user, $classification, $kycResult);
     }
 
     /**
@@ -1005,15 +1020,20 @@ PROMPT;
      * block (prerequisite state wrapped in XML tags) so the assembler does
      * not need to call the private buildDataCompletenessBlock() directly.
      */
-    public function buildPrerequisiteStateContextWrapped(User $user): string
-    {
-        return $this->buildDataCompletenessBlock($this->buildPrerequisiteStateContext($user));
+    public function buildPrerequisiteStateContextWrapped(
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): string {
+        return $this->buildDataCompletenessBlock(
+            $this->buildPrerequisiteStateContext($user, $classification, $kycResult)
+        );
     }
 
     /**
      * C1 (May/May19Updates/unified-fyn-audit-and-prompt-optimisation.md):
      * lean <data_completeness> for the unified per-turn context — the
-     * per-user READY/BLOCKED matrix ONLY. The static NAVIGATION /
+     * question-scoped or per-user READY/BLOCKED state ONLY. The static NAVIGATION /
      * BLOCKED-MODULE / MODULE-DEPENDENCY rules that
      * buildDataCompletenessBlock() inlines (~595 tok) are, under
      * FYN_PROMPT_ARCH=unified, hoisted into the cached FynSystemPrompt
@@ -1023,13 +1043,16 @@ PROMPT;
      * and unaffected — parity with FYN_PROMPT_ARCH=legacy is preserved
      * because the model still receives the same total instruction set.
      */
-    public function buildPrerequisiteStateContextLean(User $user): string
-    {
-        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+    public function buildPrerequisiteStateContextLean(
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): string {
+        $prerequisiteState = $this->buildPrerequisiteStateContext($user, $classification, $kycResult);
 
         return <<<PROMPT
         <data_completeness>
-        The following shows which modules have sufficient data for analysis:
+        The following shows whether the current question or module context has sufficient data for analysis:
         {$prerequisiteState}
         </data_completeness>
         PROMPT;
@@ -1039,19 +1062,19 @@ PROMPT;
     {
         return <<<PROMPT
 <data_completeness>
-The following shows which modules have sufficient data for analysis:
+The following shows whether the current question or module context has sufficient data for analysis:
 {$prerequisiteState}
 
 NAVIGATION RULES:
-1. When the user asks to GO TO a page (e.g. "show me my estate planning"), ALWAYS navigate them there first using navigate_to_page. Never refuse to navigate — the user wants to see the page.
-2. After navigating, if the module is BLOCKED or has no data, proactively offer to help: "This section doesn't have any data yet. Would you like me to help you add [specific items]?"
+1. When the user asks to GO TO a page (e.g. "show me my estate planning"), signpost the page by its exact plain label. Do not output an internal route or call a navigation or write tool on the advice surface.
+2. If the module is BLOCKED or has no data, proactively offer to help: "This section doesn't have any data yet. Would you like me to help you add [specific items]?"
 3. If the user can add data directly through you (e.g. savings accounts, pensions, properties, protection policies), offer to do it conversationally: "I can add that for you now — just tell me the details."
 
 RULES FOR BLOCKED MODULES:
 1. When a user asks about a BLOCKED module (analysis, advice, recommendations), explain what specific data is missing and why it is needed.
 2. Do NOT attempt to give advice, estimates, or general guidance on blocked modules. You do not have the data to do so accurately.
 3. List each missing item as a bullet point so the user can see exactly what to add.
-4. ALWAYS use navigate_to_page to take the user to the correct page. This is mandatory — never just tell the user to go somewhere without navigating them.
+4. Signpost the exact page label in plain text. Never output an internal route or call a navigation or write tool on the advice surface.
 5. End with an encouraging note and offer to help add the data.
 
 MODULE DEPENDENCY GUIDANCE:
@@ -1062,7 +1085,7 @@ When navigating to modules that depend on data from other parts of the site, exp
 - Retirement projections need: Pensions, Income, Target retirement age.
 - Investment analysis needs: Investment accounts, Risk profile.
 
-If a tool call returns a "blocked" result, follow the instruction field in that result — explain the missing data to the user and navigate them to the right page.
+If a tool call returns a "blocked" result, follow the instruction field in that result — explain the missing data and signpost the exact page label in plain text.
 </data_completeness>
 PROMPT;
     }
@@ -1123,7 +1146,11 @@ PROMPT;
 
     // ─── Layer 8b: Required Tools + Triggers ───────────────────────────
 
-    private function buildToolsAndTriggersBlock(?array $classification): string
+    /**
+     * Public so the unified FynContextAssembler carries the same declared
+     * mandatory tools and decision triggers as the legacy prompt path.
+     */
+    public function buildToolsAndTriggersBlock(?array $classification): string
     {
         if ($classification === null) {
             return '';

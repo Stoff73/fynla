@@ -40,6 +40,16 @@ final class AuditChainService
     private const ZERO_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
     /**
+     * Phase 2 — sentinel tool name for the per-turn episode attestation row
+     * (hash_scheme = 2). A v2 row binds the v1 payload serialisation PLUS the
+     * episodic blob SHA, the served semantic snapshot id, and a digest of the
+     * fetch provenance. Everything needed to re-derive the hash lives on the
+     * row's result_summary, so verification is self-contained and never
+     * depends on a mutable ai_messages row. INV-2.10.2 (v1) is unchanged.
+     */
+    private const EPISODE_TOOL = '__episode__';
+
+    /**
      * M19 — fail loud rather than HMAC-signing with a constant fallback.
      * If neither AI_AUDIT_HMAC_KEY nor APP_KEY is set, the audit chain is
      * forgeable by anyone who can read the codebase. Throw on the first
@@ -111,6 +121,72 @@ final class AuditChainService
     }
 
     /**
+     * Phase 2 — append a per-turn `__episode__` attestation (hash_scheme = 2).
+     *
+     * Mirrors `append()`'s transaction/lock/prev-hash pattern, but the row
+     * hash binds the v1 payload serialisation PLUS three extra fields:
+     * `blob_md_sha256`, `semantic_snapshot_id`, and a stable
+     * `provenance_digest` over the fetch-provenance digests. Those three (plus
+     * the blob path) are persisted to `result_summary` so verification can
+     * re-derive the hash from the row alone.
+     */
+    public function appendEpisode(array $event): AiAuditEvent
+    {
+        return DB::transaction(function () use ($event) {
+            $prev = AiAuditEvent::query()->lockForUpdate()->latest('id')->first();
+            $prevHash = $prev?->row_hash ?? self::ZERO_HASH;
+
+            $signedAt = now();
+
+            $blobSha = (string) ($event['blob_md_sha256'] ?? '');
+            $snapshotId = $event['semantic_snapshot_id'] ?? null;
+            $provDigest = hash('sha256', (string) json_encode(
+                array_column($event['fetch_provenance'] ?? [], 'digest')
+            ));
+
+            $resultSummary = [
+                'blob_md_sha256' => $blobSha,
+                'blob_md_path' => $event['blob_md_path'] ?? null,
+                'semantic_snapshot_id' => $snapshotId,
+                'provenance_digest' => $provDigest,
+                'procedural_version' => $event['procedural_version'] ?? null,
+            ];
+
+            $payload = [
+                'user_id' => $event['user_id'] ?? null,
+                'conversation_id' => $event['conversation_id'] ?? null,
+                'tool_name' => self::EPISODE_TOOL,
+                'operation' => 'persist',
+                'status' => 'persisted',
+                'input_summary' => null,
+                'result_summary' => $resultSummary,
+                'entity_type' => 'ai_message',
+                'entity_id' => $event['entity_id'] ?? null,
+            ];
+
+            $rowHash = self::computeEpisodeRowHash(
+                $prevHash,
+                $payload,
+                $signedAt->toIso8601String(),
+                $blobSha,
+                $snapshotId,
+                $provDigest
+            );
+            $signature = hash_hmac('sha256', $rowHash, self::hmacKey());
+
+            return AiAuditEvent::create([
+                ...$payload,
+                'prev_hash' => $prevHash,
+                'row_hash' => $rowHash,
+                'signed_at' => $signedAt,
+                'signature' => $signature,
+                'hash_scheme' => 2,
+                'created_at' => $signedAt,
+            ]);
+        });
+    }
+
+    /**
      * Walk every row in id order and re-derive each row hash from its
      * predecessor. Returns `chain_valid: false` with `broken_at` on the
      * first mismatch.
@@ -124,11 +200,24 @@ final class AuditChainService
 
         foreach (AiAuditEvent::query()->orderBy('id')->cursor() as $row) {
             $payload = self::extractHashedPayload($row);
-            $expected = self::computeRowHash(
-                $prevHash,
-                $payload,
-                $row->signed_at->toIso8601String()
-            );
+
+            if ((int) $row->hash_scheme === 2) {
+                $rs = $row->result_summary ?? [];
+                $expected = self::computeEpisodeRowHash(
+                    $prevHash,
+                    $payload,
+                    $row->signed_at->toIso8601String(),
+                    (string) ($rs['blob_md_sha256'] ?? ''),
+                    $rs['semantic_snapshot_id'] ?? null,
+                    (string) ($rs['provenance_digest'] ?? '')
+                );
+            } else {
+                $expected = self::computeRowHash(
+                    $prevHash,
+                    $payload,
+                    $row->signed_at->toIso8601String()
+                );
+            }
 
             if (! hash_equals($expected, (string) $row->row_hash)) {
                 return [
@@ -162,10 +251,44 @@ final class AuditChainService
 
     private static function computeRowHash(string $prevHash, array $payload, string $signedAtIso): string
     {
-        $canonical = self::canonicaliseForHash($payload);
-        $serialised = json_encode($canonical, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $serialised = self::serialiseForHash($payload);
 
         return hash('sha256', $prevHash.$serialised.$signedAtIso);
+    }
+
+    /**
+     * Phase 2 — v2 (`hash_scheme = 2`) row hash for `__episode__` rows.
+     *
+     * Reuses the EXACT v1 payload serialisation (`serialiseForHash`) so the
+     * v1 portion is byte-identical, then appends the three episode-binding
+     * fields to the hash input before SHA-256. Verification re-derives these
+     * from the row's own `result_summary`, so the attestation is
+     * self-contained. v1 rows never reach this method.
+     */
+    private static function computeEpisodeRowHash(
+        string $prevHash,
+        array $payload,
+        string $signedAtIso,
+        string $blobSha,
+        ?string $snapshotId,
+        string $provDigest
+    ): string {
+        $serialised = self::serialiseForHash($payload);
+        $input = $prevHash.$serialised.$signedAtIso.'|'.$blobSha.'|'.((string) $snapshotId).'|'.$provDigest;
+
+        return hash('sha256', $input);
+    }
+
+    /**
+     * Canonicalise and JSON-encode the hashed payload. Shared by the v1
+     * (`computeRowHash`) and v2 (`computeEpisodeRowHash`) hashes so both
+     * produce byte-identical serialisation for the v1 field set.
+     */
+    private static function serialiseForHash(array $payload): string
+    {
+        $canonical = self::canonicaliseForHash($payload);
+
+        return json_encode($canonical, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     /**

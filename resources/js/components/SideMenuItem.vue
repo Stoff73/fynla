@@ -17,15 +17,17 @@
     </svg>
   </a>
 
-  <!-- Action button (e.g. Bug Report) -->
+  <!-- Action button (e.g. Bug Report, or a conditional-route item like Tax
+       Strategy). Honours `active` so a JS-routed item can still highlight when
+       its destination page is open. -->
   <button
     v-else-if="!to && !href"
     class="group flex items-center self-stretch mx-2 rounded-md transition-colors"
-    :class="[itemClasses, collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2']"
+    :class="[active ? activeBgClass : itemClasses, collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2']"
     :title="collapsed ? label : ''"
     @click="$emit('action')"
   >
-    <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" />
+    <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" :class="active ? activeIconClass : ''" />
     <span v-if="!collapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ label }}</span>
   </button>
 

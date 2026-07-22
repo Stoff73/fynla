@@ -209,10 +209,33 @@ Present a clean summary to the user:
 - [list of recently changed files/features]
 ```
 
+## Standing Authorisation After CSJ Agreement
+
+Once CSJ explicitly approves a spec, implementation plan, or fix process, or explicitly directs its implementation, treat that agreement as standing authorisation for all reasonably necessary work within its scope. Proceed autonomously and do not ask CSJ to approve individual files, edits, commands, or routine implementation decisions again.
+
+Standing authorisation includes:
+
+- Creating, editing, and renaming in-scope files
+- Deleting only in-scope tracked files recoverable from version control
+- Running commands, tests, linters, formatters, builds, seeders, and local migrations
+- Starting, stopping, or restarting local development processes
+- Installing or updating dependencies required by the agreed work
+- Making proportionate corrections discovered during implementation when they preserve the agreed outcome and scope
+
+Ask CSJ for new direction only when an action would:
+
+- Materially expand or change the agreed scope or outcome
+- Require an unresolved product or technical decision with materially different consequences
+- Cause destructive or irreversible loss of application data, user data, environment state, untracked files, or uncommitted work
+- Access, read, reveal, use, expose, or transmit credentials or other secrets unless that credential action was explicitly included in CSJ's agreement
+- Affect production or a third-party system
+- Commit, push, or deploy unless that action was explicitly included in the agreement
+
+Runtime security controls remain authoritative. If the platform itself requires approval or elevation, invoke its approval mechanism directly with the narrowest permission required; do not add a separate conversational permission round first.
+
 ## Important
 
 - ALWAYS seed first. No exceptions. No "I'll do it later". Seed FIRST.
 - Do NOT run `migrate:fresh` or `migrate:refresh` — these destroy data.
 - Auto-start the dev server (`./dev.sh`) if it's not already running.
-- Do NOT make any code changes — this is a read-only bootstrap.
-- If the user has a specific task in mind, after displaying the summary, proceed to their request.
+- Bootstrap must not make task-specific source edits. The prescribed Git synchronization and conflict-resolution steps may update tracked files. After displaying the summary, proceed to the user's task under the standing-authorisation rules above.

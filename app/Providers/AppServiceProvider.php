@@ -5,15 +5,43 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Anthropic\Client;
+use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
+use App\Models\RecommendationTracking;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
+use App\Observers\RecommendationTrackingObserver;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
+use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\AI\Memory\Recall\RecallScorer;
+use App\Services\AI\Memory\Recall\SparseRecallScorer;
+use App\Services\AI\Pointers\FetchDispatcher;
+use App\Services\AI\Pointers\FetchHandlerRegistry;
+use App\Services\AI\Pointers\Handlers\CrossModulePlanHandler;
+use App\Services\AI\Pointers\Handlers\EstatePlanHandler;
+use App\Services\AI\Pointers\Handlers\InvestmentPlanHandler;
+use App\Services\AI\Pointers\Handlers\ProtectionPlanHandler;
+use App\Services\AI\Pointers\Handlers\RecommendationHandler;
+use App\Services\AI\Pointers\Handlers\RetirementPlanHandler;
+use App\Services\AI\Pointers\Handlers\SavingsPlanHandler;
+use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
+use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
+use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
-use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
-use App\Services\Lifecycle\LifecycleEngine;
-use App\Services\Lifecycle\LifecycleSnapshotService;
+use App\Services\Billing\Apple\AppleBridgeClient;
+use App\Services\Billing\Apple\AppleSignedDataVerifier;
+use App\Services\Billing\Apple\AppleStoreServerClient;
+use App\Services\Billing\Apple\PythonAppleSignedDataVerifier;
+use App\Services\Billing\Apple\PythonAppleStoreServerClient;
+use App\Services\Billing\Apple\SymfonyAppleBridgeClient;
+use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Gamification\LevelUpCollector;
+use App\Services\Gamification\MilestoneCollector;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
@@ -34,6 +62,19 @@ class AppServiceProvider extends ServiceProvider
         // agent that takes one as a constructor dep to re-run the lookup.
         $this->app->scoped(TaxConfigService::class);
         $this->app->scoped(PlanConfigService::class);
+
+        // Request-scoped collector that surfaces in-turn gamification level-ups
+        // to the SSE/API layer (one instance per request).
+        $this->app->scoped(LevelUpCollector::class);
+
+        // WP-5c-iii — same pattern for in-turn milestone mints (Fyn appends a
+        // plain-text acknowledgement in the same capture turn).
+        $this->app->scoped(MilestoneCollector::class);
+
+        // WP-5c-iii — scoped so its per-request memo works: the dashboard read
+        // composes the tax plan once (strategy unlocks) and milestone
+        // detection reuses it via forUserIfComputed().
+        $this->app->scoped(ComposedTaxPlanService::class);
 
         // Register both AI client singletons — runtime provider selection happens
         // in HasAiChat/HasAiGuardrails via cache check (admin toggle)
@@ -57,24 +98,101 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
+        // CoALA pointer registry — FetchHandlerRegistry has no zero-arg constructor so
+        // it must be bound explicitly with its three proof handlers injected. PointerRegistry
+        // and FetchDispatcher each depend on FetchHandlerRegistry and auto-wire once it is
+        // resolvable, so plain singleton() calls are sufficient for them.
+        $this->app->singleton(FetchHandlerRegistry::class, function ($app) {
+            return new FetchHandlerRegistry([
+                $app->make(TaxAllowanceHandler::class),
+                $app->make(UserFinancialHandler::class),
+                $app->make(RecommendationHandler::class),
+                $app->make(RetirementPlanHandler::class),
+                $app->make(SavingsPlanHandler::class),
+                $app->make(InvestmentPlanHandler::class),
+                $app->make(ProtectionPlanHandler::class),
+                $app->make(EstatePlanHandler::class),
+                $app->make(CrossModulePlanHandler::class),
+            ]);
+        });
+
+        $this->app->singleton(PointerRegistry::class);
+        // FetchDispatcher depends on the request-scoped FetchProvenanceCollector,
+        // so it must re-resolve per request (a singleton would capture a stale collector).
+        $this->app->bind(FetchDispatcher::class);
+
+        // Request-scoped provenance accumulator — one instance per request, reset per turn.
+        $this->app->scoped(FetchProvenanceCollector::class);
+
+        // Request-scoped semantic-snapshot holder — assembler stamps, persistEpisode reads.
+        $this->app->scoped(SemanticSnapshotHolder::class);
+
+        // Request-scoped procedural-contribution accumulator (Phase 4c) — the
+        // assembler records overlay/fca_block procedures it injected; Phase 4e
+        // reads it at persistEpisode time. One instance per request, reset per turn.
+        $this->app->scoped(ProceduralContributionCollector::class);
+
+        // Request-scoped procedural-version holder (Phase 4e) — the tool-schema
+        // assembler (4b), prompt-overlay assembler (4c) and onboarding director
+        // (4d) record each active procedure_id@version they resolved; Phase 4e
+        // reads it at persistEpisode time and stamps it onto the episode blob,
+        // the ai_messages.procedural_version column and the audit attestation.
+        // One instance per request, reset per turn alongside the holders above.
+        $this->app->scoped(ProceduralVersionHolder::class);
+
+        // Procedural corpus loader — singleton so the in-memory corpus + 60s
+        // re-stat throttle persist within a request (and across requests under Octane).
+        $this->app->singleton(ProceduralCorpusLoader::class);
+
+        // CoALA Phase 6 — relevance-ranked episodic recall (sparse token-overlap).
+        // Dense embedding implementation is the deferred drop-in (CSJ 2026-06-01).
+        $this->app->bind(
+            RecallScorer::class,
+            SparseRecallScorer::class,
+        );
+
         // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(
             TierGate::class,
             DbTierGate::class
         );
 
-        // LifecycleEngine is a singleton so its per-run caches
-        // (trialAfterEndCandidates, cachedHasDataIds) are shared across every
-        // campaign resolved from config during a single engine run. Without
-        // the singleton, Laravel would construct a fresh engine each time a
-        // campaign's constructor asks for one, defeating the cache and
-        // re-running the expensive candidate query N times per run.
-        $this->app->singleton(LifecycleEngine::class, function ($app) {
-            return new LifecycleEngine(
-                snapshotService: $app->make(LifecycleSnapshotService::class),
-                discountGenerator: $app->make(LifecycleDiscountCodeGenerator::class),
+        $this->app->singleton(AppleBridgeClient::class, function () {
+            $pythonExecutable = config('apple_store.python_executable');
+            $cliPath = config('apple_store.bridge_cli_path');
+            $timeout = config('apple_store.process_timeout_seconds');
+            $maxRequestBytes = config('apple_store.max_request_bytes');
+            $maxResponseBytes = config('apple_store.max_response_bytes');
+
+            if (
+                ! is_string($pythonExecutable)
+                || ! is_string($cliPath)
+                || (! is_int($timeout) && ! is_float($timeout))
+                || ! is_int($maxRequestBytes)
+                || ! is_int($maxResponseBytes)
+            ) {
+                throw new AppleVerificationException(
+                    'invalid_configuration',
+                );
+            }
+
+            return new SymfonyAppleBridgeClient(
+                pythonExecutable: $pythonExecutable,
+                cliPath: $cliPath,
+                timeout: (float) $timeout,
+                maxRequestBytes: $maxRequestBytes,
+                maxResponseBytes: $maxResponseBytes,
             );
         });
+        $this->app->singleton(
+            AppleSignedDataVerifier::class,
+            PythonAppleSignedDataVerifier::class,
+        );
+        $this->app->singleton(
+            AppleStoreServerClient::class,
+            PythonAppleStoreServerClient::class,
+        );
+
     }
 
     /**
@@ -89,6 +207,7 @@ class AppServiceProvider extends ServiceProvider
 
         InsightArticle::observe(InsightArticleObserver::class);
         DocumentArticle::observe(DocumentArticleObserver::class);
+        RecommendationTracking::observe(RecommendationTrackingObserver::class);
     }
 
     /**

@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Validator;
  * (joint-aware). For primary-only reads, use forUserPrimaryOnly. Pattern locked
  * by MortgageReadConsumerParityTest (PR 5a).
  *
- * Tier-cap key: 'mortgage' (free=10 by default, tier1+=null).
+ * Tier-cap key: 'mortgage' (Free=10 by default, Premium=null).
  *
  * Cross-store recalc (PR 6): writes fire events consumed by
  * RecalculatePropertyOutstandingMortgage listener which recomputes

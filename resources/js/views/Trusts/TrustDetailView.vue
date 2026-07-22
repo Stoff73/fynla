@@ -290,7 +290,7 @@ export default {
     getIncomeTaxDisplay(type) {
       const rates = {
         bare: 'Beneficiary rates',
-        interest_in_possession: '20% / 8.75% (dividends)',
+        interest_in_possession: '20% / 10.75% (dividends)',
         discretionary: '45% / 39.35% (dividends)',
         accumulation_maintenance: '45% / 39.35% (dividends)',
         life_insurance: 'N/A',
@@ -338,7 +338,7 @@ export default {
     getTaxNote(type) {
       const notes = {
         bare: 'Income and gains taxed using beneficiary\'s personal allowances',
-        interest_in_possession: 'Lower rates: 20% on other income, 8.75% on dividends',
+        interest_in_possession: 'Lower rates: 20% on other income, 10.75% on dividends',
         discretionary: 'Higher rates apply. £500 tax-free if income below threshold',
         accumulation_maintenance: 'Same rates as discretionary trusts',
         life_insurance: 'No regular income tax - policy proceeds on death',

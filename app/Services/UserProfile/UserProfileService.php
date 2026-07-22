@@ -13,8 +13,10 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
+use App\Services\Gamification\PointsService;
 use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
@@ -91,6 +93,13 @@ class UserProfileService
                 'email' => $user->spouse->email,
             ] : null,
             'income_occupation' => $this->buildIncomeOccupation($user),
+            // Flat per-source income for the user and (when linked) the spouse —
+            // consumed by the /m Income screen. Additive; never read by existing
+            // consumers of income_occupation.
+            'income_summary' => [
+                'user' => $this->incomeSources($user),
+                'spouse' => $this->spouseIncomeSources($user),
+            ],
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
@@ -137,9 +146,42 @@ class UserProfileService
         // Override the annual_rental_income with calculated total
         $data['annual_rental_income'] = $rentalBreakdown['total'];
 
+        $hadIncomeBefore = $this->totalGrossAnnualIncome($user) > 0;
+
         $user->update($data);
 
-        return $user->fresh();
+        $fresh = $user->fresh();
+
+        // First-capture gamification award: income transitioned empty -> set.
+        // Dedup on the key guarantees the bonus pays exactly once. Never throws.
+        if (! $hadIncomeBefore && $this->totalGrossAnnualIncome($fresh) > 0) {
+            app(PointsService::class)->award(
+                $fresh,
+                'data',
+                'data:income:first',
+                (int) config('gamification.points.data_first_in_category'),
+                ['category' => 'income'],
+            );
+        }
+
+        return $fresh;
+    }
+
+    /**
+     * Sum of all annual gross income sources on a user.
+     *
+     * Public so the gamification backfill can detect "income is set" with the
+     * exact same logic the live first-capture award uses (dedup-key parity).
+     */
+    public function totalGrossAnnualIncome(User $user): float
+    {
+        return (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
     }
 
     /**
@@ -347,6 +389,66 @@ class UserProfileService
         }
 
         return $totalContributions;
+    }
+
+    /**
+     * Flat per-source annual income for one person (user or spouse), for the /m
+     * Income screen. Raw earned/investment columns only, symmetric across user and
+     * spouse; rental is property-derived and shown on the property/net-worth screens.
+     *
+     * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}
+     */
+    private function incomeSources(User $person): array
+    {
+        $sources = [
+            'employment' => (float) ($person->annual_employment_income ?? 0),
+            'self_employment' => (float) ($person->annual_self_employment_income ?? 0),
+            'dividend' => (float) ($person->annual_dividend_income ?? 0),
+            'interest' => (float) ($person->annual_interest_income ?? 0),
+            'other' => (float) ($person->annual_other_income ?? 0),
+        ];
+        $sources['total'] = array_sum($sources);
+        // Identifying detail so the verify screen shows WHAT the user entered
+        // (employer + role), not just the employment amount.
+        $sources['employer'] = $person->employer ?: null;
+        $sources['occupation'] = $person->occupation ?: null;
+
+        return $sources;
+    }
+
+    /**
+     * Spouse income for the /m Income screen's spouse-verify view.
+     *
+     * A linked spouse account returns its own income sources. Otherwise the
+     * SaveTax campaign captures the spouse's income on the household input (no
+     * account is linked during onboarding — linking is surfaced later via the
+     * dashboard), so surface that figure as the spouse's employment income.
+     * Returns null when there is no spouse income to show.
+     *
+     * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}|null
+     */
+    private function spouseIncomeSources(User $user): ?array
+    {
+        if ($user->spouse) {
+            return $this->incomeSources($user->spouse);
+        }
+
+        $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
+            ->value('spouse_annual_income') ?? 0);
+        if ($spouseIncome <= 0) {
+            return null;
+        }
+
+        return [
+            'employment' => $spouseIncome,
+            'self_employment' => 0.0,
+            'dividend' => 0.0,
+            'interest' => 0.0,
+            'other' => 0.0,
+            'total' => $spouseIncome,
+            'employer' => null,
+            'occupation' => null,
+        ];
     }
 
     /**
@@ -1051,10 +1153,14 @@ class UserProfileService
         foreach ($liabilities as $liability) {
             if ($liability->monthly_payment > 0) {
                 // Adjust for joint ownership
-                $isJoint = $liability->ownership_type === 'joint';
+                $isJoint = in_array($liability->ownership_type, ['joint', 'tenants_in_common'], true);
                 $userIsOwner = $liability->user_id === $user->id;
+                $primaryPercentage = (float) ($liability->ownership_percentage ?? 50);
+                if ($primaryPercentage === 100.0) {
+                    $primaryPercentage = 50.0;
+                }
                 $ownershipPercentage = $isJoint
-                    ? ($userIsOwner ? ($liability->ownership_percentage ?? 50) : (100 - ($liability->ownership_percentage ?? 50)))
+                    ? ($userIsOwner ? $primaryPercentage : (100 - $primaryPercentage))
                     : 100;
 
                 // Apply ownership filter

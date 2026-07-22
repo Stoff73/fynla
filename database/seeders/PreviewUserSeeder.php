@@ -196,6 +196,15 @@ class PreviewUserSeeder extends Seeder
         // Create Will Documents (Will Builder)
         $this->createWillDocuments($user, $spouse, $personaId);
 
+        // The retired couple are seeded onboarding-complete so the
+        // post-onboarding experience (advice Fyn, the /m unlock bubble) is
+        // demoable straight from the persona selector; every other persona
+        // stays onboarding-incomplete so the onboarding nudge stays demoable.
+        if ($personaId === 'retired_couple') {
+            $user->forceFill(['onboarding_completed' => true])->save();
+            $spouse?->forceFill(['onboarding_completed' => true])->save();
+        }
+
         // Set journey states and selections
         $this->setJourneyData($user, $personaId);
 

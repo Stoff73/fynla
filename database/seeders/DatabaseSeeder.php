@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
 
             // Preview personas (young_family, peak_earners, etc.)
             PreviewUserSeeder::class,
+            PreviewGamificationSeeder::class,
 
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
@@ -80,7 +81,7 @@ class DatabaseSeeder extends Seeder
             // Estate action definitions - configurable estate planning action triggers
             EstateActionDefinitionSeeder::class,
 
-            // Subscription plans (pricing, trial config)
+            // Subscription plans (pricing configuration)
             SubscriptionPlanSeeder::class,
 
             // Invoice sequence counter — schema:dump captures DDL only, so the
@@ -102,7 +103,7 @@ class DatabaseSeeder extends Seeder
         // PHASE 2: Optional Data (for development/testing only)
         // These create additional test accounts beyond the required ones
         // ============================================================
-        if (app()->environment(['local', 'development', 'staging'])) {
+        if (app()->environment(['local', 'development'])) {
             $this->call([
                 // Households for multi-user testing
                 HouseholdSeeder::class,

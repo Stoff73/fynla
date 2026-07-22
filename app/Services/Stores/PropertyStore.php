@@ -47,6 +47,11 @@ class PropertyStore
         return Property::forUserOrJoint($user->id)->get();
     }
 
+    public function existsForUser(User $user): bool
+    {
+        return Property::forUserOrJoint($user->id)->exists();
+    }
+
     public function forUserWithJointOwner(User $user): Collection
     {
         return Property::forUserOrJoint($user->id)->with('jointOwner')->get();

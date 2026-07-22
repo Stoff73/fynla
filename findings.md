@@ -1,5 +1,16 @@
 # Findings — seeded 2026-05-19 (SP3 mobile-iframe scaffold)
 
+## 2026-07-18 — Native Swift Package 3 handoff
+
+- Package 3 being green does not mean `/m` is fully ported. Packages 4–7 own entitlements/StoreKit, dashboard/Fyn, every financial screen, and platform/release responsibilities respectively.
+- Laravel remains the API implementation; native Swift consumes typed contracts. Do not plan an API rewrite in Swift.
+- A SwiftUI root view's `onDisappear` can fire during a legitimate authenticated-state transition. Cancelling the in-flight authentication action there reverted successful login/restoration flows to sign-in on clean iOS 26.5. The fixed boundary clears secrets on ordinary disappearance and cancels only explicit departures.
+- Parent accessibility identifiers can propagate to SwiftUI descendants on newer iOS versions. Stable UI tests should identify actionable descendants directly and avoid assigning a root identifier that replaces every child identifier.
+- Local CoreSimulator/XCTest worker materialisation can fail while a clean GitHub Xcode runner remains healthy. Keep the local limitation honest and use clean-runner evidence rather than weakening UI tests.
+- Package 3 PR #633 is current with `origin/dev` at the handover point (19 ahead, 0 behind), all current-head workflows green, and Save Tax untouched in the primary checkout.
+- Browser law: installed Google Chrome via connector only; never Chromium or the in-app browser. If disconnected, defer the browser gate and continue independent implementation.
+- User-approved PR structure: Packages 4, 5, 6 and 7 each have a separate branch and PR. Package 6's five waves are independently closed within one Package 6 PR rather than split into five package-level PRs.
+
 ## Resolved gotchas
 - **Auth is Bearer-token, not session-cookie.** `/api/auth/login` returns `requires_verification` at TOP LEVEL with `data:{challenge_token,email}` nested; `/api/auth/verify-code` → `data.access_token`. The original spec/plan wrongly described cookie auth and nested `requires_verification` — corrected in plan commit `664c9c6b` (caught in Task 5 code review; would have broken login entirely).
 - **`SecurityHeaders` sets `X-Frame-Options: DENY` globally** with no `frame-ancestors`. Task 3 scopes `SAMEORIGIN` + `frame-ancestors 'self'` to `/m` and `/m/app*` only — the spec's confirmed HIGH risk, real.
@@ -59,8 +70,27 @@
 - R4 → R3 → R2 → R1 all locked at `[Store, Factory]` for greenfield entities, or `[Store, AuditModel, Factory]` for entities with a model-on-model audit relation (R1 is the only one with this — `TaxConfigurationAudit::belongsTo(TaxConfiguration::class)`). Pattern is now stable.
 - `TaxConfigService` was the unique R1 challenge — it has a typed property + typed return on `getModel()`, so just removing `TaxConfiguration::` static calls wasn't enough. Removing the dead `getModel()` method + its property finished the migration.
 
-## 2026-05-28 — flaky audit-context test (InvestmentAccountHttpIntegrationTest)
-- Symptom: ~30–50% null CREATED audit row in the FULL Unit+Feature suite only; `tests/Feature/` alone and `tests/Unit/ + target` always pass. Deterministic test order → true non-determinism.
-- RULED OUT (via temporary probe in Auditable.php, captured in a failing run): listener-detached (created event DID fire on real Dispatcher), config-leak (`audit.in_tests`=true at fire), preview-leak (auth user null, not preview). shouldAudit SHOULD return true yet row absent.
-- LEADING THEORY: leaked duplicate `Hargreaves Lansdown` account (factory default provider) → test's `InvestmentAccount::where('provider','Hargreaves Lansdown')->first()` (no orderBy) returns wrong id whose CREATED audit doesn't exist. Probe v2 (hl_count/hl_first_id) staged but not yet reproduced. Full repro recipe in May/May29Updates/handover-2026-05-29-session-1.md.
-- Gotcha reinforced: never run two `pest` processes concurrently (shared `laravel_testing` DB corruption); `--testsuite=Unit,Feature` reproduces full-suite ordering minus Eval/Browser.
+## 2026-06-11 session 4 — savetax campaign E2E findings
+- The campaign's two memory systems can desync: `users.funnel_answers` (greetings, section skips) vs profile routing columns (`household_calculation_mode`). Any funnel answer that maps cleanly to a routing column needs an explicit `FunnelAnswersMapper` line — there's no automatic inference (PR #529 root cause).
+- `create_investment_account` silently dropped any user-stated fact without a schema field (the £800 dividends case) — when iterating on captures, diff the recorded `tool_calls` in `ai_messages` against the user's verbatim message to spot dropped facts (PR #531).
+- `buildCaptureAck` is a state-keyed table covering only base states; campaign grouped_extract states need explicit entries — delegated turns ack via LLM, grouped_extract turns don't.
+- csjones `php artisan cache:clear` invalidates live user tokens — every deploy needs re-login in browser tests.
+
+## 2026-07-15 — Native Swift programme Package 1
+
+- The primary checkout can show the Save Tax branch while programme work remains correctly isolated in a separate worktree. Every programme command must set `workdir=/private/tmp/fynla-freemium-economic-api-readiness`; never switch `/Users/CSJ/Desktop/fynla` away from Save Tax.
+- Registration checkout intent is a paid-intent contract, not a general tier selector. `free` must be rejected by registration validation, and public Free calls to action must use plain `/register` rather than `plan=free`.
+- Checkout routing must be derived from the verified `PendingRegistration`, never from the verification request or current query string. The resulting user still starts Free and no `Subscription` is created before payment.
+- The historical `.agents/skills` files are absent from the current checkout, but their last committed copies are recoverable from commit `ff5520b` when a named repository skill must be followed.
+- Session tech-debt audit found no critical blockers. Deferred items are ownership-share duplication and orchestration length in `BalanceHistoryService`, plus the broad collection responsibility in `AdviserExportPackService`.
+- All approved current plans are now canonical under `codex/plans/`: three programme plans and seven iOS package plans. Older plans found elsewhere remain historical references rather than missing current inputs.
+- Task 7's earlier CI failures were real whole-PR drift: seeded canonical tier rows made duplicate fixture creates fail, Free savings limits still expected the retired value of three, Premium-only estate/document tests used Free users, and whole-range frontend/policy lint exposed stale Vue and mobile code. The fixtures/expectations and lint errors are corrected in PR #622; final run `29463239284` is fully green.
+- The settled dev-server fact remains zero current paid subscriptions. Local fixture drift was separate: one synthetic admin subscription and six legacy trial-shaped rows were normalised/retired, then the database was migrated through Tasks 1–10 and reseeded.
+- `ConvertTrialUsersToFree` originally soft-deleted converted subscriptions without clearing trial-only fields/status, so the Task 12 audit still counted historical shape. Task 10 now normalises the row to `expired`, clears trial dates and retention countdown, then soft-deletes it; its regression test locks the audit-safe result.
+- Task 12's plan gate is intentionally cross-environment. A local green audit does not authorise schema removal until the same exact command exits 0 on csjones and production and evidence is saved. PR #625 must be merged/deployed before those hosts can satisfy the command contract.
+- The canonical status response key is now `subscription_status`. The retired `/api/payment/trial-status` endpoint is an authenticated 404 tombstone because an unregistered API GET otherwise falls through to the web single-page-app catchall and incorrectly returns 200.
+- Task 12 migration-test cleanup must restore both `000000_collapse_tier_identity_to_free_premium` and `000001_support_unbounded_premium_quotas`; restoring only `000000` leaks the temporary 90-day Premium snapshot window into later tests.
+- Payment finalisation replay tests must freeze time at second precision. The settlement path recomputes `now()->addMonth()`, so an unfrozen assertion can cross a second boundary and fail despite correct idempotent effects.
+- Task 12 is locally migrated and green in draft PR #627, but this does not satisfy the cross-environment gate. No remote migration is authorised until the exact audit is green and saved on both csjones and production.
+- Task 13 now has a single repository source of truth at `codex/plans/canonical/01-freemium-economic-contract.md`. The implemented signup spec and design guide point to it, while older commercial designs are visibly historical rather than silently competing contracts.
+- The corresponding vault documents remain materially stale about trials and former paid tiers. They have been inventoried for a gated update, not edited ahead of the Task 12 cross-environment audit.

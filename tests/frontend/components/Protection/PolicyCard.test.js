@@ -3,153 +3,106 @@ import { mount } from '@vue/test-utils';
 import PolicyCard from '@/components/Protection/PolicyCard.vue';
 
 describe('PolicyCard', () => {
-  const mockPolicy = {
+  const lifePolicy = {
     id: 1,
-    policy_type: 'life_insurance',
-    provider: 'Test Insurance Co',
-    policy_number: 'POL123456',
+    policy_type: 'life',
+    policy_subtype: 'level_term',
+    provider: 'Test Insurance Company',
     sum_assured: 500000,
     premium_amount: 50,
     premium_frequency: 'monthly',
-    start_date: '2020-01-01',
-    end_date: '2040-01-01',
-    smoker_status: 'non-smoker',
+    policy_start_date: '2020-01-01',
+    policy_term_years: 30,
   };
 
-  it('renders policy summary when collapsed', () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-    });
+  const mountCard = (policy = lifePolicy, push = vi.fn()) => ({
+    push,
+    wrapper: mount(PolicyCard, {
+      props: { policy },
+      global: { mocks: { $router: { push } } },
+    }),
+  });
 
-    expect(wrapper.text()).toContain('Test Insurance Co');
+  it('renders the current policy summary', () => {
+    const { wrapper } = mountCard();
+
+    expect(wrapper.text()).toContain('Life Insurance');
+    expect(wrapper.text()).toContain('Test Insurance Company');
     expect(wrapper.text()).toContain('£500,000');
-    expect(wrapper.text()).toContain('£50');
+    expect(wrapper.text()).toContain('£50/monthly');
   });
 
-  it('expands to show full details when clicked', async () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-    });
+  it('shows the full life-policy subtype', () => {
+    const { wrapper } = mountCard();
 
-    // Initially collapsed
-    const policyNumber = wrapper.text().includes('POL123456');
-
-    // Find and click expand button
-    const expandButton = wrapper.find('[data-testid="expand-toggle"]') || wrapper.find('button');
-    if (expandButton.exists()) {
-      await expandButton.trigger('click');
-
-      // After expansion, policy number should be visible
-      expect(wrapper.text()).toContain('POL123456');
-    }
+    expect(wrapper.text()).toContain('Level Term');
+    expect(wrapper.vm.lifePolicyTypeLabel).toBe('Level Term');
   });
 
-  it('collapses when expand button is clicked again', async () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-      data() {
-        return {
-          expanded: true, // Start expanded
-        };
-      },
+  it('uses Sum Assured for lump-sum policy types', () => {
+    const { wrapper } = mountCard({
+      ...lifePolicy,
+      policy_type: 'criticalIllness',
     });
 
-    const expandButton = wrapper.find('[data-testid="expand-toggle"]') || wrapper.find('button');
-    if (expandButton.exists()) {
-      await expandButton.trigger('click');
-
-      // Should collapse
-      expect(wrapper.vm.expanded).toBe(false);
-    }
+    expect(wrapper.text()).toContain('Critical Illness');
+    expect(wrapper.text()).toContain('Sum Assured');
   });
 
-  it('displays Edit button', () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
+  it('uses Benefit Amount for income protection', () => {
+    const { wrapper } = mountCard({
+      id: 2,
+      policy_type: 'incomeProtection',
+      provider: 'Income Protection Provider',
+      benefit_amount: 2500,
+      premium_amount: 35,
+      premium_frequency: 'monthly',
     });
 
-    const buttons = wrapper.findAll('button');
-    const editButton = buttons.find(btn => btn.text().match(/edit/i));
-    expect(editButton).toBeDefined();
+    expect(wrapper.text()).toContain('Income Protection');
+    expect(wrapper.text()).toContain('Benefit Amount');
+    expect(wrapper.text()).toContain('£2,500');
   });
 
-  it('displays Delete button', () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-    });
+  it('falls back safely when provider and cover are missing', () => {
+    const { wrapper } = mountCard({ id: 3, policy_type: 'disability' });
 
-    const buttons = wrapper.findAll('button');
-    const deleteButton = buttons.find(btn => btn.text().match(/delete/i));
-    expect(deleteButton).toBeDefined();
+    expect(wrapper.text()).toContain('Unknown Provider');
+    expect(wrapper.text()).toContain('£0');
   });
 
-  it('shows delete confirmation modal when delete is clicked', async () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-    });
+  it('navigates to the type-specific policy detail route', async () => {
+    const push = vi.fn();
+    const { wrapper } = mountCard(lifePolicy, push);
 
-    const deleteButton = wrapper.findAll('button').find(btn => btn.text().match(/delete/i));
-    if (deleteButton) {
-      await deleteButton.trigger('click');
+    await wrapper.trigger('click');
 
-      // Should show confirmation modal or set state
-      expect(wrapper.vm.showDeleteConfirm || wrapper.vm.showConfirmation).toBe(true);
-    }
+    expect(push).toHaveBeenCalledWith('/protection/policy/life/1');
   });
 
-  it('emits edit event when Edit button is clicked', async () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-    });
+  it('identifies an in-force policy from its start date and term', () => {
+    const { wrapper } = mountCard();
 
-    const editButton = wrapper.findAll('button').find(btn => btn.text().match(/edit/i));
-    if (editButton) {
-      await editButton.trigger('click');
-
-      // Should emit 'edit' event with policy
-      expect(wrapper.emitted('edit')).toBeTruthy();
-      expect(wrapper.emitted('edit')[0]).toEqual([mockPolicy]);
-    }
+    expect(wrapper.vm.isActive).toBe(true);
   });
 
-  it('formats policy type correctly', () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
+  it('does not mark a future policy as active', () => {
+    const { wrapper } = mountCard({
+      ...lifePolicy,
+      policy_start_date: '2099-01-01',
     });
 
-    const text = wrapper.text();
-    // Should convert life_insurance to "Life Insurance" or similar
-    expect(text).toMatch(/life.*insurance/i);
+    expect(wrapper.vm.isActive).toBe(false);
   });
 
-  it('displays smoker status', () => {
-    const wrapper = mount(PolicyCard, {
-      props: {
-        policy: mockPolicy,
-      },
-      data() {
-        return {
-          expanded: true,
-        };
-      },
-    });
+  it('parses policy conditions from arrays and stored JSON', () => {
+    const { wrapper } = mountCard();
 
-    expect(wrapper.text()).toMatch(/non-smoker|smoker/i);
+    expect(wrapper.vm.parseConditions(['Condition one'])).toEqual(['Condition one']);
+    expect(wrapper.vm.parseConditions('["Condition one","Condition two"]')).toEqual([
+      'Condition one',
+      'Condition two',
+    ]);
+    expect(wrapper.vm.parseConditions('invalid')).toEqual([]);
   });
 });

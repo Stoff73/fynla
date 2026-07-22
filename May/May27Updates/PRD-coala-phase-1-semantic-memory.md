@@ -8,6 +8,8 @@
 **Canonical contract:** `/Users/CSJ/Desktop/fynla/April/April24Updates/spec/00-canonical.md`
 **Codebase audit:** Performed during plan v0.1 → v0.4 revision cycle — see Risks & Dependencies for residual concerns
 
+> **AMENDED by plan v0.5 (2026-06-01) — memory holds pointers, not copies.** Semantic memory narrows to **source-less** knowledge only (`fca` rule narrative + `house_view`). Tax/allowance/product *figures* and all live-owned data are NOT semantic facts — they are reached via a **pointer in procedural memory** to the live source (`TaxConfigService`, models, engines). Embeddings/dense retrieval are descoped (sparse-only until ~500 concurrent users). Where this PRD describes freezing product/tax data into the `.md` corpus, read it as "narrative only + a procedural pointer for the live figure." See `fynla-coala-implementation-plan.md` → "v0.5 amendment".
+
 ---
 
 ## 1. Context & Why

@@ -68,6 +68,57 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
             ->and((float) $profiles->first()->total_monthly_expenditure)->toBe(2100.0);
     });
 
+    it('merges a partial category update with the users existing expenditure', function () {
+        $user = User::factory()->create([
+            'is_preview_user' => false,
+            'rent' => 1500,
+            'utilities' => 200,
+            'monthly_expenditure' => 1700,
+            'annual_expenditure' => 20400,
+        ]);
+
+        $result = invokeSetExpenditure($user, ['utilities' => 300]);
+
+        expect($result['updated'] ?? false)->toBeTrue()
+            ->and($result['total_monthly'])->toBe(1800.0);
+        expect((float) $user->fresh()->rent)->toBe(1500.0)
+            ->and((float) $user->fresh()->utilities)->toBe(300.0)
+            ->and((float) $user->fresh()->monthly_expenditure)->toBe(1800.0)
+            ->and((float) ExpenditureProfile::where('user_id', $user->id)->sole()->total_monthly_expenditure)->toBe(1800.0);
+    });
+
+    it('accepts zero as an explicit category clear without erasing other categories', function () {
+        $user = User::factory()->create([
+            'is_preview_user' => false,
+            'rent' => 1500,
+            'utilities' => 300,
+            'monthly_expenditure' => 1800,
+            'annual_expenditure' => 21600,
+        ]);
+
+        $result = invokeSetExpenditure($user, ['rent' => 0]);
+
+        expect($result['updated'] ?? false)->toBeTrue()
+            ->and($result['total_monthly'])->toBe(300.0);
+        expect((float) $user->fresh()->rent)->toBe(0.0)
+            ->and((float) $user->fresh()->utilities)->toBe(300.0)
+            ->and((float) $user->fresh()->monthly_expenditure)->toBe(300.0);
+    });
+
+    it('rejects a negative category amount without changing expenditure', function () {
+        $user = User::factory()->create([
+            'is_preview_user' => false,
+            'rent' => 1500,
+            'monthly_expenditure' => 1500,
+        ]);
+
+        $result = invokeSetExpenditure($user, ['rent' => -1]);
+
+        expect($result['error'] ?? false)->toBeTrue()
+            ->and((float) $user->fresh()->rent)->toBe(1500.0)
+            ->and((float) $user->fresh()->monthly_expenditure)->toBe(1500.0);
+    });
+
     it('does not write to ExpenditureProfile when no amounts are provided', function () {
         $user = User::factory()->create(['is_preview_user' => false]);
 

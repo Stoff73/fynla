@@ -1,7 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Frequently Asked Questions | Fynla</title>
   <meta name="description" content="Find answers to common questions about Fynla, UK financial planning, pensions, investments, savings, and how to get the most from the platform." />
@@ -40,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
+  <!-- Critical CSS — above-fold: tokens, reset, skip-nav, nav skeleton, hero -->
   <style>
     :root{--raspberry-300:#F472B6;--raspberry-400:#EC4899;--raspberry-500:#E83E6D;--raspberry-600:#DB2777;--horizon-100:#F1F5F9;--horizon-200:#E2E8F0;--horizon-300:#CBD5E1;--horizon-400:#94A3B8;--horizon-500:#1F2A44;--horizon-600:#0F172A;--horizon-700:#020617;--spring-500:#20B486;--violet-500:#5854E6;--savannah-100:#FDFAF7;--eggshell-500:#F7F6F4;--neutral-500:#717171;--light-pink-100:#FAD6E0;--light-pink-200:#F5B3C5;--light-gray:#EEEEEE;--white:#FFFFFF;--white-70:rgba(255,255,255,0.70);--black-05:rgba(0,0,0,0.05);--font-primary:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,sans-serif;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-2xl:1rem;--radius-button:0.5rem;--radius-full:9999px;--shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -64,7 +67,7 @@
     @media(min-width:1024px){.faq-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
 
-  <link rel="stylesheet" href="/pages/css/global.css?v=1" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/faq.css?v=1"    />
 </head>
 <body>
@@ -84,7 +87,7 @@
           Frequently asked <span class="faq-hero__accent">questions</span>
         </h1>
         <p class="faq-hero__lead">
-          Everything you need to know about Fynla â€” from what it does, to how it works, to whether it's right for you.
+          Everything you need to know about Fynla — from what it does, to how it works, to whether it's right for you.
         </p>
       </div>
     </section>
@@ -95,7 +98,7 @@
     <section id="faq-filter" class="faq-filter" aria-label="Filter FAQ categories">
       <div class="faq-filter__inner">
         <p class="faq-filter__intro">
-          Answers to the most common questions about Fynla â€” what it does, how it works, pricing, security, and whether it's the right tool for your financial planning needs.
+          Answers to the most common questions about Fynla — what it does, how it works, pricing, security, and whether it's the right tool for your financial planning needs.
         </p>
         <div class="faq-filter__tabs" role="tablist" aria-label="FAQ categories">
           <button class="faq-filter__tab is-active" data-faq-filter="all" role="tab" aria-selected="true">All</button>
@@ -114,7 +117,7 @@
          FAQ accordion markup is written manually here (not using the
          partials/modules/faq.php partial) because this page has
          multiple categories that need to be filterable by JS. The
-         faq.php partial renders one monolithic accordion â€” here we need
+         faq.php partial renders one monolithic accordion — here we need
          individually hideable category groups. The faq__* CSS and JS
          from site.js are reused; only the grouping wrapper is new.
          ================================================================ -->
@@ -131,7 +134,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-about-0">What is Fynla? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-about-0" hidden>
-                <div class="faq__answer-inner">Fynla is a UK financial planning platform that helps you see your complete financial picture â€” pensions, property, investments, protection, tax, and retirement planning â€” in one place. It's designed for people who want to plan their finances properly but don't want to pay thousands for an independent financial adviser.</div>
+                <div class="faq__answer-inner">Fynla is a UK financial planning platform that helps you see your complete financial picture — pensions, property, investments, protection, tax, and retirement planning — in one place. It's designed for people who want to plan their finances properly but don't want to pay thousands for an independent financial adviser.</div>
               </dd>
             </div>
 
@@ -140,7 +143,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-about-1">Is Fynla a financial adviser? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-about-1" hidden>
-                <div class="faq__answer-inner">No. Fynla is a planning tool, not a regulated financial adviser. We help you understand your financial position, model scenarios, and make informed decisions â€” but we don't recommend specific financial products or give personalised financial advice. For complex situations, we'd encourage you to use Fynla alongside a qualified adviser.</div>
+                <div class="faq__answer-inner">No. Fynla is a planning tool, not a regulated financial adviser. We help you understand your financial position, model scenarios, and make informed decisions — but we don't recommend specific financial products or give personalised financial advice. For complex situations, we'd encourage you to use Fynla alongside a qualified adviser.</div>
               </dd>
             </div>
 
@@ -149,7 +152,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-about-2">Who is Fynla for? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-about-2" hidden>
-                <div class="faq__answer-inner">Anyone in the UK who wants to understand and plan their finances. We have features for every stage of life â€” from students building their first savings habits to pre-retirees planning drawdown strategies. Most of our users are people who know they should be planning but haven't had the right tools to do it properly.</div>
+                <div class="faq__answer-inner">Anyone in the UK who wants to understand and plan their finances. We have features for every stage of life — from students building their first savings habits to pre-retirees planning drawdown strategies. Most of our users are people who know they should be planning but haven't had the right tools to do it properly.</div>
               </dd>
             </div>
 
@@ -158,7 +161,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-about-3">How is Fynla different from budgeting apps like Emma or Plum? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-about-3" hidden>
-                <div class="faq__answer-inner">Budgeting apps track where your money went (backward-looking). Fynla plans where your money is going (forward-looking). Fynla covers pensions, retirement projections, Inheritance Tax planning, protection analysis, and long-term financial modelling â€” things budgeting apps don't touch.</div>
+                <div class="faq__answer-inner">Budgeting apps track where your money went (backward-looking). Fynla plans where your money is going (forward-looking). Fynla covers pensions, retirement projections, Inheritance Tax planning, protection analysis, and long-term financial modelling — things budgeting apps don't touch.</div>
               </dd>
             </div>
 
@@ -167,7 +170,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-about-4">How is Fynla different from an independent financial adviser or wealth manager? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-about-4" hidden>
-                <div class="faq__answer-inner">An independent financial adviser provides personalised advice and can execute transactions (buy products, transfer pensions). Fynla provides the planning, projections, and analysis â€” the part most people actually need â€” at a fraction of the cost. Many users find that Fynla either replaces their need for an adviser or makes their sessions shorter and more productive.</div>
+                <div class="faq__answer-inner">An independent financial adviser provides personalised advice and can execute transactions (buy products, transfer pensions). Fynla provides the planning, projections, and analysis — the part most people actually need — at a fraction of the cost. Many users find that Fynla either replaces their need for an adviser or makes their sessions shorter and more productive.</div>
               </dd>
             </div>
 
@@ -176,7 +179,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-about-5">Is Fynla giving me tax advice? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-about-5" hidden>
-                <div class="faq__answer-inner">No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we'd recommend consulting a qualified adviser â€” and Fynla gives you the numbers to make that conversation productive.</div>
+                <div class="faq__answer-inner">No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we'd recommend consulting a qualified adviser — and Fynla gives you the numbers to make that conversation productive.</div>
               </dd>
             </div>
 
@@ -193,7 +196,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-gs-0">How long does it take to set up? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-gs-0" hidden>
-                <div class="faq__answer-inner">Most people complete their initial setup in 15â€“20 minutes. You'll add your key financial data â€” pensions, property, savings, insurance â€” and immediately see your dashboard. You can add more detail over time.</div>
+                <div class="faq__answer-inner">Most people complete their initial setup in 15–20 minutes. You'll add your key financial data — pensions, property, savings, insurance — and immediately see your dashboard. You can add more detail over time.</div>
               </dd>
             </div>
 
@@ -220,7 +223,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-gs-3">What data do I need to get started? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-gs-3" hidden>
-                <div class="faq__answer-inner">At minimum: your pension values (check provider statements or online portals), property value estimate, savings and investment balances, and any outstanding debts. The more complete your data, the more accurate your plan â€” but you can start with the basics and add detail over time.</div>
+                <div class="faq__answer-inner">At minimum: your pension values (check provider statements or online portals), property value estimate, savings and investment balances, and any outstanding debts. The more complete your data, the more accurate your plan — but you can start with the basics and add detail over time.</div>
               </dd>
             </div>
 
@@ -229,7 +232,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-gs-4">How do I value my property? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-gs-4" hidden>
-                <div class="faq__answer-inner">Enter your best estimate of current market value. You can update this periodically â€” many people check Zoopla or Rightmove for comparable sales. Fynla doesn't auto-value property, so you stay in control of the estimate.</div>
+                <div class="faq__answer-inner">Enter your best estimate of current market value. You can update this periodically — many people check Zoopla or Rightmove for comparable sales. Fynla doesn't auto-value property, so you stay in control of the estimate.</div>
               </dd>
             </div>
 
@@ -238,7 +241,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-gs-5">How often should I update my data? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-gs-5" hidden>
-                <div class="faq__answer-inner">Property and pension values: every 3â€“6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.</div>
+                <div class="faq__answer-inner">Property and pension values: every 3–6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.</div>
               </dd>
             </div>
 
@@ -264,7 +267,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-feat-1">What is Fyn? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-feat-1" hidden>
-                <div class="faq__answer-inner">Fyn is our AI assistant built into the platform. Ask Fyn any financial planning question in plain English â€” from "what's an ISA?" to "how does taper relief work?" â€” and get a clear, jargon-free answer. Fyn also helps you navigate the platform and understand your plan.</div>
+                <div class="faq__answer-inner">Fyn is our AI assistant built into the platform. Ask Fyn any financial planning question in plain English — from "what's an ISA?" to "how does taper relief work?" — and get a clear, jargon-free answer. Fyn also helps you navigate the platform and understand your plan.</div>
               </dd>
             </div>
 
@@ -309,7 +312,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-feat-6">What is included in the In Case of Emergency letter? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-feat-6" hidden>
-                <div class="faq__answer-inner">The In Case of Emergency letter is a comprehensive summary of your entire financial life â€” accounts, policies, pensions, property, debts, contacts, and instructions â€” designed so your family can quickly understand and access everything if the worst happens.</div>
+                <div class="faq__answer-inner">The In Case of Emergency letter is a comprehensive summary of your entire financial life — accounts, policies, pensions, property, debts, contacts, and instructions — designed so your family can quickly understand and access everything if the worst happens.</div>
               </dd>
             </div>
 
@@ -318,7 +321,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-feat-7">Does Fynla sell insurance? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-feat-7" hidden>
-                <div class="faq__answer-inner">No. Fynla calculates your protection gap â€” we don't sell insurance products, earn commissions, or recommend specific providers.</div>
+                <div class="faq__answer-inner">No. Fynla calculates your protection gap — we don't sell insurance products, earn commissions, or recommend specific providers.</div>
               </dd>
             </div>
 
@@ -335,7 +338,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-0">How much does Fynla cost? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-0" hidden>
-                <div class="faq__answer-inner">Student tier from approximately &pound;3/month, Standard at &pound;8.50/month, and Premium at &pound;20/month. Annual billing gives you a discount. No hidden fees, no commission, no lock-in. See our pricing page for full details.</div>
+                <div class="faq__answer-inner">Free costs &pound;0. Premium costs &pound;6.99 per month or &pound;59.99 per year for web billing. There are no hidden fees or commissions. See our pricing page for the live capability and limit comparison.</div>
               </dd>
             </div>
 
@@ -344,25 +347,25 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-1">What is the difference between the plans? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-1" hidden>
-                <div class="faq__answer-inner">Each tier adds more depth. Student covers budgeting, savings, and basic pension tracking. Standard adds full retirement projections, property, investments, and protection analysis. Premium adds Monte Carlo simulations, Inheritance Tax planning, In Case of Emergency letters, and advanced scenario modelling.</div>
+                <div class="faq__answer-inner">Free includes the core planning experience within published account and feature limits. Premium removes count limits, adds one gigabyte of document storage, increases weekly Fyn usage, and shows the full retained balance history.</div>
               </dd>
             </div>
 
             <div class="faq__item" data-faq-item>
               <dt class="faq__question">
-                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-2">Is there a free trial? <span class="faq__icon" aria-hidden="true"></span></button>
+                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-2">Is the Free account time-limited? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-2" hidden>
-                <div class="faq__answer-inner">Yes. Try Fynla free with full access to all features in your chosen tier. No credit card required to start.</div>
+                <div class="faq__answer-inner">No. Free has no time limit and requires no credit card. You can keep using the capabilities and limits included in Free, then choose Premium whenever you want more.</div>
               </dd>
             </div>
 
             <div class="faq__item" data-faq-item>
               <dt class="faq__question">
-                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-3">What happens when my free trial ends? <span class="faq__icon" aria-hidden="true"></span></button>
+                <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-3">What happens when Premium access ends? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-3" hidden>
-                <div class="faq__answer-inner">You'll be prompted to choose a plan. If you don't subscribe, your account remains accessible in read-only mode â€” you won't lose any data. You can subscribe at any time to regain full access.</div>
+                <div class="faq__answer-inner">Paid access continues until the end of the purchased period. It then enters a 30-day read-only grace period so you can export your data or purchase Premium again. If you take neither action, account access is disabled and the account enters the regulatory retention process.</div>
               </dd>
             </div>
 
@@ -371,7 +374,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-4">Can I change plans? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-4" hidden>
-                <div class="faq__answer-inner">Yes, upgrade or downgrade at any time. Changes take effect from your next billing cycle.</div>
+                <div class="faq__answer-inner">You can purchase Premium or cancel paid access at any time. Cancellation stops renewal, while Premium access continues until the end of the current billing period.</div>
               </dd>
             </div>
 
@@ -380,7 +383,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-5">What payment methods do you accept? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-5" hidden>
-                <div class="faq__answer-inner">We accept all major credit and debit cards. Payments are processed securely through Stripe.</div>
+                <div class="faq__answer-inner">Premium web payments are processed securely through Revolut. The checkout shows the payment methods available to you.</div>
               </dd>
             </div>
 
@@ -389,7 +392,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-price-6">What if I cancel? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-price-6" hidden>
-                <div class="faq__answer-inner">You can export your data at any time. Cancel monthly plans any time; annual plans run to the end of the 12-month period. Your data is retained for 30 days after cancellation, then permanently deleted.</div>
+                <div class="faq__answer-inner">You can export your data at any time. Cancellation stops renewal, while Premium access continues until the purchased period ends. It then enters a 30-day read-only grace period before account access is disabled and the regulatory retention process begins.</div>
               </dd>
             </div>
 
@@ -459,7 +462,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-tech-1">Which browsers are supported? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-tech-1" hidden>
-                <div class="faq__answer-inner">Fynla works on all modern browsers â€” Chrome, Firefox, Safari, and Edge.</div>
+                <div class="faq__answer-inner">Fynla works on all modern browsers — Chrome, Firefox, Safari, and Edge.</div>
               </dd>
             </div>
 
@@ -468,7 +471,7 @@
                 <button class="faq__toggle" aria-expanded="false" aria-controls="faq-tech-2">Do I need to install anything? <span class="faq__icon" aria-hidden="true"></span></button>
               </dt>
               <dd class="faq__answer" id="faq-tech-2" hidden>
-                <div class="faq__answer-inner">No. Fynla is a web application â€” just sign up and start using it in your browser.</div>
+                <div class="faq__answer-inner">No. Fynla is a web application — just sign up and start using it in your browser.</div>
               </dd>
             </div>
 

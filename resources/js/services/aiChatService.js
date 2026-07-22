@@ -69,8 +69,24 @@ const aiChatService = {
         });
 
         if (!response.ok) {
+            // FR-M7 — past the queue depth cap the backend rejects with 429.
+            // Surface a typed marker so the store can tell the user gently.
+            if (response.status === 429) {
+                const payload = await response.json().catch(() => ({}));
+                return { rejected: true, reason: 'queue_full', message: payload.message || null };
+            }
             const errorText = await response.text().catch(() => '');
             throw new Error(`Chat request failed: ${response.status} ${errorText}`);
+        }
+
+        // FR-M7 — a turn sent while another is still streaming is QUEUED, not
+        // streamed: the backend returns 202 with JSON (not SSE). Surface a typed
+        // marker so the store renders the turn greyed and streams it once the
+        // in-flight turn finishes (frontend-driven transport), instead of trying
+        // to parse the JSON body as an event stream.
+        if (response.status === 202) {
+            const payload = await response.json().catch(() => ({}));
+            return { queued: true, messageId: payload.message_id, queuePosition: payload.queue_position };
         }
 
         // WKWebView may not support ReadableStream — fall back to text parsing
@@ -88,6 +104,72 @@ const aiChatService = {
         }
 
         return response.body.getReader();
+    },
+
+    /**
+     * Stream a turn that was queued behind an in-flight one (FR-M7). Called
+     * once the previous stream's `done` arrives. Returns a ReadableStream reader
+     * consumed exactly like sendMessageStream.
+     */
+    async streamQueuedMessage(conversationId, messageId, currentRoute = null, { signal } = {}) {
+        const token = await getToken();
+        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+
+        const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/messages/${messageId}/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ current_route: currentRoute }),
+            credentials: isCapacitor ? 'omit' : 'same-origin',
+            signal,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Queued-turn stream failed: ${response.status} ${errorText}`);
+        }
+
+        if (!response.body) {
+            const text = await response.text();
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(encoder.encode(text));
+                    controller.close();
+                },
+            });
+            return stream.getReader();
+        }
+
+        return response.body.getReader();
+    },
+
+    /**
+     * Cancel a still-queued turn before it streams (FR-M7 scenario 4).
+     */
+    async cancelQueuedMessage(conversationId, messageId) {
+        const response = await api.delete(`/ai-chat/conversations/${conversationId}/messages/${messageId}`);
+        return response.data;
+    },
+
+    /**
+     * Resumption check (FR-M9) — the user's most recent unfinished conversation,
+     * if any, surfaced on chat open.
+     */
+    async getResumption() {
+        const response = await api.get('/ai-chat/resumption');
+        return response.data;
+    },
+
+    /**
+     * Acknowledge a resumption (continue OR start fresh — both clear it).
+     */
+    async clearResumption(conversationId) {
+        const response = await api.delete(`/ai-chat/conversations/${conversationId}/resumption`);
+        return response.data;
     },
 
     /**

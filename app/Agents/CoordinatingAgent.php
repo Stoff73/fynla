@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
+use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
+use App\Constants\ValidationLimits;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -33,30 +37,43 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
-use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
+use App\Models\StatePension;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Pointers\FetchContext;
+use App\Services\AI\Pointers\FetchDispatcher;
+use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Onboarding\CaptureAccuracyGate;
+use App\Services\Onboarding\HouseholdProvisioner;
 use App\Services\Onboarding\SpouseLinkingService;
+use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\GoalStore;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\LiabilityStore;
+use App\Services\Stores\LifeEventStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
@@ -66,8 +83,11 @@ use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\WhatIf\WhatIfScenarioService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
@@ -103,7 +123,7 @@ class CoordinatingAgent extends BaseAgent
      */
     private const SAVINGS_ACCOUNT_TYPES = [
         'easy_access', 'notice', 'fixed', 'fixed_term',
-        'regular_saver', 'cash_isa', 'junior_isa',
+        'regular_saver', 'cash_isa', 'junior_isa', 'current_account',
     ];
 
     public function __construct(
@@ -123,7 +143,27 @@ class CoordinatingAgent extends BaseAgent
         private readonly AiToolDefinitions $toolDefinitions,
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
+        private readonly ComposedTaxPlanService $composedTaxPlans,
+        private readonly TeaserGate $teaserGate,
+        private readonly CaptureAccuracyGate $captureAccuracyGate,
+        private readonly HouseholdProvisioner $householdProvisioner,
+        private readonly SubscriptionStatusService $subscriptionStatusService,
     ) {}
+
+    /**
+     * After any Fyn write (the ~10 capture handlers below all call this), clear
+     * the full set of the user's caches — not just this agent's. The mobile /m
+     * surface is served entirely from CacheInvalidationService-managed keys
+     * (mobile_dashboard_*, mobile_module_*, mobile_level_actions_*), and the Fyn
+     * capture path is its ONLY writer, so a Fyn write must invalidate them or the
+     * /m dashboard + drill-downs stay stale for up to 24h. BaseAgent's version
+     * only clears v1_{agent}_* keys.
+     */
+    public function invalidateUserCache(int $userId, array $additionalKeys = []): void
+    {
+        parent::invalidateUserCache($userId, $additionalKeys);
+        app(CacheInvalidationService::class)->invalidateForUser($userId);
+    }
 
     /**
      * Analyze user data and generate insights (BaseAgent requirement)
@@ -153,8 +193,11 @@ class CoordinatingAgent extends BaseAgent
      *   builder still renders net worth, goals, life events from the
      *   user record directly.
      */
-    public function analyzeRelevantModules(int $userId, ?array $classification): array
-    {
+    public function analyzeRelevantModules(
+        int $userId,
+        ?array $classification,
+        ?array $kycResult = null,
+    ): array {
         $primary = is_array($classification) ? ($classification['primary'] ?? null) : null;
         $level = AdviceFyn::engineCallLevelFor(is_string($primary) ? $primary : null);
 
@@ -173,6 +216,7 @@ class CoordinatingAgent extends BaseAgent
         // property and income from the user record directly.
         $modules = QuerySchemas::getModulesForClassification(is_array($classification) ? $classification : []);
         $moduleAnalysis = [];
+        $analysisUser = null;
         foreach ($modules as $module) {
             $analysis = match ($module) {
                 'protection' => $this->protectionAgent->analyze($userId),
@@ -184,6 +228,14 @@ class CoordinatingAgent extends BaseAgent
                 default => null,
             };
             if ($analysis !== null) {
+                if ($this->isQuestionScopedModule($module, $classification, $kycResult)
+                    && $this->requiresQuestionScopedFallback($analysis)) {
+                    $analysis = $this->questionScopedModuleAnalysis(
+                        $module,
+                        $analysisUser ??= User::findOrFail($userId),
+                        (string) $primary,
+                    );
+                }
                 $moduleAnalysis[$module] = $analysis;
             }
         }
@@ -216,6 +268,7 @@ class CoordinatingAgent extends BaseAgent
         bool $persistUserMessage = true,
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
+        ?string $providerOverride = null,
     ): \Generator {
         $this->setChatOverrides(
             systemPrompt: $systemPromptOverride,
@@ -223,6 +276,7 @@ class CoordinatingAgent extends BaseAgent
             skipUserMessagePersistence: ! $persistUserMessage,
             toolsListOverride: $toolsListOverride,
             personaOverride: $personaOverride,
+            providerOverride: $providerOverride,
         );
 
         try {
@@ -813,8 +867,15 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Execute a tool call with prerequisite gate enforcement.
      */
-    public function executeTool(string $toolName, array $input, User $user, ?int $conversationId = null): array
-    {
+    public function executeTool(
+        string $toolName,
+        array $input,
+        User $user,
+        ?int $conversationId = null,
+        ?array $classification = null,
+        ?array $kycResult = null,
+        ?string $evidenceOverride = null,
+    ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
@@ -827,6 +888,23 @@ class CoordinatingAgent extends BaseAgent
 
             return $v;
         }, $input);
+
+        // Strict tool schemas can serialize an absent nullable owner as the
+        // numeric sentinel 0. User IDs are positive, so treat only that
+        // sentinel as null before the ownership security gate. Real non-zero
+        // IDs remain subject to reciprocal-spouse authorization below.
+        if (($input['joint_owner_id'] ?? null) === 0 || ($input['joint_owner_id'] ?? null) === '0') {
+            $input['joint_owner_id'] = null;
+        }
+        if (($input['trust_id'] ?? null) === 0 || ($input['trust_id'] ?? null) === '0') {
+            $input['trust_id'] = null;
+        }
+        if ($toolName === 'capture_dependants' && $conversationId !== null) {
+            $input = $this->captureAccuracyGate->restoreDependantNames(
+                $input,
+                $this->latestUserMessageText($conversationId) ?? '',
+            );
+        }
 
         // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
         // (eval flow) AND the X-Eval-Run-Id header is set
@@ -860,20 +938,127 @@ class CoordinatingAgent extends BaseAgent
             atMicrotime: microtime(true),
         ));
 
-        // Prerequisite gate check
-        $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
+        $verifyEditScopeError = $this->verifyEditScopeError($toolName, $input);
+        if ($verifyEditScopeError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $verifyEditScopeError);
+
+            return $verifyEditScopeError;
+        }
+
+        // The primary-question matrix is the effective advice gate. Do not
+        // reapply broader module readiness after question-specific KYC passes.
+        $questionScopedAnalysis = $this->isQuestionScopedModuleTool(
+            $toolName,
+            $input,
+            $classification,
+            $kycResult,
+        );
+        $questionScopedHolistic = $this->isQuestionScopedHolisticTool(
+            $toolName,
+            $classification,
+            $kycResult,
+        );
+        $nonEntitledHolisticPlan = $toolName === 'generate_financial_plan'
+            && ! $this->teaserGate->isFull($user, 'holistic_plan');
+
+        // Entitlement precedes readiness for the holistic tool, matching the
+        // REST middleware. The handler still uses the audited completion path.
+        $gate = ($questionScopedAnalysis || $questionScopedHolistic || $nonEntitledHolisticPlan)
+            ? ['can_proceed' => true]
+            : $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
         if (! $gate['can_proceed']) {
             $firstAction = $gate['required_actions'][0] ?? null;
+            $pageLabel = null;
+            if ($firstAction !== null) {
+                $destination = GateRoutes::destinationForRoute(
+                    $firstAction['route'] ?? '',
+                    GateRoutes::DASHBOARD,
+                );
+                $pageLabel = GateRoutes::resolve($destination)['label'];
+            }
 
             return [
                 'blocked' => true,
                 'reason' => $gate['guidance'],
                 'missing_data' => $gate['missing'],
-                'suggested_action' => $firstAction,
+                'suggested_action' => $pageLabel === null ? null : ['label' => $pageLabel],
                 'instruction' => 'Explain to the user exactly what data is missing and why it is needed. '
                     .'List each missing item clearly. '
-                    .($firstAction ? "Then use the navigate_to_page tool to take them to \"{$firstAction['route']}\" where they can add the missing information." : ''),
+                    .($pageLabel ? "Then signpost the {$pageLabel} page by its label in plain text. Do not output an internal route or call a navigation or write tool on the advice surface." : ''),
             ];
+        }
+
+        $jointOwnerError = $this->captureJointOwnerError($toolName, $input, $user);
+        if ($jointOwnerError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $jointOwnerError);
+
+            return $jointOwnerError;
+        }
+
+        $trustError = $this->captureTrustError($toolName, $input, $user);
+        if ($trustError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $trustError);
+
+            return $trustError;
+        }
+
+        $latestUserText = $this->latestUserMessageText($conversationId);
+        // A deterministic gap-fill retry (OnboardingChatDirector::
+        // runExtractorForFocus) already carries verbatim user words in its
+        // own capture message — an interposed store-offer affirmation
+        // ("Yes, save it") between the entity sentence and the clarifying
+        // detail can otherwise sever CaptureAccuracyGate's DB-derived
+        // evidence chain before it reaches the detail (live conversation
+        // 164). The override bypasses that broken chain-walk while
+        // preserving the gate's anti-hallucination intent — the text is
+        // still the user's own words, never fabricated.
+        $recentUserEvidence = $evidenceOverride
+            ?? $this->recentUserMessageEvidence($conversationId)
+            ?? $latestUserText;
+        [$accuracyEvidence, $accuracyCacheKey] = $this->captureAccuracyEvidence(
+            $conversationId,
+            $toolName,
+            $recentUserEvidence ?? '',
+            $input,
+            trustVerbatim: $evidenceOverride !== null,
+        );
+        $accuracy = $this->captureAccuracyGate->inspect($toolName, $input, $accuracyEvidence);
+        if (! $accuracy['allowed']) {
+            if ($accuracyCacheKey !== null) {
+                Cache::put($accuracyCacheKey, $accuracyEvidence, now()->addMinutes(15));
+                $this->rememberCaptureAccuracyCacheKey($conversationId, $accuracyCacheKey);
+            }
+            $result = [
+                'error' => true,
+                'error_type' => 'clarification_required',
+                'clarification_required' => true,
+                'reason' => $accuracy['reason'],
+                'missing' => $accuracy['missing'],
+                'message' => $accuracy['reason'],
+            ];
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
+
+            return $result;
+        }
+
+        if ($accuracyCacheKey !== null) {
+            Cache::forget($accuracyCacheKey);
+            $this->forgetCaptureAccuracyCacheKey($conversationId, $accuracyCacheKey);
+        }
+
+        // CoALA pointer fetch tools — `fetch_{pointer_id}` routes through the
+        // FetchDispatcher → handler path, sharing provenance + degrade-on-failure
+        // with the pre-fetch path. Matched against toolPointers() so dashed
+        // pointer_ids (isa-annual-allowance → fetch_isa_annual_allowance) resolve
+        // correctly. No assistant AiMessage is in scope here, so provenance is
+        // recorded on the next prompt rebuild rather than this row (pass null).
+        if (str_starts_with($toolName, 'fetch_')) {
+            $pointerResult = $this->handlePointerFetch($toolName, $user);
+            if ($pointerResult !== null) {
+                $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $pointerResult);
+
+                return $pointerResult;
+            }
         }
 
         try {
@@ -899,7 +1084,7 @@ class CoordinatingAgent extends BaseAgent
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
-                'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
+                'get_module_analysis' => $this->handleModuleAnalysis($input, $user, $classification, $kycResult),
                 'search_conversation_index' => $this->handleSearchConversationIndex($input, $user, $conversationId),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
@@ -937,8 +1122,11 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_work_status' => $this->handleCaptureSpouseWorkStatus($input, $user, $isPreviewUser),
                 'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
                 'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
-                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser),
+                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser, $conversationId),
                 'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
+                // PensionCheck campaign — retirement goals + state pension
+                'capture_retirement_goals' => $this->handleCaptureRetirementGoals($input, $user, $isPreviewUser, $conversationId),
+                'capture_state_pension' => $this->handleCaptureStatePension($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
@@ -984,6 +1172,230 @@ class CoordinatingAgent extends BaseAgent
 
             return ['error' => true, 'error_type' => 'execution_failed', 'message' => 'An unexpected error occurred. Please try again.'];
         }
+    }
+
+    /**
+     * A joint_owner_id grants the linked account visibility of the record, so
+     * Fyn may attach only the user's reciprocally linked spouse. A merely
+     * existing user ID is not sufficient authorization.
+     */
+    private function captureJointOwnerError(string $toolName, array $input, User $user): ?array
+    {
+        if (! in_array($toolName, [
+            'create_savings_account',
+            'create_investment_account',
+            'create_property',
+            'create_liability',
+        ], true)) {
+            return null;
+        }
+
+        $ownershipType = $input['ownership_type'] ?? null;
+        $hasJointOwner = array_key_exists('joint_owner_id', $input)
+            && $input['joint_owner_id'] !== null;
+        if (! in_array($ownershipType, ['joint', 'tenants_in_common'], true)) {
+            if (! $hasJointOwner) {
+                return null;
+            }
+
+            return [
+                'error' => true,
+                'error_type' => 'clarification_required',
+                'clarification_required' => true,
+                'reason' => 'A joint owner can only be attached to a jointly owned record.',
+                'missing' => ['ownership_type'],
+                'message' => 'A joint owner can only be attached to a jointly owned record.',
+            ];
+        }
+
+        $jointOwnerId = isset($input['joint_owner_id']) && is_numeric($input['joint_owner_id'])
+            ? (int) $input['joint_owner_id']
+            : null;
+        $isReciprocalSpouse = $jointOwnerId !== null
+            && (int) $user->spouse_id === $jointOwnerId
+            && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
+
+        if ($isReciprocalSpouse) {
+            return null;
+        }
+
+        return [
+            'error' => true,
+            'error_type' => 'clarification_required',
+            'clarification_required' => true,
+            'reason' => 'I can only attach a joint record after the other owner is securely linked to your account.',
+            'missing' => ['joint_owner_id'],
+            'message' => 'I can only attach a joint record after the other owner is securely linked to your account.',
+        ];
+    }
+
+    /**
+     * A trust_id makes the record visible in trust reporting. It must therefore
+     * resolve inside the authenticated user's own household, never merely exist.
+     */
+    private function captureTrustError(string $toolName, array $input, User $user): ?array
+    {
+        if (! in_array($toolName, ['create_savings_account', 'create_property', 'create_liability'], true)) {
+            return null;
+        }
+
+        $ownershipType = $input['ownership_type'] ?? null;
+        $trustId = isset($input['trust_id'])
+            && is_numeric($input['trust_id'])
+            && (int) $input['trust_id'] > 0
+            ? (int) $input['trust_id']
+            : null;
+
+        if ($ownershipType !== 'trust' && $trustId === null) {
+            return null;
+        }
+
+        $authorised = $ownershipType === 'trust'
+            && $trustId !== null
+            && Trust::query()
+                ->whereKey($trustId)
+                ->where(function ($query) use ($user): void {
+                    $query->where('user_id', $user->id);
+                    if ($user->household_id !== null) {
+                        $query->orWhere('household_id', $user->household_id);
+                    }
+                })
+                ->exists();
+
+        if ($authorised) {
+            return null;
+        }
+
+        $recordLabel = match ($toolName) {
+            'create_savings_account' => 'savings account',
+            'create_liability' => 'liability',
+            default => 'property',
+        };
+        $message = "I can only attach a trust-owned {$recordLabel} after the trust is securely linked to your household.";
+
+        return [
+            'error' => true,
+            'error_type' => 'clarification_required',
+            'clarification_required' => true,
+            'reason' => $message,
+            'missing' => ['trust_id'],
+            'message' => $message,
+        ];
+    }
+
+    /**
+     * Retain only evidence from an unresolved accuracy clarification for this
+     * conversation and tool. Successful capture clears it immediately.
+     *
+     * $trustVerbatim (set when the caller passed executeTool() an
+     * evidenceOverride — see the deterministic gap-fill retry in
+     * OnboardingChatDirector::runExtractorForFocus) skips merging with the
+     * cached prior evidence: the override is already the complete, verbatim
+     * evidence for this attempt, and merging it with a cache entry an
+     * earlier (DB-evidence, non-override) call may have poisoned with an
+     * interposed non-standalone turn (e.g. "Yes, save it") would silently
+     * reintroduce the exact chain-break the override exists to bypass (live
+     * conversation 164). The cache key is still returned so a failed
+     * verbatim attempt caches cleanly for any later non-override call, and a
+     * successful one still clears it below.
+     *
+     * @return array{0:string,1:?string}
+     */
+    private function captureAccuracyEvidence(
+        ?int $conversationId,
+        string $toolName,
+        string $currentUserEvidence,
+        array $input,
+        bool $trustVerbatim = false,
+    ): array {
+        if ($conversationId === null) {
+            return [$currentUserEvidence, null];
+        }
+
+        $identity = array_filter([
+            'account_name' => $input['account_name'] ?? $input['name'] ?? null,
+            'provider' => $input['provider'] ?? $input['institution'] ?? $input['platform'] ?? null,
+            'address' => $input['address'] ?? $input['property_address'] ?? $input['address_line_1'] ?? null,
+            'property_type' => $input['property_type'] ?? null,
+            'lender' => $input['lender'] ?? $input['creditor'] ?? $input['lender_name'] ?? null,
+            'liability_name' => $input['liability_name'] ?? null,
+        ], static fn (mixed $value): bool => is_scalar($value) && trim((string) $value) !== '');
+        if ($identity === []) {
+            return [$currentUserEvidence, null];
+        }
+
+        $identityHash = hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
+        $cacheKey = "capture_accuracy_evidence:{$conversationId}:{$toolName}:{$identityHash}";
+        if ($trustVerbatim) {
+            return [$currentUserEvidence, $cacheKey];
+        }
+
+        $prior = Cache::get($cacheKey, '');
+        $parts = is_string($prior) && trim($prior) !== ''
+            ? preg_split('/\n+/', trim($prior))
+            : [];
+        $parts = is_array($parts) ? $parts : [];
+        $currentParts = preg_split('/\n+/', trim($currentUserEvidence)) ?: [];
+        $parts = array_slice(array_values(array_unique([...$parts, ...$currentParts])), -6);
+
+        return [implode("\n", $parts), $cacheKey];
+    }
+
+    public function clearCaptureAccuracyEvidence(int $conversationId): void
+    {
+        $indexKey = $this->captureAccuracyCacheIndexKey($conversationId);
+        $keys = Cache::get($indexKey, []);
+        if (is_array($keys)) {
+            foreach ($keys as $key) {
+                if (is_string($key) && $key !== '') {
+                    Cache::forget($key);
+                }
+            }
+        }
+        Cache::forget($indexKey);
+    }
+
+    private function rememberCaptureAccuracyCacheKey(?int $conversationId, string $cacheKey): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $indexKey = $this->captureAccuracyCacheIndexKey($conversationId);
+        $keys = Cache::get($indexKey, []);
+        $keys = is_array($keys) ? $keys : [];
+        $keys[] = $cacheKey;
+        Cache::put($indexKey, array_values(array_unique($keys)), now()->addMinutes(15));
+    }
+
+    private function forgetCaptureAccuracyCacheKey(?int $conversationId, string $cacheKey): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $indexKey = $this->captureAccuracyCacheIndexKey($conversationId);
+        $keys = Cache::get($indexKey, []);
+        if (! is_array($keys)) {
+            return;
+        }
+
+        $remaining = array_values(array_filter(
+            $keys,
+            static fn (mixed $key): bool => is_string($key) && $key !== $cacheKey,
+        ));
+        if ($remaining === []) {
+            Cache::forget($indexKey);
+
+            return;
+        }
+
+        Cache::put($indexKey, $remaining, now()->addMinutes(15));
+    }
+
+    private function captureAccuracyCacheIndexKey(int $conversationId): string
+    {
+        return "capture_accuracy_evidence_keys:{$conversationId}";
     }
 
     /**
@@ -1110,6 +1522,49 @@ class CoordinatingAgent extends BaseAgent
         return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
     }
 
+    /**
+     * CoALA pointer fetch — resolve a `fetch_{pointer_id}` tool call to its
+     * Pointer (matched against toolPointers() so dashed ids round-trip) and run
+     * it through the FetchDispatcher → handler. Returns the FetchResult->value
+     * as the tool result, or null when no matching tool-pointer exists (the
+     * caller then falls through to the normal unknown-tool path).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function handlePointerFetch(string $toolName, User $user): ?array
+    {
+        try {
+            $registry = app(PointerRegistry::class);
+            $pointer = null;
+            foreach ($registry->toolPointers() as $candidate) {
+                if ('fetch_'.str_replace('-', '_', $candidate->pointerId) === $toolName) {
+                    $pointer = $candidate;
+                    break;
+                }
+            }
+
+            if ($pointer === null) {
+                return null;
+            }
+
+            $result = app(FetchDispatcher::class)->run(
+                $pointer,
+                new FetchContext($user, ''),
+                null,
+            );
+
+            if ($result === null) {
+                return ['error' => true, 'error_type' => 'fetch_failed', 'message' => 'Unable to retrieve that information right now. Please try again.'];
+            }
+
+            return ['success' => true, 'value' => $result->value];
+        } catch (\Throwable $e) {
+            Log::warning('[CoordinatingAgent] Pointer fetch failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
     // ─── Onboarding grouped-extraction handlers ──────────────────────
 
     /**
@@ -1145,15 +1600,27 @@ class CoordinatingAgent extends BaseAgent
             // Parse DOB — accept YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY and
             // natural-language forms. Slashed DD/MM/YYYY is UK-ambiguous
             // with MDY, so handle it explicitly so "10/04/1985" parses as
-            // the 10th of April rather than October 4.
+            // the 10th of April rather than October 4. Two-digit years
+            // ("19/02/82") resolve to the century that gives an age inside
+            // the 18–105 bounds — exactly one century can qualify.
             $carbonDob = null;
             try {
-                if (preg_match('#^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$#', $dob, $m)) {
+                if (preg_match('#^(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})$#', $dob, $m)) {
                     $d = (int) $m[1];
                     $mo = (int) $m[2];
-                    $y = (int) $m[3];
                     if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                        $carbonDob = Carbon::create($y, $mo, $d, 0, 0, 0);
+                        if (strlen($m[3]) === 2) {
+                            foreach ([1900 + (int) $m[3], 2000 + (int) $m[3]] as $y) {
+                                $candidate = Carbon::create($y, $mo, $d, 0, 0, 0);
+                                $candidateAge = (int) $candidate->diffInYears(Carbon::now());
+                                if (! $candidate->isFuture() && $candidateAge >= 18 && $candidateAge <= 105) {
+                                    $carbonDob = $candidate;
+                                    break;
+                                }
+                            }
+                        } else {
+                            $carbonDob = Carbon::create((int) $m[3], $mo, $d, 0, 0, 0);
+                        }
                     }
                 }
                 if ($carbonDob === null) {
@@ -1296,14 +1763,14 @@ class CoordinatingAgent extends BaseAgent
                 'already_linked' => $result['already_linked'],
                 'email_sent' => $result['email_sent'],
                 'first_name' => $firstName,
+                'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ],
         ];
     }
 
     /**
-     * capture_dependants — creates one FamilyMember row per dependant.
-     * Age drives relationship (child < 18, other_dependent >= 18 unless
-     * the caller already specified 'parent'). DOB is inferred from age.
+     * capture_dependants — creates one FamilyMember row per dependant only
+     * when every date of birth was supplied explicitly.
      */
     private function handleCaptureDependants(array $input, User $user): array
     {
@@ -1312,38 +1779,72 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'message' => 'dependants list is empty'];
         }
 
-        $created = [];
-        foreach ($dependants as $dep) {
-            $age = (int) ($dep['age'] ?? -1);
-            if ($age < 0 || $age > 120) {
+        $normalised = [];
+        $missing = [];
+        foreach ($dependants as $index => $dep) {
+            $dateOfBirth = trim((string) ($dep['date_of_birth'] ?? ''));
+            try {
+                $date = $dateOfBirth === '' ? null : Carbon::createFromFormat('!Y-m-d', $dateOfBirth);
+            } catch (\Throwable) {
+                $date = null;
+            }
+
+            if ($date === null
+                || $date->format('Y-m-d') !== $dateOfBirth
+                || $date->isFuture()
+                || $date->age > 120) {
+                $missing[] = "dependants.{$index}.date_of_birth";
+
                 continue;
             }
 
-            $relationship = (string) ($dep['relationship'] ?? 'other_dependent');
+            $relationship = (string) ($dep['relationship'] ?? '');
             if (! in_array($relationship, ['child', 'parent', 'other_dependent'], true)) {
-                $relationship = $age < 18 ? 'child' : 'other_dependent';
+                $missing[] = "dependants.{$index}.relationship";
+
+                continue;
             }
 
             $firstName = trim((string) ($dep['first_name'] ?? ''));
-            $resolvedName = $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant');
+            $normalised[] = [
+                'date' => $date,
+                'relationship' => $relationship,
+                'first_name' => $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant'),
+            ];
+        }
 
+        if ($missing !== []) {
+            return [
+                'onboarding_capture' => true,
+                'clarification_required' => true,
+                'field_group' => 'dependants',
+                'summary' => 'Exact dependant details are required before anything is saved.',
+                'details' => ['missing' => $missing],
+            ];
+        }
+
+        $this->householdProvisioner->ensureFor($user);
+
+        $created = [];
+        foreach ($normalised as $dep) {
             $familyMember = FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $user->household_id,
-                'relationship' => $relationship,
-                'first_name' => $resolvedName,
-                'name' => $resolvedName,
-                'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
+                'relationship' => $dep['relationship'],
+                'first_name' => $dep['first_name'],
+                'name' => $dep['first_name'],
+                'date_of_birth' => $dep['date']->toDateString(),
                 'is_dependent' => true,
-                'education_status' => $this->educationStatusForAge($age),
+                'education_status' => $this->educationStatusForAge($dep['date']->age),
                 'notes' => 'Captured via Fyn onboarding.',
             ]);
 
             $created[] = [
                 'id' => $familyMember->id,
                 'first_name' => $familyMember->first_name,
-                'age' => $age,
-                'relationship' => $relationship,
+                'date_of_birth' => $familyMember->date_of_birth?->toDateString(),
+                'age' => $dep['date']->age,
+                'relationship' => $dep['relationship'],
             ];
         }
 
@@ -1368,10 +1869,10 @@ class CoordinatingAgent extends BaseAgent
      * annual_self_employment_income instead of annual_employment_income.
      *
      * Accepts partial payloads: whichever non-empty fields are present get
-     * written, and the return value reports any still-missing fields so the
-     * director can emit a targeted retry instead of re-asking for all three.
-     * Fields already populated on the user row count as present — this lets
-     * multi-turn extraction accumulate without re-asking.
+     * written. Only annual_income is required to advance — onboarding asks for
+     * income alone, so a blank employer/occupation is reported but never blocks
+     * the flow. Fields already populated on the user row count as present — this
+     * lets multi-turn extraction accumulate without re-asking.
      */
     private function handleCaptureWorkDetails(array $input, User $user): array
     {
@@ -1403,13 +1904,10 @@ class CoordinatingAgent extends BaseAgent
 
         $user->save();
 
+        // Only income is required to advance — onboarding asks for income alone.
+        // Employer and occupation are still written when the user volunteers them
+        // (above), but a blank one must not block the flow.
         $missing = [];
-        if (trim((string) ($user->employer ?? '')) === '') {
-            $missing[] = 'employer';
-        }
-        if (trim((string) ($user->occupation ?? '')) === '') {
-            $missing[] = 'occupation';
-        }
         if ((float) ($user->{$incomeField} ?? 0) <= 0) {
             $missing[] = 'annual_income';
         }
@@ -1668,8 +2166,12 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleModuleAnalysis(array $input, User $user): array
-    {
+    private function handleModuleAnalysis(
+        array $input,
+        User $user,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): array {
         $module = $input['module'];
 
         $analyzeStart = microtime(true);
@@ -1684,6 +2186,15 @@ class CoordinatingAgent extends BaseAgent
             default => ['error' => "Unknown module: {$module}"],
         };
         $analyzeDuration = (int) round((microtime(true) - $analyzeStart) * 1000);
+
+        if ($this->isQuestionScopedModule($module, $classification, $kycResult)
+            && $this->requiresQuestionScopedFallback($analysis)) {
+            $analysis = $this->questionScopedModuleAnalysis(
+                $module,
+                $user,
+                (string) $classification['primary'],
+            );
+        }
 
         // Eval trace — every module analyze invocation through this tool
         // gets one EngineCalled. result_path inferred from response shape:
@@ -1701,7 +2212,144 @@ class CoordinatingAgent extends BaseAgent
             atMicrotime: microtime(true),
         ));
 
+        if (($analysis['analysis_scope'] ?? null) === 'question_required_data') {
+            return $analysis;
+        }
+
         return $this->summariseToolAnalysis($module, $analysis);
+    }
+
+    private function isQuestionScopedModuleTool(
+        string $toolName,
+        array $input,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        return $toolName === 'get_module_analysis'
+            && isset($input['module'])
+            && $this->isQuestionScopedModule((string) $input['module'], $classification, $kycResult);
+    }
+
+    private function isQuestionScopedModule(
+        string $module,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        $primary = $classification['primary'] ?? null;
+        if (! $this->hasPassedPrimaryKyc($classification, $kycResult)) {
+            return false;
+        }
+
+        $primaryModules = QuerySchemas::getModulesForClassification([
+            'primary' => $primary,
+            'related' => [],
+        ]);
+
+        return $module !== 'holistic' && in_array($module, $primaryModules, true);
+    }
+
+    private function isQuestionScopedHolisticTool(
+        string $toolName,
+        ?array $classification,
+        ?array $kycResult,
+    ): bool {
+        return ($classification['primary'] ?? null) === QuerySchemas::HOLISTIC_HEALTH
+            && $this->hasPassedPrimaryKyc($classification, $kycResult)
+            && in_array($toolName, ['get_recommendations', 'generate_financial_plan'], true);
+    }
+
+    private function hasPassedPrimaryKyc(?array $classification, ?array $kycResult): bool
+    {
+        $primary = $classification['primary'] ?? null;
+
+        return is_string($primary)
+            && QuerySchemas::isAdviceType($primary)
+            && ($kycResult['passed'] ?? false) === true;
+    }
+
+    private function requiresQuestionScopedFallback(array $analysis): bool
+    {
+        if (($analysis['can_proceed'] ?? null) === false
+            || ($analysis['data']['can_proceed'] ?? null) === false) {
+            return true;
+        }
+
+        if (($analysis['success'] ?? null) !== false) {
+            return false;
+        }
+
+        $message = strtolower((string) ($analysis['message'] ?? ''));
+
+        return str_contains($message, 'profile not found')
+            || str_contains($message, 'no retirement profile')
+            || str_contains($message, 'no investment accounts')
+            || str_contains($message, 'no savings accounts');
+    }
+
+    /**
+     * Return current, factual data for the primary question when a module's
+     * broader readiness contract needs fields outside REQUIRED_DATA.
+     * No financial-quality score or recommendation is manufactured here.
+     *
+     * @return array<string, mixed>
+     */
+    private function questionScopedModuleAnalysis(string $module, User $user, string $primary): array
+    {
+        $recordTypes = match ($module) {
+            'retirement' => ['dc_pension', 'db_pension'],
+            'savings' => ['savings_account'],
+            'investment' => ['investment_account'],
+            'protection' => ['life_insurance', 'critical_illness', 'income_protection'],
+            'estate' => ['property', 'trust', 'estate_gift', 'estate_liability', 'business_interest', 'chattel'],
+            default => [],
+        };
+
+        $records = [];
+        foreach ($recordTypes as $recordType) {
+            $listed = $this->handleListRecords(['entity_type' => $recordType], $user);
+            $records[$recordType] = $listed['records'] ?? [];
+        }
+
+        if ($module === 'goals') {
+            $records['goals'] = $this->handleListGoals($user)['goals'] ?? [];
+        }
+
+        $analysis = [
+            'module' => $module,
+            'query_type' => $primary,
+            'analysis_scope' => 'question_required_data',
+            'can_proceed' => true,
+            'records' => $records,
+        ];
+
+        if ($module === 'retirement') {
+            $statePension = $user->statePension()->first();
+            $analysis['state_pension'] = $statePension ? [
+                'forecast_annual' => (float) ($statePension->state_pension_forecast_annual ?? 0),
+                'qualifying_years' => $statePension->ni_years_completed,
+                'state_pension_age' => $statePension->state_pension_age,
+            ] : null;
+            $analysis['total_pension_value'] = (float) collect($records['dc_pension'])->sum('current_value');
+            $analysis['projected_annual_income'] = (float) collect($records['db_pension'])->sum('annual_pension')
+                + (float) ($analysis['state_pension']['forecast_annual'] ?? 0);
+        }
+
+        if ($module === 'savings') {
+            $analysis['total_savings'] = (float) collect($records['savings_account'])->sum('balance');
+        }
+
+        if ($module === 'investment') {
+            $analysis['total_portfolio_value'] = (float) collect($records['investment_account'])->sum('current_value');
+        }
+
+        if ($module === 'protection') {
+            $analysis['full_analysis'] = [
+                'total_cover' => (float) collect($records['life_insurance'])->sum('sum_assured')
+                    + (float) collect($records['critical_illness'])->sum('sum_assured'),
+            ];
+        }
+
+        return $analysis;
     }
 
     /**
@@ -1796,49 +2444,45 @@ class CoordinatingAgent extends BaseAgent
     {
         $analysis = $this->orchestrateAnalysis($user->id);
 
+        $plan = $this->composedTaxPlans->forUser($user);
+
+        // §6e — the tool path records the same strategy-id provenance and plan
+        // digest as the fetch-skill (RecommendationHandler), via the shared home
+        // on ComposedTaxPlanService, so every surfaced strategy is attributable
+        // from ai_messages.fetch_provenance regardless of path.
+        $ids = ComposedTaxPlanService::extractStrategyIds($plan);
+
+        // Deliberately resolved at call time, NOT constructor-injected: the
+        // collector is request-scoped, and this agent is captured by the
+        // singleton AdviceFyn — constructor injection would freeze the first
+        // request's collector (same hazard as the FetchDispatcher binding
+        // comment in AppServiceProvider).
+        app(FetchProvenanceCollector::class)->record([
+            'pointer_id' => 'recommendations',
+            'handler' => 'recommendations',
+            'source_label' => 'recommendation engine',
+            'source_version' => now()->toDateString(),
+            'digest' => ComposedTaxPlanService::planDigest($plan),
+            'strategy_ids' => implode(',', $ids['surfaced']),
+            'locked_strategy_ids' => implode(',', $ids['locked']),
+        ]);
+
         return [
             'recommendations' => $analysis['ranked_recommendations'] ?? [],
             'total' => count($analysis['ranked_recommendations'] ?? []),
             'surplus' => $analysis['available_surplus'] ?? 0,
+            // Ordered, conflict-resolved tax plan with claim tiers + locked strategies —
+            // the presentation contract lives in the tool description.
+            'composed_tax_plan' => $plan,
         ];
-    }
-
-    /**
-     * Resolve the user's current subscription. Read-only — returns null if absent.
-     * Mirrors the controller-side resolution so chat-tool callers see the same row.
-     */
-    private function resolveSubscription(User $user): ?Subscription
-    {
-        return $user->subscription()->latest('id')->first();
     }
 
     private function handleGetSubscriptionStatus(User $user): array
     {
-        $sub = $this->resolveSubscription($user);
+        $status = $this->subscriptionStatusService->forUser($user);
 
-        if (! $sub) {
-            return ['status' => 'none'];
-        }
-
-        $plan = SubscriptionPlan::findBySlug($sub->plan);
-
-        // S0.5.u (BS-16): when the user has any real subscription (active,
-        // trialing, paused, or cancelled) we surface the Subscription
-        // Management page so they can act on the answer. HasAiChat::stream
-        // turns this into a `navigation` SSE event consumed by
-        // AiChatPanel; the user lands on /settings/subscription where
-        // their invoices and billing details are managed. INV-2.7.2 only
-        // mandates parity of the read tools, not their result shape, so
-        // BillingToolsTest::list_invoices stays green (extra keys are
-        // accepted by toHaveKeys).
         return [
-            'status' => $sub->status,
-            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
-            'billing_cycle' => $sub->billing_cycle,
-            'trial_ends_at' => $sub->trial_ends_at?->toIso8601String(),
-            'current_period_end' => $sub->current_period_end?->toIso8601String(),
-            'next_charge_amount' => round((float) $sub->amount, 2),
-            'is_cancelled' => $sub->cancelled_at !== null,
+            ...$status,
             'action' => 'navigate',
             'route_path' => '/settings/subscription',
             'description' => 'View your subscription and invoices',
@@ -1868,30 +2512,19 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleGetCurrentPlan(User $user): array
     {
-        $sub = $this->resolveSubscription($user);
-
-        if (! $sub) {
-            return [
-                'plan_name' => 'none',
-                'tier' => 'none',
-                'billing_cycle' => null,
-                'price_gbp' => 0.0,
-                'features' => [],
-            ];
-        }
-
-        $plan = SubscriptionPlan::findBySlug($sub->plan);
-
-        $pricePence = $plan
-            ? ($plan->getLaunchPriceForCycle($sub->billing_cycle) ?? $plan->getPriceForCycle($sub->billing_cycle))
-            : (int) round(((float) $sub->amount) * 100);
+        $status = $this->subscriptionStatusService->forUser($user);
+        $features = collect($status['capability_matrix'] ?? [])
+            ->filter(static fn (string $access): bool => $access !== 'none')
+            ->keys()
+            ->values()
+            ->all();
 
         return [
-            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
-            'tier' => $sub->plan,
-            'billing_cycle' => $sub->billing_cycle,
-            'price_gbp' => round($pricePence / 100, 2),
-            'features' => $plan?->features ?? [],
+            'plan_name' => $status['tier_display_name'],
+            'tier' => $status['tier'],
+            'billing_cycle' => $status['billing_cycle'],
+            'price_gbp' => round(((int) ($status['amount'] ?? 0)) / 100, 2),
+            'features' => $features,
         ];
     }
 
@@ -1940,6 +2573,14 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleFinancialPlan(User $user): array
     {
+        if (! $this->teaserGate->isFull($user, 'holistic_plan')) {
+            return [
+                'error' => 'upgrade_required',
+                'message' => 'The Holistic Plan is part of Premium.',
+                'required_tier' => 'premium',
+            ];
+        }
+
         $plan = $this->generateHolisticPlan($user->id);
 
         $summary = [];
@@ -1987,7 +2628,6 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $payload = [
-            'user_id' => $user->id,
             'goal_name' => $input['name'],
             'goal_type' => $input['goal_type'],
             'target_amount' => (float) $input['target_amount'],
@@ -2008,7 +2648,11 @@ class CoordinatingAgent extends BaseAgent
             $payload['description'] = $input['description'];
         }
 
-        $goal = DB::transaction(fn () => Goal::create($payload));
+        try {
+            $goal = app(GoalStore::class)->create($payload, $user, IngestSource::FYN_AI);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} goals. To add more, upgrade your plan.");
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2018,7 +2662,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'goal',
             'entity_id' => $goal->id,
             'name' => $goal->goal_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($payload),
             'message' => "I've added your \"{$goal->goal_name}\" goal.",
         ];
     }
@@ -2042,7 +2686,6 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $payload = [
-            'user_id' => $user->id,
             'event_name' => $input['event_name'],
             'event_type' => $input['event_type'],
             'amount' => (float) $input['estimated_amount'],
@@ -2056,7 +2699,11 @@ class CoordinatingAgent extends BaseAgent
             $payload['description'] = $input['description'];
         }
 
-        $event = DB::transaction(fn () => LifeEvent::create($payload));
+        try {
+            $event = app(LifeEventStore::class)->create($payload, $user, IngestSource::FYN_AI);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} life events. To add more, upgrade your plan.");
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2066,9 +2713,49 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'life_event',
             'entity_id' => $event->id,
             'name' => $event->event_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($payload),
             'message' => "I've added your \"{$event->event_name}\" life event.",
         ];
+    }
+
+    /**
+     * Free-tier "accounts-left" note appended to a successful create confirmation
+     * (/m freemium 5.2). $used is the gate-accurate primary-owner count so the
+     * note agrees with what the tier gate enforces. Empty on unlimited tiers.
+     */
+    private function tierCapNote(User $user, string $entityKey, int $used): string
+    {
+        $cap = app(TierGate::class)->hardLimit($user, $entityKey);
+
+        return $cap === null ? '' : " That's {$used} of {$cap} on your plan.";
+    }
+
+    private function tierLimitResult(TierLimitExceededException $exception, User $user, string $message): array
+    {
+        $subscriptionStatus = $this->subscriptionStatusService->forUser($user);
+
+        $result = [
+            'error' => true,
+            'error_type' => 'tier_limit_reached',
+            'entity_key' => $exception->entityKey,
+            'current_count' => $exception->currentCount,
+            'hard_limit' => $exception->hardLimit,
+            'required_tier' => 'premium',
+            'message' => $subscriptionStatus['payment_enabled']
+                ? $message
+                : preg_replace('/ To add more, upgrade your plan\.$/', '', $message),
+        ];
+
+        if (! $subscriptionStatus['payment_enabled']) {
+            return $result;
+        }
+
+        return array_merge($result, [
+            'action' => 'subscription_options',
+            'reason' => 'tier_limit_reached',
+            'limit' => $exception->hardLimit,
+            'tier' => $subscriptionStatus['tier'],
+        ]);
     }
 
     private function handleCreateSavingsAccount(array $input, User $user, bool $isPreview): array
@@ -2084,9 +2771,9 @@ class CoordinatingAgent extends BaseAgent
         // model only sometimes self-corrected on a retry, so the record was
         // intermittently never created and the capture turn re-narrated.
         // Coerce a recognised synonym / unknown value to a sensible default
-        // BEFORE validation so a plain "savings account" lands on the first
-        // call. easy_access is the correct default for an untyped savings
-        // account; cash_isa when the user flagged it as an ISA.
+        // BEFORE validation. An untyped account defaults to current_account —
+        // a bank account, not a savings product — unless the user stipulates a
+        // savings type (those map below) or flags it as an ISA (then cash_isa).
         if (isset($input['account_type'])) {
             if (! in_array($input['account_type'], self::SAVINGS_ACCOUNT_TYPES, true)) {
                 $synonyms = [
@@ -2095,8 +2782,15 @@ class CoordinatingAgent extends BaseAgent
                     'instant_access' => 'easy_access',
                     'instant access' => 'easy_access',
                     'easy access' => 'easy_access',
-                    'current_account' => 'easy_access',
-                    'isa' => 'cash_isa',
+                    // A bank/current account is a distinct canonical type, not a
+                    // savings product (/bug 6.2). 'current_account' is whitelisted
+                    // above so it passes straight through; only free-text synonyms
+                    // need mapping here.
+                    'bank' => 'current_account',
+                    'bank account' => 'current_account',
+                    'bank_account' => 'current_account',
+                    'current' => 'current_account',
+                    'current account' => 'current_account',
                     'cash isa' => 'cash_isa',
                     'junior isa' => 'junior_isa',
                     'fixed_rate' => 'fixed',
@@ -2105,9 +2799,28 @@ class CoordinatingAgent extends BaseAgent
                     'notice_account' => 'notice',
                 ];
                 $key = strtolower((string) $input['account_type']);
-                $input['account_type'] = $synonyms[$key]
-                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'easy_access');
+                if ($key === 'isa' || ! empty($input['is_isa'])) {
+                    return [
+                        'error' => true,
+                        'clarification_required' => true,
+                        'error_type' => 'capture_accuracy_required',
+                        'missing' => ['isa_subtype'],
+                        'message' => 'I need to know whether this is a Cash ISA, Stocks & Shares ISA, Lifetime ISA, or Innovative Finance ISA before I can save it.',
+                    ];
+                }
+
+                $input['account_type'] = $synonyms[$key] ?? 'current_account';
             }
+        }
+
+        if (! empty($input['is_isa']) && ! in_array($input['account_type'] ?? null, ['cash_isa', 'junior_isa'], true)) {
+            return [
+                'error' => true,
+                'clarification_required' => true,
+                'error_type' => 'capture_accuracy_required',
+                'missing' => ['isa_subtype'],
+                'message' => 'I need to know whether this is a Cash ISA, Stocks & Shares ISA, Lifetime ISA, or Innovative Finance ISA before I can save it.',
+            ];
         }
 
         $validationError = $this->validateToolInput($input, [
@@ -2119,9 +2832,23 @@ class CoordinatingAgent extends BaseAgent
             'is_isa' => 'nullable|boolean',
             'is_emergency_fund' => 'nullable|boolean',
             'regular_contribution_amount' => 'nullable|numeric|min:0',
+            'isa_subscription_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        if (in_array($input['account_type'] ?? null, ['cash_isa', 'junior_isa'], true)
+            && ($input['ownership_type'] ?? 'individual') !== 'individual') {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'message' => 'ISAs can only be individually owned under UK tax rules.',
+            ];
         }
 
         $duplicateCheck = $this->checkForDuplicate(SavingsAccount::class, $user->id, 'account_name', $input['account_name']);
@@ -2144,9 +2871,15 @@ class CoordinatingAgent extends BaseAgent
                 'errors' => $e->errors,
                 'message' => 'Validation failed for savings account.',
             ];
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} savings accounts. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
+
+        // A current account isn't a "savings account" (CSJ: don't call a bank
+        // account savings); other types keep their existing wording.
+        $typeLabel = $account->account_type === 'current_account' ? 'current account' : 'savings account';
 
         return [
             'success' => true,
@@ -2155,7 +2888,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys($canonical),
-            'message' => "I've added your \"{$account->account_name}\" savings account.",
+            'message' => "I've added your \"{$account->account_name}\" {$typeLabel}.".$this->tierCapNote($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user)),
         ];
     }
 
@@ -2169,18 +2902,22 @@ class CoordinatingAgent extends BaseAgent
             'account_name' => 'required|string|max:255',
             'current_value' => 'required|numeric|min:0|max:999999999.99',
             'account_type' => ['nullable', Rule::in([
-                'stocks_shares_isa', 'lifetime_isa', 'personal_investment_account',
+                'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa', 'personal_investment_account',
                 'onshore_bond', 'offshore_bond', 'vct', 'eis',
                 'private_company', 'crowdfunding', 'saye', 'csop',
                 'emi', 'unapproved_options', 'rsu', 'other',
                 // DB-canonical values (the HTTP form posts these directly)
                 'isa', 'gia',
             ])],
+            'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'provider' => 'nullable|string|max:255',
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+            'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
+            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
         ]);
         if ($validationError) {
             return $validationError;
@@ -2197,7 +2934,7 @@ class CoordinatingAgent extends BaseAgent
         // form-fill mapping so AI direct-write and HTTP form path persist
         // identical rows).
         $dbAccountType = match ($accountType) {
-            'stocks_shares_isa', 'lifetime_isa' => 'isa',
+            'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa' => 'isa',
             'personal_investment_account' => 'gia',
             default => $accountType,
         };
@@ -2205,6 +2942,8 @@ class CoordinatingAgent extends BaseAgent
         $isaType = match ($accountType) {
             'stocks_shares_isa' => 'stocks_and_shares',
             'lifetime_isa' => 'lifetime',
+            'innovative_finance_isa' => 'innovative_finance',
+            'isa' => $input['isa_type'] ?? null,
             default => null,
         };
 
@@ -2229,6 +2968,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_percentage' => isset($input['ownership_percentage'])
                 ? (float) $input['ownership_percentage']
                 : 100.00,
+            'joint_owner_id' => $input['joint_owner_id'] ?? null,
         ];
 
         if ($isaType !== null) {
@@ -2238,6 +2978,7 @@ class CoordinatingAgent extends BaseAgent
         // Optional numeric / string fields — only persist when supplied.
         $optionalNumeric = [
             'monthly_contribution_amount', 'platform_fee_percent',
+            'isa_subscription_current_year',
             'investment_amount', 'number_of_shares', 'price_per_share',
             'units_granted', 'exercise_price', 'market_value_at_grant',
             'current_share_price', 'units_vested', 'units_unvested',
@@ -2291,11 +3032,21 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for investment account.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached the investment account limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} investment accounts. To add more, upgrade your plan.");
+        }
+
+        // Taxable dividend income feeds the user-level figure the tax-strategy
+        // engine reads (Dividend Allowance usage, composed taxable income).
+        // ISA dividends are tax-free, so they never touch it. Accumulates
+        // across accounts; the duplicate check above prevents double-counting
+        // a re-captured account.
+        if ($dbAccountType !== 'isa'
+            && isset($input['annual_dividend_income']) && is_numeric($input['annual_dividend_income'])
+            && (float) $input['annual_dividend_income'] > 0) {
+            $user->update([
+                'annual_dividend_income' => (float) ($user->annual_dividend_income ?? 0)
+                    + (float) $input['annual_dividend_income'],
+            ]);
         }
 
         $this->invalidateUserCache($user->id);
@@ -2307,7 +3058,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys(array_diff_key($canonical, ['user_id' => null])),
-            'message' => "I've added your \"{$account->account_name}\" investment account.",
+            'message' => "I've added your \"{$account->account_name}\" investment account.".$this->tierCapNote($user, InvestmentAccountStore::ENTITY_KEY, InvestmentAccount::where('user_id', $user->id)->count()),
         ];
     }
 
@@ -2399,6 +3150,17 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('pension');
         }
 
+        // WP-1 — the model zero-fills fields it does not know; a retirement
+        // age of 0 is impossible and used to fail min:50 validation (handler
+        // AND PensionStore layers), silently losing an otherwise-valid
+        // pension (the 2026-07-03 "Beta Ltd Workplace Pension" incident).
+        // Treat impossible zeros as not-provided.
+        foreach (['normal_retirement_age', 'retirement_age', 'state_pension_age'] as $ageField) {
+            if (isset($input[$ageField]) && (int) $input[$ageField] === 0) {
+                unset($input[$ageField]);
+            }
+        }
+
         $validationError = $this->validateToolInput($input, [
             'pension_category' => ['required', Rule::in(['dc', 'db'])],
             'scheme_name' => 'required|string|max:255',
@@ -2436,11 +3198,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for pension.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your tier's pension limit. Upgrade to add more.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} pensions. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -2452,7 +3210,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $pension->id,
             'name' => $pension->scheme_name,
             'persisted_fields' => array_keys(array_diff_key($canonical, ['type' => null])),
-            'message' => "I've added your \"{$pension->scheme_name}\" pension.",
+            'message' => "I've added your \"{$pension->scheme_name}\" pension.".$this->tierCapNote($user, PensionStore::ENTITY_KEY, DCPension::where('user_id', $user->id)->count() + DBPension::where('user_id', $user->id)->count()),
         ];
     }
 
@@ -2468,6 +3226,8 @@ class CoordinatingAgent extends BaseAgent
             'purchase_price' => 'nullable|numeric|min:0|max:999999999.99',
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'trust_id' => 'nullable|integer|exists:trusts,id',
             'tenure_type' => ['nullable', Rule::in(['freehold', 'leasehold'])],
             'lease_remaining_years' => 'nullable|integer|min:0|max:999',
             'has_mortgage' => 'nullable|boolean',
@@ -2505,7 +3265,6 @@ class CoordinatingAgent extends BaseAgent
             ? (float) $input['ownership_percentage']
             : match ($ownershipType) {
                 'joint', 'tenants_in_common' => 50.0,
-                'trust' => 0.0,
                 default => 100.0,
             };
 
@@ -2517,6 +3276,7 @@ class CoordinatingAgent extends BaseAgent
             'postcode' => 'N/A',
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
+            'joint_owner_id' => $input['joint_owner_id'] ?? null,
         ], $input);
 
         $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
@@ -2551,6 +3311,7 @@ class CoordinatingAgent extends BaseAgent
                         'monthly_payment' => 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipPct,
+                        'joint_owner_id' => $property->joint_owner_id,
                     ];
                     if (is_numeric($rate)) {
                         $mortgagePayload['interest_rate'] = (float) $rate;
@@ -2582,11 +3343,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for property.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached your tier's property limit. Upgrade to add more.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's property limit. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -2653,11 +3410,13 @@ class CoordinatingAgent extends BaseAgent
         $payload = [
             'user_id' => $user->id,
             'property_id' => $property->id,
+            'lender_name' => $input['lender_name'] ?? 'To be completed',
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
             'rate_type' => $input['rate_type'] ?? 'fixed',
             'outstanding_balance' => (float) $input['outstanding_balance'],
             'ownership_type' => $property->ownership_type,
             'ownership_percentage' => (float) $property->ownership_percentage,
+            'joint_owner_id' => $property->joint_owner_id,
         ];
 
         if (isset($input['lender_name']) && $input['lender_name'] !== '') {
@@ -2690,11 +3449,7 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for mortgage.',
             ];
         } catch (TierLimitExceededException $e) {
-            return [
-                'error' => true,
-                'error_type' => 'tier_limit_exceeded',
-                'message' => "You've reached the mortgage limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
-            ];
+            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} mortgages. To add more, upgrade your plan.");
         }
 
         $this->invalidateUserCache($user->id);
@@ -2986,6 +3741,10 @@ class CoordinatingAgent extends BaseAgent
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
             'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
             'interest_rate' => 'nullable|numeric|min:0|max:50',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3001,7 +3760,10 @@ class CoordinatingAgent extends BaseAgent
             'liability_name' => $input['liability_name'],
             'liability_type' => $dbLiabilityType,
             'current_balance' => (float) $input['current_balance'],
-            'ownership_type' => 'individual',
+            'ownership_type' => $input['ownership_type'] ?? 'individual',
+            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100.0,
+            'joint_owner_id' => $input['joint_owner_id'] ?? null,
+            'trust_id' => $input['trust_id'] ?? null,
         ];
 
         if (isset($input['monthly_payment']) && is_numeric($input['monthly_payment'])) {
@@ -3021,7 +3783,7 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
-        $liability = DB::transaction(fn () => Liability::create($payload));
+        $liability = app(LiabilityStore::class)->create($payload, $user, IngestSource::FYN_AI);
 
         $this->invalidateUserCache($user->id);
 
@@ -3907,37 +4669,50 @@ class CoordinatingAgent extends BaseAgent
         ];
 
         $updateData = [];
-        $total = 0;
+        $resolvedAmounts = [];
         foreach ($categoryFields as $field) {
-            if (isset($input[$field]) && is_numeric($input[$field]) && $input[$field] > 0) {
-                $updateData[$field] = (float) $input[$field];
-                $total += (float) $input[$field];
+            $stored = $user->getAttribute($field);
+            $resolvedAmounts[$field] = is_numeric($stored) ? max(0.0, (float) $stored) : 0.0;
+
+            if (! array_key_exists($field, $input)) {
+                continue;
             }
+            if (! is_numeric($input[$field]) || (float) $input[$field] < 0) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'message' => 'Expenditure amounts must be zero or more.',
+                ];
+            }
+
+            $resolvedAmounts[$field] = (float) $input[$field];
+            $updateData[$field] = (float) $input[$field];
         }
 
         if (empty($updateData)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No expenditure amounts provided.'];
         }
 
-        // Save directly to user model (same as manual form save)
+        // A Fyn turn may update only one category. Recalculate from that edit
+        // plus every stored category so omitted values are preserved, while an
+        // explicit zero clears the named category.
+        $total = array_sum($resolvedAmounts);
         $updateData['monthly_expenditure'] = $total;
         $updateData['annual_expenditure'] = $total * 12;
-        $updateData['use_simple_entry'] = false;
-        $user->update($updateData);
+        $updateData['expenditure_entry_mode'] = 'category';
+        DB::transaction(function () use ($user, $updateData, $total): void {
+            $user->update($updateData);
 
-        // FR-M12 — mirror the monthly total into ExpenditureProfile so the
-        // dashboard expenditure widget (which reads total_monthly_expenditure
-        // off the profile, not users.monthly_expenditure) reflects the change
-        // immediately. Without this, Fyn confirms "captured" but the
-        // dashboard stays blank. Same pattern as the onboarding fix in
-        // OnboardingChatDirector::persistCapture (commit 88018a5).
-        ExpenditureProfile::updateOrCreate(
-            ['user_id' => $user->id],
-            ['total_monthly_expenditure' => $total],
-        );
+            // FR-M12 — mirror the monthly total into ExpenditureProfile so the
+            // dashboard and both review surfaces see the same committed total.
+            ExpenditureProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                ['total_monthly_expenditure' => $total],
+            );
+        });
 
         $formatted = collect($updateData)
-            ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])
+            ->except(['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'])
             ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)).': £'.number_format($v, 2))
             ->values()
             ->implode(', ');
@@ -3962,14 +4737,30 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('pension');
         }
 
-        if (! isset($input['pension_id'], $input['salary_sacrifice'])) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'pension_id and salary_sacrifice are required.'];
+        if (! isset($input['salary_sacrifice'])) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'salary_sacrifice is required.'];
         }
 
-        $pension = app(PensionStore::class)->find((int) $input['pension_id'], 'dc', $user);
-
-        if (! $pension) {
-            return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
+        // WP-1 — the model often has no real pension id in this turn (the
+        // 2026-07-03 walk sent pension_id: 0 and the whole capture failed
+        // silently). A real id wins; otherwise fall back to the user's single
+        // DC pension. None or ambiguous → a retryable structured error naming
+        // what is needed.
+        $pensionId = (int) ($input['pension_id'] ?? 0);
+        if ($pensionId > 0) {
+            $pension = app(PensionStore::class)->find($pensionId, 'dc', $user);
+            if (! $pension) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
+            }
+        } else {
+            $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
+            if ($dcPensions->count() === 1) {
+                $pension = $dcPensions->first();
+            } elseif ($dcPensions->isEmpty()) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'No pension on file yet — create the pension first, then set salary sacrifice on it.'];
+            } else {
+                return ['error' => true, 'error_type' => 'ambiguous', 'message' => 'More than one pension on file — ask the user which pension the salary sacrifice applies to, then call again with that pension_id.'];
+            }
         }
 
         $payload = ['salary_sacrifice' => (bool) $input['salary_sacrifice']];
@@ -4021,7 +4812,7 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('household');
         }
 
-        $allowed = array_intersect_key($input, array_flip([
+        $allowedFields = [
             'spouse_annual_income',
             'spouse_employment_status',
             'spouse_isa_balance',
@@ -4029,7 +4820,47 @@ class CoordinatingAgent extends BaseAgent
             'spouse_unrealised_gains',
             'spouse_annual_dividends',
             'spouse_pension_input_annual',
-        ]));
+        ];
+        if (array_diff(array_keys($input), $allowedFields) !== []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse household fields are not supported.'];
+        }
+
+        $allowed = array_intersect_key($input, array_flip($allowedFields));
+        if ($allowed === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No spouse household details were provided.'];
+        }
+
+        $rules = [
+            'spouse_employment_status' => ['sometimes', 'nullable', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'retired', 'unemployed', 'other'])],
+            'spouse_psa_band' => ['sometimes', 'nullable', Rule::in(['basic', 'higher', 'additional'])],
+        ];
+        foreach ([
+            'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
+            'spouse_annual_dividends', 'spouse_pension_input_annual',
+        ] as $field) {
+            $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+        }
+        $validator = Validator::make($allowed, $rules);
+        if ($validator->fails()) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $validator->errors()->toArray(),
+                'message' => 'Validation failed for spouse household details.',
+            ];
+        }
+
+        $existing = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        $spouseIncome = array_key_exists('spouse_annual_income', $allowed)
+            ? (float) $allowed['spouse_annual_income']
+            : ($existing?->spouse_annual_income !== null ? (float) $existing->spouse_annual_income : null);
+        $spouseDividends = array_key_exists('spouse_annual_dividends', $allowed)
+            ? (float) $allowed['spouse_annual_dividends']
+            : ($existing?->spouse_annual_dividends !== null ? (float) $existing->spouse_annual_dividends : 0.0);
+        unset($allowed['spouse_psa_band']);
+        if ($spouseIncome !== null) {
+            $allowed['spouse_psa_band'] = app(TaxStrategyMath::class)->bandFromIncome($spouseIncome + $spouseDividends);
+        }
 
         TaxStrategyHouseholdInput::updateOrCreate(
             ['user_id' => $user->id],
@@ -4050,13 +4881,35 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('household');
         }
 
-        $allowed = array_intersect_key($input, array_flip([
+        $allowedFields = [
             'spouse_existing_isa_balance',
             'spouse_existing_savings_balance',
             'spouse_existing_investment_balance',
             'spouse_existing_dividend_holdings_value',
             'spouse_existing_pension_balance',
-        ]));
+        ];
+        if (array_diff(array_keys($input), $allowedFields) !== []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse asset fields are not supported.'];
+        }
+
+        $allowed = array_intersect_key($input, array_flip($allowedFields));
+        if ($allowed === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No spouse asset details were provided.'];
+        }
+
+        $rules = [];
+        foreach ($allowedFields as $field) {
+            $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+        }
+        $validator = Validator::make($allowed, $rules);
+        if ($validator->fails()) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $validator->errors()->toArray(),
+                'message' => 'Validation failed for spouse asset details.',
+            ];
+        }
 
         TaxStrategyHouseholdInput::updateOrCreate(
             ['user_id' => $user->id],
@@ -4071,7 +4924,7 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview): array
+    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview, ?int $conversationId = null): array
     {
         if ($isPreview) {
             return $this->previewBlocked('pension');
@@ -4080,6 +4933,45 @@ class CoordinatingAgent extends BaseAgent
         $history = $input['history'] ?? null;
         if (! is_array($history) || $history === []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'history must be a non-empty array.'];
+        }
+
+        // Carry-forward disambiguation guard. The user is asked for their gross
+        // pension input "in each of the last 3 tax years"; when they reply with
+        // ONE lump figure (e.g. "Around £90,000") and no per-year breakdown,
+        // the figure is fatally ambiguous — £90k spread across three years is
+        // unused allowance to top up, but £90k PER YEAR is an annual-allowance
+        // charge. Whatever split the model invents to satisfy the per-year tool
+        // schema is fabricated financial data. So when the source message
+        // carries a single figure with no per-year structure, write nothing and
+        // ask the clarifying question; emitTerminalError voices the message
+        // verbatim and keeps the user on STATE_CAMPAIGN_PENSION_HISTORY so their
+        // next reply re-enters this handler with the disambiguated figures.
+        $sourceMessage = $this->latestUserMessageText($conversationId);
+        if ($sourceMessage !== null && $this->pensionHistoryIsAmbiguousSingleFigure($sourceMessage)) {
+            return [
+                'onboarding_capture_error' => true,
+                'field_group' => 'campaign_pension_history',
+                'error_type' => 'pension_history_ambiguous',
+                'message' => 'Just to be sure I read that correctly — is that the total across all three tax years, or roughly that amount per year? It changes whether you have unused allowance to top up.',
+            ];
+        }
+
+        // "In total across the three years" + a single entry → distribute the
+        // total evenly across the prior-3 window. Writing the total into ONE
+        // year fabricates an annual-allowance excess in that year and
+        // overstates carry-forward (live-browser finding 2026-06-11: £90k
+        // landed in 2024/25 alone → £120k "unused" instead of £90k).
+        $distributed = false;
+        if (count($history) === 1 && $sourceMessage !== null
+            && preg_match('/\b(total|across|altogether|combined|in all)\b/i', $sourceMessage) === 1) {
+            $taxYear = app(TaxConfigService::class)->getTaxYear();
+            $priorYears = app(AnnualAllowanceChecker::class)->getPrevious3TaxYears($taxYear);
+            $perYear = round(((float) (reset($history)['pension_input_amount'] ?? 0)) / 3, 2);
+            $history = array_map(
+                fn (string $year): array => ['tax_year' => $year, 'pension_input_amount' => $perYear],
+                $priorYears
+            );
+            $distributed = true;
         }
 
         $canonical = app(PensionNormaliser::class)->fromFynInputHistory(['history' => $history]);
@@ -4097,9 +4989,194 @@ class CoordinatingAgent extends BaseAgent
         return [
             'onboarding_capture' => true,
             'field_group' => 'campaign_pension_history',
-            'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
+            'summary' => $distributed
+                ? sprintf('Captured pension history — the total split evenly across the last three tax years (%s per year).', '£'.number_format($perYear, 2))
+                : sprintf('Captured %d year(s) of pension history.', count($written)),
             'details' => $written,
         ];
+    }
+
+    /**
+     * Fetch the verbatim text of the most recent user message in the
+     * conversation — the in-flight turn that triggered the current tool call.
+     * Used by capture handlers that must reason about the user's actual words
+     * (e.g. detecting an ambiguous single figure) rather than trusting the
+     * post-hoc structure the model put into the tool arguments.
+     */
+    private function latestUserMessageText(?int $conversationId): ?string
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $message = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'user')
+            ->orderByDesc('id')
+            ->first();
+
+        $text = $message?->content;
+
+        return is_string($text) && $text !== '' ? $text : null;
+    }
+
+    /**
+     * Return a bounded, chronological window of the user's own words so a
+     * create tool called after several clarification turns can validate every
+     * required fact. CaptureAccuracyGate still scopes this text to the target
+     * entity, preventing another account's ownership facts from being reused.
+     */
+    private function recentUserMessageEvidence(?int $conversationId): ?string
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $stateBoundary = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'assistant')
+            ->orderByDesc('id')
+            ->limit(12)
+            ->get(['id', 'metadata'])
+            ->first(function (AiMessage $message): bool {
+                $metadata = is_array($message->metadata) ? $message->metadata : [];
+
+                return isset($metadata['onboarding_step'])
+                    && ($metadata['capture_write_failed'] ?? false) !== true
+                    && ($metadata['is_resume_greeting'] ?? false) !== true;
+            });
+        $stateBoundaryId = $stateBoundary?->id;
+
+        $messages = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'user')
+            ->when($stateBoundaryId !== null, fn ($query) => $query->where('id', '>', $stateBoundaryId))
+            ->orderByDesc('id')
+            ->limit(6)
+            ->pluck('content')
+            ->reverse()
+            ->filter(static fn (mixed $content): bool => is_string($content) && trim($content) !== '')
+            ->values();
+
+        if ($stateBoundaryId !== null) {
+            $previousUser = AiMessage::query()
+                ->where('conversation_id', $conversationId)
+                ->where('role', 'user')
+                ->where('id', '<', $stateBoundaryId)
+                ->orderByDesc('id')
+                ->first(['id', 'content']);
+            $hasUnresolvedClarification = $previousUser !== null
+                && AiMessage::query()
+                    ->where('conversation_id', $conversationId)
+                    ->where('role', 'assistant')
+                    ->where('id', '>', $previousUser->id)
+                    ->where('id', '<', $stateBoundaryId)
+                    ->orderBy('id')
+                    ->get(['content', 'metadata'])
+                    ->contains(function (AiMessage $message): bool {
+                        $metadata = is_array($message->metadata) ? $message->metadata : [];
+
+                        return ($metadata['is_resume_greeting'] ?? false) !== true
+                            && (! isset($metadata['onboarding_step'])
+                                || ($metadata['capture_write_failed'] ?? false) === true)
+                            && $this->assistantRequestsCaptureClarification((string) $message->content);
+                    });
+
+            if ($hasUnresolvedClarification && is_string($previousUser->content)) {
+                $messages->prepend($previousUser->content);
+            }
+        }
+
+        return $messages->isEmpty() ? null : $messages->implode("\n");
+    }
+
+    private function assistantRequestsCaptureClarification(string $content): bool
+    {
+        $content = trim($content);
+        if ($content === '') {
+            return false;
+        }
+
+        return str_contains($content, '?')
+            || preg_match(
+                '/\b(?:i need|could you|can you|would you|please (?:tell|confirm|provide|share)|tell me|confirm whether)\b/i',
+                $content,
+            ) === 1;
+    }
+
+    /**
+     * Detect whether a pension-history reply gives a SINGLE monetary figure for
+     * the three-year window with no per-year structure — the catastrophic
+     * total-vs-per-year ambiguity. Returns false when the reply is per-year
+     * shaped ("about 5,000 each year"), lists multiple figures ("30k, 25k,
+     * 20k"), labels distinct tax years, or carries no monetary figure at all
+     * (e.g. "zero" / "none", which capture cleanly as no contributions).
+     */
+    private function pensionHistoryIsAmbiguousSingleFigure(string $message): bool
+    {
+        $figureCount = $this->countMonetaryFigures($message);
+        if ($figureCount !== 1) {
+            // Zero figures ("none"/"nothing") capture as no contributions;
+            // two or more figures are already per-year and unambiguous.
+            return false;
+        }
+
+        $lower = mb_strtolower($message);
+
+        // Disambiguating cues — the user has already told us whether the figure
+        // is annual (per-year) or the whole-window total. Either resolves the
+        // ambiguity, so capture rather than re-ask.
+        $resolvingCues = [
+            // per-year
+            'each year', 'per year', 'a year', 'every year', 'each of', 'each tax year',
+            'per annum', 'annually', '/yr', 'p.a.', 'pa ', 'each of the', 'for each',
+            'first year', 'second year', 'third year', 'last year', 'year before',
+            // whole-window total
+            'in total', 'total of', 'altogether', 'across', 'combined', 'between them',
+            'all three', 'over the three', 'over three', 'spread', 'split',
+        ];
+        foreach ($resolvingCues as $cue) {
+            if (str_contains($lower, $cue)) {
+                return false;
+            }
+        }
+
+        // Explicit per-year tax-year labelling (e.g. "2024/25") means the user
+        // attributed the figure to a specific year, not the whole window.
+        if (preg_match('/\b20\d{2}\s*\/\s*\d{2}\b/', $message) === 1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Count distinct monetary figures in a free-text message. Handles
+     * £-prefixed and bare numbers, thousands separators, and the "k"/"m"
+     * shorthand (90k, 1.2m). Used to tell a single lump figure apart from a
+     * per-year list.
+     */
+    private function countMonetaryFigures(string $message): int
+    {
+        $matches = [];
+        // £90,000 / 90000 / 90k / 1.2m / £3,250.50 — optional £ prefix, optional
+        // k|m shorthand suffix; the trailing negative lookahead stops a figure
+        // running into an adjacent digit/decimal so "90000" counts once.
+        preg_match_all('/£?\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m)?(?![\d.])/iu', $message, $matches);
+
+        $figures = array_filter(
+            array_map('trim', $matches[0] ?? []),
+            // Drop bare year-like tokens that are not really amounts on their
+            // own (a 4-digit 19xx/20xx with no £, k, m, comma or decimal).
+            static function (string $tok): bool {
+                $hasMoneyMarker = (bool) preg_match('/[£,km.]/i', $tok);
+                $isYearLike = (bool) preg_match('/^(?:19|20)\d{2}$/', preg_replace('/[^\d]/', '', $tok) ?? '');
+
+                return $hasMoneyMarker || ! $isYearLike;
+            }
+        );
+
+        return count($figures);
     }
 
     private function handleCaptureCharitableGiving(array $input, User $user, bool $isPreview): array
@@ -4129,6 +5206,256 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
+    /**
+     * capture_retirement_goals — writes target_retirement_age and/or
+     * target_retirement_income to retirement_profiles.
+     *
+     * target_retirement_age is NOT NULL in the schema so a new record cannot be
+     * created without it. When only income is supplied and no profile exists, the
+     * handler returns a partial-capture response and writes nothing — the caller
+     * must ask the user for their target retirement age first.
+     */
+    private function handleCaptureRetirementGoals(array $input, User $user, bool $isPreview, ?int $conversationId = null): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('retirement');
+        }
+
+        $age = isset($input['target_retirement_age']) ? (int) $input['target_retirement_age'] : null;
+        $income = isset($input['target_retirement_income']) ? (float) $input['target_retirement_income'] : null;
+
+        if ($age === null && $income === null) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide a target retirement age, an income, or both.'];
+        }
+
+        if ($age !== null && ($age < 55 || $age > 75)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Target retirement age must be between 55 and 75.'];
+        }
+
+        if ($income !== null && $income < 0) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Target retirement income must be 0 or more.'];
+        }
+
+        $existing = RetirementProfile::where('user_id', $user->id)->first();
+
+        if ($this->verifyEditScope !== null && $existing === null) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => 'No retirement goals are on file to update.'];
+        }
+
+        if ($existing !== null) {
+            $updates = array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null);
+            $existing->update($updates);
+        } elseif ($age !== null) {
+            // On the first turn only income may have been provided (the partial-retry
+            // protocol kept us on this state). Merge any parked income so it is not
+            // silently dropped when the LLM re-calls the tool with age only.
+            if ($income === null) {
+                $income = $this->retrieveParkedRetirementGoalIncome($conversationId);
+            }
+            $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 30;
+            $creates = array_filter(['target_retirement_income' => $income], fn ($v) => $v !== null);
+            RetirementProfile::create([
+                'user_id' => $user->id,
+                'current_age' => $currentAge,
+                'target_retirement_age' => $age,
+                ...$creates,
+            ]);
+            // Clear the parked income — it has now been committed to the profile.
+            $this->clearParkedRetirementGoalIncome($conversationId);
+        } else {
+            // Income only — cannot create a profile without target_retirement_age.
+            // Park the income in the conversation so it survives the partial-retry
+            // and is carried forward even if the LLM re-calls with age only.
+            $this->parkRetirementGoalIncome($conversationId, $income);
+
+            return [
+                'onboarding_capture' => true,
+                'field_group' => 'campaign_retirement_goals',
+                'summary' => 'Income target noted — still need the retirement age to save the goal.',
+                'details' => ['missing' => ['target_retirement_age']],
+            ];
+        }
+
+        // Mirror the age onto users.target_retirement_age. The retirement store is
+        // retirement_profiles, but the /retirement page (RetirementProjectionService),
+        // the "When you want to retire" data-requirement, and ModuleAvailabilityProvider
+        // all read users.target_retirement_age — leaving it null showed the default
+        // age (67) and kept the checklist item outstanding despite the goal being set.
+        if ($age !== null) {
+            $user->target_retirement_age = $age;
+            $user->save();
+        }
+
+        // Bust the user's caches so the synthesis, /retirement page and dashboards
+        // recompute against the new goal. The retirement analysis is remembered
+        // under retirement_analysis_{id}; its model-level tag flush silently no-ops
+        // on the file cache driver (no tag support), so the mid-walk profile=null
+        // analysis would otherwise persist and the synthesis would voice no plan.
+        $this->invalidateUserCache($user->id);
+
+        $parts = [];
+        if ($age !== null) {
+            $parts[] = sprintf('retirement age %d', $age);
+        }
+        if ($income !== null) {
+            $parts[] = sprintf('income £%s per year', number_format($income, 0));
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_retirement_goals',
+            'summary' => 'Retirement goals recorded: '.implode(', ', $parts).'.',
+            'details' => array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null),
+        ];
+    }
+
+    /**
+     * Stash the income figure in `ai_conversations.onboarding_parked_facts` so
+     * it survives a partial-retry turn and can be merged into the next call.
+     */
+    private function parkRetirementGoalIncome(?int $conversationId, ?float $income): void
+    {
+        if ($conversationId === null || $income === null) {
+            return;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        if ($conv === null) {
+            return;
+        }
+
+        $parked = is_array($conv->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+        $parked['retirement_goals'] = ['target_retirement_income' => $income];
+        $conv->update(['onboarding_parked_facts' => $parked]);
+    }
+
+    /** Retrieve the parked income figure (null when nothing was stashed). */
+    private function retrieveParkedRetirementGoalIncome(?int $conversationId): ?float
+    {
+        if ($conversationId === null) {
+            return null;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        $parked = is_array($conv?->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+
+        $income = $parked['retirement_goals']['target_retirement_income'] ?? null;
+
+        return $income !== null ? (float) $income : null;
+    }
+
+    /** Remove the parked retirement-goals bucket after the income has been committed. */
+    private function clearParkedRetirementGoalIncome(?int $conversationId): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $conv = AiConversation::find($conversationId);
+        if ($conv === null) {
+            return;
+        }
+
+        $parked = is_array($conv->onboarding_parked_facts) ? $conv->onboarding_parked_facts : [];
+        unset($parked['retirement_goals']);
+        $conv->update(['onboarding_parked_facts' => $parked === [] ? null : $parked]);
+    }
+
+    /**
+     * capture_state_pension — writes state_pension_forecast_annual,
+     * ni_years_completed, and/or state_pension_age to state_pensions.
+     * All columns are nullable (or have DB defaults) so updateOrCreate is safe
+     * with any subset of the three parameters.
+     */
+    private function handleCaptureStatePension(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('retirement');
+        }
+
+        $forecastAnnual = isset($input['forecast_annual']) ? (float) $input['forecast_annual'] : null;
+        $niYears = isset($input['ni_years_completed']) ? (int) $input['ni_years_completed'] : null;
+        $spAge = isset($input['state_pension_age']) ? (int) $input['state_pension_age'] : null;
+
+        if ($forecastAnnual === null && $niYears === null && $spAge === null) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide at least one State Pension field.'];
+        }
+
+        if ($forecastAnnual !== null && ($forecastAnnual < 0 || $forecastAnnual > ValidationLimits::MAX_CURRENCY_VALUE)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension forecast must be 0 or more.'];
+        }
+
+        if ($niYears !== null && ($niYears < 0 || $niYears > 60)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'National Insurance qualifying years must be between 0 and 60.'];
+        }
+
+        if ($spAge !== null && ($spAge < 55 || $spAge > 75)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'State Pension age must be between 55 and 75.'];
+        }
+
+        $existing = StatePension::where('user_id', $user->id)->first();
+        if ($this->verifyEditScope !== null && $existing === null) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => 'No State Pension details are on file to update.'];
+        }
+
+        // Guard against the "not sure" garbage call. When the user says they don't
+        // know their forecast, the model can still call this tool with all-zero
+        // values, OR invent a state_pension_age from an unrelated pension's normal
+        // retirement age (user 185: forecast 0 / ni 0 / age 60 lifted from an NHS
+        // scheme). A State Pension row is only justified by a real forecast amount
+        // or qualifying-years count — state_pension_age alone NEVER justifies one
+        // (it is the field the model most easily hallucinates). When neither the
+        // forecast nor the qualifying years is a positive figure, treat the call as
+        // no-capture: write nothing and let advance_on_answered_question move on.
+        // The tool schema also tells the model not to infer the age or call the
+        // tool when the user is unsure.
+        $hasPositiveSignal = ($forecastAnnual !== null && $forecastAnnual > 0)
+            || ($niYears !== null && $niYears > 0);
+
+        if (! $hasPositiveSignal && $existing === null) {
+            return [
+                'onboarding_capture' => false,
+                'summary' => 'No State Pension figures recorded — the user did not give a forecast, qualifying years, or age.',
+            ];
+        }
+
+        $updates = array_filter([
+            'state_pension_forecast_annual' => $forecastAnnual,
+            'ni_years_completed' => $niYears,
+            'state_pension_age' => $spAge,
+        ], fn ($v) => $v !== null);
+
+        if ($existing !== null) {
+            $existing->update($updates);
+        } else {
+            StatePension::create(['user_id' => $user->id, ...$updates]);
+        }
+
+        // Bust the user's caches so the retirement analysis (and the "No State
+        // Pension Forecast" recommendation that depends on this row) recompute —
+        // the file cache driver on csjones has no tag support, so the model-level
+        // tag flush silently no-ops.
+        $this->invalidateUserCache($user->id);
+
+        $parts = [];
+        if ($forecastAnnual !== null) {
+            $parts[] = sprintf('forecast £%s per year', number_format($forecastAnnual, 0));
+        }
+        if ($niYears !== null) {
+            $parts[] = sprintf('%d National Insurance qualifying years', $niYears);
+        }
+        if ($spAge !== null) {
+            $parts[] = sprintf('State Pension age %d', $spAge);
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_state_pension',
+            'summary' => 'State Pension details recorded: '.implode(', ', $parts).'.',
+            'details' => $updates,
+        ];
+    }
+
     // ─── Generic update/delete handlers ─────────────────────────────────
 
     private function handleUpdateRecord(array $input, User $user, bool $isPreview): array
@@ -4142,7 +5469,7 @@ class CoordinatingAgent extends BaseAgent
         $fields = $input['fields'] ?? [];
 
         if (empty($fields)) {
-            return ['error' => 'validation_failed', 'message' => 'No fields provided to update.'];
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
         }
 
         // Map AI tool field names to actual model field names. Aliasing happens
@@ -4181,7 +5508,8 @@ class CoordinatingAgent extends BaseAgent
         $allowed = UpdateRecordAllowlist::allowedFields($entityType);
         if (empty($allowed)) {
             return [
-                'error' => 'unsupported_entity_type',
+                'error' => true,
+                'error_type' => 'unsupported_entity_type',
                 'entity_type' => $entityType,
                 'message' => "The entity type '{$entityType}' cannot be updated via this tool.",
             ];
@@ -4190,7 +5518,8 @@ class CoordinatingAgent extends BaseAgent
         $disallowed = array_diff(array_keys($fields), $allowed);
         if (! empty($disallowed)) {
             return [
-                'error' => 'fields_not_allowed',
+                'error' => true,
+                'error_type' => 'fields_not_allowed',
                 'entity_type' => $entityType,
                 'disallowed_fields' => array_values($disallowed),
                 'allowed_fields' => $allowed,
@@ -4221,6 +5550,33 @@ class CoordinatingAgent extends BaseAgent
                 'success' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $pension->id,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
+            ];
+        }
+
+        if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability'], true)) {
+            try {
+                $record = match ($entityType) {
+                    'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'investment_account' => app(InvestmentAccountStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'estate_liability' => app(LiabilityStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                };
+            } catch (ModelNotFoundException $e) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            } catch (StoreValidationException $e) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $e->errors,
+                    'message' => 'Validation failed for account update.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $record->id,
                 'fields_updated' => array_keys($fields),
                 'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
             ];
@@ -4330,6 +5686,24 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        if ($entityType === 'estate_liability') {
+            $liability = app(LiabilityStore::class)->find($entityId, $user);
+            if ($liability === null || $liability->user_id !== $user->id) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            }
+
+            $name = $liability->liability_name ?? "#{$entityId}";
+            app(LiabilityStore::class)->delete($entityId, $user, IngestSource::FYN_AI);
+
+            return [
+                'success' => true,
+                'deleted' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'message' => "Estate liability \"{$name}\" deleted.",
+            ];
+        }
+
         $model = $this->resolveModel($entityType, $entityId, $user->id);
         if (is_array($model) && isset($model['error'])) {
             return $model;
@@ -4404,22 +5778,159 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('profile');
         }
 
-        $section = $input['section'];
-
-        // Redirect expenditure to set_expenditure tool
-        if ($section === 'expenditure') {
-            return $this->handleSetExpenditure($input['fields'] ?? $input, $user, $isPreview);
-        }
+        $section = (string) ($input['section'] ?? '');
         $fields = $input['fields'] ?? [];
 
-        if (empty($fields)) {
+        if (! is_array($fields) || empty($fields)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
+        }
+
+        // Save Tax spouse review data belongs to the household-input row, not
+        // the authenticated user's profile. Require that reviewed row to exist:
+        // an edit must never create a new spouse record or overwrite the user's
+        // own income when the model says "my spouse earns ...".
+        if ($section === 'spouse_household') {
+            $household = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+            if ($household === null) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'No spouse household details are on file to update.'];
+            }
+
+            $allowedFields = [
+                'spouse_works',
+                'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+                'spouse_pension_input_annual', 'spouse_existing_isa_balance',
+                'spouse_existing_savings_balance', 'spouse_existing_investment_balance',
+                'spouse_existing_dividend_holdings_value', 'spouse_existing_pension_balance',
+            ];
+            $disallowed = array_diff(array_keys($fields), $allowedFields);
+            if ($disallowed !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'message' => 'One or more spouse fields cannot be updated.',
+                ];
+            }
+            if ($fields === []) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided spouse fields can be updated.'];
+            }
+
+            $moneyFields = [
+                'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
+                'spouse_annual_dividends', 'spouse_pension_input_annual',
+                'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
+                'spouse_existing_pension_balance',
+            ];
+            $rules = [
+                'spouse_works' => ['sometimes', 'boolean'],
+                'spouse_employment_status' => ['sometimes', 'nullable', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'retired', 'unemployed', 'other'])],
+                'spouse_psa_band' => ['sometimes', 'nullable', Rule::in(['basic', 'higher', 'additional'])],
+            ];
+            foreach ($moneyFields as $field) {
+                $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+            }
+            $validator = Validator::make($fields, $rules);
+            if ($validator->fails()) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $validator->errors()->toArray(),
+                    'message' => 'Validation failed for spouse household details.',
+                ];
+            }
+
+            $safeFields = $fields;
+            $works = array_key_exists('spouse_works', $safeFields) ? (bool) $safeFields['spouse_works'] : null;
+            unset($safeFields['spouse_works']);
+            if (array_key_exists('spouse_annual_income', $safeFields)) {
+                $safeFields['spouse_psa_band'] = app(TaxStrategyMath::class)
+                    ->bandFromIncome((float) $safeFields['spouse_annual_income']);
+            }
+
+            DB::transaction(function () use ($user, $household, $safeFields, $works): void {
+                if ($works !== null) {
+                    $user->update([
+                        'household_calculation_mode' => $works ? 'dual_earner' : 'single_earner_couple',
+                        'marriage_allowance_eligible' => ! $works,
+                    ]);
+                    $safeFields = array_merge($safeFields, array_fill_keys($works ? [
+                        'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                        'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
+                        'spouse_existing_pension_balance',
+                    ] : [
+                        'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                        'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+                        'spouse_pension_input_annual',
+                    ], null));
+                }
+                if ($safeFields !== []) {
+                    $household->update($safeFields);
+                }
+            });
+
+            return [
+                'updated' => true,
+                'section' => $section,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Spouse household details updated successfully.',
+            ];
+        }
+
+        // The campaign review page shows a single monthly total. Preserve that
+        // representation when it is edited and keep ExpenditureProfile in sync.
+        // Category-shaped updates still use the canonical category handler.
+        if ($section === 'expenditure') {
+            $hasMonthlyTotal = array_key_exists('monthly_expenditure', $fields);
+            $hasAnnualTotal = array_key_exists('annual_expenditure', $fields);
+            $categoryFields = array_diff(array_keys($fields), ['monthly_expenditure', 'annual_expenditure']);
+            if (($hasMonthlyTotal || $hasAnnualTotal) && $categoryFields !== []) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide either a total expenditure amount or category amounts, not both.'];
+            }
+            if ($hasMonthlyTotal && $hasAnnualTotal) {
+                if (! is_numeric($fields['monthly_expenditure']) || ! is_numeric($fields['annual_expenditure'])
+                    || abs(((float) $fields['monthly_expenditure'] * 12) - (float) $fields['annual_expenditure']) > 0.01) {
+                    return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly and annual expenditure totals do not agree.'];
+                }
+            }
+            if (! $hasMonthlyTotal && ! $hasAnnualTotal) {
+                return $this->handleSetExpenditure($fields, $user, $isPreview);
+            }
+
+            $sourceAmount = $hasMonthlyTotal
+                ? $fields['monthly_expenditure']
+                : $fields['annual_expenditure'];
+            if (! is_numeric($sourceAmount) || (float) $sourceAmount < ValidationLimits::MIN_CURRENCY_VALUE
+                || (float) $sourceAmount > ValidationLimits::MAX_CURRENCY_VALUE) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly expenditure must be zero or more.'];
+            }
+            $monthly = $hasMonthlyTotal
+                ? (float) $sourceAmount
+                : ((float) $sourceAmount / 12);
+            DB::transaction(function () use ($user, $monthly): void {
+                $user->update([
+                    'monthly_expenditure' => $monthly,
+                    'annual_expenditure' => $monthly * 12,
+                    'expenditure_entry_mode' => 'simple',
+                ]);
+                ExpenditureProfile::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['total_monthly_expenditure' => $monthly],
+                );
+            });
+
+            return [
+                'updated' => true,
+                'section' => $section,
+                'fields_updated' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
+                'message' => 'Monthly expenditure updated successfully.',
+            ];
         }
 
         $allowedFields = match ($section) {
             // NI number excluded — sensitive PII should not be AI-writable
             'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode'],
-            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_rental_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
+            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
             'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
             'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],
             default => [],
@@ -4432,6 +5943,59 @@ class CoordinatingAgent extends BaseAgent
         $safeFields = array_intersect_key($fields, array_flip($allowedFields));
         if (empty($safeFields)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are valid for this profile section.'];
+        }
+
+        if ($section === 'income_occupation') {
+            $disallowed = array_diff(array_keys($fields), $allowedFields);
+            if ($disallowed !== []) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more income fields cannot be updated.'];
+            }
+            $rules = [
+                'employment_status' => ['sometimes', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'retired', 'unemployed', 'other'])],
+                'occupation' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'employer' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'industry' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'target_retirement_age' => ['sometimes', 'nullable', 'integer', 'min:'.ValidationLimits::MIN_RETIREMENT_AGE, 'max:'.ValidationLimits::MAX_RETIREMENT_AGE],
+            ];
+            foreach (['annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income'] as $field) {
+                $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
+            }
+            $validator = Validator::make($safeFields, $rules);
+            if ($validator->fails()) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $validator->errors()->toArray(),
+                    'message' => 'Validation failed for income details.',
+                ];
+            }
+
+            $newStatus = $safeFields['employment_status'] ?? null;
+            $oldStatus = (string) ($user->employment_status ?? '');
+            $oldIsSelfEmployed = $oldStatus === 'self_employed';
+            $newIsSelfEmployed = $newStatus === 'self_employed';
+            $newIsEmployed = in_array($newStatus, ['employed', 'full_time', 'part_time'], true);
+            if ($newStatus !== null && $newIsSelfEmployed !== $oldIsSelfEmployed) {
+                $replacementField = $newIsSelfEmployed
+                    ? 'annual_self_employment_income'
+                    : ($newIsEmployed ? 'annual_employment_income' : null);
+                if ($replacementField !== null && ! array_key_exists($replacementField, $safeFields)) {
+                    return [
+                        'error' => true,
+                        'error_type' => 'validation_failed',
+                        'message' => 'Include the replacement annual income when changing employment type.',
+                    ];
+                }
+            }
+
+            if ($newIsSelfEmployed && array_key_exists('annual_self_employment_income', $safeFields)) {
+                $safeFields['annual_employment_income'] = null;
+            } elseif ($newIsEmployed && array_key_exists('annual_employment_income', $safeFields)) {
+                $safeFields['annual_self_employment_income'] = null;
+            } elseif (in_array($newStatus, ['retired', 'unemployed'], true)) {
+                $safeFields['annual_employment_income'] = null;
+                $safeFields['annual_self_employment_income'] = null;
+            }
         }
 
         $user->update($safeFields);

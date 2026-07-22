@@ -586,6 +586,26 @@ it('handles null monthly payment values gracefully', function () {
         ->and($result['totals']['liabilities'])->toBe(0);
 });
 
+it('applies tenants-in-common liability shares to both owners', function () {
+    $spouse = User::factory()->create();
+    $liability = Liability::factory()->create([
+        'user_id' => $this->user->id,
+        'joint_owner_id' => $spouse->id,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 60,
+        'liability_type' => 'personal_loan',
+        'monthly_payment' => 1000,
+    ]);
+
+    $primary = $this->service->getFinancialCommitments($this->user);
+    $secondary = $this->service->getFinancialCommitments($spouse);
+
+    expect($primary['commitments']['liabilities'][0]['monthly_amount'])->toBe(600.0)
+        ->and($secondary['commitments']['liabilities'][0]['monthly_amount'])->toBe(400.0)
+        ->and($primary['commitments']['liabilities'][0]['is_joint'])->toBeTrue()
+        ->and($liability->ownership_type)->toBe('tenants_in_common');
+});
+
 it('handles zero monthly payment values', function () {
     DCPension::factory()->create([
         'user_id' => $this->user->id,

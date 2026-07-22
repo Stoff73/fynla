@@ -34,6 +34,15 @@ it('defaults throttle to 150ms via config', function () {
     expect(config('lifecycle.throttle_ms'))->toBe(150);
 });
 
+it('registers no retired trialer campaigns or notification preferences', function () {
+    expect(config('lifecycle.feedback_reasons'))->not->toHaveKey('cancelled_trialer')
+        ->and(config('lifecycle.campaign_to_preference'))->not->toHaveKeys([
+            'empty_trialer',
+            'engaged_trialer',
+            'cancelled_trialer',
+        ]);
+});
+
 it('paces sends with configured throttle between iterations', function () {
     // Three users, 50ms pacing = at least 150ms elapsed (3 sleeps).
     // Using 50ms keeps test under 1s while still being measurable on CI.

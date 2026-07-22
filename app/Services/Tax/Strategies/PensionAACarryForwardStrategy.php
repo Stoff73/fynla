@@ -7,6 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
@@ -21,8 +22,10 @@ use App\Services\TaxConfigService;
  * Saving = unused_carry_forward × user_marginal_rate.
  *
  * Carry-forward window: HMRC allows looking back 3 tax years. We sum
- * max(0, AA_for_year - input_for_year) over the most recent 3 entries in
- * pension_input_history. AA is held at the current value across the window
+ * max(0, AA_for_year - input_for_year) over pension_input_history entries
+ * inside the exact 3-prior-tax-years window (labels shared with
+ * AnnualAllowanceChecker::getPrevious3TaxYears — stale rows outside the
+ * window never count). AA is held at the current value across the window
  * — a conservative simplification (AA was the same £40k/£60k over the
  * relevant period); refine if HMRC changes mid-window.
  */
@@ -47,6 +50,13 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
     {
         $user = $context->user;
 
+        // MPAA gate (FA 2004 s227ZA): once the user has flexibly accessed a DC
+        // pension, no carry-forward is available against the Money Purchase
+        // Annual Allowance — a top-up recommendation would create an AA charge.
+        if (app(PensionStore::class)->hasFlexiblyAccessedDcPension($user)) {
+            return [];
+        }
+
         $band = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
         if (! in_array($band, ['higher', 'additional'], true)) {
             return [];
@@ -58,10 +68,14 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
+        // Exact HMRC window: only the 3 tax years before the active year are
+        // eligible — stale rows from older captures must never count.
+        $priorYears = app(AnnualAllowanceChecker::class)
+            ->getPrevious3TaxYears($this->taxConfig->getTaxYear());
+
         $history = app(PensionStore::class)
             ->pensionInputHistory($user)
-            ->sortByDesc('tax_year')
-            ->take(self::LOOKBACK_YEARS);
+            ->filter(fn ($row) => in_array($row->tax_year, $priorYears, true));
 
         if ($history->isEmpty()) {
             return [];

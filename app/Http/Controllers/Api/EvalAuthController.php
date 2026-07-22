@@ -38,6 +38,12 @@ final class EvalAuthController extends Controller
         'young_saver',
         'retired_couple',
         'student',
+        // Dedicated mid-campaign savetax persona for the Azlan golden eval
+        // (Task 23). Created/reset by `eval:setup-azlan`, not PreviewUserSeeder;
+        // a preview-flagged user (is_preview_user=true) positioned at the
+        // campaign ISA step — the only state that drives the onboarding write
+        // path through an eval. No mirror user; this IS a seeded preview persona.
+        'azlan_savetax',
     ];
 
     /**

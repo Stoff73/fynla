@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Investment;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Estate\Trust;
 use App\Models\Household;
 use App\Models\User;
@@ -22,7 +23,12 @@ use Illuminate\Support\Facades\Crypt;
 
 class InvestmentAccount extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'investment_account';
+    }
 
     protected $auditExcludeFields = ['updated_at', 'created_at'];
 

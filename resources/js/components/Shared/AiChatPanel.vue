@@ -135,6 +135,28 @@
       :class="messagesContainerClasses"
       :style="messagesContainerStyle"
     >
+      <!-- FR-M9 — resumption prompt: surfaced on open when a previous turn
+           didn't finish. Continue or start fresh; both clear it server-side. -->
+      <div v-if="pendingResumption" class="mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
+        <p class="text-sm text-horizon-500">{{ pendingResumption.message || 'Last time we didn’t finish — want to pick up where we left off?' }}</p>
+        <div class="mt-2 flex gap-2">
+          <button
+            type="button"
+            class="px-3 py-1.5 text-xs font-semibold rounded-md bg-raspberry-500 text-white hover:bg-raspberry-600 transition-colors"
+            @click="handleResume"
+          >
+            Continue
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1.5 text-xs font-medium rounded-md bg-light-gray text-horizon-500 hover:bg-savannah-100 transition-colors"
+            @click="handleStartFresh"
+          >
+            Start fresh
+          </button>
+        </div>
+      </div>
+
       <!-- Loading state (modal-only initial fetch spinner) -->
       <div v-if="loading" class="flex items-center justify-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
@@ -195,22 +217,37 @@
           </div>
           <div
             v-else
-            :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
+            :class="msg.role === 'user' ? 'flex flex-col items-end' : 'flex justify-start'"
           >
             <div
               :class="[
                 'max-w-[85%] rounded-lg px-3 py-2 text-sm',
                 msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm',
                 messageClass(msg),
+                msg.status === 'queued' ? 'opacity-50' : '',
+                msg.status === 'processing' ? 'animate-pulse' : '',
+                msg.status === 'cancelled' ? 'line-through opacity-40' : '',
               ]"
             >
               <AiMessageContent
-                v-if="msg.role === 'assistant'"
+                v-if="msg.role === 'assistant' || msg.role === 'action'"
                 :message="msg"
                 @navigate="handleNavigation"
+                @subscription-options="handleSubscriptionOptions"
               />
               <span v-else>{{ msg.content }}</span>
             </div>
+            <!-- FR-M7 — a turn queued behind an in-flight one can be cancelled
+                 before it streams. Text affordance only (the chat is a Rule #16
+                 icon-banned surface). -->
+            <button
+              v-if="msg.role === 'user' && msg.status === 'queued'"
+              type="button"
+              class="mt-1 text-xs font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
+              @click="handleCancelQueued(msg.id)"
+            >
+              Waiting — cancel
+            </button>
           </div>
         </div>
 
@@ -396,6 +433,7 @@ import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
 import { fynIconUrl } from '@/constants/fynIcon';
+import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
 export default {
     name: 'AiChatPanel',
@@ -421,15 +459,15 @@ export default {
             inputMessage: '',
             windowWidth: window.innerWidth,
             dockedInputHeight: 0,
-            _defaultInputHeight: 0,
+            defaultInputHeight: 0,
             suggestionsCollapsed: true,
-            _resizing: false,
-            _resizeStartY: 0,
-            _resizeStartHeight: 0,
+            resizing: false,
+            resizeStartY: 0,
+            resizeStartHeight: 0,
             thinkingStatusIndex: 0,
-            _thinkingTimer: null,
+            thinkingTimer: null,
             countdownSeconds: null,
-            _countdownTimer: null,
+            countdownTimer: null,
             scrollSpacerHeight: 300,
         };
     },
@@ -453,6 +491,8 @@ export default {
             'previewCta',
             'onboardingLayout',
             'isOnboardingActive',
+            'prefilledPrompt',
+            'pendingResumption',
         ]),
 
         // True once the user has sent at least one message in this
@@ -651,7 +691,7 @@ export default {
                 const inputContainer = this.$refs.inputContainer;
                 if (inputContainer) {
                     const naturalHeight = inputContainer.offsetHeight;
-                    this._defaultInputHeight = naturalHeight;
+                    this.defaultInputHeight = naturalHeight;
                     this.dockedInputHeight = naturalHeight;
                 }
                 this.updateScrollSpacer();
@@ -671,11 +711,11 @@ export default {
         if (this._onResizeEnd) {
             document.removeEventListener('mouseup', this._onResizeEnd);
         }
-        if (this._thinkingTimer) {
-            clearInterval(this._thinkingTimer);
+        if (this.thinkingTimer) {
+            clearInterval(this.thinkingTimer);
         }
-        if (this._countdownTimer) {
-            clearInterval(this._countdownTimer);
+        if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
         }
     },
 
@@ -686,18 +726,26 @@ export default {
             }
         },
 
+        // A dashboard unlock row sets aiChat/prefilledPrompt then opens Fyn. If
+        // the dock is ALREADY open (the desktop docked panel auto-opens at mount,
+        // so onOpen won't re-fire), this watcher delivers the auto-send. The
+        // fresh-open case is handled by onOpen calling maybeSendPrefilled().
+        prefilledPrompt(val) {
+            if (val) this.maybeSendPrefilled();
+        },
+
         secondsUntilReset(newVal) {
-            if (this._countdownTimer) {
-                clearInterval(this._countdownTimer);
-                this._countdownTimer = null;
+            if (this.countdownTimer) {
+                clearInterval(this.countdownTimer);
+                this.countdownTimer = null;
             }
             if (newVal && newVal > 0) {
                 this.countdownSeconds = newVal;
-                this._countdownTimer = setInterval(() => {
+                this.countdownTimer = setInterval(() => {
                     this.countdownSeconds--;
                     if (this.countdownSeconds <= 0) {
-                        clearInterval(this._countdownTimer);
-                        this._countdownTimer = null;
+                        clearInterval(this.countdownTimer);
+                        this.countdownTimer = null;
                         this.$store.commit('aiChat/SET_TOKEN_LIMIT', { reached: false, resetAt: null, secondsUntilReset: null });
                     }
                 }, 1000);
@@ -740,14 +788,14 @@ export default {
                 this.$nextTick(() => this.scrollToLastUserMessage());
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
-                this._thinkingTimer = setInterval(() => {
+                this.thinkingTimer = setInterval(() => {
                     this.thinkingStatusIndex++;
                 }, 2500);
             } else {
                 // Stop rotating status messages
-                if (this._thinkingTimer) {
-                    clearInterval(this._thinkingTimer);
-                    this._thinkingTimer = null;
+                if (this.thinkingTimer) {
+                    clearInterval(this.thinkingTimer);
+                    this.thinkingTimer = null;
                 }
             }
         },
@@ -789,6 +837,10 @@ export default {
     },
 
     methods: {
+        focusInput() {
+            this.$nextTick(() => this.$refs.inputField?.focus());
+        },
+
         ...mapActions('aiChat', [
             'close',
             'toggle',
@@ -800,7 +852,36 @@ export default {
             'sendMessage',
             'abortStreaming',
             'postAction',
+            'cancelQueued',
+            'fetchResumption',
+            'acknowledgeResumption',
         ]),
+
+        /**
+         * FR-M7 — cancel a queued turn from its "Waiting — cancel" affordance.
+         */
+        async handleCancelQueued(messageId) {
+            await this.cancelQueued(messageId);
+        },
+
+        /**
+         * FR-M9 — resume the unfinished conversation: clear the flag and load it.
+         */
+        async handleResume() {
+            const conversationId = this.pendingResumption?.conversationId;
+            await this.acknowledgeResumption();
+            if (conversationId) {
+                this.loadConversation(conversationId);
+            }
+        },
+
+        /**
+         * FR-M9 — start fresh: clear the flag and open a new conversation.
+         */
+        async handleStartFresh() {
+            await this.acknowledgeResumption();
+            this.startNewConversation();
+        },
 
         /**
          * Phase 10 — skip-link click handler. Posts {action: 'skip'} to the
@@ -912,19 +993,19 @@ export default {
         },
 
         startInputResize(e) {
-            this._resizing = true;
-            this._resizeStartY = e.clientY;
-            this._resizeStartHeight = this.dockedInputHeight;
+            this.resizing = true;
+            this.resizeStartY = e.clientY;
+            this.resizeStartHeight = this.dockedInputHeight;
             document.body.style.cursor = 'row-resize';
             document.body.style.userSelect = 'none';
             this._onResizeMove = (ev) => {
-                if (!this._resizing) return;
-                const delta = this._resizeStartY - ev.clientY;
-                const newHeight = Math.max(this._defaultInputHeight, Math.min(400, this._resizeStartHeight + delta));
+                if (!this.resizing) return;
+                const delta = this.resizeStartY - ev.clientY;
+                const newHeight = Math.max(this.defaultInputHeight, Math.min(400, this.resizeStartHeight + delta));
                 this.dockedInputHeight = newHeight;
             };
             this._onResizeEnd = () => {
-                this._resizing = false;
+                this.resizing = false;
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
                 document.removeEventListener('mousemove', this._onResizeMove);
@@ -936,6 +1017,9 @@ export default {
 
         async onOpen() {
             analyticsService.trackChatOpened();
+
+            // FR-M9 — surface any unfinished conversation to resume (non-blocking).
+            this.fetchResumption();
 
             const s = () => this.$store.state.aiChat;
 
@@ -952,6 +1036,7 @@ export default {
 
             if (hasActive() || busy()) {
                 await this.fetchConversations();
+                await this.maybeSendPrefilled();
                 this.$nextTick(() => this.$refs.inputField?.focus());
                 return;
             }
@@ -964,6 +1049,7 @@ export default {
             // fresh empty conversation at this point would orphan the
             // real onboarding conversation and split the transcript.
             if (hasActive() || busy()) {
+                await this.maybeSendPrefilled();
                 this.$nextTick(() => this.$refs.inputField?.focus());
                 return;
             }
@@ -985,9 +1071,35 @@ export default {
                 await this.startNewConversation();
             }
 
+            await this.maybeSendPrefilled();
+
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
             });
+        },
+
+        // Consume aiChat/prefilledPrompt — a capture prompt seeded by a dashboard
+        // unlock row (mirrors the /m app's openFynForCapture auto-send). Delivers
+        // once the dock is open and idle; if the open dock has no conversation yet
+        // (the docked panel can sit open with none), it starts one first. Leaves
+        // the prefill set when the dock is still closed or busy so a later trigger
+        // (onOpen / the watcher) delivers it. Never auto-sends into onboarding.
+        async maybeSendPrefilled() {
+            const prompt = this.$store.state.aiChat.prefilledPrompt;
+            if (!prompt) return;
+            if (!this.isOpen) return;
+            if (this.streaming || this.loading) return;
+            const user = this.$store.getters['auth/user'];
+            if (user && user.onboarding_completed === false && user.onboarding_fyn_step) {
+                this.$store.commit('aiChat/SET_PREFILLED_PROMPT', null);
+                return;
+            }
+            if (!this.currentConversation) {
+                await this.startNewConversation();
+                if (!this.currentConversation) return; // create failed — leave prefill for retry
+            }
+            this.$store.commit('aiChat/SET_PREFILLED_PROMPT', null);
+            await this.sendSuggested(prompt);
         },
 
         async startNew() {
@@ -1092,6 +1204,12 @@ export default {
         //     onboarding bubbles are never navigation intents.
         async handleQuickReplySelect(bubble, msg) {
             if (this.streaming || this.loading) return;
+            // Navigation bubble (e.g. the terminal "Take me to my tax strategy")
+            // — route straight there; never send the label as a message.
+            if (bubble && bubble.route) {
+                this.handleNavigation(bubble.route);
+                return;
+            }
             const isActionBubble = Boolean(msg?.metadata?.action_bubbles);
             const id = (bubble && bubble.id) ? String(bubble.id).trim() : '';
             const label = (bubble && bubble.label) ? bubble.label.trim() : '';
@@ -1120,6 +1238,10 @@ export default {
             } else {
                 this.$router.push(routePath);
             }
+        },
+
+        handleSubscriptionOptions() {
+            this.$router.push(subscriptionOptionsLocation());
         },
 
         scrollToBottom() {
@@ -1186,7 +1308,7 @@ export default {
             if (msg.role === 'user') {
                 return 'bg-raspberry-500 text-white';
             }
-            if (msg.role === 'navigation' || msg.role === 'entity_created') {
+            if (msg.role === 'navigation' || msg.role === 'entity_created' || msg.role === 'action') {
                 return 'bg-transparent p-0';
             }
             // Pinned by tests/Feature/Fyn/CaptureCompleteStylingTest.php —

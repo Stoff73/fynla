@@ -238,12 +238,20 @@
   background: linear-gradient(135deg, var(--raspberry-500) 0%, var(--raspberry-600) 100%);
   color: var(--white);
   border-radius: var(--radius-xl);
-  padding: 1.125rem 1.125rem 1rem;
   box-shadow: 0 6px 18px rgba(232, 62, 109, 0.28);
   text-align: center;
+  overflow: hidden;
+  /* .md-main is a flex column — without flex-shrink:0 this box collapses to
+     zero height and its content gets clipped by overflow:hidden (invisible). */
+  flex-shrink: 0;
   /* Clears the level card's downward visual overflow (card has -9rem
      margin-bottom) plus a comfortable gap below it. */
   margin-top: 8rem;
+}
+
+/* Top half — current rank */
+.md-callout__top {
+  padding: 1.125rem 1.125rem 1rem;
 }
 .md-callout__lead {
   font-size: 1.125rem;
@@ -258,6 +266,136 @@
   margin: 0.375rem 0 0;
   line-height: 1.35;
   opacity: 0.92;
+}
+
+/* Bottom half — light-pink region containing carousel + recommendations.
+   Carousel and recs are adjacent siblings sharing the same light-pink bg so
+   they read as one continuous lower section. Text flips to dark for contrast. */
+.md-callout__carousel {
+  background: var(--light-pink-50);
+  color: var(--horizon-600);
+  padding: 1.125rem 1.125rem 0.875rem;
+}
+/* Accordion track sits on eggshell so collapsed cards read as a strip */
+.md-callout__carousel .md-accordion { background: transparent; }
+/* Horizontal accordion — active card expands, inactive collapse to icon.
+   Full-bleed: negative margins cancel the carousel's top + side padding so
+   inactive cards run edge-to-edge and up to the dark-pink top half. */
+.md-accordion {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  margin: -1.125rem -1.125rem 0;   /* bleed to top + side edges of the carousel */
+}
+.md-accordion__card {
+  display: flex;
+  align-items: flex-start;
+  border: none;
+  border-radius: 0;                /* straight corners */
+  cursor: pointer;
+  font-family: var(--font-primary);
+  text-align: left;
+  overflow: hidden;
+  transition: flex 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
+  padding: 0;
+}
+/* Inactive — eggshell, collapsed to a narrow icon strip, grey icon */
+.md-accordion__card {
+  flex: 0 0 3rem;
+  background: var(--eggshell-500);
+  align-self: stretch;             /* full height of the accordion row */
+}
+.md-accordion__icon {
+  flex-shrink: 0;
+  width: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1.125rem;
+  color: var(--neutral-500);       /* grey icon (same as nav inactive) */
+}
+.md-accordion__icon svg { display: block; }
+.md-accordion__content {
+  display: none;
+  flex-direction: column;
+  padding: 1.125rem 1.125rem 1.125rem 0.25rem;
+  min-width: 0;
+}
+
+/* Active — light pink, expands to fill, content revealed, rounded corners */
+.md-accordion__card.is-active {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  background: var(--light-pink-50);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+.md-accordion__card.is-active .md-accordion__icon {
+  color: var(--raspberry-500);
+}
+.md-accordion__card.is-active .md-accordion__content {
+  display: flex;
+}
+
+.md-callout__slide-stat {
+  font-size: 1.75rem;
+  font-weight: 900;
+  margin: 0;
+  line-height: 1;
+  color: var(--raspberry-600);
+}
+.md-callout__slide-area {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0.25rem 0 0.375rem;
+  color: var(--horizon-500);
+}
+.md-callout__slide-info {
+  font-size: 0.8125rem;
+  margin: 0;
+  line-height: 1.4;
+  color: var(--neutral-600);
+}
+
+/* Dot navigation */
+.md-callout__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+.md-callout__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--light-pink-200);
+  cursor: pointer;
+  transition: background 0.2s ease, width 0.2s ease;
+  position: relative;
+}
+.md-callout__dot::before {
+  content: '';
+  position: absolute;
+  inset: -0.625rem;   /* expand tap target without changing visual size */
+}
+.md-callout__dot.is-active {
+  background: var(--raspberry-500);
+  width: 1.25rem;
+}
+
+/* Recommendations inside the callout's light-pink bottom half */
+.md-callout .md-recs {
+  background: var(--light-pink-50);
+  padding: 0.25rem 1.125rem 1.125rem;
+  margin-top: 1.25rem;   /* space above the Recommendations title */
+}
+.md-callout .md-recs .md-section-head--toggle {
+  color: var(--horizon-600);
 }
 
 /* ===================================================================
@@ -338,7 +476,8 @@
   border: 1px solid var(--horizon-100);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease,
+              opacity 0.25s ease, transform 0.25s ease;
 }
 .md-rec:hover { border-color: var(--horizon-200); }
 
@@ -411,12 +550,17 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  text-align: left;   /* left-align rec text */
 }
 .md-rec__title {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--horizon-600);
   line-height: 1.3;
+  /* Keep the top sentence to a single line */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .md-rec__meta {
   font-size: 0.75rem;
@@ -427,6 +571,38 @@
   color: var(--horizon-300);
   flex-shrink: 0;
 }
+
+/* Skip button — replaces the current recommendation with the next one */
+.md-rec__skip {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--horizon-100);
+  color: var(--neutral-500);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.md-rec__skip:hover {
+  background: var(--horizon-200);
+  color: var(--horizon-600);
+}
+.md-rec__skip svg { display: block; }
+
+/* View all recommendations link at the bottom of the recs body */
+.md-recs__view-all {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--raspberry-600);
+  text-decoration: none;
+}
+.md-recs__view-all:hover { text-decoration: underline; }
 
 /* ===================================================================
    4-PANEL GRID — 2 per row. Visual on top, text below (compact tiles).
@@ -969,3 +1145,435 @@
 
 /* Scroll-lock helper applied to body when drawer or fyn is open */
 .is-locked { overflow: hidden; }
+
+/* ===================================================================
+   v39 OVERRIDES — accordion smoothing + divider, skip pill, fade,
+   dock chat input, panel hover. Appended; later rules win.
+   =================================================================== */
+
+/* Accordion: smoother expand/collapse + light-pink divider between cards */
+.md-accordion__card {
+  transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              flex-basis 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s ease !important;
+  flex: 0 0 3rem;
+}
+.md-accordion__card + .md-accordion__card {
+  box-shadow: -1px 0 0 0 var(--light-pink-200);
+}
+.md-accordion__card.is-active { flex: 1 1 0 !important; }
+
+/* Skip — clear pill CTA, visible without hover (mobile) */
+.md-rec__skip {
+  width: auto !important;
+  height: auto !important;
+  align-self: center;
+  margin-right: 0.625rem;
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--raspberry-300);
+  background: var(--white);
+  color: var(--raspberry-600);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--raspberry-50);
+  border-color: var(--raspberry-500);
+  color: var(--raspberry-600);
+}
+
+/* Skip fade-out / fade-in */
+.md-rec.is-skipping { opacity: 0; transform: translateX(8px); }
+.md-rec.is-entering { animation: recFadeIn 0.35s ease both; }
+@keyframes recFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.md-rec {
+  transition: border-color 0.15s ease, background 0.15s ease,
+              opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* Docked chat input — matches authenticated Fyn composer */
+.md-fyn-dock {
+  gap: 0.625rem !important;
+  cursor: default !important;
+  padding: 0.75rem 1rem !important;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
+  border-top: 1px solid var(--light-gray) !important;
+}
+.md-fyn-dock:hover { background: var(--white) !important; }
+.md-fyn-dock__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.9375rem;
+  font-family: var(--font-primary);
+  color: var(--horizon-600);
+  background: var(--white);
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.md-fyn-dock__input::placeholder { color: var(--horizon-400); }
+.md-fyn-dock__send {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--raspberry-500);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-fyn-dock__send:hover { background: var(--raspberry-600); }
+.md-fyn-dock__send svg { display: block; }
+
+/* Finance panels are now <a> links — hover lifts them */
+.md-panel {
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.md-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+.md-panel:focus-visible {
+  outline: 2px solid var(--raspberry-500);
+  outline-offset: 2px;
+}
+
+/* ===================================================================
+   v40 OVERRIDES — LEVEL UP header, accordion divider/no-curve,
+   secondary skip + refresh icon. Appended; later rules win.
+   =================================================================== */
+
+/* Top half: LEVEL UP (left) + rank copy (right) */
+.md-callout__top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+}
+.md-callout__levelup {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--white);
+}
+.md-callout__top-copy { flex: 1; min-width: 0; }
+.md-callout__top-copy .md-callout__lead {
+  white-space: normal;        /* allow wrap now "in the UK" is gone */
+  font-size: 1rem;
+}
+.md-callout__top-copy .md-callout__sub { margin-top: 0.25rem; }
+
+/* Accordion: divider lines in the light-pink background colour; no curve */
+.md-accordion__card + .md-accordion__card {
+  box-shadow: -1px 0 0 0 var(--light-pink-50) !important;
+}
+.md-accordion__card.is-active {
+  border-radius: 0 !important;   /* remove the rounded corners */
+}
+
+/* Skip — secondary (the chevron arrow is the primary CTA) */
+.md-rec__skip {
+  border: none !important;
+  background: transparent !important;
+  color: var(--neutral-400) !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0.25rem 0.5rem !important;
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  color: var(--horizon-500) !important;
+  background: transparent !important;
+}
+/* Make the chevron arrow read as the primary action */
+.md-rec__chevron { color: var(--raspberry-500) !important; }
+
+/* Refresh variant — small circular icon button (shown on completed items) */
+.md-rec__skip--refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  padding: 0 !important;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  color: var(--raspberry-500) !important;
+  background: var(--white) !important;
+}
+.md-rec__skip--refresh:hover {
+  background: var(--light-pink-50) !important;
+}
+.md-rec__skip--refresh svg { display: block; }
+
+/* ===================================================================
+   v41 OVERRIDES — tighter stat copy, stable accordion height,
+   chat compose only in expanded overlay.
+   =================================================================== */
+
+/* Reduce the gap between the 57% lead and the sub-copy */
+.md-callout__top-copy .md-callout__sub { margin-top: 0.125rem !important; }
+
+/* Accordion: fix the row height so text reflow during the expand/collapse
+   transition doesn't make the whole block grow/shrink vertically. */
+.md-accordion { min-height: 9.5rem; align-items: stretch; }
+.md-accordion__content {
+  justify-content: flex-start;
+  height: 100%;
+}
+
+/* Compose chat box at the bottom of the EXPANDED overlay (matches the
+   authenticated Fyn composer). Not rendered in the collapsed dock. */
+.md-fyn__compose {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  background: var(--white);
+  border-top: 1px solid var(--light-gray);
+  flex-shrink: 0;
+}
+.md-fyn__compose .md-fyn-dock__input { cursor: text; }
+
+/* ===================================================================
+   v42 OVERRIDES — lock accordion to a fixed height so it never jumps.
+   =================================================================== */
+.md-accordion {
+  height: 9.5rem !important;
+  min-height: 9.5rem;
+  align-items: stretch;
+}
+.md-accordion__card { height: 100%; }
+.md-accordion__content {
+  height: 100%;
+  overflow: hidden;            /* clip any overflow rather than grow the row */
+  justify-content: flex-start;
+}
+
+/* ===================================================================
+   v43 OVERRIDES — tighter stat copy, skip hover bg, checkbox hover tick.
+   =================================================================== */
+
+/* Even tighter gap between the 57% lead and the sub-copy */
+.md-callout__top-copy .md-callout__lead { margin: 0 !important; }
+.md-callout__top-copy .md-callout__sub { margin-top: 0 !important; }
+
+/* Skip — grey background on hover */
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--horizon-100) !important;
+  color: var(--horizon-600) !important;
+  border-radius: var(--radius-md);
+}
+
+/* Checkbox circle — show a faint grey tick on hover (pending items only) */
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg {
+  opacity: 1;
+}
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path {
+  stroke: var(--neutral-400);
+}
+
+/* v43b — ensure hover tick scales up (base svg is scale(0.4)) */
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+.md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path {
+  stroke: var(--neutral-400) !important;
+}
+
+/* ===================================================================
+   v44 OVERRIDES — bigger LEVEL UP, completion fade, full-width skip hover.
+   =================================================================== */
+
+.md-callout__levelup { font-size: 1.6rem !important; }
+
+/* Completion fade: row collapses + fades after the tick is shown, before
+   the list re-orders, so the user sees it check off. */
+.md-rec.is-completing {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Skip — the whole button greys on hover, not just behind the text */
+.md-rec__skip {
+  text-decoration: none !important;   /* drop the underline; the bg is the affordance */
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--horizon-100) !important;
+  color: var(--horizon-600) !important;
+  border-radius: var(--radius-md);
+}
+
+/* ===================================================================
+   v45 OVERRIDES — skip hover (skip section only), level-up celebration.
+   =================================================================== */
+
+/* Skip hover greys ONLY the skip button's own area (its full box) */
+.md-rec__skip {
+  align-self: stretch !important;     /* fill the row height */
+  display: flex !important;
+  align-items: center;
+  border-radius: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 0.875rem !important;
+  background: transparent !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.md-rec__skip:hover,
+.md-rec__skip:active {
+  background: var(--horizon-100) !important;
+  color: var(--horizon-600) !important;
+}
+
+/* Level-up pulse on the pie */
+.md-level__pie.is-levelup {
+  animation: levelPulse 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes levelPulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* Confetti layer — covers the phone frame, ignores pointer events */
+.md-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  overflow: hidden;
+}
+.md-confetti__piece {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  opacity: 0;
+  animation-name: confettiFall;
+  animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes confettiFall {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--drift, 0), 105vh) rotate(var(--rot, 360deg)); }
+}
+
+/* Centre "Level X!" banner */
+.md-confetti__banner {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  padding: 0.625rem 1.25rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  font-size: 1.5rem;
+  font-weight: 900;
+  border-radius: var(--radius-full);
+  box-shadow: 0 12px 32px rgba(232, 62, 109, 0.5);
+  white-space: nowrap;
+  animation: bannerPop 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes bannerPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  30%  { transform: translate(-50%, -50%) scale(1); }
+  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
+}
+
+/* v46 — docked Fyn bar hover + pointer cursor */
+.md-fyn-dock--bar {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.md-fyn-dock--bar:hover {
+  background: var(--eggshell-500) !important;
+}
+.md-fyn-dock--bar:hover .md-fyn-dock__action {
+  background: var(--horizon-200);
+}
+
+/* ===================================================================
+   v47 — fix docked Fyn bar hover (override the earlier white !important),
+   restore circular refresh button on completed recommendations.
+   =================================================================== */
+
+/* Higher-specificity selector beats the earlier `.md-fyn-dock:hover` rule */
+.phone-frame .md-fyn-dock--bar { cursor: pointer; transition: background 0.15s ease; }
+.phone-frame .md-fyn-dock--bar:hover { background: var(--eggshell-500) !important; }
+.phone-frame .md-fyn-dock--bar:hover .md-fyn-dock__action { background: var(--horizon-200); }
+
+/* Refresh button on completed items — circular icon, overrides the
+   v45 full-height grey skip styling. */
+.md-rec__skip--refresh {
+  align-self: center !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  margin-right: 0.625rem !important;
+  padding: 0 !important;
+  border-radius: var(--radius-full) !important;
+  color: var(--raspberry-500) !important;
+  background: var(--white) !important;
+}
+.md-rec__skip--refresh:hover {
+  background: var(--light-pink-50) !important;
+  color: var(--raspberry-600) !important;
+}
+.md-rec__skip--refresh svg { display: block; }
+
+/* v48 — beat the v41 `.md-fyn-dock { cursor: default !important }` and the
+   `.md-fyn-dock:hover { background: white !important }` rules for the bar. */
+.phone-frame .md-fyn-dock.md-fyn-dock--bar {
+  cursor: pointer !important;
+}
+.phone-frame .md-fyn-dock.md-fyn-dock--bar:hover {
+  background: var(--eggshell-500) !important;
+}
+.phone-frame .md-fyn-dock.md-fyn-dock--bar:hover .md-fyn-dock__action {
+  background: var(--horizon-200) !important;
+}
+
+/* v49 — grey hover on inactive accordion cards */
+.md-accordion__card:not(.is-active) {
+  transition: background 0.2s ease, flex-grow 0.45s cubic-bezier(0.4,0,0.2,1),
+              flex-basis 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+.md-accordion__card:not(.is-active):hover {
+  background: var(--horizon-100) !important;
+}
+.md-accordion__card:not(.is-active):hover .md-accordion__icon {
+  color: var(--horizon-500);
+}

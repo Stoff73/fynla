@@ -13,11 +13,9 @@ class CurrencyRatesSeeder extends Seeder
     /**
      * Seed initial GBP-base currency rates via the canonical CurrencyRateStore.
      *
-     * Re-runnable: looks up existing rows by (from_ccy, to_ccy, effective_at)
-     * via CurrencyRateStore::findByPairAndEffectiveAt and calls update() if
-     * present, else create(). Preserves the canonical store/event contract
-     * (SP1 Pass 2 §12). Migrated from direct-write CurrencyRate::create() in
-     * PR R2.4.
+     * Re-runnable: creates a missing baseline row by
+     * (from_ccy, to_ccy, effective_at) and preserves admin-managed values
+     * when that row already exists.
      *
      * To update rates, modify the values below and run:
      *   php artisan db:seed --class=CurrencyRatesSeeder --force
@@ -51,9 +49,7 @@ class CurrencyRatesSeeder extends Seeder
 
             $existing = $store->findByPairAndEffectiveAt($row['from_ccy'], $row['to_ccy'], $effectiveAt);
 
-            if ($existing) {
-                $store->update($existing->id, $payload, IngestSource::SEEDER);
-            } else {
+            if (! $existing) {
                 $store->create($payload, IngestSource::SEEDER);
             }
 

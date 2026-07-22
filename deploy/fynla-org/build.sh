@@ -30,6 +30,7 @@ export NODE_ENV=production
 export VITE_BASE_PATH=/build/
 export VITE_ROUTER_BASE=/
 export VITE_APP_NAME="Fynla"
+export VITE_APP_VERSION="1.0-$(git rev-parse --short HEAD 2>/dev/null || echo prod)"
 export VITE_API_BASE_URL=https://fynla.org
 
 # Awin affiliate tracking — production is always enabled. Flip to false here
@@ -96,15 +97,19 @@ echo "   ~/www/fynla.org/public_html/public/m-build/"
 echo ""
 echo "2. Upload any changed PHP files (check deployment notes)"
 echo ""
-echo "3. SSH to server, clear caches, then RE-CACHE config (optimize):"
+echo "3. SSH to server, clear caches, then RE-CACHE config (config:cache only):"
 echo "   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org"
 echo "   cd ~/www/fynla.org/public_html"
-echo "   php artisan cache:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan optimize"
+echo "   php artisan cache:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan config:cache"
 echo ""
-echo "   IMPORTANT: the trailing 'optimize' re-caches config so DB credentials"
-echo "   are baked into bootstrap/cache/config.php. NEVER leave prod with config"
-echo "   cleared/uncached — uncached requests can fall back to default 'forge' DB"
-echo "   creds and 500 (broken auth + checkout)."
+echo "   IMPORTANT: the trailing 'config:cache' bakes DB credentials into"
+echo "   bootstrap/cache/config.php. NEVER leave prod with config cleared/uncached"
+echo "   — uncached requests can fall back to default 'forge' DB creds and 500"
+echo "   (broken auth + checkout)."
+echo ""
+echo "   NEVER 'php artisan optimize' / 'route:cache' — the compiled route matcher"
+echo "   lets the SPA catch-all shadow the server-rendered '/' homepage (and the"
+echo "   /m iframe), serving the bare SPA shell to guests (found live 2026-06-11)."
 echo ""
 echo "DO NOT run 'npm install' or 'npm run build' on the server!"
 echo ""

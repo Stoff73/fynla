@@ -71,6 +71,11 @@ describe('QueryClassifier', function () {
                 ->toBe(QuerySchemas::BILLING);
         });
 
+        it('classifies an explicit Fynla plan question as billing', function () {
+            expect($this->classifier->classify('Which Fynla plan am I on?')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
         // ISA-subscription is a savings concept, NOT Fynla billing — the
         // fixed-width negative lookbehind must keep it out of BILLING.
         it('does NOT classify "what is my ISA subscription limit" as billing', function () {
@@ -78,14 +83,60 @@ describe('QueryClassifier', function () {
                 ->not->toBe(QuerySchemas::BILLING);
         });
 
+        it('does not classify a saved ISA subscription question as billing', function () {
+            $result = $this->classifier->classify(
+                'Using my saved data, how much of my ISA allowance have I used this tax year, how much remains, and which account contains the subscription?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS)
+                ->and($result['related'])->toContain(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
+        });
+
         // Genuine navigation with no billing entity must still be navigation.
         it('keeps "take me to my goals page" as navigation', function () {
             expect($this->classifier->classify('take me to my goals page')['primary'])
                 ->toBe(QuerySchemas::NAVIGATION);
         });
+
+        it('does not treat a saved tax-plan explanation as subscription billing', function () {
+            $result = $this->classifier->classify(
+                'Can you explain in plain English why moving £2,612 of my Marcus savings into my ISA could save about £49 a year, using the figures in my plan?'
+            );
+
+            expect($result['primary'])->toBe(QuerySchemas::TAX_OPTIMISATION)
+                ->and($result['related'])->not->toContain(QuerySchemas::BILLING);
+        });
     });
 
     describe('advice classification', function () {
+        it('keeps retirement readiness out of goals-related classification', function () {
+            $result = $this->classifier->classify('Am I on track for retirement?');
+
+            expect($result['primary'])->toBe(QuerySchemas::RETIREMENT_READINESS)
+                ->and($result['related'])->not->toContain(QuerySchemas::GOALS_PROGRESS);
+        });
+
+        it('classifies explicit goal and life event progress as goals', function (string $message) {
+            expect($this->classifier->classify($message)['primary'])
+                ->toBe(QuerySchemas::GOALS_PROGRESS);
+        })->with([
+            'Am I on track with my goal?',
+            'How is my life event progress?',
+        ]);
+
+        it('does not make financial target wording goals-primary without explicit goal language', function (string $message) {
+            expect($this->classifier->classify($message)['primary'])
+                ->not->toBe(QuerySchemas::GOALS_PROGRESS);
+        })->with([
+            'Am I on track for my pension target?',
+            'Am I on track for my mortgage target?',
+            'Am I on track for my house target?',
+            'Am I on track for my ISA target?',
+            'Am I on track for my savings target?',
+            'Am I on track for my investment target?',
+        ]);
+
         it('classifies "How do I maximise my pension?" as retirement_contribution with related types', function () {
             $result = $this->classifier->classify('How do I maximise my pension?');
             expect($result['primary'])->toBe(QuerySchemas::RETIREMENT_CONTRIBUTION);
@@ -206,6 +257,40 @@ describe('QueryClassifier', function () {
         it('returns empty modules for data_entry', function () {
             $result = $this->classifier->classify('I have a new ISA with £10,000');
             expect($result['modules'])->toBe([]);
+        });
+    });
+
+    // The savings keyword table is intentionally narrow (saving + account|rate,
+    // emergency fund, etc.) so generic "save" phrasings — "save tax", "save for
+    // retirement" — are NOT swallowed into a savings classification. A generic
+    // "how do I start saving?" therefore stays GENERAL by design; the
+    // emergency-fund-first guidance for it is injected by FynContextAssembler,
+    // not by reclassifying. These pin that boundary so neither side drifts.
+    describe('generic getting-started saving stays general', function () {
+        it('classifies "how do I start saving properly?" as general', function () {
+            expect($this->classifier->classify('how do I start saving properly?')['primary'])
+                ->toBe(QuerySchemas::GENERAL);
+        });
+
+        it('classifies "how do I start saving?" as general', function () {
+            expect($this->classifier->classify('how do I start saving?')['primary'])
+                ->toBe(QuerySchemas::GENERAL);
+        });
+
+        it('does not misroute a generic "save tax" question into savings', function () {
+            $result = $this->classifier->classify('how can I save tax?');
+            expect($result['primary'])->not->toBe(QuerySchemas::SAVINGS_EMERGENCY)
+                ->and($result['primary'])->not->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('still classifies a real emergency-fund question as savings_emergency', function () {
+            expect($this->classifier->classify('is my emergency fund big enough?')['primary'])
+                ->toBe(QuerySchemas::SAVINGS_EMERGENCY);
+        });
+
+        it('still classifies a savings-rate question as savings_accounts', function () {
+            expect($this->classifier->classify('what savings rate should I be getting?')['primary'])
+                ->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
         });
     });
 });

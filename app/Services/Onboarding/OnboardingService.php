@@ -6,7 +6,6 @@ namespace App\Services\Onboarding;
 
 use App\Exceptions\FinancialCalculationException;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\Estate\Liability;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
@@ -18,6 +17,7 @@ use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\LiabilityStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
@@ -35,6 +35,7 @@ class OnboardingService
         private TaxConfigService $taxConfig,
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly MortgageStore $mortgageStore,
+        private readonly LiabilityStore $liabilityStore,
     ) {}
 
     /**
@@ -815,6 +816,8 @@ class OnboardingService
             return;
         }
 
+        $user = User::findOrFail($userId);
+
         foreach ($data['liabilities'] as $liabilityData) {
             // Skip mortgages - they should be linked to properties and created in processAssets
             if ($liabilityData['type'] === 'mortgage') {
@@ -827,8 +830,7 @@ class OnboardingService
                 : null;
 
             // Create liability record
-            Liability::create([
-                'user_id' => $userId,
+            $this->liabilityStore->create([
                 'liability_type' => $liabilityData['type'],
                 'liability_name' => $liabilityData['lender'],
                 'country' => $liabilityData['country'] ?? 'United Kingdom',
@@ -836,7 +838,7 @@ class OnboardingService
                 'monthly_payment' => $liabilityData['monthly_payment'] ?? null,
                 'interest_rate' => $interestRate,
                 'notes' => $liabilityData['purpose'] ?? null,
-            ]);
+            ], $user, IngestSource::FORM);
         }
     }
 
@@ -1051,28 +1053,22 @@ class OnboardingService
             }
         }
 
-        $user->update([
-            'onboarding_skipped_steps' => $skippedSteps,
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-        ]);
+        $user->onboarding_skipped_steps = $skippedSteps;
 
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
     }
 
     /**
-     * Complete the onboarding process
+     * Complete the onboarding process.
+     *
+     * Clears every active Fyn routing field so the server and both clients
+     * resolve the completed user to the read-only advice state.
      */
     public function completeOnboarding(int $userId): User
     {
         $user = User::findOrFail($userId);
 
-        $user->update([
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-        ]);
-
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
     }
 
     /**
@@ -1082,13 +1078,36 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        $user->update([
-            'onboarding_completed' => true,
-            'onboarding_completed_at' => Carbon::now(),
-            'onboarding_mode' => 'quick',
-        ]);
+        $user->onboarding_mode = 'quick';
 
-        return $user->fresh();
+        return $this->finaliseOnboardingState($user);
+    }
+
+    /**
+     * Complete either wizard flow and clear stale Fyn routing state atomically.
+     */
+    private function finaliseOnboardingState(User $user): User
+    {
+        return DB::transaction(function () use ($user): User {
+            $context = $user->onboarding_fyn_context;
+            if (is_array($context)) {
+                unset($context['paused_at_step']);
+            }
+
+            $user->update([
+                'onboarding_skipped_steps' => $user->onboarding_skipped_steps,
+                'onboarding_completed' => true,
+                'onboarding_completed_at' => Carbon::now(),
+                'onboarding_mode' => $user->onboarding_mode,
+                'active_campaign' => null,
+                'onboarding_fyn_path' => null,
+                'onboarding_fyn_selection' => null,
+                'onboarding_fyn_step' => null,
+                'onboarding_fyn_context' => $context,
+            ]);
+
+            return $user->fresh();
+        });
     }
 
     /**

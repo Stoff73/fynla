@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Retirement Planning UK â€” When Can I Retire? | Fynla</title>
+  <title>Retirement Planning UK — When Can I Retire? | Fynla</title>
   <meta name="description" content="Find out when you can afford to retire. Fynla consolidates your pension pots, runs Monte Carlo simulations, models drawdown strategies, and calculates your retirement income." />
   <link rel="canonical" href="https://fynla.org/stage/planning-your-future" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="Retirement Planning UK â€” When Can I Retire? | Fynla" />
+  <meta property="og:title"       content="Retirement Planning UK — When Can I Retire? | Fynla" />
   <meta property="og:description" content="Find out when you can afford to retire. Fynla consolidates your pension pots, runs Monte Carlo simulations, models drawdown strategies, and calculates your retirement income." />
   <meta property="og:image"       content="https://fynla.org/images/og/stage-planning-your-future.jpg" />
   <meta property="og:url"         content="https://fynla.org/stage/planning-your-future" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Retirement Planning UK â€” When Can I Retire? | Fynla" />
+  <meta name="twitter:title"       content="Retirement Planning UK — When Can I Retire? | Fynla" />
   <meta name="twitter:description" content="Find out when you can afford to retire. Fynla consolidates your pension pots, runs Monte Carlo simulations, models drawdown strategies, and calculates your retirement income." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/stage-planning-your-future.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Retirement Planning UK â€” When Can I Retire? â€” Planning Your Future",
+    "name": "Retirement Planning UK — When Can I Retire? — Planning Your Future",
     "url": "https://fynla.org/stage/planning-your-future",
     "description": "Find out when you can afford to retire. Fynla consolidates your pension pots, runs Monte Carlo simulations, models drawdown strategies, and calculates your retirement income.",
     "publisher": { "@type": "Organization", "name": "Fynla", "url": "https://fynla.org" }
@@ -120,7 +120,7 @@
       </div>
     </section>
 
-    <!-- WHAT FYNLA SHOWS YOU â€” 5 cards -->
+    <!-- WHAT FYNLA SHOWS YOU — 5 cards -->
     <section id="fynla-shows" class="stage-features" aria-labelledby="features-heading">
       <div class="stage-features__inner">
         <h2 id="features-heading" class="stage-features__heading">What Fynla shows you at this stage</h2>
@@ -170,7 +170,7 @@
       </div>
     </section>
 
-    <!-- RELEVANT FEATURES â€” 4 cards -->
+    <!-- RELEVANT FEATURES — 4 cards -->
     <section id="relevant-features" class="stage-relevant" aria-labelledby="relevant-heading">
       <div class="stage-relevant__inner">
         <h2 id="relevant-heading" class="stage-relevant__heading">Features that may be relevant to you</h2>

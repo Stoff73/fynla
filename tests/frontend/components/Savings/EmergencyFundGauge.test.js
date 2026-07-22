@@ -42,9 +42,8 @@ describe('EmergencyFundGauge', () => {
       },
     });
 
-    const color = wrapper.vm.runwayColor;
-    // Green color hex variations
-    expect(color).toMatch(/#10b981|#22c55e|#16a34a/i);
+    expect(wrapper.vm.runwayColour).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(wrapper.vm.chartOptions.fill.colours).toEqual([wrapper.vm.runwayColour]);
   });
 
   it('uses orange color for moderate runway (3-6 months)', () => {
@@ -54,9 +53,10 @@ describe('EmergencyFundGauge', () => {
       },
     });
 
-    const color = wrapper.vm.runwayColor;
-    // Orange/yellow color hex variations
-    expect(color).toMatch(/#f97316|#ea580c|#fb923c/i);
+    expect(wrapper.vm.runwayColour).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(wrapper.vm.runwayColour).not.toBe(mount(EmergencyFundGauge, {
+      props: { runwayMonths: 6 },
+    }).vm.runwayColour);
   });
 
   it('uses red color for critical runway (<3 months)', () => {
@@ -66,9 +66,10 @@ describe('EmergencyFundGauge', () => {
       },
     });
 
-    const color = wrapper.vm.runwayColor;
-    // Red color hex variations
-    expect(color).toMatch(/#ef4444|#dc2626|#f87171/i);
+    expect(wrapper.vm.runwayColour).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(wrapper.vm.runwayColour).not.toBe(mount(EmergencyFundGauge, {
+      props: { runwayMonths: 3 },
+    }).vm.runwayColour);
   });
 
   it('handles edge case runway of 0', () => {
@@ -79,8 +80,9 @@ describe('EmergencyFundGauge', () => {
     });
 
     expect(wrapper.vm.runwayMonths).toBe(0);
-    const color = wrapper.vm.runwayColor;
-    expect(color).toMatch(/#ef4444|#dc2626/i); // Should be red
+    expect(wrapper.vm.runwayColour).toBe(mount(EmergencyFundGauge, {
+      props: { runwayMonths: 2 },
+    }).vm.runwayColour);
   });
 
   it('handles exactly 6 months (target)', () => {
@@ -91,9 +93,9 @@ describe('EmergencyFundGauge', () => {
     });
 
     expect(wrapper.vm.runwayMonths).toBe(6);
-    const color = wrapper.vm.runwayColor;
-    // At exactly 6 months, should be green (meeting target)
-    expect(color).toMatch(/#10b981|#22c55e|#16a34a/i);
+    expect(wrapper.vm.runwayColour).toBe(mount(EmergencyFundGauge, {
+      props: { runwayMonths: 8 },
+    }).vm.runwayColour);
   });
 
   it('handles exactly 3 months (boundary)', () => {
@@ -104,9 +106,9 @@ describe('EmergencyFundGauge', () => {
     });
 
     expect(wrapper.vm.runwayMonths).toBe(3);
-    const color = wrapper.vm.runwayColor;
-    // At exactly 3 months, should be orange
-    expect(color).toMatch(/#f97316|#ea580c|#fb923c/i);
+    expect(wrapper.vm.runwayColour).toBe(mount(EmergencyFundGauge, {
+      props: { runwayMonths: 4.5 },
+    }).vm.runwayColour);
   });
 
   it('displays label text for emergency fund', () => {
@@ -127,8 +129,7 @@ describe('EmergencyFundGauge', () => {
       },
     });
 
-    const html = wrapper.html();
-    expect(html).toMatch(/month/i);
+    expect(wrapper.vm.chartOptions.labels).toContain('Months Runway');
   });
 
   it('calculates gauge percentage correctly', () => {
@@ -162,9 +163,8 @@ describe('EmergencyFundGauge', () => {
       },
     });
 
-    // 12 months is 200% of target, but gauge might cap
+    // The radial gauge caps values above the six-month target.
     const percentage = wrapper.vm.runwayPercentage;
-    // Should be 200% or capped, depends on implementation
-    expect(percentage).toBeGreaterThan(100);
+    expect(percentage).toBe(100);
   });
 });

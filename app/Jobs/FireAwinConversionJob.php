@@ -51,7 +51,7 @@ class FireAwinConversionJob implements ShouldQueue
             return;
         }
 
-        $payment = Payment::with('discountCode')->find($this->paymentId);
+        $payment = Payment::find($this->paymentId);
 
         if (! $payment) {
             $this->logWarning('[awin] job: payment not found', [
@@ -82,10 +82,37 @@ class FireAwinConversionJob implements ShouldQueue
             return;
         }
 
+        $claimedAt = now();
+        $claimed = Payment::query()
+            ->whereKey($payment->id)
+            ->where('status', 'completed')
+            ->whereNull('awin_fired_at')
+            ->where(function ($query): void {
+                $query->whereNull('awin_claimed_at')
+                    ->orWhere('awin_claimed_at', '<=', now()->subMinutes(15));
+            })
+            ->update(['awin_claimed_at' => $claimedAt]);
+
+        if ($claimed === 0) {
+            $this->logInfo('[awin] job: another worker owns delivery, skipping', [
+                'payment_id' => $payment->id,
+            ]);
+
+            return;
+        }
+
+        $payment = Payment::with('discountCode')->findOrFail($payment->id);
+
         $params = $awin->buildSaleParams($payment);
         $ok = $awin->fireServerToServer($params);
 
         if (! $ok) {
+            Payment::query()
+                ->whereKey($payment->id)
+                ->where('awin_claimed_at', $claimedAt)
+                ->whereNull('awin_fired_at')
+                ->update(['awin_claimed_at' => null]);
+
             // Throw so the queue driver applies the backoff schedule.
             // The exception message is swallowed by the logger in the service,
             // so we only need a marker here.
@@ -94,7 +121,14 @@ class FireAwinConversionJob implements ShouldQueue
             );
         }
 
-        $payment->forceFill(['awin_fired_at' => now()])->save();
+        Payment::query()
+            ->whereKey($payment->id)
+            ->where('awin_claimed_at', $claimedAt)
+            ->whereNull('awin_fired_at')
+            ->update([
+                'awin_claimed_at' => null,
+                'awin_fired_at' => now(),
+            ]);
 
         $this->logInfo('[awin] job: fired and marked', [
             'payment_id' => $payment->id,

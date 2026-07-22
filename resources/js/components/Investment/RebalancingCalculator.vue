@@ -93,8 +93,8 @@
               v-model.number="taxRate"
               class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
-              <option :value="0.10">10% (Basic Rate)</option>
-              <option :value="0.20">20% (Higher Rate)</option>
+              <option :value="cgtBasicRate">18% (Basic Rate)</option>
+              <option :value="cgtHigherRate">24% (Higher Rate)</option>
             </select>
           </div>
 
@@ -224,6 +224,7 @@ import rebalancingService from '@/services/rebalancingService';
 import AllocationComparison from './AllocationComparison.vue';
 import RebalancingActions from './RebalancingActions.vue';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { CGT_BASIC_RATE, CGT_HIGHER_RATE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -242,7 +243,9 @@ export default {
       minTradeSize: 100,
       optimiseForCGT: true,
       cgtAllowance: null,
-      taxRate: 0.20,
+      cgtBasicRate: CGT_BASIC_RATE,
+      cgtHigherRate: CGT_HIGHER_RATE,
+      taxRate: CGT_HIGHER_RATE,
       lossCarryforward: 0,
       loading: false,
       error: null,

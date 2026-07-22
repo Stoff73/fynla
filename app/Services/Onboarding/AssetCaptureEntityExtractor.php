@@ -82,7 +82,19 @@ final class AssetCaptureEntityExtractor
      */
     public function extractForFocus(string $focus, string $message): array
     {
-        return match ($focus) {
+        // WP-1 — intent-only guard. "Help me add my pension details" (the
+        // Edit-details / next-action opener strings, and any hand-typed
+        // equivalent) names an entity TYPE but no facts about it. The type
+        // detectors below fire on the bare type word, so the gap-fill used
+        // to materialise a placeholder record ("Personal Pension", £0) from
+        // pure intent — the 2026-07-03 phantom-pension incident. An add/
+        // update request that carries no figure is a request for a capture
+        // conversation, not a capture.
+        if ($this->isIntentOnlyRequest($message)) {
+            return [];
+        }
+
+        $entities = match ($focus) {
             'protection' => $this->extractProtectionPolicies($message),
             'savings', 'budgeting' => $this->extractSavingsAccounts($message),
             'retirement' => $this->extractPensions($message),
@@ -93,6 +105,31 @@ final class AssetCaptureEntityExtractor
             'liability' => $this->extractLiabilities($message),
             default => [],
         };
+
+        return $this->attachOwnership($focus, $entities, $message);
+    }
+
+    /**
+     * True when the message is an add/update REQUEST carrying no substance:
+     * it opens with an intent verb phrase and contains no digits and no
+     * currency amount. "Help me add my pension details" → true;
+     * "add my Halifax ISA with £5,000" → false (has a figure);
+     * "I have a workplace pension with Aviva" → false (no intent opener).
+     */
+    private function isIntentOnlyRequest(string $message): bool
+    {
+        $trimmed = trim($message);
+
+        $opensWithIntent = preg_match(
+            '/^(please\s+)?(help me|can you|could you|i(\'|’)?d like to|i want to|let(\'|’)?s)\s+(add|update|record|enter|set up|put in)\b/iu',
+            $trimmed
+        ) === 1 || preg_match('/^(add|update)\s+my\b/iu', $trimmed) === 1;
+
+        if (! $opensWithIntent) {
+            return false;
+        }
+
+        return preg_match('/[£\d]/u', $trimmed) !== 1;
     }
 
     /**
@@ -139,6 +176,119 @@ final class AssetCaptureEntityExtractor
         }
 
         return $missing;
+    }
+
+    /**
+     * Attach a deterministically-parsed ownership_type to entities headed
+     * for an ownership-gated create tool (CaptureAccuracyGate::OWNERSHIP_TOOLS
+     * — savings, investment, property, liability). The LLM repeatedly
+     * pattern-locks on its own prior failing tool call and keeps omitting
+     * ownership_type even after the user states it explicitly (live
+     * conversation 164, four consecutive turns) — this is the deterministic
+     * backstop. Conservative regex only, scanning the WHOLE message (not the
+     * per-entity chunk): the user's ownership answer often lands in a
+     * different sentence/turn than the entity's facts, e.g. the merged
+     * interruption-retry message "Original capture details: ...\nRequested
+     * missing details: Yes, it's owned individually by me". We never
+     * default ownership — an entity with no matching phrase is returned
+     * unchanged, mirroring CaptureAccuracyGate's own "never assume
+     * ownership" contract (joint ISAs are illegal under UK law, so
+     * ownership must always be an explicit user statement).
+     *
+     * @param  list<array<string, mixed>>  $entities
+     * @return list<array<string, mixed>>
+     */
+    private function attachOwnership(string $focus, array $entities, string $message): array
+    {
+        if ($entities === [] || ! in_array($focus, ['savings', 'budgeting', 'investment', 'property', 'liability'], true)) {
+            return $entities;
+        }
+
+        $ownership = $this->extractOwnershipType($message);
+        if ($ownership === null) {
+            return $entities;
+        }
+
+        return array_map(static function (array $entity) use ($ownership): array {
+            $entity['ownership_type'] ??= $ownership;
+
+            return $entity;
+        }, $entities);
+    }
+
+    /**
+     * Conservative ownership-phrase detector. Individual phrases are
+     * checked before joint ones; only the canonical two-way household
+     * ownership split (individual / joint) is ever inferred — tenants in
+     * common and trust ownership always require the user to be asked
+     * explicitly downstream, never guessed here.
+     */
+    private function extractOwnershipType(string $message): ?string
+    {
+        $lower = mb_strtolower($message);
+
+        foreach ([
+            '/\b(?:owned\s+)?individually\b/u',
+            '/\b(?:just|only)\s+(?:me|mine)\b/u',
+            '/\bindividual\s+ownership\b/u',
+            '/\bon\s+my\s+own\b/u',
+            '/\bsolely\s+(?:mine|owned)\b/u',
+        ] as $pattern) {
+            if (preg_match($pattern, $lower) === 1) {
+                return 'individual';
+            }
+        }
+
+        foreach ([
+            '/\bjoint(?:ly)?\b/u',
+            '/\bwith\s+my\s+(?:wife|husband|partner|spouse)\b/u',
+            '/\bboth\s+of\s+us\b/u',
+        ] as $pattern) {
+            if (preg_match($pattern, $lower) === 1) {
+                return 'joint';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Merge extractor-parsed entities with the LLM's own gate-blocked
+     * tool-call arguments for the same focus (OnboardingChatDirector
+     * collects these from `capture_write_result` events whose result was
+     * clarification_required — see handleInlineCapture). The LLM's own
+     * arguments are the BASE — its institution/balance/account_type parsing
+     * already reached the gate unmodified and is generally more reliable
+     * than this extractor's regexes — the extractor only fills keys the
+     * LLM's call left unset, chiefly ownership_type now that this extractor
+     * is the deterministic ownership parser. A key already present in the
+     * LLM's input (even if it later proves wrong) is never overwritten by
+     * the extractor. Matched by identity key (see identityKey()); an
+     * extracted entity with no matching LLM input is returned unchanged.
+     *
+     * @param  list<array<string, mixed>>  $extracted
+     * @param  list<array<string, mixed>>  $llmInputs  raw tool-call arguments from gate-blocked LLM attempts this turn
+     * @return list<array<string, mixed>>
+     */
+    public function mergeWithLlmInput(string $focus, array $extracted, array $llmInputs): array
+    {
+        if ($llmInputs === []) {
+            return $extracted;
+        }
+
+        $llmByKey = [];
+        foreach ($llmInputs as $llmInput) {
+            $key = $this->identityKey($focus, $llmInput, true);
+            if ($key !== '') {
+                $llmByKey[$key] = $llmInput;
+            }
+        }
+
+        return array_map(function (array $entity) use ($focus, $llmByKey): array {
+            $key = $this->identityKey($focus, $entity, false);
+
+            return isset($llmByKey[$key]) ? ($llmByKey[$key] + $entity) : $entity;
+        }, $extracted);
     }
 
     /**
@@ -513,12 +663,28 @@ final class AssetCaptureEntityExtractor
         }
 
         $isIsa = preg_match('/\bisa\b|individual[\s-]savings[\s-]account/u', $lower) === 1;
+        if ($isIsa) {
+            $isCashIsa = preg_match('/\bcash[\s-]isa\b/u', $lower) === 1;
+            $isInvestmentIsa = preg_match('/\b(?:stocks?[\s&and-]+shares?|lifetime|lisa|innovative[\s-]finance)[\s-]isa\b/u', $lower) === 1;
 
+            // A bare ISA has no safe product type, while investment ISAs
+            // belong to extractInvestmentAccounts(). Never turn either into
+            // a Cash ISA merely to satisfy a create tool schema.
+            if (! $isCashIsa || $isInvestmentIsa) {
+                return null;
+            }
+        }
+
+        // Only classify as a savings product on an explicit savings signal; a
+        // bare provider + balance ("Barclays, £5,000") is a current/bank account
+        // by default (CSJ: don't assume savings unless the user stipulates it).
         $accountType = match (true) {
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b|\b\d+[\s-]year\s+bond\b/u', $lower) === 1 => 'fixed_term',
             preg_match('/\bnotice[\s-]account\b|\b\d+[\s-]day\s+notice\b/u', $lower) === 1 => 'notice',
             preg_match('/\bregular[\s-]saver\b|\bmonthly[\s-]saver\b/u', $lower) === 1 => 'regular_saver',
-            default => 'easy_access',
+            $isIsa => 'cash_isa',
+            $hasSavingsSignal => 'easy_access',
+            default => 'current_account',
         };
 
         $accountName = $this->composeSavingsName($provider, $lower, $isIsa);
@@ -541,6 +707,7 @@ final class AssetCaptureEntityExtractor
     private function composeSavingsName(?string $provider, string $lowerChunk, bool $isIsa): string
     {
         $suffix = match (true) {
+            $isIsa && preg_match('/stocks?[\s&and-]+shares?|\bs&s\b/u', $lowerChunk) === 1 => 'Stocks & Shares Individual Savings Account',
             $isIsa => 'Cash Individual Savings Account',
             preg_match('/\beasy[\s-]access\b/u', $lowerChunk) === 1 => 'Easy Access Saver',
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b/u', $lowerChunk) === 1 => 'Fixed Term Bond',

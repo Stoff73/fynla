@@ -90,8 +90,8 @@ class InvestmentAccountResource extends JsonResource
 
             // Relationships
             'holdings' => HoldingResource::collection($this->whenLoaded('holdings')),
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
 
             // Links
             'links' => [

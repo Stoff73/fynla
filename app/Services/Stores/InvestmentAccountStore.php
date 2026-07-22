@@ -11,9 +11,11 @@ use App\Events\Investment\InvestmentAccountRestored;
 use App\Events\Investment\InvestmentAccountUpdated;
 use App\Models\AuditLog;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -25,7 +27,7 @@ use Illuminate\Support\Facades\Validator;
  * Joint-ownership semantics: forUser returns user_id = ? OR joint_owner_id = ?
  * (joint-aware). For primary-only reads, use forUserPrimaryOnly.
  *
- * Tier-cap key: 'investment' (free=2 by default, tier1+=null).
+ * Tier-cap key: 'investment' (Free=2 by default, Premium=null).
  */
 class InvestmentAccountStore
 {
@@ -33,6 +35,7 @@ class InvestmentAccountStore
 
     public function __construct(
         private readonly TierGate $tierGate,
+        private readonly SnapshotPolicies $snapshotPolicies,
     ) {}
 
     // ─── READ METHODS ──────────────────────────────────────────────────────
@@ -90,8 +93,11 @@ class InvestmentAccountStore
 
         $account = AuditLog::withContext(
             ['ingest_source' => $source->value],
-            fn () => DB::transaction(function () use ($canonical) {
-                return InvestmentAccount::create($canonical);
+            fn () => DB::transaction(function () use ($canonical, $source) {
+                $account = InvestmentAccount::create($canonical);
+                $this->writeValueSnapshot($account, null, $source, 'create');
+
+                return $account;
             })
         );
 
@@ -110,13 +116,17 @@ class InvestmentAccountStore
 
         $result = AuditLog::withContext(
             ['ingest_source' => $source->value],
-            fn () => DB::transaction(function () use ($account, $canonical) {
+            fn () => DB::transaction(function () use ($account, $canonical, $source) {
+                $oldValue = $account->current_value === null ? null : (float) $account->current_value;
                 $account->fill($canonical);
                 $changes = [];
                 foreach ($account->getDirty() as $field => $newValue) {
                     $changes[$field] = [$account->getOriginal($field), $newValue];
                 }
                 $account->save();
+                if (array_key_exists('current_value', $changes)) {
+                    $this->writeValueSnapshot($account, $oldValue, $source, 'update');
+                }
 
                 return ['fresh' => $account->fresh(), 'changes' => $changes];
             })
@@ -198,6 +208,30 @@ class InvestmentAccountStore
                 $this->tierGate->hardLimit($user, self::ENTITY_KEY)
             );
         }
+    }
+
+    private function writeValueSnapshot(
+        InvestmentAccount $account,
+        ?float $oldValue,
+        IngestSource $source,
+        string $reason,
+    ): void {
+        $newValue = $account->current_value === null ? null : (float) $account->current_value;
+        if ($newValue === null
+            || ! $this->snapshotPolicies->investmentAccountValue()->shouldSnapshot($oldValue, $newValue)) {
+            return;
+        }
+
+        InvestmentAccountValueSnapshot::query()->create([
+            'investment_account_id' => $account->id,
+            'column_name' => 'current_value_gbp',
+            'value' => $newValue,
+            'currency' => 'GBP',
+            'value_gbp' => $newValue,
+            'taken_at' => now(),
+            'trigger_reason' => $reason,
+            'ingest_source' => $source->value,
+        ]);
     }
 
     // ─── VALIDATION ────────────────────────────────────────────────────────

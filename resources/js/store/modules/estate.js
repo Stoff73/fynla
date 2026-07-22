@@ -250,7 +250,7 @@ const actions = {
         try {
             const response = await estateService.getEstateData();
 
-            // SP2 PR7: branch on mode — teaser (Free/Tier1) vs full (Tier2/Tier3).
+            // SP2 PR7: branch on mode — teaser (Free) vs full (Premium).
             // The server is the authoritative gate; the Vue view also branches for
             // defence-in-depth (spec §10.2).
             const responseMode = response.mode || (response.success ? 'full' : null);

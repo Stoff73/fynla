@@ -1,10 +1,24 @@
-# Task Plan — seeded 2026-05-19; SP3 done 2026-05-22 sess 1; SP1 Pass 2 active 2026-05-22 sess 2; R1 track shipped 2026-05-22 sess 3
+# Task Plan — Native Swift programme
 
-> Authoritative SP3 plan: `docs/superpowers/plans/2026-05-19-sub-project-3-mobile-iframe-scaffold.md` (DONE, merged via PR #342 on 2026-05-22).
-> Authoritative SP1 Pass 2 plan: `docs/superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md` (active).
+> Authoritative programme plan: `codex/plans/programme/2026-07-14-native-ios-swift-migration-programme.md`.
+> Current continuation handover: `July/July18Updates/handover-2026-07-18-session-1-clear.md`.
+> Historical SP3 and SP1 Pass 2 state is retained below for traceability, not as the current work queue.
+> PR boundary: Packages 4, 5, 6 and 7 each require their own isolated branch and separate PR; Package 6 waves remain checkpoints inside the Package 6 PR.
 
 ## Current phase
-SP1 Pass 2 (reference-data canonical stores) — R4 / R3 / R2 / R1 all SHIPPED. R1.0 audit (browser-blocked) + R1.5 (depends on R1.0) + final review + finishing-a-development-branch remain. **22 of 26 PRs done.**
+Native Swift programme, Package 3 handoff into Packages 4–7. Package 3's automated authentication/Face ID gate is green in draft PR #633 at implementation/evidence head `d5d34d3`; the session-end documentation commit follows it. Physical-iPhone and current actual-Google-Chrome `/m` evidence remain open. The user has directed the next inference to continue through Packages 4–7 without touching production or the primary Save Tax checkout.
+
+## Phases — Native Swift programme (active)
+- [x] Package 1 — economic contract and API readiness landed on `dev`
+- [x] Package 2 — native SwiftUI foundation and clean-runner gate
+- [x] Package 3 Tasks 1–8 — registration/authentication, native sessions, Keychain and Face ID
+- [x] Package 3 Task 9 automated gate — backend, Swift host, iPhone 11 clean Xcode 26.5 unit/UI and Production-scheme build
+- [ ] Package 3 manual gate — actual Google Chrome `/m`, physical iPhone Face ID/registration/relock, Keychain and diagnostic evidence
+- [ ] Package 3 approval/merge — draft PR #633; green implementation/evidence head `d5d34d3`, followed by session-end docs
+- [ ] Package 4 — StoreKit and provider-neutral entitlements (11 tasks)
+- [ ] Package 5 — dashboard, navigation, gamification and Fyn (10 tasks)
+- [ ] Package 6 — five financial waves (17 tasks)
+- [ ] Package 7 — settings, privacy, push, universal links and platform/release completion (12 tasks; production/App Store action deferred)
 
 ## Phases — SP3 (DONE)
 - [x] Brainstorm → spec → implementation plan (committed)
@@ -19,7 +33,7 @@ SP1 Pass 2 (reference-data canonical stores) — R4 / R3 / R2 / R1 all SHIPPED. 
 - [x] Task 8b — residual `/m/*` nav cleanup (reviews completed 2026-05-22 session 1)
 - [x] Task 9 — Playwright E2E + `resources/mobile/README.md` + spec §5.3 cookie→Bearer fix + PR `iFrames`→`dev` (merged via PR #342 with mid-merge follow-ups in #343–#345)
 
-## Phases — SP1 Pass 2 (active, 22 of 26 PRs done)
+## Historical — SP1 Pass 2 snapshot (2026-05-22)
 - [x] PR 0 — shared `ReferenceDataStore` base + `ReferenceDataUpdated` event (#346)
 - [x] Plan doc (#347)
 - [x] R4 × 5 — SavingsMarketRate (#348–#352)

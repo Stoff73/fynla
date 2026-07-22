@@ -13,6 +13,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,9 +23,37 @@ class UserProfileController extends Controller
 {
     use SanitizedErrorResponse;
 
+    private const DETAILED_EXPENDITURE_FIELDS = [
+        'use_simple_entry',
+        'use_separate_expenditure',
+        'food_groceries',
+        'transport_fuel',
+        'healthcare_medical',
+        'insurance',
+        'mobile_phones',
+        'internet_tv',
+        'subscriptions',
+        'clothing_personal_care',
+        'entertainment_dining',
+        'holidays_travel',
+        'pets',
+        'childcare',
+        'school_fees',
+        'school_lunches',
+        'school_extras',
+        'university_fees',
+        'children_activities',
+        'gifts_charity',
+        'regular_savings',
+        'other_expenditure',
+        'retired_budget_overrides',
+        'widowed_budget_overrides',
+    ];
+
     public function __construct(
         private readonly UserProfileService $userProfileService,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly TeaserGate $teaserGate,
     ) {}
 
     /**
@@ -37,6 +66,9 @@ class UserProfileController extends Controller
         $user = $request->user();
 
         $profile = $this->userProfileService->getCompleteProfile($user);
+        if (! $this->canUseDetailedExpenditure($user)) {
+            unset($profile['expenditure']['categories']);
+        }
 
         return response()->json([
             'success' => true,
@@ -67,6 +99,13 @@ class UserProfileController extends Controller
                 'user' => $updatedUser,
             ],
         ]);
+    }
+
+    private function canUseDetailedExpenditure(User $user): bool
+    {
+        return $user->is_admin
+            || $user->is_preview_user
+            || $this->teaserGate->isFull($user, 'expenditure_detailed');
     }
 
     /**
@@ -100,6 +139,11 @@ class UserProfileController extends Controller
     public function updateExpenditure(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        if (! $this->canUseDetailedExpenditure($user)
+            && array_intersect(array_keys($request->all()), self::DETAILED_EXPENDITURE_FIELDS) !== []) {
+            return $this->detailedExpenditureDenial();
+        }
 
         $validated = $request->validate([
             'monthly_expenditure' => 'nullable|numeric|min:0',
@@ -324,6 +368,11 @@ class UserProfileController extends Controller
     {
         $currentUser = $request->user();
 
+        if (! $this->canUseDetailedExpenditure($currentUser)
+            && array_intersect(array_keys($request->all()), self::DETAILED_EXPENDITURE_FIELDS) !== []) {
+            return $this->detailedExpenditureDenial();
+        }
+
         // Only allow updating spouse's expenditure
         if ($currentUser->spouse_id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
@@ -409,5 +458,15 @@ class UserProfileController extends Controller
                 'user' => new UserResource($spouse->fresh()),
             ],
         ]);
+    }
+
+    private function detailedExpenditureDenial(): JsonResponse
+    {
+        return response()->json([
+            'error' => 'capability_denied',
+            'capability' => 'expenditure_detailed',
+            'required_tier' => 'premium',
+            'message' => 'Detailed expenditure is part of Premium.',
+        ], 403);
     }
 }

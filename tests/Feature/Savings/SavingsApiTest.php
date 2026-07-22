@@ -170,16 +170,16 @@ describe('Savings API', function () {
         });
 
         it('returns 403 with structured payload when a free-tier user exceeds the savings cap', function () {
-            // Default factory creates tier1 (unlimited); recreate as free-tier for this cap test.
+            // Create an explicit Free user for this cap test.
             $freeUser = User::factory()->create(['tier' => 'free']);
             Sanctum::actingAs($freeUser);
 
-            // Free-tier savings_account cap is 3 per TierConfigurationSeeder; create 3 then attempt a 4th.
-            SavingsAccount::factory(3)->create(['user_id' => $freeUser->id]);
+            // Free-tier savings_account cap is 2 per TierConfigurationSeeder; create 2 then attempt a third.
+            SavingsAccount::factory(2)->create(['user_id' => $freeUser->id]);
 
             $response = $this->postJson('/api/savings/accounts', [
                 'account_type' => 'easy_access',
-                'institution' => 'Fourth Bank',
+                'institution' => 'Third Bank',
                 'current_balance' => 1000,
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100,
@@ -191,11 +191,11 @@ describe('Savings API', function () {
                     'success' => false,
                     'error' => [
                         'entity_key' => 'savings_account',
-                        'hard_limit' => 3,
+                        'hard_limit' => 2,
                     ],
                 ]);
 
-            expect(SavingsAccount::where('user_id', $freeUser->id)->count())->toBe(3);
+            expect(SavingsAccount::where('user_id', $freeUser->id)->count())->toBe(2);
         });
     });
 

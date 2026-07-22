@@ -88,7 +88,7 @@
                 </div>
                 <div class="tax-rate-item">
                   <p class="rate-label">Income Tax (Interest in Possession)</p>
-                  <p class="rate-value">20% other income, 8.75% dividends</p>
+                  <p class="rate-value">20% other income, 10.75% dividends</p>
                 </div>
                 <div class="tax-rate-item">
                   <p class="rate-label">Capital Gains Tax</p>
@@ -261,7 +261,7 @@ export default {
           type: 'interest_in_possession',
           name: 'Interest in Possession',
           description: 'Life tenant receives all income, capital passes to remaindermen.',
-          incomeTax: '20% / 8.75% (dividends)',
+          incomeTax: '20% / 10.75% (dividends)',
           iht: 'May be in life tenant\'s estate',
           isRPT: false,
         },

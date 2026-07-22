@@ -3,6 +3,7 @@ import store from '@/store';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
 import { capabilityForRoute, isRouteGated } from '@/constants/tierAccess';
+import { getTokenSync } from '@/services/tokenStorage';
 import { hasConsent } from '@/utils/cookieConsent';
 import { shouldLoadAwin, loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag } from '@/utils/awinTracking';
 
@@ -115,6 +116,7 @@ const BusinessInterestsList = () => import('@/components/NetWorth/BusinessIntere
 const ChattelsList = () => import('@/components/NetWorth/ChattelsList.vue');
 const LiabilitiesList = () => import('@/components/NetWorth/LiabilitiesList.vue');
 const JointAccountHistory = () => import('@/components/NetWorth/JointAccountHistory.vue');
+const BalanceHistory = () => import('@/views/NetWorth/BalanceHistory.vue');
 const ProtectionDashboard = () => import('@/views/Protection/ProtectionDashboard.vue');
 const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
@@ -130,6 +132,11 @@ const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
+const AiCostDashboard = () => import('@/views/Admin/AiCostDashboard.vue');
+const EpisodicComplianceLog = () => import('@/views/Admin/EpisodicComplianceLog.vue');
+const ProceduralCorpusViewer = () => import('@/views/Admin/ProceduralCorpusViewer.vue');
+const ProposedSemanticFactsViewer = () => import('@/views/Admin/ProposedSemanticFactsViewer.vue');
+const ProposedProcedureAmendmentsViewer = () => import('@/views/Admin/ProposedProcedureAmendmentsViewer.vue');
 const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
@@ -144,7 +151,7 @@ const ValuableInfo = () => import('@/views/ValuableInfo.vue');
  *
  * Will Builder and Power of Attorney are Estate-module routes — there is no
  * separate will/POA capability key in the SP2 matrix, so they fall under
- * "Estate planning" (teaser for Free/Tier1). Teaser-tier users are redirected
+ * "Estate planning" (teaser for Free). Teaser-mode users are redirected
  * to the canonical Estate teaser (upgrade CTA) rather than the creation
  * wizard. The estate store `mode` is sourced from /api/estate via the same
  * canonical TeaserGate the backend enforces — NOT the legacy plan map, which
@@ -157,7 +164,7 @@ async function requireFullEstateAccess(to, from, next) {
     try {
       await store.dispatch('estate/fetchEstateData');
       mode = store.getters['estate/mode'];
-    } catch (e) {
+    } catch {
       // Transient fetch failure — let the view/backend handle it (backend
       // remains the authoritative 403 gate).
     }
@@ -777,6 +784,11 @@ const routes = [
         name: 'JointAccountHistory',
         component: JointAccountHistory,
       },
+      {
+        path: 'history',
+        name: 'BalanceHistory',
+        component: BalanceHistory,
+      },
     ],
   },
   {
@@ -857,6 +869,16 @@ const routes = [
   {
     path: '/investment',
     redirect: '/net-worth/investments',
+  },
+  {
+    // The pensioncheck onboarding terminal (and any Fyn navigation) targets the
+    // surface-agnostic '/retirement' route the /m app defines natively. The web
+    // SPA houses the retirement module under /net-worth/retirement, so without
+    // this redirect $router.push('/retirement') fell through to the NotFound
+    // catch-all and the terminal "Take me to my retirement plan" button went
+    // nowhere. Mirrors the '/investment' → '/net-worth/investments' redirect.
+    path: '/retirement',
+    redirect: '/net-worth/retirement',
   },
   {
     path: '/risk-profile',
@@ -1192,6 +1214,76 @@ const routes = [
     },
   },
   {
+    path: '/admin/ai-cost',
+    name: 'AiCostDashboard',
+    component: AiCostDashboard,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'AI cost', path: '/admin/ai-cost' },
+      ],
+    },
+  },
+  {
+    path: '/admin/episodic-compliance',
+    name: 'EpisodicComplianceLog',
+    component: EpisodicComplianceLog,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Episodic compliance', path: '/admin/episodic-compliance' },
+      ],
+    },
+  },
+  {
+    path: '/admin/procedural-corpus',
+    name: 'ProceduralCorpusViewer',
+    component: ProceduralCorpusViewer,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Procedural memory', path: '/admin/procedural-corpus' },
+      ],
+    },
+  },
+  {
+    path: '/admin/proposed-facts',
+    name: 'ProposedSemanticFactsViewer',
+    component: ProposedSemanticFactsViewer,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Proposed facts', path: '/admin/proposed-facts' },
+      ],
+    },
+  },
+  {
+    path: '/admin/proposed-amendments',
+    name: 'ProposedProcedureAmendmentsViewer',
+    component: ProposedProcedureAmendmentsViewer,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Proposed amendments', path: '/admin/proposed-amendments' },
+      ],
+    },
+  },
+  {
     path: '/admin/insights',
     name: 'AdminInsights',
     component: InsightsArticleListPage,
@@ -1375,6 +1467,11 @@ const routes = [
         name: 'PreviewNetWorthLiabilities',
         component: LiabilitiesList,
       },
+      {
+        path: 'history',
+        name: 'PreviewBalanceHistory',
+        component: BalanceHistory,
+      },
     ],
   },
   {
@@ -1452,8 +1549,59 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
+  // Mobile-view handoff: the /m mobile view hosts the responsive funnel in a
+  // same-origin iframe. Once the user is authenticated and lands on an app
+  // (requiresAuth) route, swap the whole frame to the isolated mobile SPA
+  // (/m/app) instead of showing the desktop SPA inside the frame. Only the
+  // mobile view ever frames this app, so desktop is unaffected. `self !== top`
+  // is the cross-origin-safe "am I framed?" check (window.frameElement throws
+  // on a cross-origin parent; this never does).
+  let inMobileFrame = false;
+  try { inMobileFrame = window.self !== window.top; } catch { inMobileFrame = true; }
+  if (inMobileFrame
+      && store.getters['auth/isAuthenticated']
+      && to.matched.some(r => r.meta.requiresAuth)) {
+    // Bridge auth across the two same-origin SPAs: the desktop app keeps its
+    // Sanctum bearer token in sessionStorage('auth_token'); the isolated mobile
+    // SPA reads localStorage('m_scaffold_token'). Copy it so /m/app lands
+    // authenticated instead of bouncing to the mobile login. localStorage is
+    // shared same-origin; both are the same Sanctum bearer token.
+    const token = getTokenSync();
+    if (token) {
+      try { localStorage.setItem('m_scaffold_token', token); } catch { /* private mode */ }
+    }
+    const mobileQuery = new URLSearchParams();
+    if (typeof to.query.from === 'string' && to.query.from) {
+      mobileQuery.set('from', to.query.from);
+    }
+    const mobileUrl = routerBase + 'm/app' + (mobileQuery.size ? `?${mobileQuery.toString()}` : '');
+    window.__fynlaMobileHandoffPending = true;
+    window.location.replace(mobileUrl);
+    return next(false); // cancel the in-frame SPA nav; the frame is reloading into /m/app
+  }
+
+  // ── Server-rendered marketing pages ──────────────────────────────────────
+  // The marketing site is served as static PHP pages (public/pages/*.php), but
+  // the SPA still carries Vue routes for some of them (e.g. '/' -> LandingPage).
+  // A client-side nav from a SPA page (e.g. /insights) would render the STALE
+  // Vue component instead of the live PHP page. Force a full document load so
+  // the server serves the current page. /insights* is genuinely SPA (excluded).
+  // Only intercept real in-app navigations, never the initial boot.
+  const isServerRenderedPage = (path) => {
+    if (path === '/insights' || path.startsWith('/insights/')) return false;
+    const exact = ['/', '/how-it-works', '/features', '/pricing', '/about',
+      '/advisors', '/security', '/faq', '/contact', '/help', '/calculators',
+      '/learn'];
+    if (exact.includes(path)) return true;
+    return ['/why-fynla/', '/stage/', '/compare/', '/features/', '/learn/']
+      .some((p) => path.startsWith(p));
+  };
+  if (from.name != null && to.path !== from.path && isServerRenderedPage(to.path)) {
+    window.location.assign(routerBase.replace(/\/$/, '') + to.fullPath);
+    return next(false); // cancel SPA nav; the browser is loading the PHP page
+  }
+
   const isAuthenticated = store.getters['auth/isAuthenticated'];
-  const isAdmin = store.getters['auth/isAdmin'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
   // Use to.matched.some() rather than to.meta — child routes do NOT inherit
   // parent meta in Vue Router. /preview/net-worth has nested children that
@@ -1496,6 +1644,38 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
+  // Cold-boot role hydration. The user-derived getters (isAdmin/isAdvisor) read
+  // state.auth.user, which is populated either synchronously from persisted
+  // state (vuex-persistedstate path 'auth.user') or asynchronously by App.vue's
+  // fetchUser on mount. On a first-ever boot of the desktop SPA in a context
+  // that has a bearer token but no persisted user — e.g. tapping "Admin Panel"
+  // in the /m drawer, which does a top-window full-page load of /admin where
+  // only the token is bridged — neither source has populated the user yet when
+  // this guard first runs, so isAdmin is falsely false and an admin is bounced
+  // to /dashboard on the first hop (reachable only on the next nav). If a token
+  // is present but the user hasn't hydrated and this route gates on a
+  // user-derived role, fetch the user once before deciding. Mirrors the
+  // capability-matrix hydration below; runs at most once per page load.
+  if (isAuthenticated && !isPreviewMode && !store.state.auth.user
+      && to.matched.some(r => r.meta.requiresAdmin || r.meta.requiresAdvisor)) {
+    try {
+      await store.dispatch('auth/fetchUser');
+    } catch {
+      // Token invalid/expired — leave state as-is; the requiresAuth / requiresAdmin
+      // branches below still apply (and API 401s force a re-login).
+    }
+  }
+
+  // Authenticated users never see the public marketing / landing pages — those
+  // exist only to convert guests; the user lives behind the auth wall in the
+  // app. Bounce them to the dashboard. Preview personas are exempt so they can
+  // still reach the landing-page persona selector. Mirrors the server-side
+  // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+    next({ name: 'Dashboard' });
+    return;
+  }
+
   // Allow access to authenticated routes when in preview mode
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   if (requiresAuth && !isAuthenticated && !isPreviewMode) {
@@ -1506,7 +1686,7 @@ router.beforeEach(async (to, from, next) => {
     // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
     // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
-  } else if (to.matched.some(r => r.meta.requiresAdmin) && !isAdmin) {
+  } else if (to.matched.some(r => r.meta.requiresAdmin) && !store.getters['auth/isAdmin']) {
     // Redirect to dashboard if route requires admin access (preview mode cannot access admin).
     // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
     // REVIEW.md §4 High #27.
@@ -1521,15 +1701,15 @@ router.beforeEach(async (to, from, next) => {
     // the primary enforcement; if the matrix isn't loaded yet, allow through.
     if (requiresAuth && isAuthenticated && !isPreviewMode && to.path !== '/teaser' && capabilityForRoute(to.path, to.query)) {
       let matrix = store.state.auth?.subscriptionData?.capability_matrix;
-      // On a fresh full-page load the trial-status hasn't been fetched yet, so
+      // On a fresh full-page load the subscription status hasn't been fetched yet, so
       // the matrix is missing — fetch it once before deciding, otherwise a
       // gated URL opened directly (or refreshed) would skip the teaser.
       if (!matrix) {
         try {
-          const resp = await api.get('/payment/trial-status');
+          const resp = await api.get('/payment/subscription-status');
           store.commit('auth/setSubscriptionData', resp.data);
           matrix = resp.data?.capability_matrix;
-        } catch (e) {
+        } catch {
           // Allow through — the backend is the primary enforcement.
         }
       }

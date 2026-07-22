@@ -8,6 +8,7 @@ echo ""
 export VITE_MOBILE_BASE_PATH=/
 export VITE_API_BASE_URL=https://fynla.org
 export VITE_PLATFORM=ios
+export VITE_APP_VERSION="1.0-ios-$(git rev-parse --short HEAD 2>/dev/null || echo ios)"
 
 echo "1. Building isolated mobile assets..."
 npm run build:mobile

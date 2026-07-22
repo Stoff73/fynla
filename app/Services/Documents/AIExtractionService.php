@@ -750,7 +750,7 @@ PROMPT;
         if (json_last_error() !== JSON_ERROR_NONE) {
             Log::warning('Failed to parse extraction response as JSON', [
                 'error' => json_last_error_msg(),
-                'content' => substr($content, 0, 500),
+                'content_length' => strlen($content),
             ]);
 
             throw new RuntimeException(

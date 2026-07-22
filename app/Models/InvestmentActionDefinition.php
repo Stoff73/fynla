@@ -14,6 +14,7 @@ class InvestmentActionDefinition extends Model
     protected $fillable = [
         'key',
         'source',
+        'strategy_type',
         'title_template',
         'description_template',
         'action_template',
@@ -25,12 +26,17 @@ class InvestmentActionDefinition extends Model
         'is_enabled',
         'sort_order',
         'notes',
+        'claim_tier',
+        'required_data',
+        'sequencing',
     ];
 
     protected $casts = [
         'trigger_config' => 'array',
         'is_enabled' => 'boolean',
         'sort_order' => 'integer',
+        'required_data' => 'array',
+        'sequencing' => 'array',
     ];
 
     /**

@@ -12,6 +12,7 @@ use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
 
 /**
  * Strategy #12 — Pension contribution for a non-earning spouse.
@@ -28,17 +29,31 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
 {
     public function __construct(
         private readonly TaxStrategyMath $math,
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     public function generate(TaxStrategyContext $context): array
     {
-        if ($context->mode !== 'single_earner_couple') {
-            return [];
-        }
-
         $user = $context->user;
         $household = $context->household;
 
+        if ($context->mode === 'single_earner_couple') {
+            return $this->nonEarnerPath($user, $household);
+        }
+
+        if ($context->mode === 'dual_earner') {
+            return $this->modestEarnerPath($user, $household);
+        }
+
+        return [];
+    }
+
+    /**
+     * Original non-earner path (single_earner_couple mode): flat £2,880 net
+     * → £3,600 gross → £720 government uplift per TaxDefaults constants.
+     */
+    private function nonEarnerPath(User $user, mixed $household): array
+    {
         $spouseAge = $this->resolveSpouseAge($user);
         if ($spouseAge !== null && $spouseAge >= 75) {
             return [];
@@ -76,6 +91,78 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 'gross_contribution' => $netContribution + $governmentUplift,
                 'government_uplift' => $governmentUplift,
                 'spouse_existing_pension_balance' => round($existingBalance, 2),
+                'spouse_age' => $spouseAge,
+            ],
+        )];
+    }
+
+    /**
+     * Modest-earner path (dual_earner mode): fires when the spouse has
+     * relevant UK earnings above zero but below twice the Personal Allowance
+     * (the "modest-earner heuristic"). The contribution capacity equals their
+     * relevant earnings — basic-rate relief at source applies at the rate
+     * from TaxConfigService so the uplift is proportional to actual earnings.
+     *
+     * A spouse earning £8,000 can contribute up to £8,000 gross; at 20%
+     * basic-rate relief the net cost is £6,400 and the government uplift is
+     * £1,600 — compared with £720 on the flat non-earner £2,880 path.
+     */
+    private function modestEarnerPath(User $user, mixed $household): array
+    {
+        if ($household === null) {
+            return [];
+        }
+
+        $spouseIncome = (float) ($household->spouse_annual_income ?? 0);
+        if ($spouseIncome <= 0) {
+            return [];
+        }
+
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+
+        // Modest-earner heuristic: below twice the Personal Allowance (~£25,140)
+        // means the spouse is likely a non- or basic-rate taxpayer both now and
+        // in retirement, making pension contributions particularly valuable.
+        $modestEarnerCeiling = $personalAllowance * 2;
+        if ($spouseIncome >= $modestEarnerCeiling) {
+            return [];
+        }
+
+        $spouseAge = $this->resolveSpouseAge($user);
+        if ($spouseAge !== null && $spouseAge >= 75) {
+            return [];
+        }
+
+        // Basic-rate relief at source — from TaxConfigService, not hardcoded.
+        $basicRate = $this->math->bandRateForBand('basic');
+        $grossCapacity = $spouseIncome; // relevant UK earnings = contribution cap
+        $uplift = round($grossCapacity * $basicRate, 2);
+        $netCost = round($grossCapacity * (1.0 - $basicRate), 2);
+
+        return [new StrategyRecommendation(
+            type: 'non_earner_spouse_pension',
+            category: StrategyCategory::Household,
+            priority: StrategyPriority::Medium,
+            title: sprintf(
+                'Max out your spouse\'s pension on their £%s earnings — instant £%s government top-up',
+                number_format((int) $spouseIncome),
+                number_format((int) $uplift),
+            ),
+            description: sprintf(
+                'Your spouse earns £%s, which counts as relevant UK earnings for pension purposes. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
+                number_format((int) $spouseIncome),
+                number_format((int) $netCost),
+                number_format((int) $grossCapacity),
+                number_format((int) $uplift),
+            ),
+            estimatedAnnualTaxSaved: $uplift,
+            extra: [
+                'spouse_annual_income' => $spouseIncome,
+                'gross_capacity' => $grossCapacity,
+                'net_cost' => $netCost,
+                'government_uplift' => $uplift,
+                'basic_rate' => $basicRate,
                 'spouse_age' => $spouseAge,
             ],
         )];

@@ -50,6 +50,11 @@ class ClientActivityService
         $activity = ClientActivity::where('advisor_id', $advisor->id)
             ->findOrFail($activityId);
 
+        // Ownership columns are set once at creation — never re-assignable via an
+        // update. Strip them defensively so a crafted payload cannot re-point the
+        // activity at another client or advisor even if a caller forwards raw input.
+        unset($data['advisor_id'], $data['client_id'], $data['advisor_client_id']);
+
         $activity->update($data);
 
         Cache::forget("advisor:{$advisor->id}:clients");

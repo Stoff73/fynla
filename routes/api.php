@@ -2,13 +2,17 @@
 
 use App\Http\Controllers\Api\ActionDefinitionController;
 use App\Http\Controllers\Api\Admin\ActuarialLifeTableController;
+use App\Http\Controllers\Api\Admin\AiCostDashboardController;
 use App\Http\Controllers\Api\Admin\CurrencyRateController;
 use App\Http\Controllers\Api\Admin\DocumentArticleController;
 use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\ProceduralCorpusController;
+use App\Http\Controllers\Api\Admin\ProcedureAmendmentReviewController;
 use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
+use App\Http\Controllers\Api\Admin\SemanticFactReviewController;
 use App\Http\Controllers\Api\Admin\TierConfigurationController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdvisorController;
@@ -16,6 +20,7 @@ use App\Http\Controllers\Api\AiAuditController;
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\Auth\RestoreAccountController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BalanceHistoryController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
@@ -33,6 +38,7 @@ use App\Http\Controllers\Api\Estate\WillDocumentController;
 use App\Http\Controllers\Api\EstateController;
 use App\Http\Controllers\Api\EvalAuthController;
 use App\Http\Controllers\Api\FamilyMembersController;
+use App\Http\Controllers\Api\GamificationController;
 use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\GoalsController;
 use App\Http\Controllers\Api\HolisticPlanningController;
@@ -59,6 +65,7 @@ use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\JointAccountLogController;
 use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
+use App\Http\Controllers\Api\LifeEventAllocationController;
 use App\Http\Controllers\Api\LifeEventController;
 use App\Http\Controllers\Api\LifeStageController;
 use App\Http\Controllers\Api\MFAController;
@@ -70,6 +77,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PersonalAccountsController;
+use App\Http\Controllers\Api\Plans\AdviserExportPackController;
 use App\Http\Controllers\Api\Plans\PlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PostcodeLookupController;
@@ -104,6 +112,7 @@ use App\Http\Controllers\Api\TaxYearController;
 use App\Http\Controllers\Api\UserMetricsController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\Webhooks\AppleNotificationController;
 use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -121,31 +130,39 @@ use Illuminate\Support\Facades\Route;
 // Contact form (public, rate-limited)
 Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('throttle:3,5');
 
+Route::post('/webhooks/apple/v2', AppleNotificationController::class)
+    ->middleware('throttle:apple-webhook')
+    ->name('api.webhooks.apple.v2');
+
 // Authentication routes
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-    Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1');
-    Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:5,1');
-    Route::post('/restore/check', [RestoreAccountController::class, 'check'])->middleware('throttle:5,1');
-    Route::post('/restore', [RestoreAccountController::class, 'restore'])->middleware('throttle:5,1');
+    // Each unauthenticated auth route uses a per-endpoint named limiter
+    // (auth-N, keyed by path|ip) so steps never throttle each other. See the
+    // limiter definitions + rationale in RouteServiceProvider::boot().
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-5');
+    Route::post('/registration-handoff/resolve', [AuthController::class, 'resolveRegistrationHandoff'])->middleware('throttle:auth-5');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-5');
+    Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:auth-10');
+    Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:auth-5');
+    Route::post('/restore/check', [RestoreAccountController::class, 'check'])->middleware('throttle:auth-5');
+    Route::post('/restore', [RestoreAccountController::class, 'restore'])->middleware('throttle:auth-5');
 
     // Beacon logout - accepts token in body for browser/tab close handling
     // No auth middleware since sendBeacon cannot set Authorization header
-    Route::post('/logout-beacon', [AuthController::class, 'logoutBeacon'])->middleware('throttle:10,1');
+    Route::post('/logout-beacon', [AuthController::class, 'logoutBeacon'])->middleware('throttle:auth-10');
 
     // MFA verification during login (no auth required - user is partially authenticated)
-    Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:10,1');
-    Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:5,1');
+    Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:auth-10');
+    Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:auth-5');
 
     // Password reset routes (no auth required)
     Route::prefix('password-reset')->group(function () {
-        Route::post('/request', [PasswordResetController::class, 'request'])->middleware('throttle:3,1');
-        Route::post('/verify-email', [PasswordResetController::class, 'verifyEmail'])->middleware('throttle:10,1');
-        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:3,1');
-        Route::post('/verify-mfa', [PasswordResetController::class, 'verifyMfa'])->middleware('throttle:10,1');
-        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:3,1');
-        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:3,1');
+        Route::post('/request', [PasswordResetController::class, 'request'])->middleware('throttle:auth-3');
+        Route::post('/verify-email', [PasswordResetController::class, 'verifyEmail'])->middleware('throttle:auth-10');
+        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:auth-3');
+        Route::post('/verify-mfa', [PasswordResetController::class, 'verifyMfa'])->middleware('throttle:auth-10');
+        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:auth-3');
+        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:auth-5');
     });
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -231,7 +248,7 @@ Route::prefix('news')->group(function () {
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)
     Route::get('/personas', [PreviewController::class, 'getPersonas']);
-    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:3,1');
+    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:auth-3');
 
     // Authenticated preview routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -292,7 +309,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/letter-to-spouse', [LetterToSpouseController::class, 'show']);
     Route::get('/letter-to-spouse/exists', [LetterToSpouseController::class, 'exists']);
     Route::get('/letter-to-spouse/spouse', [LetterToSpouseController::class, 'showSpouse']);
-    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update'])->middleware('feature:standard');
+    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update']);
 
     // Family Members CRUD — household/spouse linking is never tier-gated
     // (SP2 spec firm rule: family_module=full at every tier, including Free).
@@ -554,6 +571,11 @@ Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
     Route::put('/{id}', [LifeEventController::class, 'update']);
     Route::delete('/{id}', [LifeEventController::class, 'destroy']);
     Route::post('/{id}/complete', [LifeEventController::class, 'markCompleted']);
+
+    // Tax-optimised funding allocations for a life event.
+    Route::get('/{id}/allocations', [LifeEventAllocationController::class, 'index']);
+    Route::put('/{id}/allocations/{allocationId}', [LifeEventAllocationController::class, 'update']);
+    Route::post('/{id}/allocations/regenerate', [LifeEventAllocationController::class, 'regenerate']);
 });
 
 // Investment module routes
@@ -856,6 +878,8 @@ Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(functio
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
 });
 
+Route::middleware('auth:sanctum')->get('/balance-history', [BalanceHistoryController::class, 'index']);
+
 // Estate read-only + IHT calculations (all tiers — used by dashboard)
 Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
     Route::get('/', [EstateController::class, 'index']);
@@ -865,7 +889,7 @@ Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
 });
 
 // Estate Planning write operations (pro tier)
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(function () {
+Route::middleware(['auth:sanctum', 'estate.full'])->prefix('estate')->group(function () {
 
     // IHT Profile
     Route::post('/profile', [IHTController::class, 'storeOrUpdateIHTProfile']);
@@ -907,7 +931,7 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(func
 
     // Will Builder + Will + Bequests + LPA are Estate-module sub-routes.
     // Spec §7 has no separate will/POA capability key — they fall under
-    // "Estate planning" (teaser for Free/Tier1). §10.2 requires them gated
+    // "Estate planning" (teaser for Free). §10.2 requires them gated
     // server-side, not just hidden. The legacy `feature:pro` above is NOT
     // sufficient: a grandfathered legacy-paid sub resolves to the `free`
     // tier under SP2 and must hit the Estate teaser, so the canonical
@@ -1017,6 +1041,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
 // Plans routes (comprehensive cross-module plans)
 Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     // Plan system
+    Route::get('/adviser-export-pack', AdviserExportPackController::class);
     Route::get('/statuses', [PlanController::class, 'statuses']);
     Route::get('/goal/{goalId}', [PlanController::class, 'generateGoalPlan']);
     Route::post('/goal/{goalId}/recalculate', [PlanController::class, 'recalculateGoalPlan']);
@@ -1038,12 +1063,15 @@ Route::middleware('auth:sanctum')->prefix('household')->group(function () {
 });
 
 // Holistic Planning routes (coordinating agent)
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('holistic')->group(function () {
+Route::middleware(['auth:sanctum', 'holistic.full'])->prefix('holistic')->group(function () {
     // Main holistic analysis and plan
     Route::post('/analyze', [HolisticPlanningController::class, 'analyze']);
     Route::post('/plan', [HolisticPlanningController::class, 'plan']);
     Route::get('/recommendations', [HolisticPlanningController::class, 'recommendations']);
     Route::get('/cash-flow-analysis', [HolisticPlanningController::class, 'cashFlowAnalysis']);
+
+    // Cross-module composite plan (affordability-ranked, goal/life-event aware)
+    Route::get('/composite-plan', [HolisticPlanningController::class, 'compositePlan']);
 
     // Recommendation tracking
     Route::post('/recommendations/{id}/mark-done', [HolisticPlanningController::class, 'markRecommendationDone']);
@@ -1060,12 +1088,22 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::get('/summary', [RecommendationsController::class, 'summary']);
     Route::get('/top', [RecommendationsController::class, 'top']);
     Route::get('/completed', [RecommendationsController::class, 'completed']);
+    // WP-2 — unified actions payload (open, uncapped + completed history).
+    Route::get('/actions', [RecommendationsController::class, 'actions']);
 
     // Recommendation tracking actions
     Route::post('/{id}/mark-done', [RecommendationsController::class, 'markDone']);
     Route::post('/{id}/in-progress', [RecommendationsController::class, 'markInProgress']);
     Route::post('/{id}/dismiss', [RecommendationsController::class, 'dismiss']);
     Route::patch('/{id}/notes', [RecommendationsController::class, 'updateNotes']);
+});
+
+// Gamification routes (points-and-levels engine)
+Route::middleware('auth:sanctum')->prefix('gamification')->group(function () {
+    Route::get('/status', [GamificationController::class, 'status']);
+    // WP-3 — the activity history feed (events + dates, never points).
+    Route::get('/activity', [GamificationController::class, 'activity']);
+    Route::post('/celebration/ack', [GamificationController::class, 'ackCelebration']);
 });
 
 // Tax Product Information routes (Tax status for products)
@@ -1090,9 +1128,11 @@ Route::prefix('payment')->group(function () {
 // Public pricing config — reads live tier store; no auth required
 Route::get('/pricing-config', [PricingConfigController::class, 'index']);
 
+Route::get('/payment/trial-status', fn () => abort(404));
+
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::get('/trial-status', [PaymentController::class, 'trialStatus']);
+    Route::get('/subscription-status', [PaymentController::class, 'subscriptionStatus']);
     Route::get('/billing-history', [PaymentController::class, 'billingHistory']);
     Route::post('/create-order', [PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
     Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
@@ -1160,7 +1200,24 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         // S0.12 — hash-chain audit endpoints.
         Route::get('/chain', [AiAuditController::class, 'chain']);
         Route::get('/chain/verify', [AiAuditController::class, 'verifyChain']);
+        // CoALA Phase 2 (Task 13) — read-only episodic memory endpoints (admin).
+        Route::get('/episodes', [AiAuditController::class, 'episodes']);
+        Route::get('/episodes/{id}', [AiAuditController::class, 'episode']);
+        Route::post('/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
+
+    // CoALA Phase 4f — read-only procedural-memory corpus viewer (admin).
+    Route::get('/procedural-corpus', [ProceduralCorpusController::class, 'index']);
+    Route::get('/procedural-corpus/{procedureId}', [ProceduralCorpusController::class, 'show'])
+        ->where('procedureId', '.*');
+
+    // CoALA Phase 6 — admin review surface for proposed per-user semantic facts.
+    Route::get('/semantic-facts', [SemanticFactReviewController::class, 'index']);
+    Route::patch('/semantic-facts/{fact}', [SemanticFactReviewController::class, 'update']);
+
+    // CoALA Phase 6 — admin review surface for proposed procedure amendments (review-only; no auto-apply).
+    Route::get('/procedure-amendments', [ProcedureAmendmentReviewController::class, 'index']);
+    Route::patch('/procedure-amendments/{amendment}', [ProcedureAmendmentReviewController::class, 'update']);
 
     // Database backup - list (read-only, no rate limit)
     Route::middleware(['permission:admin.backup'])->group(function () {
@@ -1259,6 +1316,8 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/do
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     Route::get('news-subscribers', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
     Route::get('news-subscribers/export', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
+    // FR-M15 — per-action AI cost-attribution dashboard data.
+    Route::get('ai-cost-dashboard', [AiCostDashboardController::class, 'index']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
@@ -1353,7 +1412,7 @@ Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
 
 // What-If Scenarios
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenarios')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('what-if-scenarios')->group(function () {
     Route::get('/', [WhatIfScenarioController::class, 'index']);
     Route::get('/count', [WhatIfScenarioController::class, 'count']);
     Route::get('/{id}', [WhatIfScenarioController::class, 'show']);
@@ -1363,15 +1422,25 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenari
 });
 
 // AI Chat routes
-Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('ai-chat')->group(function () {
     Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])
-        ->middleware('idempotent');
-    Route::post('/conversations/{id}/action', [AiChatController::class, 'action']);
+        ->middleware(['throttle:ai-chat', 'idempotent']);
+    // FR-M7 — stream a turn that was queued behind an in-flight one
+    // (frontend-driven transport; called on the previous stream's `done`).
+    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage'])
+        ->middleware('throttle:ai-chat');
+    // FR-M7 scenario 4 — cancel a still-queued turn before it streams.
+    Route::delete('/conversations/{id}/messages/{messageId}', [AiChatController::class, 'cancelQueuedMessage']);
+    // FR-M9 — resumption surface: read the pending resumption, or clear it.
+    Route::get('/resumption', [AiChatController::class, 'getResumption']);
+    Route::delete('/conversations/{id}/resumption', [AiChatController::class, 'clearResumption']);
+    Route::post('/conversations/{id}/action', [AiChatController::class, 'action'])
+        ->middleware('throttle:ai-chat');
     // Fyn-driven onboarding flow (backend-authoritative state machine)
     Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
     Route::post('/onboarding/start', [AiChatController::class, 'startOnboarding']);
@@ -1395,6 +1464,10 @@ Route::middleware(['auth:sanctum', 'advisor'])
         Route::put('activities/{id}', 'updateActivity');
         Route::get('reviews-due', 'reviewsDue');
         Route::get('reports', 'reports');
+        // CoALA Phase 2 (Task 13) — advisor-scoped read-only episodic memory.
+        Route::get('clients/{clientId}/episodes', [AiAuditController::class, 'clientEpisodes']);
+        Route::get('clients/{clientId}/episodes/{id}', [AiAuditController::class, 'episode']);
+        Route::post('clients/{clientId}/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
 
 // Bug Report route — authenticated users only (REVIEW Top-10 #8 / W1-M).

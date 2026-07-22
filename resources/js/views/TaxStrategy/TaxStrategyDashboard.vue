@@ -12,10 +12,13 @@
       </div>
 
       <template v-else-if="dashboard">
-        <HouseholdView v-if="isHouseholdMode" class="mb-8" />
-        <AllowanceGrid v-else :allowances="userAllowances" class="mb-8" />
+        <!-- Strategies lead; the allowance detail sits below them. -->
+        <HouseholdCoordinationPanel v-if="isHouseholdMode" />
 
         <StrategyRecommendationList />
+
+        <HouseholdView v-if="isHouseholdMode" class="mt-8" />
+        <AllowanceGrid v-else :allowances="userAllowances" class="mt-8" />
       </template>
     </div>
   </AppLayout>
@@ -27,6 +30,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import TaxYearHeader from '@/components/TaxStrategy/TaxYearHeader.vue';
 import AllowanceGrid from '@/components/TaxStrategy/AllowanceGrid.vue';
 import HouseholdView from '@/components/TaxStrategy/HouseholdView.vue';
+import HouseholdCoordinationPanel from '@/components/TaxStrategy/HouseholdCoordinationPanel.vue';
 import StrategyRecommendationList from '@/components/TaxStrategy/StrategyRecommendationList.vue';
 
 export default {
@@ -36,6 +40,7 @@ export default {
     TaxYearHeader,
     AllowanceGrid,
     HouseholdView,
+    HouseholdCoordinationPanel,
     StrategyRecommendationList,
   },
   computed: {

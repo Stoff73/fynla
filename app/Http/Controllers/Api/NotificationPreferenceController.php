@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
  * Web (desktop) endpoint for notification preferences. The mobile app has
  * its own dedicated controller at Api\V1\Mobile\NotificationPreferenceController
  * because the mobile settings UI shape differs slightly — this one exists
- * so the web UserProfile page can read/write the full 14 preference columns
+ * so the web UserProfile page can read/write the supported preference columns
  * without routing through the mobile namespace.
  */
 class NotificationPreferenceController extends Controller
@@ -39,9 +39,6 @@ class NotificationPreferenceController extends Controller
                     'payment_alerts',
                     'mortgage_rate_alerts',
                     'estate_alerts',
-                    'lifecycle_empty_trialer',
-                    'lifecycle_engaged_trialer',
-                    'lifecycle_cancelled_trialer',
                     'lifecycle_churned_subscriber',
                     'lifecycle_lapsed_subscriber',
                 ]),

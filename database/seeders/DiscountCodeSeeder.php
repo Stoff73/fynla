@@ -29,18 +29,10 @@ class DiscountCodeSeeder extends Seeder
                 'max_uses_per_user' => 1,
                 'is_active' => true,
             ],
-            [
-                'code' => 'TRYME',
-                'type' => 'trial_extension',
-                'value' => 14, // 14 extra days
-                'max_uses' => 200,
-                'max_uses_per_user' => 1,
-                'is_active' => true,
-            ],
         ];
 
         foreach ($codes as $code) {
-            DiscountCode::updateOrCreate(
+            DiscountCode::withTrashed()->firstOrCreate(
                 ['code' => $code['code']],
                 $code
             );

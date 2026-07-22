@@ -30,6 +30,7 @@ export NODE_ENV=production
 export VITE_BASE_PATH=/fynla/build/
 export VITE_ROUTER_BASE=/fynla/
 export VITE_APP_NAME="Fynla"
+export VITE_APP_VERSION="1.0-staging-$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
 export VITE_API_BASE_URL=https://csjones.co/fynla
 
 # Awin affiliate tracking — staging defaults to disabled. Flip to true here
@@ -128,7 +129,9 @@ echo ""
 echo "3. SSH to server and clear caches:"
 echo "   ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co"
 echo "   cd ~/www/csjones.co/fynla-app"
-echo "   php artisan cache:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan optimize"
+echo "   php artisan cache:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan config:cache"
+echo "   NEVER 'php artisan optimize' / 'route:cache' — the compiled route matcher"
+echo "   lets the SPA catch-all shadow the server-rendered '/' homepage (and the /m iframe)."
 echo ""
 echo "DO NOT run 'npm install' or 'npm run build' on the server!"
 echo ""

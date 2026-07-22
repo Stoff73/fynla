@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Save More on Tax — Your UK Tax Allowances Guide | Fynla</title>
   <meta name="description" content="See every UK tax allowance for 2026/27 — Personal Allowance, ISA, pension, and more. Understand your position and keep more of what you earn with Fynla." />
@@ -22,7 +25,7 @@
   <link rel="alternate" hreflang="x-default" href="https://fynla.org/savetax/plan" />
 
   <!-- savetax-plan.css provides all section styles (allowances, meaning, examples) -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=1" />
   <!-- v2 overrides: hero layout, inline savings card, resets fixed-panel margin -->
   <link rel="stylesheet" href="/pages/css/savetax-plan-v2.css?v=2" />

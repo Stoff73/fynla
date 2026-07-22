@@ -34,7 +34,12 @@ it('exposes the savetax campaign-map entry by default', function () {
 
     expect($map)->toBeArray();
     expect($map)->toHaveKey('savetax');
-    expect($map['savetax'])->toBe('savetax');
+    expect($map['savetax'])->toBeArray();
+    expect($map['savetax'])->toMatchArray([
+        'selection' => 'savetax',
+        'entry' => 'base_work',
+        'reentry' => false,
+    ]);
 });
 
 it('skips path_choice and lands the user at base_personal for a campaign `from` value', function () {
@@ -57,7 +62,9 @@ it('skips path_choice and lands the user at base_personal for a campaign `from` 
     $user->refresh();
     expect($user->onboarding_fyn_path)->toBe('campaign');
     expect($user->onboarding_fyn_selection)->toBe('savetax');
-    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
+    // SaveTax campaign is income-first: opens at base_work (income details),
+    // with employment seeded from the funnel and DOB deferred to pensions.
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
 });
 
 it('falls through to STATE_PATH_CHOICE for an unknown `from` value', function () {
@@ -79,7 +86,7 @@ it('falls through to STATE_PATH_CHOICE for an unknown `from` value', function ()
 });
 
 it('checks campaign_map BEFORE journey_map so a campaign key never gets misread as a journey', function () {
-    config()->set('onboarding.campaign_map', ['shared-key' => 'campaign-id']);
+    config()->set('onboarding.campaign_map', ['shared-key' => ['selection' => 'campaign-id', 'entry' => 'base_work', 'reentry' => false]]);
     config()->set('onboarding.journey_map', ['shared-key' => 'journey-id']);
 
     $user = User::factory()->create([

@@ -5,10 +5,17 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Auth\TokenRefreshController;
 use App\Http\Controllers\Api\V1\Mobile\DeviceController;
 use App\Http\Controllers\Api\V1\Mobile\InsightsController;
+use App\Http\Controllers\Api\V1\Mobile\MobileAchievementsController;
 use App\Http\Controllers\Api\V1\Mobile\MobileDashboardController;
 use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
+use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
+use App\Http\Controllers\Api\V1\Native\NativeEntitlementController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppleReconciliationController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\AppleTransactionController;
+use App\Http\Controllers\Api\V1\Native\StoreKit\PurchaseAuthorizationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,6 +44,75 @@ Route::get('/health', function () {
     ]);
 })->name('api.v1.health');
 
+Route::middleware(['auth:sanctum', 'native.client', 'native.version'])
+    ->prefix('native')
+    ->group(function () {
+        Route::get('/health', fn () => response()->json([
+            'success' => true,
+            'data' => [
+                'api_version' => 'v1',
+                'storekit_purchase_enabled' => (bool) config(
+                    'native.storekit_purchase_enabled',
+                    false,
+                ),
+            ],
+        ]))->name('api.v1.native.health');
+    });
+
+Route::prefix('/native/auth')->middleware(['native.client', 'native.version'])->group(function () {
+    Route::post('/session/refresh', [NativeSessionController::class, 'refresh'])
+        ->middleware('throttle:native-session');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/session/exchange', [NativeSessionController::class, 'exchange'])
+            ->middleware('throttle:native-session');
+        Route::get('/session', [NativeSessionController::class, 'show']);
+        Route::delete('/session', [NativeSessionController::class, 'destroy']);
+    });
+});
+
+Route::get('/native/storekit/account-token', AppAccountTokenController::class)
+    ->middleware(['native.client', 'native.version', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.storekit.account-token');
+
+Route::get('/native/storekit/purchase-authorization', PurchaseAuthorizationController::class)
+    ->middleware(['native.client', 'native.version', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.storekit.purchase-authorization');
+
+Route::get('/native/entitlement', NativeEntitlementController::class)
+    ->middleware(['native.client', 'native.version', 'auth:sanctum', 'native.session'])
+    ->name('api.v1.native.entitlement');
+
+Route::post('/native/storekit/transactions', AppleTransactionController::class)
+    ->middleware([
+        'native.client',
+        'native.version',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.transactions.store');
+
+Route::post('/native/storekit/reconcile', [AppleReconciliationController::class, 'reconcile'])
+    ->middleware([
+        'native.client',
+        'native.version',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.reconcile');
+
+Route::get('/native/storekit/status', [AppleReconciliationController::class, 'status'])
+    ->middleware([
+        'native.client',
+        'native.version',
+        'auth:sanctum',
+        'native.session',
+        'throttle:sensitive',
+    ])
+    ->name('api.v1.native.storekit.status');
+
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
     // Auth token refresh
@@ -48,6 +124,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mobile/dashboard', [MobileDashboardController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.dashboard');
+
+    // Mobile achievements — earned badges, next actions, financial milestones
+    Route::get('/mobile/achievements', [MobileAchievementsController::class, 'index'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements');
+
+    // WP-5c-ii — load-more pages of completed actions (25/page)
+    Route::get('/mobile/achievements/completed', [MobileAchievementsController::class, 'completed'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.completed');
 
     // Module summaries — individual module analysis
     Route::get('/mobile/modules/{module}', [ModuleSummaryController::class, 'show'])

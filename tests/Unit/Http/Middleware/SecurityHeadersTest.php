@@ -56,6 +56,24 @@ describe('SecurityHeaders middleware', function () {
         expect($response->headers->has('Content-Security-Policy'))->toBeTrue();
     });
 
+    it('allows the Vite development origin in the e2e environment', function () {
+        $originalEnvironment = app()->environment();
+        app()->instance('env', 'e2e');
+
+        try {
+            $response = $this->middleware->handle(
+                Request::create('/test', 'GET'),
+                fn () => new Response('', 200)
+            );
+        } finally {
+            app()->instance('env', $originalEnvironment);
+        }
+
+        expect($response->headers->get('Content-Security-Policy'))
+            ->toContain('http://127.0.0.1:5173')
+            ->toContain('ws://127.0.0.1:5173');
+    });
+
     it('sets Permissions-Policy', function () {
         $response = $this->middleware->handle(
             Request::create('/test', 'GET'),

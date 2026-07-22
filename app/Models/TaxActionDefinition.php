@@ -25,12 +25,18 @@ class TaxActionDefinition extends Model
         'is_enabled',
         'sort_order',
         'notes',
+        'claim_tier',
+        'required_data',
+        'sequencing',
+        'strategy_type',
     ];
 
     protected $casts = [
         'trigger_config' => 'array',
         'is_enabled' => 'boolean',
         'sort_order' => 'integer',
+        'required_data' => 'array',
+        'sequencing' => 'array',
     ];
 
     /**

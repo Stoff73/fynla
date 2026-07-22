@@ -38,6 +38,7 @@ class PendingRegistration extends Model
         'billing_cycle',
         'referral_code',
         'signup_source',
+        'funnel_answers',
         'expires_at',
     ];
 
@@ -48,6 +49,7 @@ class PendingRegistration extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'funnel_answers' => 'array',
     ];
 
     /**
@@ -64,6 +66,13 @@ class PendingRegistration extends Model
      */
     public static function createOrUpdate(array $data): self
     {
+        // Preserve durable SaveTax-entry signals across a re-registration on the
+        // same email (e.g. after an abandoned verification, /bug 6.1). The SPA
+        // register form does not resend funnel_answers, so a naive overwrite
+        // nulls them and the user loses the SaveTax onboarding entry point — the
+        // dispatch keys the campaign off users.funnel_answers (AiChatController).
+        $existing = self::where('email', $data['email'])->first();
+
         return self::updateOrCreate(
             ['email' => $data['email']],
             [
@@ -77,10 +86,29 @@ class PendingRegistration extends Model
                 'plan' => $data['plan'] ?? null,
                 'billing_cycle' => $data['billing_cycle'] ?? null,
                 'referral_code' => $data['referral_code'] ?? null,
-                'signup_source' => $data['signup_source'] ?? null,
+                'signup_source' => $data['signup_source'] ?? $existing?->signup_source,
+                'funnel_answers' => $data['funnel_answers'] ?? $existing?->funnel_answers,
                 'expires_at' => now()->addHours(self::EXPIRY_HOURS),
             ]
         );
+    }
+
+    /**
+     * Return the canonical checkout intent captured at registration.
+     *
+     * @return array{tier: string, billing_cycle: string}|null
+     */
+    public function checkoutIntent(): ?array
+    {
+        if ($this->plan !== 'premium'
+            || ! in_array($this->billing_cycle, ['monthly', 'yearly'], true)) {
+            return null;
+        }
+
+        return [
+            'tier' => 'premium',
+            'billing_cycle' => $this->billing_cycle,
+        ];
     }
 
     /**

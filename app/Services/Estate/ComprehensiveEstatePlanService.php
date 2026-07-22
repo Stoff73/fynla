@@ -41,6 +41,7 @@ class ComprehensiveEstatePlanService
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly ActuarialLifeTableStore $actuarialStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly AvailableNrbCalculator $availableNrbCalculator,
     ) {}
 
     /**
@@ -127,7 +128,8 @@ class ComprehensiveEstatePlanService
             $trustPlan,
             $lifePolicyPlan,
             $currentIHTLiability,
-            $ihtProfile
+            $ihtProfile,
+            $user
         );
 
         // Build comprehensive plan
@@ -155,7 +157,7 @@ class ComprehensiveEstatePlanService
             'balance_sheet' => $this->buildBalanceSheet($user, $assets, $ihtAnalysis, $spouse, $spouseAssets, $dataSharingEnabled),
             'estate_overview' => $this->buildEstateOverview($aggregatedAssets, $ihtAnalysis, $spouseAggregatedAssets, $dataSharingEnabled),
             'estate_breakdown' => $this->buildEstateBreakdown($user, $aggregatedAssets, $secondDeathAnalysis, $spouse, $spouseAggregatedAssets, $dataSharingEnabled),
-            'current_iht_position' => $this->buildIHTPosition($ihtAnalysis, $ihtProfile, $secondDeathAnalysis),
+            'current_iht_position' => $this->buildIHTPosition($ihtAnalysis, $ihtProfile, $secondDeathAnalysis, $user),
             'gifting_strategy' => $giftingPlan,
             'trust_strategy' => $trustPlan,
             'life_policy_strategy' => $lifePolicyPlan,
@@ -872,7 +874,7 @@ class ComprehensiveEstatePlanService
      * Build IHT position
      * Uses second death analysis if available (married couples)
      */
-    private function buildIHTPosition(array $ihtAnalysis, IHTProfile $profile, ?array $secondDeathAnalysis): array
+    private function buildIHTPosition(array $ihtAnalysis, IHTProfile $profile, ?array $secondDeathAnalysis, User $user): array
     {
         // If we have second death analysis, show both NOW and PROJECTED scenarios
         if ($secondDeathAnalysis && isset($secondDeathAnalysis['current_iht_calculation']) && isset($secondDeathAnalysis['iht_calculation'])) {
@@ -927,7 +929,10 @@ class ComprehensiveEstatePlanService
         return [
             'has_projection' => false,
             'gross_estate' => $ihtAnalysis['total_net_estate'] ?? 0,
-            'available_nrb' => $profile->available_nrb ?? $ihtConfig['nil_rate_band'],
+            // Derived from gift history (7-year cumulation); a manually-set profile value wins.
+            'available_nrb' => $profile->available_nrb !== null
+                ? (float) $profile->available_nrb
+                : $this->availableNrbCalculator->forUser($user),
             'rnrb' => $ihtAnalysis['rnrb_available'] ?? 0,
             'total_allowances' => $ihtAnalysis['total_allowances'] ?? $ihtConfig['nil_rate_band'],
             'taxable_estate' => $ihtAnalysis['taxable_estate'] ?? 0,
@@ -946,42 +951,55 @@ class ComprehensiveEstatePlanService
         array $trustPlan,
         ?array $lifePolicyPlan,
         float $currentIHTLiability,
-        IHTProfile $profile
+        IHTProfile $profile,
+        User $user
     ): array {
         $recommendations = [];
         $totalIHTSaving = 0;
         $totalCosts = 0;
 
-        // Priority 1: Immediate actions (Annual exemption + Trust within NRB)
+        // Priority 1: Immediate actions (Annual exemption + Trust within NRB).
+        // ONLY when the estate actually has an IHT liability. A sub-NRB estate
+        // owes no IHT, so trust/gifting mitigation would save nothing — it must
+        // not be recommended (otherwise every user is told to "save NRB x rate"
+        // regardless of their real position). Savings are capped to the actual
+        // liability: you cannot save more IHT than is due.
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $giftingConfig = $this->taxConfig->getGiftingExemptions();
         $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? 3000);
         $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
-        $annualExemptionIHTSaving = $annualExemption * $ihtRate;
-        $availableNRB = $profile->available_nrb ?? $ihtConfig['nil_rate_band'];
+        // Derived from gift history (7-year cumulation); a manually-set profile value wins.
+        $availableNRB = $profile->available_nrb !== null
+            ? (float) $profile->available_nrb
+            : $this->availableNrbCalculator->forUser($user);
 
-        $recommendations[] = [
-            'priority' => 1,
-            'category' => 'Immediate Actions (Year 1)',
-            'actions' => [
-                [
-                    'action' => 'Start using annual gifting exemption',
-                    'details' => 'Gift £'.number_format($annualExemption, 0).' per year to beneficiaries using annual exemption',
-                    'iht_saving' => $annualExemptionIHTSaving,
-                    'cost' => 0,
-                    'timeframe' => 'Annual',
-                ],
-                [
-                    'action' => 'Establish discretionary trust within NRB',
-                    'details' => 'Transfer £'.number_format($availableNRB, 0).' to discretionary trust',
-                    'iht_saving' => $availableNRB * $ihtRate,
-                    'cost' => 0,
-                    'timeframe' => 'Once-off (Year 1)',
-                ],
-            ],
-        ];
+        if ($currentIHTLiability > 0) {
+            $annualExemptionIHTSaving = min($annualExemption * $ihtRate, $currentIHTLiability);
+            $trustIHTSaving = min($availableNRB * $ihtRate, $currentIHTLiability);
 
-        $totalIHTSaving += $annualExemptionIHTSaving + ($availableNRB * $ihtRate);
+            $recommendations[] = [
+                'priority' => 1,
+                'category' => 'Immediate Actions (Year 1)',
+                'actions' => [
+                    [
+                        'action' => 'Start using annual gifting exemption',
+                        'details' => 'Gift £'.number_format($annualExemption, 0).' per year to beneficiaries using annual exemption',
+                        'iht_saving' => $annualExemptionIHTSaving,
+                        'cost' => 0,
+                        'timeframe' => 'Annual',
+                    ],
+                    [
+                        'action' => 'Establish discretionary trust within NRB',
+                        'details' => 'Transfer £'.number_format($availableNRB, 0).' to discretionary trust',
+                        'iht_saving' => $trustIHTSaving,
+                        'cost' => 0,
+                        'timeframe' => 'Once-off (Year 1)',
+                    ],
+                ],
+            ];
+
+            $totalIHTSaving += $annualExemptionIHTSaving + $trustIHTSaving;
+        }
 
         // Priority 2: Medium-term strategy (PET cycles)
         if ($giftingPlan['summary']['total_gifted'] > 0) {

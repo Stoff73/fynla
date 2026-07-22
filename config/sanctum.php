@@ -51,6 +51,12 @@ return [
 
     'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 240), // 4 hours in minutes
 
+    // TTL for tokens issued by the /m refresh-rotation flow (TokenRefreshController).
+    // Matches the standard 4h token expiry above so rotation never *extends* a
+    // token's life (a leaked /m token stays capped at the same short window and is
+    // revoked on the next /m boot). Was a hardcoded 30 days. Overridable via env.
+    'mobile_token_ttl_minutes' => (int) env('MOBILE_TOKEN_TTL_MINUTES', 240),
+
     /*
     |--------------------------------------------------------------------------
     | Token Prefix

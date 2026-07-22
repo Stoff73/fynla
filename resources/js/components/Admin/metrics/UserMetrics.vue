@@ -4,7 +4,7 @@
     <div class="mb-6">
       <h1 class="text-2xl font-black text-horizon-500">User Metrics</h1>
       <p class="text-sm text-neutral-500 mt-1">
-        Real-time overview of registrations, trials, subscriptions, and engagement
+        Real-time overview of registrations, subscriptions, and engagement
       </p>
     </div>
 
@@ -157,7 +157,7 @@ export default {
       try {
         const response = await adminService.getUserMetricsActivity(period, DEFAULT_RANGES[period]);
         this.activity = Array.isArray(response.data) ? response.data : [];
-      } catch (err) {
+      } catch {
         // Keep existing data on period change failure
       } finally {
         this.activityLoading = false;

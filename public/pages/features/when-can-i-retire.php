@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>When Can I Retire â€” Retirement Affordability Calculator | Fynla</title>
+  <title>When Can I Retire — Retirement Affordability Calculator | Fynla</title>
   <meta name="description" content="Find out when you can afford to retire with Fynla. Model different retirement ages, pension drawdown strategies, and see your projected retirement income in minutes." />
   <link rel="canonical" href="https://fynla.org/features/when-can-i-retire" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="article" />
-  <meta property="og:title"       content="When Can I Retire â€” Retirement Affordability Calculator | Fynla" />
+  <meta property="og:title"       content="When Can I Retire — Retirement Affordability Calculator | Fynla" />
   <meta property="og:description" content="Find out when you can afford to retire with Fynla. Model different retirement ages, pension drawdown strategies, and see your projected retirement income in minutes." />
   <meta property="og:image"       content="https://fynla.org/images/og/feat-when-can-i-retire.jpg" />
   <meta property="og:url"         content="https://fynla.org/features/when-can-i-retire" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="When Can I Retire â€” Retirement Affordability Calculator | Fynla" />
+  <meta name="twitter:title"       content="When Can I Retire — Retirement Affordability Calculator | Fynla" />
   <meta name="twitter:description" content="Find out when you can afford to retire with Fynla. Model different retirement ages, pension drawdown strategies, and see your projected retirement income in minutes." />
   <meta name="twitter:image"       content="https://fynla.org/images/og/feat-when-can-i-retire.jpg" />
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "When Can I Retire â€” Retirement Affordability Calculator",
+    "headline": "When Can I Retire — Retirement Affordability Calculator",
     "description": "Find out when you can afford to retire with Fynla. Model different retirement ages, pension drawdown strategies, and see your projected retirement income in minutes.",
     "url": "https://fynla.org/features/when-can-i-retire",
     "publisher": {
@@ -86,7 +86,7 @@
           Not when your pension provider says. Not when the government says. When YOUR money says you can. Fynla calculates your personal retirement date based on everything.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -261,7 +261,7 @@
       'items'    => [
         [
           'q' => 'How accurate is the retirement date?',
-          'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity â€” but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
+          'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
         ],
         [
           'q' => 'Does the retirement calculator account for inflation?',
@@ -277,7 +277,7 @@
         ],
         [
           'q' => 'Can I model part-time work or semi-retirement?',
-          'a' => 'Yes. You can model reduced income over a transition period â€” for example, earning Â£20,000/year from part-time work between ages 58â€“63, then fully retiring.',
+          'a' => 'Yes. You can model reduced income over a transition period — for example, earning £20,000/year from part-time work between ages 58–63, then fully retiring.',
         ],
       ],
     ];
@@ -293,7 +293,7 @@
       'heading' => 'Find Out Your Number. It Might Surprise You.',
       'subtext' => 'Whether it\'s 55 or 68, you deserve to know. The demo lets you explore with sample data in under 5 minutes.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

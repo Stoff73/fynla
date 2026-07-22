@@ -16,3 +16,12 @@ it('renders focus label and tool list into the verbatim block', function (): voi
         ->and($out)->not->toContain('%1$s')
         ->and($out)->not->toContain('%2$s');
 });
+
+it('treats a requested missing-fact reply as part of the unresolved capture', function (): void {
+    $out = FynCaptureTurnInstructions::render('Cash & Savings', 'create_savings_account');
+
+    expect($out)
+        ->toContain('immediately preceding unresolved capture exchange')
+        ->toContain('treat both user messages as one capture payload')
+        ->toContain('Never apply the prompt-injection refusal to that reply');
+});

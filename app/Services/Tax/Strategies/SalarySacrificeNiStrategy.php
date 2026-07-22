@@ -30,7 +30,12 @@ final class SalarySacrificeNiStrategy implements TaxStrategy
     {
         $user = $context->user;
 
-        if ((string) ($user->employment_status ?? '') !== 'employed') {
+        // Two writers exist for employment_status: the savetax bubble maps
+        // "Full-time" to 'employed' while the profile form writes 'full_time'.
+        // Salary sacrifice needs an employer, so accept the whole employed
+        // family; self_employed/retired/unemployed have no employer to
+        // sacrifice with.
+        if (! in_array((string) ($user->employment_status ?? ''), ['employed', 'full_time', 'part_time'], true)) {
             return [];
         }
 

@@ -49,6 +49,7 @@
     wireSmoothScroll();
     fetchInsights();
     wireDemoModal();
+    wireSaveTaxCounter();
   });
 
   window.addEventListener('resize', debounce(refreshNavHeight, 150));
@@ -306,7 +307,7 @@
 
         var supEl = document.getElementById('insights-supporting');
         supEl.innerHTML = supporting.slice(0, 2).map(function (a) {
-          return '<a href="/insights/' + a.slug + '" class="insights-support-card">' +
+          return '<a href="' + (window.FYNLA_BASE||'') + '/insights/' + a.slug + '" class="insights-support-card">' +
                  '<div class="insights-support-card__thumb">' +
                  (a.image_card
                    ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" onerror="this.parentElement.style.display=\'none\'" />'
@@ -431,5 +432,73 @@
       });
     });
   }
+
+  /* ----------------------------------------------------------------
+     SAVE-TAX COUNTER
+     Fast count-up animation on the "How Fyn can help you" save-tax
+     figure when it scrolls into view. Honours reduced-motion.
+     ---------------------------------------------------------------- */
+  function wireSaveTaxCounter() {
+    var el = document.getElementById('savetax-counter');
+    if (!el) return;
+
+    var target = parseInt(el.getAttribute('data-count-to'), 10) || 0;
+    var prefix = el.getAttribute('data-count-prefix') || '';
+    if (target <= 0) return;
+
+    var fmt = function (n) { return prefix + Math.round(n).toLocaleString('en-GB'); };
+    var done = false;
+
+    function run() {
+      if (done) return;
+      done = true;
+      var duration = 1200;
+      var start = null;
+      function step(ts) {
+        if (start === null) start = ts;
+        var p = Math.min((ts - start) / duration, 1);
+        var eased = 1 - Math.pow(1 - p, 3); // easeOutCubic — fast then settle
+        el.textContent = fmt(target * eased);
+        if (p < 1) { requestAnimationFrame(step); } else { el.textContent = fmt(target); }
+      }
+      requestAnimationFrame(step);
+    }
+
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) {
+      el.textContent = fmt(target);
+    } else if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) { run(); io.disconnect(); }
+        });
+      }, { threshold: 0.4 });
+      io.observe(el);
+    } else {
+      run();
+    }
+  }
+
+  /* ----------------------------------------------------------------
+     LATEST NEWS BAR — newest article from /api/news. Hidden unless the
+     fetch returns an item (graceful degradation: no bar if news is empty
+     or the API is unavailable).
+     ---------------------------------------------------------------- */
+  (function initLatestNews() {
+    var bar = document.getElementById('latest-news');
+    var txt = document.getElementById('latest-news-text');
+    if (!bar || !txt) return;
+    fetch((window.FYNLA_BASE || '') + '/api/news')
+      .then(function (res) { if (!res.ok) throw new Error('news unavailable'); return res.json(); })
+      .then(function (data) {
+        var items = (data && data.data) ? data.data : data;
+        var latest = items && items[0];
+        if (!latest || !latest.title) return;
+        txt.textContent = latest.title;
+        bar.href = latest.url || ((window.FYNLA_BASE || '') + '/news/' + latest.slug);
+        bar.hidden = false;
+      })
+      .catch(function () { /* leave hidden */ });
+  })();
 
 })();

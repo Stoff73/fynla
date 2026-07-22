@@ -88,5 +88,3 @@ export function clearCapturedSource() {
   const storage = safeSessionStorage();
   if (storage) storage.removeItem(STORAGE_KEY);
 }
-
-export const ALLOWED_SIGNUP_SOURCES = ALLOWED_SOURCES;

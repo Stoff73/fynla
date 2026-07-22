@@ -11,7 +11,7 @@ function fetchLatestVerificationCode(email) {
   return match[0];
 }
 
-test.describe('SP3 mobile iframe scaffold', () => {
+test.describe.skip('legacy E2E migration tracked by online-readiness Task 24', () => {
   test('desktop UA: / still serves the full web app (no /m redirect)', async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();

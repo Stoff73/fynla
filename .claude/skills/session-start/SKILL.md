@@ -97,7 +97,7 @@ Then **Read the file in full** (not `head`, not `cat | head -50` — full file).
 - **Worktrees / live artefacts** (any `/tmp/*` paths still alive, branch tips, pushed/unpushed state) — surface as a sublist
 - **Blockers / known issues** — surface verbatim if non-empty
 
-If the handover names a specific user-visible decision the next session is supposed to make (e.g. "CSJ to choose Path A / B / C"), surface that decision verbatim and **wait for the user's instruction before acting** — do NOT pick a path on their behalf.
+If the handover names a specific user-visible decision, surface it verbatim in the report. If the handover or current context records CSJ's decision or a direction explicitly agreed by CSJ, proceed with that decision after Phase 4. If the choice remains genuinely unresolved and has materially different consequences, ask CSJ for new direction while continuing any safe investigative work that does not depend on the choice. Do not ask whether to continue work that is already covered by standing authorisation.
 
 ### 2b. CSJTODO (supplementary — NOT a substitute for the handover)
 
@@ -164,8 +164,8 @@ Present this concise summary to CSJ. No filler.
 **Pick up from here (from handover)**
 - <verbatim block>
 
-**Decision waiting on user** (if the handover flagged one)
-- <e.g. "Path A / B / C — CSJ to choose">
+**Decision flagged in handover** (if any)
+- <If the handover or current context records CSJ's decision or a direction explicitly agreed by CSJ, name it and proceed. If the decision is genuinely unresolved with materially different consequences, state that CSJ direction is required while unblocked investigation continues.>
 
 **Outstanding (CSJTODO)**
 - <items, or "none">
@@ -177,14 +177,61 @@ Present this concise summary to CSJ. No filler.
 
 **Reminders this session**
 - CLAUDE.md and MEMORY.md are loaded — consult before asking
-- Handover above is the authoritative pickup doc — do not act past a "decision waiting on user" line without their answer
+- Handover above is the authoritative pickup doc — auto-continue approved or explicitly directed items; investigate safely and ask before unapproved implementation
 - Read individual memory / vault / design files on-demand using the lookup map
 - Browser testing = click, fill, submit, verify result in Playwright
 - Design system: fynlaDesignGuide.md v1.3.0 (read before any UI change)
 - Scope discipline · Honesty · No raw `vite build` · No `migrate:fresh`
 
-**Ready. What would you like to work on?**
+**Phase 5:** `<Auto-continuing authorised work now | No recorded implementation authorisation — continuing safe investigation and requesting direction before task-specific changes>`
 ```
+
+## Standing Authorisation After CSJ Agreement
+
+When the handover, an approved spec, an implementation plan, or an agreed fix process records that CSJ explicitly approved the work or directed its implementation, treat that agreement as standing authorisation across session boundaries. Proceed autonomously after the Phase 4 report and do not ask CSJ to approve individual files, edits, commands, or routine implementation decisions again.
+
+Standing authorisation includes:
+
+- Creating, editing, and renaming in-scope files
+- Deleting only named or in-scope tracked files recoverable from version control
+- Running commands, tests, linters, formatters, builds, seeders, and local migrations
+- Starting, stopping, or restarting local development processes
+- Installing or updating dependencies required by the agreed work
+- Making proportionate corrections discovered during implementation when they preserve the agreed outcome and scope
+
+Ask CSJ for new direction only when an action would:
+
+- Materially expand or change the agreed scope or outcome
+- Require an unresolved product or technical decision with materially different consequences
+- Cause destructive or irreversible loss of application data, user data, environment state, untracked files, or uncommitted work
+- Access, read, reveal, use, expose, or transmit credentials or other secrets unless that credential action was explicitly included in CSJ's agreement
+- Affect production or a third-party system
+- Commit, push, or deploy unless that action was explicitly included in the agreement
+
+Runtime security controls remain authoritative. If the platform itself requires approval or elevation for an already-authorised action, invoke its approval mechanism directly with the narrowest permission required; do not add a separate conversational permission round first.
+
+## Phase 5: Auto-continue (NON-NEGOTIABLE)
+
+After printing the Phase 4 report, check the handover and current context for the standing-authorisation trigger above. When either records CSJ's explicit approval or implementation direction, **immediately** begin executing the authorised "Pick up from here" / "Next session should" items without another permission round. If that evidence is absent from both, do not treat `start session` alone as approval of proposed implementation: continue safe investigation and diagnostics, then ask CSJ for direction before task-specific file changes or other implementation actions.
+
+### Behaviour matrix
+
+| Handover state | Action |
+|---|---|
+| Concrete next action ("Run X, fix Y") | If the handover or current context records CSJ's approval or implementation direction, start immediately. Otherwise inspect safely and ask before task-specific changes. |
+| Multi-step plan ("Phases 4–7 of plan.md") | Open the plan and find the next unchecked task. Execute it immediately only when the handover or current context records the standing-authorisation trigger; otherwise investigate and ask before implementation. |
+| WIP commit present (`wip: context-handover snapshot`) | Review it via `git show HEAD --stat`. Continue its implementation only when the handover or current context records approval or implementation direction; otherwise limit work to safe inspection and ask before changes. |
+| Decision flagged ("Path A or B?") | If the handover or current context records CSJ's decision or a direction explicitly agreed by CSJ, proceed with it. If the choice is genuinely unresolved and has materially different consequences, ask CSJ for new direction while continuing any unblocked work. |
+| No clear next action | Read more code or run a safe diagnostic to gather context. Start the next implementation action only when the handover or current context records standing authorisation; otherwise propose it concisely and ask CSJ for direction before task-specific changes. |
+
+### Hard rules
+
+- **No "want me to continue?" for authorised work** — when the handover or current context records the standing-authorisation trigger, auto-continue is the contract.
+- **No "let me know when you're ready" for authorised work** — `start session` begins bootstrap, but only recorded approval or implementation direction authorises proposed implementation.
+- **No re-asking decisions the previous session already answered.** If "The thread" section shows a decision was made, treat it as final.
+- **If you hit a blocker outside standing authorisation** (for example an unapproved credential action, destructive loss, production/third-party effect, publication action, or materially consequential unresolved decision), ask CSJ concisely and proceed with whatever investigative work is unblocked while waiting.
+- **Do NOT re-run tests or seed the DB again** — Phase 1c already seeded; running tests is part of the actual work, not bootstrapping.
+- **Loop until correct (CLAUDE.md Rule #15)** — if the next action is "make BS-NN green", you loop until green per the plan, no early exit.
 
 ## What NOT to do
 
@@ -193,8 +240,10 @@ Present this concise summary to CSJ. No filler.
 - Do NOT Read `fynlaDesignGuide.md` until UI work starts
 - Do NOT skip Phase 2a — the latest handover MUST be read in full every session
 - Do NOT bulk-Read every file in the latest vault session folder — only the handover is mandatory; specs / plans / audits / screenshots are read on-demand via the Phase 3 lookup map
-- Do NOT make code changes during session start — this is diagnostic only
+- Do NOT make task-specific source changes during Phases 1–4. Prescribed Git synchronization may update tracked files; Phase 5 implementation follows the standing-authorisation rules above
 - Do NOT auto-delete branches or worktrees with uncommitted work (the handover often flags worktrees that must stay alive)
-- Do NOT pick a path / make a decision on the user's behalf if the handover surfaces one for them — surface it verbatim and wait
+- Do NOT stop after Phase 4 for work the handover or current context records as approved — auto-continue per Phase 5. If approval or implementation direction is not recorded in either, continue safe investigation and ask before task-specific implementation
+- Do NOT re-ask decisions the previous session already answered. If the handover's "The thread" shows a decision was made, treat it as final
+- If a choice is genuinely unresolved and has materially different consequences, ask CSJ for new direction while continuing any safe work that does not depend on the choice
 - Do NOT run `migrate:fresh` or `migrate:refresh`
 - Do NOT skip `db:seed`

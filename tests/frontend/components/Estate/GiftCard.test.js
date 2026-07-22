@@ -3,9 +3,15 @@ import { mount } from '@vue/test-utils';
 import GiftCard from '@/components/Estate/GiftCard.vue';
 
 describe('GiftCard', () => {
+  const dateYearsAgo = (years) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - Math.round(years * 12));
+    return date.toISOString().split('T')[0];
+  };
+
   const mockRecentGift = {
     id: 1,
-    gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 2)).toISOString().split('T')[0],
+    gift_date: dateYearsAgo(2),
     recipient: 'John Smith',
     gift_value: 50000,
     gift_type: 'pet',
@@ -13,7 +19,7 @@ describe('GiftCard', () => {
 
   const mockTaperGift = {
     id: 2,
-    gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 5)).toISOString().split('T')[0],
+    gift_date: dateYearsAgo(5),
     recipient: 'Jane Doe',
     gift_value: 75000,
     gift_type: 'pet',
@@ -21,7 +27,7 @@ describe('GiftCard', () => {
 
   const mockSurvivedGift = {
     id: 3,
-    gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 8)).toISOString().split('T')[0],
+    gift_date: dateYearsAgo(8),
     recipient: 'Bob Johnson',
     gift_value: 100000,
     gift_type: 'pet',
@@ -121,7 +127,7 @@ describe('GiftCard', () => {
   it('calculates taper relief percentage correctly for 3-4 years', () => {
     const giftAt35Years = {
       id: 100,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 3.5)).toISOString().split('T')[0],
+      gift_date: dateYearsAgo(3.5),
       recipient: 'Test',
       gift_value: 50000,
       gift_type: 'pet',
@@ -139,7 +145,7 @@ describe('GiftCard', () => {
   it('calculates taper relief percentage correctly for 4-5 years', () => {
     const giftAt45Years = {
       id: 101,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 4.5)).toISOString().split('T')[0],
+      gift_date: dateYearsAgo(4.5),
       recipient: 'Test',
       gift_value: 50000,
       gift_type: 'pet',
@@ -157,7 +163,7 @@ describe('GiftCard', () => {
   it('calculates taper relief percentage correctly for 5-6 years', () => {
     const giftAt55Years = {
       id: 102,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 5.5)).toISOString().split('T')[0],
+      gift_date: dateYearsAgo(5.5),
       recipient: 'Test',
       gift_value: 50000,
       gift_type: 'pet',
@@ -175,7 +181,7 @@ describe('GiftCard', () => {
   it('calculates taper relief percentage correctly for 6-7 years', () => {
     const giftAt65Years = {
       id: 103,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 6.5)).toISOString().split('T')[0],
+      gift_date: dateYearsAgo(6.5),
       recipient: 'Test',
       gift_value: 50000,
       gift_type: 'pet',

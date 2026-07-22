@@ -31,6 +31,7 @@
       <nav class="site-footer__col" aria-label="Help centre links">
         <h3 class="site-footer__heading">Help centre</h3>
         <ul class="site-footer__list">
+          <li><a href="/help" class="site-footer__link">Help centre</a></li>
           <li><a href="/faq" class="site-footer__link">FAQs</a></li>
           <li><a href="/learn" class="site-footer__link">Guides and explainers</a></li>
           <li><a href="/contact" class="site-footer__link">Contact us</a></li>

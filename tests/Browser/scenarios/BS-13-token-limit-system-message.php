@@ -50,7 +50,7 @@ declare(strict_types=1);
  *   Test fixture (mirrors the BS-13 stub's documented Pest setup):
  *     AiDailyUsage::updateOrCreate(
  *       ['user_id' => 352, 'usage_date' => today()],
- *       ['tokens_used' => 1_000_000]   // exactly the trial cap
+ *       ['tokens_used' => 1_000_000]   // reaches the daily hard backstop
  *     );
  *
  *   Walked the canonical advice-mode flow at /dashboard, sent

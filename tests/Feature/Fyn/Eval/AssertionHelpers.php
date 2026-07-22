@@ -570,6 +570,72 @@ final class AssertionHelpers
     }
 
     /**
+     * Assemble the `content` event text into one string per turn.
+     *
+     * Multi-turn golden scenarios drive one send_message per turn; the eval
+     * driver returns a per-turn list of SSE event arrays. This flattens each
+     * turn's `content` events into a single string so per-turn assistant-text
+     * rules can be evaluated against the right turn.
+     *
+     * @param  list<list<array<string, mixed>>>  $eventsByTurn
+     * @return list<string>
+     */
+    public static function assembleContentByTurn(array $eventsByTurn): array
+    {
+        $texts = [];
+        foreach ($eventsByTurn as $turnEvents) {
+            $buffer = '';
+            foreach ($turnEvents as $event) {
+                if (($event['type'] ?? null) === 'content' && isset($event['text'])) {
+                    $buffer .= (string) $event['text'];
+                }
+            }
+            $texts[] = $buffer;
+        }
+
+        return $texts;
+    }
+
+    /**
+     * Assert per-turn assistant-text rules against the per-turn text list.
+     *
+     * Each rule is `{turn: N (1-based), ...}` where the remaining keys are the
+     * same shape `assertAssistantTextRules` understands (must_contain_substrings,
+     * must_contain_at_least_one_of, must_not_contain_substrings, exact_match,
+     * minimum/maximum_length_chars). The turn number is resolved to
+     * $perTurnTexts[N-1]; a failure is prefixed with the turn it occurred on so
+     * the operator can see which turn of the journey broke.
+     *
+     * @param  list<array<string, mixed>>  $turnRules
+     * @param  list<string>  $perTurnTexts
+     * @return array{0: bool, 1: string}
+     */
+    public static function assertTurnAssistantTextRules(array $turnRules, array $perTurnTexts): array
+    {
+        foreach ($turnRules as $i => $rule) {
+            $turn = $rule['turn'] ?? null;
+            if (! is_int($turn) || $turn < 1) {
+                return [false, "turn_assertions[{$i}] requires a positive 1-based 'turn' number, got ".var_export($turn, true)];
+            }
+
+            $count = count($perTurnTexts);
+            if ($turn > $count) {
+                return [false, "turn_assertions[{$i}] targets turn {$turn} but only {$count} turn(s) were captured"];
+            }
+
+            $textRules = $rule;
+            unset($textRules['turn']);
+
+            [$ok, $detail] = self::assertAssistantTextRules($textRules, $perTurnTexts[$turn - 1]);
+            if (! $ok) {
+                return [false, "turn {$turn}: {$detail}"];
+            }
+        }
+
+        return [true, ''];
+    }
+
+    /**
      * Assert actual duration falls within the per-provider per-path budget.
      *
      * Budget shape: { anthropic: { path: ms, ... }, xai: { path: ms, ... } }

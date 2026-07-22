@@ -1,3 +1,7 @@
+// MUST be first — adopts the /m mobile token into sessionStorage before the
+// Vuex store reads it synchronously on init. See mScaffoldBridge.js.
+import './mScaffoldBridge';
+
 import './bootstrap';
 
 // Unregister any stale service workers from previous PWA-enabled builds.
@@ -123,7 +127,11 @@ async function initAndMount() {
     await router.isReady();
     logger.debug('App Init', 'Step 8: Router ready, current route:', router.currentRoute.value.path);
   } catch (e) {
-    console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
+    if (window.__fynlaMobileHandoffPending) {
+      logger.debug('App Init', 'Step 8: Router navigation replaced by the mobile handoff');
+    } else {
+      console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
+    }
   }
 
 }

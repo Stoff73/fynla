@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Goals\GoalCalculationService;
 use App\Traits\Auditable;
@@ -18,7 +19,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Goal extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, HasJointOwnership, SoftDeletes;
+
+    public function gamificationCategory(): string
+    {
+        return 'goal';
+    }
 
     /**
      * @var array<int, string>

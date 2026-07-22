@@ -1,0 +1,176 @@
+version: 1
+source:
+  ref: origin/main
+  commit: 2e8357bef1c453da40e2c1991a462d8914b262e5
+
+artifacts:
+  - {path: July/July1Updates/handover-2026-07-01-session-1.md, kind: handover, disposition: evidence_only, source_blob: 5608f8eca0e5088bab736b4105f31767a70c13ff, programme_tasks: [], proof: []}
+  - {path: July/July3Updates/campaign-blueprint.md, kind: architecture_contract, disposition: delivered, source_blob: 692c33e96f69c60d40f7b303b897c27066c8b91e, programme_tasks: [24, 25, 29, 31, 32], proof: [3b0828e, 9872133, 9c9e7d2]}
+  - {path: July/July3Updates/campaign-playbook.md, kind: architecture_contract, disposition: delivered, source_blob: 2b7c5b637f0004b477e0ce7856b954d4363d53c6, programme_tasks: [24, 25, 29, 31, 32], proof: [9872133, 9c9e7d2]}
+  - {path: July/July3Updates/gamification-recs-tasks-map.md, kind: defect_map, disposition: delivered, source_blob: a78b2f2e68322a203cf698ae2955c35e6510f049, programme_tasks: [24, 25, 29], proof: [3d8d2b0, 21fb225, 1e00278, 8805b5b, c50128d, b12102a]}
+  - {path: July/July3Updates/handover-2026-07-03-session-1-clear-precompact.md, kind: handover, disposition: evidence_only, source_blob: fafdcef70d936cbcc47f03c155072ef56d88c620, programme_tasks: [], proof: []}
+  - {path: July/July3Updates/handover-2026-07-03-session-2-clear.md, kind: handover, disposition: evidence_only, source_blob: 3aa93498d09c44e0d877911f45340e9a88932fcb, programme_tasks: [], proof: []}
+  - {path: July/July3Updates/issues.md, kind: acceptance_evidence, disposition: delivered, source_blob: fd345a58588a854ac01ccec26c642ba8a74339d2, programme_tasks: [24, 25, 29], proof: [3b0828e]}
+  - {path: July/July3Updates/pension-campaign-map.md, kind: implementation_map, disposition: delivered, source_blob: b697cf2ba1a9b5e3353df3eb3a220a23a73f86cf, programme_tasks: [24, 25, 29], proof: [9872133, b980709, a6e3705, 6f965f1]}
+  - {path: July/July3Updates/pension-campaign-plan.md, kind: implementation_plan, disposition: delivered, source_blob: 0c7886f9abcf356d9f89b61e7427e4d67802fb8b, programme_tasks: [24, 25, 29], proof: [9872133, b980709, a6e3705, 6f965f1]}
+  - {path: July/July3Updates/savetax-recs-gamification-map.md, kind: regression_contract, disposition: continuation, source_blob: e179841c2b53ff1d786b5683ab1826e584cb284d, programme_tasks: [24, 25, 29, 31, 32], proof: [3d8d2b0, 21fb225, 1e00278, 8805b5b, c50128d, b12102a, 9c9e7d2]}
+  - {path: July/July3Updates/screenShots/accountEdit.jpeg, kind: screenshot, disposition: evidence_only, source_blob: 62edab61831ef0ec7f89faece9dfcca299cf2bf7, programme_tasks: [], proof: []}
+  - {path: July/July3Updates/screenShots/dateOfBirth.jpeg, kind: screenshot, disposition: evidence_only, source_blob: 269139d57fa5090129dfd2e36f69340d7dc48883, programme_tasks: [], proof: []}
+  - {path: July/July3Updates/screenShots/fix1-reg-error-savannah.png, kind: screenshot, disposition: evidence_only, source_blob: 74fd48ea9ebe9cbc1a90571d28cb7ce1a62a2ea0, programme_tasks: [], proof: []}
+  - {path: July/July3Updates/wp5c-milestones-spec.md, kind: implementation_spec, disposition: continuation, source_blob: 82efc5281dbe1f394a885e033cba91cf16877674, programme_tasks: [24, 25, 29], proof: [2bbb301, a4b202f, c836fb9]}
+  - {path: July/July4Updates/pensioncheck-feature-notes-user.md, kind: delivery_notes, disposition: evidence_only, source_blob: bd3a22018cd7af118b49decb83de3408ede40c53, programme_tasks: [29], proof: [9872133, b980709, a6e3705, 6f965f1]}
+  - {path: July/July4Updates/pensioncheck-patch-notes-technical.md, kind: delivery_proof, disposition: delivered, source_blob: 7de06a6a6c6afb030180300d7c24a1e00cb29140, programme_tasks: [24, 25, 29], proof: [9872133, b980709, a6e3705, 6f965f1]}
+  - {path: July/July4Updates/proposed-fyn-refusal-carveout.patch, kind: proposed_patch, disposition: superseded, source_blob: 2cc92b7abd5d2183ac2d77c2df5c915cb03f3bd6, programme_tasks: [], proof: []}
+  - {path: July/July5Updates/handover-2026-07-05-session-1.md, kind: handover, disposition: evidence_only, source_blob: bba636f3fb8c27cea738aa8484a4ff01668cccc7, programme_tasks: [], proof: []}
+  - {path: July/July6Updates/estate-campaign-plan.md, kind: implementation_plan, disposition: continuation, source_blob: 3e11d2e154a08f274f9e193c2c390b602e43edf2, programme_tasks: [32], proof: []}
+  - {path: July/July6Updates/estate-campaign-spec.md, kind: implementation_spec, disposition: continuation, source_blob: 860d087999599a76f301abe669f53dea8c0c60bf, programme_tasks: [32], proof: []}
+  - {path: July/July6Updates/full-app-audit-2026-07-06.md, kind: audit, disposition: launch_remediation, source_blob: 31a7d28fa1e017f75077bc7756f0d01d7264cf31, programme_tasks: [13, 14, 17, 19, 20, 24], proof: [c025e41, d55cb0c]}
+  - {path: July/July6Updates/handover-2026-07-06-session-1-clear.md, kind: handover, disposition: evidence_only, source_blob: 2fb166f47f35c8f7afcbce9605e460d5046d56d6, programme_tasks: [], proof: []}
+  - {path: July/July6Updates/handover-2026-07-07-session-1-clear.md, kind: handover, disposition: evidence_only, source_blob: 5700847d85f702f5215281efaeb1e19a978162f2, programme_tasks: [], proof: []}
+  - {path: July/July6Updates/investment-campaign-plan.md, kind: implementation_plan, disposition: continuation, source_blob: 4bd75d153c8cc62cf7c0e1cc02a0a53f4ae70d3c, programme_tasks: [31], proof: []}
+  - {path: July/July6Updates/investment-campaign-spec.md, kind: implementation_spec, disposition: continuation, source_blob: 89474d7be754055b404cb1d67e8085f607b8e4cf, programme_tasks: [31], proof: []}
+  - {path: July/July6Updates/pensionCampaign.md, kind: regression_contract, disposition: delivered, source_blob: a7acccda667b85591619d925fa96cca04f3dc8a3, programme_tasks: [24, 25, 29], proof: [9872133, b980709, a6e3705, 6f965f1, 9c9e7d2]}
+  - {path: July/July6Updates/saveTax.md, kind: regression_contract, disposition: delivered, source_blob: 1669064bb4ed92d25512df6c728d95ce42cc43e7, programme_tasks: [24, 25, 29], proof: [3b0828e, 3d8d2b0, 21fb225, 1e00278, 8805b5b, c50128d, b12102a, 9c9e7d2]}
+  - {path: July/July7Updates/blindspot-audit-2026-07-07.md, kind: audit, disposition: launch_remediation, source_blob: 71cd78c5e35cdd5593a861ac2129dd01987646cc, programme_tasks: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23], proof: []}
+  - {path: July/July7Updates/blindspot-remediation-plan.md, kind: implementation_plan, disposition: launch_remediation, source_blob: e5cf4034cfa0f8cfab071726a53b8a19754492ec, programme_tasks: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23], proof: []}
+  - {path: July/July7Updates/blindspot-remediation-spec.md, kind: implementation_spec, disposition: launch_remediation, source_blob: f4e86b38507dfcbbf952f2202a775e01e475c436, programme_tasks: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23], proof: []}
+  - {path: July/July7Updates/fyn-ai-blindspot-map.md, kind: audit, disposition: launch_remediation, source_blob: d3b49cf5742880eebb73ce7d8eecf2ee9031a1e3, programme_tasks: [8, 9, 10, 22, 30], proof: []}
+  - {path: July/July7Updates/fyn-ai-prompting-playbook.md, kind: remediation_playbook, disposition: delivered, source_blob: 2da74bb19ac829ecb7484953c4b09c3052f2e75b, programme_tasks: [8, 9, 10, 22, 30], proof: [e7041e1]}
+  - {path: July/July7Updates/fyn-ai-remediation-plan.md, kind: implementation_plan, disposition: launch_remediation, source_blob: c9123b447a44655042c4a614f785898e75d3e1f1, programme_tasks: [8, 9, 10, 22, 30], proof: []}
+  - {path: July/July7Updates/fyn-ai-remediation-spec.md, kind: implementation_spec, disposition: launch_remediation, source_blob: 4aeb3792b0bc37810f08f88fa574e1ad1a2fe5f1, programme_tasks: [8, 9, 10, 22, 30], proof: []}
+
+work_packages:
+  # SaveTax and gamification delivery/regression packages
+  - {id: JULY-GAM-WP1, source_path: July/July3Updates/gamification-recs-tasks-map.md, source_heading: "WP-1 Capture integrity (P0)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [3d8d2b0, cb9f6a8]}
+  - {id: JULY-GAM-WP2, source_path: July/July3Updates/gamification-recs-tasks-map.md, source_heading: "WP-2 One actions model", disposition: delivered, programme_tasks: [24, 25, 29], proof: [21fb225, aa945b4]}
+  - {id: JULY-GAM-WP3, source_path: July/July3Updates/gamification-recs-tasks-map.md, source_heading: "WP-3 History feed", disposition: delivered, programme_tasks: [24, 25, 29], proof: [1e00278, 6888043]}
+  - {id: JULY-GAM-WP4, source_path: July/July3Updates/gamification-recs-tasks-map.md, source_heading: "WP-4 Achievements tidy", disposition: delivered, programme_tasks: [24, 25, 29], proof: [8805b5b, 7bc9c3f]}
+  - {id: JULY-GAM-WP5, source_path: July/July3Updates/gamification-recs-tasks-map.md, source_heading: "WP-5 Milestones expansion", disposition: delivered, programme_tasks: [24, 25, 29], proof: [c50128d, 9d04e26]}
+  - {id: JULY-GAM-WP6, source_path: July/July3Updates/gamification-recs-tasks-map.md, source_heading: "WP-6 SaveTax landing state", disposition: delivered, programme_tasks: [24, 25, 29], proof: [b12102a, 664d0c7]}
+  - {id: JULY-SAVETAX-GAPS, source_path: July/July3Updates/savetax-recs-gamification-map.md, source_heading: "7. Integration gaps (the honest list)", disposition: continuation, programme_tasks: [29], proof: []}
+  - {id: JULY-SAVETAX-COPY, source_path: July/July3Updates/savetax-recs-gamification-map.md, source_heading: "8. Copy-across checklist for future campaigns", disposition: continuation, programme_tasks: [29, 31, 32], proof: []}
+
+  # Pension campaign executable headings
+  - {id: JULY-PENSION-A1, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A1: Generalise `campaign_map` values to arrays (G1)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A2, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A2: `users.active_campaign` column", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A3, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A3: Dispatch guard OR-branch", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A4, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A4: `onboarding/start` re-entry branch (replaces the 409 for re-entry campaigns)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A5, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A5: Exit paths null `active_campaign`", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A6, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A6: Stamp `funnel_answers.campaign` (G2)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A7, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A7: /m passes `from` through to start; G6 affinity parameterised", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-A8, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task A8: Amend the canonical contract + regression sweep", disposition: delivered, programme_tasks: [24, 25, 29], proof: [9872133]}
+  - {id: JULY-PENSION-B1, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task B1: `PensionEstimateService`", disposition: delivered, programme_tasks: [24, 25, 29], proof: [b980709]}
+  - {id: JULY-PENSION-B2, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task B2: Funnel page + plan page + JS", disposition: delivered, programme_tasks: [24, 25, 29], proof: [b980709]}
+  - {id: JULY-PENSION-B3, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task B3: Routes", disposition: delivered, programme_tasks: [24, 25, 29], proof: [b980709]}
+  - {id: JULY-PENSION-B4, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task B4: Homepage CTA block", disposition: delivered, programme_tasks: [24, 25, 29], proof: [b980709]}
+  - {id: JULY-PENSION-C1, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task C1: Per-campaign section machinery (G3)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a6e3705]}
+  - {id: JULY-PENSION-C2, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task C2: Data-presence skip predicates", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a6e3705]}
+  - {id: JULY-PENSION-C3, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task C3: New states — in-code + corpus in lockstep (F15)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a6e3705]}
+  - {id: JULY-PENSION-C4, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task C4: New capture tools", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a6e3705]}
+  - {id: JULY-PENSION-C5, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task C5: Carry-forward gate + advice + synthesis", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a6e3705]}
+  - {id: JULY-PENSION-C6, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Task C6: Existing-user recap builder + re-entry entry state (G5)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a6e3705]}
+  - {id: JULY-PENSION-D, source_path: July/July3Updates/pension-campaign-plan.md, source_heading: "Slice D — E2E verification gate (csjones; no code — Browser Testing Law applies)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [6f965f1]}
+
+  # WP-5c milestone catalogue, pages and nudges
+  - {id: JULY-WP5C-TAX, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "3.1 Tax (SaveTax campaign core)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-SAVINGS, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "3.2 Savings", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-RETIREMENT, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "3.3 Retirement", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-PROTECTION-ESTATE, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "3.4 Protection & Estate", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-DEBT-PROPERTY, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "3.5 Debt & Property", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-JOURNEY, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "3.6 Journey", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-UPCOMING, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "4. Upcoming milestones (`upcoming()`) — expansion", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a4b202f]}
+  - {id: JULY-WP5C-CAPS, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "5. Caps — where they stay and where they go", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a4b202f]}
+  - {id: JULY-WP5C-NUDGES, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "6. Nudge wiring", disposition: delivered, programme_tasks: [24, 25, 29], proof: [c836fb9]}
+  - {id: JULY-WP5C-I, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "8. Delivery shape (once approved)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [2bbb301]}
+  - {id: JULY-WP5C-II, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "8. Delivery shape (once approved)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [a4b202f]}
+  - {id: JULY-WP5C-III, source_path: July/July3Updates/wp5c-milestones-spec.md, source_heading: "8. Delivery shape (once approved)", disposition: delivered, programme_tasks: [24, 25, 29], proof: [c836fb9]}
+
+  # Unbuilt continuation campaign plans
+  - {id: JULY-INV-A, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "Slice A — substrate wiring", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-B, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "Slice B — public surfaces", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-C1, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "C1. New tools: NONE", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-C2, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "C2. Store reader (StoreBoundary rule)", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-C3, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "C3. State machine", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-C4, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "C4. Director", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-C5, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "C5. Flip re-entry on (`campaign_map` — deferred from A1)", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-C6, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "C6. Tests", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-INV-D, source_path: July/July6Updates/investment-campaign-plan.md, source_heading: "Slice D — the live E2E gate (csjones, real xAI, Playwright — Rule 14)", disposition: continuation, programme_tasks: [31], proof: []}
+  - {id: JULY-EST-A, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "Slice A — substrate wiring (small PR, config + one-line seams)", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-B, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "Slice B — public surfaces (funnel, plan page, estimate service, homepage card)", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-C1, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "C1. The one new tool: `capture_will_status`", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-C2, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "C2. State machine (`app/Services/Onboarding/OnboardingStateMachine.php`)", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-C3, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "C3. Director (`app/Services/Onboarding/OnboardingChatDirector.php`)", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-C4, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "C4. Flip re-entry on", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-C5, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "C5. Tests (clone the pensioncheck suites 1:1)", disposition: continuation, programme_tasks: [32], proof: []}
+  - {id: JULY-EST-D, source_path: July/July6Updates/estate-campaign-plan.md, source_heading: "Slice D — the live E2E gate (csjones, real xAI, Playwright — Rule 14 loop)", disposition: continuation, programme_tasks: [32], proof: []}
+
+  # Blind-spot remediation work packages
+  - {id: JULY-BS-A1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "A1 [INFRA] Install + configure Sentry", disposition: launch_remediation, programme_tasks: [11], proof: []}
+  - {id: JULY-BS-A2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "A2 [BE] Wire `reportable()` + PII scrubbing", disposition: launch_remediation, programme_tasks: [11], proof: []}
+  - {id: JULY-BS-A3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "A3 [INFRA] Add `sentry` log channel to the stack", disposition: launch_remediation, programme_tasks: [11], proof: []}
+  - {id: JULY-BS-A4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "A4 [BE] Scheduler failure hooks + overlap guards", disposition: launch_remediation, programme_tasks: [11], proof: []}
+  - {id: JULY-BS-A5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "A5 [BE] Scheduler heartbeat (Sentry cron monitor)", disposition: launch_remediation, programme_tasks: [11], proof: []}
+  - {id: JULY-BS-A6, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "A6 [BE] Failed-jobs watchdog", disposition: launch_remediation, programme_tasks: [11, 12], proof: []}
+  - {id: JULY-BS-B1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "B1 [INFRA] Ensure queue tables exist", disposition: launch_remediation, programme_tasks: [12], proof: []}
+  - {id: JULY-BS-B2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "B2 [INFRA] Switch driver + worker cron", disposition: launch_remediation, programme_tasks: [12], proof: []}
+  - {id: JULY-BS-B3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "B3 [BE] `failed()` handlers on every job", disposition: launch_remediation, programme_tasks: [12], proof: []}
+  - {id: JULY-BS-B4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "B4 [TEST] Async proof", disposition: launch_remediation, programme_tasks: [12], proof: []}
+  - {id: JULY-BS-C1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C1 [BE][FE][FE-m] Dashboard all-zero laundering", disposition: launch_remediation, programme_tasks: [14], proof: []}
+  - {id: JULY-BS-C2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C2 [BE] Dashboard alerts dropped", disposition: launch_remediation, programme_tasks: [14], proof: []}
+  - {id: JULY-BS-C3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C3 [BE] Strategy sources — no log", disposition: launch_remediation, programme_tasks: [11, 14], proof: []}
+  - {id: JULY-BS-C4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C4 [BE] IHT £0 laundering", disposition: launch_remediation, programme_tasks: [14], proof: []}
+  - {id: JULY-BS-C5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C5 [BE][FE-m] Mobile net worth £0", disposition: launch_remediation, programme_tasks: [14], proof: []}
+  - {id: JULY-BS-C6, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C6 [BE] Revolut cancel returns success on failure", disposition: launch_remediation, programme_tasks: [13], proof: []}
+  - {id: JULY-BS-C7, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C7 [BE] Revolut webhook returns 200 on processing failure", disposition: launch_remediation, programme_tasks: [13], proof: []}
+  - {id: JULY-BS-C8, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C8 [BE] Verification email success-on-failure", disposition: launch_remediation, programme_tasks: [13], proof: []}
+  - {id: JULY-BS-C9, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C9 [BE] pointerTools() silent strip", disposition: launch_remediation, programme_tasks: [11, 22], proof: []}
+  - {id: JULY-BS-C10, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "C10 [BE] TrustObserver CLT gift", disposition: launch_remediation, programme_tasks: [11, 19], proof: []}
+  - {id: JULY-BS-D1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "D1 [BE][TEST] Purge completeness audit + extension", disposition: launch_remediation, programme_tasks: [16], proof: []}
+  - {id: JULY-BS-D2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "D2 [BE] Hard-delete users row as final purge step + fix docblocks", disposition: launch_remediation, programme_tasks: [16], proof: []}
+  - {id: JULY-BS-D3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "D3 [BE][TEST] Joint-record purge = reassign to spouse", disposition: launch_remediation, programme_tasks: [16], proof: []}
+  - {id: JULY-BS-D4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "D4 [BE] fyn:user:erase FCA age guard", disposition: launch_remediation, programme_tasks: [16], proof: []}
+  - {id: JULY-BS-D5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "D5 [BE] Export cleanup", disposition: launch_remediation, programme_tasks: [16], proof: []}
+  - {id: JULY-BS-D6, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "D6 [BE] Fix the `salary`-column break + copy", disposition: launch_remediation, programme_tasks: [15], proof: []}
+  - {id: JULY-BS-E1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "E1 [BE] Write-time spouse validation (F1)", disposition: launch_remediation, programme_tasks: [17], proof: []}
+  - {id: JULY-BS-E2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "E2 [BE][TEST] Revoke on unlink (F3)", disposition: launch_remediation, programme_tasks: [17], proof: []}
+  - {id: JULY-BS-E3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "E3 [BE] Low-severity parity fixes (F5/F6/F7)", disposition: launch_remediation, programme_tasks: [17], proof: []}
+  - {id: JULY-BS-F1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F1 [BE] Date-driven activation", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F2 [BE] Seed 2027/28 + stop re-pinning", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F3 [ADMIN][FE] Admin config-authoring UI", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F4 [BE] Successor-config warning cron", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F5 [TEST] ISA reset proof", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F6, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F6 [BE][TEST] Boundary predicate bug (TB-4/TB-7)", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F7, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F7 [BE] Salary-sacrifice date-aware copy (TB-5)", disposition: launch_remediation, programme_tasks: [18], proof: []}
+  - {id: JULY-BS-F8, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F8 [BE] AI knowledge facts (TB-9)", disposition: launch_remediation, programme_tasks: [18, 22], proof: []}
+  - {id: JULY-BS-F9, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "F9 [BE] Fallback telemetry (TB-11)", disposition: launch_remediation, programme_tasks: [11, 18], proof: []}
+  - {id: JULY-BS-G1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "G1 [BE][FE-m] Cache invalidation for Property/Investment/Mortgage", disposition: launch_remediation, programme_tasks: [20], proof: []}
+  - {id: JULY-BS-G2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "G2 [BE] Server-side idempotency on module creates", disposition: launch_remediation, programme_tasks: [20], proof: []}
+  - {id: JULY-BS-G3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "G3 [BE][TEST] Lost-update locks", disposition: launch_remediation, programme_tasks: [20], proof: []}
+  - {id: JULY-BS-G4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "G4 [BE] Monte Carlo ownership race", disposition: launch_remediation, programme_tasks: [20], proof: []}
+  - {id: JULY-BS-G5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "G5 [BE] Inflight lock robustness", disposition: launch_remediation, programme_tasks: [20], proof: []}
+  - {id: JULY-BS-G6, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "G6 [BE] Atomic debounce marker", disposition: launch_remediation, programme_tasks: [20], proof: []}
+  - {id: JULY-BS-H1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "H1 [BE] PlanningProgressService distribution → scheduled aggregate", disposition: launch_remediation, programme_tasks: [21], proof: []}
+  - {id: JULY-BS-H2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "H2 [BE] Monte Carlo off the cold dashboard path", disposition: launch_remediation, programme_tasks: [21], proof: []}
+  - {id: JULY-BS-H3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "H3 [BE] Summariser scan + dispatch", disposition: launch_remediation, programme_tasks: [21], proof: []}
+  - {id: JULY-BS-H4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "H4 [BE] HasAiChat column list", disposition: launch_remediation, programme_tasks: [21], proof: []}
+  - {id: JULY-BS-H5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "H5 [BE] ai_messages created_at index / admin aggregate", disposition: launch_remediation, programme_tasks: [21], proof: []}
+  - {id: JULY-BS-H6, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "H6 [BE] Chunk audit purge + cap transcript", disposition: launch_remediation, programme_tasks: [21], proof: []}
+  - {id: JULY-BS-I1, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "I1 [TEST] IHT / RNRB taper", disposition: launch_remediation, programme_tasks: [19], proof: []}
+  - {id: JULY-BS-I2, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "I2 [TEST] Zero-test money services", disposition: launch_remediation, programme_tasks: [19], proof: []}
+  - {id: JULY-BS-I3, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "I3 [TEST] Kill cannot-fail tests", disposition: launch_remediation, programme_tasks: [19], proof: []}
+  - {id: JULY-BS-I4, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "I4 [TEST] Tax boundary inputs", disposition: launch_remediation, programme_tasks: [19], proof: []}
+  - {id: JULY-BS-I5, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "I5 [TEST][FE][FE-m] ownership.js + currency + taxConfig", disposition: launch_remediation, programme_tasks: [19], proof: []}
+  - {id: JULY-BS-J, source_path: July/July7Updates/blindspot-remediation-plan.md, source_heading: "WS-J — Framework EOL  (SEPARATE PROJECT — do NOT start here, D1)", disposition: launch_remediation, programme_tasks: [23], proof: []}
+
+  # Fyn remediation PR packages
+  - {id: JULY-FYN-PR1, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-1 — Gating principle: data-needed-only (WS-F1.1, F1.2) [P0]", disposition: launch_remediation, programme_tasks: [8], proof: []}
+  - {id: JULY-FYN-PR2, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-2 — Loop guards + validator collapse (WS-F1.3) [P0]", disposition: launch_remediation, programme_tasks: [9], proof: []}
+  - {id: JULY-FYN-PR3, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-3 — Overlays + eval + live verify (WS-F1.4, F1.5) [P0, closes the incident]", disposition: launch_remediation, programme_tasks: [10], proof: []}
+  - {id: JULY-FYN-PR4, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-4 — grok-4.3 reconciliation (WS-F2.1)", disposition: continuation, programme_tasks: [30], proof: []}
+  - {id: JULY-FYN-PR5, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-5 — OpenAI gpt-5-nano wiring (WS-F2.2)", disposition: continuation, programme_tasks: [30], proof: []}
+  - {id: JULY-FYN-PR6, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-6 — Gate truth (WS-F3)", disposition: launch_remediation, programme_tasks: [8, 22], proof: []}
+  - {id: JULY-FYN-PR7, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-7 — State hygiene (WS-F4, D9 required)", disposition: launch_remediation, programme_tasks: [10], proof: []}
+  - {id: JULY-FYN-PR8, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-8 — Surface parity (WS-F5; Rule 19)", disposition: launch_remediation, programme_tasks: [10], proof: []}
+  - {id: JULY-FYN-PR9, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-9 — Cache & figure truth (WS-F6)", disposition: launch_remediation, programme_tasks: [20, 22], proof: []}
+  - {id: JULY-FYN-PR10, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-10 — Corpus, scores & eval integrity (WS-F7)", disposition: launch_remediation, programme_tasks: [22], proof: []}
+  - {id: JULY-FYN-PR11, source_path: July/July7Updates/fyn-ai-remediation-plan.md, source_heading: "PR-11 — Compliance & lifecycle (WS-F8) — **decision-gated, do not start without CSJ**", disposition: launch_remediation, programme_tasks: [16, 22], proof: []}

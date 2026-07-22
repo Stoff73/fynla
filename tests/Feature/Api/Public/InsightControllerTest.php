@@ -34,10 +34,11 @@ it('returns featured article and two supporting articles', function () {
 });
 
 it('falls back to the latest published article as featured when nothing flagged is_featured', function () {
-    // InsightController::featured() falls back to the most-recently-published
-    // article when none is explicitly flagged, so the homepage hero always has
-    // content (see the comment on InsightController::featured). The remaining
-    // published articles fill the supporting slots.
+    // InsightController::featured() prefers an explicitly is_featured=true
+    // article but falls back to the most recently published one so the public
+    // homepage always has a featured article (1dba112, supersedes the earlier
+    // no-fallback contract from 5d3ac7f). The fallback never appears twice —
+    // supporting excludes it.
     $latest = InsightArticle::factory()->published()->create(['published_at' => now()->subHour()]);
     $older = InsightArticle::factory()->published()->create(['published_at' => now()->subDay()]);
 

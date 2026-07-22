@@ -11,7 +11,7 @@ class ProtectionActionDefinitionSeeder extends Seeder
 {
     public function run(): void
     {
-        $definitions = $this->getDefinitions();
+        $definitions = array_merge($this->getDefinitions(), $this->getStrategyDefinitions());
 
         foreach ($definitions as $definition) {
             ProtectionActionDefinition::updateOrCreate(
@@ -19,6 +19,76 @@ class ProtectionActionDefinitionSeeder extends Seeder
                 $definition
             );
         }
+    }
+
+    /**
+     * source='strategy' catalogue rows for the cross-module plan composer.
+     * strategy_type matches the slugs ProtectionRecommendationAdapter emits;
+     * required_data keys are drawn from ModuleAvailabilityProvider::forModule('protection'):
+     *   dependants_known, life_cover_in_force, income_known.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getStrategyDefinitions(): array
+    {
+        $rows = [
+            [
+                'strategy_type' => 'protection_life_cover_gap',
+                'category' => 'Life Insurance',
+                'priority' => 'high',
+                'claim_tier' => 'judgement',
+                'required_data' => ['dependants_known', 'income_known'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'protection_income_protection_gap',
+                'category' => 'Income Protection',
+                'priority' => 'high',
+                'claim_tier' => 'judgement',
+                'required_data' => ['income_known'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'protection_critical_illness_gap',
+                'category' => 'Critical Illness',
+                'priority' => 'medium',
+                'claim_tier' => 'judgement',
+                'required_data' => ['income_known'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'protection_policy_in_trust',
+                'category' => 'Trust Planning',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['life_cover_in_force'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+            [
+                'strategy_type' => 'protection_policy_review',
+                'category' => 'Policy Optimisation',
+                'priority' => 'low',
+                'claim_tier' => 'judgement',
+                'required_data' => ['life_cover_in_force'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+        ];
+
+        return array_map(static function (array $row): array {
+            return array_merge([
+                'key' => 'strategy_'.$row['strategy_type'],
+                'source' => 'strategy',
+                'title_template' => $row['strategy_type'],
+                'description_template' => 'Computed by the protection plan source.',
+                'action_template' => null,
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'coverage_increase',
+                'trigger_config' => [],
+                'is_enabled' => true,
+                'sort_order' => 200,
+                'notes' => 'Strategy catalogue row for the cross-module plan composer.',
+            ], $row);
+        }, $rows);
     }
 
     private function getDefinitions(): array

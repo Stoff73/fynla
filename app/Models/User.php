@@ -41,6 +41,7 @@ class User extends Authenticatable
         'mfa_secret',
         'mfa_recovery_codes',
         'password',
+        'apple_app_account_token',
         'last_active_at',
         'last_seen_at',
     ];
@@ -54,7 +55,12 @@ class User extends Authenticatable
         'id',
         'is_admin',
         'is_preview_user',
+        'is_advisor',        // Privilege flag — set only via markAsAdvisor()
+        'email_verified_at', // Verification state — never from request input
+        'mfa_enabled',       // Auth state — set individually by MFAService
+        'mfa_secret',         // Auth secret — set individually by MFAService
         'remember_token',
+        'apple_app_account_token',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -74,6 +80,7 @@ class User extends Authenticatable
         'locked_until',
         'last_failed_login_at',
         'national_insurance_number',
+        'apple_app_account_token',
     ];
 
     /**
@@ -154,6 +161,7 @@ class User extends Authenticatable
         'onboarding_completed_at' => 'datetime',
         'onboarding_asset_flags' => 'array',
         'onboarding_fyn_context' => 'array',
+        'funnel_answers' => 'array',
         'journey_states' => 'array',
         'journey_selections' => 'array',
         'life_stage_completed_steps' => 'array',
@@ -167,8 +175,6 @@ class User extends Authenticatable
         'info_guide_enabled' => 'boolean',
         // Dashboard preferences
         'dashboard_widget_order' => 'array',
-        // Subscription fields
-        'trial_ends_at' => 'datetime',
         // Lifecycle email e2e testing
         'is_lifecycle_test_user' => 'boolean',
         // SaveTax campaign — household tax-strategy
@@ -199,7 +205,7 @@ class User extends Authenticatable
      */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
     public function deletionReminderLog()
@@ -215,6 +221,21 @@ class User extends Authenticatable
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function premiumEntitlements(): HasMany
+    {
+        return $this->hasMany(PremiumEntitlement::class);
+    }
+
+    public function appleTransactions(): HasMany
+    {
+        return $this->hasMany(AppleTransaction::class);
+    }
+
+    public function appleNotificationRecoveries(): HasMany
+    {
+        return $this->hasMany(AppleNotificationRecovery::class);
     }
 
     /**
@@ -610,6 +631,11 @@ class User extends Authenticatable
     public function taxStrategyHouseholdInput(): HasOne
     {
         return $this->hasOne(TaxStrategyHouseholdInput::class);
+    }
+
+    public function gamification(): HasOne
+    {
+        return $this->hasOne(UserGamification::class);
     }
 
     /**

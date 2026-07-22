@@ -30,6 +30,8 @@ final class OnboardingValueInterpreter
      *
      * Accepted examples:
      *   "12 January 1985", "12/01/1985", "1985-01-12", "12 Jan 1980"
+     *   "19/02/82", "19 Feb 82" (two-digit years resolve to the century
+     *   giving an age inside the 18–105 bounds)
      *   "My date of birth is 12 March 1985 and I am married"
      *   "I was born on 12-03-1985", "12th March 1985", "March 12, 1985"
      *
@@ -61,14 +63,27 @@ final class OnboardingValueInterpreter
         try {
             // UK convention for slashed / dashed / dotted numeric dates:
             // "12/03/1985" is 12 March, not December 3rd. Carbon's default
-            // for "12/03/1985" is MDY, so handle DMY explicitly.
-            if (preg_match('#^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$#', $dateCandidate, $m) === 1) {
+            // for "12/03/1985" is MDY, so handle DMY explicitly. Two-digit
+            // years ("19/02/82") resolve to the century that gives a
+            // plausible age — strtotime's 00-69 → 20xx pivot would reject
+            // anyone born in the 1950s-60s who types '55.
+            if (preg_match('#^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})$#', $dateCandidate, $m) === 1) {
                 $d = (int) $m[1];
                 $mo = (int) $m[2];
-                $y = (int) $m[3];
-                if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                    $date = Carbon::create($y, $mo, $d, 0, 0, 0);
-                } else {
+                if ($d < 1 || $d > 31 || $mo < 1 || $mo > 12) {
+                    return null;
+                }
+                $date = strlen($m[3]) === 2
+                    ? self::resolveTwoDigitYearDob($d, $mo, (int) $m[3])
+                    : Carbon::create((int) $m[3], $mo, $d, 0, 0, 0);
+                if ($date === null) {
+                    return null;
+                }
+            } elseif (preg_match('#^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\.?,?\s+(\d{2})$#i', $dateCandidate, $m) === 1) {
+                // "19 Feb 82" — textual month with a two-digit year. Resolve
+                // the century by age bounds, then let Carbon parse the month.
+                $date = self::resolveTwoDigitYearTextualDob((int) $m[1], $m[2], (int) $m[3]);
+                if ($date === null) {
                     return null;
                 }
             } else {
@@ -96,9 +111,9 @@ final class OnboardingValueInterpreter
      *
      * Patterns, longest/most specific first so "12 March 1985" matches
      * before "March 1985" would swallow it:
-     *   - "12 March 1985" / "12th March 1985" / "12 Mar 1985"
+     *   - "12 March 1985" / "12th March 1985" / "12 Mar 1985" / "12 Mar 85"
      *   - "March 12 1985" / "March 12, 1985" / "Mar 12 1985"
-     *   - "12/03/1985" / "12-03-1985" / "12.03.1985"
+     *   - "12/03/1985" / "12-03-1985" / "12.03.1985" / "19/02/82"
      *   - "1985-03-12" / "1985/03/12"
      */
     private static function extractDateSubstring(string $text): ?string
@@ -106,19 +121,62 @@ final class OnboardingValueInterpreter
         $months = '(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)';
 
         $patterns = [
-            // DD Month YYYY — "12 March 1985", "12th March 1985", "12 Mar 1985"
-            '/\b(\d{1,2})(?:st|nd|rd|th)?\s+'.$months.'\s+\d{4}\b/i',
+            // DD Month YYYY / DD Month YY — "12 March 1985", "12 Mar 85"
+            '/\b(\d{1,2})(?:st|nd|rd|th)?\s+'.$months.'\s+(?:\d{4}|\d{2})\b/i',
             // Month DD YYYY — "March 12 1985", "March 12, 1985"
             '/\b'.$months.'\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b/i',
             // YYYY-MM-DD / YYYY/MM/DD
             '/\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b/',
-            // DD/MM/YYYY / DD-MM-YYYY / DD.MM.YYYY
-            '/\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}\b/',
+            // DD/MM/YYYY / DD-MM-YYYY / DD.MM.YYYY / DD/MM/YY
+            '/\b\d{1,2}[\/\-.]\d{1,2}[\/\-.](?:\d{4}|\d{2})\b/',
         ];
 
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $text, $m) === 1) {
                 return $m[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve a two-digit birth year to the century that gives an age inside
+     * the DOB bounds (18–105). Exactly one century can qualify — the two
+     * candidates are 100 years apart. Returns null when neither does.
+     */
+    private static function resolveTwoDigitYearDob(int $day, int $month, int $twoDigitYear): ?Carbon
+    {
+        foreach ([1900 + $twoDigitYear, 2000 + $twoDigitYear] as $year) {
+            try {
+                $candidate = Carbon::create($year, $month, $day, 0, 0, 0);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $age = $candidate->diffInYears(Carbon::now());
+            if (! $candidate->isFuture() && $age >= self::MIN_AGE_YEARS && $age <= self::MAX_AGE_YEARS) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * "19 Feb 82" — resolve the two-digit year by age bounds, delegating the
+     * month-name parse to Carbon on the expanded candidate string.
+     */
+    private static function resolveTwoDigitYearTextualDob(int $day, string $monthWord, int $twoDigitYear): ?Carbon
+    {
+        foreach ([1900 + $twoDigitYear, 2000 + $twoDigitYear] as $year) {
+            try {
+                $candidate = Carbon::parse("{$day} {$monthWord} {$year}");
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $age = $candidate->diffInYears(Carbon::now());
+            if (! $candidate->isFuture() && $age >= self::MIN_AGE_YEARS && $age <= self::MAX_AGE_YEARS) {
+                return $candidate;
             }
         }
 

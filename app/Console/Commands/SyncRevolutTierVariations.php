@@ -11,8 +11,8 @@ use Illuminate\Console\Command;
 /**
  * Scheduled command that runs RevolutTierVariationSync.
  *
- * Schedule: weekly (alongside CheckOverdueSubscriptions / SyncRevolutPlans
- * cadence — tier prices change rarely; weekly is sufficient).
+ * Schedule: weekly (alongside CheckOverdueSubscriptions cadence — tier
+ * prices change rarely; weekly is sufficient).
  *
  * Usage:
  *   php artisan tier:sync-revolut              # Use system actor (User id=1)

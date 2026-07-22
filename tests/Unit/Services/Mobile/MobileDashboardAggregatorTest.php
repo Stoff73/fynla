@@ -8,6 +8,7 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Models\DCPension;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
@@ -87,6 +88,75 @@ describe('getAggregatedDashboard', function () {
 
         expect($protection['status'])->toBe('active')
             ->and($protection)->toHaveKeys(['total_coverage', 'critical_gaps', 'has_income_protection']);
+    });
+
+    it('maps total_coverage from the coverage key the analyzer actually emits (regression: total_life_cover never existed)', function () {
+        $user = User::factory()->create();
+        setupAllAgentMocks($this, $user->id);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        // fakeProtectionAnalysis emits life_coverage/total_coverage = 500000. The card
+        // must read a non-zero coverage figure, not 0 (the total_life_cover bug).
+        expect($result['modules']['protection']['total_coverage'])->toBe(500000.0);
+    });
+
+    it('surfaces the current DC pension pot as the retirement headline value', function () {
+        $user = User::factory()->create();
+        setupAllAgentMocks($this, $user->id);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        // fakeRetirementAnalysis has current_dc_value = 45000; the card headline binds
+        // to pot_value, not income_gap (which is 0 whenever no target is captured).
+        expect($result['modules']['retirement']['pot_value'])->toBe(45000.0);
+    });
+
+    it('retains the known pension pot when retirement goals are not configured', function () {
+        $user = User::factory()->create();
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'current_fund_value' => 47500,
+        ]);
+
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeProtectionAnalysis());
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([
+            'success' => false,
+            'message' => 'No retirement profile found',
+            'data' => [],
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->with($user->id)->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['retirement']['status'])->toBe('not_configured')
+            ->and($result['modules']['retirement']['pot_value'])->toBe(47500.0)
+            ->and($result['net_worth']['breakdown']['assets']['pensions'])->toBe(47500.0);
+    });
+
+    it('reports not_configured when the readiness gate blocks the protection agent', function () {
+        $user = User::factory()->create();
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn([
+            'success' => true,
+            'message' => 'Readiness check incomplete',
+            'data' => ['can_proceed' => false, 'coverage' => null, 'gaps' => null, 'policies' => null],
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeRetirementAnalysis());
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['protection']['status'])->toBe('not_configured');
     });
 
     it('extracts savings summary correctly', function () {
@@ -375,7 +445,7 @@ describe('fyn insight generation', function () {
             'success' => true,
             'message' => 'OK',
             'data' => [
-                'coverage' => ['total_life_cover' => 100000, 'income_protection_coverage' => 0],
+                'coverage' => ['life_coverage' => 100000, 'total_coverage' => 100000, 'income_protection_coverage' => 0],
                 'gaps' => [
                     'life' => ['gap' => 50000],
                     'income_protection' => ['gap' => 20000],
@@ -443,8 +513,10 @@ function fakeProtectionAnalysis(): array
         'success' => true,
         'message' => 'Protection analysis completed successfully.',
         'data' => [
+            // Keys as CoverageGapAnalyzer::calculateTotalCoverage() actually emits them.
             'coverage' => [
-                'total_life_cover' => 500000,
+                'life_coverage' => 500000,
+                'total_coverage' => 500000,
                 'income_protection_coverage' => 30000,
             ],
             'gaps' => [
@@ -501,6 +573,7 @@ function fakeRetirementAnalysis(): array
             'summary' => [
                 'years_to_retirement' => 15,
                 'target_retirement_age' => 65,
+                'current_dc_value' => 45000,
                 'projected_retirement_income' => 35000,
                 'target_retirement_income' => 40000,
                 'income_gap' => 5000,

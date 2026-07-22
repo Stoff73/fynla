@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -54,7 +55,7 @@ class SavingsAccountFactory extends Factory
             'account_type' => 'cash_isa',
             'is_isa' => true,
             'isa_type' => 'cash',
-            'isa_subscription_year' => '2025-26',
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
             'isa_subscription_amount' => fake()->randomFloat(2, 1000, 20000),
             // Explicit: ISAs are individual-only.
             'ownership_type' => 'individual',

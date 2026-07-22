@@ -4,14 +4,12 @@
  * Surfaces the user's freemium count caps to views so a capped "Add" action can
  * show an upgrade modal up front instead of letting the user fill a form that
  * fails server-side (SP2 spec §8.3). Caps come from `auth.subscriptionData`
- * (the `/payment/trial-status` payload, single source of truth —
+ * (the `/payment/subscription-status` payload, single source of truth —
  * `tier_configurations.count_caps`). A null/absent cap means unlimited.
  */
 const TIER_LABELS = {
   free: 'Free',
-  tier1: 'Tier 1',
-  tier2: 'Tier 2',
-  tier3: 'Tier 3',
+  premium: 'Premium',
 };
 
 export const tierLimitMixin = {

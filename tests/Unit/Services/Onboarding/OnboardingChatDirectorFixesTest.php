@@ -111,7 +111,7 @@ describe('Fix §3: handleCaptureWorkDetails supports partial capture', function 
             ->and((float) $user->annual_employment_income)->toBe(50000.0);
     });
 
-    it('saves non-empty fields and reports missing when employer is blank', function () {
+    it('requires only income — blank employer and occupation do not block', function () {
         $user = User::factory()->create([
             'employment_status' => 'employed',
             'employer' => null,
@@ -119,18 +119,37 @@ describe('Fix §3: handleCaptureWorkDetails supports partial capture', function 
             'annual_employment_income' => null,
         ]);
 
+        // Income given, employer/occupation blank → nothing missing, flow advances.
         $result = invokeCaptureWorkDetails($user, [
             'employer' => '',
-            'occupation' => 'Chief Marketing Officer',
+            'occupation' => '',
             'annual_income' => 50000,
         ]);
 
         $user->refresh();
         expect($result['onboarding_capture'])->toBeTrue()
-            ->and($result['details']['missing'])->toBe(['employer'])
+            ->and($result['details']['missing'])->toBe([])
             ->and($user->employer ?? '')->toBe('')
-            ->and($user->occupation)->toBe('Chief Marketing Officer')
+            ->and($user->occupation ?? '')->toBe('')
             ->and((float) $user->annual_employment_income)->toBe(50000.0);
+    });
+
+    it('reports missing only when income is absent', function () {
+        $user = User::factory()->create([
+            'employment_status' => 'employed',
+            'employer' => null,
+            'occupation' => null,
+            'annual_employment_income' => null,
+        ]);
+
+        // Employer/occupation present but no income → still need the income.
+        $result = invokeCaptureWorkDetails($user, [
+            'employer' => 'Dentsu',
+            'occupation' => 'Chief Marketing Officer',
+            'annual_income' => null,
+        ]);
+
+        expect($result['details']['missing'])->toBe(['annual_income']);
     });
 
     it('accumulates across turns without overwriting previously-saved fields', function () {
@@ -227,5 +246,81 @@ describe('Fix §4: base_expenditure syncs into ExpenditureProfile', function () 
         invokePersistCapture($user, OnboardingStateMachine::STATE_BASE_EXPENDITURE, 0);
 
         expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
+    });
+});
+
+describe('capture_spouse_details surfaces the entered income', function () {
+    it('returns the entered spouse annual_income in the capture details', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $agent = app(CoordinatingAgent::class);
+        $m = new ReflectionMethod($agent, 'handleCaptureSpouseDetails');
+        $m->setAccessible(true);
+
+        $result = $m->invoke($agent, [
+            'first_name' => 'Sam',
+            'last_name' => 'Carter',
+            'date_of_birth' => '1985-01-12',
+            'email' => 'sam.spouse.'.uniqid().'@example.com',
+            'annual_income' => 0,
+        ], $user);
+
+        expect($result)->toHaveKey('details')
+            ->and($result['details'])->toHaveKey('annual_income')
+            ->and($result['details']['annual_income'])->toBe(0.0);
+    });
+});
+
+// ── Fix: gap-fill evidence override (live conversation 164) ────────────────
+//
+// verbatimEvidenceFromCaptureMessage() builds the CaptureAccuracyGate
+// evidence override the deterministic gap-fill passes to
+// CoordinatingAgent::executeTool() — see
+// tests/Feature/Onboarding/OnboardingInterruptionTest.php's "rescues the
+// gate-blocked write across an interposed 'Yes, save it' turn" for the
+// full end-to-end regression. This covers the prefix-stripping helper in
+// isolation, including the nested-prefix case a second clarification round
+// produces.
+
+function invokeVerbatimEvidenceFromCaptureMessage(string $message): string
+{
+    $director = app(OnboardingChatDirector::class);
+    $reflection = new ReflectionMethod($director, 'verbatimEvidenceFromCaptureMessage');
+    $reflection->setAccessible(true);
+
+    return $reflection->invoke($director, $message);
+}
+
+describe('OnboardingChatDirector::verbatimEvidenceFromCaptureMessage', function () {
+    it('returns a plain single-sentence message unchanged', function () {
+        expect(invokeVerbatimEvidenceFromCaptureMessage(
+            'I have a Halifax fixed term savings account with £1,500 in it'
+        ))->toBe('I have a Halifax fixed term savings account with £1,500 in it');
+    });
+
+    it('strips the merged interruption-retry prefixes onto separate lines', function () {
+        $merged = "Original capture details: I have a Halifax fixed term savings account with £1,500 in it\n"
+            .'Requested missing details: Just me';
+
+        expect(invokeVerbatimEvidenceFromCaptureMessage($merged))->toBe(
+            "I have a Halifax fixed term savings account with £1,500 in it\nJust me"
+        );
+    });
+
+    it('strips repeated nested prefixes accumulated across multiple clarification rounds', function () {
+        $roundOne = "Original capture details: I have a Halifax fixed term savings account with £1,500 in it\n"
+            .'Requested missing details: an unclear first answer';
+        $roundTwo = "Original capture details: {$roundOne}\n"
+            .'Requested missing details: Just me';
+
+        expect(invokeVerbatimEvidenceFromCaptureMessage($roundTwo))->toBe(
+            "I have a Halifax fixed term savings account with £1,500 in it\n"
+            ."an unclear first answer\n"
+            .'Just me'
+        );
+    });
+
+    it('drops empty lines produced by stripping', function () {
+        expect(invokeVerbatimEvidenceFromCaptureMessage("Original capture details: \nRequested missing details: Just me"))
+            ->toBe('Just me');
     });
 });

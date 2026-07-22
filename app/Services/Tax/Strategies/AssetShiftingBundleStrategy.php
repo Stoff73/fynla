@@ -60,73 +60,88 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             ];
         }
 
-        // 2. Savings → spouse: capacity = PA + Starting Rate + PSA basic
-        // forUser() is joint-aware; the Collection-level where('user_id')
-        // post-filter preserves the original single-owner semantics.
+        // 2. Savings → spouse: only price this when the campaign has explicitly
+        // confirmed that the non-earning spouse has no existing savings. A
+        // balance without an account rate is not enough to infer their interest
+        // income or unused tax-free capacity.
         $userSavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', false);
         $userSavingsTotal = (float) $userSavings->sum('current_balance');
-        // Normalise interest_rate (stored as either percent 4.0 or decimal 0.04)
-        // before averaging so spouse-shift calculations stay realistic.
-        $normalisedRates = $userSavings->map(function ($acc) {
+        $annualInterest = (float) $userSavings->sum(function ($acc) {
             $r = (float) $acc->interest_rate;
+            if ($r > 1) {
+                $r /= 100;
+            }
 
-            return $r > 1 ? $r / 100 : $r;
+            return (float) $acc->current_balance * $r;
         });
-        $userAvgRate = $normalisedRates->count() > 0
-            ? (float) $normalisedRates->avg()
-            : 0.035;
+        $userAvgRate = $userSavingsTotal > 0 ? $annualInterest / $userSavingsTotal : 0.0;
 
         $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
         $startingRate = (float) ($income['starting_rate_for_savings']['band'] ?? 5000);
         $spouseInterestCapacity = $personalAllowance + $startingRate + $this->math->psaForBand('basic');
-        $existingSpouseSavings = (float) ($household?->spouse_existing_savings_balance ?? 0);
-        $spouseUsedInterest = $existingSpouseSavings * $userAvgRate;
-        $spouseRemainingInterestCapacity = max(0, $spouseInterestCapacity - $spouseUsedInterest);
-        $maxTransferableByCapacity = $userAvgRate > 0 ? $spouseRemainingInterestCapacity / $userAvgRate : 0;
-        $suggestedTransfer = min($userSavingsTotal, $maxTransferableByCapacity);
+        $spouseSavingsKnownZero = $household?->spouse_existing_savings_balance !== null
+            && (float) $household->spouse_existing_savings_balance === 0.0;
+        $maxTransferableByCapacity = $userAvgRate > 0 ? $spouseInterestCapacity / $userAvgRate : 0.0;
+        $suggestedTransfer = $spouseSavingsKnownZero
+            ? min($userSavingsTotal, $maxTransferableByCapacity)
+            : 0.0;
 
         if ($suggestedTransfer > 1000) {
             // Marginal rate on savings interest follows the same total-income
             // band as MA above. bandRateFor() uses raw employment so we resolve
             // via the cached $userBand instead.
             $userBandRate = $this->math->bandRateForBand($userBand);
-            $estimatedAnnualTaxSaved = $suggestedTransfer * $userAvgRate * $userBandRate;
             $psaBasic = $this->math->psaForBand('basic');
             $stackedCapacity = $personalAllowance + $startingRate + $psaBasic;
+            $userPersonalAllowance = $this->math->personalAllowanceFor($user);
+            $userStartingRate = max(
+                0.0,
+                $startingRate - max(0.0, $this->math->nonSavingsIncomeFor($user) - $userPersonalAllowance),
+            );
+            $userTaxFreeInterest = $userStartingRate + $this->math->psaForBand($userBand);
+            $taxableInterestBefore = max(0.0, $annualInterest - $userTaxFreeInterest);
+            $annualInterestMoved = min($annualInterest, $suggestedTransfer * $userAvgRate);
+            $taxableInterestSheltered = min($taxableInterestBefore, $annualInterestMoved);
+            $estimatedAnnualTaxSaved = $taxableInterestSheltered * $userBandRate;
+            $reportedTransfer = round($suggestedTransfer, 2);
             $suggestions[] = [
                 'type' => 'savings_to_spouse',
                 'priority' => 'high',
                 'title' => sprintf(
                     'Gift £%s of savings to your spouse for up to £%s of interest tax-free every year',
-                    number_format((int) round($suggestedTransfer / 1000) * 1000),
+                    number_format((int) round($reportedTransfer)),
                     number_format((int) $stackedCapacity),
                 ),
                 'description' => sprintf(
-                    'Their Personal Allowance (£%s), Starting Rate for Savings (£%s) and Personal Savings Allowance (£%s) stack — and spousal transfers are exempt from Capital Gains Tax and Inheritance Tax.',
+                    'Their Personal Allowance (£%s), Starting Rate for Savings (£%s) and Personal Savings Allowance (£%s) can stack because they are recorded as having no earnings or savings. The estimate only counts the £%s of your interest currently above your own tax-free savings amounts. A cash gift between eligible spouses or civil partners normally has no immediate Capital Gains Tax charge and may qualify for Inheritance Tax spouse exemption; ownership changes and conditions apply.',
                     number_format((int) $personalAllowance),
                     number_format((int) $startingRate),
                     number_format((int) $psaBasic),
+                    number_format((int) round($taxableInterestSheltered)),
                 ),
-                'suggested_transfer_amount' => round($suggestedTransfer / 1000) * 1000,
+                'suggested_transfer_amount' => $reportedTransfer,
                 'estimated_annual_tax_saved' => round($estimatedAnnualTaxSaved, 2),
+                'annual_interest_moved' => round($annualInterestMoved, 2),
+                'taxable_interest_sheltered' => round($taxableInterestSheltered, 2),
                 'spouse_personal_allowance' => $personalAllowance,
                 'spouse_starting_rate_for_savings' => $startingRate,
                 'spouse_personal_savings_allowance' => $psaBasic,
                 'spouse_stacked_interest_capacity' => $stackedCapacity,
+                'requires_advice' => true,
             ];
         }
 
         // 3. ISA top-up in spouse's name — uses fresh £20k allowance
-        $spouseIsaRemaining = $isaAmount - (float) ($household?->spouse_existing_isa_balance ?? 0);
-        if ($spouseIsaRemaining > 0) {
+        $spouseIsaBalance = $household?->spouse_existing_isa_balance;
+        if ($spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0) {
             $suggestions[] = [
                 'type' => 'isa_topup_spouse',
                 'priority' => 'medium',
                 'title' => "Open or top up an ISA in your spouse's name",
-                'description' => 'They have £'.number_format((int) $spouseIsaRemaining).' of unused ISA allowance for this tax year.',
-                'available_allowance' => round($spouseIsaRemaining, 2),
+                'description' => 'They have no ISA balance on file and may have up to £'.number_format((int) $isaAmount).' of ISA allowance available this tax year. Confirm any subscriptions made elsewhere before contributing.',
+                'available_allowance' => round($isaAmount, 2),
             ];
         }
 
@@ -145,31 +160,16 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 ? (float) ($divAllowanceRaw['amount'] ?? 500)
                 : (float) $divAllowanceRaw;
 
-            $userDividends = (float) ($user->annual_dividend_income ?? 0);
-            // Dividend marginal rate uses the same total-income band as above
-            // (a £45k earner with £15k of dividends is a higher-rate dividend
-            // payer, not basic-rate).
-            $userDivRate = $this->math->dividendRateForBand($userBand);
-            $spouseDivRate = $this->math->dividendRateForBand('basic');
-            $rateDelta = max(0.0, $userDivRate - $spouseDivRate);
-            // Only the portion above the spouse's own dividend allowance carries any tax.
-            $shiftableDividends = max(0, $userDividends - $divAllowance);
-            $estimatedSaving = $shiftableDividends * $rateDelta;
-
             $suggestions[] = [
                 'type' => 'gia_to_spouse',
-                'priority' => $estimatedSaving > 0 ? 'high' : 'medium',
+                'priority' => 'medium',
                 'title' => 'Hold non-ISA investments in your spouse\'s name',
                 'description' => sprintf(
-                    'Their unused Capital Gains Tax allowance (£%s/yr) and Dividend Allowance (£%s/yr) absorb gains and dividends tax-free, then anything above is taxed at the basic rate rather than yours.',
+                    'Your spouse may have allowance available against up to £%s of net gains and £%s of dividends. Confirm their gains, losses and dividends for this tax year before relying on either amount. A transfer between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but they inherit the original acquisition cost and may pay tax on a later disposal.',
                     number_format((int) $cgtAllowance),
                     number_format((int) $divAllowance),
                 ),
-                'available_cgt_allowance' => $cgtAllowance,
-                'available_dividend_allowance' => $divAllowance,
-                'estimated_annual_tax_saved' => $estimatedSaving > 0 ? round($estimatedSaving, 2) : null,
-                'shiftable_dividends' => round($shiftableDividends, 2),
-                'rate_delta' => round($rateDelta, 4),
+                'requires_advice' => true,
             ];
         }
 

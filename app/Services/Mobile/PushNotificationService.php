@@ -11,6 +11,29 @@ use Illuminate\Support\Facades\Log;
 
 class PushNotificationService
 {
+    private const GENERIC_TITLE = 'Fynla';
+
+    private const GENERIC_BODY = 'Open Fynla to review an update.';
+
+    private const ALLOWED_ROUTES = [
+        'dashboard',
+        'achievements',
+        'income',
+        'expenditure',
+        'net_worth',
+        'protection',
+        'savings',
+        'investment',
+        'retirement',
+        'estate',
+        'goals',
+        'tax_strategy',
+        'holistic_plan',
+        'settings',
+    ];
+
+    public function __construct(private readonly ApnsClient $apnsClient) {}
+
     public function shouldSend(int $userId, string $preferenceKey): bool
     {
         $hasDevices = DeviceToken::forUser($userId)->exists();
@@ -32,16 +55,25 @@ class PushNotificationService
 
     public function sendToUser(int $userId, string $title, string $body, array $data = []): void
     {
-        $tokens = $this->getDeviceTokens($userId);
+        $devices = DeviceToken::forUser($userId)
+            ->get(['device_token', 'platform']);
+        $payload = $this->privacySafePayload($data);
 
-        foreach ($tokens as $token) {
-            $this->sendToToken($token, $title, $body, $data);
+        foreach ($devices as $device) {
+            if ($device->platform === 'ios') {
+                $this->apnsClient->send($device->device_token, $payload);
+
+                continue;
+            }
+
+            $this->sendToToken($device->device_token, $title, $body, $data);
         }
     }
 
     public function sendToToken(string $deviceToken, string $title, string $body, array $data = []): void
     {
         $serverKey = config('services.fcm.server_key');
+        $payload = $this->privacySafePayload($data);
 
         if (! $serverKey) {
             Log::warning('FCM server key not configured, skipping push notification');
@@ -56,10 +88,10 @@ class PushNotificationService
             ])->post('https://fcm.googleapis.com/fcm/send', [
                 'to' => $deviceToken,
                 'notification' => [
-                    'title' => $title,
-                    'body' => $body,
+                    'title' => $payload['title'],
+                    'body' => $payload['body'],
                 ],
-                'data' => $data,
+                'data' => ['route' => $payload['route']],
             ]);
 
             if ($response->failed()) {
@@ -67,8 +99,7 @@ class PushNotificationService
             }
         } catch (\Exception $e) {
             Log::error('FCM send failed', [
-                'error' => $e->getMessage(),
-                'device_token_prefix' => substr($deviceToken, 0, 10).'...',
+                'exception_class' => $e::class,
             ]);
         }
     }
@@ -89,5 +120,19 @@ class PushNotificationService
         } else {
             Log::warning('FCM send error', ['error' => $error]);
         }
+    }
+
+    private function privacySafePayload(array $data): array
+    {
+        $requestedRoute = $data['route'] ?? null;
+        $route = is_string($requestedRoute) && in_array($requestedRoute, self::ALLOWED_ROUTES, true)
+            ? $requestedRoute
+            : 'dashboard';
+
+        return [
+            'title' => self::GENERIC_TITLE,
+            'body' => self::GENERIC_BODY,
+            'route' => $route,
+        ];
     }
 }

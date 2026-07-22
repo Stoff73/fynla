@@ -52,6 +52,13 @@ const actions = {
       commit('setRecalculating', false);
     }
   },
+  // WP-2 (one actions model) — mark a strategy done with the SAME stable
+  // aggregator id the dashboard actions use, then refetch so the item moves
+  // into the page's Done group and every other surface agrees.
+  async markRecommendationDone({ dispatch }, { recommendationId, recommendationText }) {
+    await taxStrategyService.markRecommendationDone(recommendationId, recommendationText);
+    await dispatch('fetchDashboard');
+  },
 };
 
 // Phase 2 (April30Updates) — `recommendations[]` is the canonical source of truth.
@@ -70,6 +77,12 @@ const CATEGORY_LABELS = {
 
 const getters = {
   userAllowances: (s) => s.dashboard?.user_allowances ?? [],
+  /**
+   * Composed plan (sequenced, conflict-resolved, realisable total) — the same
+   * substance Fyn voices in the savetax synthesis turn, so chat and page
+   * never disagree on the headline figure.
+   */
+  composedPlan: (s) => s.dashboard?.composed_plan ?? null,
   spouseAllowances: (s) => s.dashboard?.spouse_allowances ?? null,
   recommendations: (s) => s.dashboard?.recommendations ?? [],
   /**

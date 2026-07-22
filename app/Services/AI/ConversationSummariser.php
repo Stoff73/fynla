@@ -6,6 +6,8 @@ namespace App\Services\AI;
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\ProposedSemanticFact;
+use App\Services\AI\Learning\ProposedFactSynthesiser;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -48,6 +50,10 @@ class ConversationSummariser
 
     private const TIMEOUT_SECONDS = 60;
 
+    public function __construct(
+        private readonly ProposedFactSynthesiser $synthesiser = new ProposedFactSynthesiser,
+    ) {}
+
     public function summarise(int $conversationId): void
     {
         $conversation = AiConversation::find($conversationId);
@@ -83,6 +89,36 @@ class ConversationSummariser
             'intents_stated' => $payload['intents_stated'] ?? [],
             'summarised_at' => now(),
         ])->save();
+
+        $this->emitProposedFacts($conversation, $transcript);
+    }
+
+    private function emitProposedFacts(AiConversation $conversation, string $transcript): void
+    {
+        if (! config('fyn.learning_enabled', false)) {
+            return;
+        }
+
+        try {
+            foreach ($this->synthesiser->synthesise($conversation->id, $transcript) as $fact) {
+                ProposedSemanticFact::updateOrCreate(
+                    ['user_id' => $conversation->user_id, 'fact_id' => $fact['fact_id'], 'status' => 'pending'],
+                    [
+                        'derived_from_conversation_id' => $conversation->id,
+                        'category' => 'user_profile',
+                        'title' => $fact['title'],
+                        'body' => $fact['body'],
+                        'valid_from' => $fact['valid_from'] ?: null,
+                        'valid_to' => $fact['valid_to'] ?: null,
+                    ],
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[ConversationSummariser] proposed-fact staging failed', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

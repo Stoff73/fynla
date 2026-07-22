@@ -29,16 +29,6 @@ export const FEATURE_TIER_MAP = {
 };
 
 /**
- * Human-readable plan names for tooltip display.
- */
-export const PLAN_LABELS = {
-    student: 'Student',
-    standard: 'Standard',
-    family: 'Family',
-    pro: 'Pro',
-};
-
-/**
  * Check if a user's plan meets the minimum tier requirement.
  * Returns true if userPlan >= requiredTier in the hierarchy.
  */

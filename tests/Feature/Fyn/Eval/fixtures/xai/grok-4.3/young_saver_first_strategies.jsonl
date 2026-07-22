@@ -1,0 +1,169 @@
+{"__meta":{"provider":"xai","model":"grok-4.3","scenario_id":"young_saver_first_strategies","recorded_at":"2026-06-11T04:56:33+01:00","fynla_branch":"insight-quality-track1","fynla_sha":"fa59f0e","conversation_id":87,"event_count":168,"turn_count":1,"duration_ms":3440}}
+{"type":"title","title":"how do I start saving properly?"}
+{"type":"content","text":"John"}
+{"type":"content","text":","}
+{"type":"content","text":" before"}
+{"type":"content","text":" building"}
+{"type":"content","text":" savings"}
+{"type":"content","text":" it"}
+{"type":"content","text":" is"}
+{"type":"content","text":" worth"}
+{"type":"content","text":" checking"}
+{"type":"content","text":" whether"}
+{"type":"content","text":" you"}
+{"type":"content","text":" have"}
+{"type":"content","text":" enough"}
+{"type":"content","text":" coming"}
+{"type":"content","text":" in"}
+{"type":"content","text":" each"}
+{"type":"content","text":" month"}
+{"type":"content","text":" to"}
+{"type":"content","text":" cover"}
+{"type":"content","text":" your"}
+{"type":"content","text":" out"}
+{"type":"content","text":"go"}
+{"type":"content","text":"ings"}
+{"type":"content","text":"."}
+{"type":"content","text":" Your"}
+{"type":"content","text":" monthly"}
+{"type":"content","text":" expenditure"}
+{"type":"content","text":" is"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"1"}
+{"type":"content","text":","}
+{"type":"content","text":"833"}
+{"type":"content","text":"."}
+{"type":"content","text":"00"}
+{"type":"content","text":"**"}
+{"type":"content","text":" and"}
+{"type":"content","text":" your"}
+{"type":"content","text":" annual"}
+{"type":"content","text":" income"}
+{"type":"content","text":" is"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"38"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"."}
+{"type":"content","text":"00"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" which"}
+{"type":"content","text":" works"}
+{"type":"content","text":" out"}
+{"type":"content","text":" to"}
+{"type":"content","text":" roughly"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"3"}
+{"type":"content","text":","}
+{"type":"content","text":"167"}
+{"type":"content","text":"."}
+{"type":"content","text":"00"}
+{"type":"content","text":"**"}
+{"type":"content","text":" per"}
+{"type":"content","text":" month"}
+{"type":"content","text":" before"}
+{"type":"content","text":" tax"}
+{"type":"content","text":"."}
+{"type":"content","text":" This"}
+{"type":"content","text":" suggests"}
+{"type":"content","text":" a"}
+{"type":"content","text":" positive"}
+{"type":"content","text":" monthly"}
+{"type":"content","text":" surplus"}
+{"type":"content","text":","}
+{"type":"content","text":" so"}
+{"type":"content","text":" you"}
+{"type":"content","text":" may"}
+{"type":"content","text":" have"}
+{"type":"content","text":" room"}
+{"type":"content","text":" to"}
+{"type":"content","text":" start"}
+{"type":"content","text":" saving"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"The"}
+{"type":"content","text":" first"}
+{"type":"content","text":" priority"}
+{"type":"content","text":" is"}
+{"type":"content","text":" usually"}
+{"type":"content","text":" an"}
+{"type":"content","text":" emergency"}
+{"type":"content","text":" fund"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" typically"}
+{"type":"content","text":" three"}
+{"type":"content","text":" to"}
+{"type":"content","text":" six"}
+{"type":"content","text":" months"}
+{"type":"content","text":" of"}
+{"type":"content","text":" essential"}
+{"type":"content","text":" out"}
+{"type":"content","text":"go"}
+{"type":"content","text":"ings"}
+{"type":"content","text":" held"}
+{"type":"content","text":" in"}
+{"type":"content","text":" easy"}
+{"type":"content","text":"-access"}
+{"type":"content","text":" cash"}
+{"type":"content","text":"."}
+{"type":"content","text":" Once"}
+{"type":"content","text":" that"}
+{"type":"content","text":" buffer"}
+{"type":"content","text":" is"}
+{"type":"content","text":" in"}
+{"type":"content","text":" place"}
+{"type":"content","text":","}
+{"type":"content","text":" the"}
+{"type":"content","text":" next"}
+{"type":"content","text":" step"}
+{"type":"content","text":" is"}
+{"type":"content","text":" often"}
+{"type":"content","text":" to"}
+{"type":"content","text":" tackle"}
+{"type":"content","text":" any"}
+{"type":"content","text":" high"}
+{"type":"content","text":"-interest"}
+{"type":"content","text":" debt"}
+{"type":"content","text":","}
+{"type":"content","text":" then"}
+{"type":"content","text":" begin"}
+{"type":"content","text":" regular"}
+{"type":"content","text":" contributions"}
+{"type":"content","text":" into"}
+{"type":"content","text":" a"}
+{"type":"content","text":" tax"}
+{"type":"content","text":"-efficient"}
+{"type":"content","text":" wrapper"}
+{"type":"content","text":" such"}
+{"type":"content","text":" as"}
+{"type":"content","text":" an"}
+{"type":"content","text":" Individual"}
+{"type":"content","text":" Savings"}
+{"type":"content","text":" Account"}
+{"type":"content","text":" or"}
+{"type":"content","text":" pension"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Would"}
+{"type":"content","text":" you"}
+{"type":"content","text":" like"}
+{"type":"content","text":" me"}
+{"type":"content","text":" to"}
+{"type":"content","text":" look"}
+{"type":"content","text":" at"}
+{"type":"content","text":" your"}
+{"type":"content","text":" current"}
+{"type":"content","text":" savings"}
+{"type":"content","text":" and"}
+{"type":"content","text":" investments"}
+{"type":"content","text":" to"}
+{"type":"content","text":" see"}
+{"type":"content","text":" what"}
+{"type":"content","text":" you"}
+{"type":"content","text":" already"}
+{"type":"content","text":" have"}
+{"type":"content","text":" in"}
+{"type":"content","text":" place"}
+{"type":"content","text":"?"}
+{"type":"done","message_id":300,"input_tokens":6372,"output_tokens":166}

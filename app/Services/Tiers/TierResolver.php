@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Tiers;
 
 use App\Models\User;
+use App\Services\Billing\PremiumEntitlementResolver;
+use App\Services\Stores\TierConfigurationStore;
 
 class TierResolver
 {
     private const LEGACY_PAID_PLANS = ['student', 'standard', 'family', 'pro'];
+
+    public function __construct(
+        private readonly PremiumEntitlementResolver $entitlements,
+    ) {}
 
     /**
      * Canonical gating tier for $user. Spec §5.2: NO mechanical plan->tier
@@ -19,11 +25,7 @@ class TierResolver
      */
     public function resolve(User $user): string
     {
-        if (in_array($user->tier, ['free', 'tier1', 'tier2', 'tier3'], true)) {
-            return $user->tier;
-        }
-
-        return 'free';
+        return $this->entitlements->resolve($user)->tier;
     }
 
     /**
@@ -33,7 +35,7 @@ class TierResolver
      */
     public function isGrandfatheredLegacyPaid(User $user): bool
     {
-        if (in_array($user->tier, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+        if (in_array($user->tier, TierConfigurationStore::TIERS, true)) {
             return false;
         }
         if ($user->is_preview_user) {

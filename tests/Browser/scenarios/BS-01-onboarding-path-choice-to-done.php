@@ -65,14 +65,14 @@ declare(strict_types=1);
  *
  *     S0.5.z — Registration verifyCode now records the four implicit
  *     GDPR consents the post-registration journey depends on. Before this
- *     fix, AuthController::verifyCode() created the user, started the
- *     trial, and routed them to /dashboard?openFyn=journey — which
+ *     fix, AuthController::verifyCode() created the permanent Free user
+ *     and routed them to /dashboard?openFyn=journey — which
  *     immediately POSTs /api/ai-chat/onboarding/start. That endpoint
  *     gates on TYPE_AI_CHAT consent (AiChatController:257), the consent
  *     was never granted, the call returned 403, and the frontend
  *     silently fell back to a blank conversation. Onboarding never
  *     started. Fix: ConsentService::recordConsents() called for terms +
- *     privacy + data_processing + ai_chat right after startTrial().
+ *     privacy + data_processing + ai_chat immediately after user creation.
  *     Form footer "By creating an account, you agree to our Terms of
  *     Service and Privacy Policy" makes terms+privacy explicit;
  *     data_processing is the lawful basis under which the app operates;
@@ -89,8 +89,8 @@ declare(strict_types=1);
  *     1. Seed wording: "factory user" understates. The canonical seed
  *        for every BS-NN that drives onboarding is "register a fresh
  *        user via the /register?from=fyn flow" — not User::factory().
- *        Real registration gives the user (a) a trialing Subscription,
- *        (b) the four GDPR consents (post-S0.5.z), (c) NULL marital +
+ *        Real registration gives the user (a) permanent Free access with
+ *        no subscription, (b) the four GDPR consents (post-S0.5.z), (c) NULL marital +
  *        DOB so the state machine asks for them. Factory-created users
  *        miss all three. Recommend: add a Login::registerFreshFynUser
  *        helper in tests/Browser/Helpers/ that drives the register UI
@@ -113,7 +113,7 @@ declare(strict_types=1);
  *   Notes on what the FIRST attempt got wrong (recording for next
  *   session's reference):
  *     - Attempting to seed a factory user + manually grant consent +
- *       manually start trial diverged from the canonical user journey
+ *       manually create paid state diverged from the canonical user journey
  *       and surfaced ghost gaps that did not exist in production. The
  *       only reliable seed is "drive the actual /register?from=fyn UI".
  *     - Earlier "stub gap" claim that base_work loses employer/income

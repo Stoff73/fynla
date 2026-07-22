@@ -63,7 +63,8 @@ class LifePolicyStrategyService
 
     public function __construct(
         private readonly AssumptionsService $assumptionsService,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly FutureValueCalculator $futureValueCalculator
     ) {}
 
     /**
@@ -203,7 +204,7 @@ class LifePolicyStrategyService
         float $investmentReturnRate
     ): array {
         // Calculate future value of annual premium investments at assumed return rate
-        $futureValue = $this->calculateFutureValueOfAnnuity(
+        $futureValue = $this->futureValueCalculator->calculateFutureValueOfAnnuity(
             $annualPremium,
             $investmentReturnRate,
             $years
@@ -470,23 +471,6 @@ class LifePolicyStrategyService
         $jointDiscount = 0.75;
 
         return $averageRate * $jointDiscount;
-    }
-
-    /**
-     * Calculate future value of annuity (regular investments)
-     *
-     * FV = PMT × [(1 + r)^n - 1] / r
-     */
-    private function calculateFutureValueOfAnnuity(
-        float $payment,
-        float $rate,
-        int $periods
-    ): float {
-        if ($rate == 0) {
-            return $payment * $periods;
-        }
-
-        return $payment * ((pow(1 + $rate, $periods) - 1) / $rate);
     }
 
     /**

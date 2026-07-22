@@ -8,21 +8,17 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
-use App\Models\TaxConfiguration;
 use App\Models\User;
-use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
+
+// The protection analysis pipeline resolves TaxConfigService, which fails
+// loud without an active tax year. Seed explicitly — the suite convention;
+// there is no global auto-seed hook (see the note in tests/Pest.php).
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 describe('Protection Workflow Integration', function () {
-    // The analysis path resolves TaxConfigService, whose store memoises the
-    // active config (TaxConfigStore::activeConfig). The global Pest beforeEach
-    // creates a config, but the memo can latch null before it exists — so we
-    // re-create it and forget the resolved singleton, matching the working
-    // pattern in CrossModuleIntegrationTest.
-    beforeEach(function () {
-        TaxConfiguration::factory()->create(['is_active' => true]);
-        app()->forgetInstance(TaxConfigService::class);
-    });
-
     it('completes full protection planning journey', function () {
         // Step 1: Create a new user
         $user = User::factory()->create([
@@ -30,11 +26,9 @@ describe('Protection Workflow Integration', function () {
             'surname' => 'Test User',
             'email' => 'integration@test.com',
             'date_of_birth' => now()->subYears(35),
-            // ProtectionDataReadinessService blocking checks read User-level
-            // income + marital_status (profile.annual_income is separate and does
-            // not feed the gate). Onboarding sets these in production; the test
-            // bypasses onboarding so it must set them itself.
-            'marital_status' => 'married',
+            // Readiness gate (ProtectionDataReadinessService::hasIncome) blocks
+            // analysis unless the USER record carries income — the protection
+            // profile's annual_income alone does not satisfy it.
             'annual_employment_income' => 60000,
         ]);
 
@@ -151,9 +145,7 @@ describe('Protection Workflow Integration', function () {
 
         $analysisData = $analysisResponse->json('data');
 
-        // Verify analysis contains expected data. adequacy_score is the
-        // descriptive insights array (Rule #13 — no bare score in user-facing
-        // output); the numeric score lives at overall_score.
+        // Verify analysis contains expected data
         expect($analysisData['adequacy_score']['overall_score'])->toBeGreaterThan(0);
         expect($analysisData['recommendations'])->toBeArray();
         expect($analysisData['scenarios'])->toHaveKey('death');
@@ -203,7 +195,7 @@ describe('Protection Workflow Integration', function () {
         $this->assertDatabaseHas('life_insurance_policies', ['user_id' => $user->id]);
         $this->assertDatabaseHas('income_protection_policies', ['user_id' => $user->id]);
         $this->assertDatabaseHas('disability_policies', ['user_id' => $user->id]);
-        $this->assertSoftDeleted('critical_illness_policies', ['id' => $criticalPolicy->id]); // Soft-deleted
+        $this->assertSoftDeleted('critical_illness_policies', ['id' => $criticalPolicy->id]); // CriticalIllnessPolicy uses SoftDeletes
     });
 
     it('handles multiple users with isolated data', function () {
@@ -246,23 +238,19 @@ describe('Protection Workflow Integration', function () {
     });
 
     it('validates required data before analysis', function () {
-        // User passes the data-readiness gate (dob + income + marital_status)
-        // but has no protection profile — analysis must refuse with success:false.
-        $user = User::factory()->create([
-            'date_of_birth' => now()->subYears(35),
-            'annual_employment_income' => 50000,
-        ]);
+        // User without profile cannot run analysis
+        $user = User::factory()->create();
 
         $response = $this->actingAs($user)->postJson('/api/protection/analyze');
+        // The data-readiness gate returns a successful envelope whose payload
+        // says the analysis cannot proceed (can_proceed=false + the failing
+        // checks) rather than an error response.
         $response->assertStatus(200)
-            ->assertJson(['success' => false]);
+            ->assertJson(['success' => true, 'data' => ['can_proceed' => false]]);
     });
 
     it('handles comprehensive policy portfolio', function () {
-        $user = User::factory()->create([
-            'date_of_birth' => now()->subYears(40),
-            'annual_employment_income' => 80000,
-        ]);
+        $user = User::factory()->create(['date_of_birth' => now()->subYears(40), 'annual_employment_income' => 80000]);
 
         // Create profile
         $profile = ProtectionProfile::factory()->create([
@@ -309,10 +297,7 @@ describe('Protection Workflow Integration', function () {
     });
 
     it('handles profile updates and re-analysis', function () {
-        $user = User::factory()->create([
-            'date_of_birth' => now()->subYears(30),
-            'annual_employment_income' => 40000,
-        ]);
+        $user = User::factory()->create(['date_of_birth' => now()->subYears(30), 'annual_employment_income' => 40000]);
 
         // Create initial profile
         $profile = ProtectionProfile::factory()->create([
@@ -329,7 +314,7 @@ describe('Protection Workflow Integration', function () {
         // First analysis
         $firstAnalysis = $this->actingAs($user)->postJson('/api/protection/analyze');
         $firstAnalysis->assertStatus(200);
-        $firstScore = $firstAnalysis->json('data.adequacy_score.overall_score');
+        $firstScore = $firstAnalysis->json('data.adequacy_score');
 
         // Update profile (life changes: married, children, higher income)
         $updateResponse = $this->actingAs($user)->postJson('/api/protection/profile', [
@@ -349,7 +334,7 @@ describe('Protection Workflow Integration', function () {
         // Second analysis (should reflect changed circumstances)
         $secondAnalysis = $this->actingAs($user)->postJson('/api/protection/analyze');
         $secondAnalysis->assertStatus(200);
-        $secondScore = $secondAnalysis->json('data.adequacy_score.overall_score');
+        $secondScore = $secondAnalysis->json('data.adequacy_score');
 
         // Score should be different due to changed circumstances
         // (Higher income and more dependents likely decrease adequacy with same coverage)

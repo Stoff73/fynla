@@ -121,9 +121,7 @@ class FamilyMembersController extends Controller
 
         Log::info('handleSpouseCreation called', [
             'current_user_id' => $currentUser->id,
-            'current_user_email' => $currentUser->email,
             'current_user_spouse_id' => $currentUser->spouse_id,
-            'spouse_email' => $spouseEmail,
         ]);
 
         // Check if spouse already has an account

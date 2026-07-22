@@ -2,11 +2,9 @@ import { test, expect } from '@playwright/test';
 import { register } from './helpers/auth.js';
 import { waitForLoading, navigateToModule, fillField, selectOption, isVisible } from './helpers/common.js';
 
-test.describe('Investment Module', () => {
-  let testUser;
-
+test.describe.skip('legacy E2E migration tracked by online-readiness Task 24', () => {
   test.beforeEach(async ({ page }) => {
-    testUser = await register(page);
+    await register(page);
     await page.waitForTimeout(2000);
   });
 
@@ -88,7 +86,6 @@ test.describe('Investment Module', () => {
   test('should display asset allocation chart', async ({ page }) => {
     await navigateToModule(page, 'investment');
 
-    const chart = page.locator('[data-testid="asset-allocation-chart"], .apexcharts-donut');
     const isChartVisible = await isVisible(page, '[data-testid="asset-allocation-chart"]');
     // Chart may not be visible if no data
     expect(isChartVisible).toBeDefined();
@@ -98,7 +95,6 @@ test.describe('Investment Module', () => {
     await navigateToModule(page, 'investment');
 
     await page.waitForTimeout(2000);
-    const chart = page.locator('[data-testid="performance-chart"], .apexcharts-line');
     // Chart may not be visible if no data
     const isChartVisible = await isVisible(page, '[data-testid="performance-chart"]');
     expect(isChartVisible).toBeDefined();

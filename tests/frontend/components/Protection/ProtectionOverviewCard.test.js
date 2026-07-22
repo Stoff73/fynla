@@ -1,122 +1,177 @@
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import ProtectionOverviewCard from '@/components/Protection/ProtectionOverviewCard.vue';
+import userProfileService from '@/services/userProfileService';
+
+vi.mock('@/services/userProfileService', () => ({
+  default: { getProfile: vi.fn() },
+}));
 
 describe('ProtectionOverviewCard', () => {
-  it('renders with props', () => {
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 75,
-        totalCoverage: 500000,
-        premiumTotal: 150,
-        criticalGaps: 2,
-      },
-    });
+  const lifePolicies = [{
+    id: 1,
+    provider: 'Life Provider',
+    policy_type: 'level_term',
+    sum_assured: 200000,
+    premium_amount: 50,
+  }];
 
-    expect(wrapper.exists()).toBe(true);
-    expect(wrapper.text()).toContain('75');
-    expect(wrapper.text()).toContain('£500,000');
-    expect(wrapper.text()).toContain('£150');
+  const criticalIllnessPolicies = [{
+    id: 2,
+    provider: 'Critical Illness Provider',
+    policy_type: 'standalone',
+    sum_assured: 100000,
+    premium_amount: 30,
+  }];
+
+  const sicknessIllnessPolicies = [{
+    id: 3,
+    provider: 'Sickness Provider',
+    benefit_amount: 1000,
+    benefit_frequency: 'monthly',
+    premium_amount: 20,
+  }];
+
+  const disabilityPolicies = [{
+    id: 4,
+    provider: 'Disability Provider',
+    benefit_amount: 2000,
+    benefit_frequency: 'monthly',
+    premium_amount: 25,
+  }];
+
+  const createStoreForCard = () => createStore({
+    modules: {
+      taxConfig: {
+        namespaced: true,
+        getters: { sspWeeklyRate: () => 120 },
+      },
+    },
   });
 
-  it('displays adequacy score with correct color (green for 80+)', () => {
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 85,
-        totalCoverage: 500000,
-        premiumTotal: 150,
-        criticalGaps: 0,
-      },
-    });
-
-    const scoreElement = wrapper.find('[data-testid="adequacy-score"]');
-    expect(scoreElement.text()).toContain('85');
-    // Check for green color class
-    expect(wrapper.html()).toMatch(/text-green|bg-green/);
+  const mountCard = (props = {}, push = vi.fn()) => mount(ProtectionOverviewCard, {
+    props,
+    global: {
+      plugins: [createStoreForCard()],
+      mocks: { $router: { push } },
+    },
   });
 
-  it('displays adequacy score with orange color (60-79)', () => {
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 70,
-        totalCoverage: 300000,
-        premiumTotal: 100,
-        criticalGaps: 1,
-      },
-    });
-
-    const scoreElement = wrapper.find('[data-testid="adequacy-score"]');
-    expect(scoreElement.text()).toContain('70');
-    // Check for orange/yellow color class
-    expect(wrapper.html()).toMatch(/text-orange|text-yellow|bg-orange|bg-yellow/);
-  });
-
-  it('displays adequacy score with red color (<60)', () => {
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 45,
-        totalCoverage: 200000,
-        premiumTotal: 80,
-        criticalGaps: 3,
-      },
-    });
-
-    const scoreElement = wrapper.find('[data-testid="adequacy-score"]');
-    expect(scoreElement.text()).toContain('45');
-    // Check for red color class
-    expect(wrapper.html()).toMatch(/text-red|bg-red/);
-  });
-
-  it('navigates to Protection Dashboard on click', async () => {
-    const mockRouter = {
-      push: vi.fn(),
-    };
-
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 75,
-        totalCoverage: 500000,
-        premiumTotal: 150,
-        criticalGaps: 2,
-      },
-      global: {
-        mocks: {
-          $router: mockRouter,
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userProfileService.getProfile.mockResolvedValue({
+      data: {
+        liabilities_summary: {
+          mortgages: { total: 300000 },
+          other: { total: 50000 },
+        },
+        income_occupation: {
+          annual_employment_income: 60000,
+          annual_self_employment_income: 20000,
         },
       },
     });
+  });
+
+  it('renders policy cover and monthly premiums without an adequacy score', async () => {
+    const wrapper = mountCard({ lifePolicies, criticalIllnessPolicies });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Life Insurance');
+    expect(wrapper.text()).toContain('Life Provider');
+    expect(wrapper.text()).toContain('Cover: £200,000');
+    expect(wrapper.text()).toContain('£50/mo');
+    expect(wrapper.text()).not.toMatch(/\/100/);
+  });
+
+  it('calculates debt protection from debt and existing life cover', async () => {
+    const wrapper = mountCard({ lifePolicies });
+    await flushPromises();
+
+    expect(wrapper.vm.totalDebt).toBe(350000);
+    expect(wrapper.vm.totalLifeCoverage).toBe(200000);
+    expect(wrapper.vm.debtProtectionGap).toBe(150000);
+    expect(wrapper.text()).toContain('Debt Protection');
+    expect(wrapper.text()).toContain('£150,000 shortfall');
+  });
+
+  it('calculates income replacement as a specific annual shortfall', async () => {
+    const wrapper = mountCard({ lifePolicies });
+    await flushPromises();
+
+    expect(wrapper.vm.incomeReplacementNeed).toBe(60000);
+    expect(wrapper.vm.incomeReplacementGap).toBe(60000);
+    expect(wrapper.text()).toContain('£60,000/yr shortfall');
+  });
+
+  it('calculates critical illness need against existing cover', async () => {
+    const wrapper = mountCard({ criticalIllnessPolicies });
+    await flushPromises();
+
+    expect(wrapper.vm.criticalIllnessNeed).toBe(160000);
+    expect(wrapper.vm.criticalIllnessCoverage).toBe(100000);
+    expect(wrapper.vm.criticalIllnessGap).toBe(60000);
+    expect(wrapper.text()).toContain('Critical Illness');
+    expect(wrapper.text()).toContain('£60,000 shortfall');
+  });
+
+  it('states when there is no critical illness policy', async () => {
+    userProfileService.getProfile.mockResolvedValueOnce({
+      data: {
+        liabilities_summary: {},
+        income_occupation: {},
+      },
+    });
+    const wrapper = mountCard();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Critical Illness');
+    expect(wrapper.text()).toContain('No cover');
+  });
+
+  it('includes statutory and private sickness cover for an employee', async () => {
+    const wrapper = mountCard({ sicknessIllnessPolicies });
+    await flushPromises();
+
+    expect(wrapper.vm.sspAnnualEquivalent).toBe(6240);
+    expect(wrapper.vm.privateSicknessCover).toBe(12000);
+    expect(wrapper.vm.totalSicknessCover).toBe(18240);
+    expect(wrapper.vm.sicknessGap).toBe(21760);
+  });
+
+  it('calculates disability cover from the policy payment frequency', async () => {
+    const wrapper = mountCard({ disabilityPolicies });
+    await flushPromises();
+
+    expect(wrapper.vm.disabilityCover).toBe(24000);
+    expect(wrapper.vm.disabilityNeed).toBe(40000);
+    expect(wrapper.vm.disabilityGap).toBe(16000);
+  });
+
+  it('renders the critical-gap count supplied by the parent', async () => {
+    const wrapper = mountCard({ criticalGaps: 3 });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('3 critical gaps identified');
+  });
+
+  it('formats large policy cover values as currency', async () => {
+    const wrapper = mountCard({
+      lifePolicies: [{ ...lifePolicies[0], sum_assured: 1234567 }],
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('£1,234,567');
+  });
+
+  it('navigates to the Protection dashboard when selected', async () => {
+    const push = vi.fn();
+    const wrapper = mountCard({}, push);
+    await flushPromises();
 
     await wrapper.trigger('click');
-    expect(mockRouter.push).toHaveBeenCalledWith('/protection');
-  });
 
-  it('displays critical gaps count', () => {
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 60,
-        totalCoverage: 400000,
-        premiumTotal: 120,
-        criticalGaps: 3,
-      },
-    });
-
-    expect(wrapper.text()).toContain('3');
-    expect(wrapper.text()).toMatch(/gap|critical/i);
-  });
-
-  it('formats currency values correctly', () => {
-    const wrapper = mount(ProtectionOverviewCard, {
-      props: {
-        adequacyScore: 75,
-        totalCoverage: 1234567,
-        premiumTotal: 234.5,
-        criticalGaps: 1,
-      },
-    });
-
-    // Should format large numbers with commas
-    expect(wrapper.text()).toMatch(/1,234,567|1\.2M/);
-    // Should format premium with 2 decimal places
-    expect(wrapper.text()).toMatch(/234\.50|234\.5|235/);
+    expect(push).toHaveBeenCalledWith('/protection');
   });
 });

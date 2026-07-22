@@ -93,20 +93,6 @@
 - WIP commit: none (tree clean after PR 8 merge)
 - Pick up at: update spec doc for Pass 4 close-out, then start Pass 5 (Liabilities) — brainstorm vs plan-write CSJ decision
 
-## 2026-05-28 — session 2 (context-handover tripwire)
-- Handover: [[handover-2026-05-28-session-2-clear]]
-- Branch: coala (off dev) — SP1 DEFERRED, pivoting to CoALA
-- WIP commit: b774538 (test-stabilisation: 15/17 suite failures fixed)
-- Pick up at: apply MobileScaffold fix (assert /m/landing not /m/app) + diagnose InvestmentAccountHttpIntegrationTest isolation bug → final full-suite green → then CoALA
-
-## 2026-05-28 — session 3 (end-of-day)
-- Handover: [[handover-2026-05-29-session-1]]
-- Branch: coala
-- Commits this session: 1 (`088c86c` test(mobile): MobileScaffoldTest iframe assertion → /m/landing)
-- Status: clean (probe in Auditable.php was reverted, not committed)
-- Test-stabilisation Phase 0: MobileScaffold FIXED. 1 flaky failure remains — InvestmentAccountHttpIntegrationTest "records FORM audit context" (~30–50% null-audit in full suite only; subsets pass).
-- Next: re-add the audit probe (handover has the code), loop --testsuite=Unit,Feature until fail, check hl_count for a leaked duplicate Hargreaves account, fix, REVERT probe, confirm 0 failed 2–3×. Then start CoALA Phase 5 (cost-telemetry) → Phase 1.
-
 ## 2026-05-29 — session 1 (context-clear)
 - Handover: [[handover-2026-05-29-session-1-clear]]
 - Branch: pureFreemium (off dev)
@@ -116,8 +102,133 @@
 - Commits this session: 4 (2 Revolut fix, 2 freemium docs).
 - Next: CSJ picks execution approach for the freemium plan → start PR1 (registration → tier='free', no trial).
 
-## 2026-05-29 — session 5 (context-handover tripwire)
-- Handover: [[handover-2026-05-29-session-5-clear]]
-- Branch: coala
-- WIP commit: none (tree clean; gate fixes in 19d758b/bb415be/5c018dd, merge 2e1dbb0)
-- Pick up at: branch feat/coala-cost-telemetry off coala → CoALA Phase 5 PR 1 (prompt-cache + GBP cost telemetry in HasAiChat; capture cache_creation tokens + gbp_cost via config/ai_pricing.php). CoALA test-stab gate is CLOSED (4072 passed, 0 failed).
+## 2026-06-03 — end-of-day (mobile funnel + Fyn onboarding)
+- Handover: [[handover-2026-06-04-session-1]]
+- Branch: dev (csjones @ 6d30719)
+- Shipped: PRs #452–#460 — /m responsive funnel + authed handoff (token bridge) + homepage CTA → /savetax + funnel-answer persistence + real account creation from the funnel + Fyn pre-fill/greet/recap/skip-known + mobile Fyn dock onboarding (bubbles + resume) + nudge + CLAUDE.md Rules #17–19.
+- Verified live on csjones end-to-end; nothing to production.
+- Next: walk mobile onboarding to /tax-strategy terminal in the Fyn dock + confirm tax advice renders on mobile; browser-verify desktop recap; refresh Current State/Auth.md.
+
+## 2026-06-04 — session 2 (context-clear)
+- Handover: [[handover-2026-06-04-session-2-clear]]
+- Branch: dev
+- Commits this session: 1 (`05b1e8e` docs(claude): lean CLAUDE.md + Fyn two→one transition)
+- Status: clean (only untracked docs/mobile/designer-brief.pdf, not ours)
+- Next: resume mobile /m work — build against the single shared /api/ai-chat dispatch (Fyn converging to one); reconcile 00-canonical.md when coala merges to dev.
+
+## 2026-06-04 — session (end-of-day)
+- Handover: [[handover-2026-06-05-session-1]]
+- Branch: dev
+- Commits this session: 2 code (`06937fc` fix(fyn) streaming+soft-degrade, `7dce0e2` feat(mobile) tax-strategy + module drill-downs) + session-end docs
+- Built: real mobile `/m/app` Tax Strategy view (incl. married/joint household) + Net Worth/Protection/Savings/Retirement/Investment overview + drill-down views; dock streaming fixes; provider-aware Fyn soft-degrade. All browser-verified.
+- Status: working tree clean
+- Next: deploy to csjones per June5Updates/deploy-2026-06-05.md (mobile bundle rebuild for /fynla/ base); optionally click a tax-strategy next-step CTA with a qualifying user.
+
+## 2026-06-07 — session (end-of-day)
+- Handover: [[handover-2026-06-08-session-1]] (target 2026-06-08)
+- Branch: dev
+- Commits this session: 4 (PRs #487 test, #488 fix)
+- Status: 0 uncommitted (working tree clean)
+- Shipped: #487 inline-capture onboarding-award unit test; #488 Save tax CTA on server-rendered public/pages/index.php (deployed+verified csjones)
+- Next: production release decision (dev +120/-7 vs main); chris existing-user pass (blocked on password reset)
+
+## 2026-06-09 — session 1 (end-of-day)
+- Handover: [[handover-2026-06-09-session-1]]
+- Branch: dev
+- Commits this session: 3 (b4a8029 mojibake fix + 2 merges aa4569d/87f2e4d)
+- Status: 0 uncommitted (working tree clean)
+- Shipped: freemium tier-pricing modal #501 + router cold-boot #500 merged to dev, deployed + live-verified on csjones. Public /pricing rewritten to Free+Tier1/2/3, trial copy stripped, <title> mojibake fixed.
+- Next: prod release (dev→main, +158/-7) is CSJ's call — #489 auth throttle is the priority reason (prod MFA reset broken). Set real tier prices in admin Tier Configuration.
+
+## 2026-06-09 — session 2 (context-clear)
+- Handover: [[handover-2026-06-09-session-2-clear]]
+- Branch: dev @ faa86d6 (+165/-7 vs main)
+- Commits this session: 6 (PRs #502, #503, #504 merged to dev)
+- Status: clean (one pre-existing untracked PDF)
+- Shipped: #502 /m Save tax CTA base-path; #503 withBase() helper + 6 base-path sites; #504 onboarding advice self-loop fix + MAX_ADVICE_CHAIN guard + conv 66 cleanup (17,488 rows deleted)
+- Next: prod release (dev→main) is CSJ's call; #489 auth-throttle is the priority reason
+
+## 2026-06-10 — session 3 (context-clear)
+- Handover: [[handover-2026-06-10-session-3-clear]]
+- Branch: dev @ a75af48 (PRs #525 + #526 merged via pushed merge commits; gh CLI merge endpoint 401s — needs `gh auth refresh`)
+- Commits this session: 7 (5 finding-fixes + 2 PR merges); 345-test sweep green pre-push
+- Status: working tree clean (two pre-existing untracked docs)
+- Shipped: branch verification (9/9 acceptance criteria), six finding-fixes (stable rec IDs, retirement earnings cap + age gates, goals copy, assets caption, bubble dismissal persistence, persona onboarding seed), csjones back on dev + live-verified, 94 remote + 4 local merged branches deleted
+- Next: estate will/LPA recs decision (CSJ); dev → main release when CSJ decides
+
+## 2026-06-11 — session 4 (clear)
+- Handover: [[handover-2026-06-11-session-4-clear]]
+- Branch: dev @ d0f7cf6 (clean, pushed)
+- Commits this session: 7 (PRs #529, #530, #531 merged)
+- Status: 0 uncommitted (2 long-standing untracked docs only)
+- Next: Track 2 (coala) — review spec v4 with CSJ (docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md), then superpowers:writing-plans
+
+## 2026-06-12 — session 1 (eod)
+- Handover: [[handover-2026-06-13-session-1]]
+- Branch: dev @ 7b9152b; coala @ 10193e2 — both pushed, trees clean
+- Commits today (dev): 12; PRs merged: #532–#545 (Track 2 + follow-ups + cleanup), suite 4,963/0 on coala
+- Status: 0 uncommitted (two long-standing untracked docs only)
+- Next: CSJ — deploy dev→csjones (June13Updates/deploy-2026-06-13.md), Azlan re-test, gamified dashboard eyeball; then the coala→dev landing programme
+
+## 2026-06-13 — session 2 (context-clear)
+- Handover: [[handover-2026-06-13-session-2-clear]]
+- Branch: dev (main @ 2905c62, dev-ahead 0); prod fynla.org current
+- Shipped: #546 web dashboard parity + sidebar Tax Strategy; #547 ISA calc counts S&S ISA subs; #548 ISA tool capture + Fyn deflection carve-out (PARTIAL); #549 dev→main release deployed to prod (5 migrations, catalogue seeders), verified end-to-end web + /m. Azlan re-test GREEN on csjones.
+- Status: 0 uncommitted (working tree clean except 2 long-standing untracked docs). All merged + deployed.
+- Next: CSJ to pick — eval-driven #2 deflection fix / non-tax catalogue metadata / coala→dev landing.
+
+## 2026-06-14 — session 1 (eod)
+- Handover: [[handover-2026-06-15-session-1]]
+- Branch: dev @ b78409a5 (pushed); local sitting on merged fix/write-intent-goal-precedence
+- Commits this session: 1 (PR #552); admin-merged to dev, deployed csjones
+- Status: clean except two pre-existing untracked docs + CLAUDE.md metrics refresh (committed in wrap)
+- Shipped: WriteIntentClassifier goal/property keyword-precedence fix (explicit goal noun wins over incidental asset keyword; "add a goal for a house deposit" → goal, not property). TDD'd; 407 AI unit tests green. Resolves the precedence bug flagged in feedback_advice_fyn_capture_deflection_partial.
+- Next: CSJ — optional live /m+web confirm of goal-capture; dev → main release when CSJ decides (this fix + #546–#551 ride the next prod release); #2 advice-Fyn deflection eval-driven fix still open
+
+## 2026-06-15 — session 2 (context-clear)
+- Handover: [[handover-2026-06-15-session-2-clear]]
+- Branch: docs/session-2026-06-15-clear (Phase 6 built on coala-phase-6-learning → dev via #554)
+- Shipped: CoALA Phase 6 (gated learning: promotion + procedure-amendments + sparse recall), 13 tasks subagent-driven, merged to dev (fae710c), suite 5030/0; deployed + live-E2E-verified on csjones. Cross-module composer spec written + approved (parked).
+- Next: write the cross-module plan composer implementation plan (superpowers:writing-plans) from docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md, then build.
+
+## 2026-07-15 — session 1 (context-clear)
+
+- Handover: [[handover-2026-07-15-session-1-clear]]
+- Plans: all ten approved programme/iOS plans restored under `codex/plans/` at `15689c8`.
+- PR stack: Tasks 1–7 #622; Task 8 #623; Task 9 #624; Task 10 #625; Task 11 #626.
+- Task 7 final verification: PR #622 run `29463239284` is fully green after aligning canonical tier fixtures/caps and clearing whole-range frontend/policy lint; Feature passed in 12m32s and Unit in 7m09s. PRs #623–#626 remain correctly stacked and clean after the final rebase.
+- Current branch: `codex/freemium-task12-trial-schema` in the isolated programme worktree.
+- Task 10 follow-ups: audit output now uses exact `safe_to_remove`; `paid_shape` counts only paid rows retaining trial shape; converted soft-deleted trial history is normalised before deletion.
+- Task 12 local gate: exact trial audit exits 0 with `0/0/0/true`; tier-collapse audit also reports all zero counts and `safe_to_collapse=true` after local migrations and the mandatory reseed.
+- Task 12 verification before schema removal: 54 frontend files/726 tests green; production build green; changed-file lint, policy lint and Pint green; focused backend sweep 180 tests/714 assertions green.
+- Blocker: the exact audit command must first land and deploy through PR #625, then run read-only on csjones and production. Current SSH keys are rejected by both hosts. No schema-removal migration has been created and Task 13 has not started.
+- Boundary: the primary Save Tax checkout remains untouched on `codex/savetax-allowance-ctas`.
+
+## 2026-07-16 — Task 12 checkpoint
+
+- Draft PR #627 opened from `codex/freemium-task12-trial-schema`, stacked on Task 11 PR #626.
+- Guarded migration `2026_07_15_000005_remove_trial_subscription_schema` applied locally; mandatory full reseed completed; schema and rollback guard tests are green.
+- Task 12 verification: core payment/tier/middleware/lifecycle run 255 tests/989 assertions; related account/authentication/AI/service run 90 tests/383 assertions; frontend 54 files/726 tests; production build, ESLint, policy lint, Pint and diff checks green.
+- Two baseline test-order defects found and fixed in the same loop: tier-collapse cleanup now restores both Task 1 migrations, and payment replay time is frozen at second precision.
+- PR #627 is explicitly blocked from merge or remote deployment until PR #625's exact audit command exits 0 on csjones and production and both evidence objects are saved.
+- Task 13 repository documentation is prepared on `codex/freemium-task13-canonical-docs`: one concise canonical economic contract, the implemented pure-freemium signup state, and design-system rules for Free, pending, active, cancelled, payment-issue, grace and terminal presentation.
+- Historical design specifications with retired tier/trial economics are explicitly labelled superseded; current-document scans, policy lint and diff checks are green.
+- Vault payment, authentication, onboarding, public-page and architecture notes were inventoried but not changed. Publication remains gated on the exact csjones and production audits required by Task 12.
+- Draft PR #628 publishes the Task 13 repository documentation and is correctly stacked on Task 12 PR #627. It remains draft until the external audit and gated vault publication are complete.
+- Next: begin Task 14 static regression cleanup without claiming the external, vault, deployment or live-browser gates complete.
+
+## 2026-07-18 — session 1 (context-clear)
+
+- Handover: [[handover-2026-07-18-session-1-clear]]
+- Branch: `codex/ios-package3-native-auth`; green implementation/evidence head `d5d34d3` is pushed and the session-end documentation commit follows it. PR #633 remains draft and mergeable.
+- Package 3: Tasks 1–8 and automated Task 9 complete. Current-head Xcode 26.5 evidence is 183 tests/23 suites plus 28 UI tests/0 failures, `TEST SUCCEEDED`, and Production `BUILD SUCCEEDED`; Quality Gate and Logic Guard are green.
+- Open: actual Google Chrome `/m` acceptance and physical-iPhone Face ID/registration/relock/Keychain/diagnostic evidence.
+- Status: source/docs committed and pushed; only Xcode's generated per-user UI state remains intentionally untracked and must never be committed.
+- Next: read the Package 4 plan, refresh `origin/dev`, preserve Save Tax isolation, close any available Package 3 manual gates, then continue with one isolated branch and separate PR each for Packages 4, 5, 6 and 7.
+
+## 2026-07-21 — session 2 (clear)
+- Handover: [[handover-2026-07-21-session-2-clear]]
+- Branch: codex/savetax-allowance-ctas (main) / pkg7 @ b27fa48
+- Done: /m-parity sweep COMPLETE; fireworks + nudges + avatar rule (CSJ directives); better-in-the-app bubble live on csjones; SaveTax live E2E (web + native, 2 defects fixed); TestFlight build 1.0(1) VALID, CSJ invited.
+- Note: csjones now runs codex/savetax-allowance-ctas (dev merged in), not dev.
+- Next: CSJ installs TestFlight build; /m milestone-banner build+deploy still CSJ's call; pkg4–7 PR chain open.

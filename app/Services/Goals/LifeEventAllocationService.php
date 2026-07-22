@@ -22,6 +22,7 @@ use App\Traits\ResolvesExpenditure;
 use App\Traits\StructuredLogging;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class LifeEventAllocationService
 {
@@ -60,6 +61,20 @@ class LifeEventAllocationService
             : User::findOrFail($canonicalUserId);
 
         return $this->generateAllocations($event, $canonicalUser);
+    }
+
+    /**
+     * Generate preview suggestions without retaining the generated rows.
+     */
+    public function getAllocationsWithoutPersisting(LifeEvent $event, User $user): Collection
+    {
+        DB::beginTransaction();
+
+        try {
+            return $this->getAllocations($event, $user)->values();
+        } finally {
+            DB::rollBack();
+        }
     }
 
     /**

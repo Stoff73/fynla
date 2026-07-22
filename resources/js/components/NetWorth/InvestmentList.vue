@@ -242,7 +242,7 @@
         document-type="investment_statement"
         @close="showUploadModal = false"
         @saved="handleDocumentSaved"
-        @manual-entry="showUploadModal = false; showAccountForm = true;"
+        @manual-entry="openManualAccountEntry"
       />
     </Teleport>
 
@@ -254,7 +254,7 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Open Banking Affordance — SP2 PR8 §14: shown only when open_api_affordance flag is true (Tier 2/3) -->
+    <!-- Open Banking Affordance — shown only when the Premium affordance flag is true. -->
     <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
       <div class="flex items-center justify-between">
         <div>
@@ -274,13 +274,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjections from './InvestmentProjections.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import InvestmentHoldings from '@/components/Investment/InvestmentHoldings.vue';
 import InvestmentPerformance from '@/components/Investment/InvestmentPerformance.vue';
-import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
-import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
-import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
-import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
-import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
@@ -298,13 +292,7 @@ export default {
     InvestmentProjections,
     AccountForm,
     DocumentUploadModal,
-    InvestmentHoldings,
     InvestmentPerformance,
-    PortfolioOptimization,
-    AssetLocationOptimizer,
-    WrapperOptimizer,
-    FeeBreakdown,
-    TaxEfficiencyPanel,
     RiskMismatchWarning,
     ModuleStatusBar,
     LimitReachedModal,
@@ -422,7 +410,7 @@ export default {
   watch: {
     actionCounter() {
       if (this.pendingAction === 'addAccount') {
-        this.showAccountForm = true;
+        this.openAddAccountModal();
         this.$store.dispatch('subNav/consumeCta');
       } else if (this.pendingAction === 'uploadStatement') {
         this.showUploadModal = true;
@@ -439,8 +427,7 @@ export default {
             this.showAccountForm = true;
           }
         } else {
-          this.editingAccount = null;
-          this.showAccountForm = true;
+          this.openAddAccountModal();
         }
       } else if (fill.entityType === 'investment_holding') {
         // Navigate into the account detail view so the holding form can open
@@ -512,6 +499,11 @@ export default {
       }
       this.editingAccount = null;
       this.showAccountForm = true;
+    },
+
+    openManualAccountEntry() {
+      this.showUploadModal = false;
+      this.openAddAccountModal();
     },
 
     closeAccountForm() {
@@ -845,11 +837,13 @@ export default {
   },
 
   async mounted() {
+    this.setDetailView(false);
+    await this.loadData();
+
     // Check for pendingFill that was set before this component mounted
     const fill = this.$store.state.aiFormFill?.pendingFill;
     if (fill && fill.entityType === 'investment_account' && fill.mode !== 'edit') {
-      this.editingAccount = null;
-      this.showAccountForm = true;
+      this.openAddAccountModal();
     } else if (fill && fill.entityType === 'investment_holding') {
       const accountId = fill.fields?.investment_account_id;
       if (accountId) {
@@ -860,8 +854,6 @@ export default {
       }
     }
 
-    this.setDetailView(false);
-    await this.loadData();
   },
 };
 </script>

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\DCPension;
@@ -39,14 +41,20 @@ beforeEach(function () {
  */
 it('every direct-write handler fires the model `created` event', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Obs Test Sav is individually owned. Obs Test Inv is individually owned. Obs Test Lia is individually owned.',
+    ]);
 
     $cases = [
-        [SavingsAccount::class, 'create_savings_account', ['account_name' => 'Obs Test Sav', 'current_balance' => 100]],
-        [InvestmentAccount::class, 'create_investment_account', ['account_name' => 'Obs Test Inv', 'current_value' => 100]],
+        [SavingsAccount::class, 'create_savings_account', ['account_name' => 'Obs Test Sav', 'current_balance' => 100, 'ownership_type' => 'individual']],
+        [InvestmentAccount::class, 'create_investment_account', ['account_name' => 'Obs Test Inv', 'current_value' => 100, 'ownership_type' => 'individual']],
         [DCPension::class, 'create_pension', ['pension_category' => 'dc', 'scheme_name' => 'Obs Test Pen']],
         [LifeInsurancePolicy::class, 'create_protection_policy', ['policy_type' => 'level_term', 'sum_assured' => 100]],
         [Asset::class, 'create_asset', ['asset_name' => 'Obs Test Ast', 'asset_type' => 'other', 'current_value' => 100]],
-        [Liability::class, 'create_liability', ['liability_name' => 'Obs Test Lia', 'liability_type' => 'loan', 'current_balance' => 100]],
+        [Liability::class, 'create_liability', ['liability_name' => 'Obs Test Lia', 'liability_type' => 'loan', 'current_balance' => 100, 'ownership_type' => 'individual']],
         [Gift::class, 'create_estate_gift', ['gift_date' => '2024-01-01', 'recipient' => 'X', 'gift_type' => 'pet', 'gift_value' => 100]],
         [FamilyMember::class, 'create_family_member', ['first_name' => 'Obs', 'relationship' => 'child']],
         [Trust::class, 'create_trust', ['trust_name' => 'Obs Test Trust', 'trust_type' => 'bare']],
@@ -61,8 +69,10 @@ it('every direct-write handler fires the model `created` event', function (): vo
         $model::created(function () use (&$fired) {
             $fired = true;
         });
-        $result = app(CoordinatingAgent::class)->executeTool($tool, $input, $user);
-        expect($result['success'] ?? false)->toBeTrue();
+        $result = app(CoordinatingAgent::class)->executeTool($tool, $input, $user, $conversation->id);
+        expect($result['success'] ?? false)->toBeTrue(
+            "{$tool} failed: ".json_encode($result, JSON_UNESCAPED_SLASHES)
+        );
         expect($fired)->toBeTrue("{$tool} did not fire {$model}::created event");
     }
 });

@@ -11,6 +11,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
+use App\Services\Coordination\CompositePlanService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,8 @@ class HolisticPlanningController extends Controller
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly CashFlowCoordinator $cashFlowCoordinator,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly CompositePlanService $compositePlanService
     ) {}
 
     /**
@@ -146,6 +148,25 @@ class HolisticPlanningController extends Controller
                 'chart_data' => $chartData,
                 'sustainable_analysis' => $sustainableAnalysis,
             ],
+        ]);
+    }
+
+    /**
+     * Cross-module composite plan: every module's composed strategies ranked
+     * against the household's effective monthly surplus (after goal commitments),
+     * each annotated fits / partially_fits / beyond_current_surplus with the
+     * running surplus consumed. Nothing is dropped — locked strategies are
+     * surfaced with their unlock data. Read-only (composing a plan never writes).
+     *
+     * GET /api/holistic/composite-plan
+     */
+    public function compositePlan(Request $request): JsonResponse
+    {
+        $plan = $this->compositePlanService->compose($request->user());
+
+        return response()->json([
+            'success' => true,
+            'data' => $plan,
         ]);
     }
 

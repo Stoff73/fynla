@@ -33,24 +33,23 @@ use Illuminate\Console\Command;
  */
 class SummariseStaleConversationsCommand extends Command
 {
-    protected $signature = 'ai:conversations:summarise-stale {--idle-minutes=30 : Minimum minutes since last message before summarising}';
+    protected $signature = 'ai:conversations:summarise-stale
+        {--idle-minutes=30 : Minimum minutes since last message before summarising}
+        {--pause : CoALA FR-M10 — also mark idle active conversations as paused (consolidates + pauses)}';
 
     protected $description = 'Dispatch the conversation-summariser job for stale conversations whose index is missing or behind the latest message';
 
     public function handle(): int
     {
         $idleMinutes = max(1, (int) $this->option('idle-minutes'));
+        $pause = (bool) $this->option('pause');
         $cutoff = now()->subMinutes($idleMinutes);
 
         $count = 0;
 
-        AiConversation::query()
+        $query = AiConversation::query()
             ->whereNotNull('last_message_at')
             ->where('last_message_at', '<=', $cutoff)
-            ->where(function ($q): void {
-                $q->whereNull('summarised_at')
-                    ->orWhereColumn('summarised_at', '<', 'last_message_at');
-            })
             ->whereNotExists(function ($q): void {
                 // Resume-contract carve-out: skip in-flight onboarding
                 // conversations (metadata.source = 'fyn_onboarding' AND
@@ -63,16 +62,35 @@ class SummariseStaleConversationsCommand extends Command
                     ->whereColumn('users.id', 'ai_conversations.user_id')
                     ->where('users.onboarding_completed', false)
                     ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(ai_conversations.metadata, '$.source')) = ?", ['fyn_onboarding']);
-            })
-            ->orderBy('last_message_at')
-            ->chunkById(200, function ($chunk) use (&$count): void {
+            });
+
+        if ($pause) {
+            // FR-M10 pause path: consolidate + pause every idle ACTIVE
+            // conversation (regardless of summary state). A paused turn is
+            // reopened when the user next sends; the resumption surface (FR-M9)
+            // re-surfaces any that ended unfinished.
+            $query->where('status', 'active');
+        } else {
+            // Summarise-only path: just (re)build the index for stale rows.
+            $query->where(function ($q): void {
+                $q->whereNull('summarised_at')
+                    ->orWhereColumn('summarised_at', '<', 'last_message_at');
+            });
+        }
+
+        $query->orderBy('last_message_at')
+            ->chunkById(200, function ($chunk) use (&$count, $pause): void {
                 foreach ($chunk as $conversation) {
                     ConversationSummariserJob::dispatch($conversation->id);
+                    if ($pause) {
+                        $conversation->update(['status' => 'paused']);
+                    }
                     $count++;
                 }
             });
 
-        $this->info("Dispatched {$count} summariser job(s).");
+        $verb = $pause ? 'paused + dispatched' : 'dispatched';
+        $this->info("{$verb} {$count} conversation(s).");
 
         return self::SUCCESS;
     }

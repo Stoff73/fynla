@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('subscriptions:send-renewal-reminders')->dailyAt('09:00');
         $schedule->command('data-retention:send-warnings')->dailyAt('09:00');
-        $schedule->command('trials:expire')->dailyAt('00:05');
+        $schedule->command('subscriptions:expire')->dailyAt('00:05');
         $schedule->command('accounts:execute-scheduled-deletions')->dailyAt('00:10');
         $schedule->command('accounts:execute-grace-deletions')->dailyAt('00:15');
         $schedule->command('accounts:send-deletion-reminders')->dailyAt('00:20');
@@ -27,6 +27,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('registrations:cleanup')->hourly();
         $schedule->command('sessions:cleanup')->dailyAt('02:00');
         $schedule->command('audit:purge')->weeklyOn(0, '03:00');
+        // CoALA Phase 5 FR-M10 — pause + consolidate conversations idle 3+ min.
+        $schedule->command('ai:conversations:summarise-stale --idle-minutes=3 --pause')
+            ->everyThreeMinutes()
+            ->withoutOverlapping();
         $schedule->command('notifications:daily-insight')->dailyAt('08:00');
         $schedule->command('lifecycle:run-daily')->dailyAt('08:30');
         $schedule->command('notifications:policy-renewals')->dailyAt('09:00');
@@ -35,7 +39,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
-        $schedule->command('tier:sync-revolut')->weeklyOn(1, '02:00'); // SP2 PR5: Mon 02:00, alongside billing cadence
+        $schedule->command('payments:reconcile-pending --older-than=15')->everyTenMinutes()->withoutOverlapping();
+        $schedule->command('apple:notifications:recover')
+            ->everyTenMinutes()
+            ->withoutOverlapping();
 
         $schedule->job(new PublishScheduledInsightsJob)->everyFiveMinutes();
 
@@ -50,6 +57,12 @@ class Kernel extends ConsoleKernel
         // conversation whose index is missing or behind the latest
         // message. Idle-minutes default keeps in-flight chats out.
         $schedule->command('ai:conversations:summarise-stale')->everyThirtyMinutes();
+
+        // CoALA Phase 2 — FCA SYSC 9.1 episodic retention.
+        // Nightly orphan reconcile (flag only) + weekly cold-archive of >12mo
+        // blobs. Purge (6-year hard delete) is manual / --force only.
+        $schedule->command('fyn:episodic:reconcile')->daily();
+        $schedule->command('fyn:episodic:cold-archive')->weekly();
     }
 
     /**

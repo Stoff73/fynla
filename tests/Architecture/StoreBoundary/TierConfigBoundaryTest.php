@@ -33,6 +33,9 @@ arch('TierConfiguration is only mutated inside the canonical set')
         'App\Services\Tiers\DbTierGate',            // read-only (added PR 3)
         'App\Services\Tiers\TeaserGate',            // read-only (added PR 7)
         'App\Http\Resources\TierConfigurationResource', // read-only (added PR 4)
+        // Read-only type hints on tierFeatureBullets(); instances come from
+        // TierConfigurationStore — no query or mutation.
+        'App\Http\Controllers\Api\PaymentController',
         'Database\Seeders\TierConfigurationSeeder',
         'Database\Factories\TierConfigurationFactory',
         'App\Models\\',
@@ -125,11 +128,11 @@ it('DAILY_TOKEN_LIMITS constant does not exist anywhere in app/', function () us
 it('no tier-keyed token-budget map literal appears in app/ outside the store/tiers/seeder', function () use ($appDir, $allowedPaths) {
     // Detects the DAILY_TOKEN_LIMITS pattern: an array associating old plan
     // slugs (preview/trial/student/standard/family/pro) or new tier slugs
-    // (free/tier1/tier2/tier3) with large token-count integers.
+    // (free/premium) with large token-count integers.
     // Pattern: a quoted plan/tier key followed by => and a six-or-more-digit number.
     $violations = countTierLiteralLeaks(
         $appDir,
-        "/['\"](?:preview|trial|student|standard|family|pro|free|tier1|tier2|tier3)['\"]\\s*=>\\s*[0-9_]{6,}/",
+        "/['\"](?:preview|trial|student|standard|family|pro|free|premium)['\"]\\s*=>\\s*[0-9_]{6,}/",
         [],
         $allowedPaths
     );

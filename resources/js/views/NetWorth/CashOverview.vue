@@ -1,6 +1,5 @@
 <template>
-  <AppLayout>
-    <div class="cash-overview module-gradient">
+  <div class="cash-overview module-gradient">
       <ModuleStatusBar />
     <!-- Account Detail View (when account selected) -->
     <SavingsAccountDetailInline
@@ -252,7 +251,7 @@
           </div>
         </div>
 
-        <!-- Open Banking Card — SP2 PR8 §14: shown only when open_api_affordance flag is true (Tier 2/3) -->
+        <!-- Open Banking Card — shown only when the Premium affordance flag is true. -->
         <div v-if="openApiAffordance" class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2.5">
@@ -326,7 +325,6 @@
       />
     </Teleport>
     </div>
-  </AppLayout>
 </template>
 
 <script>
@@ -342,14 +340,12 @@ import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 
 import logger from '@/utils/logger';
 export default {
   name: 'CashOverview',
 
   components: {
-    AppLayout,
     AccountSummaryPanel,
     CashInsightsPanel,
     CashActionsPanel,
@@ -525,13 +521,13 @@ export default {
   },
 
   async mounted() {
+    await this.loadAllData();
+
     // Check for pendingFill that was set before this component mounted
     const fill = this.$store.state.aiFormFill?.pendingFill;
     if (fill && fill.entityType === 'savings_account' && fill.mode !== 'edit') {
       this.openAddAccountModal('');
     }
-
-    await this.loadAllData();
   },
 
   methods: {

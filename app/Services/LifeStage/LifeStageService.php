@@ -7,10 +7,13 @@ namespace App\Services\LifeStage;
 use App\Models\Estate\Will;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 class LifeStageService
 {
+    use ResolvesIncome;
+
     public const VALID_STAGES = ['university', 'early_career', 'mid_career', 'peak', 'retirement'];
 
     /**
@@ -368,7 +371,7 @@ class LifeStageService
             'target_retirement_age' => $user->target_retirement_age !== null,
 
             // Income — any source > 0
-            'has_income' => $this->calculateTotalIncome($user) > 0,
+            'has_income' => $this->resolveGrossAnnualIncome($user) > 0,
 
             // Expenditure
             'has_expenditure' => $user->monthly_expenditure > 0 || $this->hasExpenditureProfile($user),
@@ -528,20 +531,6 @@ class LifeStageService
             'goals' => '/goals',
             default => '/onboarding',
         };
-    }
-
-    /**
-     * Calculate total income from all sources (same as PrerequisiteGateService).
-     */
-    private function calculateTotalIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
     }
 
     /**

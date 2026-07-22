@@ -178,7 +178,7 @@
                     />
                     <div>
                       <span class="font-medium">Joint Ownership</span>
-                      <p class="text-xs text-neutral-500">Shared ownership with spouse/partner</p>
+                      <p class="text-xs text-neutral-500">Shared ownership with spouse</p>
                     </div>
                   </label>
                   <label class="flex items-start">

@@ -25,6 +25,7 @@ arch('all agents extend BaseAgent')
 // Test: All models use proper traits
 arch('all models extend Eloquent Model')
     ->expect('App\Models')
+    ->classes() // traits live under App\Models\Concerns (e.g. AwardsDataEntryPoints)
     ->toExtend('Illuminate\Database\Eloquent\Model')
     ->ignoring('App\Models\User'); // User extends Authenticatable
 
@@ -132,11 +133,27 @@ arch('services are organized by module')
         'App\Services\Documents\FieldMappers\FieldMapperInterface',
         'App\Services\Lifecycle\Contracts\LifecycleCampaign',
         'App\Services\Tax\Strategies\Contract\TaxStrategy',
+        // Package 4 Apple billing ports are service contracts with concrete
+        // Python/Symfony implementations bound in AppServiceProvider.
+        'App\Services\Billing\Apple\AppleBridgeClient',
+        'App\Services\Billing\Apple\AppleSignedDataVerifier',
+        'App\Services\Billing\Apple\AppleStoreServerClient',
         // Sub-project 1 Stores: IngestSource is a string-backed enum, TierGate is an interface
         'App\Services\Stores\IngestSource',
         'App\Services\Stores\TierGate',
         // fynPromptRework: ContextBucket is a pure enum (4 cases), not a class
         'App\Services\AI\Fyn\ContextBucket',
+        // CoALA Phase 5 item 3: ActionType is a string-backed enum (5 cases), not a class
+        'App\Services\AI\Actions\ActionType',
+        // CoALA Phase 5 item 4: SessionMode is a string-backed enum (2 cases), not a class
+        'App\Services\AI\Loop\SessionMode',
+        // CoALA pointer registry: FetchHandler is the whitelist-registry interface, not a class
+        'App\Services\AI\Pointers\FetchHandler',
+        // CoALA Phase 6: RecallScorer is the ranking interface (sparse impl in SparseRecallScorer)
+        'App\Services\AI\Memory\Recall\RecallScorer',
+        // Cross-module composer: ModuleStrategySource is the plan-source contract
+        // (concrete TaxStrategySource/RetirementStrategySource/... implement it)
+        'App\Services\Coordination\PlanSources\ModuleStrategySource',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()
@@ -149,7 +166,9 @@ arch('services are organized by module')
     ->and('App\Services\Estate')
     ->toBeClasses()
     ->and('App\Services\Coordination')
-    ->toBeClasses();
+    ->toBeClasses()
+    // ModuleStrategySource is the plan-source contract (interface), not a service class.
+    ->ignoring('App\Services\Coordination\PlanSources\ModuleStrategySource');
 
 // Test: Naming conventions
 // Note: Service naming conventions are informational

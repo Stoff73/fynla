@@ -1,0 +1,67 @@
+{
+  "id": "peak_earners_composed_recommendations",
+  "category": "02-insight-quality",
+  "persona": "peak_earners",
+  "is_mutating": false,
+  "notes": "Golden persona scenario — the composed-recommendations contract. get_recommendations must fire; the reply must present sequenced strategies with pound figures and ordering language, capped, with no raw engine keys dumped.",
+  "description": "David Mitchell asks what he should do to improve his finances and save tax. The recommendation engine runs (get_recommendations), and the reply must present sequenced strategies with pound figures and ordering language ('first' / 'start with' / '1.'), never leaking raw keys (priority_score, recommendation_id, claim_tier), and must signpost FCA advice.",
+  "input": {
+    "turns": [
+      {"user": "What should I be doing to improve my finances and save tax?", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "general",
+    "related": [],
+    "modules": []
+  },
+  "expected_response_mode": "factual",
+  "expected_engine_call_level": "factual",
+  "expected_kyc_state": "bypass",
+  "expected_tool_calls": [
+    {"tool": "get_recommendations", "required": true, "result_path": "happy"}
+  ],
+  "expected_tool_calls_absent": [
+    "create_record",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["content", "done"],
+    "must_emit_exactly_once": ["done"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+    ],
+    "must_contain_at_least_one_of": [
+      ["£"],
+      ["first", "start with", "1."]
+    ],
+    "must_not_contain_substrings": ["priority_score", "recommendation_id", "claim_tier", "I think you should", "In my opinion"],
+    "minimum_length_chars": 200
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["users", "ai_conversations"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"success": 15000},
+    "xai": {"success": 35000}
+  },
+  "tags": ["golden", "insight-quality", "recommendation-mode", "coordination", "peak_earners", "happy-path"]
+}

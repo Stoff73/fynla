@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Agents\CoordinatingAgent;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
@@ -20,7 +19,7 @@ beforeEach(function () {
 it('create_property persists a Property row', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         'property_type' => 'main_residence',
         'current_value' => 450000,
         'purchase_price' => 380000,
@@ -44,7 +43,7 @@ it('create_property persists a Property row', function (): void {
 it('create_property auto-creates a Mortgage when has_mortgage is true', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         'property_type' => 'main_residence',
         'current_value' => 450000,
         'has_mortgage' => true,
@@ -64,7 +63,7 @@ it('create_property auto-creates a Mortgage when has_mortgage is true', function
 it('create_property auto-creates a Mortgage on legacy outstanding_mortgage field', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         'property_type' => 'main_residence',
         'current_value' => 300000,
         'outstanding_mortgage' => 150000,
@@ -77,13 +76,18 @@ it('create_property auto-creates a Mortgage on legacy outstanding_mortgage field
     expect((float) $mortgage->outstanding_balance)->toBe(150000.0);
 });
 
-it('create_property defaults ownership_percentage by ownership_type', function (): void {
+it('create_property persists an explicitly confirmed joint ownership share', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+    $user->update(['spouse_id' => $spouse->id]);
+    $spouse->update(['spouse_id' => $user->id]);
 
-    $joint = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $joint = $this->executeCaptureToolWithEvidence('create_property', [
         'property_type' => 'main_residence',
         'current_value' => 100,
         'ownership_type' => 'joint',
+        'joint_owner_id' => $spouse->id,
+        'ownership_percentage' => 50,
     ], $user);
 
     expect((float) Property::find($joint['entity_id'])->ownership_percentage)->toBe(50.0);
@@ -92,7 +96,7 @@ it('create_property defaults ownership_percentage by ownership_type', function (
 it('create_property returns validation_failed without required fields', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         'address_line_1' => 'X',
     ], $user);
 
@@ -103,7 +107,7 @@ it('create_property returns validation_failed without required fields', function
 it('create_property blocks preview users', function (): void {
     $user = User::factory()->create(['is_preview_user' => true]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         'property_type' => 'main_residence',
         'current_value' => 100,
     ], $user);
@@ -114,7 +118,7 @@ it('create_property blocks preview users', function (): void {
 it('create_property return shape has no fill_form action', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $result = app(CoordinatingAgent::class)->executeTool('create_property', [
+    $result = $this->executeCaptureToolWithEvidence('create_property', [
         'property_type' => 'main_residence',
         'current_value' => 100,
     ], $user);

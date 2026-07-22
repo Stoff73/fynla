@@ -22,15 +22,24 @@ use App\Models\AiAdviceLog;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\Actions\ActionDispatcher;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\AuditChainService;
+use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Fyn\FynTurnContext;
 use App\Services\AI\KycGateChecker;
+use App\Services\AI\Memory\Episodic\EpisodeBlobData;
+use App\Services\AI\Memory\Episodic\EpisodeBlobWriter;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
+use App\Services\AI\Support\AckSentenceDeduper;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Eval\EvalBypassGate;
@@ -93,9 +102,105 @@ trait HasAiChat
 
     private ?string $unifiedOnboardingFocus = null;
 
+    /**
+     * Mechanical boundary for campaign verify-edit turns. Prompt instructions
+     * tell the model which reviewed record to update; this scope makes that
+     * restriction enforceable before dispatch so a model mistake cannot write
+     * to another section or record.
+     *
+     * @var array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null
+     */
+    private ?array $verifyEditScope = null;
+
     public function setUnifiedOnboardingFocus(?string $focus): void
     {
         $this->unifiedOnboardingFocus = $focus;
+    }
+
+    /** @param array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null $scope */
+    public function setVerifyEditScope(?array $scope): void
+    {
+        $this->verifyEditScope = $scope;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function verifyEditScopeError(string $toolName, array $input): ?array
+    {
+        if ($this->verifyEditScope === null) {
+            return null;
+        }
+
+        if (! in_array($toolName, $this->verifyEditScope['tools'], true)) {
+            return [
+                'error' => true,
+                'error_type' => 'verify_edit_scope_violation',
+                'message' => 'That update does not belong to the section currently being reviewed.',
+            ];
+        }
+
+        if ($toolName === 'update_record') {
+            $entityType = (string) ($input['entity_type'] ?? '');
+            $entityId = (int) ($input['entity_id'] ?? 0);
+            $allowedIds = $this->verifyEditScope['records'][$entityType] ?? [];
+            if ($entityId <= 0 || ! in_array($entityId, $allowedIds, true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'That record is not part of the section currently being reviewed.',
+                ];
+            }
+
+            $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+            $allowedFields = $this->verifyEditScope['record_fields'][$entityType] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every record field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        if ($toolName === 'update_profile') {
+            $profileSection = (string) ($input['section'] ?? '');
+            if (! in_array($profileSection, $this->verifyEditScope['profile_sections'], true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'That profile field is not part of the section currently being reviewed.',
+                ];
+            }
+
+            $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+            $allowedFields = $this->verifyEditScope['profile_fields'][$profileSection] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every profile field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        if (in_array($toolName, ['capture_state_pension', 'capture_retirement_goals', 'capture_charitable_giving'], true)) {
+            $fields = array_keys($input);
+            $allowedFields = $this->verifyEditScope['tool_fields'][$toolName] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        return null;
     }
 
     /** @var list<string>|null */
@@ -122,6 +227,9 @@ trait HasAiChat
      * `ai_messages.persona` enum (['advice', 'data_capture']).
      */
     private ?string $personaOverride = null;
+
+    /** Provider selected once by a coordinating caller for this exact turn. */
+    private ?string $providerOverride = null;
 
     /**
      * Send a message and yield SSE chunks.
@@ -199,7 +307,7 @@ trait HasAiChat
                 ."\n\n".$systemPrompt;
         }
         $maxTokens = $this->getAiMaxTokens($user);
-        $isXai = $this->getAiProvider() === 'xai';
+        $isXai = ($this->providerOverride ?? $this->getAiProvider()) === 'xai';
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)
             : $this->toolDefinitions;
@@ -246,10 +354,18 @@ trait HasAiChat
         // API call loop — handles tool calls and text responses
         $fullResponse = '';
         $toolCallCount = 0;
+        $executedCalls = [];
+        $capPassForced = false;
         $totalInputTokens = 0;
         $totalOutputTokens = 0;
         $totalCachedTokens = 0;
+        // CoALA Phase 5 PR 1 (FR-M12) — cache-creation (write-through/MISS)
+        // tokens, distinct from $totalCachedTokens (cache-read/HIT). Anthropic
+        // reports both; xAI surfaces no cache-creation equivalent (stays 0).
+        $totalCacheCreationTokens = 0;
         $toolCallsSummary = [];
+        $presentationActions = [];
+        $presentationActionKeys = [];
         // Full, uncompressed tool round-trips for the admin AI-Audit view.
         // tool_calls = what the model emitted; tool_results = what the tool
         // produced (raw) AND the verbatim payload sent back to the model
@@ -257,6 +373,12 @@ trait HasAiChat
         $fullToolCalls = [];
         $fullToolResults = [];
         $messages = $messageHistory;
+
+        $modelIteration = 0;
+        $verifyEditRetryForced = false;
+
+        /** @var array<string, array{tool: string, model_iteration: int}> $pendingCaptureWriteFailures */
+        $pendingCaptureWriteFailures = [];
 
         // S0.11.2 — track the last tool dispatched + how many wrote so an
         // ai_abort_events row can capture them on a mid-stream disconnect.
@@ -268,6 +390,8 @@ trait HasAiChat
         $xaiTools = $isXai ? $tools : [];
 
         while (true) {
+            $modelIteration++;
+
             // S0.11.2 — bail out cleanly if the SSE client has dropped.
             // Per INV-2.9.2 we DO NOT roll back the partial writes that
             // already landed — every direct-write tool runs in its own
@@ -281,6 +405,7 @@ trait HasAiChat
             $contentBlocks = [];
             $toolUseBlocks = [];
             $stopReason = 'end_turn';
+            $iterationText = '';
 
             try {
                 if ($isXai) {
@@ -308,7 +433,6 @@ trait HasAiChat
 
                     $stream = $xaiClient->chat()->createStreamed($params);
 
-                    $currentText = '';
                     // Tool calls indexed by position (OpenAI streams tool_calls with index)
                     $pendingToolCalls = [];
 
@@ -323,7 +447,7 @@ trait HasAiChat
                                 // Strip dangerous HTML tags from AI output
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
-                                $currentText .= $text;
+                                $iterationText .= $text;
                                 $fullResponse .= $text;
                                 yield ['type' => 'content', 'text' => $text];
                             }
@@ -370,11 +494,15 @@ trait HasAiChat
                         if (isset($response->usage->promptTokensDetails->cachedTokens)) {
                             $totalCachedTokens += $response->usage->promptTokensDetails->cachedTokens;
                         }
+                        // CoALA Phase 5 PR 1 (FR-M12) — xAI's OpenAI-compatible
+                        // usage shape exposes cached-read tokens only; there is
+                        // no separate cache-creation tier, so cache-miss stays 0
+                        // for xAI turns (costed as regular input below).
                     }
 
                     // Build content blocks from accumulated text
-                    if ($currentText !== '') {
-                        $contentBlocks[] = ['type' => 'text', 'text' => $currentText];
+                    if ($iterationText !== '') {
+                        $contentBlocks[] = ['type' => 'text', 'text' => $iterationText];
                     }
 
                     // Build tool use blocks from accumulated tool calls
@@ -429,6 +557,14 @@ trait HasAiChat
                                     ?? $usage->cache_read_input_tokens
                                     ?? 0;
                                 $totalCachedTokens += (int) $cacheRead;
+
+                                // CoALA Phase 5 PR 1 (FR-M12) — write-through
+                                // (MISS) tokens written to the cache on this
+                                // turn. Distinct cost tier from a read hit.
+                                $cacheCreation = $usage->cacheCreationInputTokens
+                                    ?? $usage->cache_creation_input_tokens
+                                    ?? 0;
+                                $totalCacheCreationTokens += (int) $cacheCreation;
                             }
                         } elseif ($event instanceof RawContentBlockStartEvent) {
                             if ($event->contentBlock instanceof TextBlock) {
@@ -449,6 +585,7 @@ trait HasAiChat
                                     $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                     $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
                                     $currentTextBlock .= $text;
+                                    $iterationText .= $text;
                                     $fullResponse .= $text;
                                     yield ['type' => 'content', 'text' => $text];
                                 }
@@ -529,8 +666,8 @@ trait HasAiChat
                     ], $toolUseBlocks);
 
                     $assistantMsg = ['role' => 'assistant'];
-                    if ($fullResponse !== '') {
-                        $assistantMsg['content'] = $fullResponse;
+                    if ($iterationText !== '') {
+                        $assistantMsg['content'] = $iterationText;
                     }
                     $assistantMsg['tool_calls'] = $assistantToolCalls;
                     $messages[] = $assistantMsg;
@@ -543,6 +680,40 @@ trait HasAiChat
                 }
 
                 $anthropicToolResultBlocks = [];
+                $captureRetryAssignments = [];
+
+                if ($this->personaOverride === 'data_capture') {
+                    $currentCallsByTool = [];
+                    foreach ($toolUseBlocks as $currentToolUseBlock) {
+                        $currentToolCallId = (string) ($currentToolUseBlock['id'] ?? '');
+                        $currentFingerprint = $this->toolCallFingerprint(
+                            (string) ($currentToolUseBlock['name'] ?? ''),
+                            $currentToolUseBlock['input'] ?? [],
+                        );
+                        $previousCall = $executedCalls[$currentFingerprint] ?? null;
+                        $isPreviouslySuccessfulDuplicate = is_array($previousCall)
+                            && ($previousCall['failed'] ?? false) === false;
+                        if ($currentToolCallId !== '' && ! $isPreviouslySuccessfulDuplicate) {
+                            $currentCallsByTool[$currentToolUseBlock['name']][] = $currentToolCallId;
+                        }
+                    }
+
+                    foreach ($currentCallsByTool as $toolName => $currentToolCallIds) {
+                        $retryCandidates = array_filter(
+                            $pendingCaptureWriteFailures,
+                            static fn (array $failure): bool => $failure['tool'] === $toolName
+                                && $failure['model_iteration'] < $modelIteration,
+                        );
+                        if (count($retryCandidates) === count($currentToolCallIds)) {
+                            foreach (array_combine(
+                                $currentToolCallIds,
+                                array_keys($retryCandidates),
+                            ) as $currentToolCallId => $failedToolCallId) {
+                                $captureRetryAssignments[$currentToolCallId] = $failedToolCallId;
+                            }
+                        }
+                    }
+                }
 
                 foreach ($toolUseBlocks as $toolUseBlock) {
                     $toolCallCount++;
@@ -560,105 +731,168 @@ trait HasAiChat
                         return;
                     }
 
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $functionName,
-                        'status' => 'running',
-                    ];
+                    $callFingerprint = $this->toolCallFingerprint($functionName, $functionArgs);
+                    $previousCall = $executedCalls[$callFingerprint] ?? null;
+                    $isRepeatedToolCall = is_array($previousCall)
+                        && ($previousCall['failed'] ?? false) === false;
 
-                    $toolResult = $this->executeTool($functionName, $functionArgs, $user, $conversation->id);
+                    if ($isRepeatedToolCall) {
+                        $toolResult = [
+                            'already_supplied' => true,
+                            'message' => 'The result for this identical tool call was already supplied above. Do not call it again.',
+                        ];
+                    } else {
+                        $executedCalls[$callFingerprint] = [
+                            'tool_call_id' => (string) ($toolUseBlock['id'] ?? ''),
+                            'failed' => false,
+                        ];
 
-                    if (isset($toolResult['created']) && $toolResult['created'] === true) {
-                        $partialWriteCount++;
-                    }
-
-                    // Handle navigation results
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'navigate') {
                         yield [
-                            'type' => 'navigation',
-                            'route_path' => $toolResult['route_path'],
-                            'description' => $toolResult['description'] ?? '',
+                            'type' => 'tool_use',
+                            'tool' => $functionName,
+                            'status' => 'running',
+                        ];
+
+                        // CoALA typed-action dispatch (Phase 5 item 3 — supersedes
+                        // the standalone GroundGate check from PR 2). Each emitted
+                        // tool call is wrapped in a typed `ground` Action and checked
+                        // against the unified SurfaceAllowlist before it can execute.
+                        // Same mechanical write-safety boundary as PR 2 (parity-tested
+                        // against GroundGate), now expressed as a typed action so the
+                        // FynLoop/planner work (items 4–5) shares one closed action
+                        // vocabulary. The model still emits raw tool calls here; the
+                        // planner that emits typed actions directly lands later.
+                        // In the read-only 'advice' state a WRITE_TOOLS surface is
+                        // denied BEFORE execution (audited status:stripped); reads and
+                        // the onboarding/legacy write states pass through unchanged.
+                        $dispatcher = app(ActionDispatcher::class);
+                        $action = $dispatcher->classify($functionName, $functionArgs);
+
+                        if (! $dispatcher->isSurfaceAllowed($action->surface(), $this->personaOverride)) {
+                            $toolResult = $this->rejectGroundSurface($action->surface(), $user, $conversation->id);
+                        } else {
+                            $toolResult = $this->executeTool(
+                                $action->surface(),
+                                $action->args(),
+                                $user,
+                                $conversation->id,
+                                $classification,
+                                $kycResult,
+                            );
+                        }
+
+                        if (isset($toolResult['created']) && $toolResult['created'] === true) {
+                            $partialWriteCount++;
+                        }
+
+                        // Handle navigation results
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'navigate') {
+                            yield [
+                                'type' => 'navigation',
+                                'route_path' => $toolResult['route_path'],
+                                'description' => $toolResult['description'] ?? '',
+                            ];
+                        }
+
+                        // S0.5.t — auto-navigation on blocked results removed.
+                        // BS-14 caught the regression: "Add a Cash ISA" caused
+                        // Advice Fyn to call get_module_analysis(savings), which
+                        // the prerequisite gate blocked on missing expenditure
+                        // and suggested /profile. The frontend obeyed the
+                        // redirect, force-navigating the user to /profile
+                        // despite the inline-capture having already persisted
+                        // the ISA. The blocked reason still reaches the LLM via
+                        // the tool_result so it can surface the gap as text and
+                        // recommend (in words) where to add the missing data;
+                        // we no longer hijack the user's route.
+
+                        // Handle form fill results
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
+                            yield [
+                                'type' => 'fill_form',
+                                'entity_type' => $toolResult['entity_type'],
+                                'route' => $toolResult['route'],
+                                'fields' => $toolResult['fields'],
+                                'mode' => $toolResult['mode'] ?? 'create',
+                                'entity_id' => $toolResult['entity_id'] ?? null,
+                            ];
+                        }
+
+                        // Onboarding inline-capture handoff — consumed by
+                        // OnboardingChatDirector::handleInlineCapture via the
+                        // synthetic `handoff` SSE event. Never forwarded to the
+                        // frontend; invisible to the user per INV-2.4.1.
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'handoff') {
+                            yield [
+                                'type' => 'handoff',
+                                'handoff_type' => $toolResult['handoff_type'] ?? 'unknown',
+                                'payload' => $toolResult['payload'] ?? [],
+                            ];
+                        }
+
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'subscription_options') {
+                            $presentationAction = [
+                                'action' => 'subscription_options',
+                                'reason' => $toolResult['reason'] ?? 'tier_limit_reached',
+                                'entity_key' => $toolResult['entity_key'] ?? null,
+                                'current_count' => $toolResult['current_count'] ?? null,
+                                'limit' => $toolResult['limit'] ?? $toolResult['hard_limit'] ?? null,
+                                'tier' => $toolResult['tier'] ?? null,
+                            ];
+                            $presentationActionKey = implode(':', [
+                                $presentationAction['action'],
+                                $presentationAction['reason'],
+                                $presentationAction['entity_key'],
+                            ]);
+                            if (! isset($presentationActionKeys[$presentationActionKey])) {
+                                $presentationActions[] = $presentationAction;
+                                $presentationActionKeys[$presentationActionKey] = true;
+                            }
+                        }
+
+                        // Handle entity creation results
+                        if (isset($toolResult['created']) && $toolResult['created'] === true) {
+                            yield [
+                                'type' => 'entity_created',
+                                'entity_type' => $toolResult['entity_type'],
+                                'entity_id' => $toolResult['entity_id'],
+                                'name' => $toolResult['name'] ?? '',
+                            ];
+                        }
+
+                        // Handle grouped onboarding field captures (used by the
+                        // Fyn onboarding director's grouped_extract turns). The
+                        // handler writes fields to the DB and returns a structured
+                        // receipt; we yield an SSE event so the director can see
+                        // the capture arrived and advance state.
+                        if (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true) {
+                            yield [
+                                'type' => 'onboarding_field_captured',
+                                'field_group' => $toolResult['field_group'] ?? 'unknown',
+                                'summary' => $toolResult['summary'] ?? '',
+                                'details' => $toolResult['details'] ?? [],
+                            ];
+                        }
+
+                        // FR-M13 — structured onboarding capture error (e.g. spouse
+                        // email already bound to another household). The director
+                        // consumes this to render a targeted terminal message and
+                        // stops advancing state.
+                        if (isset($toolResult['onboarding_capture_error']) && $toolResult['onboarding_capture_error'] === true) {
+                            yield [
+                                'type' => 'onboarding_capture_error',
+                                'field_group' => $toolResult['field_group'] ?? 'unknown',
+                                'error_type' => $toolResult['error_type'] ?? 'unknown',
+                                'message' => $toolResult['message'] ?? '',
+                            ];
+                        }
+
+                        $toolCallsSummary[] = [
+                            'tool' => $functionName,
+                            'input' => $this->summariseToolInput($functionArgs),
+                            'result_summary' => $this->summariseToolResult($toolResult),
                         ];
                     }
-
-                    // S0.5.t — auto-navigation on blocked results removed.
-                    // BS-14 caught the regression: "Add a Cash ISA" caused
-                    // Advice Fyn to call get_module_analysis(savings), which
-                    // the prerequisite gate blocked on missing expenditure
-                    // and suggested /profile. The frontend obeyed the
-                    // redirect, force-navigating the user to /profile
-                    // despite the inline-capture having already persisted
-                    // the ISA. The blocked reason still reaches the LLM via
-                    // the tool_result so it can surface the gap as text and
-                    // recommend (in words) where to add the missing data;
-                    // we no longer hijack the user's route.
-
-                    // Handle form fill results
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
-                        yield [
-                            'type' => 'fill_form',
-                            'entity_type' => $toolResult['entity_type'],
-                            'route' => $toolResult['route'],
-                            'fields' => $toolResult['fields'],
-                            'mode' => $toolResult['mode'] ?? 'create',
-                            'entity_id' => $toolResult['entity_id'] ?? null,
-                        ];
-                    }
-
-                    // Onboarding inline-capture handoff — consumed by
-                    // OnboardingChatDirector::handleInlineCapture via the
-                    // synthetic `handoff` SSE event. Never forwarded to the
-                    // frontend; invisible to the user per INV-2.4.1.
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'handoff') {
-                        yield [
-                            'type' => 'handoff',
-                            'handoff_type' => $toolResult['handoff_type'] ?? 'unknown',
-                            'payload' => $toolResult['payload'] ?? [],
-                        ];
-                    }
-
-                    // Handle entity creation results
-                    if (isset($toolResult['created']) && $toolResult['created'] === true) {
-                        yield [
-                            'type' => 'entity_created',
-                            'entity_type' => $toolResult['entity_type'],
-                            'entity_id' => $toolResult['entity_id'],
-                            'name' => $toolResult['name'] ?? '',
-                        ];
-                    }
-
-                    // Handle grouped onboarding field captures (used by the
-                    // Fyn onboarding director's grouped_extract turns). The
-                    // handler writes fields to the DB and returns a structured
-                    // receipt; we yield an SSE event so the director can see
-                    // the capture arrived and advance state.
-                    if (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true) {
-                        yield [
-                            'type' => 'onboarding_field_captured',
-                            'field_group' => $toolResult['field_group'] ?? 'unknown',
-                            'summary' => $toolResult['summary'] ?? '',
-                            'details' => $toolResult['details'] ?? [],
-                        ];
-                    }
-
-                    // FR-M13 — structured onboarding capture error (e.g. spouse
-                    // email already bound to another household). The director
-                    // consumes this to render a targeted terminal message and
-                    // stops advancing state.
-                    if (isset($toolResult['onboarding_capture_error']) && $toolResult['onboarding_capture_error'] === true) {
-                        yield [
-                            'type' => 'onboarding_capture_error',
-                            'field_group' => $toolResult['field_group'] ?? 'unknown',
-                            'error_type' => $toolResult['error_type'] ?? 'unknown',
-                            'message' => $toolResult['message'] ?? '',
-                        ];
-                    }
-
-                    $toolCallsSummary[] = [
-                        'tool' => $functionName,
-                        'input' => $this->summariseToolInput($functionArgs),
-                        'result_summary' => $this->summariseToolResult($toolResult),
-                    ];
 
                     $toolSeq = count($fullToolCalls);
                     $fullToolCalls[] = [
@@ -668,6 +902,9 @@ trait HasAiChat
                     ];
 
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
+                    if (! $isRepeatedToolCall) {
+                        $executedCalls[$callFingerprint]['failed'] = $isToolError;
+                    }
 
                     // April30Updates F-3 — compress the tool result before
                     // re-injecting into the LLM context. Some tools (notably
@@ -693,9 +930,69 @@ trait HasAiChat
                     // model's first response, so the directive only forbids
                     // RE-calling on the next continuation, never the initial
                     // batch.
-                    $captureDirective = $this->captureTurnCompleteDirective($functionName, $toolResult);
+                    $captureDirective = $isRepeatedToolCall
+                        ? null
+                        : $this->captureTurnCompleteDirective($functionName, $toolResult);
                     if ($captureDirective !== null) {
                         $toolResultForModel['capture_turn_complete'] = $captureDirective;
+                    }
+
+                    // WP-1 — mirror of the complete-directive for FAILED writes.
+                    // Without it the model sees the raw error JSON and frequently
+                    // narrates a confident "Recorded…" anyway (the 2026-07-03
+                    // "Beta Ltd Workplace Pension" was lost exactly this way).
+                    if (! $isRepeatedToolCall && $isToolError && $this->personaOverride === 'data_capture') {
+                        $toolResultForModel['capture_write_failed'] = 'CAPTURE_WRITE_FAILED: '
+                            .'this write did NOT save anything. Either retry the tool ONCE with '
+                            .'corrected fields (fix exactly what the error names), or tell the '
+                            .'user plainly what could not be saved and what detail is needed. '
+                            .'NEVER claim the record was saved.';
+                    }
+
+                    // WP-1 — let the onboarding director distinguish landed
+                    // writes from failed attempts (it previously counted raw
+                    // tool_use events, so a failed create still advanced the
+                    // flow as a "capture"). Emitted only on delegated
+                    // data_capture turns; the director consumes it and never
+                    // re-yields, so no frontend sees it.
+                    if (! $isRepeatedToolCall && $this->personaOverride === 'data_capture') {
+                        $writeLanded = ! $isToolError && (
+                            (isset($toolResult['created']) && $toolResult['created'] === true)
+                            || (isset($toolResult['updated']) && $toolResult['updated'] === true)
+                            || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
+                            || (isset($toolResult['success']) && $toolResult['success'] === true)
+                        );
+                        $toolCallId = (string) ($toolUseBlock['id'] ?? '');
+                        $retryOfToolCallId = $captureRetryAssignments[$toolCallId] ?? null;
+                        if ($retryOfToolCallId !== null) {
+                            unset($pendingCaptureWriteFailures[$retryOfToolCallId]);
+                        }
+
+                        if ($isToolError && $toolCallId !== '') {
+                            $pendingCaptureWriteFailures[$toolCallId] = [
+                                'tool' => $functionName,
+                                'model_iteration' => $modelIteration,
+                            ];
+                        }
+
+                        yield [
+                            'type' => 'capture_write_result',
+                            'tool' => $functionName,
+                            'tool_call_id' => $toolCallId,
+                            'model_iteration' => $modelIteration,
+                            'retry_of_tool_call_id' => $retryOfToolCallId,
+                            'landed' => $writeLanded,
+                            'message' => $isToolError ? (string) ($toolResult['message'] ?? 'The write failed.') : null,
+                            'result' => $toolResult,
+                            // The raw tool-call arguments the model emitted. Internal-only
+                            // (this event never reaches the frontend — INV-2.4.1) — carried
+                            // so a gate-blocked clarification_required call can be rescued by
+                            // OnboardingChatDirector's deterministic gap-fill, which merges
+                            // these fields with the extractor's own parse (ownership_type,
+                            // chiefly) rather than losing the model's otherwise-correct
+                            // institution/balance/account_type parsing (live conversation 164).
+                            'input' => $functionArgs,
+                        ];
                     }
 
                     $toolResultJson = json_encode($toolResultForModel);
@@ -727,11 +1024,13 @@ trait HasAiChat
                         $anthropicToolResultBlocks[] = $block;
                     }
 
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $functionName,
-                        'status' => 'complete',
-                    ];
+                    if (! $isRepeatedToolCall) {
+                        yield [
+                            'type' => 'tool_use',
+                            'tool' => $functionName,
+                            'status' => 'complete',
+                        ];
+                    }
                 }
 
                 // Anthropic: add all tool results as a single user message
@@ -749,9 +1048,40 @@ trait HasAiChat
 
             // If we hit the tool call limit but still have tool_use stop reason,
             // make one final pass with tools disabled to force a text response
-            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= $toolCallCap && $fullResponse === '') {
+            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= $toolCallCap && ! $capPassForced) {
+                $capPassForced = true;
                 $xaiTools = [];
                 $tools = [];
+                $fullResponse = '';
+                $iterationText = '';
+
+                continue;
+            }
+
+            // A verify-edit write can fail because the provider omitted one of
+            // the fields the user explicitly corrected, then stop in prose
+            // instead of retrying the tool. Keep that recovery inside the same
+            // turn: the original correction is still in context and the
+            // mechanical scope supplies the exact required field names. Force
+            // one retry only; if it still fails, the director's honesty gate
+            // leaves the user on the edit state without claiming success.
+            if (! $hasToolCalls
+                && $pendingCaptureWriteFailures !== []
+                && $this->verifyEditScope !== null
+                && ! $verifyEditRetryForced) {
+                $verifyEditRetryForced = true;
+                if ($iterationText !== '') {
+                    $messages[] = ['role' => 'assistant', 'content' => $iterationText];
+                }
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => 'VERIFY_EDIT_RETRY_REQUIRED: retry the failed update tool now. '
+                        .'Do not answer in prose and do not ask the user to repeat anything. '
+                        .'Read the corrected values from the original current-turn message and include every '
+                        .'required field: '.implode(', ', $this->verifyEditRequiredFieldNames()).'.',
+                ];
+                $fullResponse = '';
+                $iterationText = '';
 
                 continue;
             }
@@ -761,8 +1091,12 @@ trait HasAiChat
 
         // Validate and sanitise AI response
         $validator = app(StructuredResponseValidator::class);
-        $fullResponse = $validator->sanitise($fullResponse);
-        $violations = $validator->validateAndLog($fullResponse, $classification, $user->id);
+        $sanitisation = $validator->sanitiseWithViolations($fullResponse);
+        $fullResponse = $sanitisation['response'];
+        $violations = array_merge(
+            $sanitisation['violations'],
+            $validator->validateAndLog($fullResponse, $classification, $user->id, null, $this->personaOverride ?? 'advice'),
+        );
 
         // Build metadata with tool call summary and any violations
         $messageMetadata = [];
@@ -772,6 +1106,9 @@ trait HasAiChat
         if (! empty($violations)) {
             $messageMetadata['validation_violations'] = $violations;
         }
+        if ($presentationActions !== []) {
+            $messageMetadata['actions'] = $presentationActions;
+        }
 
         // Save assistant message with system prompt for audit trail
         if ($totalCachedTokens > 0) {
@@ -780,6 +1117,23 @@ trait HasAiChat
                 ? round(($totalCachedTokens / $totalInputTokens) * 100, 1)
                 : 0;
         }
+
+        // CoALA Phase 5 PR 1 (FR-M11/M12/M13) — establish the prompt-cache
+        // hit/miss + GBP-cost baseline on EVERY LLM turn, before Phase 1's
+        // assembler rewrites land. Distinct from the legacy hit-rate block
+        // above: these are absolute hit/miss token counts plus the costed
+        // GBP figure, emitted whether or not any caching occurred.
+        $messageMetadata = array_merge(
+            $messageMetadata,
+            $this->costTelemetryMetadata(
+                $model,
+                $isXai,
+                $totalInputTokens,
+                $totalOutputTokens,
+                $totalCachedTokens,
+                $totalCacheCreationTokens,
+            ),
+        );
 
         // Persist the verbatim effective system prompt that was sent to
         // the provider this turn ($systemPrompt is the same value passed
@@ -816,7 +1170,21 @@ trait HasAiChat
         // BS-20 visible-text contract).
         $sanitisedResponse = XaiFunctionCallLeakStripper::stripLeakedToolCallMarkup($fullResponse);
 
+        // A2 — delegated data-capture turns dedupe the model's stacked
+        // re-narrated acks on the live stream (OnboardingChatDirector's
+        // buffer); persist the SAME deduped text so the reloaded transcript
+        // matches what streamed — before this, the row kept the doubled
+        // "Recorded — …Recorded — …" verbatim.
+        if ($this->personaOverride === 'data_capture') {
+            $sanitisedResponse = AckSentenceDeduper::dedupe($sanitisedResponse);
+        }
+
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
+
+        // CoALA Phase 2 — persist the verbatim episode blob, flush the turn's
+        // fetch-provenance onto the assistant row, and append the signed
+        // __episode__ attestation. Additive + resilient: never breaks the turn.
+        $this->persistEpisode($assistantMessage, $conversation, $user, $systemPrompt, $this->assembledContext ?? '', $model, $fullToolCalls ?: null, $fullToolResults ?: null);
 
         // Update conversation token usage
         $conversation->incrementTokenUsage($totalInputTokens, $totalOutputTokens);
@@ -856,12 +1224,89 @@ trait HasAiChat
             }
         }
 
+        foreach ($presentationActions as $presentationAction) {
+            yield array_merge(['type' => 'action'], $presentationAction);
+        }
+
         yield [
             'type' => 'done',
             'message_id' => $assistantMessage->id,
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
         ];
+    }
+
+    /**
+     * CoALA Phase 2 — persist the verbatim episode blob, flush the turn's
+     * fetch-provenance onto the assistant row, and append the signed
+     * __episode__ attestation to the audit chain. Resilient: any failure is
+     * reported and swallowed — the verbatim ai_messages columns remain as the
+     * forensic fallback, and a blob/audit error must never break the chat turn.
+     */
+    private function persistEpisode(
+        AiMessage $assistant,
+        AiConversation $conversation,
+        User $user,
+        string $systemPrompt,
+        string $assembledContext,
+        ?string $model,
+        ?array $toolCalls,
+        ?array $toolResults
+    ): void {
+        try {
+            $collector = app(FetchProvenanceCollector::class);
+            $provenance = $collector->all();
+            $collector->reset();
+
+            $snapshotHolder = app(SemanticSnapshotHolder::class);
+            $semanticSnapshotId = $snapshotHolder->get();
+            $snapshotHolder->reset();
+
+            $versionHolder = app(ProceduralVersionHolder::class);
+            $proceduralVersion = $versionHolder->all();
+            $versionHolder->reset();
+            $proceduralVersion = $proceduralVersion !== [] ? $proceduralVersion : null;
+
+            $data = new EpisodeBlobData(
+                episodeId: (string) $assistant->id,
+                conversationId: $conversation->id,
+                clientId: $user->id,
+                timestamp: ($assistant->created_at ?? now())->utc()->toIso8601String(),
+                persona: $this->personaOverride,
+                module: null,
+                proceduralVersion: $proceduralVersion,
+                semanticSnapshotId: $semanticSnapshotId,
+                modelUsed: $model,
+                systemPrompt: $systemPrompt,
+                assembledContext: $assembledContext,
+                reasoningTrace: null,
+                toolCalls: $toolCalls,
+                toolResults: $toolResults,
+            );
+
+            $ref = app(EpisodeBlobWriter::class)->write($assistant, $data);
+
+            $assistant->update([
+                'blob_md_path' => $ref->path,
+                'blob_md_sha256' => $ref->sha256,
+                'fetch_provenance' => $provenance !== [] ? $provenance : null,
+                'procedural_version' => $proceduralVersion,
+            ]);
+
+            app(AuditChainService::class)->appendEpisode([
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'entity_id' => $assistant->id,
+                'blob_md_sha256' => $ref->sha256,
+                'blob_md_path' => $ref->path,
+                'semantic_snapshot_id' => $semanticSnapshotId,
+                'procedural_version' => $proceduralVersion,
+                'fetch_provenance' => $provenance,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+            // never break the turn — verbatim columns remain the fallback
+        }
     }
 
     // ─── Prompt Building ─────────────────────────────────────────────
@@ -895,7 +1340,11 @@ trait HasAiChat
             // {Module}Agent::analyze() calls; for factual queries (INCOME /
             // GENERAL / NAVIGATION / BILLING / OUT_OF_REMIT) it skips module
             // analysis entirely. See CoordinatingAgent::analyzeRelevantModules.
-            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules(
+                $userId,
+                $classification,
+                $kycResult,
+            ),
             conversation: $conversation,
         );
     }
@@ -934,7 +1383,11 @@ trait HasAiChat
         // financial context instead of the "unavailable" sentinel.
         $block = app(FynContextAssembler::class)->build(
             $ctx,
-            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules(
+                $userId,
+                $classification,
+                $kycResult,
+            ),
         );
 
         // Capture the exact user-turn content sent to the provider this turn
@@ -952,6 +1405,84 @@ trait HasAiChat
     }
 
     // ─── Message Persistence & History ────────────────────────────────
+
+    /**
+     * Mechanically reject a write surface that reached dispatch in the
+     * read-only advice state (CoALA ground gate, Phase 5 PR 2). Writes an
+     * `ai_audit_events` chain row with status:stripped, then returns a safe
+     * tool-result observation so the LLM loop continues gracefully and can
+     * explain the limitation in words. The write is NEVER executed.
+     *
+     * @return array{success: bool, blocked: bool, message: string}
+     */
+    private function rejectGroundSurface(string $toolName, User $user, ?int $conversationId): array
+    {
+        $this->appendAuditEvent([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+            'tool_name' => $toolName,
+            'operation' => self::operationFor($toolName),
+            'status' => 'stripped',
+            'input_summary' => ['ground_gate' => 'write_surface_denied_in_advice_mode'],
+        ]);
+
+        Log::warning('[GroundGate] Write surface rejected in advice mode', [
+            'tool' => $toolName,
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+        ]);
+
+        return [
+            'success' => false,
+            'blocked' => true,
+            'message' => 'That action is not available in this mode. Changes to your records are made through the data-capture flow, not the advice conversation.',
+        ];
+    }
+
+    /**
+     * Assemble the per-turn cost-telemetry metadata fragment
+     * (CoALA Phase 5 PR 1 — FR-M11/M12/M13).
+     *
+     * Normalises the two providers' token semantics before costing:
+     *   - Anthropic reports `input_tokens` EXCLUDING cache read/creation,
+     *     so the captured input total is already the regular billable input.
+     *   - xAI folds cached reads INTO `prompt_tokens` and has no separate
+     *     cache-creation tier, so regular input = prompt − cached (clamped
+     *     at 0) and the miss count is always 0.
+     *
+     * @return array{cache_hit_tokens: int, cache_miss_tokens: int, gbp_cost: float, gbp_cost_priced: bool}
+     */
+    protected function costTelemetryMetadata(
+        string $model,
+        bool $isXai,
+        int $totalInputTokens,
+        int $totalOutputTokens,
+        int $totalCacheReadTokens,
+        int $totalCacheCreationTokens,
+    ): array {
+        // cache-read = HIT, cache-creation = MISS (write-through).
+        $cacheHitTokens = $totalCacheReadTokens;
+        $cacheMissTokens = $isXai ? 0 : $totalCacheCreationTokens;
+
+        $regularInputTokens = $isXai
+            ? max(0, $totalInputTokens - $totalCacheReadTokens)
+            : $totalInputTokens;
+
+        $cost = app(AiCostCalculator::class)->compute(
+            model: $model,
+            inputTokens: $regularInputTokens,
+            outputTokens: $totalOutputTokens,
+            cacheReadTokens: $cacheHitTokens,
+            cacheCreationTokens: $cacheMissTokens,
+        );
+
+        return [
+            'cache_hit_tokens' => $cacheHitTokens,
+            'cache_miss_tokens' => $cacheMissTokens,
+            'gbp_cost' => $cost['gbp_cost'],
+            'gbp_cost_priced' => $cost['priced'],
+        ];
+    }
 
     // ─── Message Persistence ─────────────────────────────────────────
 
@@ -1061,8 +1592,28 @@ trait HasAiChat
             ];
         }
 
-        // General compression — recursively trim oversized nested data.
-        return $this->trimForModel($result, depth: 0);
+        // General compression — recursively trim oversized nested data. The
+        // composed plan returned by get_recommendations has one meaningful
+        // extra envelope (composed_tax_plan.items[]). Allow that single extra
+        // level so the model receives the strategy's balances, interest,
+        // allowance and saving instead of an opaque "[nested N items]" marker.
+        $maxDepth = $toolName === 'get_recommendations' ? 4 : 3;
+
+        return $this->trimForModel($result, depth: 0, maxDepth: $maxDepth);
+    }
+
+    /** @return list<string> */
+    private function verifyEditRequiredFieldNames(): array
+    {
+        if ($this->verifyEditScope === null) {
+            return [];
+        }
+
+        return collect([
+            ...array_values($this->verifyEditScope['record_fields']),
+            ...array_values($this->verifyEditScope['profile_fields']),
+            ...array_values($this->verifyEditScope['tool_fields']),
+        ])->flatten()->unique()->values()->all();
     }
 
     /**
@@ -1125,9 +1676,9 @@ trait HasAiChat
      * over 10 items are summarised; strings over 200 chars are
      * truncated; depth over 3 collapses to a placeholder.
      */
-    private function trimForModel(mixed $value, int $depth): mixed
+    private function trimForModel(mixed $value, int $depth, int $maxDepth = 3): mixed
     {
-        if ($depth >= 3) {
+        if ($depth >= $maxDepth) {
             if (is_array($value)) {
                 return '[nested '.count($value).' items]';
             }
@@ -1148,13 +1699,13 @@ trait HasAiChat
             $tail = array_slice($value, -2);
 
             return [
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $head),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $head),
                 '__truncated__' => count($value) - 7 .' items omitted',
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $tail),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $tail),
             ];
         }
 
-        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $value);
+        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $value);
     }
 
     /**
@@ -1188,6 +1739,60 @@ trait HasAiChat
         }
 
         return $summary;
+    }
+
+    /**
+     * Build a provider-independent identity for a tool call.
+     */
+    private function toolCallFingerprint(string $toolName, array $input): string
+    {
+        $normalisedInput = $this->normaliseToolCallInput($input);
+        $encodedInput = json_encode(
+            $normalisedInput,
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        return $toolName.':'.hash('sha256', $encodedInput);
+    }
+
+    /**
+     * Match the executor's top-level provider normalization, then recursively
+     * sort object-like arguments while preserving list order.
+     */
+    private function normaliseToolCallInput(array $input): array
+    {
+        $input = array_map(static function (mixed $value): mixed {
+            if ($value === 'null') {
+                return null;
+            }
+
+            if (is_string($value)) {
+                return html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+
+            return $value;
+        }, $input);
+
+        return $this->sortToolCallInput($input);
+    }
+
+    private function sortToolCallInput(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value)) {
+            return array_map(fn (mixed $item): mixed => $this->sortToolCallInput($item), $value);
+        }
+
+        ksort($value, SORT_STRING);
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->sortToolCallInput($item);
+        }
+
+        return $value;
     }
 
     /**
@@ -1267,22 +1872,26 @@ trait HasAiChat
         bool $skipUserMessagePersistence = false,
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
+        ?string $providerOverride = null,
     ): void {
         $this->systemPromptOverride = $systemPrompt;
         $this->allowedToolsOverride = $allowedTools;
         $this->skipUserMessagePersistence = $skipUserMessagePersistence;
         $this->toolsListOverride = $toolsListOverride;
         $this->personaOverride = $personaOverride;
+        $this->providerOverride = $providerOverride;
     }
 
     public function clearChatOverrides(): void
     {
         $this->systemPromptOverride = null;
         $this->unifiedOnboardingFocus = null;
+        $this->verifyEditScope = null;
         $this->allowedToolsOverride = null;
         $this->skipUserMessagePersistence = false;
         $this->toolsListOverride = null;
         $this->personaOverride = null;
+        $this->providerOverride = null;
     }
 
     /**

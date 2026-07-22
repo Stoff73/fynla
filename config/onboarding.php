@@ -33,6 +33,10 @@ return [
     */
     'fyn_flow_enabled' => env('ONBOARDING_FYN_FLOW_ENABLED', true),
 
+    // The public funnel collects bands rather than an exact figure. This is a
+    // campaign modelling assumption, deliberately separate from tax constants.
+    'savetax_over_band_assumed_income' => 150000,
+
     /*
     |--------------------------------------------------------------------------
     | Entry-source journey map (INV-2.2.5)
@@ -73,6 +77,11 @@ return [
     |
     */
     'campaign_map' => [
-        'savetax' => 'savetax',
+        // value shape: selection id, entry state id (literal string — must match an
+        // OnboardingStateMachine::STATE_* constant; asserted by OnboardingStartCampaignMapTest),
+        // and whether completed users may re-enter this campaign (consumed by the
+        // campaign re-entry gate in AiChatController).
+        'savetax' => ['selection' => 'savetax', 'entry' => 'base_work', 'reentry' => false],
+        'pensioncheck' => ['selection' => 'pensioncheck', 'entry' => 'base_work', 'reentry' => true, 'reentry_entry' => 'campaign2_existing_recap'],
     ],
 ];

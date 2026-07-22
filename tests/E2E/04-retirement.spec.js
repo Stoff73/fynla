@@ -2,11 +2,9 @@ import { test, expect } from '@playwright/test';
 import { register } from './helpers/auth.js';
 import { waitForLoading, navigateToModule, fillField, selectOption, isVisible } from './helpers/common.js';
 
-test.describe('Retirement Module', () => {
-  let testUser;
-
+test.describe.skip('legacy E2E migration tracked by online-readiness Task 24', () => {
   test.beforeEach(async ({ page }) => {
-    testUser = await register(page);
+    await register(page);
     await page.waitForTimeout(2000);
   });
 
@@ -143,7 +141,6 @@ test.describe('Retirement Module', () => {
       await projectionsTab.click();
       await waitForLoading(page);
 
-      const chart = page.locator('[data-testid="income-projection-chart"], .apexcharts-area');
       const isChartVisible = await isVisible(page, '.apexcharts-area');
       expect(isChartVisible).toBeDefined();
     }

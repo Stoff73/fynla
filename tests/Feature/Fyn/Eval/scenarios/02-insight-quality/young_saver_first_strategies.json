@@ -1,0 +1,61 @@
+{
+  "id": "young_saver_first_strategies",
+  "category": "02-insight-quality",
+  "persona": "young_saver",
+  "is_mutating": false,
+  "notes": "Golden persona scenario — affordability ordering. Emergency-fund guidance must come before contribution pushes (AFFORDABILITY_RULES); carry-forward and trust strategies must not appear for an early-career saver.",
+  "description": "John Morgan asks how to start saving properly. The reply must surface emergency-fund guidance (three-month buffer) before any ISA/pension contribution push, reflecting the affordability ordering, and must NOT recommend carry-forward or trust strategies that do not apply to an early-career saver. FCA signposting present.",
+  "input": {
+    "turns": [
+      {"user": "how do I start saving properly?", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "general",
+    "related": [],
+    "modules": []
+  },
+  "expected_response_mode": "factual",
+  "expected_engine_call_level": "factual",
+  "expected_kyc_state": "bypass",
+  "expected_tool_calls": [],
+  "expected_tool_calls_absent": [
+    "create_record",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["content", "done"],
+    "must_emit_exactly_once": ["done"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5
+  },
+  "expected_assistant_text": {
+    "must_contain_at_least_one_of": [
+      ["emergency fund", "three months", "3 months", "buffer", "rainy day", "safety net"]
+    ],
+    "must_not_contain_substrings": ["carry forward", "carry-forward", "trust", "I think you should", "In my opinion"],
+    "minimum_length_chars": 200
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["users", "ai_conversations"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"success": 12000},
+    "xai": {"success": 30000}
+  },
+  "tags": ["golden", "insight-quality", "recommendation-mode", "savings", "young_saver", "affordability-ordering", "happy-path"]
+}

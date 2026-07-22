@@ -1,7 +1,27 @@
+<?php
+
+use App\Services\Onboarding\FunnelIncomeBand;
+
+$incomeBandLabels = [
+    'upto_50270' => 'Basic-rate income range',
+    '50271_100000' => 'Higher-rate income range',
+    '100001_125140' => 'Personal Allowance taper range',
+    'over_125140' => 'Above the Personal Allowance taper range',
+];
+
+try {
+    $incomeBandLabels = FunnelIncomeBand::pageLabels();
+} catch (Throwable $e) {
+    report($e);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Save Tax — Find Your Tax Saving Opportunities — Fynla</title>
   <meta name="description" content="Answer 5 quick questions and discover the UK tax reliefs and allowances you may be missing. Personalised tax insights from Fynla in under a minute." />
@@ -73,7 +93,7 @@
   </style>
 
   <!-- Blocking CSS — same-server, negligible render penalty, no FOUC -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax.css?v=15" />
 </head>
 <body>
@@ -160,10 +180,8 @@
         <h2 class="qr-q" id="q2-heading" tabindex="-1">What is your annual income?</h2>
         <p class="qr-q-sub">Your gross income before tax, including salary, self-employment, and pension income.</p>
         <div class="qr-options" role="group" aria-label="Annual income options">
-
-          <button type="button" class="qr-opt" data-value="personal-allowance" aria-pressed="false">
-            <span class="qr-opt__label">Up to £12,570</span>
-            <span class="qr-opt__badge">Up to personal allowance</span>
+          <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['upto_50270'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -171,9 +189,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="basic" aria-pressed="false">
-            <span class="qr-opt__label">£12,571 – £50,270</span>
-            <span class="qr-opt__badge">Basic rate</span>
+          <button type="button" class="qr-opt" data-value="50271_100000" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['50271_100000'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -181,9 +198,9 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="higher" aria-pressed="false">
-            <span class="qr-opt__label">£50,271 – £100,000</span>
-            <span class="qr-opt__badge">Higher rate</span>
+          <button type="button" class="qr-opt" data-value="100001_125140" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['100001_125140'], ENT_QUOTES) ?></span>
+            <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -191,9 +208,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="additional" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 or more</span>
-            <span class="qr-opt__badge">Additional rate</span>
+          <button type="button" class="qr-opt" data-value="over_125140" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['over_125140'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -201,14 +217,15 @@
             </span>
           </button>
 
+        
         </div>
       </section>
 
-      <!-- Q3: Spouse or partner -->
+      <!-- Q3: Spouse -->
       <section class="qr-screen" id="s-spouse" aria-labelledby="q3-heading">
-        <h2 class="qr-q" id="q3-heading" tabindex="-1">Do you have a spouse or partner?</h2>
+        <h2 class="qr-q" id="q3-heading" tabindex="-1">Do you have a spouse?</h2>
         <p class="qr-q-sub">Couples may be able to transfer allowances and split income to reduce their overall tax bill.</p>
-        <div class="qr-options qr-options--pair" role="group" aria-label="Spouse or partner options">
+        <div class="qr-options qr-options--pair" role="group" aria-label="Spouse options">
 
           <button type="button" class="qr-opt qr-opt--square" data-value="yes" aria-pressed="false">
             <span class="qr-opt__label">Yes</span>
@@ -233,13 +250,11 @@
 
       <!-- Q4: Spouse income (conditional — shown only if Q3=Yes) -->
       <section class="qr-screen" id="s-spouse-income" aria-labelledby="q4-heading">
-        <h2 class="qr-q" id="q4-heading" tabindex="-1">What is your spouse or partner's annual income?</h2>
+        <h2 class="qr-q" id="q4-heading" tabindex="-1">What is your spouse's annual income?</h2>
         <p class="qr-q-sub">Their gross income before tax. This helps us identify allowance transfer opportunities.</p>
-        <div class="qr-options" role="group" aria-label="Spouse or partner annual income options">
-
-          <button type="button" class="qr-opt" data-value="personal-allowance" aria-pressed="false">
-            <span class="qr-opt__label">Up to £12,570</span>
-            <span class="qr-opt__badge">Up to personal allowance</span>
+        <div class="qr-options" role="group" aria-label="Spouse annual income options">
+          <button type="button" class="qr-opt" data-value="zero" aria-pressed="false">
+            <span class="qr-opt__label">No income</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -247,9 +262,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="basic" aria-pressed="false">
-            <span class="qr-opt__label">£12,571 – £50,270</span>
-            <span class="qr-opt__badge">Basic rate</span>
+          <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['upto_50270'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -257,9 +271,8 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="higher" aria-pressed="false">
-            <span class="qr-opt__label">£50,271 – £100,000</span>
-            <span class="qr-opt__badge">Higher rate</span>
+          <button type="button" class="qr-opt" data-value="50271_100000" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['50271_100000'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -267,9 +280,9 @@
             </span>
           </button>
 
-          <button type="button" class="qr-opt" data-value="additional" aria-pressed="false">
-            <span class="qr-opt__label">£100,001 or more</span>
-            <span class="qr-opt__badge">Additional rate</span>
+          <button type="button" class="qr-opt" data-value="100001_125140" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['100001_125140'], ENT_QUOTES) ?></span>
+            <span class="qr-opt__badge">Tax-trap zone</span>
             <span class="qr-opt__check" aria-hidden="true">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -277,6 +290,16 @@
             </span>
           </button>
 
+          <button type="button" class="qr-opt" data-value="over_125140" aria-pressed="false">
+            <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['over_125140'], ENT_QUOTES) ?></span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+        
         </div>
       </section>
 
@@ -351,6 +374,8 @@
 
   </div><!-- /.qr-card -->
 
-  <script src="/pages/js/savetax.js?v=5" defer></script>
+  <script src="/pages/js/savetax.js?v=8" defer></script>
+  <!-- Cookie consent — direct funnel entry must still surface the prompt here. -->
+  <script src="/pages/js/cookie-consent.js?v=1" defer></script>
 </body>
 </html>

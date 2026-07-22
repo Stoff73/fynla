@@ -46,7 +46,7 @@ class PerformanceAttributionController extends Controller
             $cacheKey = "performance_attribution_{$user->id}_{$period}";
 
             $result = Cache::remember($cacheKey, 86400, function () use ($user, $period) {
-                return $this->attributionAnalyzer->analyzePerformance($user->id, $period);
+                return $this->attributionAnalyzer->analyzePerformance($user, $period);
             });
 
             if (! $result['success']) {

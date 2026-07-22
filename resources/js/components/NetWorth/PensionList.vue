@@ -42,7 +42,7 @@
         </svg>
         <p>No pensions found</p>
         <p class="empty-subtitle">Add your first pension to track your retirement planning</p>
-        <button v-preview-disabled="'add'" @click="editingPension = null; showPensionForm = true;" class="add-first-button">
+        <button v-preview-disabled="'add'" @click="openCreatePensionForm()" class="add-first-button">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -316,7 +316,7 @@
                   <button
                     v-preview-disabled="'add'"
                     type="button"
-                    @click="editingPension = null; initialPensionType = null; showPensionForm = true;"
+                    @click="openCreatePensionForm()"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +428,15 @@
       document-type="pension_statement"
       @close="showUploadModal = false"
       @saved="handleDocumentSaved"
-      @manual-entry="showUploadModal = false; showPensionForm = true;"
+      @manual-entry="openManualPensionEntry"
+    />
+
+    <LimitReachedModal
+      :show="showLimitModal"
+      entity-label="pensions"
+      :cap="tierCountCap('pension_account') || 0"
+      :tier-label="tierLabel"
+      @close="showLimitModal = false"
     />
 
     <!-- Success/Error Messages -->
@@ -446,32 +454,33 @@ import { mapState, mapActions, mapGetters } from 'vuex';
 import PensionDetailInline from './PensionDetailInline.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
 import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'PensionList',
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, tierLimitMixin],
 
   components: {
     PensionDetailInline,
     UnifiedPensionForm,
     DocumentUploadModal,
-    RiskBadge,
     PensionPotProjectionChart,
     FutureValueTab,
     RetirementIncomeTab,
     CapitalAdequacyTab,
     DecumulationStrategyCard,
     ModuleStatusBar,
+    LimitReachedModal,
   },
 
   data() {
@@ -479,6 +488,7 @@ export default {
       selectedPension: null,
       selectedPensionType: null,
       showPensionForm: false,
+      showLimitModal: false,
       showUploadModal: false,
       editingPension: null,
       initialPensionType: null,
@@ -654,7 +664,7 @@ export default {
   watch: {
     actionCounter() {
       if (this.pendingAction === 'addPension') {
-        this.showPensionForm = true;
+        this.openCreatePensionForm();
         this.$store.dispatch('subNav/consumeCta');
       } else if (this.pendingAction === 'uploadStatement') {
         this.showUploadModal = true;
@@ -683,9 +693,7 @@ export default {
             this.showPensionForm = true;
           }
         } else {
-          this.editingPension = null;
-          this.initialPensionType = fill.entityType === 'dc_pension' ? 'dc' : 'db';
-          this.showPensionForm = true;
+          this.openCreatePensionForm(fill.entityType === 'dc_pension' ? 'dc' : 'db');
         }
       }
     },
@@ -772,6 +780,22 @@ export default {
       this.initialPensionType = 'state';
       this.editingPension = null;
       this.showPensionForm = true;
+    },
+
+    openCreatePensionForm(initialType = null) {
+      const pensionCount = this.dcPensions.length + this.dbPensions.length;
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('pension_account', pensionCount)) {
+        this.showLimitModal = true;
+        return;
+      }
+      this.editingPension = null;
+      this.initialPensionType = initialType;
+      this.showPensionForm = true;
+    },
+
+    openManualPensionEntry() {
+      this.showUploadModal = false;
+      this.openCreatePensionForm();
     },
 
     async handlePensionSave(data) {
@@ -875,16 +899,15 @@ export default {
   },
 
   async mounted() {
-    // Check for pendingFill that was set before this component mounted
-    const fill = this.$store.state.aiFormFill?.pendingFill;
-    if (fill && (fill.entityType === 'dc_pension' || fill.entityType === 'db_pension') && fill.mode !== 'edit') {
-      this.editingPension = null;
-      this.initialPensionType = fill.entityType === 'dc_pension' ? 'dc' : 'db';
-      this.showPensionForm = true;
-    }
-
     this.setDetailView(false);
     await this.fetchRetirementData();
+
+    // Check for pendingFill after loading the authoritative pension count.
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && (fill.entityType === 'dc_pension' || fill.entityType === 'db_pension') && fill.mode !== 'edit') {
+      this.openCreatePensionForm(fill.entityType === 'dc_pension' ? 'dc' : 'db');
+    }
+
     await this.loadProjectionsAndStrategies();
   },
 };

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Performance;
 
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
+use App\Services\Stores\InvestmentAccountStore;
 use Illuminate\Support\Collection;
 
 /**
@@ -21,21 +22,21 @@ class PerformanceAttributionAnalyzer
 {
     public function __construct(
         private BenchmarkComparator $benchmarkComparator,
-        private AlphaBetaCalculator $alphaBetaCalculator
+        private AlphaBetaCalculator $alphaBetaCalculator,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
      * Perform comprehensive performance attribution analysis
      *
-     * @param  int  $userId  User ID
+     * @param  User  $user  Account owner
      * @param  string  $period  Period (1y, 3y, 5y)
      * @return array Attribution analysis
      */
-    public function analyzePerformance(int $userId, string $period = '1y'): array
+    public function analyzePerformance(User $user, string $period = '1y'): array
     {
-        $accounts = InvestmentAccount::where('user_id', $userId)
-            ->with('holdings')
-            ->get();
+        // Primary-only — matches the pre-PR-5b where('user_id') semantics.
+        $accounts = $this->investmentAccountStore->forUserPrimaryOnly($user)->load('holdings');
 
         if ($accounts->isEmpty()) {
             return [
@@ -66,7 +67,7 @@ class PerformanceAttributionAnalyzer
         $geographicAttribution = $this->analyzeByGeography($allHoldings, $totalValue);
 
         // Compare with benchmark
-        $benchmarkComparison = $this->benchmarkComparator->compareWithBenchmark($userId, 'ftse_all_share', $period);
+        $benchmarkComparison = $this->benchmarkComparator->compareWithBenchmark($user->id, 'ftse_all_share', $period);
 
         // Calculate contribution to return
         $contributionAnalysis = $this->calculateContributionToReturn($allHoldings, $totalValue);

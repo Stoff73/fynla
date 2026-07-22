@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Estate;
 
+use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\User;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Will extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+
+    // Gamification: the spec's "will/LPA" data category — mirrors
+    // LastingPowerOfAttorney, which has carried the trait since launch.
+    public function gamificationCategory(): string
+    {
+        return 'estate';
+    }
 
     protected $fillable = [
         'user_id',

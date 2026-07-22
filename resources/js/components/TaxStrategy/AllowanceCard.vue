@@ -20,7 +20,7 @@
       <span class="font-semibold" :class="textClass">
         {{ remainingLabel }}
       </span>
-      <span class="text-neutral-500">
+      <span v-if="available" class="text-neutral-500">
         {{ formatCurrency(allowance.used) }} used
       </span>
     </div>
@@ -38,6 +38,9 @@ export default {
     compact: { type: Boolean, default: false },
   },
   computed: {
+    available() {
+      return this.allowance.available !== false;
+    },
     barClass() {
       return {
         'bg-spring-500': this.allowance.status === 'spring',
@@ -46,11 +49,13 @@ export default {
       };
     },
     textClass() {
+      if (!this.available) return 'text-neutral-500';
       if (this.allowance.status === 'spring') return 'text-spring-600';
       if (this.allowance.status === 'violet') return 'text-violet-600';
       return 'text-raspberry-500';
     },
     remainingLabel() {
+      if (!this.available) return 'Not available';
       if (this.allowance.utilisation_pct >= 100) return 'Fully used';
       if (this.allowance.remaining > 0) {
         return `${this.formatCurrency(this.allowance.remaining)} of headroom`;

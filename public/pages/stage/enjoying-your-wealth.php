@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Estate Planning and Inheritance Tax Planning UK â€” Enjoying Your Wealth",
+    "name": "Estate Planning and Inheritance Tax Planning UK — Enjoying Your Wealth",
     "url": "https://fynla.org/stage/enjoying-your-wealth",
     "description": "Know your Inheritance Tax exposure and plan to reduce it. Fynla models gifting strategies, tracks pension drawdown, and generates In Case of Emergency letters for your family.",
     "publisher": { "@type": "Organization", "name": "Fynla", "url": "https://fynla.org" }
@@ -121,7 +121,7 @@
       </div>
     </section>
 
-    <!-- WHAT FYNLA SHOWS YOU â€” 5 cards -->
+    <!-- WHAT FYNLA SHOWS YOU — 5 cards -->
     <section id="fynla-shows" class="stage-features" aria-labelledby="features-heading">
       <div class="stage-features__inner">
         <h2 id="features-heading" class="stage-features__heading">What Fynla shows you at this stage</h2>
@@ -171,7 +171,7 @@
       </div>
     </section>
 
-    <!-- RELEVANT FEATURES â€” 5 cards -->
+    <!-- RELEVANT FEATURES — 5 cards -->
     <section id="relevant-features" class="stage-relevant" aria-labelledby="relevant-heading">
       <div class="stage-relevant__inner">
         <h2 id="relevant-heading" class="stage-relevant__heading">Features that may be relevant to you</h2>

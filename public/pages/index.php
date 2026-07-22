@@ -1,7 +1,56 @@
+<?php
+
+use App\Services\Marketing\PensionEstimateService;
+use App\Services\Marketing\SaveTaxEstimateService;
+
+// Headline "save tax" figure for the How-Fyn-can-help teaser. Uses the same
+// representative default persona as /savetax/plan for a direct visit, so the
+// number shown here matches the savetax landing page. All tax values come from
+// TaxConfigService via SaveTaxEstimateService — never hard-coded.
+$homeSaveTaxFigure = null;
+try {
+    $homeSaveTaxEstimate = app(SaveTaxEstimateService::class)->estimate([
+        'income' => '50271_100000',
+        'spouse' => 'no',
+        'spouseIncome' => null,
+        'assets' => ['savings', 'pension', 'isa'],
+    ]);
+    if (! empty($homeSaveTaxEstimate['savings_total'])) {
+        $homeSaveTaxFigure = '£'.number_format((int) $homeSaveTaxEstimate['savings_total']);
+    }
+} catch (Throwable $e) {
+    $homeSaveTaxFigure = null;
+}
+
+// Headline projected-pot figure for the pension-check teaser. Uses a
+// representative default persona — full-time employment, basic-rate income
+// (up to £50,270), age 40s, one workplace pension, pot £25k–£100k, no spouse —
+// the median-ish profile for the UK working population. All tax thresholds
+// come from TaxConfigService via PensionEstimateService — never hard-coded.
+$pensioncheckFigure = null;
+try {
+    $homePensionEstimate = app(PensionEstimateService::class)->estimate([
+        'employment' => 'full-time',
+        'income' => 'upto_50270',
+        'age' => '40s',
+        'pensions' => ['workplace'],
+        'pot' => '25k_100k',
+        'spouse' => 'no',
+    ]);
+    if (! empty($homePensionEstimate['projected_pot'])) {
+        $pensioncheckFigure = '£'.number_format((int) $homePensionEstimate['projected_pot']);
+    }
+} catch (Throwable $e) {
+    $pensioncheckFigure = null;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Preload LCP hero image - must be as early as possible in <head> so
@@ -9,21 +58,21 @@
   <link rel="preload" as="image" href="/images/Website/Homepage-Header-Desktopv3.png"
         fetchpriority="high" media="(min-width: 1024px)" />
 
-  <title>Fyn, your financial companion | Fynla</title>
-  <meta name="description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <title>Financial Planning Software for UK Households | Fynla</title>
+  <meta name="description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <link rel="canonical" href="https://fynla.org/" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Fyn, your financial companion | Fynla" />
-  <meta property="og:description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <meta property="og:title" content="Financial Planning Software for UK Households | Fynla" />
+  <meta property="og:description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <meta property="og:image" content="https://fynla.org/images/og/index.jpg" />
   <meta property="og:url" content="https://fynla.org/" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Fyn, your financial companion | Fynla" />
-  <meta name="twitter:description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
+  <meta name="twitter:title" content="Financial Planning Software for UK Households | Fynla" />
+  <meta name="twitter:description" content="UK financial planning software for households — plan savings, investments, pensions, retirement and estate in one place. Your financial companion for life." />
   <meta name="twitter:image" content="https://fynla.org/images/og/index.jpg" />
 
   <!-- hreflang -->
@@ -32,8 +81,8 @@
 
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=112" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=112" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=125" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -59,7 +108,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -77,7 +126,7 @@
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/register" class="btn-cta-primary">Get started</a>
+          <a href="/register" class="btn-cta-primary">Get started for free</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
@@ -87,22 +136,13 @@
           </p>
         </div>
 
-        <!-- Mobile caption panels (hidden above 640px by CSS) -->
+        <!-- Mobile hero panel (hidden above 640px by CSS).
+             Translucent white card holding the Fynla Brain, mirroring the level
+             card on /m-mockup/dashboard — it overlaps down onto the eggshell
+             tray below for the same straddle effect. -->
         <div class="hero__mobile-panels" aria-hidden="true">
-          <div class="hero__panel hero__panel--brain">
-            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="112" height="112" loading="lazy" />
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial view.</p>
-            <p class="hero__panel-body">Use Fynla to securely centralise and view all your financial data.</p>
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial brain.</p>
-            <p class="hero__panel-body">Our proprietary brain does the calculations<br />so you don't have to.</p>
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial voice.</p>
-            <p class="hero__panel-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
+          <div class="hero__brain-card">
+            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="176" height="176" loading="lazy" />
           </div>
         </div>
 
@@ -132,6 +172,24 @@
             <p class="hero__caption-title">One financial voice.</p>
             <p class="hero__caption-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Eggshell tray (mobile only) — sits at the bottom of the hero so the
+           translucent brain card above overlaps onto it. Holds the three value
+           props on an eggshell background, matching /m-mockup/dashboard. -->
+      <div class="hero__mobile-eggshell" aria-hidden="true">
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial view.</p>
+          <p class="hero__panel-body">Use Fynla to securely centralise and view all your financial data.</p>
+        </div>
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial brain.</p>
+          <p class="hero__panel-body">Our proprietary brain does the calculations so you don't have to.</p>
+        </div>
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial voice.</p>
+          <p class="hero__panel-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
         </div>
       </div>
     </section>
@@ -189,6 +247,29 @@
       <div class="feature-grid__inner">
         <h2 id="features-heading" class="feature-grid__heading">How Fyn can help you</h2>
         <p class="feature-grid__intro">We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.</p>
+
+        <!-- Save-tax highlight — headline saving + CTA into the savetax funnel.
+             The figure counts up to its value when scrolled into view (JS). -->
+        <div class="feature-savetax">
+          <p class="feature-savetax__headline">A representative Save Tax estimate</p>
+          <p class="feature-savetax__sub">
+            <?php if ($homeSaveTaxFigure) { ?>An average estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
+          </p>
+          <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
+        </div>
+
+        <!-- Pension-check highlight — representative projected pot + CTA into the funnel. -->
+        <div class="feature-pensioncheck">
+          <p class="feature-pensioncheck__headline">Where is your pension heading?</p>
+          <?php if ($pensioncheckFigure) { ?>
+            <span class="feature-pensioncheck__figure" id="pensioncheck-figure"><?= htmlspecialchars($pensioncheckFigure, ENT_QUOTES) ?></span>
+          <?php } ?>
+          <p class="feature-pensioncheck__sub">Answer six quick questions — no account needed — and see the pot you're on course for.</p>
+          <a href="/pensioncheck" class="feature-pensioncheck__cta">Check my pension</a>
+        </div>
+
+        <h3 class="feature-grid__subheading">Other ways Fyn can help you</h3>
+
         <div class="feature-grid__cards">
           <article class="feature-card" aria-label="Protection">
             <div class="feature-card__icon-wrap feature-card__icon-wrap--raspberry" aria-hidden="true">
@@ -373,6 +454,13 @@
             </a>
           </div>
         </div>
+
+        <!-- Latest news bar — newest article from /api/news. Hidden until the
+             fetch succeeds (graceful degradation); plain text, no icons. -->
+        <a id="latest-news" class="latest-news" href="/news" hidden>
+          <span class="latest-news__badge">Latest news</span>
+          <span id="latest-news-text" class="latest-news__text"></span>
+        </a>
 
         <p class="insights-footer">
           <a href="/insights" class="insights-footer__link">See all insights &rarr;</a>
@@ -570,12 +658,15 @@
     </div>
   </div>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
   <script src="/pages/js/site.js?v=112" defer></script>
   <!-- Page-specific interactions (carousel, video, accordion, insights, demo modal) -->
-  <script src="/pages/js/index.js?v=112" defer></script>
+  <script src="/pages/js/index.js?v=115" defer></script>
+  <!-- Cookie consent — server-rendered pages don't mount the SPA banner, so the
+       prompt must appear here at the landing, persisted via localStorage. -->
+  <script src="/pages/js/cookie-consent.js?v=1" defer></script>
 
 </body>
 </html>

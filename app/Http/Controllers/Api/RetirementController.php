@@ -13,6 +13,7 @@ use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
 use App\Http\Resources\DCPensionResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
@@ -31,6 +32,7 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\TierGate;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +62,7 @@ class RetirementController extends Controller
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly PensionStore $pensionStore,
         private readonly PensionNormaliser $pensionNormaliser,
+        private readonly TierGate $tierGate,
     ) {}
 
     /**
@@ -104,6 +107,12 @@ class RetirementController extends Controller
             'dc_pensions' => $pensions['dc'],
             'db_pensions' => $pensions['db'],
             'state_pension' => $pensions['state'],
+            // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the gate's
+            // primary-owner DC+DB count (PensionStore:442); state pension is excluded as it
+            // isn't a count-gated "pension account". Keeps "X of Y used" honest vs canCreate.
+            'account_count' => DCPension::where('user_id', $user->id)->count()
+                + DBPension::where('user_id', $user->id)->count(),
+            'account_limit' => $this->tierGate->hardLimit($user, PensionStore::ENTITY_KEY),
             'life_events' => $lifeEvents,
             'life_event_impact' => $lifeEventImpact,
             'goal_strategies' => $goalStrategies,

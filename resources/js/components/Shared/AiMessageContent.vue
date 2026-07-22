@@ -20,6 +20,15 @@
       </span>
     </div>
 
+    <button
+      v-else-if="message.role === 'action' && message.metadata?.action === 'subscription_options'"
+      type="button"
+      class="rounded-button px-4 py-2 text-sm font-semibold text-white bg-raspberry-600 hover:bg-raspberry-700"
+      @click="$emit('subscription-options')"
+    >
+      Compare plans
+    </button>
+
     <!-- Regular text message -->
     <div v-else v-html="formattedContent"></div>
   </div>
@@ -38,7 +47,7 @@ export default {
         },
     },
 
-    emits: ['navigate'],
+    emits: ['navigate', 'subscription-options'],
 
     computed: {
         formattedContent() {
@@ -62,17 +71,20 @@ export default {
 
             // Unordered lists: lines starting with - or *
             text = text.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
-            text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="list-disc ml-4 my-2 space-y-1">$&</ul>');
+            // Strip the newlines the list consumed so the later \n→<br> pass
+            // doesn't inject a stray <br> between items (which double-spaced the
+            // list); spacing comes from space-y-1 alone.
+            text = text.replace(/(?:<li>.*<\/li>\n?)+/g, m => '<ul class="list-disc ml-4 my-2 space-y-1">' + m.replace(/\n/g, '') + '</ul>');
 
             // Numbered lists: lines starting with 1. 2. etc.
             text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
 
             // Convert leaked route paths to clickable links (e.g. "/estate" or "/valuable-info?section=expenditure")
-            text = text.replace(/(?:\()(\/[a-z][a-z0-9\-\/]*(?:\?[a-z0-9_=&]+)?)(?:\))/gi, (match, path) => {
+            text = text.replace(/(?:\()(\/[a-z][-a-z0-9/]*(?:\?[a-z0-9_=&]+)?)(?:\))/gi, (match, path) => {
                 const label = this.routeLabel(path);
                 return `(<a href="${path}" class="text-raspberry-500 hover:underline cursor-pointer" data-route="${path}">${label}</a>)`;
             });
-            text = text.replace(/(?<![("\/a-z])(\/(?:dashboard|net-worth|estate|protection|retirement|goals|plans|holistic-plan|trusts|risk-profile|settings|valuable-info|onboarding|actions|planning)[a-z0-9\-\/]*(?:\?[a-z0-9_=&]+)?)(?!["\/a-z])/gi, (match, path) => {
+            text = text.replace(/(?<![("/a-z])(\/(?:dashboard|net-worth|estate|protection|retirement|goals|plans|holistic-plan|trusts|risk-profile|settings|valuable-info|onboarding|actions|planning)[-a-z0-9/]*(?:\?[a-z0-9_=&]+)?)(?!["/a-z])/gi, (match, path) => {
                 const label = this.routeLabel(path);
                 return `<a href="${path}" class="text-raspberry-500 hover:underline cursor-pointer" data-route="${path}">${label}</a>`;
             });

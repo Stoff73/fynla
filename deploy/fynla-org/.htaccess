@@ -30,6 +30,19 @@
     RewriteRule ^api/ - [E=FYNLA_API:1]
 
     # =============================================================================
+    # Strip a leaked /public/ path segment -> single canonical URL
+    # =============================================================================
+    # Defence-in-depth for SEO: if a request ever arrives under /public/ (either
+    # directly, because the document root is the project root and public/ is a
+    # reachable sub-folder, or via an http->https redirect that captured the
+    # rewritten path), collapse it to the clean https://fynla.org/... URL. This
+    # removes the duplicate-content path Google was crawling and keeps a single
+    # canonical address. THE_REQUEST is the original request line, so internal
+    # rewrites to public/ never trigger this (no loop, no false positives).
+    RewriteCond %{THE_REQUEST} \s/+public/(\S*) [NC]
+    RewriteRule ^ https://fynla.org/%1 [R=301,L]
+
+    # =============================================================================
     # Force HTTPS
     # =============================================================================
     RewriteCond %{HTTPS} !=on

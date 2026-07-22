@@ -15,8 +15,8 @@ use App\Services\Tiers\TierResolver;
  * never hardcode tier → mode mappings.
  *
  * Modes:
- *   'gbp_only'    — show values in GBP only (Free, Tier1)
- *   'user_choice' — allow user-selected display currency (Tier2, Tier3)
+ *   'gbp_only'    — show values in GBP only (Free)
+ *   'user_choice' — allow user-selected display currency (Premium)
  *
  * Preview users and admins are NOT in tiers; they resolve to 'free' via
  * TierResolver and therefore get 'gbp_only' by default.

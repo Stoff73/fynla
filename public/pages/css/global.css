@@ -206,6 +206,12 @@ button { cursor: pointer; font-family: inherit; }
   transition: background 0.15s ease;
 }
 .nav-signin-btn:hover { background: var(--light-pink-200); }
+.nav-actions__sep { margin: 0 0.5rem; color: var(--horizon-300); font-size: 0.875rem; }
+.nav-register-link {
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--raspberry-500); transition: color 0.15s ease;
+}
+.nav-register-link:hover { color: var(--raspberry-600); }
 
 /* Hamburger — margin-left:auto pushes it to the far right of the nav bar */
 .nav-hamburger {

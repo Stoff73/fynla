@@ -25,25 +25,6 @@ const estateService = {
     },
 
     /**
-     * Get estate planning recommendations
-     * @returns {Promise} Prioritized recommendations
-     */
-    async getRecommendations() {
-        const response = await api.get('/estate/recommendations');
-        return response.data;
-    },
-
-    /**
-     * Run a what-if scenario
-     * @param {Object} scenarioData - Scenario parameters
-     * @returns {Promise} Scenario analysis results
-     */
-    async runScenario(scenarioData) {
-        const response = await api.post('/estate/scenarios', scenarioData);
-        return response.data;
-    },
-
-    /**
      * Calculate IHT liability
      * @param {Object} data - IHT calculation parameters
      * @returns {Promise} IHT calculation breakdown

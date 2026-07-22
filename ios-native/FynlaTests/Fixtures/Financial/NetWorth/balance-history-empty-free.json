@@ -1,0 +1,10 @@
+{
+  "data": {
+    "requested_range": { "from": "2026-04-19", "to": "2026-07-18" },
+    "effective_range": { "from": "2026-04-19", "to": "2026-07-18" },
+    "visibility": { "window_days": 90, "label": "90 days of history" },
+    "series": [],
+    "totals": [],
+    "year_on_year": null
+  }
+}

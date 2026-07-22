@@ -9,6 +9,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DCPension;
 use App\Models\Investment\Holding;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Stores\PensionStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;

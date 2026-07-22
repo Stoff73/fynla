@@ -45,16 +45,22 @@ final class UpdateRecordAllowlist
         ],
         'savings_account' => [
             'account_name', 'account_type', 'institution', 'current_balance',
-            'interest_rate', 'access_type',
+            'interest_rate', 'access_type', 'isa_subscription_amount',
+            'regular_contribution_amount', 'contribution_frequency',
         ],
         'investment_account' => [
             'account_name', 'account_type', 'provider', 'current_value',
-            'monthly_contribution_amount',
+            'monthly_contribution_amount', 'contributions_ytd',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',
             'monthly_contribution_amount', 'employee_contribution_percent',
             'employer_contribution_percent', 'retirement_age',
+            // Campaign-captured contribution fields: salary basis + salary
+            // sacrifice (occupational scheme) and the flexible-access flag
+            // (campaign2_flexible_access — closes the round-1 latent item where
+            // the "yes" branch could not persist has_flexibly_accessed).
+            'annual_salary', 'salary_sacrifice', 'has_flexibly_accessed',
         ],
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',

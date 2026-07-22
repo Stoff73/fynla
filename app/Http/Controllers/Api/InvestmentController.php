@@ -36,6 +36,7 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\TierGate;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -68,6 +69,7 @@ class InvestmentController extends Controller
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly GoalStrategyService $goalStrategy,
         private readonly InvestmentAccountStore $investmentAccountStore,
+        private readonly TierGate $tierGate,
     ) {}
 
     /**
@@ -130,6 +132,11 @@ class InvestmentController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accountsData,
+                // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the
+                // gate's primary-owner-only count (InvestmentAccountStore:192), NOT the
+                // joint-aware list above, so "X of Y used" matches what canCreate enforces.
+                'account_count' => InvestmentAccount::where('user_id', $user->id)->count(),
+                'account_limit' => $this->tierGate->hardLimit($user, InvestmentAccountStore::ENTITY_KEY),
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
                 'life_events' => $lifeEvents,

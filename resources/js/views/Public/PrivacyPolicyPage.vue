@@ -54,7 +54,7 @@
           <p class="text-neutral-500 leading-relaxed mb-5">We do <strong>not</strong> store credit card numbers, bank sort codes, or bank account numbers for payment purposes. All payment processing is handled by our third-party payment processor.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">(d) Family Data</h3>
-          <p class="text-neutral-500 leading-relaxed mb-5">Spouse or partner details (name, date of birth, income) and dependant information (name, date of birth, relationship) for joint financial planning.</p>
+          <p class="text-neutral-500 leading-relaxed mb-5">Spouse details (name, date of birth, income) and dependant information (name, date of birth, relationship) for joint financial planning.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">(e) Health-Related Data</h3>
           <p class="text-neutral-500 leading-relaxed mb-5">General health status and smoking status only. These are used for protection needs assessment and life expectancy estimates. We do not collect detailed medical records. This is special category data processed with your explicit consent (see Section 5).</p>
@@ -79,7 +79,7 @@
 
           <p class="text-neutral-500 leading-relaxed mb-3"><strong>From third parties</strong> &mdash; address data from GetAddress.io (postcodes only).</p>
 
-          <p class="text-neutral-500 leading-relaxed"><strong>Linked spouse or partner</strong> &mdash; where both parties have active accounts and have mutually linked their profiles, financial data is shared between accounts for joint financial planning.</p>
+          <p class="text-neutral-500 leading-relaxed"><strong>Linked spouse</strong> &mdash; where both parties have active accounts and have mutually linked their profiles, financial data is shared between accounts for joint financial planning.</p>
         </section>
 
         <!-- 4. Lawful Basis -->
@@ -155,15 +155,15 @@
               <tbody class="divide-y divide-savannah-100">
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Account and profile data</td>
-                  <td class="py-3 text-neutral-500">Duration of account plus 30 days</td>
+                  <td class="py-3 text-neutral-500">Duration of account, then the seven-year regulatory retention period</td>
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Financial planning data</td>
-                  <td class="py-3 text-neutral-500">Deleted immediately on account closure</td>
+                  <td class="py-3 text-neutral-500">Duration of account, then the seven-year regulatory retention period</td>
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Uploaded documents</td>
-                  <td class="py-3 text-neutral-500">Until you delete them or close your account</td>
+                  <td class="py-3 text-neutral-500">Until you delete them; otherwise retained with the account and purged after the regulatory retention period</td>
                 </tr>
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Audit logs (standard)</td>

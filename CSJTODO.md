@@ -1,39 +1,403 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-28 — session 3 (end-of-day) — **SP1 DEFERRED; PIVOTING TO CoALA.** CSJ decision 2026-05-28: pause SP1 after Pass 6 PR 5a (clean state — InvestmentAccount write-path complete) and pivot to the CoALA initiative, starting with a test-stabilisation block. Rationale + evidence: `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`. Active branch is now `coala` (off `dev` at `88ee9c4`). SP1 resume point preserved below (Pass 6 PR 5b) for when SP1 is picked back up. Test-stabilisation Phase 0 is NEARLY done — 1 FLAKY failure remains (audit-context test); full diagnostic + reproduction probe in handover `May/May29Updates/handover-2026-05-29-session-1.md`.*
+*Last updated: 2026-07-21 — context-clear wrap, session 2. Everything asked
+today is DONE: /m-parity sweep complete; CSJ directives (avatar rule,
+fireworks, nudges) executed; better-in-the-app Fyn bubble live on csjones;
+SaveTax campaign live E2E green on web AND native (2 real defects fixed);
+**TestFlight build 1.0(1) of Fynla Dev uploaded and VALID — CSJ invited as
+internal tester**. Handover: July/July21Updates/handover-2026-07-21-session-2-clear.md.*
+
+## 2026-07-21 — session 2 (all delivered)
+
+- [x] Better-in-the-app Fyn bubble at the campaign terminal (Pest-pinned, deployed to csjones, seen live).
+- [x] SaveTax campaign E2E: /m funnel → register → onboarding → synthesis → tax strategy; native login pull-through with real amounts; fireworks fired live.
+- [x] Fixed: tolerant native API decoding (string decimals + {}-null — Savings/Retirement were undecodable live); pension rows whole-pound.
+- [x] TestFlight: bundle org.fynla.app.dev registered (+Push/Assoc Domains), distribution cert G4DATT2CZB + App Store profile via API, build uploaded, internal group + CSJ invite. Guide: ios-native/TESTFLIGHT.md.
+- [ ] **CSJ: install the TestFlight build** (invite emailed to c.jones@csjones.co) and report.
+- [ ] **NOTE: csjones now runs `codex/savetax-allowance-ctas`** (dev merged in at eec2a1a), not `dev`.
+- [ ] Debt noted: keychain password in TESTFLIGHT.md (rotate before prod flow); code-relay script scratchpad-only; framed{} duplicated 18×; TolerantDecoding non-optional string-token gap.
+
+## 2026-07-21 — /m-parity sweep (session 2: COMPLETE)
+
+- [x] **"Left in the Sweep" — ALL DONE, pushed to pkg7:** Tax Strategy, Holistic Plan, all six sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history), Achievements tab content, hero persistence across loading/error states (all 18 screens), Income/Expenditure fixture stubs, user chat-bubble corrected to /m (no user-bubble CSS — verified live), `.module` dev stub removed. Bug found+fixed while looping: Settings Sign out sat under the Fyn dock on small phones.
+- [x] **CSJ directives 2026-07-21 executed:** Rule 15 amended — the Fyn character is ALWAYS allowed everywhere (committed on both branches; never re-raise). Level-up fireworks transcribed from /m's GamificationCelebration (shell + in-chat surfaces; ack matches /m's instant non-fatal contract). Onboarding "Finish your personalised tax plan with Fyn" nudge + KYC unlock bubble transcribed from /m Dashboard.vue. All screenshot-verified; journeys + parity + unit suites green.
+- [x] Shell chrome + dashboard + drawer + Fyn transcribed from /m; milestone banners moved below the level card (BOTH surfaces — CSJ direction); dark m-hero correction across all converted screens.
+- [x] Module screens transcribed: Income, Expenditure, Net Worth, Savings, Investments, Protection, Goals, Estate, Retirement (+ Achievements header).
+- [x] Audit P0s/P1s: consent no-toggle fix; six client-side-calc items = /m-parity KEEPs (evidenced); tolerant enum decodes; export timeout; write-401 refresh; verify-project.sh fixed + in CI; webhook limiter Pest test green.
+- [ ] **/m milestone-banner fix awaits CSJ build + deploy to csjones** (main repo commit 2772831 on codex/savetax-allowance-ctas).
+- [ ] Remaining deferred (engineering-internal): diagnostics wiring (P1-9 design call); legacy SubscriptionPlanSeeder note (backend). csjones-only bug-report FAB deliberately not ported.
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (green in CI) — don't chase.
+
+
+## 2026-07-20 — iOS audit + /m parity remediation (session dissolved, see handover)
+
+- [ ] **Blocking question for CSJ:** CSJ said the iOS parity work went "on the wrong path" — next session must ask what was wrong BEFORE resuming. Local pkg7 commits are unpushed pending that answer (undo = `git reset --hard origin/codex/ios-package7-platform-release` in `/Users/CSJ/Desktop/fynla-ios-package7`).
+- [x] Full iOS audit report → `July/July20Updates/ios-audit-report-2026-07-20.md` (delta + remediation list).
+- [x] Local commits on pkg7 branch (UNPUSHED): pkg4-tip merge; login rebuilt to /m; dashboard/menu/Fyn-dock rebuilt to /m; Lock/Sign-out restored; placeholder tint; Apple webhook named rate limiter. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` (on the branch).
+- [ ] P0 remaining: 5 client-side financial calcs; 35 National Insurance years fallback; consent toggles (delete ai_chat toggle, required consents display-only).
+- [ ] P1 remaining: verify-project.sh into CI; enum decode tolerance; Retirement silent failures; export poll timeout; write-path 401 refresh; diagnostics wiring; balance-history magic values; minor copy fixes.
+- [ ] Module-by-module /m parity sweep (detail/functionality/states/intent/design) for all remaining screens.
+- [ ] Webhook limiter Pest test (code committed; test deleted — blocked by worktree .env/bridge venv gap).
+- [ ] Ledger decisions for CSJ: Fyn dock avatar (mascot ban vs /m match); level-up fireworks + Fyn nudges (ledger D8).
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (pre-existing; green in CI). Nothing deployed anywhere.
+
+*Last updated: 2026-07-18 — Native Swift Package 3 automated gate is green in draft PR #633; the next inference continues Packages 4–7 while preserving the open actual-Chrome and physical-iPhone evidence gates.*
+
+## 2026-07-18 — Native Swift Packages 3–7
+
+- [x] Package 3 Tasks 1–8 — native registration/authentication, rotating device sessions, Keychain and opt-in Face ID.
+- [x] Package 3 automated Task 9 — backend 345 tests/1,261 assertions; Swift host 176 tests/21 suites; clean Xcode 26.5 current-head 183 tests/23 suites and 28 UI tests/0 failures; Production build green.
+- [ ] Package 3 manual evidence — actual Google Chrome `/m`; physical iPhone Face ID, registration, relock, Lock/Sign out, Keychain inspection and exported diagnostic bundle.
+- [ ] Package 3 approval/merge — draft PR #633 is mergeable; implementation/evidence head `d5d34d3` is fully green and is followed by the session-end documentation commit. Keep draft while manual evidence is open.
+- [ ] Package 4 — StoreKit and provider-neutral entitlements; begin with the Apple verifier dependency/security audit, not purchase UI.
+- [ ] Package 5 — native dashboard, navigation, achievements/gamification and complete Fyn conversation vertical slice.
+- [ ] Package 6 — port every financial screen in five independently closed waves.
+- [ ] Package 7 — settings/privacy/account deletion/push/universal links/archive and release readiness; no production/App Store action without later explicit authority.
+- [ ] PR boundary — create exactly one separate PR for each of Packages 4, 5, 6 and 7; do not mix packages. Package 6's five waves are commits/review checkpoints within its one package PR.
+- [ ] Deferred tech debt from the prior report — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
+- Boundary — primary `/Users/CSJ/Desktop/fynla` remains Save Tax; native work stays in isolated `/private/tmp` worktrees and incorporates `origin/dev` before every package/wave.
+- Browser rule — actual installed Google Chrome through the connector only; never Chromium, bundled/headless Chromium or the in-app browser.
+
+## 2026-07-15 — Native Swift programme Package 1
+
+- [x] Restore all ten approved programme and iOS implementation plans under `codex/plans/` (`15689c8`).
+- [x] Tasks 1–7 — consolidated readiness branch and PR #622; Task 7 preserves only canonical Premium checkout intent and keeps verified accounts Free until payment. Final GitHub run `29463239284` is fully green across lint, PHP, frontend, build, browser, logic and security checks.
+- [x] Task 8 — upgrade and limit guidance, PR #623.
+- [x] Task 9 — canonical subscription UI, PR #624.
+- [x] Task 10 — pure-freemium lifecycle semantics, corrected audit contract and converted-history normalisation, PR #625.
+- [x] Task 11 — obsolete trial-copy removal, PR #626.
+- [x] Task 12 — guarded trial-schema removal is migrated, fully reseeded and verified locally in draft PR #627. Exact saved local audit is `{"provisional_shape":0,"historical_trial_shape":0,"paid_shape":0,"safe_to_remove":true}`.
+- [ ] Task 12 external gate — merge/deploy the audit command through PR #625, then save exact exit-0 evidence from csjones and production before merging or remotely deploying PR #627.
+- [ ] Task 13 — canonical repository contract, implemented signup state and design-system subscription presentation are ready in draft PR #628; publish the matching vault updates only after the Task 12 external gate.
+- [ ] Package 2 SwiftUI — blocked until Package 1 is fully green.
+- [ ] Deferred tech debt — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
+- Worktree boundary — programme tasks use isolated `/private/tmp/fynla-freemium-*` worktrees; `/Users/CSJ/Desktop/fynla` remains on the Save Tax branch.
+
+## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
+
+- [x] **Composer Phase 5** — `RecommendationsAggregatorService` wire-through (`COMPOSED_MODULE_PLANS` flag, default ON), `/holistic-plan` web composite view + `GET /api/holistic/composite-plan`, net-new `/m` holistic screen. PR #561, browser-verified.
+- [x] **Composer Phase 6** — full suite green (5110), golden masters, web + `/m` E2E.
+- [x] **Merged #558→#559→#560→#561 to dev; #562 dev→main; FULL PROD DEPLOY** (CoALA Phases 1–6 + composer Phases 1–5, 11 migrations, corpus reindex, strategy seeders). `/m` holistic browser-verified on fynla.org. Also deployed dev→csjones. `FYN_LEARNING_ENABLED` OFF on prod; `COMPOSED_MODULE_PLANS` ON.
+- [ ] **SaveTax verify-after-capture — NEXT: land Option B + E2E.** Backend + screens done + green on `savetax-verify-capture`. Option B = resume the persisted onboarding conversation in `MobileChrome`'s dock (Dashboard-scoped chat unmounts on nav). See plan §"Task 10 (REVISED)". Then `/m` E2E (csjones) + dev PR.
+- [ ] **Composer Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — still open; composer works without them.
+- [ ] **Composer Task 4.4 — episodic recall de-ranking (DEFERRED)** — still open.
+
+*Prior: 2026-06-15 — context-clear wrap, session 2. **Built CoALA Phase 6** (gated learning), 13 tasks subagent-driven, merged to dev (PR #554, `fae710c`), suite 5030/0; deployed + live-E2E-verified on csjones. Wrote + approved the **cross-module plan composer spec**. Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.*
+
+*Prior: 2026-06-15 — session start. Live-verified the #552 fix end-to-end (advice-Fyn "add a goal to save £25,000 for a house deposit" → **goal** capture, Goal #2240 written, no property deflection). Doc-hygiene: marked the "#2 advice-Fyn deflection" item RESOLVED.*
+
+*Prior: 2026-06-14 — end-of-day wrap, session 1. Fixed the `WriteIntentClassifier` goal/property keyword-precedence bug (PR #552, admin-merged to dev `b78409a5`, deployed csjones; backend-only, no build). Resolves the precedence bug flagged in `feedback_advice_fyn_capture_deflection_partial.md`. dev ahead of main by this fix + #546–#551; prod unchanged. Handover: `June/June15Updates/handover-2026-06-15-session-1.md`. Prior sections preserved beneath.*
+
+## 2026-06-15 — Session 3: cross-module plan composer Phases 1–4 (end-of-day; two PRs to dev, nothing deployed)
+
+Handover: `June/June16Updates/handover-2026-06-16-session-1.md`. Plan: `docs/superpowers/plans/2026-06-15-cross-module-plan-composer.md`. Spec: `docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md`.
+- **Phase 1 (PR #558)** — generalised the tax composer **byte-identically**: `StrategyRecommendation` nullable cost fields (null-omitted → tax serialises identically), `ModuleStrategySource`, `ComposedModulePlanService`, `TaxStrategySource`, `ComposedTaxPlanService`→facade. `planDigest` parity + golden masters green.
+- **Phase 2 (PR #558)** — `strategy_type` migration (5 non-tax tables) + `ModuleAvailabilityProvider` (non-tax `required_data` vocabulary) + 5 module sources (Retirement reference inline; Savings/Investment/Protection/Estate subagent-built) each with adapter + source + `source='strategy'` catalogue rows + tests; vocabulary guard test.
+- **Phase 3 core (PR #558)** — `ModulePlanHandler` + 5 concretes registered in `FetchHandlerRegistry`; 5 tool-mode pointers (reindex green); golden baselines recaptured. **Every module reachable via Fyn.**
+- **Phase 4 core (PR #559, stacked on #558)** — `CompositePlanService` (affordability rank+annotate, nothing dropped) + goals-as-demands (effective surplus) + near-term life-event capital; `CrossModulePlanHandler` + `cross-module-plan` pointer.
+
+### Outstanding (cross-module composer)
+- [ ] **NEXT: Phase 5 — surfaces** — `RecommendationsAggregatorService` wire-through (5 non-tax composed plans); `/holistic-plan` web composite view; **net-new `/m` holistic screen** (no mobile holistic surface exists — Rule #19 gap). UI + browser-test heavy. PR to dev after.
+- [ ] **Phase 6 — full suite + browser E2E** (web + `/m`, Rule #14). PR to dev after.
+- [ ] **Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — ~19 non-tax advisory narratives NOT auto-generated (Rule #16); composer works without them. Needs CSJ: draft descriptively or author personally.
+- [ ] **Task 4.4 — episodic recall de-ranking (DEFERRED)** — needs deterministic episode-payload analysis (`FynMemoryStore::recall`), not a fuzzy heuristic.
+- [ ] **Merge order:** #558 (Phases 1–3) BEFORE #559 (Phase 4). #557 closed (superseded by #558).
+- [ ] **Deploy** (after merge): 1 new migration in #558 (`2026_06_16_000001_add_strategy_type_to_non_tax_action_definitions`) → `migrate --force`. Backend-only, no Vite rebuild yet.
+
+### Tech debt noted (targeted self-audit)
+- [ ] Adapter category→strategy_type maps are heuristic (tested vs hand-built recs, not live agent output for every category) — Phase 6 E2E should confirm fired strategies match catalogue rows.
+- [ ] Some seeded strategies may never *fire* via the source path (e.g. investment fee triggers need account data) — they still lock correctly when data is missing.
+
+## 2026-06-15 — Session 2: CoALA Phase 6 built + cross-module composer spec (context-clear; dev @ fae710c, prod pre-Phase-6)
+
+Handover: `June/June15Updates/handover-2026-06-15-session-2-clear.md`. Memory: `project_coala_phase6_landed_on_dev.md`.
+- **CoALA Phase 6 (gated learning actions) — built, reviewed, merged to dev (PR #554, `fae710c`).** (A) session→per-user-semantic promotion (human-reviewed; `ProposedFactSynthesiser` → `proposed_semantic_facts` → `/admin/proposed-facts` → `SemanticFactPromoter` → `UserSemanticStore` → `retrieveForUser`); (B) procedure-amendment proposals (engineering-reviewed, never auto-applied; `/admin/proposed-amendments`); (C) sparse `RecallScorer` recall in the planner. `FYN_LEARNING_ENABLED` default OFF; no-auto-apply invariant tested; `FynSystemPrompt` byte-invariant untouched. Suite 5030/0. 13 tasks subagent-driven (each spec + code-quality reviewed + a final holistic review).
+- **Deployed to csjones + live-E2E-verified with real xAI** (synthesised durable figure-free facts → staged → approved in the admin UI → per-user store). Both admin surfaces browser-walked (local + csjones).
+- **Cross-module plan composer spec written + approved** (`docs/superpowers/specs/2026-06-15-cross-module-plan-composer-design.md`, CoALA-native) — parked pending its implementation plan; Phase 6 (its substrate dependency) is now in place.
+
+### Outstanding
+- [ ] **NEXT: cross-module plan composer** — write the implementation plan (`superpowers:writing-plans`) from the approved spec, then build (subagent-driven). **Supersedes** the old "author non-tax catalogue metadata" item below (that's now consumer-first inside the composer).
+- [ ] **csjones has `FYN_LEARNING_ENABLED=true`** — left on as the test venue (ongoing 30-min stale-scan synthesis cost). Revert if unwanted: `sed -i 's/^FYN_LEARNING_ENABLED=.*/FYN_LEARNING_ENABLED=false/' .env && php artisan config:cache`.
+- [ ] **Local `public/build/` is now CSJONES-configured** (rebuilt for the Phase 6 deploy) — any PROD deploy needs `./deploy/fynla-org/build.sh` FIRST.
+- [ ] **Prod (`main`) is pre-CoALA + pre-Phase-6** (last release #549, 2026-06-13). A `dev → main` release (incl. #550 CoALA + Phase 6's 2 migrations + default-off flag; no corpus reindex) is CSJ's call.
+- [ ] A1 (session-end episode consolidation) deferred per CSJ — synthesiser reads the transcript directly.
+- [ ] 3 untracked unknown-provenance files in the tree (`docs/diagrams/fyn-turn-lifecycle.excalidraw`, `June/June15Updates/2026-06-15-fyn-system-prompt-build-walkthrough.md`, `.claude/skills/excalidraw/scripts/__pycache__/`) — left untracked.
+
+## 2026-06-14 — Session 1: write-intent classifier goal-precedence fix (end-of-day; dev @ b78409a5, prod unchanged)
+
+Handover: `June/June15Updates/handover-2026-06-15-session-1.md`.
+- **#552** `WriteIntentClassifier` now prefers an explicit goal noun (`goal` / `savings goal` / `target`) over an incidental asset keyword — "add a goal to save £25,000 for a house deposit" routes to a **goal** capture, not property (matched "house"). Pure precedence change (`goal` was already the last entry, so the set of non-null results is unchanged); conservative verb + question guards untouched. Added a `WriteIntentClassifierTest` case (TDD: RED→GREEN). 407 AI unit tests green, Pint clean. Admin-merged to dev, deployed csjones (backend-only, no `public/build/` rebuild).
+- CLAUDE.md metrics table refreshed during vault-sync (Vue 691→674, PHP Services 359→400, Controllers 120→122, Models 127→128 — verified against actual counts).
+- Resolves the deferred precedence bug noted in `feedback_advice_fyn_capture_deflection_partial.md`. The **#2 advice-Fyn deflection** item (below) is **RESOLVED** by #551 (focus-null capture-turn fix) + #552 (precedence) — only the evidence-gated refusal-recovery guard remains deferred.
+
+## 2026-06-13 — Session 2: dashboard parity, ISA fixes, Fyn deflection, FULL PROD RELEASE (context-clear; dev @ 2386915, main @ 2905c62, prod current)
+
+Handover: `June/June13Updates/handover-2026-06-13-session-2-clear.md`.
+- **#546** web `/dashboard` module parity (all-module focus tabs + unlock-row capture pre-seed) + desktop sidebar Tax Strategy nav entry.
+- **#547** ISA calc counts S&S ISA subscriptions toward the allowance (was Cash-ISA-only → headroom over-stated).
+- **#548** Fyn `create_investment_account` captures the ISA subscription + advice-Fyn deflection carve-out (**PARTIAL** — still intermittently deflects; see memory).
+- **#549** `dev → main` release deployed to **fynla.org** (rsync, 5 migrations, 6 catalogue seeders, `config:cache`); verified prod end-to-end (web + `/m`).
+- Azlan savetax journey re-tested GREEN on csjones (recording verified). Insights "featured" = **keep May fallback** (answered, no change).
+
+### Outstanding
+- [x] **The #2 advice-Fyn deflection is RESOLVED** (not "PARTIAL" — that framing was stale vs the memory file). Real root cause was the capture-turn focus-null mis-framing, fixed in **PR #551** (expanded the `inferFocusesFromEntityTypes` map + non-null `'savings'` fallback in `handleInlineCapture` so a cleared capture can never be re-framed as advice; 15-case `InlineCaptureFlowTest` + suite 4,981 green). The separate `WriteIntentClassifier` precedence bug is fixed in **PR #552** — **re-verified live end-to-end 2026-06-15** ("add a goal to save £25,000 for a house deposit" → goal capture, `Goal` row `home_deposit` £25k written, zero property deflection). Only the **post-stream refusal-recovery guard** stays deferred: "add only on fresh evidence" — none seen. See `feedback_advice_fyn_capture_deflection_partial.md`.
+- [ ] **Local `public/build/` is PROD-configured** — rebuild with `./deploy/csjones-fynla/build.sh` before any csjones deploy.
+- [ ] **coala→dev landing programme** (deferred; own spec/plan; worktree `~/Desktop/fynla-coala`; 224 commits ahead).
+- [ ] Author non-tax module catalogue `required_data`/`sequencing` metadata (null by design today — only tax authored).
+- [ ] A1/A2 overlay flip-to-active needs `provider: xai` variants (coala work).
+- [ ] Pre-existing May-29 `CollisionServiceProvider` error in prod `laravel.log` (dev dep via a cron path; 0 today) — minor tidy-up.
+- [ ] vault `UKTaxes.md` Current State stale (carried).
+- [x] ~~deploy dev → csjones~~ DONE. ~~Azlan re-test on csjones~~ DONE. ~~eyeball gamified web dashboard~~ DONE (#546). ~~desktop sidebar Tax Strategy nav~~ DONE (#546). ~~insights featured judgement call~~ ANSWERED (keep May).
+
+## 2026-06-12 — Session 1: Track 2 executed + merged; loose threads closed (end-of-day; dev @ 7b9152b, coala @ 10193e2)
+
+Handover: `June/June13Updates/handover-2026-06-13-session-1.md`. Deploy note: `June/June13Updates/deploy-2026-06-13.md`.
+- Track 2 plan (11 tasks) executed subagent-driven, two-stage review per task; all 9 PRs merged to coala; live grok-4.3 Azlan gate GREEN; retriever conformance fix; Pest hooks re-activated liveness-pinned; test-isolation leak fixed; tests/Integration wired into phpunit.xml.
+- Dev: ISA strategies share ONE annual allowance (`IsaAllowanceAllocator`, tax-review approved); Bed-and-ISA clipped-proceeds gains cap; README v1.0; deploy-doc fixes/banners; #538 merged on CSJ instruction (branch lacked contributor prefix — note for Phailanx).
+- MEMORY.md trimmed under budget + `project_track2_landed_on_coala.md` added.
+
+### Outstanding
+- [ ] **CSJ: deploy dev → csjones** (catch-up steps in `June/June13Updates/deploy-2026-06-13.md`; no migrations/composer; needs main + mobile bundle rebuilds). Then spot-check /m chrome (#538), /tax-strategy ISA combined saving (#542), pricing page.
+- [ ] **CSJ re-test the Azlan journey on csjones** (carried — the acceptance moment).
+- [ ] **CSJ eyeball the gamified web dashboard** (carried — two flagged design notes).
+- [ ] **Next major arc: the coala→dev landing programme** (own spec/plan; start from `project_track2_landed_on_coala.md` + `git log origin/coala`; worktree at `~/Desktop/fynla-coala`).
+- [ ] A1/A2 overlay flip-to-active needs `provider: xai` variants (live app runs xAI).
+- [ ] Optional (offered in #535, not requested): planner-only consumption of the `<procedures>` block if CSJ prefers it off reasoner turns.
+- [ ] Desktop sidebar has no Tax Strategy nav entry (carried — CSJ to decide).
+- [ ] Insights featured judgement call (carried); vault `UKTaxes.md` Current State stale (carried, touched again by ISA work).
+
+## 2026-06-11 — Session 4: Savetax campaign E2E + 6 fixes (context-clear; dev @ d0f7cf6)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-4-clear.md`.
+- Full campaign journey tested live on csjones `/m` (funnel → register → Fyn → /tax-strategy); verbatim recording verified (LLM turns carry system_prompt/context/tool_calls in `ai_messages`). Test pattern → `reference_savetax_campaign_e2e_test_pattern.md`.
+- **PR #529**: funnel `spouseIncome` now maps to `household_calculation_mode`; `STATE_CAMPAIGN_SPOUSE_WORK` skips when known — Fyn never re-asks "Does your spouse work?".
+- **PR #530**: Tax Strategy page — strategies above allowance blocks, both surfaces (new `HouseholdCoordinationPanel.vue`).
+- **PR #531**: dividend capture (`create_investment_account.annual_dividend_income` → user profile, non-ISA only); Marriage Allowance "Not available" for higher-rate recipients (both grids, both surfaces); `/savetax/plan` social-proof copy + count keys fixed; Gift Aid capture ack added.
+- Test users on csjones for regression: emma.savetax0611 / oliver.savetax0611b / daisy.savetax0611c (@example.com, Password1!).
+
+### Outstanding
+- [x] **Track 2 (coala) — DONE 2026-06-12 (spec approved → plan → executed → all merged to coala)** (`docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md`; canonical flow in `feedback_coala_agent_flow_canonical.md`). Do NOT start build before spec approval.
+- [ ] Desktop sidebar has no Tax Strategy nav entry (the `/m` menu does) — flagged in session 4; CSJ to decide whether to add it to the Planning group.
+
+## 2026-06-11 — Session 3: SaveTax allowance-card corrections (context-clear; dev @ b7dfa96)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-3-clear.md`.
+- Public `/savetax/plan` result-page cards (server-rendered, web + /m iframe share the page): merged the 60% Tax Trap card into the tapered PA card (`fb98583`); spouse per-person parity — added Spouse PSA/Dividend/CGT (`2a7220d`); **corrected PA-vs-Pension-AA gating** — PA greyed for workers / shown only £0 or £100k–£125,140; Pension AA always shown (£60k / £3,600 non-earner) (`dc46864`); ISA cards plain "tax-free account" description (`b7dfa96`). New TaxConfig key `pension.relevant_earnings_minimum=3600`.
+
+### Outstanding
+- [ ] **Track 2 (coala) — spec v4 awaiting CSJ review** (`docs/superpowers/specs/2026-06-11-track2-coala-integration-design.md`, built on CSJ's canonical agent flow — see `feedback_coala_agent_flow_canonical.md`). On approval → `superpowers:writing-plans`. Do NOT start build before approval.
+- [ ] **SaveTax work is direct-on-dev, no PR** — GitHub branch protection hard-rejects force-push on `dev`, so a retroactive PR is impossible. Branch-first going forward for savetax-type work. (Local `savetax-allowance-cards` branch = `b7dfa96`, unpushed, as a record.)
+- [ ] **CSJ re-test the Azlan journey on csjones** (carried — the acceptance moment).
+- [ ] **CSJ eyeball the gamified web dashboard** (`/dashboard` on csjones): two flagged design notes — only Save tax/Retirement/Savings have tabs; unlock rows open the Fyn dock with no preset capture message. Accept or redirect.
+- [ ] **Insights featured judgement call**: test realigned to the May fallback contract (1dba112) over the April no-fallback decision (5d3ac7f) — flip controller+test together if the April behaviour was intended.
+- [ ] Tech debt: legacy deploy docs (`deploy/DEPLOYMENT_v0.6.2.md`, `deploy/DEPLOYMENT_FYNLA_ORG.md`) still instruct `route:cache`/`optimize` — superseded by DEPLOY.md; prune or banner.
+- [ ] Tech debt: `MEMORY.md` over the 24.4KB load budget (now 26.4KB) — shorten index lines / archive stale entries.
+- [ ] Vault: `UKTaxes.md` Current State doc stale (2026-05-06) and touched by savetax work (flagged by vault-sync).
+
+## 2026-06-11 — Session 2: chips, /m parity law, route:cache incident, PR #527 (context-clear; dev @ 857ea2a)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-2-clear.md`. Deploy note: `June/June11Updates/deploy-2026-06-11.md` (3 addenda today).
+- 24 pre-existing failures cleared (incl. REAL NetWorthService joint-assets lazy-load 500 fix); GiftFactory enums aligned; CLAUDE.md Rule #19 added; PR #528 /m parity gaps fixed (tax deep-link + capture prompt); route:cache→catch-all-shadows-homepage root-caused + banned (DEPLOY.md, build scripts, Troubleshooting, memory); PR #527 merged with repairs (dead `recommendations` payload key → focus_areas rewire; CP1252 mojibake → iconv).
+
+### Session-2 Outstanding (superseded items folded into session-3 list above)
+- [ ] Tech debt: gamified web dashboard unlock rows render a no-op checkbox + Skip (cosmetic); web Fyn dock has no programmatic send so unlock taps can't pre-fill a capture message (parity nicety vs /m).
+- [ ] Deferred polish + isa_subscription_amount caveat (carried from session 1).
+
+## 2026-06-11 — Session 2: chips, /m parity law, route:cache incident, PR #527 (context-clear; dev @ 857ea2a)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-2-clear.md`. Deploy note: `June/June11Updates/deploy-2026-06-11.md` (3 addenda today).
+- 24 pre-existing failures cleared (incl. REAL NetWorthService joint-assets lazy-load 500 fix); GiftFactory enums aligned; CLAUDE.md Rule #19 added; PR #528 /m parity gaps fixed (tax deep-link + capture prompt); route:cache→catch-all-shadows-homepage root-caused + banned (DEPLOY.md, build scripts, Troubleshooting, memory); PR #527 merged with repairs (dead `recommendations` payload key → focus_areas rewire; CP1252 mojibake → iconv).
+
+### Outstanding
+- [ ] **CSJ re-test the Azlan journey on csjones** (carried — still the acceptance moment; csjones now also carries the gamified web dashboard).
+- [ ] **CSJ eyeball the gamified web dashboard** (`/dashboard` on csjones): two flagged design notes — only Save tax/Retirement/Savings have tabs (protection/investment/estate/goals recs are /m + module pages only); unlock rows open the Fyn dock with no preset capture message. Accept or redirect.
+- [ ] **Insights featured judgement call**: test realigned to the May fallback contract (1dba112) over the April no-fallback decision (5d3ac7f) — flip controller+test together if the April behaviour was intended.
+- [ ] Tech debt: legacy deploy docs (`deploy/DEPLOYMENT_v0.6.2.md`, `deploy/DEPLOYMENT_FYNLA_ORG.md`) still instruct `route:cache`/`optimize` — superseded by DEPLOY.md but a trap; prune or banner them.
+- [ ] Tech debt: `MEMORY.md` is over the 24.4KB load budget (truncated at session start) — shorten index lines / archive stale entries.
+- [ ] Tech debt: gamified web dashboard unlock rows render a no-op checkbox + Skip (cosmetic); web Fyn dock has no programmatic send so unlock taps can't pre-fill a capture message (parity nicety vs /m).
+- [ ] Vault: NetWorth + DeploymentBuild Current State docs >2 weeks stale and touched by today's work (flagged by vault-sync).
+- [ ] Track 2 (coala) planning from spec §7 (carried).
+- [ ] Deferred polish + isa_subscription_amount caveat (carried from session 1).
+
+## 2026-06-11 — Session 1: insight-quality Track 1 spec→plan→build→verify→merge→deploy (context-clear; dev @ 4e211aa)
+
+Handover: `June/June11Updates/handover-2026-06-11-session-1-clear.md`. Deploy note: `June/June11Updates/deploy-2026-06-11.md`.
+- Spec + 25-task plan written and executed subagent-driven (two-stage review per task — every review cycle caught real defects). Three catalogue layers reconciled; data-correctness fixes (ISA subscriptions, carry-forward window, 7-year NRB, spouse strategies, salary-sacrifice status family); StrategyPlanComposer + ComposedTaxPlanService; tax = seventh aggregator module (web + /m + Fyn); A1–A4 guided-flow fixes; knowledge layer + voicing rules restored to unified prompt; module-scoped context; /m strategy unlock cards; Azlan + 4 persona golden eval scenarios (live grok-4.3, GREEN).
+- Live Playwright Azlan replay end-to-end: six further defects found AND fixed in-loop.
+- Suite: 4,517 passed; 24 failures verified pre-existing on dev → chipped.
+
+### Outstanding
+- [ ] **CSJ re-test the Azlan journey on csjones** (the acceptance moment — see handover "Pick up from here").
+- [x] **Chip: 24 pre-existing dev test failures** — DONE session 2 (2026-06-11, dev @ `095ccb6`): suite 4,541 passed / 0 failed. Real prod bug fixed en route (NetWorthService joint-assets lazy-load 500, `367d207`); the "mortgage lender_name fixtures" were actually missing tier_configurations seeds; insights featured test realigned to the 1dba112 fallback contract (CSJ-merged May change supersedes the April no-fallback decision — flag if wrong).
+- [x] **Chip: GiftFactory enum mismatch** — DONE session 2 (`095ccb6`): factory aligned to live enums (pet/clt/exempt/small_gift/annual_exemption; within_7_years/survived_7_years), verified with 36 rolled-back inserts.
+- [ ] **Track 2 (coala)**: plan from spec §7 — house_view corpus authored from catalogue ids, RecommendationHandler returns composed plan, planner heuristics, capture overlays, mirror the get_recommendations description into the tool_schema corpus.
+- [ ] Deferred polish: ComposedTaxPlanService double-invocation on GET /api/tax-strategy; conflict notes in section turns (synthesis-only today); answer+retry one-bubble-live vs two-rows-reload; tax-strategy endpoint missing {success,message} envelope (pre-existing).
+- [ ] Caveat to close: observe live-LLM supply of isa_subscription_amount in a recorded run (unit-proven; fixtures omit tool inputs).
+
+## 2026-06-10 — Session 3: verification, finding-fixes, merge to dev, branch cleanup (context-clear; dev @ a75af48)
+
+Handover: `June/June10Updates/handover-2026-06-10-session-3-clear.md`.
+- Verified the branch end-to-end on csjones (incl. session-2's open G2 bubble + G3 banner items); fixed all six findings TDD'd: stable `sha1(module|text)` recommendation IDs, retirement headroom earnings-cap (£3,600 non-earner floor, no recs from 75, no retirement-age rec for retired users), goals pluralisation + praise-rec removal, assets caption from breakdown, session-persistent bubble dismissal, retired_couple seeded onboarding-complete. Repaired 7 stale aggregator tests.
+- PRs #525 + #526 merged to dev via pushed merge commits; csjones back on dev, bundles rebuilt + rsynced, verified live.
+- Branch cleanup: 94 remote + 4 local merged branches deleted (kept coala, brett-dev1, email-onboarding-video, python-agent-sidecar #249, fix/coala-test-stabilisation, fix/public-pages-base-path, gamification-dashboard, rss-feed #237-closed).
+
+### Outstanding
+- [ ] **gh CLI merge endpoint 401s on this machine** — run `gh auth refresh -h github.com -s repo` before the next admin-merge (PR create/read work; merge calls never do; workaround = local merge commit + push).
+- [ ] **Estate will/LPA recs for sub-NRB users** — CSJ's call (carried from session 2).
+- [ ] Optional: field-specific KYC prompts for gate-open-but-empty modules (carried).
+- [ ] `fix/public-pages-base-path` kept — one stray 29-May handover-doc commit; CSJ to decide whether to delete.
+- [ ] Minor debt: `openRecChat` in mobile `Dashboard.vue` now unused.
+- [ ] dev → main release PR when CSJ decides to ship.
+
+## 2026-06-10 — /m gamification + recommendations rework (context-clear; branch m-gamification-recommendations, deployed + verified on csjones)
+
+Spec/plan: `docs/superpowers/specs/2026-06-10-m-gamification-recommendations-design.md`, `docs/superpowers/plans/2026-06-10-m-gamification-recommendations.md`. Branch `m-gamification-recommendations` (off dev), 23 commits, pushed, deployed to csjones, NOT on dev/main/prod.
+
+Built + verified on csjones: KYC-gated recommendations across all 6 modules (investment + goals added to the aggregator), unified ≤4 `focus_areas` one-card swipe carousel, planning-progress percentile, achievements + milestones panel + API, varied preview-persona gamification seeding, recommendations deep-link to module screens.
+
+**LAWS established this session (see handover):** (1) `/m` is verified on csjones, not locally (serves built `m-build`, no HMR; the `ssh-fynla` MCP tool = PROD, don't use for csjones). (2) Every module shows real recs OR the KYC info needed — NEVER "On track"/empty. (3) Recommendations deep-link to the correct module screen, not a Fyn message.
+
+Engine bugs fixed (all real): estate unconditional £130k trust rec → gated on IHT liability; retirement 0 recs → wired generateRecommendations; protection title-key dropped + gate didn't require profile → both fixed; investment lazy-load violation on csjones strict mode → query instead of lazy relation.
+
+### Outstanding
+- [x] **Browser-verify G2 (Fyn unlock bubble)** — verified session 3 (appears, dismisses session-persistently, tap opens pre-seeded Fyn).
+- [x] **Browser-verify G3 (milestone banner lowered)** — verified session 3 (fired live for Patricia, all four sides visible).
+- [ ] **Estate will/LPA recs for sub-NRB users** — carried to session-3 Outstanding above.
+- [ ] Optional: field-specific KYC prompts — carried to session-3 Outstanding above.
+- [x] Final review + merge `m-gamification-recommendations` → dev — merged session 3 (PR #526).
+- [x] `vault-sync` — run session 3; tech-debt audit folded into the session-3 verification findings.
+
+## 2026-06-09 — GitHub bug auto-resolver loop + Fyn resume fixes (end-of-day; dev, deployed + verified on csjones)
+
+Handover: `June/June10Updates/handover-2026-06-10-session-1.md`. Deploy: `June/June10Updates/deploy-2026-06-10.md`. Memory: `reference_github_bug_autoresolver_loop.md` (new).
+- **Bug auto-resolver loop** (#505/#506/#508/#509/#511/#514/#518) — in-app report → `GithubIssueService` GitHub issue → `.github/workflows/claude.yml` Action (on **main**, armed) fixes on `dev` → PR (policy 8a). Auth = Max OAuth token; trust gate; `bypassPermissions`; `--max-turns 25`. Proved end-to-end (autonomous PR #513).
+- **#516** — "Report a problem" reachable in the Fyn chat header + captures the conversation transcript (ownership-scoped, IDOR-tested).
+- **#522** — fixed duplicated "Welcome back" on startup (web resume persisted `is_resume_greeting` per open without pruning; mobile rendered all). Prune-prior fix + regression test; 350 onboarding tests green.
+- **#523** — mobile resume shows summary + Continue/Something else only (not the full transcript replay); wired the resume action + action bubbles on mobile.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +187 / -15 vs `main`. #489 auth throttle still the priority reason. Runbook: `June/June10Updates/deploy-2026-06-10.md` (base `June/June9Updates/deploy-2026-06-09.md`).
+- [ ] **Decide prod bug-reporter state** — `GITHUB_BUG_ISSUE_ENABLED=false` by default; enabling on prod means real users file GitHub issues / trigger the autonomous loop.
+- [ ] **Rotate tokens** — `CLAUDE_CODE_OAUTH_TOKEN` + `GITHUB_BUG_ISSUE_TOKEN` passed through chat.
+- [ ] Optional: remove orphaned `loadConversation()` in `resources/mobile/views/Dashboard.vue` (caller replaced in #523).
+
+## 2026-06-09 — Base-path bug class + Fyn advice-loop fix (context-clear, session 2; dev, deployed + verified on csjones)
+
+Handover: `June/June9Updates/handover-2026-06-09-session-2-clear.md`. Memory: `reference_onboarding_advice_autoadvance_loop.md` (new), `reference_mobile_phone_entry_responsive.md` (corrected: `/m` iframe serves the SPA, not index.php).
+- **#502** — `/m` "Save tax" CTA 404'd on csjones (hardcoded `<a href="/savetax">` missing the `/fynla` base; the `/m` iframe serves the SPA `LandingPage.vue`). Browser-verified: `GET /fynla/savetax => 200`, campaign funnel loads.
+- **#503** — full SPA sweep found 6 more raw root-relative navigations 404ing under `/fynla/`. New shared `resources/js/utils/basePath.js` → `withBase()` (honours `VITE_ROUTER_BASE`); applied to `WillInfoStep`, `ArticleEditor`, `preview.js`, `SitemapPage`, `NewsHubPage`, `Version`. Browser-verified sitemap/news links resolve to `/fynla/...` (200).
+- **#504** — Fyn looped, persisting the same message 17,509× (~41/sec) for user 79 (conv 66). Root cause: `STATE_CAMPAIGN_ADVICE_SPOUSE` `next => itself` + advice turns auto-advance with no user input. Fixed (advances via `nextCampaignSection`) + `MAX_ADVICE_CHAIN=6` guard + regression test (34 onboarding tests green). Conv 66 cleaned: 17,488 dupes deleted, 34 real messages kept.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +165 / -7 vs `main`. **#489 auth throttle is the priority reason** — prod MFA password reset broken until released. Today's #502/#503/#504 ride along. Runbook: `June/June9Updates/deploy-2026-06-09.md`. **Note:** #504 (the Fyn loop) is a prod-relevant class — would hit prod identically.
+- [ ] **Set real tier prices** in the admin Tier Configuration screen — placeholders (£4.99/£14.99/£29.99 monthly) currently live.
+- [ ] Optional: align `TestUsersSeeder` to `tier='free'` (recreates `trialing` subs each `db:seed`). **Note:** interacts with the upgrade-modal verification path — re-verify the modal after.
+- [ ] Optional: sweep orphaned csjones `public/build/assets` chunks (~1240 after this session's two preserve-old-chunks deploys).
+
+## 2026-06-08 — Freemium tier-pricing modal + deploy (end-of-day, session 4; dev, deployed + verified on csjones)
+
+Handover: `June/June9Updates/handover-2026-06-09-session-1.md`. Deploy note: `June/June9Updates/deploy-2026-06-09.md`. PRs #500 (`/m` router cold-boot) + #501 (freemium tier-pricing modal + remove trial timer) merged to `dev`, built, deployed to csjones, live-verified (`/pricing` = Free+Tier1/2/3, penny prices, billing toggle, `<title>` mojibake fixed; upgrade modal tier-sourced, no trial timer; checkout resolves Tier 2 £14.99). Resumed after a laptop freeze mid-session — freemium code was already committed; this session re-verified end-to-end + merged + deployed.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +158 / -7 vs `main`. **#489 auth throttle is the priority reason** — prod MFA password reset is broken until released. Full prod runbook + freemium adds: `June/June9Updates/deploy-2026-06-09.md` (base: `June/June7Updates/deploy-2026-06-07.md`).
+- [ ] **Set real tier prices** in the admin Tier Configuration screen — `tier_configurations` currently holds placeholders (£4.99/£14.99/£29.99 monthly); modal + checkout + public `/pricing` read them live.
+- [ ] Optional: align `TestUsersSeeder` to `tier='free'` — it recreates `trialing` subs on every `db:seed` (pure-freemium artifact).
+- [ ] Optional: sweep orphaned csjones `public/build/assets` chunks (~1009 after preserve-old-chunks accumulation).
+
+## 2026-06-08 — SaveTax suite + onboarding rework (context-clear, dev; deployed + verified on csjones)
+
+Handover: `June/June8Updates/handover-2026-06-08-session-3-clear.md`. PRs #489, #490, #492, #493, #494, #495, #498, #499 merged to `dev`, deployed to csjones, verified live (savetax onboarding walked end-to-end on local + csjones; taxconfig save + /m admin-link fixes verified; dashboard blur gone). Memory added: `reference_inline_throttle_shares_per_ip_bucket.md`.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is ~149 / -7 vs `main`. The **auth throttle fix #489 is genuinely prod-relevant** (MFA password reset is broken on prod until released). Savetax SPA changes need a prod build; gamification runbook still `June/June7Updates/deploy-2026-06-07.md`.
+- [ ] Optional: `/m` Admin link lands on `/dashboard` not `/admin` on the first hop (auth-guard cold-boot race; reachable on next nav) — small follow-up fix if wanted.
+- [ ] Optional: sweep 4 stale unreferenced `AppLayout-*.js` chunks on csjones `public/build` (accumulated from deploys; harmless).
+- [ ] **chris@fynla.org existing-user pass** — still blocked: safety guard won't reset his csjones password. (Not needed 2026-06-08 — browser held his session.)
+
+## 2026-06-07 — Save tax CTA fix + gamification test (end-of-day, dev; #488 deployed to csjones)
+
+PR #487 (inline-capture onboarding-award unit test) and PR #488 (Save tax CTA on the real server-rendered homepage) merged to `dev`. #488 deployed to csjones + verified live. Memory: `reference_public_homepage_is_server_rendered_not_spa.md` (the public homepage is `public/pages/index.php`, NOT the Vue SPA `LandingPage.vue`).
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +120 / -7 vs `main`. Gamification runbook: `June/June7Updates/deploy-2026-06-07.md`. Today's #487 (test, inert in prod) + #488 (`public/pages/index.php` + `index.css`, no-build upload) ride along in the same diff.
+- [ ] **chris@fynla.org existing-user pass** — blocked: safety guard won't let me reset his csjones password. CSJ to reset, then add the chris web+/m gamification pass (john was the proxy ✅).
+- [x] Inline-capture onboarding-award unit test — DONE (#487).
+- [ ] Optional: purge staging test users `gamifyweb@example.com` / `gamifysavetax@example.com` (id 76) on csjones.
+
+## 2026-06-06 — Gamification engine (end-of-day, dev; deployed to csjones)
+
+Built the full points-and-levels gamification engine end-to-end (brainstorm → spec → plan → multi-agent workflow → live browser verification). PRs #477–485 merged to `dev`, deployed to csjones + backfilled, verified live. Patch notes: `June/June6Updates/patch-notes-2026-06-06-gamification-engine.md`. Memory: `reference_gamification_engine_architecture.md`.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. `dev` is +114 / -7 vs `main`. Full runbook: `June/June7Updates/deploy-2026-06-07.md` (2 new migrations, config, both rebuilt bundles, `gamification:backfill` after `migrate --force`).
+- [ ] **chris@fynla.org existing-user pass** — blocked: safety guard won't let me reset his csjones password. CSJ to reset; then add the chris web+/m pass (john was the proxy ✅).
+- [ ] Optional: add the inline-capture onboarding-award unit test (PR #484 verified live, not unit-tested — needs LLM-stream mock).
+- [ ] Optional cleanup: staging test users `gamifyweb@example.com`, `gamifysavetax@example.com` (id 76); john carries test recs/points (L3).
+
+### Done this session (was outstanding from 2026-06-05)
+- [x] Refreshed `reference_mobile_phone_entry_responsive.md` + `savetaxFix.md` T8/T9 (deep-links via `/m?to=`, canonical auth).
+- [x] Removed orphaned `store.challengeToken`/`maskedEmail` from `resources/mobile/store.js` (PR #477).
+
+## 2026-06-05 — `/m` pathway completion (end-of-day, dev `52e5f06`; deployed to csjones)
+
+Completed the `/m` mobile-web connection sequence (rows 1–7), made savetax reachable inside `/m`, switched `/m` to canonical auth, cleaned arch-debt, deployed to csjones, and verified the full funnel + onboarding-recap + logout/resume live. Patch notes: `June/June5Updates/patch-notes-2026-06-05-m-pathway.md`. PRs #461–#475.
+
+### Outstanding
+- [ ] **Production release** (`dev → main → fynla.org`) — CSJ's call. dev is ~77 ahead / 7 behind main. Includes the `user_milestones` migration + `public/m-build`.
+- [ ] **One unbroken `/m` iframe chain re-test** — sign-out → in-frame canonical login → verify → bridge → `/m/app` → resume (verified in links this session, not one continuous click-through).
+- [ ] **Refresh docs/memory** — `reference_mobile_phone_entry_responsive.md` (deep-links now preserved via `/m?to=`; canonical auth replaced scaffold) + `savetaxFix.md` T8/T9.
+- [ ] Optional cleanup: staging user `mflow0605@example.com` (id 74, mid-onboarding on csjones); orphaned `store.challengeToken`/`maskedEmail` in `resources/mobile/store.js`.
+- [ ] Decide: "Save tax" CTA on shared homepage (shows on desktop) vs `/m`-only.
+
+### Tech debt deferred
+- [ ] `strict_types` added to 8 untested subsystems (HeyGen/video-pipeline/article-scraper) — verified via lint + arch suite, not live runtime.
+
+## 2026-06-04 — Mobile detail views + Fyn fixes (end-of-day, dev `06937fc`+`7dce0e2`)
+
+Walked the mobile Fyn-dock savetax onboarding to the `/tax-strategy` terminal (single + both married/joint household modes). Fixed: tripled ack, dropped next-prompt (double-`done` SSE), dock bubble-merge, provider-blind soft-degrade (broke chat under xAI). Built real mobile Tax Strategy view (incl. household) + 10 module detail/drill-down views (Net Worth, Protection, Savings, Retirement, Investment) fetching web `/api/*` via Bearer; wired dashboard finance blocks + tax-strategy next-steps; tidied `/module/savings` → `/savings`. All browser-verified with real data. Tech-debt: `tech-debt-report.md` (3 minor, 1 fixed).
+
+### Outstanding
+- [ ] **Deploy to csjones** — per `June/June5Updates/deploy-2026-06-05.md`: `git pull origin dev`, `config:cache`, rebuild `public/m-build` for the `/fynla/` base + upload (local m-build is LOCAL-base — don't upload). CSJ's call.
+- [ ] Tax-strategy next-step **CTA** click is code-verified only — no seeded user triggered a next-step recommendation. Optionally engineer a qualifying user to click it live.
+- [ ] CLAUDE.md metrics drift (pre-existing): PHP Services 340→345, Models 119→123 — update if/when convenient.
+- [ ] Optional: extract a shared `resources/mobile/format.js` (9 views duplicate `formatCurrency`); add mobile-view tests.
+- [ ] Optional cleanup: local test users (`mobiletax`, `mobiletax2`, `mobilemarried`, `mobilemarried2`) + AiDailyUsage resets.
+
+## 2026-06-04 — CLAUDE.md lean + Fyn two→one (session 2, dev `05b1e8e`)
+
+Leaned all 6 CLAUDE.md files: duplication → pointers (deploy runbook → new `deploy/DEPLOY.md`; design rules → `./fynlaDesignGuide.md`; mobile/Pest → sub-files). CSJ-owned laws kept (Rule 14 verbatim; 12/15/browser-testing lightly tightened, clauses preserved). Reframed the canonical Fyn section to "one prompt, two write states, converging to one Fyn" + a "where we are vs where we're heading" note. MEMORY.md rule numbers resynced; `project_coala_phase5_progress.md` gained the 2026-06-04 one-Fyn direction.
+
+- [ ] **When `coala` merges to dev, reconcile `April/April24Updates/spec/00-canonical.md`** — it's the source of truth CLAUDE.md points to; CLAUDE.md is ahead of it by exactly the one transition note.
+- [ ] Mobile `/m` work: build single-Fyn-compatible (one shared `/api/ai-chat` dispatch; no onboarding-vs-advice split client-side).
+
+
+## 2026-06-03 — Mobile funnel + Fyn onboarding (dev/csjones; NOT prod)
+
+**Shipped (PRs #452–#460):** `/m` hosts the real responsive homepage funnel (Sec-Fetch-Dest iframe handling); authed handoff to `/m/app` (Sanctum token bridge; mobile API now Bearer-only); homepage CTA → `/savetax` funnel; funnel answers persist through registration; "Register for free" creates a real account; Fyn pre-fills employment/marital + greets + recaps + skips-known + runs the savetax campaign onboarding; mobile Fyn dock wired to onboarding (bubbles + resume) + dashboard nudge; CLAUDE.md Rules #17–19 folded.
+
+### Outstanding (mobile/funnel)
+- [x] **Walk the mobile onboarding to the `/tax-strategy` terminal** — DONE 2026-06-04 (single + married/joint), real mobile Tax Strategy view built.
+- [ ] Browser-verify the **desktop** Fyn funnel recap (backend verified; desktop UI not walked).
+- [ ] Refresh **`Current State/Auth.md`** (16 days stale; mobile auth/onboarding/registration changed this session).
+- [ ] Optional cleanup: remove csjones staging test users `Funnel Tester` #72 + `Cleo` #73.
+- [ ] `dev → main` release is CSJ's call (dev is +41 / -7 vs main; main still carries the context-watch tripwire + lacks Rules #17–19).
 
 ---
 
-## 🟡 ACTIVE TRACK (2026-05-28): CoALA initiative + test-stabilisation
+## SP1 Pass 6 (Investments) — earlier track (backlog preserved)
 
-**Branch:** `coala` (off `dev`). **Decision doc:** `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`.
-
-**Phase 0 — test-stabilisation (prerequisite, NEARLY DONE — 1 flaky failure left):** get `dev`'s suite green before CoALA code lands (CoALA's cutover safety leans on a clean regression baseline).
-- [x] `tests/Feature/Api/MortgageControllerTest.php` — fixed session 2 (added `TierConfigurationSeeder` to setUp). Green in full suite.
-- [x] `MortgageTierCapTest` — green in full suite (runs #3/#4 confirm 0 mortgage failures).
-- [x] `tests/Architecture/Phase03ArchitectureTest.php` — 2 stale `NetWorthService` assertions updated (session 2).
-- [x] `stocks_shares`→`stocks_and_shares` drift: fixed session 2 (`RetirementIncomeService.php:392`, `InvestmentAccountFactory.php:58`).
-- [x] `tests/Feature/Mobile/MobileScaffoldTest.php` — fixed session 3 (`088c86c`): assertion `url('/m/app')`→`url('/m/landing')` to match blade.
-- [ ] **FLAKY (BLOCKS "suite green"):** `tests/Feature/Stores/InvestmentAccountHttpIntegrationTest.php` "records FORM audit context" — ~30–50% flaky null audit row in the FULL suite only (subsets always pass). Partially diagnosed (created event fires, shouldAudit inputs OK, row still absent) → leading theory is a leaked duplicate `Hargreaves Lansdown` account making `->first()` pick the wrong id. **Full diagnostic + probe code + reproduction loop in `May/May29Updates/handover-2026-05-29-session-1.md`.**
-- [ ] LISA bucketing: `ISATracker.php` + `ISAAllowanceOptimizer.php` key off `account_type='lifetime_isa'` (non-existent enum) → should read `isa_type='lifetime'`. (Deferred — real user-facing calc, needs own test.)
-- [ ] (optional) preview-spouse tier-cap latent risk (`PreviewController.php:673`).
-
-**Then — CoALA phases** (per `fynla-coala-implementation-plan.md` v0.4 + `May/May27Updates/PRD-coala-phase-{1..6}-*.md`): Phase 5 cost-telemetry PR first (standalone) → Phase 1 semantic memory → 2 → 3 → 4 → 5(full) → 6. Stakeholder re-review at end of Phase 5.
+*Last updated: 2026-05-28 — session 2 — **SP1 Pass 6 (Investments) — PRs 1-5a SHIPPED (5 PRs)**. Write-path COMPLETE (1-4) + first read cluster + parity contract (5a). PR 1 `15f6673` (#415), PR 2 `babcd53` (#416), PR 3 `10c4603` (#417), PR 4 `df1de8f` (#418), PR 5a `5ad4a91` (#419). All InvestmentAccount writes route through the store (boundary ready to LOCK in PR 12); InvestmentReadConsumerParityTest established as the 5b-5e contract. **NEXT SESSION: PR 5b** (Goals/ModelPortfolio/Performance reads) — follow the I-1 convention (prefer `User $user` signatures over in-method `User::find`+guards; see PR #419 note). 5 pre-existing follow-ups logged below. dev tip after this session's docs commit; csjones NOT redeployed (still pre-Pass-4-PR6 per deploy gate).*
 
 ---
 
-## ⏸️ DEFERRED: SP1 Pass 6 (Investments) — PAUSED at PR 5a (resume point)
+## Parallel work — 2026-05-29 (separate from SP1 Pass 6)
 
-**Paused 2026-05-28 by CSJ.** InvestmentAccount **write-path is COMPLETE** (PRs 1-4: all writes route through the store, boundary green). PR 5a added the read parity contract. State is stable + shippable; unrouted reads are consistency-debt, not bugs (boundary polices writes only; CI green). **Resume at Pass 6 PR 5b** (Goals/ModelPortfolio/Performance reads) following the I-1 convention (prefer `User $user` signatures over in-method `User::find`+guards — see PR #419 note). Then 5c-5e, 6-7 (Holding cross-module store), 8 (satellites), 9 (RebalancingAction), 10 (derived columns), 11 (tier-cap tests), 12 (lock-down). Passes 7-14 (income, expenditure, protection, family, goals, business, trusts, chattels, wills, LPAs, unsecured liabilities) not started. Shipped this session: PR 1 `15f6673` (#415), PR 2 `babcd53` (#416), PR 3 `10c4603` (#417), PR 4 `df1de8f` (#418), PR 5a `5ad4a91` (#419).
+- [x] **Revolut checkout spinner — FIXED + DEPLOYED (prod + dev).** Root cause: prod ran with config uncached → `.env` intermittently dropped DB creds → `forge`/no-password 500s → widget spun. Live-fixed prod via `config:cache`; code hardening shipped (CheckoutPage retry/error, AppServiceProvider forge guard, build.sh ends on `optimize`). main `13e88ad` (PR #422), dev (PR #421). See memory `reference_prod_forge_uncached_config.md`.
+- [ ] **Pure freemium signup — SPEC + PLAN WRITTEN, awaiting execution.** Branch `pureFreemium` (off dev). Spec `docs/superpowers/specs/2026-05-29-pure-freemium-signup-design.md`; plan `docs/superpowers/plans/2026-05-29-pure-freemium-signup.md` (6 PRs, TDD). NEXT: CSJ picks execution approach → PR1 (registration sets `tier='free'`, no trial). Big pieces: PR2 CheckSubscription rework (Free writable, DbTierGate caps), PR4 data-safe trial→Free migration. NO code yet.
 
 ---
 
-## 🎯 (PAUSED) SP1 Pass 6 (Investments) — plan reference
-
-> **Other open dev backlog** (carried over from the pre-pivot CSJTODO; NOT the active track):
-> - Revolut checkout spinner — FIXED + DEPLOYED (prod + dev), PR #422/#421. See `reference_prod_forge_uncached_config.md`.
-> - Pure freemium signup — spec+plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*`); execution status to confirm post-pivot (trial→Free conversion already run on prod 2026-05-29).
-> - Shipped on dev/prod 2026-05-29 (this chat): public marketing pages + savetax funnel + Chart.js self-host + PipelineAsset rename (PRs #420/#432/#433/#434/#435/#436 → main/prod).
+## 🎯 Active track: SP1 Pass 6 (Investments)
 
 **Plan:** `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (768 lines, written 2026-05-27 session 5 after Pass 5 closure; CSJ-approved full Investment surface scope).
 

@@ -1,7 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>About Fynla | UK Personal Finance Platform Built by Experts</title>
   <meta name="description" content="Fynla was built by financial professionals with 40+ years' combined experience. Learn how we're making professional-grade financial planning accessible to everyone in the UK." />
@@ -40,7 +43,7 @@
   }
   </script>
 
-  <!-- Critical CSS â€” above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
+  <!-- Critical CSS — above-fold only: tokens, reset, skip-nav, nav skeleton, hero.
        Everything below the fold lives in the external files. -->
   <style>
     /* tokens */
@@ -60,7 +63,7 @@
     /* nav skeleton */
     .site-header{position:sticky;top:0;z-index:50;background:var(--white);box-shadow:var(--shadow-sm);border-bottom:1px solid var(--light-gray);}
     .nav-primary__inner{max-width:80rem;margin:0 auto;padding:0 1rem;display:flex;align-items:center;justify-content:flex-start;height:4rem;position:relative;}
-    /* about hero â€” above fold */
+    /* about hero — above fold */
     .about-hero{background:linear-gradient(to right,var(--horizon-500),var(--raspberry-500));overflow:hidden;}
     .about-hero__inner{max-width:80rem;margin:0 auto;padding:2.5rem 1rem;}
     .about-hero__heading{font-size:clamp(2rem,8vw,4rem);font-weight:900;line-height:1.1;color:var(--white);margin-bottom:0.75rem;}
@@ -68,7 +71,7 @@
     .about-hero__subtext{font-size:1.125rem;color:var(--white-70);max-width:44rem;line-height:1.625;}
     @media(min-width:1024px){.about-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
-  <link rel="stylesheet" href="/pages/css/global.css?v=2" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/about.css?v=1"  />
 </head>
 <body class="about-page">
@@ -274,8 +277,8 @@
     <?php
     $module = [
       'id'      => 'about-cta',
-      'heading' => 'Start your free trial today',
-      'subtext' => 'No credit card required. Try any plan free for 7 days and see your complete financial picture.',
+      'heading' => 'Create your free account today',
+      'subtext' => 'No credit card required. Free has no time limit, so you can build your financial picture at your own pace.',
       'actions' => [
         ['text' => 'Get started free', 'href' => '/register',    'primary' => true],
         ['text' => 'See pricing',      'href' => '/pricing',     'primary' => false],

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -59,6 +61,33 @@ describe('bandRateFor', function () {
     });
 });
 
+/**
+ * bandRateFromIncome prices a marginal rate from an arbitrary income figure
+ * without a User model — used by HouseholdFinancialContext to derive a
+ * dual-earner spouse's rate from the household input's spouse_annual_income.
+ */
+describe('bandRateFromIncome', function () {
+    it('returns basic-rate for income under £50,270', function () {
+        expect($this->math->bandRateFromIncome(30000.0))->toBe(0.20);
+    });
+
+    it('returns higher-rate for income between £50,270 and £125,140', function () {
+        expect($this->math->bandRateFromIncome(65000.0))->toBe(0.40);
+    });
+
+    it('returns additional-rate for income above £125,140', function () {
+        expect($this->math->bandRateFromIncome(130000.0))->toBe(0.45);
+    });
+
+    it('agrees with bandRateFor when the user has only employment income', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 50000, // no dividends, no savings
+        ]);
+
+        expect($this->math->bandRateFromIncome(50000.0))->toBe($this->math->bandRateFor($user));
+    });
+});
+
 describe('estimateIsaSubscriptionsThisYear', function () {
     it('counts ISAs opened in the current tax year', function () {
         $user = User::factory()->create();
@@ -99,6 +128,39 @@ describe('estimateIsaSubscriptionsThisYear', function () {
             'is_isa' => false,
             'current_balance' => 50000,
             'created_at' => now(),
+        ]);
+
+        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);
+    });
+
+    // Regression: Stocks & Shares / investment ISAs subscribe against the SAME
+    // £20k allowance but live on investment_accounts (account_type 'isa') under
+    // isa_subscription_current_year. Pre-fix the helper read only savings_accounts,
+    // so an S&S-ISA subscriber's allowance was over-stated and ISA top-up
+    // strategies recommended wrapping more cash than they could still subscribe.
+    it('counts a stocks & shares (investment) ISA subscription against the same allowance', function () {
+        $user = User::factory()->create();
+        InvestmentAccount::factory()->for($user)->create([
+            'account_type' => 'isa',
+            'isa_type' => 'stocks_and_shares',
+            'isa_subscription_current_year' => 5000,
+        ]);
+
+        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(5000.0);
+    });
+
+    it('sums cash ISA and investment ISA subscriptions toward the one allowance', function () {
+        $user = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => true,
+            'isa_subscription_amount' => 3000,
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
+            'current_balance' => 3000,
+            'created_at' => now(),
+        ]);
+        InvestmentAccount::factory()->for($user)->create([
+            'account_type' => 'isa',
+            'isa_subscription_current_year' => 5000,
         ]);
 
         expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);

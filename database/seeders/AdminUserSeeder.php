@@ -19,10 +19,11 @@ class AdminUserSeeder extends Seeder
     {
         $adminRole = Role::findByName(Role::ROLE_ADMIN);
 
-        // Create admin user (not linked to any household)
-        $user = User::updateOrCreate(
-            ['email' => 'admin@fps.com'],
-            [
+        $user = User::withTrashed()->where('email', 'admin@fps.com')->first();
+
+        if ($user === null && app()->environment(['local', 'development', 'testing'])) {
+            $user = User::create([
+                'email' => 'admin@fps.com',
                 'first_name' => 'Admin',
                 'surname' => 'User',
                 'password' => Hash::make(env('ADMIN_SEED_PASSWORD', 'Fynl@Adm1n2026!')),
@@ -32,23 +33,30 @@ class AdminUserSeeder extends Seeder
                 'date_of_birth' => '1975-01-01',
                 'gender' => 'male',
                 'marital_status' => 'single',
-            ]
-        );
+            ]);
+        }
 
-        // Sync is_admin flag with role assignment
-        $user->is_admin = true;
-        $user->save();
+        // Preserve existing credentials and profile data while ensuring the
+        // seeded account retains its required administrative authority.
+        if ($user !== null && ! $user->trashed()
+            && (! $user->is_admin || $user->role_id !== $adminRole?->id)) {
+            $user->role_id = $adminRole?->id;
+            $user->is_admin = true;
+            $user->save();
+        }
 
         // Grant the same consents real users grant at registration
         // (AuthController::register lines 506-511). Without this the
         // consent gate at AiChatController::sendMessage returns 403.
-        foreach ([
-            UserConsent::TYPE_TERMS,
-            UserConsent::TYPE_PRIVACY,
-            UserConsent::TYPE_DATA_PROCESSING,
-            UserConsent::TYPE_AI_CHAT,
-        ] as $consentType) {
-            UserConsent::recordConsent($user->id, $consentType, true);
+        if ($user !== null && ! $user->trashed()) {
+            foreach ([
+                UserConsent::TYPE_TERMS,
+                UserConsent::TYPE_PRIVACY,
+                UserConsent::TYPE_DATA_PROCESSING,
+                UserConsent::TYPE_AI_CHAT,
+            ] as $consentType) {
+                UserConsent::recordConsent($user->id, $consentType, true);
+            }
         }
 
         // Promote any existing users listed in ADMIN_EMAILS to admin role

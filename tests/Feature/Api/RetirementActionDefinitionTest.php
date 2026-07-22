@@ -47,7 +47,8 @@ describe('Admin Retirement Action Definitions API', function () {
                 ],
             ]);
 
-        expect($response->json('data'))->toHaveCount(21);
+        // 21 agent rows + 4 source='strategy' composer catalogue rows (Phase 2).
+        expect($response->json('data'))->toHaveCount(25);
     });
 
     it('denies access to non-admin users', function () {

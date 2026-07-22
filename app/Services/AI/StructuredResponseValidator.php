@@ -63,9 +63,13 @@ class StructuredResponseValidator
     /**
      * Validate an AI response and return violations.
      *
+     * @param  string  $persona  'advice' (default) or 'data_capture' — capture-turn acks skip
+     *                           the missing_amounts rule because short confirmations ("Noted.",
+     *                           "Recorded — two ISAs totalling £22,000.") contain no advice £
+     *                           figures by design and would otherwise flood violation telemetry.
      * @return array{valid: bool, violations: array<array{rule: string, detail: string, severity: string}>}
      */
-    public function validate(string $response, ?array $classification = null): array
+    public function validate(string $response, ?array $classification = null, string $persona = 'advice'): array
     {
         if (trim($response) === '') {
             return ['valid' => true, 'violations' => []];
@@ -134,8 +138,11 @@ class StructuredResponseValidator
             }
         }
 
-        // For advice responses, check for £ amounts (should have specific figures)
-        if ($classification !== null
+        // For advice responses, check for £ amounts (should have specific figures).
+        // Capture-turn acks ("Noted.", "Recorded.") are exempt — they are confirmation
+        // messages, not advice, and flagging them pollutes the violation telemetry.
+        if ($persona !== 'data_capture'
+            && $classification !== null
             && QuerySchemas::isAdviceType($classification['primary'] ?? '')
             && ! preg_match('/£[\d,]+/', $response)) {
             $violations[] = [
@@ -172,9 +179,9 @@ class StructuredResponseValidator
     /**
      * Validate and log any violations. Returns the violations array.
      */
-    public function validateAndLog(string $response, ?array $classification = null, ?int $userId = null, ?int $messageId = null): array
+    public function validateAndLog(string $response, ?array $classification = null, ?int $userId = null, ?int $messageId = null, string $persona = 'advice'): array
     {
-        $result = $this->validate($response, $classification);
+        $result = $this->validate($response, $classification, $persona);
 
         if (! $result['valid']) {
             $highSeverity = array_filter($result['violations'], fn ($v) => in_array($v['severity'], ['critical', 'high']));
@@ -197,6 +204,16 @@ class StructuredResponseValidator
      * Returns the cleaned response text.
      */
     public function sanitise(string $response): string
+    {
+        return $this->sanitiseWithViolations($response)['response'];
+    }
+
+    /**
+     * Sanitise a response and report material repairs made to it.
+     *
+     * @return array{response: string, violations: list<array{rule: string, detail: string, severity: string}>}
+     */
+    public function sanitiseWithViolations(string $response): array
     {
         // Strip any leaked [Context: ...] blocks (including multi-line and nested brackets)
         $response = preg_replace('/\[Context:[^\]]*\]/s', '', $response);
@@ -224,6 +241,95 @@ class StructuredResponseValidator
         // Clean up any double spaces left from stripping
         $response = preg_replace('/  +/', ' ', $response);
 
-        return trim($response);
+        $response = trim($response);
+        [$response, $repetitionCollapsed] = $this->collapseRepeatedBlocks($response);
+
+        return [
+            'response' => $response,
+            'violations' => $repetitionCollapsed ? [[
+                'rule' => 'repetition_collapsed',
+                'detail' => 'Collapsed consecutive repeated response blocks',
+                'severity' => 'high',
+            ]] : [],
+        ];
+    }
+
+    /**
+     * Collapse runs of three or more blank-line-delimited equivalent blocks.
+     *
+     * @return array{string, bool}
+     */
+    private function collapseRepeatedBlocks(string $response): array
+    {
+        if ($response === '') {
+            return ['', false];
+        }
+
+        $parts = preg_split('/(\R[ \t]*\R+)/u', $response, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if ($parts === false || count($parts) < 5) {
+            return [$response, false];
+        }
+
+        $blocks = [];
+        $separators = [];
+        foreach ($parts as $index => $part) {
+            if ($index % 2 === 0) {
+                $blocks[] = $part;
+            } else {
+                $separators[] = $part;
+            }
+        }
+
+        $normalisedBlocks = array_map(
+            static fn (string $block): string => mb_strtolower(
+                preg_replace('/\s+/u', ' ', trim($block)) ?? trim($block),
+            ),
+            $blocks,
+        );
+        $keptIndexes = [];
+        $separatorsBefore = [];
+        $collapsed = false;
+        $blockCount = count($blocks);
+        $nextSeparatorOverride = null;
+
+        for ($index = 0; $index < $blockCount;) {
+            $runEnd = $index + 1;
+            while ($runEnd < $blockCount && $normalisedBlocks[$runEnd] === $normalisedBlocks[$index]) {
+                $runEnd++;
+            }
+
+            if (! empty($keptIndexes)) {
+                $separatorsBefore[$index] = $nextSeparatorOverride
+                    ?? ($separators[$index - 1] ?? "\n\n");
+            }
+            $keptIndexes[] = $index;
+            $nextSeparatorOverride = null;
+
+            if ($runEnd - $index >= 3) {
+                $collapsed = true;
+                $nextSeparatorOverride = $separators[$index] ?? "\n\n";
+            } else {
+                for ($preserved = $index + 1; $preserved < $runEnd; $preserved++) {
+                    $separatorsBefore[$preserved] = $separators[$preserved - 1] ?? "\n\n";
+                    $keptIndexes[] = $preserved;
+                }
+            }
+
+            $index = $runEnd;
+        }
+
+        if (! $collapsed) {
+            return [$response, false];
+        }
+
+        $rebuilt = '';
+        foreach ($keptIndexes as $position => $keptIndex) {
+            if ($position > 0) {
+                $rebuilt .= $separatorsBefore[$keptIndex] ?? "\n\n";
+            }
+            $rebuilt .= $blocks[$keptIndex];
+        }
+
+        return [$rebuilt, true];
     }
 }

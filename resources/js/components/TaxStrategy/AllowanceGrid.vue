@@ -16,12 +16,21 @@
       </div>
     </div>
 
-    <div v-if="utilised.length">
+    <div v-if="utilised.length" class="mb-6">
       <h3 class="text-caption uppercase tracking-wide text-neutral-500 mb-3">
         Well-utilised
       </h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <AllowanceCard v-for="a in utilised" :key="a.key" :allowance="a" compact />
+      </div>
+    </div>
+
+    <div v-if="unavailable.length">
+      <h3 class="text-caption uppercase tracking-wide text-neutral-500 mb-3">
+        Not available
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <AllowanceCard v-for="a in unavailable" :key="a.key" :allowance="a" compact />
       </div>
     </div>
   </div>
@@ -46,11 +55,14 @@ export default {
     },
     headroom() {
       return [...this.allowances]
-        .filter((a) => a.utilisation_pct < 90)
+        .filter((a) => a.available !== false && a.utilisation_pct < 90)
         .sort((b, a) => (a.remaining || 0) - (b.remaining || 0));
     },
     utilised() {
-      return this.allowances.filter((a) => a.utilisation_pct >= 90);
+      return this.allowances.filter((a) => a.available !== false && a.utilisation_pct >= 90);
+    },
+    unavailable() {
+      return this.allowances.filter((a) => a.available === false);
     },
     totalHeadroom() {
       return this.headroom.reduce((sum, a) => sum + (Number(a.remaining) || 0), 0);

@@ -9,9 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Savings\SavingsAnalysisRequest;
 use App\Http\Requests\Savings\ScenarioRequest;
 use App\Http\Requests\Savings\StoreSavingsAccountRequest;
-use App\Http\Requests\Savings\StoreSavingsGoalRequest;
 use App\Http\Requests\Savings\UpdateSavingsAccountRequest;
-use App\Http\Requests\Savings\UpdateSavingsGoalRequest;
 use App\Http\Resources\SavingsAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\SavingsGoal;
@@ -28,6 +26,7 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
@@ -61,6 +60,7 @@ class SavingsController extends Controller
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly SavingsStore $savingsStore,
         private readonly SavingsAccountNormaliser $normaliser,
+        private readonly TierGate $tierGate,
     ) {}
 
     /**
@@ -160,6 +160,11 @@ class SavingsController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accounts,
+                // Free-tier cap surfacing (/m freemium 5.1). countForUser is the gate's
+                // own primary-owner-only count (the same source canCreate uses), NOT the
+                // joint-aware list above, so "X of Y used" can't contradict the gate.
+                'account_count' => $this->savingsStore->countForUser($user),
+                'account_limit' => $this->tierGate->hardLimit($user, SavingsStore::ENTITY_KEY),
                 'goals' => $goals,
                 'expenditure_profile' => $expenditureProfile,
                 'isa_allowance' => $isaAllowance,
@@ -347,7 +352,7 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            $canonical = $this->normaliser->fromForm($request->validated());
+            $canonical = $this->normaliser->fromForm($request->validated(), partial: true);
             $account = $this->savingsStore->update($id, $canonical, $user, IngestSource::FORM);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
@@ -430,115 +435,6 @@ class SavingsController extends Controller
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Toggling retirement inclusion');
-        }
-    }
-
-    /**
-     * Get all goals for authenticated user
-     *
-     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
-     */
-    public function indexGoals(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $goals = SavingsGoal::where('user_id', $user->id)->with('linkedAccount')->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $goals,
-        ]);
-    }
-
-    /**
-     * Store a new savings goal
-     *
-     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
-     */
-    public function storeGoal(StoreSavingsGoalRequest $request): JsonResponse
-    {
-        $user = $request->user();
-
-        try {
-            $data = $request->validated();
-            $data['user_id'] = $user->id;
-            $data['current_saved'] = $data['current_saved'] ?? 0.00;
-
-            $goal = SavingsGoal::create($data);
-
-            $this->cacheInvalidation->invalidateForUser($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Savings goal created successfully',
-                'data' => $goal->load('linkedAccount'),
-            ], 201);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Creating savings goal');
-        }
-    }
-
-    /**
-     * Update a savings goal
-     *
-     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
-     */
-    public function updateGoal(UpdateSavingsGoalRequest $request, int $id): JsonResponse
-    {
-        $user = $request->user();
-
-        try {
-            $goal = SavingsGoal::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $goal->update($request->validated());
-
-            $this->cacheInvalidation->invalidateForUser($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Savings goal updated successfully',
-                'data' => $goal->fresh()->load('linkedAccount'),
-            ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Goal not found or unauthorized',
-            ], 404);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Updating savings goal');
-        }
-    }
-
-    /**
-     * Delete a savings goal
-     *
-     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
-     */
-    public function destroyGoal(Request $request, int $id): JsonResponse
-    {
-        $user = $request->user();
-
-        try {
-            $goal = SavingsGoal::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $goal->delete();
-
-            $this->cacheInvalidation->invalidateForUser($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Savings goal deleted successfully',
-            ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Goal not found or unauthorized',
-            ], 404);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Deleting savings goal');
         }
     }
 

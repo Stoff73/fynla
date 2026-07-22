@@ -9,6 +9,8 @@ use App\Constants\QuerySchemas;
 use App\Events\Eval\AgentDecision;
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\AI\Loop\FynLoop;
+use App\Services\AI\Loop\SessionMode;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
@@ -148,8 +150,12 @@ final class AdviceFyn
      * tool list. Every entry here has a corresponding handler in
      * OnboardingChatDirector::captureToolSet so the handoff path can
      * dispatch it.
+     *
+     * Public so the CoALA `GroundGate` can mechanically reject these same
+     * surfaces at the dispatch boundary (defence-in-depth behind this strip)
+     * without duplicating the denylist — single source of truth.
      */
-    private const WRITE_TOOLS = [
+    public const WRITE_TOOLS = [
         'create_savings_account', 'create_investment_account', 'create_holding',
         'create_pension', 'create_property', 'create_mortgage',
         'create_protection_policy', 'create_asset', 'create_liability',
@@ -167,6 +173,7 @@ final class AdviceFyn
         'capture_salary_sacrifice', 'capture_spouse_work_status',
         'capture_spouse_household_data', 'capture_spouse_non_working_assets',
         'capture_pension_history', 'capture_charitable_giving',
+        'capture_retirement_goals', 'capture_state_pension',
         // S0.5.r — every persistent record-creation tool now flows through
         // the delegate_to_capture handoff. No analytics carve-out:
         // create_what_if_scenario persists a WhatIfScenario row and must
@@ -192,6 +199,7 @@ final class AdviceFyn
         private readonly WriteIntentClassifier $writeIntentClassifier,
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly DuplicateAcknowledgement $duplicateAcknowledgement,
+        private readonly FynLoop $fynLoop,
     ) {}
 
     public function handle(
@@ -199,6 +207,7 @@ final class AdviceFyn
         AiConversation $conversation,
         string $message,
         ?string $currentRoute = null,
+        bool $persistUserMessage = true,
     ): \Generator {
         // S0.14 — short-circuit non-financial topics with the canonical
         // refusal. The classifier only flags out_of_remit when no advice
@@ -237,11 +246,13 @@ final class AdviceFyn
             // honest — chatWithPromptOverride would normally do this, but
             // we're short-circuiting that path. Persist the assistant refusal
             // alongside it so the next turn's history loader sees both.
-            $conversation->messages()->create([
-                'role' => 'user',
-                'content' => $message,
-                'persona' => 'advice',
-            ]);
+            if ($persistUserMessage) {
+                $conversation->messages()->create([
+                    'role' => 'user',
+                    'content' => $message,
+                    'persona' => 'advice',
+                ]);
+            }
 
             $conversation->messages()->create([
                 'role' => 'assistant',
@@ -267,6 +278,18 @@ final class AdviceFyn
         // to the normal LLM advice flow.
         $intent = $this->writeIntentClassifier->classify($message);
 
+        // WP-1 — capture-continuation. When the previous assistant turn was a
+        // data_capture QUESTION that wrote nothing (the capture asked for the
+        // details), the user's next non-question message IS the answer. That
+        // answer rarely re-matches the verb+entity classifier ("It's a
+        // workplace pension with Aviva, worth £40,000"), so without this rule
+        // it lands in read-only advice and the capture dead-ends
+        // mid-conversation (2026-07-03 walk: the pension details were never
+        // persisted). Reuse the intent that opened the capture.
+        if ($intent === null) {
+            $intent = $this->captureContinuationIntent($conversation, $message);
+        }
+
         // Full-duplicate short-circuit: when the user reasserts records
         // that all already exist (RecordDuplicateChecker matches every
         // extracted entity to a recent DB row), we do NOT involve the
@@ -279,11 +302,13 @@ final class AdviceFyn
         if ($intent !== null && $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
             $ack = $this->duplicateAcknowledgement->build($user, $intent, $message);
 
-            $conversation->messages()->create([
-                'role' => 'user',
-                'content' => $message,
-                'persona' => 'advice',
-            ]);
+            if ($persistUserMessage) {
+                $conversation->messages()->create([
+                    'role' => 'user',
+                    'content' => $message,
+                    'persona' => 'advice',
+                ]);
+            }
 
             $conversation->messages()->create([
                 'role' => 'assistant',
@@ -310,11 +335,13 @@ final class AdviceFyn
             // purpose (it normally rides on top of an Advice-Fyn turn that
             // already saved the user message). On this deterministic path
             // there IS no preceding advice turn, so we save it here.
-            $conversation->messages()->create([
-                'role' => 'user',
-                'content' => $message,
-                'persona' => 'advice',
-            ]);
+            if ($persistUserMessage) {
+                $conversation->messages()->create([
+                    'role' => 'user',
+                    'content' => $message,
+                    'persona' => 'advice',
+                ]);
+            }
 
             $captureContext = CaptureContext::fromArray([
                 'reason' => $intent['reason'],
@@ -338,38 +365,80 @@ final class AdviceFyn
                 $currentRoute,
             );
 
-            yield ['type' => 'done'];
-
             return;
         }
 
-        $allowedTools = $this->buildToolList($user);
-
-        $upstream = $this->coordinatingAgent->chatWithPromptOverride(
-            user: $user,
-            conversation: $conversation,
-            message: $message,
-            currentRoute: $currentRoute,
-            systemPromptOverride: null,
-            allowedTools: $allowedTools,
-            persistUserMessage: true,
-            toolsListOverride: null,
-            personaOverride: 'advice',
+        // CoALA Phase 5 item 4 (Option B) — the streamed advice turn and its
+        // delegate_to_capture handoff interception are the shared loop. AdviceFyn
+        // keeps its advice-specific pre-LLM bypasses (above) and delegates the
+        // turn to FynLoop in the read-only advice mode.
+        yield from $this->fynLoop->run(
+            SessionMode::Advice,
+            $user,
+            $conversation,
+            $message,
+            $currentRoute,
+            $this->buildToolList($user),
+            $persistUserMessage,
         );
-
-        yield from $this->wrapStream($upstream, $user, $conversation, $message, $currentRoute);
     }
 
     /**
-     * Consume the upstream advice-mode generator. When the LLM emits
-     * `delegate_to_capture`, CoordinatingAgent yields a synthetic
-     * `{type: 'handoff', handoff_type: 'delegate_to_capture', payload: ...}`
-     * event. We intercept that event, build a CaptureContext from the
-     * payload, and `yield from` OnboardingChatDirector::handleInlineCapture
-     * into the same SSE stream so the user never sees the switch.
+     * WP-1 — capture-continuation intent. When the most recent assistant
+     * message is a data_capture turn that made NO tool calls (a capture
+     * question — "Happy to, what's the scheme, provider, and value?"), the
+     * current non-question user message is the awaited answer: walk the
+     * recent user messages newest-first and reuse the write intent that
+     * opened the capture. Returns null when the last turn was not a pending
+     * capture question, when the user is asking something (route to advice),
+     * or when no earlier message classifies.
      *
-     * The `handoff` event itself is dropped — INV-2.4.1 forbids it from
-     * reaching the frontend.
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
+     */
+    private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
+    {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            return null;
+        }
+
+        $lastAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
+
+        // Pending capture question = data_capture persona AND no tool calls
+        // (a capture turn that WROTE has tool_calls on the row — that capture
+        // concluded, so a follow-up message is a fresh turn, not an answer).
+        if ($lastAssistant === null
+            || $lastAssistant->persona !== 'data_capture'
+            || ! empty($lastAssistant->tool_calls)) {
+            return null;
+        }
+
+        $recentUserMessages = $conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->limit(6)
+            ->pluck('content');
+
+        foreach ($recentUserMessages as $priorMessage) {
+            $intent = $this->writeIntentClassifier->classify((string) $priorMessage);
+            if ($intent !== null) {
+                $intent['reason'] .= ' (capture continuation — the previous capture turn asked for these details)';
+
+                return $intent;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Thin forwarder to {@see FynLoop::interceptHandoff} — the shared loop owns
+     * the delegate_to_capture interception under Option B. Kept on AdviceFyn so
+     * the P0.9 regression (AdviceFynWrapStreamHandoffDropTest, which invokes
+     * this method by reflection to pin INV-2.4.1) continues to exercise the
+     * real behaviour through the public advice surface.
      *
      * @param  \Generator<array<string, mixed>>  $upstream
      * @return \Generator<array<string, mixed>>
@@ -381,140 +450,7 @@ final class AdviceFyn
         string $message,
         ?string $currentRoute,
     ): \Generator {
-        foreach ($upstream as $event) {
-            $type = $event['type'] ?? '';
-            $handoffType = $event['handoff_type'] ?? '';
-
-            if ($type === 'handoff' && $handoffType === HandoffContract::DELEGATE_TO_CAPTURE) {
-                $payload = (array) ($event['payload'] ?? []);
-
-                // April30Updates F-1 / INV-2.4.5 — payload-shape validation
-                // BEFORE we let CaptureContext synthesise a fallback. The
-                // validator returns a typed error key on malformed input;
-                // we surface a single user-facing `handoff_error` SSE event
-                // so the user is told their request didn't land instead of
-                // seeing a half-response with no explanation.
-                //
-                // Note: the validator requires `reason` strictly; we check
-                // its result independently from CaptureContext::fromArray
-                // (which is now resilient and synthesises a reason) so the
-                // two layers can diverge on policy without one masking the
-                // other.
-                $validationError = HandoffPayloadValidator::validateDelegateToCapture($payload);
-                if ($validationError !== null && $validationError !== 'missing_or_invalid_reason') {
-                    // Hard malformed payload (entity_types missing or wrong
-                    // type). The handoff cannot proceed — emit handoff_error
-                    // and fall through to terminate this Advice Fyn turn.
-                    Log::warning('[AdviceFyn] delegate_to_capture payload failed validation', [
-                        'user_id' => $user->id,
-                        'conversation_id' => $conversation->id,
-                        'validation_error' => $validationError,
-                        'payload_keys' => array_keys($payload),
-                    ]);
-
-                    yield [
-                        'type' => 'handoff_error',
-                        'reason' => $validationError,
-                        'message' => "I couldn't pick up that request — could you try again?",
-                    ];
-                    yield ['type' => 'done'];
-
-                    return;
-                }
-
-                if ($validationError === 'missing_or_invalid_reason') {
-                    // Soft malformed — `reason` is missing but `entity_types`
-                    // is present. Log at notice level so the rate of LLM
-                    // prompt-non-compliance is visible in logs but recover
-                    // via the resilient CaptureContext::fromArray path.
-                    Log::notice('[AdviceFyn] delegate_to_capture payload missing reason — recovering via CaptureContext synthesis', [
-                        'user_id' => $user->id,
-                        'conversation_id' => $conversation->id,
-                        'entity_types' => $payload['entity_types'] ?? [],
-                    ]);
-                }
-
-                try {
-                    $context = CaptureContext::fromArray($payload);
-                } catch (\InvalidArgumentException $e) {
-                    // Should be unreachable now that validator catches the
-                    // hard cases, but keep as a defensive last line.
-                    Log::warning('[AdviceFyn] CaptureContext rejected delegate_to_capture payload', [
-                        'user_id' => $user->id,
-                        'conversation_id' => $conversation->id,
-                        'error' => $e->getMessage(),
-                        'payload_keys' => array_keys($payload),
-                    ]);
-
-                    yield [
-                        'type' => 'handoff_error',
-                        'reason' => 'capture_context_rejected',
-                        'message' => "I couldn't pick up that request — could you try again?",
-                    ];
-                    yield ['type' => 'done'];
-
-                    return;
-                }
-
-                // Tier-2 harvest feed. The deterministic classifier
-                // (writeIntentClassifier, :268) logs '[AdviceFyn]
-                // Deterministic write-intent routed' on Tier-1 hits (:325).
-                // Reaching here means the classifier returned null (a miss)
-                // and the LLM safety-net <handoff_guidance> caught the write
-                // intent instead. Log it symmetrically with the verbatim
-                // message so misses are reviewable and the classifier
-                // patterns can be widened iteratively.
-                Log::info('[AdviceFyn] LLM-fallback write-intent caught (classifier miss)', [
-                    'user_id' => $user->id,
-                    'conversation_id' => $conversation->id,
-                    'message' => $message,
-                    'entity_types' => $payload['entity_types'] ?? [],
-                    'reason' => $payload['reason'] ?? null,
-                ]);
-
-                yield from $this->onboardingChatDirector->handleInlineCapture(
-                    $user,
-                    $conversation,
-                    $message,
-                    $context,
-                    $currentRoute,
-                );
-
-                // S0.5.t — terminate the outer Advice Fyn turn after the
-                // inline-capture handoff completes. Without this `return`,
-                // the upstream Advice Fyn generator continues with the
-                // delegate_to_capture tool_result and generates a second
-                // assistant message echoing the inline-capture's
-                // confirmation. BS-14 caught the duplicate-response
-                // regression: the user saw two near-identical "I've added
-                // your Cash ISA" messages because both Advice Fyn (advice
-                // persona) and Onboarding Fyn (data_capture persona)
-                // streamed text. The inline-capture turn IS the final
-                // response — the user must never feel the switch.
-                return;
-            }
-
-            if ($type === 'handoff') {
-                // INV-2.4.1 — no `handoff` event may reach the frontend.
-                // The DELEGATE_TO_CAPTURE branch above is the only handoff
-                // type that has a defined consumer in advice mode; every
-                // other handoff_type (e.g. `capture_complete` exposed via
-                // handoffTools() so the LLM can signal end-of-capture) is
-                // an internal contract with no UI representation. Drop the
-                // event with a warning so we'd notice if a misrouted
-                // handoff started leaking, instead of letting it slip
-                // through silently.
-                Log::warning('[AdviceFyn] dropped non-delegate handoff event', [
-                    'handoff_type' => $handoffType,
-                    'user_id' => $user->id,
-                    'conversation_id' => $conversation->id,
-                ]);
-
-                continue;
-            }
-
-            yield $event;
-        }
+        yield from $this->fynLoop->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);
     }
 
     /**
