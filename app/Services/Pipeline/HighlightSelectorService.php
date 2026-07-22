@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline;
 
-use App\Models\Insights\InsightArticle;
 use RuntimeException;
 
 /**
@@ -24,13 +23,13 @@ class HighlightSelectorService
      * @param  array{segments: list<array{start:float,end:float,text:string}>,text:string}  $transcript
      * @return list<array{start:float,end:float,reason:string}>
      */
-    public function select(InsightArticle $article, array $transcript, int $maxHighlights = 3): array
+    public function select(string $articleTitle, ?string $articleSummary, array $transcript, int $maxHighlights = 3): array
     {
         $completion = $this->anthropic->complete(
             $this->systemBlocks(),
             [[
                 'role' => 'user',
-                'content' => $this->userMessage($article, $transcript, $maxHighlights),
+                'content' => $this->userMessage($articleTitle, $articleSummary, $transcript, $maxHighlights),
             ]],
         );
 
@@ -114,12 +113,12 @@ class HighlightSelectorService
         ]];
     }
 
-    private function userMessage(InsightArticle $article, array $transcript, int $maxHighlights): string
+    private function userMessage(string $title, ?string $summary, array $transcript, int $maxHighlights): string
     {
         $lines = [];
-        $lines[] = "Article this video supports: {$article->title}";
-        if ($article->summary) {
-            $lines[] = 'Article summary: '.$article->summary;
+        $lines[] = "Article this video supports: {$title}";
+        if ($summary !== null && $summary !== '') {
+            $lines[] = 'Article summary: '.$summary;
         }
         $lines[] = "Pick up to {$maxHighlights} highlights.";
         $lines[] = '';

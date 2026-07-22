@@ -84,13 +84,27 @@ class SchedulePostJob implements ShouldQueue
                 ."\n\n"
                 .implode(' ', (array) $post->hashtags);
 
-            $response = $buffer->schedule($post->platform, $body, $videoUrl, $slot->toDateTime());
+            // Dry-run: compose + record the intended schedule but never call
+            // Buffer, so nothing is posted to social media. Used for testing the
+            // video/scheduling flow without publishing.
+            if (config('pipeline.social.dry_run', false)) {
+                $updateId = 'DRY_RUN_'.$post->id;
+                Log::channel('pipeline')->info('Social schedule MOCKED (dry-run — NOT posted to Buffer).', [
+                    'post_id' => $post->id,
+                    'platform' => $post->platform,
+                    'scheduled_at' => $slot->toIso8601String(),
+                    'caption' => $body,
+                    'video_url' => $videoUrl,
+                ]);
+            } else {
+                $response = $buffer->schedule($post->platform, $body, $videoUrl, $slot->toDateTime());
 
-            $updateId = null;
-            foreach ($response['updates'] ?? [] as $u) {
-                if (! empty($u['id'])) {
-                    $updateId = $u['id'];
-                    break;
+                $updateId = null;
+                foreach ($response['updates'] ?? [] as $u) {
+                    if (! empty($u['id'])) {
+                        $updateId = $u['id'];
+                        break;
+                    }
                 }
             }
 

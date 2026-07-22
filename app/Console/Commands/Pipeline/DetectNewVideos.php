@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Stage 3 detector. Polls the "Videos" subfolder of Marketing Automation for
- * MP4 files named `{article-slug}.mp4`. When a matching PipelineArticle
+ * video files named `{article-slug}.mp4` or `{article-slug}.mov`. When a matching PipelineArticle
  * exists in state `scripted` and the video hasn't been picked up yet, the
  * source video's Drive URL is written to the pipeline row and a
  * ProcessVideoJob is dispatched.
@@ -48,7 +48,10 @@ class DetectNewVideos extends Command
             return self::FAILURE;
         }
 
-        $files = $drive->listFiles($videosFolderId, mimeType: 'video/mp4');
+        // List everything in the folder (no mimeType filter) so both .mp4
+        // (video/mp4) and .mov (video/quicktime) are picked up; the filename
+        // extension check below is the real gate.
+        $files = $drive->listFiles($videosFolderId);
 
         if ($files === []) {
             $this->info('No videos found in the Marketing Automation Videos folder.');
@@ -62,7 +65,7 @@ class DetectNewVideos extends Command
         foreach ($files as $file) {
             $slug = $this->slugFromFilename($file['name'] ?? '');
             if ($slug === null) {
-                $this->line("  · <fg=gray>skip</> {$file['name']} (not a *.mp4)");
+                $this->line("  · <fg=gray>skip</> {$file['name']} (not a video — expected .mp4 or .mov)");
 
                 continue;
             }
@@ -141,10 +144,13 @@ class DetectNewVideos extends Command
 
     private function slugFromFilename(string $filename): ?string
     {
-        if (! str_ends_with(strtolower($filename), '.mp4')) {
-            return null;
+        $lower = strtolower($filename);
+        foreach (['.mp4', '.mov'] as $ext) {
+            if (str_ends_with($lower, $ext)) {
+                return substr($filename, 0, -strlen($ext));
+            }
         }
 
-        return substr($filename, 0, -4);
+        return null;
     }
 }

@@ -44,7 +44,8 @@ class DriveChangeRouter
                 $hitArticles = true;
             }
 
-            if ($videosId !== null && in_array($videosId, $parents, true) && str_ends_with($name, '.mp4')) {
+            if ($videosId !== null && in_array($videosId, $parents, true)
+                && (str_ends_with($name, '.mp4') || str_ends_with($name, '.mov'))) {
                 $hitVideos = true;
             }
         }

@@ -65,4 +65,9 @@ class PipelineArticle extends Model
     {
         return $this->insightArticle?->title ?? $this->documentArticle?->title;
     }
+
+    public function sourceSummary(): ?string
+    {
+        return $this->insightArticle?->summary ?? $this->documentArticle?->description;
+    }
 }

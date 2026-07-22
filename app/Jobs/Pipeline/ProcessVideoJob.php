@@ -109,7 +109,7 @@ class ProcessVideoJob implements ShouldQueue
             $transcript = $whisper->load($transcriptPath);
 
             $clipRanges = $duration > self::MAX_WHOLE_VIDEO_SECONDS
-                ? $highlights->select($insight, $transcript)
+                ? $highlights->select($article->sourceTitle() ?? '', $article->sourceSummary(), $transcript)
                 : [['start' => 0.0, 'end' => $duration, 'reason' => 'Short video — kept whole.']];
 
             @mkdir($clipsDir, 0755, true);

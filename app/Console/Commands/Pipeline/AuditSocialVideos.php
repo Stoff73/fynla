@@ -43,7 +43,7 @@ class AuditSocialVideos extends Command
             $finder = (new Finder())
                 ->files()
                 ->in($root)
-                ->name('*.mp4')
+                ->name(['*.mp4', '*.mov'])
                 ->date('until '.$cutoff->toDateString());
 
             foreach ($finder as $file) {
