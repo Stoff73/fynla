@@ -5955,7 +5955,13 @@ PROMPT;
             ];
 
             try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
+                $result = $this->coordinatingAgent->executeTool(
+                    $tool,
+                    $input,
+                    $user,
+                    $conversation->id,
+                    evidenceOverride: $this->verbatimEvidenceFromCaptureMessage($message),
+                );
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
                     'user_id' => $user->id,
@@ -6016,6 +6022,51 @@ PROMPT;
                 'status' => 'complete',
             ];
         }
+    }
+
+    /**
+     * Build a CaptureAccuracyGate evidence override from the gap-fill's own
+     * capture message — verbatim user words, never fabricated. The message
+     * may be the interruption-retry merge ("Original capture details: ...\n
+     * Requested missing details: ...", see resolvePendingInterruptionCapture)
+     * and, across repeated clarification rounds, that prefix pair can nest
+     * (the prior round's already-merged message becomes the next round's
+     * "Original capture details:" body). Splitting on newlines and stripping
+     * every leading occurrence of either prefix from each line recovers the
+     * plain sentences the user actually typed, in order, with no synthetic
+     * chain-walking — sidestepping CaptureAccuracyGate's DB-evidence
+     * chain-walk, which an interposed turn (e.g. "Yes, save it") can sever
+     * before it reaches the clarifying detail (live conversation 164).
+     */
+    private function verbatimEvidenceFromCaptureMessage(string $message): string
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $message) ?: [$message];
+        $stripped = array_map(
+            fn (string $line): string => $this->stripCaptureMergePrefixes($line),
+            $lines,
+        );
+
+        return implode("\n", array_values(array_filter(
+            $stripped,
+            static fn (string $line): bool => $line !== '',
+        )));
+    }
+
+    /**
+     * Strip every leading "Original capture details:" / "Requested missing
+     * details:" prefix from a single line (repeated occurrences included —
+     * see verbatimEvidenceFromCaptureMessage).
+     */
+    private function stripCaptureMergePrefixes(string $line): string
+    {
+        $line = trim($line);
+        $prefixPattern = '/^(?:Original capture details:|Requested missing details:)\s*/i';
+
+        while (preg_match($prefixPattern, $line) === 1) {
+            $line = trim(preg_replace($prefixPattern, '', $line, 1) ?? '');
+        }
+
+        return $line;
     }
 
     /**

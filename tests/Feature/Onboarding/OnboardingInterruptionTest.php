@@ -335,6 +335,89 @@ it('rescues a gate-blocked create_savings_account via deterministic ownership ga
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 });
 
+// ── Fix: gap-fill evidence override survives an interposed store-offer
+// affirmation (live conversation 164 — the exact two-step store-offer
+// shape) ─────────────────────────────────────────────────────────────────
+//
+// Unlike the single-round rescue above (which deliberately skips the "Yes,
+// save it" turn — see its own comment), this reproduces the LIVE defect:
+// volunteer → offer → "Yes, save it" (a REAL, separately-persisted user
+// turn) → clarification → "Just me". CaptureAccuracyGate's DB-derived
+// evidence chain-walk (CoordinatingAgent::recentUserMessageEvidence)
+// treats the interposed "Yes, save it" segment as non-standalone evidence
+// and breaks the chain before it ever reaches "Just me", so even a
+// correctly-parsed ownership_type from the deterministic gap-fill used to
+// be rejected by the anti-hallucination check and the pending flag
+// re-armed forever. The gap-fill now carries an evidence override built
+// from its own (verbatim) capture message, bypassing the broken DB
+// chain-walk entirely.
+
+it('rescues the gate-blocked write across an interposed "Yes, save it" turn instead of re-arming forever', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    [$user, $conversation] = interruptionUser();
+
+    // Turn 1: user volunteers a savings account mid-onboarding. Pure
+    // classifier path (handleInformationInterruption) — no LLM call.
+    driveDirector($user, $conversation, 'I have a Halifax fixed term savings account with £1,500 in it');
+
+    // Turn 2: the user accepts the store offer with a REAL "Yes, save it"
+    // message — persisted to the conversation before routing (see
+    // OnboardingChatDirector::handleUserMessage's persistUserMessage call)
+    // — the exact segment that breaks CaptureAccuracyGate's DB evidence
+    // chain-walk once the ownership detail is added below. The model
+    // pattern-locks and omits ownership_type on its own attempt, so the
+    // write is blocked and the pending flag re-arms awaiting the detail.
+    FynStreamHarness::fake()
+        ->toolTurn('create_savings_account', [
+            'account_name' => 'Halifax Fixed Term Bond',
+            'account_type' => 'fixed_term',
+            'institution' => 'Halifax',
+            'current_balance' => 1500.0,
+        ])
+        ->textTurn('Understood.')
+        ->bind();
+
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);
+
+    driveDirector($user->refresh(), $conversation, 'Yes, save it');
+
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store']['awaiting_detail'] ?? null)->toBeTrue();
+
+    // Turn 3: the user answers with explicit individual-ownership wording.
+    // The model pattern-locks on its own prior failing tool call and OMITS
+    // ownership_type AGAIN (mirroring live conversation 164) — the
+    // deterministic gap-fill must rescue it despite the interposed "Yes,
+    // save it" turn.
+    FynStreamHarness::fake()
+        ->toolTurn('create_savings_account', [
+            'account_name' => 'Halifax Fixed Term Bond',
+            'account_type' => 'fixed_term',
+            'institution' => 'Halifax',
+            'current_balance' => 1500.0,
+        ])
+        ->textTurn('Understood.')
+        ->bind();
+
+    $received = driveDirector($user->refresh(), $conversation, 'Just me');
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account)->not->toBeNull()
+        ->and($account->institution)->toBe('Halifax')
+        ->and((float) $account->current_balance)->toEqual(1500.0)
+        ->and($account->ownership_type)->toBe('individual');
+
+    // The pending flag is consumed (not re-armed) — the rescued write is
+    // never mistaken for a still-unresolved clarification.
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+
+    // The walk resumed — its current step was re-emitted.
+    expect(collect($received)->where('type', 'quick_replies'))->not->toBeEmpty();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+});
+
 it('answers a module-level question inline from data then resumes the walk', function () {
     $this->seed(TierConfigurationSeeder::class);
     // Scripted advice turn: one text chunk. The global Pest hook binds an

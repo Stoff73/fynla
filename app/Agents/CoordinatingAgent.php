@@ -874,6 +874,7 @@ class CoordinatingAgent extends BaseAgent
         ?int $conversationId = null,
         ?array $classification = null,
         ?array $kycResult = null,
+        ?string $evidenceOverride = null,
     ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
@@ -1002,12 +1003,24 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $latestUserText = $this->latestUserMessageText($conversationId);
-        $recentUserEvidence = $this->recentUserMessageEvidence($conversationId) ?? $latestUserText;
+        // A deterministic gap-fill retry (OnboardingChatDirector::
+        // runExtractorForFocus) already carries verbatim user words in its
+        // own capture message — an interposed store-offer affirmation
+        // ("Yes, save it") between the entity sentence and the clarifying
+        // detail can otherwise sever CaptureAccuracyGate's DB-derived
+        // evidence chain before it reaches the detail (live conversation
+        // 164). The override bypasses that broken chain-walk while
+        // preserving the gate's anti-hallucination intent — the text is
+        // still the user's own words, never fabricated.
+        $recentUserEvidence = $evidenceOverride
+            ?? $this->recentUserMessageEvidence($conversationId)
+            ?? $latestUserText;
         [$accuracyEvidence, $accuracyCacheKey] = $this->captureAccuracyEvidence(
             $conversationId,
             $toolName,
             $recentUserEvidence ?? '',
             $input,
+            trustVerbatim: $evidenceOverride !== null,
         );
         $accuracy = $this->captureAccuracyGate->inspect($toolName, $input, $accuracyEvidence);
         if (! $accuracy['allowed']) {
@@ -1274,6 +1287,18 @@ class CoordinatingAgent extends BaseAgent
      * Retain only evidence from an unresolved accuracy clarification for this
      * conversation and tool. Successful capture clears it immediately.
      *
+     * $trustVerbatim (set when the caller passed executeTool() an
+     * evidenceOverride — see the deterministic gap-fill retry in
+     * OnboardingChatDirector::runExtractorForFocus) skips merging with the
+     * cached prior evidence: the override is already the complete, verbatim
+     * evidence for this attempt, and merging it with a cache entry an
+     * earlier (DB-evidence, non-override) call may have poisoned with an
+     * interposed non-standalone turn (e.g. "Yes, save it") would silently
+     * reintroduce the exact chain-break the override exists to bypass (live
+     * conversation 164). The cache key is still returned so a failed
+     * verbatim attempt caches cleanly for any later non-override call, and a
+     * successful one still clears it below.
+     *
      * @return array{0:string,1:?string}
      */
     private function captureAccuracyEvidence(
@@ -1281,6 +1306,7 @@ class CoordinatingAgent extends BaseAgent
         string $toolName,
         string $currentUserEvidence,
         array $input,
+        bool $trustVerbatim = false,
     ): array {
         if ($conversationId === null) {
             return [$currentUserEvidence, null];
@@ -1300,6 +1326,10 @@ class CoordinatingAgent extends BaseAgent
 
         $identityHash = hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
         $cacheKey = "capture_accuracy_evidence:{$conversationId}:{$toolName}:{$identityHash}";
+        if ($trustVerbatim) {
+            return [$currentUserEvidence, $cacheKey];
+        }
+
         $prior = Cache::get($cacheKey, '');
         $parts = is_string($prior) && trim($prior) !== ''
             ? preg_split('/\n+/', trim($prior))
