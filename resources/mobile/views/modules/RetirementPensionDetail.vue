@@ -135,6 +135,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -229,7 +230,8 @@ export default {
       this.pension = null;
       this.projection = null;
       try {
-        const { ok, data } = await apiGet('/api/retirement', store.token);
+        const { ok, status, data } = await apiGet('/api/retirement', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (!ok) {
           this.error = data?.message || 'We could not load this pension.';
           return;
@@ -248,7 +250,7 @@ export default {
           return;
         }
         if (this.type === 'dc') await this.loadProjection();
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
@@ -259,7 +261,7 @@ export default {
       try {
         const { ok, data } = await apiGet(`/api/retirement/dc-pensions/${this.pension.id}/projections`, store.token);
         if (ok) this.projection = data?.data || data || null;
-      } catch (e) {
+      } catch {
         // Leave projection null — the template shows a graceful fallback.
       } finally {
         this.projLoading = false;

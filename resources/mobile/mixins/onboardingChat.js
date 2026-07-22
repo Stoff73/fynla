@@ -16,6 +16,7 @@
 // dashboard, so the level-up frame is safe to handle from either surface.
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
+import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
 import { renderFynText } from '../utils/fynText.js';
 import {
   loadMobileSubscriptionStatus,
@@ -83,20 +84,14 @@ export default {
       if (b) b.scrollTop = b.scrollHeight;
     },
 
-    // A 401 on any chat request means the /m session token has died server-side
-    // (e.g. a cache-backed session lost on a deploy cache-clear) — every further
-    // request would fail the exact same way. Every api.js helper (apiGet/apiPost/
-    // apiStream) resolves with { ok, status } rather than throwing on a non-2xx
-    // response, so callers check the returned object, not a try/catch. Log out
-    // locally and send the user to the /m login screen instead of stranding them
-    // behind a "something went wrong" bubble with no way forward. Returns true
-    // when it handled the response, so callers can bail out immediately without
-    // also rendering an error bubble.
+    // Thin wrapper over the shared ../authExpiry.js helper — kept as a mixin
+    // method so every existing chat-path caller (and this file's own tests)
+    // keeps calling `this.handleAuthExpiry(res)` unchanged. See authExpiry.js
+    // for the full rationale. Returns true when it handled the response (a
+    // 401), so callers can bail out immediately without also rendering an
+    // error bubble.
     handleAuthExpiry(res) {
-      if (!res || res.status !== 401) return false;
-      store.logout();
-      this.$router.push('/login');
-      return true;
+      return sharedHandleAuthExpiry(res, this.$router);
     },
 
     async ensureConversation() {

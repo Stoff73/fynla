@@ -139,6 +139,7 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -216,7 +217,7 @@ export default {
       try {
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : [];
-      } catch (e) {
+      } catch {
         return String(raw).split(',').map((s) => s.trim()).filter(Boolean);
       }
     },
@@ -244,7 +245,8 @@ export default {
       this.error = '';
       this.policy = null;
       try {
-        const { ok, data } = await apiGet('/api/protection', store.token);
+        const { ok, status, data } = await apiGet('/api/protection', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (!ok) {
           this.error = data?.message || 'We could not load this policy.';
           return;
@@ -253,7 +255,7 @@ export default {
         const groups = payload.policies || {};
         const arr = groups[GROUP_KEYS[this.policyType]] || [];
         this.policy = arr.find((p) => p.id === this.policyId) || null;
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

@@ -160,6 +160,7 @@
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
 export default {
@@ -254,6 +255,7 @@ export default {
           apiGet('/api/v1/mobile/achievements', store.token),
           apiGet('/api/gamification/activity', store.token),
         ]);
+        if (handleAuthExpiry(res, this.$router)) return;
         if (!res.ok) {
           this.error = 'We could not load your progress. Please try again.';
           return;
@@ -267,7 +269,7 @@ export default {
         this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
         this.activityCursor = act.ok ? (act.data?.next_cursor ?? null) : null;
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

@@ -344,7 +344,7 @@
       <!-- Advice prompt chips — only outside onboarding (onboarding uses bubbles),
            and only once the user record is loaded (see showSuggestionPills). -->
       <div v-if="showSuggestionPills" class="md-fyn__prompts" aria-label="Suggested questions">
-        <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" @click="send(s)">{{ s }}</button>
+        <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" :disabled="sending" @click="send(s)">{{ s }}</button>
       </div>
 
       <form class="md-fyn__compose" @submit.prevent="send()">

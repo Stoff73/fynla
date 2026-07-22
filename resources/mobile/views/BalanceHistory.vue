@@ -60,6 +60,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { apiDownload, apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 import { store } from '../store.js';
 import { upgradeMixin } from '../mixins/upgrade.js';
@@ -130,6 +131,7 @@ export default {
       this.loading = true;
       this.error = '';
       const response = await apiGet('/api/balance-history', store.token).catch(() => null);
+      if (handleAuthExpiry(response, this.$router)) { this.loading = false; return; }
       if (response?.ok) {
         this.history = response.data?.data || response.data || {};
       } else {
