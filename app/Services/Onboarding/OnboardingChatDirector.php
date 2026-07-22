@@ -5157,6 +5157,21 @@ PROMPT;
             return $message;
         }
 
+        // A question can never be "original capture details" — live
+        // conversation 168, msg 19550: the user asked "How is my financial
+        // health?" (an A1-eligible off-topic question, not a capture
+        // attempt), got a question-shaped data-gap answer, then replied with
+        // a genuine on-script bank-account answer. The scan below would
+        // otherwise treat that answer as a clarification for the QUESTION
+        // rather than a fresh capture payload, merging the two into
+        // "Original capture details: How is my financial health…" and
+        // handing the model a question to record as a fact. Reuse the
+        // shared A1 heuristic — if the previous user turn asked a question,
+        // there is no unresolved capture attempt to complete.
+        if ($this->userAskedQuestion((string) $previousUserMessage->content)) {
+            return $message;
+        }
+
         $clarificationFound = false;
         $assistantMessages = $conversation->messages()
             ->where('role', 'assistant')
@@ -5174,6 +5189,20 @@ PROMPT;
             // it is not a model request to complete the previous user answer.
             if (isset($metadata['onboarding_step'])
                 && ($metadata['capture_write_failed'] ?? false) !== true) {
+                return $message;
+            }
+
+            // The canned security-refusal (CoreIdentity::get() /
+            // FynSystemPrompt::text() security rule 6: "I can only help with
+            // financial planning questions. How can I assist with your
+            // finances?") ends in a "?" and would otherwise satisfy
+            // captureResponseRequestsClarification below — arming the merge
+            // off a refusal, not a genuine request for a missing capture
+            // fact (the same live conversation 168 turn: once the merge
+            // above handed the model a question to record, it refused, and
+            // the refusal itself is question-shaped enough to poison the
+            // NEXT turn's merge too). It is never a clarification request.
+            if (str_starts_with(trim((string) $assistantMessage->content), 'I can only help with')) {
                 return $message;
             }
 

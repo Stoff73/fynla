@@ -588,3 +588,148 @@ it('streams the same deduplicated acknowledgement that is persisted for a succes
         ->and(substr_count($streamed, 'Updated income'))->toBe(1)
         ->and($streamed)->toContain('employment income now £82,000');
 });
+
+// ── Fix: a question is never "original capture details" (live conversation
+// 168, msg 19550) ────────────────────────────────────────────────────────
+//
+// At campaign_bank_accounts the user asked "How is my financial health?".
+// The A1 answer path replied with a question-shaped data-gap response ("I
+// need your date of birth and monthly expenditure.") — no literal "?" but
+// still matched by captureResponseRequestsClarification's "i need" phrase.
+// On the user's NEXT message — a genuine on-script bank answer — the merge
+// machinery (mergeUnresolvedCaptureMessage) armed off that question and
+// built "Original capture details: How is my financial health\nRequested
+// missing details: <the real answer>", handing the model a question to
+// record as a fact. It refused ("I can only help with financial planning
+// questions…"), and because that refusal is itself question-shaped, the
+// merge could arm again off the refusal on the NEXT turn too.
+
+it('never merges a question as original capture details — the previous turn asked a question, not requested a missing detail', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
+        'onboarding_fyn_selection' => 'savetax',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    // Turn N-1: an off-topic question mid-capture.
+    $conversation->messages()->create([
+        'role' => 'user',
+        'content' => 'How is my financial health?',
+    ]);
+    // The A1 answer path's data-gap reply — question-shaped per
+    // captureResponseRequestsClarification even without a literal "?".
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'To give you personalised guidance on your financial health, I need your date of birth and monthly expenditure.',
+    ]);
+
+    $capturedMessage = null;
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function (
+            User $streamUser,
+            AiConversation $streamConversation,
+            string $streamMessage
+        ) use (&$capturedMessage) {
+            $capturedMessage = $streamMessage;
+
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'];
+            yield ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 77, 'name' => 'Nationwide'];
+            yield ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null];
+            yield ['type' => 'content', 'text' => 'Recorded — Nationwide savings account.'];
+            yield ['type' => 'done', 'message_id' => 200];
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    $received = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'One savings account with Nationwide, £2,000 balance at 4.1% interest, owned individually'
+    ), false);
+
+    // The payload sent to the LLM is the new answer ALONE — never merged
+    // with the unrelated question that preceded it.
+    expect($capturedMessage)
+        ->not->toContain('Original capture details')
+        ->not->toContain('How is my financial health')
+        ->toBe('One savings account with Nationwide, £2,000 balance at 4.1% interest, owned individually');
+
+    // The record still lands — this is a genuine capture turn, not a
+    // clarification round.
+    expect(collect($received)->where('type', 'capture_complete'))->toHaveCount(1)
+        ->and(collect($received)->firstWhere('type', 'capture_complete')['records_created'])->toBe([
+            ['type' => 'savings_account', 'id' => 77, 'name' => 'Nationwide'],
+        ]);
+});
+
+it('does not arm the merge off the canned security-refusal text', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
+        'onboarding_fyn_selection' => 'savetax',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    // Turn N-1: a genuine (non-question) capture answer.
+    $conversation->messages()->create([
+        'role' => 'user',
+        'content' => 'One savings account with Nationwide, £2,000 balance at 4.1% interest, owned individually',
+    ]);
+    // The poisoned-turn refusal — question-shaped ("…finances?") and would
+    // satisfy captureResponseRequestsClarification, but it is never a
+    // genuine request for a missing capture fact.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I can only help with financial planning questions. How can I assist with your finances?',
+    ]);
+
+    $capturedMessage = null;
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function (
+            User $streamUser,
+            AiConversation $streamConversation,
+            string $streamMessage
+        ) use (&$capturedMessage) {
+            $capturedMessage = $streamMessage;
+
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'];
+            yield ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 78, 'name' => 'Halifax'];
+            yield ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null];
+            yield ['type' => 'content', 'text' => 'Recorded — Halifax Cash ISA.'];
+            yield ['type' => 'done', 'message_id' => 201];
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'Also a Halifax Cash ISA with £5,000, owned individually'
+    ), false);
+
+    expect($capturedMessage)
+        ->not->toContain('Original capture details')
+        ->not->toContain('Nationwide')
+        ->toBe('Also a Halifax Cash ISA with £5,000, owned individually');
+});
