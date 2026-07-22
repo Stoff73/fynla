@@ -164,8 +164,9 @@ it('does not let an older verified event overwrite newer canonical state', funct
 it('preserves millisecond ordering for events within the same second', function (): void {
     $token = '75c42f38-62f1-4d0e-94ea-f8270f5d73fd';
     appleNotificationUser($token);
-    $newerSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.900Z');
-    $olderSignedDate = CarbonImmutable::parse('2026-07-18T12:00:00.100Z');
+    $baseSecond = CarbonImmutable::now('UTC')->startOfSecond();
+    $newerSignedDate = $baseSecond->addMilliseconds(900);
+    $olderSignedDate = $baseSecond->addMilliseconds(100);
     $newer = appleVerifiedNotification(
         'DID_CHANGE_RENEWAL_STATUS',
         'AUTO_RENEW_DISABLED',
