@@ -76,7 +76,7 @@ it('allows the first property for a free-tier user', function () {
 });
 
 it('does NOT enforce the cap for a Premium user (unlimited)', function () {
-    $user = User::factory()->create(['tier' => 'premium']);
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
 
     Property::factory(3)->create(['user_id' => $user->id]);

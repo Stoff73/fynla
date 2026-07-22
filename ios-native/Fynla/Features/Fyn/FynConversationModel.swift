@@ -46,6 +46,7 @@ final class FynConversationModel {
     private var retryText: String?
     private var retryID: String?
     @ObservationIgnored private var streamTask: Task<Void, Error>?
+    @ObservationIgnored private var hasFiredResume = false
 
     var draft = ""
     var currentRoute: String
@@ -85,6 +86,16 @@ final class FynConversationModel {
 
             let status = try await client.onboardingStatus()
             if status.inProgress, let id = status.conversationID {
+                // /m parity: a returning mid-flow user gets a fresh
+                // welcome-back on session entry (the server prunes prior
+                // greetings and persists one carrying its Continue /
+                // Something else bubbles), fired once per signed-in
+                // session — dock reopens are transcript-only, exactly like
+                // /m's dock remounts, so mid-walk verify turns stay intact.
+                if !hasFiredResume {
+                    hasFiredResume = true
+                    await fireResume(conversationID: id)
+                }
                 try await load(id)
                 phase = .idle
                 return
@@ -240,6 +251,23 @@ final class FynConversationModel {
         retryID = nil
         draft = ""
         shouldCloseAndRefresh = false
+        hasFiredResume = false
+    }
+
+    /// Fire the director's resume action and discard its stream — the
+    /// transcript reload that follows renders the freshly persisted greeting
+    /// (with its bubbles) instead. Non-fatal: on any failure the stored
+    /// transcript still renders.
+    private func fireResume(conversationID: String) async {
+        do {
+            let stream = try await client.performAction(
+                conversationID: conversationID,
+                action: "resume"
+            )
+            for try await _ in stream {}
+        } catch {
+            // Deliberately swallowed — see doc comment.
+        }
     }
 
     private func performSend(

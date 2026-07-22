@@ -5,14 +5,16 @@ struct FynView: View {
     let onClose: () -> Void
     let onRoute: (AppRoute) -> Void
     let onRefreshCurrentScreen: () -> Void
+    let onReportProblem: () -> Void
+    let onAckLevelUp: () -> Void
     @State private var announcedMessageID: String?
+    @State private var dismissedLevelUp: FynLevelUp?
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
             transcript
-            Divider()
             FynComposerView(model: model)
         }
         .background(FynlaColor.pageBackground)
@@ -29,27 +31,69 @@ struct FynView: View {
             model.clearCloseAndRefresh()
             onClose()
         }
-        .accessibilityIdentifier("fyn.screen")
+        .overlay {
+            // /m: a level_up frame after Fyn's reply triggers the shared
+            // fireworks takeover over the chat (queueCelebration → z-60 over
+            // the overlay). Dismiss acks the server flag as store.ack() does.
+            if let levelUp = model.levelUp,
+               !model.phase.isBusy,
+               dismissedLevelUp != levelUp
+            {
+                GamificationCelebrationView(
+                    level: levelUp.level,
+                    levelName: levelUp.levelName,
+                    nextActions: levelUp.nextActions,
+                    onDismiss: {
+                        dismissedLevelUp = levelUp
+                        onAckLevelUp()
+                    }
+                )
+            }
+        }
     }
 
+    // Transcribes /m's md-fyn__head: avatar + name/status left, "Report a
+    // problem" text button + circular close right, on a white bar.
     private var header: some View {
-        HStack(spacing: FynlaSpacing.standard) {
-            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+        HStack(spacing: 10) {
+            Image("FynAvatar")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 36, height: 36)
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Fyn")
-                    .font(FynlaTypography.sectionTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
-                Text("Your financial planning assistant")
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon600.color)
+                Text("Your financial companion")
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.horizon400.color)
+                    .lineLimit(2)
             }
-            Spacer()
-            Button("Close", action: onClose)
-                .font(FynlaTypography.button)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button("Report a problem", action: onReportProblem)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon400.color)
                 .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("fyn.close")
+                .accessibilityIdentifier("fyn.report")
+
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon600.color)
+                    .frame(width: 44, height: 44)
+                    .background(FynlaColor.Token.horizon100.color)
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Close Fyn chat")
+            .accessibilityIdentifier("fyn.close")
         }
-        .padding(.horizontal, FynlaSpacing.standard)
-        .padding(.vertical, FynlaSpacing.small)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.white)
     }
 
     private var transcript: some View {
@@ -73,21 +117,6 @@ struct FynView: View {
                         )
                     }
 
-                    if let levelUp = model.levelUp, !model.phase.isBusy {
-                        VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                            Text("Level \(levelUp.level)")
-                                .font(FynlaTypography.heading)
-                            Text("You've reached \(levelUp.levelName).")
-                                .font(FynlaTypography.bodySmall)
-                        }
-                        .foregroundStyle(FynlaColor.primaryText)
-                        .padding(FynlaSpacing.medium)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(FynlaColor.Token.horizon200.color.opacity(0.25))
-                        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-                        .accessibilityIdentifier("fyn.level-up")
-                    }
-
                     statusView
                 }
                 .padding(FynlaSpacing.standard)
@@ -99,6 +128,9 @@ struct FynView: View {
                     }
                 }
             }
+            // Screen identifier lives on the scroll container — the pattern
+            // that keeps sibling header buttons' identifiers resolvable.
+            .accessibilityIdentifier("fyn.screen")
         }
     }
 

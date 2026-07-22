@@ -1,22 +1,28 @@
 import SwiftUI
 
+// Transcribes /m's pension detail sub-page (resources/mobile/views/modules/
+// RetirementPensionDetail.vue): gradient page hero, Back + Edit details
+// pills, scheme identity card, dark headline hero ("a year" suffix for DB /
+// State, provider or weekly sub-line), and the per-type detail row cards —
+// DC scheme information + pot projection, DB benefit details, State Pension
+// entitlement (35 qualifying-years fallback is /m-parity, ledger P0-6).
+// Whole-pound amounts; the weekly State Pension figure keeps pence as /m.
 struct RetirementPensionView: View {
     let pensionType: String
     let pensionID: Int?
     let model: RetirementModel
     let onOpenFyn: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
             if let type = RetirementPensionType(rawValue: pensionType) {
                 stateContent(type)
             } else {
-                ScreenStateView(state: .empty(message: "This pension type is unavailable."))
+                framed { ScreenStateView(state: .empty(message: "This pension type is unavailable.")) }
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Retirement")
-        .navigationBarTitleDisplayMode(.inline)
         .task(id: "\(pensionType)-\(pensionID ?? 0)") {
             await model.load()
             if pensionType == RetirementPensionType.dc.rawValue, let pensionID {
@@ -30,7 +36,7 @@ struct RetirementPensionView: View {
     private func stateContent(_ type: RetirementPensionType) -> some View {
         switch model.state {
         case .idle, .loading:
-            ScreenStateView(state: .loading)
+            framed { DashboardLoadingView(message: "Loading this pension…") }
         case let .loaded(snapshot):
             pensionContent(type, snapshot: snapshot)
         case let .offline(previous):
@@ -82,65 +88,103 @@ struct RetirementPensionView: View {
 
     private func dcContent(_ pension: DCPension, offline: Bool) -> some View {
         page(
-            title: pension.displayName,
+            title: pension.schemeName ?? pension.provider ?? "Pension",
             subtitle: "Defined Contribution Pension",
-            offline: offline,
-            editName: pension.displayName
+            offline: offline
         ) {
-            hero(
+            MobileHeroCard(
                 label: "Current fund value",
-                value: pension.currentFundValue,
-                suffix: nil,
-                subtitle: pension.provider
+                metric: MoneyFormatter.gbpWhole(pension.currentFundValue),
+                sub: pension.provider
             )
-            detailCard("Scheme information") {
-                detailRow("Scheme name", pension.schemeName ?? "—")
-                detailRow("Pension type", dcSchemeType(pension.pensionType ?? pension.schemeType))
-                detailRow("Provider", pension.provider ?? "—")
-                detailRow("Current fund value", MoneyFormatter.gbp(pension.currentFundValue))
-                detailRow("Monthly contribution", MoneyFormatter.gbp(pension.monthlyContribution))
-                detailRow("Retirement age", pension.retirementAge.map(String.init) ?? "—")
-            }
-            detailCard("Pension pot projection") {
-                if model.isLoadingDCProjection {
-                    LoadingView(message: "Loading projection")
-                } else if let projection = model.dcProjection {
-                    detailRow("Current value", money(projection.currentValue))
-                    detailRow("Projected at retirement", money(projection.percentile20AtRetirement))
-                    detailRow("Median projection", money(projection.medianAtRetirement))
-                    Text(projectionNote(projection))
-                        .font(FynlaTypography.caption)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                } else {
-                    Text("No projection available for this pension.")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
+            .accessibilityIdentifier("retirement.pension.hero")
+
+            MobileDetailCard(title: "Scheme information", rows: [
+                ("Scheme name", pension.schemeName ?? "—"),
+                ("Pension type", dcSchemeType(pension.pensionType ?? pension.schemeType)),
+                ("Provider", pension.provider ?? "—"),
+                ("Current fund value", MoneyFormatter.gbpWhole(pension.currentFundValue)),
+                ("Monthly contribution", MoneyFormatter.gbpWhole(pension.monthlyContribution)),
+                ("Retirement age", pension.retirementAge.map(String.init) ?? "—"),
+            ])
+
+            projectionCard
+        }
+    }
+
+    private var projectionCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Pension pot projection".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.bottom, 12)
+            if model.isLoadingDCProjection {
+                Text("Loading projection…")
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+            } else if let projection = model.dcProjection {
+                projectionRow("Current value", money(projection.currentValue), divider: true)
+                projectionRow("Projected at retirement", money(projection.percentile20AtRetirement), divider: true)
+                projectionRow("Median projection", money(projection.medianAtRetirement), divider: false)
+                Text(projectionNote(projection))
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .lineSpacing(3)
+                    .padding(.top, 12)
+            } else {
+                Text("No projection available for this pension.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func projectionRow(_ key: String, _ value: String, divider: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(key)
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon500.color)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) {
+            if divider {
+                FynlaColor.Token.horizon100.color.frame(height: 1)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func dbContent(_ pension: DBPension, offline: Bool) -> some View {
         page(
-            title: pension.displayName,
+            title: pension.schemeName ?? "Pension",
             subtitle: "Defined Benefit Pension",
-            offline: offline,
-            editName: pension.displayName
+            offline: offline
         ) {
-            hero(
+            MobileHeroCard(
                 label: "Accrued annual pension",
-                value: pension.accruedAnnualPension,
-                suffix: "a year",
-                subtitle: nil
+                metric: MoneyFormatter.gbpWhole(pension.accruedAnnualPension),
+                metricSuffix: "a year"
             )
-            detailCard("Benefit details") {
-                detailRow("Scheme name", pension.schemeName ?? "—")
-                detailRow("Scheme type", dbSchemeType(pension.schemeType))
-                detailRow("Accrued annual pension", MoneyFormatter.gbp(pension.accruedAnnualPension))
-                detailRow("Normal retirement age", pension.normalRetirementAge.map(String.init) ?? "—")
-                detailRow("Lump sum entitlement", MoneyFormatter.gbp(pension.lumpSumEntitlement ?? 0))
-                detailRow("Spouse pension", MoneyFormatter.percentage(pension.spousePensionPercent ?? 0))
-            }
+            .accessibilityIdentifier("retirement.pension.hero")
+
+            MobileDetailCard(title: "Benefit details", rows: [
+                ("Scheme name", pension.schemeName ?? "—"),
+                ("Scheme type", dbSchemeType(pension.schemeType)),
+                ("Accrued annual pension", MoneyFormatter.gbpWhole(pension.accruedAnnualPension)),
+                ("Normal retirement age", pension.normalRetirementAge.map(String.init) ?? "—"),
+                ("Lump sum entitlement", MoneyFormatter.gbpWhole(pension.lumpSumEntitlement ?? 0)),
+                ("Spouse pension", MoneyFormatter.percentage(pension.spousePensionPercent ?? 0)),
+            ])
         }
     }
 
@@ -149,24 +193,23 @@ struct RetirementPensionView: View {
         return page(
             title: "State Pension",
             subtitle: "State Pension",
-            offline: offline,
-            editName: "State Pension"
+            offline: offline
         ) {
-            hero(
+            MobileHeroCard(
                 label: "Annual forecast",
-                value: pension.annualForecast,
-                suffix: "a year",
-                subtitle: "\(MoneyFormatter.gbp(weekly)) a week"
+                metric: MoneyFormatter.gbpWhole(pension.annualForecast),
+                metricSuffix: "a year",
+                sub: "\(MoneyFormatter.gbp(weekly)) a week"
             )
-            detailCard("Entitlement") {
-                detailRow("Forecast weekly amount", "\(MoneyFormatter.gbp(weekly)) a week")
-                detailRow("Annual forecast", MoneyFormatter.gbp(pension.annualForecast))
-                detailRow(
-                    "Qualifying years",
-                    "\(pension.niYearsCompleted ?? 0) of \(pension.niYearsRequired ?? 35)"
-                )
-                detailRow("State Pension age", pension.statePensionAge.map(String.init) ?? "—")
-            }
+            .accessibilityIdentifier("retirement.pension.hero")
+
+            MobileDetailCard(title: "Entitlement", rows: [
+                ("Forecast weekly amount", "\(MoneyFormatter.gbp(weekly)) a week"),
+                ("Annual forecast", MoneyFormatter.gbpWhole(pension.annualForecast)),
+                // ponytail: 35-year fallback is /m-parity (ledger P0-6).
+                ("Qualifying years", "\(pension.niYearsCompleted ?? 0) of \(pension.niYearsRequired ?? 35)"),
+                ("State Pension age", pension.statePensionAge.map(String.init) ?? "—"),
+            ])
         }
     }
 
@@ -174,106 +217,36 @@ struct RetirementPensionView: View {
         title: String,
         subtitle: String,
         offline: Bool,
-        editName: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text(title)
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text(subtitle)
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-                if offline {
-                    Text("You're offline. Showing the last loaded pension values.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.primaryText)
-                }
-                content()
-                Button("Update this pension with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "pensions",
-                            addPhrase: "I'd like to add a pension.",
-                            names: [editName]
-                        )
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(maxWidth: .infinity, minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("retirement.pension.edit-with-fyn")
-            }
-            .padding(FynlaSpacing.standard)
-        }
-    }
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Retirement",
+                    subtitle: "Your projected retirement income, pensions and projections"
+                )
 
-    private func hero(
-        label: String,
-        value: Decimal,
-        suffix: String?,
-        subtitle: String?
-    ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(label)
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.xSmall) {
-                FinancialValueView.money(value)
-                if let suffix {
-                    Text(suffix)
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.secondaryText)
+                MobilePageActions(
+                    onBack: { dismiss() },
+                    editDetails: { onOpenFyn("What would you like to update?") }
+                )
+
+                Group {
+                    MobileDetailHeader(title: title, subtitle: subtitle)
+                    if offline {
+                        offlineNotice
+                    }
+                    content()
                 }
-            }
-            if let subtitle {
-                Text(subtitle)
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
         }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-    }
-
-    private func detailCard<Content: View>(
-        _ title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-            content()
-        }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-    }
-
-    private func detailRow(_ key: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
-            Text(key)
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            Spacer()
-            Text(value)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, FynlaSpacing.xSmall)
-        .overlay(alignment: .bottom) { Divider() }
     }
 
     private var notFound: some View {
-        ScreenStateView(state: .empty(message: "Pension not found."))
+        framed { ScreenStateView(state: .empty(message: "Pension not found.")) }
     }
 
     private func dcSchemeType(_ value: String?) -> String {
@@ -296,11 +269,11 @@ struct RetirementPensionView: View {
 
     private func labels(_ value: String?, map: [String: String]) -> String {
         guard let value, !value.isEmpty else { return "—" }
-        return map[value] ?? value.replacingOccurrences(of: "_", with: " ").capitalized
+        return map[value] ?? value
     }
 
     private func money(_ value: Decimal?) -> String {
-        value.map(MoneyFormatter.gbp) ?? "—"
+        value.map(MoneyFormatter.gbpWhole) ?? "—"
     }
 
     private func projectionNote(_ projection: RetirementPotProjection) -> String {
@@ -310,10 +283,38 @@ struct RetirementPensionView: View {
         return "Projected to age \(age) over \(years) years at an estimated \(expectedReturn) annual return. The projected figure is a conservative estimate (80% likelihood of exceeding it)."
     }
 
+    private var offlineNotice: some View {
+        Text("You're offline. Showing the last loaded pension values.")
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FynlaColor.Token.savannah100.color)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Retirement",
+                    subtitle: "Your projected retirement income, pensions and projections"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil
+            )
+        }
     }
 }

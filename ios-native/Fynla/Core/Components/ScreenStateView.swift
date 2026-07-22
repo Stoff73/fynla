@@ -23,16 +23,19 @@ enum ScreenStatePresentation: Sendable, Equatable {
     }
 }
 
+// Transcribes /m's module state card (m-card m-state): a white card with the
+// error copy and a raspberry "Try again" pill (m-btn), instead of stock
+// system-blue buttons.
 struct ScreenStateView: View {
     let state: ScreenStatePresentation
     var retry: (() -> Void)?
     var openSubscription: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.standard) {
+        VStack(alignment: .leading, spacing: 12) {
             switch state {
             case .loading:
-                LoadingView(message: "Loading")
+                DashboardLoadingView(message: "Loading…")
             case let .empty(message):
                 messageView(title: "Nothing to show yet", message: message)
             case .offline:
@@ -55,26 +58,47 @@ struct ScreenStateView: View {
             }
 
             if state.canRetry, let retry {
-                Button("Try again", action: retry)
-                    .buttonStyle(.borderedProminent)
+                pillButton("Try again", action: retry)
             }
             if state.canUpgrade, let openSubscription {
-                Button("View Premium", action: openSubscription)
-                    .buttonStyle(.borderedProminent)
+                pillButton("View Premium", action: openSubscription)
             }
         }
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FynlaSpacing.standard)
+        .background {
+            if state != .loading {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .frame(maxWidth: .infinity, alignment: .top)
         .accessibilityIdentifier("financial.screen-state")
     }
 
     @ViewBuilder
     private func messageView(title: String, message: String) -> some View {
         Text(title)
-            .font(FynlaTypography.sectionTitle)
-            .foregroundStyle(FynlaColor.primaryText)
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(FynlaColor.Token.horizon600.color)
         Text(message)
-            .font(FynlaTypography.body)
-            .foregroundStyle(FynlaColor.secondaryText)
+            .font(.system(size: 14))
+            .foregroundStyle(FynlaColor.Token.neutral600.color)
+    }
+
+    // /m's m-btn: raspberry pill.
+    private func pillButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 9)
+                .background(FynlaColor.Token.raspberry500.color)
+                .clipShape(Capsule())
+        }
+        .accessibilityIdentifier("financial.screen-state.action")
     }
 }

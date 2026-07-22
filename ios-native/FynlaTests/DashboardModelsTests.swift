@@ -4,6 +4,28 @@ import Testing
 
 @Suite("Dashboard contract")
 struct DashboardModelsTests {
+    // Unknown server strings must degrade, never kill a screen decode
+    // (mirrors /m's tolerance of new payload values).
+    @Test
+    func unknownEnumValuesDecodeToSafeFallbacks() throws {
+        let decoder = JSONDecoder()
+        #expect(try decoder.decode(
+            DashboardModuleStatus.self, from: Data("\"brand_new\"".utf8)
+        ) == .unavailable)
+        #expect(try decoder.decode(
+            DashboardAlertSeverity.self, from: Data("\"urgent\"".utf8)
+        ) == .info)
+        #expect(try decoder.decode(
+            DashboardActionType.self, from: Data("\"celebration\"".utf8)
+        ) == .recommendation)
+        #expect(try decoder.decode(
+            DashboardActionKind.self, from: Data("\"open_modal\"".utf8)
+        ) == .unknown)
+        #expect(try decoder.decode(
+            EstateMode.self, from: Data("\"premium\"".utf8)
+        ) == .teaser)
+    }
+
     @Test
     func decodesThePopulatedMobileDashboardWithoutRecomputingServerValues() throws {
         let dashboard = try decode("populated")

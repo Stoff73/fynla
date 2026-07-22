@@ -1,5 +1,10 @@
 import SwiftUI
 
+// Transcribes /m's Investments page (resources/mobile/views/modules/
+// Investment.vue): gradient page hero, Edit details pill (rich /m edit
+// prompt), portfolio-value hero card, risk-profile row, account rows with
+// the violet ISA tag, type and holdings meta, account-cap head with Upgrade.
+// Whole-pound amounts as /m's formatCurrency.
 struct InvestmentView: View {
     let model: InvestmentModel
     let onRoute: (AppRoute) -> Void
@@ -10,7 +15,7 @@ struct InvestmentView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                framed { DashboardLoadingView(message: "Loading your investments…") }
             case let .loaded(snapshot):
                 content(snapshot)
             case let .offline(previous):
@@ -25,8 +30,6 @@ struct InvestmentView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Investments")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("investment.screen")
     }
@@ -36,22 +39,13 @@ struct InvestmentView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text("Investments")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("Your investment accounts, holdings and allowances")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-                if offline { offlineNotice }
-                hero(snapshot)
-                if let risk = snapshot.riskLabel {
-                    valueCard(title: "Risk profile", key: "Attitude to risk", value: risk)
-                }
-                accountsCard(snapshot)
-                Button("Update investments with Fyn") {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Investments",
+                    subtitle: "Your investment accounts, holdings and allowances"
+                )
+
+                MobilePageActions(editDetails: {
                     onOpenFyn(
                         FynEditIntent.message(
                             updateScope: "investments",
@@ -59,129 +53,171 @@ struct InvestmentView: View {
                             names: snapshot.accounts.map { Optional($0.displayName) }
                         )
                     )
+                })
+
+                Group {
+                    if offline {
+                        offlineNotice
+                    }
+
+                    heroCard(snapshot)
+
+                    if let risk = snapshot.riskLabel {
+                        riskCard(risk)
+                    }
+
+                    accountsCard(snapshot)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(maxWidth: .infinity, minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("investment.edit-with-fyn")
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
-    private func hero(_ snapshot: InvestmentSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Total portfolio value")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(snapshot.totalValue)
-                .accessibilityIdentifier("investment.total-value")
-            Text(accountCountLabel(snapshot.accounts.count))
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-        }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+    // m-hero: dark card with the big metric + account-count sub-line.
+    private func heroCard(_ snapshot: InvestmentSnapshot) -> some View {
+        MobileHeroCard(
+            label: "Total portfolio value",
+            metric: MoneyFormatter.gbpWhole(snapshot.totalValue),
+            sub: accountCountLabel(snapshot.accounts.count)
+        )
+        .accessibilityIdentifier("investment.total-value")
     }
 
-    private func valueCard(title: String, key: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-            HStack(alignment: .firstTextBaseline) {
-                Text(key)
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
+    // mi-row: attitude-to-risk key/value.
+    private func riskCard(_ risk: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Risk profile".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.bottom, 4)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text("Attitude to risk")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
                 Spacer()
-                Text(value)
-                    .font(FynlaTypography.heading)
-                    .foregroundStyle(FynlaColor.primaryText)
+                Text(risk)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
             }
+            .padding(.vertical, 4)
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func accountsCard(_ snapshot: InvestmentSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
-                Text("Investment accounts")
-                    .font(FynlaTypography.sectionTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Investment accounts".uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
                 Spacer()
                 if let limit = snapshot.accountLimit {
-                    VStack(alignment: .trailing, spacing: FynlaSpacing.micro) {
+                    HStack(spacing: 8) {
                         Text("\(snapshot.accountCount) of \(limit) accounts used")
-                            .font(FynlaTypography.caption)
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(
                                 snapshot.isAtAccountLimit
-                                    ? FynlaColor.primaryAction
-                                    : FynlaColor.secondaryText
+                                    ? FynlaColor.Token.raspberry500.color
+                                    : FynlaColor.Token.neutral500.color
                             )
-                        Button("Upgrade", action: onOpenSubscription)
-                            .font(FynlaTypography.caption)
-                            .foregroundStyle(FynlaColor.primaryAction)
+                        Button {
+                            onOpenSubscription()
+                        } label: {
+                            Text("Upgrade".uppercased())
+                                .font(.system(size: 12, weight: .bold))
+                                .kerning(0.5)
+                                .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                        }
+                        .accessibilityIdentifier("investment.upgrade")
                     }
                 }
             }
-            .padding(.bottom, FynlaSpacing.small)
+            .padding(.bottom, 6)
 
             if snapshot.accounts.isEmpty {
                 Text("You haven't added any investment accounts yet.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.vertical, FynlaSpacing.small)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .padding(.vertical, 8)
             } else {
                 ForEach(snapshot.accounts) { account in
-                    Button {
-                        onRoute(.investment(accountID: account.id))
-                    } label: {
-                        HStack(alignment: .center, spacing: FynlaSpacing.medium) {
-                            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
-                                Text(account.displayName)
-                                    .font(FynlaTypography.heading)
-                                    .foregroundStyle(FynlaColor.primaryText)
-                                HStack(spacing: FynlaSpacing.xSmall) {
-                                    if account.isISA && !account.accountTypeLabel.lowercased().contains("isa") {
-                                        Text("ISA").foregroundStyle(FynlaColor.focus)
-                                    }
-                                    Text(account.accountTypeLabel)
-                                    if !account.holdings.isEmpty {
-                                        Text("\(account.holdings.count) \(account.holdings.count == 1 ? "holding" : "holdings")")
-                                    }
-                                }
-                                .font(FynlaTypography.caption)
-                                .foregroundStyle(FynlaColor.secondaryText)
-                            }
-                            Spacer(minLength: FynlaSpacing.small)
-                            VStack(alignment: .trailing, spacing: FynlaSpacing.micro) {
-                                Text(MoneyFormatter.gbp(account.currentValue))
-                                    .font(FynlaTypography.heading)
-                                    .foregroundStyle(FynlaColor.primaryText)
-                                Text("View")
-                                    .font(FynlaTypography.caption)
-                                    .foregroundStyle(FynlaColor.primaryAction)
-                            }
-                        }
-                        .padding(.vertical, FynlaSpacing.medium)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .overlay(alignment: .bottom) { Divider() }
-                    .accessibilityIdentifier("investment.account.\(account.id)")
+                    accountRow(
+                        account,
+                        showsDivider: account.id != snapshot.accounts.last?.id
+                    )
                 }
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // mi-acct: provider + tag/type/holdings meta left, value + VIEW right.
+    private func accountRow(
+        _ account: InvestmentAccount,
+        showsDivider: Bool
+    ) -> some View {
+        Button {
+            onRoute(.investment(accountID: account.id))
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(account.displayName)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    HStack(spacing: 6) {
+                        if account.isISA,
+                           !account.accountTypeLabel.lowercased().contains("isa")
+                        {
+                            Text("ISA")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(FynlaColor.Token.violet500.color)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 1)
+                                .background(FynlaColor.Token.violet500.color.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        }
+                        Text(account.accountTypeLabel)
+                            .font(.system(size: 12))
+                            .foregroundStyle(FynlaColor.Token.neutral500.color)
+                        if !account.holdings.isEmpty {
+                            Text("\(account.holdings.count) \(account.holdings.count == 1 ? "holding" : "holdings")")
+                                .font(.system(size: 12))
+                                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                        }
+                    }
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(MoneyFormatter.gbpWhole(account.currentValue))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    Text("View".uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                }
+            }
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                FynlaColor.Token.lightGray.color.frame(height: 1)
+            }
+        }
+        .accessibilityIdentifier("investment.account.\(account.id)")
     }
 
     private func accountCountLabel(_ count: Int) -> String {
@@ -190,19 +226,38 @@ struct InvestmentView: View {
 
     private var offlineNotice: some View {
         Text("You're offline. Showing your last loaded investments.")
-            .font(FynlaTypography.bodySmall)
-            .foregroundStyle(FynlaColor.primaryText)
-            .padding(FynlaSpacing.medium)
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FynlaColor.Token.savannah100.color)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .accessibilityIdentifier("investment.offline")
+    }
+
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Investments",
+                    subtitle: "Your investment accounts, holdings and allowances"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil,
-            openSubscription: state.canUpgrade ? onOpenSubscription : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil,
+                openSubscription: state.canUpgrade ? onOpenSubscription : nil
+            )
+        }
     }
 }

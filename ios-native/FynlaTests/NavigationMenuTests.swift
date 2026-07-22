@@ -3,9 +3,13 @@ import Testing
 
 @Suite("Native navigation menu")
 struct NavigationMenuTests {
+    // The drawer transcribes /m's navSections (MobileChrome.vue) exactly:
+    // Dashboard, then Cash Management / Finances / Family / Planning. The
+    // native-only Share / Settings / Lock / Sign out entries live in the
+    // account section of the view, not in this data.
     @Test
-    func mirrorsTheMobileRouteGroupsAndLabels() {
-        let sections = NavigationMenuSection.version1
+    func mirrorsTheMobileDrawerGroupsAndLabels() {
+        let sections = NavigationMenuSection.mDrawer
 
         #expect(sections.map(\.title) == [
             nil,
@@ -13,11 +17,9 @@ struct NavigationMenuTests {
             "Finances",
             "Family",
             "Planning",
-            "Account",
         ])
         #expect(sections.flatMap(\.items).map(\.label) == [
             "Dashboard",
-            "Achievements",
             "Income",
             "Expenditure",
             "Net Worth",
@@ -29,12 +31,9 @@ struct NavigationMenuTests {
             "Goals",
             "Tax Strategy",
             "Holistic Plan",
-            "Report a problem",
-            "Settings",
         ])
         #expect(sections.flatMap(\.items).map(\.route) == [
             .dashboard,
-            .achievements,
             .income,
             .expenditure,
             .netWorth(category: nil),
@@ -46,21 +45,12 @@ struct NavigationMenuTests {
             .goals,
             .taxStrategy,
             .holisticPlan,
-            .bugReport,
-            .settings,
         ])
     }
 
     @Test
-    func exposesEveryVersionOneMenuDestinationAsImplemented() {
-        let items = NavigationMenuSection.version1.flatMap(\.items)
-
-        #expect(items.allSatisfy { !$0.isStaged })
-    }
-
-    @Test
-    func everyVersionOneDestinationHasAStableTextTitle() {
-        for item in NavigationMenuSection.version1.flatMap(\.items) {
+    func everyDrawerDestinationHasAStableTextTitle() {
+        for item in NavigationMenuSection.mDrawer.flatMap(\.items) {
             #expect(NavigationDestinationFactory.title(for: item.route) == item.label)
         }
     }

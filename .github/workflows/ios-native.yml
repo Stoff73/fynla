@@ -35,6 +35,10 @@ jobs:
   test-and-build:
     runs-on: macos-26
     timeout-minutes: 45
+    env:
+      # Xcode 26.4 and 26.5 do not synchronise command-line StoreKit test
+      # configurations (FB22237318). GitHub's macOS 26 image retains 26.3.
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
     steps:
       - name: Check out source
@@ -42,6 +46,9 @@ jobs:
 
       - name: Record Xcode version
         run: xcodebuild -version
+
+      - name: Verify the native project structure
+        run: ios-native/scripts/verify-project.sh
 
       - name: Create and boot an iPhone 11 simulator
         id: simulator
@@ -52,8 +59,11 @@ jobs:
           runtime_id="$(
             xcrun simctl list runtimes --json |
               /usr/bin/ruby -rjson -e '
+                # Match the iOS 26.2 SDK shipped with the pinned Xcode 26.3.
                 runtimes = JSON.parse($stdin.read).fetch("runtimes").select do |runtime|
-                  runtime["isAvailable"] && runtime.fetch("identifier").start_with?("com.apple.CoreSimulator.SimRuntime.iOS-")
+                  runtime["isAvailable"] &&
+                    runtime.fetch("identifier").start_with?("com.apple.CoreSimulator.SimRuntime.iOS-") &&
+                    runtime.fetch("version").start_with?("26.2")
                 end
                 runtime = runtimes.max_by do |candidate|
                   candidate.fetch("version").split(".").map(&:to_i)
@@ -79,14 +89,34 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
 
-      - name: Run unsigned unit and UI tests
-        id: native_tests
+      - name: Run unsigned unit tests
         run: |
           xcodebuild \
             -project ios-native/Fynla.xcodeproj \
             -scheme Fynla-Staging \
             -destination '${{ steps.simulator.outputs.destination }}' \
-            -resultBundlePath '${{ runner.temp }}/FynlaTests.xcresult' \
+            -resultBundlePath '${{ runner.temp }}/FynlaUnitTests.xcresult' \
+            -only-testing:FynlaTests \
+            -skip-testing:FynlaTests/StoreKitTestTests \
+            -parallel-testing-enabled NO \
+            test \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      # GitHub's hosted macOS 26 runner forces SKTestSession into off-device
+      # mode, even when the unit target runs alone. The pure StoreKit config,
+      # injected client/model and backend bridge tests still run above; the
+      # Apple system-session suite remains available from Xcode on a Mac.
+      - name: Run unsigned UI tests
+        run: |
+          xcodebuild \
+            -project ios-native/Fynla.xcodeproj \
+            -scheme Fynla-Staging \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            -resultBundlePath '${{ runner.temp }}/FynlaUITests.xcresult' \
+            -only-testing:FynlaUITests \
+            -parallel-testing-enabled NO \
             test \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -144,7 +174,8 @@ jobs:
         with:
           name: ios-native-xcresults-${{ github.run_id }}
           path: |
-            ${{ runner.temp }}/FynlaTests.xcresult
+            ${{ runner.temp }}/FynlaUnitTests.xcresult
+            ${{ runner.temp }}/FynlaUITests.xcresult
             ${{ runner.temp }}/FynlaHealth.xcresult
           if-no-files-found: ignore
           retention-days: 7

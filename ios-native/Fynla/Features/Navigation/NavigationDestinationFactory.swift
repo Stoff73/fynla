@@ -5,7 +5,6 @@ enum NavigationDestinationFactory {
         switch route {
         case .dashboard: "Dashboard"
         case .achievements: "Achievements"
-        case let .module(slug): slug.replacingOccurrences(of: "-", with: " ").capitalized
         case .income: "Income"
         case .expenditure: "Expenditure"
         case .netWorth: "Net Worth"
@@ -40,9 +39,13 @@ enum NavigationDestinationFactory {
         goalsModel: GoalsModel,
         taxStrategyModel: TaxStrategyModel,
         holisticPlanModel: HolisticPlanModel,
+        settingsModel: SettingsModel,
+        privacySettingsModel: PrivacySettingsModel,
+        dataExportModel: DataExportModel,
+        accountDeletionModel: AccountDeletionModel,
+        pushCoordinator: PushRegistrationCoordinator,
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
-        privacyLockController: PrivacyLockController?,
         onOpenFyn: @escaping (String) -> Void,
         onRoute: @escaping (AppRoute) -> Void
     ) -> some View {
@@ -82,6 +85,7 @@ enum NavigationDestinationFactory {
         case .balanceHistory:
             BalanceHistoryView(
                 model: balanceHistoryModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case let .savings(accountID):
@@ -149,6 +153,7 @@ enum NavigationDestinationFactory {
         case .estate:
             EstateView(
                 model: estateModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .goals:
@@ -160,21 +165,29 @@ enum NavigationDestinationFactory {
         case .taxStrategy:
             TaxStrategyView(
                 model: taxStrategyModel,
+                firstName: settingsModel.greetingFirstName,
+                onboardingCompleted: settingsModel.onboardingCompleted,
                 onRoute: onRoute,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .holisticPlan:
             HolisticPlanView(
                 model: holisticPlanModel,
+                onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(.settings) }
             )
         case .settings:
             SettingsView(
+                model: settingsModel,
                 subscriptionModel: subscriptionModel,
                 appleManager: appleManager,
-                privacyLockController: privacyLockController
+                privacySettingsModel: privacySettingsModel,
+                dataExportModel: dataExportModel,
+                accountDeletionModel: accountDeletionModel,
+                pushCoordinator: pushCoordinator
             )
-        case .dashboard, .module:
+        case .dashboard:
             StagedNativeDestinationView(title: title(for: route))
         }
     }

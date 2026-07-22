@@ -1,10 +1,17 @@
 import SwiftUI
 
+// Transcribes /m's protection policy sub-page (resources/mobile/views/
+// modules/ProtectionPolicy.vue): gradient page hero, Back + Edit details
+// pills, provider identity card, dark cover hero with the premium sub-line,
+// and the Policy details / Coverage / Premium / Important dates /
+// Beneficiaries / Covered conditions cards. Whole-pound amounts; the ×12
+// default annual-premium fallback is /m-parity (ledger P0-5).
 struct ProtectionPolicyView: View {
     let policyTypeKey: String
     let policyID: Int
     let model: ProtectionModel
     let onOpenFyn: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -15,8 +22,6 @@ struct ProtectionPolicyView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Protection")
-        .navigationBarTitleDisplayMode(.inline)
         .task(id: "\(policyTypeKey)-\(policyID)") { await model.load() }
         .accessibilityIdentifier("protection.policy.screen")
     }
@@ -25,7 +30,7 @@ struct ProtectionPolicyView: View {
     private func stateContent(_ type: ProtectionPolicyType) -> some View {
         switch model.state {
         case .idle, .loading:
-            ScreenStateView(state: .loading)
+            framed { DashboardLoadingView(message: "Loading this policy…") }
         case let .loaded(snapshot):
             if let policy = snapshot.policy(type: type, id: policyID) {
                 content(type, policy: policy)
@@ -53,218 +58,207 @@ struct ProtectionPolicyView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text(policy.provider ?? "Policy")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text(type.label)
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-                if offline {
-                    Text("You're offline. Showing the last loaded policy values.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.primaryText)
-                }
-                hero(type, policy: policy)
-                policyDetails(type, policy: policy)
-                coverageDetails(type, policy: policy)
-                premiumDetails(policy)
-                importantDates(policy)
-                if type == .life,
-                   let beneficiaries = policy.beneficiaries,
-                   !beneficiaries.isEmpty
-                {
-                    textCard("Beneficiaries", beneficiaries)
-                }
-                if let conditions = policy.conditionsCovered, !conditions.isEmpty {
-                    conditionsCard(conditions)
-                }
-                Button("Update this policy with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "protection cover",
-                            addPhrase: "I'd like to add a protection policy.",
-                            names: [policy.provider ?? type.label]
-                        )
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Protection",
+                    subtitle: "Your insurance cover and the gaps that remain"
+                )
+
+                MobilePageActions(
+                    onBack: { dismiss() },
+                    editDetails: { onOpenFyn("What would you like to update?") }
+                )
+
+                Group {
+                    MobileDetailHeader(
+                        title: policy.provider ?? "Policy",
+                        subtitle: type.label
                     )
+
+                    if offline {
+                        offlineNotice
+                    }
+
+                    hero(type, policy: policy)
+
+                    MobileDetailCard(title: "Policy details", rows: policyRows(type, policy: policy))
+                    MobileDetailCard(title: "Coverage", rows: coverageRows(type, policy: policy))
+                    MobileDetailCard(title: "Premium", rows: premiumRows(policy))
+
+                    if policy.policyStartDate != nil
+                        || policy.policyTermYears != nil
+                        || policy.policyEndDate != nil
+                    {
+                        MobileDetailCard(title: "Important dates", rows: dateRows(policy))
+                    }
+
+                    if type == .life,
+                       let beneficiaries = policy.beneficiaries,
+                       !beneficiaries.isEmpty
+                    {
+                        textCard("Beneficiaries", beneficiaries)
+                    }
+
+                    if let conditions = policy.conditionsCovered, !conditions.isEmpty {
+                        conditionsCard(conditions)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(maxWidth: .infinity, minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("protection.policy.edit-with-fyn")
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
     }
 
+    // m-hero — dark card: cover amount + premium sub-line.
     private func hero(
         _ type: ProtectionPolicyType,
         policy: ProtectionPolicy
     ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(type.isLumpSum ? "Sum assured" : "Benefit amount")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(policy.coverageAmount(for: type))
-                .accessibilityIdentifier("protection.policy.cover")
-            Text(heroSubtitle(policy))
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-        }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        MobileHeroCard(
+            label: type.isLumpSum ? "Sum assured" : "Benefit amount",
+            metric: money(policy.coverageAmount(for: type) ?? 0),
+            sub: "\(money(policy.premiumAmount)) \(policy.premiumFrequency ?? "monthly") premium, \(money(policy.annualPremium)) a year"
+        )
+        .accessibilityIdentifier("protection.policy.cover")
     }
 
-    private func policyDetails(
+    private func policyRows(
         _ type: ProtectionPolicyType,
         policy: ProtectionPolicy
-    ) -> some View {
-        detailCard("Policy details") {
-            detailRow("Provider", policy.provider ?? "—")
-            detailRow("Policy number", policy.policyNumber ?? "—")
-            detailRow("Policy type", type.label)
-            if type == .life, let subtype = policy.policyType {
-                detailRow("Life policy type", lifeSubtypeLabel(subtype))
-            }
+    ) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = [
+            ("Provider", policy.provider ?? "—"),
+            ("Policy number", policy.policyNumber ?? "—"),
+            ("Policy type", type.label),
+        ]
+        if type == .life, let subtype = policy.policyType, !subtype.isEmpty {
+            rows.append(("Life policy type", lifeSubtypeLabel(subtype)))
         }
+        return rows
     }
 
-    private func coverageDetails(
+    private func coverageRows(
         _ type: ProtectionPolicyType,
         policy: ProtectionPolicy
-    ) -> some View {
-        detailCard("Coverage") {
-            detailRow(
+    ) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = [
+            (
                 type.isLumpSum ? "Sum assured" : "Benefit amount",
-                money(policy.coverageAmount(for: type))
-            )
-            if !type.isLumpSum, let frequency = policy.benefitFrequency {
-                detailRow("Benefit frequency", frequencyLabel(frequency))
-            }
-            if let weeks = policy.deferredPeriodWeeks, weeks > 0 {
-                detailRow("Deferred period", "\(weeks) weeks")
-            }
-            if let months = policy.benefitPeriodMonths, months > 0 {
-                detailRow("Benefit period", "\(months) months")
-            }
-            if let occupation = policy.occupationClass, !occupation.isEmpty {
-                detailRow("Occupation class", occupation)
-            }
-            if let coverage = policy.coverageType, !coverage.isEmpty {
-                detailRow("Coverage type", titleCase(coverage))
-            }
-            if policy.isMortgageProtection == true {
-                detailRow("Mortgage protection", "Yes")
-            }
-            if policy.inTrust == true {
-                detailRow("Held in trust", "Yes")
-            }
+                money(policy.coverageAmount(for: type) ?? 0)
+            ),
+        ]
+        if !type.isLumpSum, let frequency = policy.benefitFrequency {
+            rows.append(("Benefit frequency", frequencyLabel(frequency)))
         }
+        if let weeks = policy.deferredPeriodWeeks, weeks > 0 {
+            rows.append(("Deferred period", "\(weeks) weeks"))
+        }
+        if let months = policy.benefitPeriodMonths, months > 0 {
+            rows.append(("Benefit period", "\(months) months"))
+        }
+        if let occupation = policy.occupationClass, !occupation.isEmpty {
+            rows.append(("Occupation class", occupation))
+        }
+        if let coverage = policy.coverageType, !coverage.isEmpty {
+            rows.append(("Coverage type", coverage))
+        }
+        if policy.isMortgageProtection == true {
+            rows.append(("Mortgage protection", "Yes"))
+        }
+        if policy.inTrust == true {
+            rows.append(("Held in trust", "Yes"))
+        }
+        return rows
     }
 
-    private func premiumDetails(_ policy: ProtectionPolicy) -> some View {
-        detailCard("Premium") {
-            detailRow("Premium amount", money(policy.premiumAmount))
-            detailRow("Frequency", titleCase(policy.premiumFrequency ?? ""))
-            detailRow("Annual cost", money(policy.annualPremium))
-        }
+    private func premiumRows(_ policy: ProtectionPolicy) -> [(key: String, value: String)] {
+        [
+            ("Premium amount", money(policy.premiumAmount)),
+            ("Frequency", capitalise(policy.premiumFrequency)),
+            // ponytail: ×12 default annual cost is /m-parity (ledger P0-5).
+            ("Annual cost", money(policy.annualPremium)),
+        ]
     }
 
-    @ViewBuilder
-    private func importantDates(_ policy: ProtectionPolicy) -> some View {
-        if policy.policyStartDate != nil
-            || policy.policyEndDate != nil
-            || policy.policyTermYears != nil
-        {
-            detailCard("Important dates") {
-                if let start = policy.policyStartDate {
-                    detailRow("Start date", dateLabel(start))
-                }
-                if let term = policy.policyTermYears {
-                    detailRow("Term", "\(term) years")
-                }
-                if let end = policy.policyEndDate {
-                    detailRow("End date", dateLabel(end))
-                }
-            }
+    private func dateRows(_ policy: ProtectionPolicy) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = []
+        if let start = policy.policyStartDate {
+            rows.append(("Start date", dateLabel(start)))
         }
+        if let term = policy.policyTermYears {
+            rows.append(("Term", "\(term) years"))
+        }
+        if let end = policy.policyEndDate {
+            rows.append(("End date", dateLabel(end)))
+        }
+        return rows
     }
 
+    // mpd-text — free text block under a section label.
     private func textCard(_ title: String, _ text: String) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
+        VStack(alignment: .leading, spacing: 0) {
+            sectionLabel(title)
+                .padding(.bottom, 12)
             Text(text)
-                .font(FynlaTypography.body)
-                .foregroundStyle(FynlaColor.primaryText)
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.horizon500.color)
+                .lineSpacing(3)
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // mpd-list — hairline-separated covered conditions.
     private func conditionsCard(_ conditions: [String]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Covered conditions")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .padding(.bottom, FynlaSpacing.small)
-            ForEach(Array(conditions.enumerated()), id: \.offset) { _, condition in
+            sectionLabel("Covered conditions")
+                .padding(.bottom, 4)
+            ForEach(Array(conditions.enumerated()), id: \.offset) { index, condition in
                 Text(condition)
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.primaryText)
-                    .padding(.vertical, FynlaSpacing.xSmall)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .overlay(alignment: .bottom) { Divider() }
+                    .padding(.vertical, 8)
+                    .overlay(alignment: .bottom) {
+                        if index != conditions.count - 1 {
+                            FynlaColor.Token.horizon100.color.frame(height: 1)
+                        }
+                    }
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func detailCard<Content: View>(
-        _ title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-            content()
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 12, weight: .bold))
+            .kerning(0.5)
+            .foregroundStyle(FynlaColor.Token.neutral500.color)
+    }
+
+    private func money(_ value: Decimal?) -> String {
+        value.map(MoneyFormatter.gbpWhole) ?? "—"
+    }
+
+    private func capitalise(_ value: String?) -> String {
+        guard let value, !value.isEmpty else { return "—" }
+        return value.prefix(1).uppercased() + value.dropFirst()
+    }
+
+    private func frequencyLabel(_ value: String) -> String {
+        switch value {
+        case "monthly": "Monthly"
+        case "weekly": "Weekly"
+        case "annually": "Annually"
+        case "lump_sum": "Lump sum"
+        default: capitalise(value)
         }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
-    }
-
-    private func detailRow(_ key: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
-            Text(key)
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            Spacer()
-            Text(value)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, FynlaSpacing.xSmall)
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
-    private func heroSubtitle(_ policy: ProtectionPolicy) -> String {
-        let premium = money(policy.premiumAmount)
-        let frequency = policy.premiumFrequency ?? "monthly"
-        return "\(premium) \(frequency) premium, \(money(policy.annualPremium)) a year"
     }
 
     private func lifeSubtypeLabel(_ value: String) -> String {
@@ -274,34 +268,17 @@ struct ProtectionPolicyView: View {
         case "whole_of_life": "Whole of Life"
         case "term": "Term"
         case "family_income_benefit": "Family Income Benefit"
-        default: titleCase(value)
+        default: value
         }
-    }
-
-    private func frequencyLabel(_ value: String) -> String {
-        switch value {
-        case "monthly": "Monthly"
-        case "weekly": "Weekly"
-        case "annually": "Annually"
-        case "lump_sum": "Lump sum"
-        default: titleCase(value)
-        }
-    }
-
-    private func titleCase(_ value: String) -> String {
-        guard !value.isEmpty else { return "—" }
-        return value.replacingOccurrences(of: "_", with: " ").capitalized
-    }
-
-    private func money(_ value: Decimal?) -> String {
-        value.map(MoneyFormatter.gbp) ?? "—"
     }
 
     private func dateLabel(_ value: String) -> String {
         let input = DateFormatter()
         input.locale = Locale(identifier: "en_US_POSIX")
         input.dateFormat = "yyyy-MM-dd"
-        guard let date = input.date(from: value) else { return "—" }
+        guard let date = input.date(from: value) ?? ISO8601DateFormatter().date(from: value) else {
+            return "—"
+        }
         let output = DateFormatter()
         output.locale = Locale(identifier: "en_GB")
         output.dateFormat = "dd/MM/yyyy"
@@ -309,13 +286,41 @@ struct ProtectionPolicyView: View {
     }
 
     private var notFound: some View {
-        ScreenStateView(state: .empty(message: "We could not find that policy."))
+        framed { ScreenStateView(state: .empty(message: "We could not find that policy.")) }
+    }
+
+    private var offlineNotice: some View {
+        Text("You're offline. Showing the last loaded policy values.")
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FynlaColor.Token.savannah100.color)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Protection",
+                    subtitle: "Your insurance cover and the gaps that remain"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil
+            )
+        }
     }
 }

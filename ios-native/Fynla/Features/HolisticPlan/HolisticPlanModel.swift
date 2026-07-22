@@ -53,7 +53,7 @@ final class HolisticPlanModel {
             state = .upgradeRequired(message: message)
         case let .server(_, requestID), let .decoding(requestID):
             state = .failed(requestID: requestID)
-        case .validation, .forbidden, .rateLimited, .conflict:
+        case .validation, .forbidden, .nativeUpdateRequired, .rateLimited, .conflict:
             state = .failed(requestID: nil)
         }
     }

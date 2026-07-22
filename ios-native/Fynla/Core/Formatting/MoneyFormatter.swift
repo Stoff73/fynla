@@ -13,6 +13,19 @@ enum MoneyFormatter {
         return formatter.string(from: value as NSDecimalNumber) ?? "Unavailable"
     }
 
+    // Whole-pound format matching /m's dashboard fmt(): '£' + Math.round(n)
+    // .toLocaleString('en-GB') — no pence.
+    static func gbpWhole(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = ukLocale
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "GBP"
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 0
+        formatter.roundingMode = .halfUp
+        return formatter.string(from: value as NSDecimalNumber) ?? "Unavailable"
+    }
+
     static func percentage(_ value: Decimal) -> String {
         let formatter = NumberFormatter()
         formatter.locale = ukLocale

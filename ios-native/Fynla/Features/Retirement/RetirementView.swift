@@ -1,5 +1,11 @@
 import SwiftUI
 
+// Transcribes /m's Retirement page (resources/mobile/views/modules/
+// Retirement.vue): gradient page hero, Edit details pill (rich /m edit
+// prompt), dark hero card with the projected income, gap narrative and the
+// target/surplus split, pension rows with the cap head and Upgrade, Overview
+// and projection detail rows with /m's age-source note, and bordered
+// recommendation cards. Whole-pound amounts as /m's formatCurrency.
 struct RetirementView: View {
     let model: RetirementModel
     let onRoute: (AppRoute) -> Void
@@ -10,12 +16,15 @@ struct RetirementView: View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                framed { DashboardLoadingView(message: "Loading your retirement position…") }
             case let .loaded(snapshot):
                 content(snapshot)
             case let .offline(previous):
-                if let previous { content(previous, offline: true) }
-                else { stateView(.offline) }
+                if let previous {
+                    content(previous, offline: true)
+                } else {
+                    stateView(.offline)
+                }
             case .unauthenticated:
                 stateView(.unauthenticated)
             case let .upgradeRequired(message):
@@ -25,8 +34,6 @@ struct RetirementView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Retirement")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .accessibilityIdentifier("retirement.screen")
     }
@@ -36,22 +43,13 @@ struct RetirementView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text("Retirement")
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text("Your projected retirement income, pensions and projections")
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-                if offline { offlineNotice }
-                hero(snapshot)
-                pensionsCard(snapshot)
-                overviewCard(snapshot)
-                projectionCard(snapshot.projections?.pensionPotProjection)
-                recommendationsCard(snapshot.analysis?.recommendations ?? [])
-                Button("Update pensions with Fyn") {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Retirement",
+                    subtitle: "Your projected retirement income, pensions and projections"
+                )
+
+                MobilePageActions(editDetails: {
                     onOpenFyn(
                         FynEditIntent.message(
                             updateScope: "pensions",
@@ -59,176 +57,247 @@ struct RetirementView: View {
                             names: snapshot.pensions.map { Optional($0.name) }
                         )
                     )
+                })
+
+                Group {
+                    if offline {
+                        offlineNotice
+                    }
+
+                    heroCard(snapshot)
+                    pensionsCard(snapshot)
+                    overviewCard(snapshot)
+                    projectionCard(snapshot.projections)
+                    recommendationsCard(snapshot.analysis?.recommendations ?? [])
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(maxWidth: .infinity, minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("retirement.edit-with-fyn")
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
         .refreshable { await model.refresh() }
     }
 
-    private func hero(_ snapshot: RetirementSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Projected retirement income")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.xSmall) {
-                FinancialValueView.money(snapshot.projectedIncome)
-                    .accessibilityIdentifier("retirement.projected-income")
-                Text("a year")
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
-            }
-            Text(gapNarrative(snapshot))
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            Divider()
-            HStack(alignment: .top, spacing: FynlaSpacing.standard) {
-                heroStat("Target income", snapshot.targetIncome.map(MoneyFormatter.gbp) ?? "—")
+    // m-hero: dark card with the projected income, gap narrative and the
+    // target/surplus split (mr-hero-split).
+    private func heroCard(_ snapshot: RetirementSnapshot) -> some View {
+        MobileHeroCard(
+            label: "Projected retirement income",
+            metric: snapshot.projectedIncome.map(MoneyFormatter.gbpWhole) ?? "—",
+            metricSuffix: "a year",
+            sub: gapNarrative(snapshot)
+        ) {
+            HStack(alignment: .top, spacing: 16) {
+                heroStat(
+                    "Target income",
+                    snapshot.targetIncome.map(MoneyFormatter.gbpWhole) ?? "—",
+                    tone: .white
+                )
                 let gap = snapshot.incomeGap
                 heroStat(
                     gap.map { $0 <= 0 ? "Surplus" : "Shortfall" } ?? "Comparison",
-                    gap.map { MoneyFormatter.gbp(abs($0)) } ?? "—"
+                    gap.map { MoneyFormatter.gbpWhole(abs($0)) } ?? "—",
+                    tone: gap.map {
+                        $0 <= 0
+                            ? FynlaColor.Token.spring400.color
+                            : FynlaColor.Token.raspberry300.color
+                    } ?? .white
                 )
             }
+            .padding(.top, 16)
+            .overlay(alignment: .top) {
+                FynlaColor.Token.horizon400.color.frame(height: 1)
+            }
+            .padding(.top, 16)
         }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .accessibilityIdentifier("retirement.projected-income")
     }
 
-    private func heroStat(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
+    // mr-hero-stat: light cap + white 18/900 value (toned for surplus/shortfall).
+    private func heroStat(_ title: String, _ value: String, tone: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(FynlaTypography.caption)
-                .foregroundStyle(FynlaColor.secondaryText)
+                .font(.system(size: 12))
+                .foregroundStyle(.white.opacity(0.65))
             Text(value)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
+                .font(.system(size: 18, weight: .black))
+                .foregroundStyle(tone)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func pensionsCard(_ snapshot: RetirementSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
-                Text("Your pensions")
-                    .font(FynlaTypography.sectionTitle)
-                    .foregroundStyle(FynlaColor.primaryText)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Your pensions".uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
                 Spacer()
                 if let limit = snapshot.index.accountLimit {
-                    VStack(alignment: .trailing, spacing: FynlaSpacing.micro) {
+                    HStack(spacing: 8) {
                         Text("\(snapshot.index.accountCount) of \(limit) pensions used")
-                            .font(FynlaTypography.caption)
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(
                                 snapshot.isAtAccountLimit
-                                    ? FynlaColor.primaryAction
-                                    : FynlaColor.secondaryText
+                                    ? FynlaColor.Token.raspberry500.color
+                                    : FynlaColor.Token.neutral500.color
                             )
-                        Button("Upgrade", action: onOpenSubscription)
-                            .font(FynlaTypography.caption)
-                            .foregroundStyle(FynlaColor.primaryAction)
+                        Button {
+                            onOpenSubscription()
+                        } label: {
+                            Text("Upgrade".uppercased())
+                                .font(.system(size: 12, weight: .bold))
+                                .kerning(0.5)
+                                .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                        }
+                        .accessibilityIdentifier("retirement.upgrade")
                     }
                 }
             }
-            .padding(.bottom, FynlaSpacing.small)
+            .padding(.bottom, 6)
+
             if snapshot.pensions.isEmpty {
                 Text("No pensions recorded yet. Add a pension to see your full retirement picture.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.vertical, FynlaSpacing.small)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .padding(.vertical, 8)
             } else {
                 ForEach(snapshot.pensions) { pension in
-                    Button {
-                        onRoute(.retirement(
-                            pensionType: pension.type.rawValue,
-                            id: pension.pensionID
-                        ))
-                    } label: {
-                        HStack(alignment: .center, spacing: FynlaSpacing.medium) {
-                            VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
-                                Text(pension.name)
-                                    .font(FynlaTypography.heading)
-                                    .foregroundStyle(FynlaColor.primaryText)
-                                Text(pension.typeLabel)
-                                    .font(FynlaTypography.caption)
-                                    .foregroundStyle(FynlaColor.secondaryText)
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: FynlaSpacing.micro) {
-                                Text(pension.valueLabel)
-                                    .font(FynlaTypography.heading)
-                                    .foregroundStyle(FynlaColor.primaryText)
-                                Text("View")
-                                    .font(FynlaTypography.caption)
-                                    .foregroundStyle(FynlaColor.primaryAction)
-                            }
-                        }
-                        .padding(.vertical, FynlaSpacing.medium)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .overlay(alignment: .bottom) { Divider() }
-                    .accessibilityIdentifier("retirement.pension.\(pension.id)")
+                    pensionRow(
+                        pension,
+                        showsDivider: pension.id != snapshot.pensions.last?.id
+                    )
                 }
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // mr-pension: name/type left, value + VIEW right.
+    private func pensionRow(
+        _ pension: RetirementPensionListItem,
+        showsDivider: Bool
+    ) -> some View {
+        Button {
+            onRoute(.retirement(
+                pensionType: pension.type.rawValue,
+                id: pension.pensionID
+            ))
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pension.name)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    Text(pension.typeLabel)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(pension.valueLabel)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    Text("View".uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                }
+            }
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                FynlaColor.Token.horizon100.color.frame(height: 1)
+            }
+        }
+        .accessibilityIdentifier("retirement.pension.\(pension.id)")
     }
 
     private func overviewCard(_ snapshot: RetirementSnapshot) -> some View {
         detailCard("Overview") {
-            detailRow("Defined Contribution pension value", MoneyFormatter.gbp(snapshot.totalDCPensionWealth))
-            detailRow("Years to retirement", yearsToRetirement(snapshot).map(String.init) ?? "—")
-            detailRow("Target retirement age", snapshot.index.profile?.targetRetirementAge.map(String.init) ?? "—")
+            detailRow(
+                "Defined Contribution pension value",
+                MoneyFormatter.gbpWhole(snapshot.totalDCPensionWealth)
+            )
+            detailRow(
+                "Years to retirement",
+                yearsToRetirement(snapshot).map(String.init) ?? "—"
+            )
+            detailRow(
+                "Target retirement age",
+                snapshot.index.profile?.targetRetirementAge.map(String.init) ?? "—",
+                showsDivider: false
+            )
         }
     }
 
-    private func projectionCard(_ projection: RetirementPotProjection?) -> some View {
+    private func projectionCard(_ projections: RetirementProjections?) -> some View {
         detailCard("Pension pot projection") {
-            if let projection {
+            if let projection = projections?.pensionPotProjection {
                 detailRow("Current pot value", money(projection.currentValue))
                 detailRow("Monthly contributions", money(projection.monthlyContribution))
                 detailRow("Projected at retirement", money(projection.percentile20AtRetirement))
-                detailRow("Median projection", money(projection.medianAtRetirement))
+                detailRow("Median projection", money(projection.medianAtRetirement), showsDivider: false)
                 Text(projectionNote(projection))
-                    .font(FynlaTypography.caption)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.top, FynlaSpacing.xSmall)
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .lineSpacing(3)
+                    .padding(.top, 12)
+            } else if projections == nil {
+                // The projections fetch failed — /m's copy for this state.
+                Text("Projections are not available right now.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .accessibilityIdentifier("retirement.projections-unavailable")
             } else {
                 Text("No projection available yet.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
         }
     }
 
+    // mr-rec: bordered recommendation cards.
     @ViewBuilder
     private func recommendationsCard(_ recommendations: [RetirementRecommendation]) -> some View {
         if !recommendations.isEmpty {
-            detailCard("Recommended actions") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Recommended actions".uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+
                 ForEach(Array(recommendations.enumerated()), id: \.offset) { _, recommendation in
-                    VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(recommendation.title ?? recommendation.action ?? "Recommendation")
-                            .font(FynlaTypography.heading)
-                            .foregroundStyle(FynlaColor.primaryText)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(FynlaColor.Token.horizon500.color)
                         if let description = recommendation.description {
                             Text(description)
-                                .font(FynlaTypography.bodySmall)
-                                .foregroundStyle(FynlaColor.secondaryText)
+                                .font(.system(size: 13))
+                                .foregroundStyle(FynlaColor.Token.neutral600.color)
+                                .lineSpacing(3)
                         }
                     }
-                    .padding(.vertical, FynlaSpacing.small)
-                    .overlay(alignment: .bottom) { Divider() }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(FynlaColor.Token.lightGray.color, lineWidth: 1)
+                    )
                 }
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
@@ -236,31 +305,42 @@ struct RetirementView: View {
         _ title: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text(title)
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title.uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.bottom, 6)
             content()
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func detailRow(_ key: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
+    // m-detail-row: key 14 neutral, value 14/700 horizon, light hairline.
+    private func detailRow(
+        _ key: String,
+        _ value: String,
+        showsDivider: Bool = true
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(key)
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.neutral600.color)
             Spacer()
             Text(value)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon500.color)
                 .multilineTextAlignment(.trailing)
         }
-        .padding(.vertical, FynlaSpacing.xSmall)
-        .overlay(alignment: .bottom) { Divider() }
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                FynlaColor.Token.horizon100.color.frame(height: 1)
+            }
+        }
     }
 
     private func gapNarrative(_ snapshot: RetirementSnapshot) -> String {
@@ -271,9 +351,9 @@ struct RetirementView: View {
             return "A projected income is not available yet."
         }
         if gap <= 0 {
-            return "You are on track to exceed your target by \(MoneyFormatter.gbp(abs(gap))) a year."
+            return "You are on track to exceed your target by \(MoneyFormatter.gbpWhole(abs(gap))) a year."
         }
-        return "You have a shortfall of \(MoneyFormatter.gbp(gap)) a year against your target."
+        return "You have a shortfall of \(MoneyFormatter.gbpWhole(gap)) a year against your target."
     }
 
     private func yearsToRetirement(_ snapshot: RetirementSnapshot) -> Int? {
@@ -282,31 +362,63 @@ struct RetirementView: View {
     }
 
     private func money(_ value: Decimal?) -> String {
-        value.map(MoneyFormatter.gbp) ?? "—"
+        value.map(MoneyFormatter.gbpWhole) ?? "—"
     }
 
+    // /m's projection note with the age-source phrasing and the assumed
+    // current-age sentence.
     private func projectionNote(_ projection: RetirementPotProjection) -> String {
+        let ageLabel: String = switch projection.retirementAgeSource {
+        case "user_profile", "retirement_profile": "your target retirement age"
+        case "pension": "the retirement age recorded on your pension"
+        default: "an assumed retirement age"
+        }
         let age = projection.retirementAge.map(String.init) ?? "—"
         let years = projection.yearsToRetirement.map(String.init) ?? "—"
-        let expectedReturn = projection.expectedReturn.map(MoneyFormatter.percentage) ?? "—"
-        return "Projected value at retirement age \(age), based on \(years) years to retirement and an estimated \(expectedReturn) annual return. The projected figure is a conservative estimate (80% likelihood of exceeding it)."
+        let expectedReturn = projection.expectedReturn
+            .map { NSDecimalNumber(decimal: $0).doubleValue }
+            .map { String(format: "%g", $0) } ?? "—"
+        var note = "Projected value at \(ageLabel) \(age) based on \(years) years to retirement and an estimated \(expectedReturn)% annual return. The projected figure is a conservative estimate (80% likelihood of exceeding it)."
+        if projection.currentAgeSource == "assumed", let currentAge = projection.currentAge {
+            note += " This projection uses an assumed current age of \(currentAge)."
+        }
+        return note
     }
 
     private var offlineNotice: some View {
         Text("You're offline. Showing your last loaded retirement position.")
-            .font(FynlaTypography.bodySmall)
-            .foregroundStyle(FynlaColor.primaryText)
-            .padding(FynlaSpacing.medium)
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FynlaColor.Token.savannah100.color)
-            .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .accessibilityIdentifier("retirement.offline")
+    }
+
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Retirement",
+                    subtitle: "Your projected retirement income, pensions and projections"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil,
-            openSubscription: state.canUpgrade ? onOpenSubscription : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil,
+                openSubscription: state.canUpgrade ? onOpenSubscription : nil
+            )
+        }
     }
 }

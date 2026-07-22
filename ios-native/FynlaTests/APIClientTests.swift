@@ -197,7 +197,7 @@ struct APIClientTests {
     }
 
     @Test
-    func neverRefreshesOrReplaysWritesAfter401() async {
+    func neverReplaysWritesAfter401ButRefreshesForTheNextAttempt() async {
         for method in [HTTPMethod.post, .patch, .put, .delete] {
             let transport = TestHTTPTransport([
                 .response(status: 401, body: json(#"{"success":false,"message":"Unauthenticated"}"#)),
@@ -215,7 +215,9 @@ struct APIClientTests {
                 )
             )
 
-            #expect(await tokens.refreshCount() == 0)
+            // The write is never replayed, but the token refresh runs so the
+            // user's immediate retry succeeds instead of failing again.
+            #expect(await tokens.refreshCount() == 1)
             #expect(await transport.requests().count == 1)
         }
     }

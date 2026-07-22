@@ -14,7 +14,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'premium']);
+    $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $this->property = Property::factory()->create(['user_id' => $this->user->id]);
     Sanctum::actingAs($this->user);
 });
@@ -86,7 +86,7 @@ it('soft-deletes a mortgage via DELETE', function () {
 });
 
 it('rejects update from non-owner (joint owner is read-only)', function () {
-    $spouse = User::factory()->create(['tier' => 'premium']);
+    $spouse = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $mortgage = Mortgage::factory()->create([
         'user_id' => $this->user->id,
         'joint_owner_id' => $spouse->id,

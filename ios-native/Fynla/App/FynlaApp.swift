@@ -1,12 +1,15 @@
 import SwiftUI
+import UIKit
 
 @main
 struct FynlaApp: App {
+    @UIApplicationDelegateAdaptor(FynlaAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @State private var session: AppSession
     @State private var router: AppRouter
     @State private var authenticationCoordinator: AuthenticationCoordinator
     @State private var privacyLockController: PrivacyLockController
+    @State private var nativeVersionPolicyModel: NativeVersionPolicyModel
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
@@ -22,11 +25,19 @@ struct FynlaApp: App {
     @State private var goalsModel: GoalsModel
     @State private var taxStrategyModel: TaxStrategyModel
     @State private var holisticPlanModel: HolisticPlanModel
+    @State private var settingsModel: SettingsModel
+    @State private var privacySettingsModel: PrivacySettingsModel
+    @State private var dataExportModel: DataExportModel
+    @State private var accountDeletionModel: AccountDeletionModel
+    @State private var pushCoordinator: PushRegistrationCoordinator
+    @State private var deepLinkCoordinator: PendingDeepLinkCoordinator
     @State private var fynModel: FynConversationModel
     @State private var bugReportModel: BugReportModel
     private let dependencies: AppDependencies
     private let authenticationClient: APIAuthClient
     private let appleSubscriptionManager: any AppleSubscriptionManaging
+    private let legacyCapacitorCleanup: LegacyCapacitorCleanup
+    private let shareClient: any ShareContentClient
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -46,6 +57,7 @@ struct FynlaApp: App {
         #endif
 
         let session = AppSession(state: initialState)
+        let router = AppRouter(session: session)
         let authClient = dependencies.makeAuthenticationClient()
         self.authenticationClient = authClient
         #if FYNLA_UI_TESTING
@@ -108,6 +120,62 @@ struct FynlaApp: App {
             accessTokenProvider: coordinator,
             tokenRefresher: privacyLockController
         )
+        #if FYNLA_UI_TESTING
+        let nativeVersionPolicyClient: any NativeVersionPolicyClient =
+            uiTestMode == nil
+                ? LiveNativeVersionPolicyClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+                : StaticNativeVersionPolicyClient(
+                    runtimePolicy: NativeRuntimePolicy(
+                        storeKitPurchaseEnabled: true
+                    )
+                )
+        #else
+        let nativeVersionPolicyClient: any NativeVersionPolicyClient =
+            LiveNativeVersionPolicyClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        #endif
+        let nativeVersionPolicyModel = NativeVersionPolicyModel(
+            client: nativeVersionPolicyClient
+        )
+        let pushCoordinator = PushRegistrationCoordinator(
+            system: LiveSystemPushClient(),
+            client: LivePushClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            session: session,
+            router: router,
+            nativeSessionID: { coordinator.credentials?.sessionID },
+            metadata: dependencies.makePushDeviceMetadata(
+                osVersion: "iOS \(UIDevice.current.systemVersion)"
+            )
+        )
+        let deepLinkCoordinator = PendingDeepLinkCoordinator(
+            parser: DeepLinkParser(environment: dependencies.environment),
+            session: session,
+            router: router,
+            openExternal: { url in
+                UIApplication.shared.open(url)
+            }
+        )
+        #if FYNLA_UI_TESTING
+        let incomeModel = uiTestMode == nil
+            ? IncomeModel(
+                client: LiveIncomeClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : IncomeUITestComposition.model()
+        let expenditureModel = uiTestMode == nil
+            ? ExpenditureModel(
+                client: LiveExpenditureClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ExpenditureUITestComposition.model()
+        #else
         let incomeModel = IncomeModel(
             client: LiveIncomeClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -118,6 +186,7 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let netWorthModel = NetWorthModel(
             client: LiveNetWorthClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -158,16 +227,36 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #if FYNLA_UI_TESTING
+        let taxStrategyModel = uiTestMode == nil
+            ? TaxStrategyModel(
+                client: LiveTaxStrategyClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : TaxStrategyUITestComposition.model()
+        #else
         let taxStrategyModel = TaxStrategyModel(
             client: LiveTaxStrategyClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
+        #if FYNLA_UI_TESTING
+        let holisticPlanModel = uiTestMode == nil
+            ? HolisticPlanModel(
+                client: LiveHolisticPlanClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : HolisticPlanUITestComposition.model()
+        #else
         let holisticPlanModel = HolisticPlanModel(
             client: LiveHolisticPlanClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
         let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -179,7 +268,10 @@ struct FynlaApp: App {
                 api: LiveSubscriptionAPI(
                     apiClient: authenticatedDependencies.makeAPIClient()
                 ),
-                storeKit: SystemStoreKitClient()
+                storeKit: SystemStoreKitClient(),
+                purchaseEnabled: {
+                    nativeVersionPolicyModel.storeKitPurchaseEnabled
+                }
             )
             appleSubscriptionManager = SystemAppleSubscriptionManager()
         }
@@ -188,11 +280,78 @@ struct FynlaApp: App {
             api: LiveSubscriptionAPI(
                 apiClient: authenticatedDependencies.makeAPIClient()
             ),
-            storeKit: SystemStoreKitClient()
+            storeKit: SystemStoreKitClient(),
+            purchaseEnabled: {
+                nativeVersionPolicyModel.storeKitPurchaseEnabled
+            }
         )
         let appleSubscriptionManager: any AppleSubscriptionManaging =
             SystemAppleSubscriptionManager()
         #endif
+        #if FYNLA_UI_TESTING
+        let settingsUserProvider: @MainActor () -> AuthenticatedUser? = {
+            if uiTestMode == nil { return coordinator.authenticatedUser }
+            // The nudge capture harness opts into an onboarding-active user
+            // via launch argument; every other mode stays onboarded.
+            let onboardingActive = ProcessInfo.processInfo.arguments
+                .contains("-fynla-onboarding-active")
+            return AuthenticatedUser(
+                id: 101,
+                firstName: "Example",
+                surname: "User",
+                name: "Example User",
+                email: "example@example.test",
+                onboardingCompleted: !onboardingActive,
+                onboardingFynStep: onboardingActive ? "income" : nil
+            )
+        }
+        #else
+        let settingsUserProvider: @MainActor () -> AuthenticatedUser? = {
+            coordinator.authenticatedUser
+        }
+        #endif
+        let settingsModel = SettingsModel(
+            userProvider: settingsUserProvider,
+            privacyLockController: privacyLockController,
+            webBaseURL: dependencies.environment.webBaseURL,
+            beforeSignOut: { await pushCoordinator.unregister() }
+        )
+        let privacyClient = LivePrivacyClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        let privacySettingsModel = PrivacySettingsModel(client: privacyClient)
+        let exportStore = TemporaryExportStore()
+        let dataExportModel = DataExportModel(
+            client: privacyClient,
+            store: exportStore
+        )
+        let accountDeletionSubscriptionAPI = LiveSubscriptionAPI(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        let accountDeletionModel = AccountDeletionModel(
+            client: LiveAccountDeletionClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            loadBillingState: {
+                do {
+                    let entitlement = try await accountDeletionSubscriptionAPI.entitlement()
+                    return switch (entitlement.tier, entitlement.billingManagement) {
+                    case (.premium, .apple): .applePremium
+                    case (.premium, .web): .webPremium
+                    case (.free, _): .free
+                    case (.premium, .none): .unavailable
+                    }
+                } catch {
+                    return .unavailable
+                }
+            },
+            cleanup: {
+                await pushCoordinator.unregister()
+                await dataExportModel.stop()
+                try? await exportStore.deleteAll()
+                await privacyLockController.signOut()
+            }
+        )
         #if FYNLA_UI_TESTING
         let dashboardModel = uiTestMode == nil
             ? DashboardModel(
@@ -262,10 +421,12 @@ struct FynlaApp: App {
         #endif
         self.dependencies = authenticatedDependencies
         self.appleSubscriptionManager = appleSubscriptionManager
+        self.legacyCapacitorCleanup = .live()
         _session = State(initialValue: session)
-        _router = State(initialValue: AppRouter(session: session))
+        _router = State(initialValue: router)
         _authenticationCoordinator = State(initialValue: coordinator)
         _privacyLockController = State(initialValue: privacyLockController)
+        _nativeVersionPolicyModel = State(initialValue: nativeVersionPolicyModel)
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
@@ -281,8 +442,17 @@ struct FynlaApp: App {
         _goalsModel = State(initialValue: goalsModel)
         _taxStrategyModel = State(initialValue: taxStrategyModel)
         _holisticPlanModel = State(initialValue: holisticPlanModel)
+        _settingsModel = State(initialValue: settingsModel)
+        _privacySettingsModel = State(initialValue: privacySettingsModel)
+        _dataExportModel = State(initialValue: dataExportModel)
+        _accountDeletionModel = State(initialValue: accountDeletionModel)
+        _pushCoordinator = State(initialValue: pushCoordinator)
+        _deepLinkCoordinator = State(initialValue: deepLinkCoordinator)
         _fynModel = State(initialValue: fynModel)
         _bugReportModel = State(initialValue: bugReportModel)
+        shareClient = LiveShareContentClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
     }
 
     var body: some Scene {
@@ -309,6 +479,8 @@ struct FynlaApp: App {
         AppRootView(
             session: session,
             privacyLockController: privacyLockController,
+            legacyCapacitorCleanup: legacyCapacitorCleanup,
+            nativeVersionPolicyModel: nativeVersionPolicyModel,
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,
@@ -324,9 +496,16 @@ struct FynlaApp: App {
             goalsModel: goalsModel,
             taxStrategyModel: taxStrategyModel,
             holisticPlanModel: holisticPlanModel,
+            settingsModel: settingsModel,
+            privacySettingsModel: privacySettingsModel,
+            dataExportModel: dataExportModel,
+            accountDeletionModel: accountDeletionModel,
+            pushCoordinator: pushCoordinator,
+            deepLinkCoordinator: deepLinkCoordinator,
             fynModel: fynModel,
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
+            shareClient: shareClient,
             registrationActions: registrationActions,
             loginActions: loginActions,
             passwordResetActions: passwordResetActions,
@@ -336,6 +515,16 @@ struct FynlaApp: App {
         )
             .environment(session)
             .environment(router)
+            .task {
+                PushAppDelegateBridge.shared.configure(pushCoordinator)
+            }
+            .onOpenURL { url in
+                deepLinkCoordinator.receive(url)
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                guard let url = activity.webpageURL else { return }
+                deepLinkCoordinator.receive(url)
+            }
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
                 case .background:

@@ -23,7 +23,10 @@ struct LiveDashboardClient: DashboardClient {
     }
 
     func markRecommendationDone(_ action: DashboardAction) async throws {
-        let body = try JSONEncoder().encode(
+        // Sorted keys keep the body byte-stable across Foundation versions.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let body = try encoder.encode(
             DashboardRecommendationCompletion(
                 module: action.module,
                 recommendationText: action.title

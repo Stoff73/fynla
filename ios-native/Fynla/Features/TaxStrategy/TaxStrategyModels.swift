@@ -45,6 +45,9 @@ struct TaxAllowance: Decodable, Sendable, Equatable, Identifiable {
     let used: Decimal?
     let remaining: Decimal?
     let utilisationPercentage: Decimal?
+    // Bar/remaining colour from the calculator: spring | violet | raspberry |
+    // muted (muted draws no bar fill on /m).
+    let status: String?
     let available: Bool?
     let known: Bool?
 
@@ -57,6 +60,7 @@ struct TaxAllowance: Decodable, Sendable, Equatable, Identifiable {
         case used
         case remaining
         case utilisationPercentage = "utilisation_pct"
+        case status
         case available
         case known
     }
@@ -67,8 +71,8 @@ struct TaxAllowance: Decodable, Sendable, Equatable, Identifiable {
         if (utilisationPercentage ?? 0) >= 100 || (remaining ?? 0) <= 0 {
             return "Fully used"
         }
-        guard let remaining else { return "Unavailable" }
-        return "\(MoneyFormatter.gbp(remaining)) available"
+        // /m: `${fmt(a.remaining)} available` — whole pounds, em-dash for null.
+        return "\(remaining.map(MoneyFormatter.gbpWhole) ?? "—") available"
     }
 }
 

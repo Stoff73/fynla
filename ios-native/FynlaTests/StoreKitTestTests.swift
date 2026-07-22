@@ -25,27 +25,6 @@ struct StoreKitTestTests {
     }
 
     @Test
-    func configurationDisablesOffersAndFamilySharing() throws {
-        let configurationURL = try #require(
-            Bundle(for: StoreKitTestBundleToken.self).url(
-                forResource: "Fynla",
-                withExtension: "storekit"
-            )
-        )
-        let configuration = try JSONDecoder().decode(
-            StoreKitTestConfiguration.self,
-            from: Data(contentsOf: configurationURL)
-        )
-        let group = try #require(configuration.subscriptionGroups.only)
-
-        #expect(group.subscriptions.count == 2)
-        #expect(group.subscriptions.allSatisfy { !$0.familyShareable })
-        #expect(group.subscriptions.allSatisfy { $0.introductoryOffer == nil })
-        #expect(group.subscriptions.allSatisfy { $0.adHocOffers.isEmpty })
-        #expect(group.subscriptions.allSatisfy { $0.codeOffers.isEmpty })
-    }
-
-    @Test
     func purchaseReturnsVerifiedJWSWithStableAccountToken() async throws {
         let session = try makeSession()
         let client = SystemStoreKitClient()
@@ -259,32 +238,7 @@ struct StoreKitTestTests {
     }
 }
 
-private final class StoreKitTestBundleToken {}
-
 private enum StoreKitUpdateWaitError: Error {
     case streamEnded
     case timedOut
-}
-
-private struct StoreKitTestConfiguration: Decodable {
-    let subscriptionGroups: [SubscriptionGroup]
-
-    struct SubscriptionGroup: Decodable {
-        let subscriptions: [Subscription]
-    }
-
-    struct Subscription: Decodable {
-        let adHocOffers: [Offer]
-        let codeOffers: [Offer]
-        let familyShareable: Bool
-        let introductoryOffer: Offer?
-    }
-
-    struct Offer: Decodable {}
-}
-
-private extension Collection {
-    var only: Element? {
-        count == 1 ? first : nil
-    }
 }

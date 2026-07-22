@@ -1,20 +1,26 @@
 import SwiftUI
 
+// Transcribes /m's investment account sub-page (resources/mobile/views/
+// modules/InvestmentAccountDetail.vue): gradient page hero, Back + Edit
+// details pills, provider identity card, dark current-value hero with the
+// contributions sub-line, Account information rows and the holdings list
+// with one-decimal allocation/gain percentages. Whole-pound amounts.
 struct InvestmentAccountView: View {
     let accountID: Int
     let model: InvestmentModel
     let onOpenFyn: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
             switch model.state {
             case .idle, .loading:
-                ScreenStateView(state: .loading)
+                framed { DashboardLoadingView(message: "Loading this account…") }
             case .loaded:
                 if let account = model.account(id: accountID) {
                     content(account)
                 } else {
-                    ScreenStateView(state: .empty(message: "We could not find that account."))
+                    framed { ScreenStateView(state: .empty(message: "We could not find that account.")) }
                 }
             case let .offline(previous):
                 if let account = previous?.accounts.first(where: { $0.id == accountID }) {
@@ -31,8 +37,6 @@ struct InvestmentAccountView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .navigationTitle("Investments")
-        .navigationBarTitleDisplayMode(.inline)
         .task(id: accountID) { await model.load() }
         .accessibilityIdentifier("investment.account.screen")
     }
@@ -42,154 +46,153 @@ struct InvestmentAccountView: View {
         offline: Bool = false
     ) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: FynlaSpacing.standard) {
-                VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                    Text(account.displayName)
-                        .font(FynlaTypography.pageTitle)
-                        .foregroundStyle(FynlaColor.primaryText)
-                    Text(account.accountTypeLabel)
-                        .font(FynlaTypography.body)
-                        .foregroundStyle(FynlaColor.secondaryText)
-                }
-                if offline {
-                    Text("You're offline. Showing the last loaded account values.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.primaryText)
-                }
-                hero(account)
-                informationCard(account)
-                holdingsCard(account.holdings)
-                Button("Update this account with Fyn") {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "investments",
-                            addPhrase: "I'd like to add an investment account.",
-                            names: [account.displayName]
-                        )
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Investments",
+                    subtitle: "Your investment accounts, holdings and allowances"
+                )
+
+                MobilePageActions(
+                    onBack: { dismiss() },
+                    editDetails: { onOpenFyn("What would you like to update?") }
+                )
+
+                Group {
+                    MobileDetailHeader(
+                        title: account.provider ?? account.platform ?? "Investment account",
+                        subtitle: account.accountTypeLabel
                     )
+
+                    if offline {
+                        offlineNotice
+                    }
+
+                    hero(account)
+
+                    MobileDetailCard(
+                        title: "Account information",
+                        rows: infoRows(account),
+                        keyFontSize: 13
+                    )
+
+                    holdingsCard(account.holdings)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(FynlaColor.primaryAction)
-                .frame(maxWidth: .infinity, minHeight: FynlaSpacing.minimumInteractiveTarget)
-                .accessibilityIdentifier("investment.account.edit-with-fyn")
+                .padding(.horizontal, 16)
+
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
-            .padding(FynlaSpacing.standard)
         }
     }
 
+    // m-hero — dark card: current value + contributions-this-year sub.
     private func hero(_ account: InvestmentAccount) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Current value")
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            FinancialValueView.money(account.currentValue)
-                .accessibilityIdentifier("investment.account.value")
-            if let contributions = account.contributionsYTD, contributions > 0 {
-                Text("\(MoneyFormatter.gbp(contributions)) contributed this tax year")
-                    .font(FynlaTypography.bodySmall)
-                    .foregroundStyle(FynlaColor.secondaryText)
+        MobileHeroCard(
+            label: "Current value",
+            metric: MoneyFormatter.gbpWhole(account.currentValue),
+            sub: account.contributionsYTD.flatMap { contributions in
+                contributions > 0
+                    ? "\(MoneyFormatter.gbpWhole(contributions)) contributed this tax year"
+                    : nil
             }
-        }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        )
+        .accessibilityIdentifier("investment.account.value")
     }
 
-    private func informationCard(_ account: InvestmentAccount) -> some View {
-        VStack(alignment: .leading, spacing: FynlaSpacing.small) {
-            Text("Account information")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-            detailRow("Provider", account.provider ?? "—")
-            detailRow("Platform", account.platform ?? "—")
-            detailRow("Account type", account.accountTypeLabel)
-            detailRow("Ownership", titleCase(account.ownershipType) ?? "Individual")
-            detailRow("Country", account.country == "UK" ? "United Kingdom" : (account.country ?? "United Kingdom"))
-            if let contribution = account.monthlyContributionAmount, contribution > 0 {
-                detailRow("Monthly contribution", MoneyFormatter.gbp(contribution))
-            }
-            if account.isISA, let subscribed = account.isaSubscriptionCurrentYear {
-                detailRow("ISA subscribed this year", MoneyFormatter.gbp(subscribed))
-            }
+    private func infoRows(_ account: InvestmentAccount) -> [(key: String, value: String)] {
+        var rows: [(key: String, value: String)] = [
+            ("Provider", account.provider ?? "—"),
+            ("Platform", account.platform ?? "—"),
+            ("Account type", account.accountTypeLabel),
+            ("Ownership", titleCase(account.ownershipType) ?? "Individual"),
+            ("Country", account.country == "UK" ? "United Kingdom" : (account.country ?? "United Kingdom")),
+        ]
+        if let contribution = account.monthlyContributionAmount, contribution > 0 {
+            rows.append(("Monthly contribution", MoneyFormatter.gbpWhole(contribution)))
         }
-        .padding(FynlaSpacing.standard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        if account.isISA, let subscribed = account.isaSubscriptionCurrentYear {
+            rows.append(("ISA subscribed this year", MoneyFormatter.gbpWhole(subscribed)))
+        }
+        return rows
     }
 
+    // mid-holding — name/value head, meta + gain/loss foot, hairlines.
     private func holdingsCard(_ holdings: [InvestmentHolding]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Holdings")
-                .font(FynlaTypography.sectionTitle)
-                .foregroundStyle(FynlaColor.primaryText)
-                .padding(.bottom, FynlaSpacing.small)
+            Text("Holdings".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.bottom, 8)
             if holdings.isEmpty {
                 Text("No individual holdings recorded for this account.")
-                    .font(FynlaTypography.body)
-                    .foregroundStyle(FynlaColor.secondaryText)
-                    .padding(.vertical, FynlaSpacing.small)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             } else {
-                ForEach(holdings) { holding in
-                    VStack(alignment: .leading, spacing: FynlaSpacing.xSmall) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(holding.displayName)
-                                .font(FynlaTypography.heading)
-                                .foregroundStyle(FynlaColor.primaryText)
-                            Spacer()
-                            FinancialValueView.money(holding.currentValue)
-                        }
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(holdingMetadata(holding))
-                                .font(FynlaTypography.caption)
-                                .foregroundStyle(FynlaColor.secondaryText)
-                            Spacer()
-                            if let gain = holding.gainLoss {
-                                Text(gainLabel(holding))
-                                    .font(FynlaTypography.caption)
-                                    .foregroundStyle(gain >= 0 ? FynlaColor.focus : FynlaColor.primaryAction)
-                            }
-                        }
-                    }
-                    .padding(.vertical, FynlaSpacing.medium)
-                    .overlay(alignment: .bottom) { Divider() }
+                ForEach(Array(holdings.enumerated()), id: \.offset) { index, holding in
+                    holdingRow(holding, isLast: index == holdings.count - 1)
                 }
             }
         }
-        .padding(FynlaSpacing.standard)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FynlaColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: FynlaSpacing.buttonCornerRadius))
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func detailRow(_ key: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FynlaSpacing.small) {
-            Text(key)
-                .font(FynlaTypography.bodySmall)
-                .foregroundStyle(FynlaColor.secondaryText)
-            Spacer()
-            Text(value)
-                .font(FynlaTypography.heading)
-                .foregroundStyle(FynlaColor.primaryText)
-                .multilineTextAlignment(.trailing)
+    private func holdingRow(_ holding: InvestmentHolding, isLast: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(holding.displayName)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                Spacer(minLength: 8)
+                Text(holding.currentValue.map(MoneyFormatter.gbpWhole) ?? "—")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    .lineLimit(1)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(spacing: 8) {
+                    if let allocation = holding.allocationPercent {
+                        Text("\(oneDecimal(allocation)) of account")
+                    }
+                    if let assetType = titleCase(holding.assetType) {
+                        Text(assetType)
+                    }
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                Spacer(minLength: 8)
+                if let gain = holding.gainLoss {
+                    Text(gainLabel(holding))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(
+                            gain >= 0
+                                ? FynlaColor.Token.spring600.color
+                                : FynlaColor.Token.raspberry500.color
+                        )
+                        .lineLimit(1)
+                }
+            }
         }
-        .padding(.vertical, FynlaSpacing.xSmall)
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
-    private func holdingMetadata(_ holding: InvestmentHolding) -> String {
-        [
-            holding.allocationPercent.map { "\(MoneyFormatter.percentage($0)) of account" },
-            titleCase(holding.assetType),
-        ].compactMap { $0 }.joined(separator: " · ")
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) {
+            if !isLast {
+                FynlaColor.Token.horizon100.color.frame(height: 1)
+            }
+        }
     }
 
     private func gainLabel(_ holding: InvestmentHolding) -> String {
         guard let gain = holding.gainLoss else { return "" }
         let prefix = gain >= 0 ? "+" : ""
-        let percentage = holding.gainLossPercent.map { " (\(MoneyFormatter.percentage($0)))" } ?? ""
-        return "\(prefix)\(MoneyFormatter.gbp(gain))\(percentage)"
+        let percentage = holding.gainLossPercent.map { " (\(oneDecimal($0)))" } ?? ""
+        return "\(prefix)\(MoneyFormatter.gbpWhole(gain))\(percentage)"
+    }
+
+    // /m pct(): always one decimal place.
+    private func oneDecimal(_ value: Decimal) -> String {
+        String(format: "%.1f%%", NSDecimalNumber(decimal: value).doubleValue)
     }
 
     private func titleCase(_ value: String?) -> String? {
@@ -197,10 +200,38 @@ struct InvestmentAccountView: View {
         return value.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
+    private var offlineNotice: some View {
+        Text("You're offline. Showing the last loaded account values.")
+            .font(.system(size: 13))
+            .foregroundStyle(FynlaColor.Token.horizon500.color)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FynlaColor.Token.savannah100.color)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // /m's MobileChrome keeps the gradient page hero visible during
+    // loading/error states — state screens render below it, not instead
+    // of it (sweep: hero persistence).
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                MobilePageHero(
+                    title: "Investments",
+                    subtitle: "Your investment accounts, holdings and allowances"
+                )
+                content()
+                Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
+            }
+        }
+    }
+
     private func stateView(_ state: ScreenStatePresentation) -> some View {
-        ScreenStateView(
-            state: state,
-            retry: state.canRetry ? { Task { await model.load() } } : nil
-        )
+        framed {
+            ScreenStateView(
+                state: state,
+                retry: state.canRetry ? { Task { await model.load() } } : nil
+            )
+        }
     }
 }

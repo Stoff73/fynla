@@ -99,10 +99,12 @@ struct AchievementsActivityPage: Decodable, Equatable, Sendable {
 struct LevelCelebration: Decodable, Equatable, Sendable {
     let level: Int
     let levelName: String
+    let nextActions: [String]?
 
     private enum CodingKeys: String, CodingKey {
         case level
         case levelName = "level_name"
+        case nextActions = "next_actions"
     }
 }
 
@@ -119,7 +121,6 @@ struct AchievementsContent: Equatable, Sendable {
     var completedPage: Int
     var activity: [AchievementActivity]
     var activityNextCursor: Int?
-    var pendingCelebration: LevelCelebration?
 }
 
 enum AchievementsViewState: Equatable, Sendable {

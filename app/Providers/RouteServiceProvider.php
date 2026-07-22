@@ -131,6 +131,15 @@ class RouteServiceProvider extends ServiceProvider
             });
         });
 
+        RateLimiter::for('apple-webhook', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many requests.',
+                ], 429);
+            });
+        });
+
         RateLimiter::for('native-session', function (Request $request) {
             $key = $request->user() === null
                 ? 'ip:'.$request->ip()
