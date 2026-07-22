@@ -876,6 +876,7 @@ class CoordinatingAgent extends BaseAgent
         ?array $classification = null,
         ?array $kycResult = null,
         ?string $evidenceOverride = null,
+        ?array $confirmedFacts = null,
     ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
@@ -1023,7 +1024,12 @@ class CoordinatingAgent extends BaseAgent
             $input,
             trustVerbatim: $evidenceOverride !== null,
         );
-        $accuracy = $this->captureAccuracyGate->inspect($toolName, $input, $accuracyEvidence);
+        $accuracy = $this->captureAccuracyGate->inspect(
+            $toolName,
+            $input,
+            $accuracyEvidence,
+            $confirmedFacts ?? $this->confirmedCaptureFacts ?? [],
+        );
         if (! $accuracy['allowed']) {
             if ($accuracyCacheKey !== null) {
                 Cache::put($accuracyCacheKey, $accuracyEvidence, now()->addMinutes(15));

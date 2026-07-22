@@ -227,7 +227,7 @@ final class AssetCaptureEntityExtractor
      * common and trust ownership always require the user to be asked
      * explicitly downstream, never guessed here.
      */
-    private function extractOwnershipType(string $message): ?string
+    public function extractOwnershipType(string $message): ?string
     {
         $lower = mb_strtolower($message);
 

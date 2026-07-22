@@ -1544,3 +1544,69 @@ it('treats an enum-stamped step prompt as the evidence-window boundary', functio
     expect($evidenceMethod->invoke(app(CoordinatingAgent::class), $conversation->id))
         ->toBe('Just me.');
 });
+
+// ── Task 4 (structured turn intent): confirmed facts satisfy the gate
+// without text evidence — populated only from deterministic sources
+// (extractor parses, scripted answers, ISA law). A fact must MATCH the
+// argument; it can never launder a contradicting argument through. ─────────
+
+it('allows an ownership write on a confirmed fact with no text evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Santander Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 9000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], 'On my own.', ['ownership_type' => 'individual']);
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('allows an ISA subtype on a confirmed fact with no text evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'My ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 8000,
+    ], 'The cash one.', ['isa_subtype' => 'cash']);
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('still blocks a joint ISA regardless of confirmed facts', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Our ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 8000,
+        'ownership_type' => 'joint',
+    ], 'It is a Cash ISA we hold jointly.', ['ownership_type' => 'joint', 'isa_subtype' => 'cash']);
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('never lets a confirmed fact launder a contradicting ownership argument', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Santander Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 9000,
+        'ownership_type' => 'joint',
+    ], 'No ownership wording here.', ['ownership_type' => 'individual']);
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('satisfies a joint ownership share from a confirmed fact', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Joint Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 9000,
+        'ownership_type' => 'joint',
+        'joint_owner_id' => 42,
+        'ownership_percentage' => 50,
+    ], 'We own it jointly.', ['ownership_percentage' => 50.0]);
+
+    expect($result)->toBe(['allowed' => true]);
+});

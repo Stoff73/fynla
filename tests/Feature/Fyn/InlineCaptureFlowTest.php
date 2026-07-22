@@ -50,6 +50,7 @@ it('strips onboarding_layout_change and quick_replies, passes fill_form and cont
     // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
     // legacy — non-weakening (other expectations stay strict).
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -105,6 +106,7 @@ it('consumes a failed capture write result and emits deterministic failure text'
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation) {
@@ -172,6 +174,7 @@ it('preserves a side-question answer when the capture write fails', function () 
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $answerText, $falseSaveText) {
@@ -240,6 +243,7 @@ it('does not report a resolved write failure after the corrected retry lands', f
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $successText) {
@@ -319,6 +323,7 @@ it('keeps the earliest safe-content cutoff when a correlated retry also fails', 
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $answerText, $falseSaveText) {
@@ -391,6 +396,7 @@ it('keeps a same-batch same-tool partial failure in either result order', functi
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $landedResults) {
@@ -470,6 +476,7 @@ it('does not report failure after a complete correlated retry batch lands', func
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $successText) {
@@ -547,6 +554,7 @@ it('consumes a duplicate capture write result without presenting it as a failure
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -617,6 +625,7 @@ it('frames the inline capture as a capture turn (non-null focus) for every captu
                 $capturedFocus = $focus;
             }
         });
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {

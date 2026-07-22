@@ -118,6 +118,23 @@ trait HasAiChat
         $this->unifiedOnboardingFocus = $focus;
     }
 
+    /**
+     * Deterministic confirmed facts for the CURRENT capture turn (Task 4) —
+     * consumed by executeTool as the CaptureAccuracyGate's $confirmedFacts
+     * when the streamed tool dispatch cannot pass them per-call. Set by
+     * OnboardingChatDirector::handleInlineCapture around its stream and
+     * always cleared in its finally.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $confirmedCaptureFacts = null;
+
+    /** @param array<string, mixed>|null $facts */
+    public function setConfirmedCaptureFacts(?array $facts): void
+    {
+        $this->confirmedCaptureFacts = $facts;
+    }
+
     /** @param array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null $scope */
     public function setVerifyEditScope(?array $scope): void
     {

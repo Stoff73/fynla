@@ -81,6 +81,7 @@ function fynBindMocks(string $adviceStub, string $inlineStub): void
     // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
     // legacy — non-weakening (other expectations stay strict).
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function (...$args) use ($adviceStub, $inlineStub) {
             // personaOverride is the 9th positional arg (index 8).

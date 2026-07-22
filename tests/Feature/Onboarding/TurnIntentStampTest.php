@@ -140,6 +140,7 @@ it('refines a no-tool clarification capture turn from capture_ack to capture_cla
             yield ['type' => 'content', 'text' => $clarification];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     drainDirectorMessage($user->refresh(), $conversation, 'Yes, save it');

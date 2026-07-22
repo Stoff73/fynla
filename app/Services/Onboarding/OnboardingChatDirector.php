@@ -295,8 +295,20 @@ final class OnboardingChatDirector
 
                 $merged = "Original capture details: {$pending['message']}\n"
                     ."Requested missing details: {$message}";
+
+                // Structured confirmed facts (Task 4): the awaiting-detail
+                // reply IS the answer to the gate's question — when the
+                // extractor's deterministic patterns parse an ownership from
+                // it, pass that as a confirmed fact so the gate needs no
+                // evidence-window chaining (the Santander-class shape).
+                $confirmedFacts = [];
+                $parsedOwnership = $this->entityExtractor->extractOwnershipType($message);
+                if ($parsedOwnership !== null) {
+                    $confirmedFacts['ownership_type'] = $parsedOwnership;
+                }
+
                 yield from $this->resolvePendingInterruptionCapture(
-                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute
+                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute, $confirmedFacts
                 );
 
                 return;
@@ -1833,7 +1845,8 @@ final class OnboardingChatDirector
         array $state,
         string $captureMessage,
         array $pending,
-        ?string $currentRoute
+        ?string $currentRoute,
+        array $confirmedFacts = []
     ): \Generator {
         $captureContext = CaptureContext::fromArray([
             'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
@@ -1852,7 +1865,7 @@ final class OnboardingChatDirector
         // untouched.
         $recordCreated = false;
         foreach ($this->handleInlineCapture(
-            $user, $conversation, $captureMessage, $captureContext, $currentRoute
+            $user, $conversation, $captureMessage, $captureContext, $currentRoute, $confirmedFacts
         ) as $captureEvent) {
             $captureEventType = $captureEvent['type'] ?? '';
             if ($captureEventType === 'entity_created'
@@ -5839,9 +5852,37 @@ PROMPT;
      * can dedup against them. After the LLM stream completes, runs the
      * multi-entity gap-fill on every focus inferred from the CaptureContext.
      *
+     * Structured confirmed facts (Task 4): $confirmedFacts — deterministic
+     * facts about this capture (extractor-parsed ownership/subtype from an
+     * awaiting-detail reply) — are carried as agent state for the duration
+     * of the turn, so both the streamed tool dispatch and the direct
+     * gap-fill executeTool calls resolve them in CaptureAccuracyGate.
+     * Always cleared on exit, however the generator ends.
+     *
+     * @param  array<string, mixed>|null  $confirmedFacts
      * @return \Generator<array<string, mixed>>
      */
     public function handleInlineCapture(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        CaptureContext $context,
+        ?string $currentRoute = null,
+        ?array $confirmedFacts = null,
+    ): \Generator {
+        $this->coordinatingAgent->setConfirmedCaptureFacts(
+            $confirmedFacts === [] ? null : $confirmedFacts
+        );
+
+        try {
+            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute);
+        } finally {
+            $this->coordinatingAgent->setConfirmedCaptureFacts(null);
+        }
+    }
+
+    /** @return \Generator<array<string, mixed>> */
+    private function runInlineCapture(
         User $user,
         AiConversation $conversation,
         string $message,
