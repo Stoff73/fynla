@@ -72,6 +72,9 @@ yarn-error.log
 ios/App/Pods/
 ios/App/App/public/
 
+# iOS native — personal signing overrides (DEVELOPMENT_TEAM etc.), never committed
+ios-native/Configurations/Local.xcconfig
+
 .superpowers/
 .worktrees/
 

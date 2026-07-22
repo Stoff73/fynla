@@ -13,4 +13,8 @@ INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPo
 INFOPLIST_KEY_UIUserInterfaceStyle = Light
 ENABLE_USER_SCRIPT_SANDBOXING = YES
 CODE_SIGN_ENTITLEMENTS = Fynla/Fynla.entitlements
-DEVELOPMENT_TEAM = 99S3M8JLLF
+
+// Personal signing overrides (e.g. DEVELOPMENT_TEAM) live in a git-ignored
+// Local.xcconfig next to this file — never commit a developer team ID.
+// See ios-native/TESTFLIGHT.md for how to create it.
+#include? "Local.xcconfig"
