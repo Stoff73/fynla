@@ -175,6 +175,79 @@ it('names what could not be saved when every write failed and the model said not
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
+it('gap-fills the workplace pension when the model refuses — the answer is never lost', function () {
+    // The original live failure end-to-end (2026-07-23): grok voiced the
+    // injection refusal on "It's not salary sacrifice", captured nothing,
+    // and the contribution answer was silently lost. The occupational
+    // capture_focus now engages the ONE deterministic gap-fill, which
+    // parses the answer and writes the pension itself.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'annual_employment_income' => 78000,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+        'onboarding_fyn_selection' => 'savetax',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            return (function () {
+                yield ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'];
+                yield ['type' => 'done', 'message_id' => 99];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
+    $capturedInput = null;
+    $mock->shouldReceive('executeTool')
+        ->once()
+        ->andReturnUsing(function (string $tool, array $input) use (&$capturedInput) {
+            $capturedInput = ['tool' => $tool, 'input' => $input];
+
+            return [
+                'success' => true,
+                'entity_type' => 'dc_pension',
+                'entity_id' => 4242,
+                'message' => 'Created dc pension successfully.',
+            ];
+        });
+    test()->instance(CoordinatingAgent::class, $mock);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "I contribute 5% and my employer matches it. It's not salary sacrifice."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    // The gap-fill called create_pension with the parsed answer + salary.
+    expect($capturedInput['tool'] ?? null)->toBe('create_pension');
+    expect($capturedInput['input']['employee_contribution_percent'] ?? null)->toBe(5.0);
+    expect($capturedInput['input']['employer_contribution_percent'] ?? null)->toBe(5.0);
+    expect($capturedInput['input']['salary_sacrifice'] ?? null)->toBeFalse();
+    expect($capturedInput['input']['annual_salary'] ?? null)->toBe(78000.0);
+
+    // The landed record surfaced and the walk advanced — no re-ask, no
+    // refusal text, no silent loss.
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+    expect($texts)->not->toContain('only help with financial planning')
+        ->and($texts)->not->toContain("didn't catch that");
+    expect(collect($received)->contains(fn (array $e) => ($e['type'] ?? null) === 'entity_created' && ($e['entity_id'] ?? null) === 4242))->toBeTrue();
+    expect($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+});
+
 it('never advances a zero-output turn — the refused pension answer re-asks instead of claiming saved', function () {
     // Live 2026-07-23 (workplace-pension step): grok voiced the scripted
     // injection refusal, the system-copy strip emptied it, and the turn —

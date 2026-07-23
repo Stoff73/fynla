@@ -558,3 +558,43 @@ describe('extractOwnershipType', function () {
         expect($this->extractor->extractOwnershipType('a savings account with £500'))->toBeNull();
     });
 });
+
+// ─── extractOccupationalPensionAnswer (occupational gap-fill focus) ──────────
+
+describe('extractOccupationalPensionAnswer', function () {
+    it('parses the live refusal-misfire phrasing into a workplace pension', function () {
+        $out = $this->extractor->extractOccupationalPensionAnswer(
+            "I contribute 5% and my employer matches it. It's not salary sacrifice."
+        );
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['pension_category'])->toBe('dc');
+        expect($out[0]['scheme_type'])->toBe('workplace');
+        expect($out[0]['employee_contribution_percent'])->toBe(5.0);
+        expect($out[0]['employer_contribution_percent'])->toBe(5.0);
+        expect($out[0]['salary_sacrifice'])->toBeFalse();
+    });
+
+    it('parses an employer-adds variant with a provider', function () {
+        $out = $this->extractor->extractOccupationalPensionAnswer(
+            'I contribute 5% and my employer adds 3%, via salary sacrifice, with Aviva.'
+        );
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['employer_contribution_percent'])->toBe(3.0);
+        expect($out[0]['salary_sacrifice'])->toBeTrue();
+        expect($out[0]['provider'])->toBe('Aviva');
+        expect($out[0]['scheme_name'])->toBe('Aviva Workplace Pension');
+    });
+
+    it('returns nothing for a no-pension declaration or an answer without a percentage', function () {
+        expect($this->extractor->extractOccupationalPensionAnswer("I don't have a workplace pension."))->toBe([]);
+        expect($this->extractor->extractOccupationalPensionAnswer('It is with Aviva.'))->toBe([]);
+    });
+
+    it('routes the occupational focus through extractForFocus and toolNameForFocus', function () {
+        expect($this->extractor->toolNameForFocus('occupational'))->toBe('create_pension');
+        expect($this->extractor->extractForFocus('occupational', 'I contribute 4% and my employer matches it.'))
+            ->toHaveCount(1);
+    });
+});

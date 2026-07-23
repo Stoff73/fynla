@@ -3400,6 +3400,13 @@ PROMPT;
         array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
+        // The state's true capture focus for the deterministic gap-fill.
+        // Campaign users carry selection 'savetax'/'pensioncheck', which maps
+        // to NO gap-fill tool — so the rescue mechanism never ran on any
+        // campaign delegated state (live 2026-07-23: the refused workplace
+        // pension answer was simply lost). States that declare capture_focus
+        // engage the ONE gap-fill with the right extractor.
+        $captureFocus = (string) ($state['capture_focus'] ?? $selection);
         $delegatedMessage = $this->mergeUnresolvedCaptureMessage($conversation, $message);
         $assistantBaselineId = (int) ($conversation->messages()
             ->where('role', 'assistant')
@@ -3663,7 +3670,16 @@ PROMPT;
                     // B-1 — synthesize tool calls for entities the LLM
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
-                    yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $delegatedMessage, $llmEmittedFills);
+                    foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills) as $gapFillEvent) {
+                        if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+                            $recordsCreated[] = [
+                                'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
+                                'id' => $gapFillEvent['entity_id'] ?? null,
+                                'name' => (string) ($gapFillEvent['name'] ?? ''),
+                            ];
+                        }
+                        yield $gapFillEvent;
+                    }
 
                     continue;
                 }
@@ -3680,7 +3696,16 @@ PROMPT;
                     $ackShown = true;
                     yield $flushEvent;
                 }
-                yield from $this->emitGapFillToolCalls($user, $conversation, $selection, $delegatedMessage, $llmEmittedFills);
+                foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills) as $gapFillEvent) {
+                    if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+                        $recordsCreated[] = [
+                            'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
+                            'id' => $gapFillEvent['entity_id'] ?? null,
+                            'name' => (string) ($gapFillEvent['name'] ?? ''),
+                        ];
+                    }
+                    yield $gapFillEvent;
+                }
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -3720,7 +3745,7 @@ PROMPT;
         // WP-1 — "captured" means a write LANDED, not merely that the model
         // attempted one. A failed create used to count (toolCallsSeen), so a
         // question turn whose only write failed advanced as if captured.
-        $capturedSomething = $toolWritesLanded > 0 || count($llmEmittedFills) > 0;
+        $capturedSomething = $toolWritesLanded > 0 || count($llmEmittedFills) > 0 || $recordsCreated !== [];
 
         // WP-1 / F5 — every attempted write failed or was blocked and the
         // model's success ack was suppressed above: say plainly what happened
@@ -5482,6 +5507,14 @@ PROMPT;
                 'status' => 'running',
             ];
 
+            // A workplace-pension gap-fill needs the salary the percentages
+            // apply to; the message rarely restates it, the profile has it.
+            if ($tool === 'create_pension'
+                && ! isset($input['annual_salary'])
+                && (float) ($user->annual_employment_income ?? 0) > 0) {
+                $input['annual_salary'] = (float) $user->annual_employment_income;
+            }
+
             try {
                 $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
             } catch (\Throwable $e) {
@@ -5522,6 +5555,19 @@ PROMPT;
                     'fields' => $result['fields'] ?? [],
                     'mode' => $result['mode'] ?? 'create',
                     'entity_id' => $result['entity_id'] ?? null,
+                ];
+            }
+
+            // Onboarding executeTool writes persist directly (no fill_form):
+            // surface the landed record so the caller counts it as a capture
+            // (the zero-output guard and the advance gate both key on it) and
+            // the frontend renders the record card.
+            if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
+                yield [
+                    'type' => 'entity_created',
+                    'entity_type' => (string) ($result['entity_type'] ?? ''),
+                    'entity_id' => $result['entity_id'],
+                    'name' => (string) ($input['scheme_name'] ?? $input['account_name'] ?? $input['name'] ?? ''),
                 ];
             }
 
