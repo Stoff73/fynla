@@ -226,6 +226,74 @@ it('preserves a side-question answer when the capture write fails', function () 
         ->and($types->last())->toBe('done');
 });
 
+it('emits one ask when the model already requested the missing detail before the blocked write', function () {
+    // CSJ live catch 2026-07-23 (msg 19675): the model asked for ownership,
+    // the gate blocked the write for the same reason, and the scripted
+    // "I couldn't save that" line stacked a second copy of the same ask under
+    // the model's own. One ask per turn: when the safe narration already
+    // requests the missing detail, the scripted line is dropped — while the
+    // row keeps capture_write_failed so the awaiting-detail re-arm still
+    // fires.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $modelAsk = 'I need to know whether this Santander savings account is owned individually or jointly, and if jointly, the joint owner\'s name and your percentage share.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $modelAsk) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $modelAsk,
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'content', 'text' => $modelAsk];
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'error' => true,
+                'message' => 'I need you to confirm whether you own it individually or with someone else',
+            ];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'I have a Santander savings account with £9,000 in it',
+        new CaptureContext(
+            reason: 'volunteered_mid_onboarding',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    $persistedText = (string) $conversation->messages()
+        ->where('role', 'assistant')
+        ->latest('id')
+        ->value('content');
+
+    expect($streamText)->toContain('owned individually or jointly')
+        ->and($streamText)->not->toContain("I couldn't save that")
+        ->and($persistedText)->toBe($modelAsk)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+});
+
 it('does not report a resolved write failure after the corrected retry lands', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
