@@ -1228,10 +1228,7 @@ class CoordinatingAgent extends BaseAgent
             return null;
         }
 
-        $isReciprocalSpouse = (int) $user->spouse_id === $jointOwnerId
-            && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
-
-        if ($isReciprocalSpouse) {
+        if ($user->hasReciprocalSpouseLink($jointOwnerId)) {
             return null;
         }
 

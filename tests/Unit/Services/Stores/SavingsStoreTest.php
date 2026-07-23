@@ -265,3 +265,40 @@ it('SavingsStore::update fires snapshot only when policy threshold exceeded', fu
     expect(SavingsAccountValueSnapshot::where('savings_account_id', $account->id)->count())
         ->toBeGreaterThan($initialSnapshotCount);
 });
+
+it('SavingsStore::create allows a joint account with no linked co-owner', function () {
+    // 2026-07-23 live: the co-owner is not on the platform — the schema and
+    // StoreSavingsAccountRequest model joint_owner_id as nullable, and the
+    // campaign captures savings before the spouse section links a spouse.
+    $user = User::factory()->create();
+
+    $account = app(SavingsStore::class)->create([
+        'account_name' => 'Joint Savings Account',
+        'account_type' => 'easy_access',
+        'current_balance' => 12000,
+        'interest_rate' => 4.2,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ], $user, IngestSource::FORM);
+
+    expect($account->joint_owner_id)->toBeNull()
+        ->and($account->ownership_type)->toBe('joint')
+        ->and((float) $account->ownership_percentage)->toBe(50.0);
+});
+
+it('SavingsStore::create still rejects attaching a joint owner who is not the reciprocal spouse', function () {
+    $user = User::factory()->create();
+    $stranger = User::factory()->create();
+
+    expect(fn () => app(SavingsStore::class)->create([
+        'account_name' => 'Joint Savings Account',
+        'account_type' => 'easy_access',
+        'current_balance' => 12000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+        'joint_owner_id' => $stranger->id,
+    ], $user, IngestSource::FORM))
+        ->toThrow(StoreValidationException::class);
+
+    expect(SavingsAccount::count())->toBe(0);
+});

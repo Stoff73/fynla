@@ -331,10 +331,12 @@ class SavingsStore
                 ]);
             }
 
-            $isReciprocalSpouse = $jointOwnerId !== null
-                && (int) $user->spouse_id === $jointOwnerId
-                && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
-            if (! $isReciprocalSpouse) {
+            // A joint record with no linked co-owner is first-class (the
+            // co-owner is not on the platform — StoreSavingsAccountRequest
+            // models joint_owner_id as nullable). Authorization applies only
+            // when an id IS attached: User::hasReciprocalSpouseLink is the
+            // one canonical rule (Rule 20).
+            if ($jointOwnerId !== null && ! $user->hasReciprocalSpouseLink($jointOwnerId)) {
                 throw new StoreValidationException([
                     'joint_owner_id' => ['The joint owner must be securely linked to your household.'],
                 ]);
