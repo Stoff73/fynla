@@ -3814,6 +3814,25 @@ PROMPT;
             return;
         }
 
+        // A turn that produced NOTHING — no write landed, no tool attempted,
+        // no failure to report, and no visible reply (the model's only output
+        // was stripped system copy, or silence) — must never advance the
+        // walk: "I've saved your X" after a zero-output turn is a lie and the
+        // user's answer is silently lost (live 2026-07-23: grok voiced the
+        // injection refusal at the workplace-pension step, the strip emptied
+        // it, and the walk advanced claiming the pension was saved while
+        // nothing was written anywhere). Re-ask instead; the retype re-runs
+        // the capture on a clean turn.
+        if (! $capturedSomething
+            && ! $ackShown
+            && $toolCallsSeen === 0
+            && $pendingWriteFailures === []
+            && trim($visibleResponse) === '') {
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
+
+            return;
+        }
+
         if ($recordsCreated !== []) {
             yield [
                 'type' => 'capture_complete',
@@ -5145,7 +5164,14 @@ PROMPT;
             return;
         }
 
+        // The questions move to pending_deferred_answer rather than being
+        // dropped: the raise's Yes lands on the ADVICE state as plain text,
+        // and AdviceFyn::handle restores the original question from this key
+        // (live 2026-07-23: with the questions deleted here, the bare "Yes"
+        // reached the planner context-free and punted with the no-action
+        // defer instead of answering).
         unset($metadata['deferred_questions']);
+        $metadata['pending_deferred_answer'] = array_values($deferred);
         $conversation->update(['metadata' => $metadata]);
 
         // CSJ raise shape (2026-07-23): thank the user by name, name the
