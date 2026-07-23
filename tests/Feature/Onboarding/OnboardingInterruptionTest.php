@@ -1435,12 +1435,16 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
     $answer = 'Employer pension contributions are not counted in your gross annual income — quote your salary before pension deductions.';
 
     $calls = 0;
+    $answerPromptOverride = null;
     $mock = Mockery::mock(app(CoordinatingAgent::class));
     $mock->shouldReceive('chatWithPromptOverride')
-        ->andReturnUsing(function (...$args) use (&$calls, $reAsk, $answer) {
+        ->andReturnUsing(function (...$args) use (&$calls, &$answerPromptOverride, $reAsk, $answer) {
             $calls++;
             /** @var AiConversation $conversationArg */
             $conversationArg = $args[1];
+            if ($calls > 1) {
+                $answerPromptOverride = $args[4] ?? null;
+            }
 
             if ($calls === 1) {
                 // The grouped extraction turn: the tool ran but reported the
@@ -1486,6 +1490,11 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
     // The question was answered, not dropped.
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
     expect($texts)->toContain('not counted in your gross annual income');
+
+    // The answer turn carried the definitional-answer framing (CSJ
+    // 2026-07-23): a straightforward question is answered outright — the
+    // model must never deflect into an "I need more data" ask.
+    expect($answerPromptOverride)->toContain('directly and definitively');
 
     // The answer row is tagged so the followup/merge scans never mistake
     // its wording for a capture clarification.

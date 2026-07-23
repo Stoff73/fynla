@@ -182,6 +182,7 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?string $systemPromptOverride = null,
     ): \Generator {
         $retrieveCount = 0;
         $cap = $this->cycleCap($mode);
@@ -231,7 +232,7 @@ final class FynLoop
                         continue 2;
                     }
 
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -243,7 +244,7 @@ final class FynLoop
                     // emits and GroundGate-gates the tool itself. v1 ships one
                     // reasoning template = today's default prompt (no override),
                     // so the reason path is byte-identical to the pre-planner turn.
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -402,6 +403,7 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?string $systemPromptOverride = null,
     ): \Generator {
         $upstream = $this->stream(
             $user,
@@ -409,6 +411,7 @@ final class FynLoop
             $message,
             $currentRoute,
             $mode->persona(),
+            systemPromptOverride: $systemPromptOverride,
             allowedTools: $allowedTools,
             persistUserMessage: $persistUserMessage,
         );

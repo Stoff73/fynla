@@ -1632,6 +1632,13 @@ final class OnboardingChatDirector
                 ->where('role', 'assistant')
                 ->max('id') ?? 0);
 
+            // CSJ direction 2026-07-23: a straightforward definitive
+            // question gets a straight answer in any situation. The plain
+            // advice framing deflected a definitional question into an
+            // "I need more data" ask (live msgs 19631-19633) — the override
+            // frames the turn so the question is answered outright. run()
+            // (not stream()) so the delegate_to_capture handoff interception
+            // stays live for question-phrased writes (INV-2.4.1).
             $advice = $this->fynLoop->run(
                 SessionMode::Advice,
                 $user,
@@ -1640,6 +1647,7 @@ final class OnboardingChatDirector
                 $currentRoute,
                 $readOnlyTools,
                 persistUserMessage: false,
+                systemPromptOverride: $this->buildInterruptionAnswerPrompt(),
             );
 
             // The advice turn ends with its own terminal `done` event
@@ -4057,6 +4065,24 @@ PROMPT;
      * the right row. Under legacy prompt mode the unified prompt is empty, so we
      * fall back to the asset-capture prompt as the base.
      */
+    /**
+     * System prompt for the inline interruption-answer turn: the unified
+     * base plus turn context framing the side question as answerable
+     * outright (CSJ direction 2026-07-23: a straightforward definitive
+     * question gets a straight answer in any situation). Reference-style
+     * framing, not an instruction block — see buildVerifyEditPrompt's note
+     * on the prompt-injection refusal.
+     */
+    private function buildInterruptionAnswerPrompt(): string
+    {
+        $context = "\n\nTurn context — the user has paused their onboarding walk to ask a side question. "
+            .'Answer the question itself, directly and definitively, in one to three sentences of general United Kingdom guidance. '
+            .'A definitional question always has an answer regardless of what profile data exists (for example, gross annual income means income before any deductions, so it includes pension contributions along with Income Tax and National Insurance). '
+            .'Missing profile data never blocks this answer: no request for personal details, no statement that more information is needed, and no pointing the user at other pages — the onboarding walk resumes immediately after the answer.';
+
+        return FynSystemPrompt::text().$context;
+    }
+
     private function buildVerifyEditPrompt(User $user, string $section): string
     {
         $base = FynPromptMode::isUnified()
