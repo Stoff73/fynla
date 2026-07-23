@@ -1728,3 +1728,20 @@ it('does not treat a negated natural phrasing as individual-ownership evidence',
     expect($result['allowed'])->toBeFalse()
         ->and($result['missing'])->toContain('ownership_type');
 });
+
+it('keeps ownership evidence beyond an intervening detail sentence in a single-entity turn', function (): void {
+    // 2026-07-23 live (msg 19870): the investments prompt asks for value,
+    // cost, dividends AND ownership in one message; the cost/dividend
+    // sentence broke the continuation walk and the trailing "It's owned
+    // individually." was severed — the gate rejected the exact format its
+    // own prompt requested.
+    $result = app(CaptureAccuracyGate::class)->inspect('create_investment_account', [
+        'account_name' => 'General Investment Account',
+        'account_type' => 'personal_investment_account',
+        'current_value' => 15000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], "i have one general investment account worth £15,000 — i paid £11,000 for the holdings and it pays about £300 a year in dividends. it's owned individually.");
+
+    expect($result)->toBe(['allowed' => true]);
+});

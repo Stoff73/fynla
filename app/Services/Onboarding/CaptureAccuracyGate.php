@@ -535,10 +535,33 @@ final class CaptureAccuracyGate
 
         $targetIndex = $targetIndexes[0];
         $matchedIndexes = [$targetIndex];
+        $targetTurnIndex = $segmentTurns[$targetIndex] ?? null;
         for ($index = $targetIndex + 1; $index < count($segments); $index++) {
-            $isImmediateAnaphoricContinuation = $index === $targetIndex + 1
-                && $this->isAnaphoricEvidenceContinuation($segments[$index]);
-            if (! $this->isStandaloneEvidence($segments[$index]) && ! $isImmediateAnaphoricContinuation) {
+            $segment = $segments[$index];
+            $sameTurn = ($segmentTurns[$index] ?? null) === $targetTurnIndex;
+            // Anaphoric evidence ("it's owned individually") continues the
+            // walk immediately after the entity segment and, within the
+            // entity's own turn, even beyond an intervening detail sentence
+            // — the capture prompts themselves ask for value, cost,
+            // dividends AND ownership in one message (live 2026-07-23, msg
+            // 19870).
+            $isAnaphoricContinuation = ($index === $targetIndex + 1 || $sameTurn)
+                && $this->isAnaphoricEvidenceContinuation($segment);
+            // A same-turn segment carrying NO entity noun and NO evidence
+            // signal is inert detail ("I paid £11,000 for the holdings…")
+            // — stepped over, never severing the chain. Anything naming an
+            // entity or carrying an ownership/subtype/share signal must
+            // still qualify on the strict rules above, so a correction
+            // naming a different account or deferral meta-talk ("we can
+            // sort the joint ownership later") still breaks the walk.
+            $isInertSameTurnDetail = $sameTurn
+                && ! $this->mentionsEntityNoun($segment)
+                && $this->ownershipFromText($segment) === null
+                && $this->isaSubtypeFromText($segment) === null
+                && $this->ownershipShareFromText($segment) === null;
+            if (! $this->isStandaloneEvidence($segment)
+                && ! $isAnaphoricContinuation
+                && ! $isInertSameTurnDetail) {
                 break;
             }
             $matchedIndexes[] = $index;
@@ -637,13 +660,23 @@ final class CaptureAccuracyGate
             return false;
         }
 
-        if (preg_match('/\b(?:my|our|another|a\s+second)\b[^.!?]{0,60}\b(?:account|isa|saver|property|mortgage|loan|liability)\b/u', $segment) === 1) {
+        if ($this->declaresAnotherEntity($segment)) {
             return false;
         }
 
         return $this->ownershipFromText($segment) !== null
             || $this->isaSubtypeFromText($segment) !== null
             || $this->ownershipShareFromText($segment) !== null;
+    }
+
+    private function declaresAnotherEntity(string $segment): bool
+    {
+        return preg_match('/\b(?:my|our|another|a\s+second)\b[^.!?]{0,60}\b(?:account|isa|saver|property|mortgage|loan|liability|pension)\b/u', $segment) === 1;
+    }
+
+    private function mentionsEntityNoun(string $segment): bool
+    {
+        return preg_match('/\b(?:accounts?|isas?|savers?|propert(?:y|ies)|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
     }
 
     private function isSharedEntityEvidence(string $segment, string $tool): bool
