@@ -231,26 +231,15 @@ final class AssetCaptureEntityExtractor
     {
         $lower = mb_strtolower($message);
 
-        foreach ([
-            '/\b(?:owned\s+)?individually\b/u',
-            '/\b(?:just|only)\s+(?:me|mine)\b/u',
-            '/\bindividual\s+ownership\b/u',
-            '/\bon\s+my\s+own\b/u',
-            '/\bsolely\s+(?:mine|owned)\b/u',
-        ] as $pattern) {
-            if (preg_match($pattern, $lower) === 1) {
-                return 'individual';
-            }
+        // Vocabulary composed from OwnershipPhrasings — the ONE source (Rule
+        // 20); a private copy here diverged from the gate's and re-asked for
+        // ownership the user had stated (live 2026-07-23).
+        if (preg_match('/\b(?:'.OwnershipPhrasings::INDIVIDUAL.')\b/u', $lower) === 1) {
+            return 'individual';
         }
 
-        foreach ([
-            '/\bjoint(?:ly)?\b/u',
-            '/\bwith\s+my\s+(?:wife|husband|partner|spouse)\b/u',
-            '/\bboth\s+of\s+us\b/u',
-        ] as $pattern) {
-            if (preg_match($pattern, $lower) === 1) {
-                return 'joint';
-            }
+        if (preg_match('/\b(?:'.OwnershipPhrasings::JOINT.')\b/u', $lower) === 1) {
+            return 'joint';
         }
 
         return null;

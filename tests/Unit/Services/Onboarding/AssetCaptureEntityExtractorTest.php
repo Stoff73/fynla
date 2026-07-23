@@ -546,3 +546,15 @@ describe('extractForFocus', function () {
         expect($this->extractor->extractForFocus('estate', 'a £500k property'))->toBe([]);
     });
 });
+
+// ─── extractOwnershipType (vocabulary from OwnershipPhrasings, Rule 20) ──────
+
+describe('extractOwnershipType', function () {
+    it('parses the live phrasings that fell through the old per-file lists', function () {
+        expect($this->extractor->extractOwnershipType('owned just by me'))->toBe('individual');
+        expect($this->extractor->extractOwnershipType('both just mine'))->toBe('individual');
+        expect($this->extractor->extractOwnershipType("It's only mine."))->toBe('individual');
+        expect($this->extractor->extractOwnershipType('we own it jointly'))->toBe('joint');
+        expect($this->extractor->extractOwnershipType('a savings account with £500'))->toBeNull();
+    });
+});

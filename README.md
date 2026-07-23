@@ -8,6 +8,8 @@ A comprehensive financial planning web application designed for UK individuals a
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue?logo=mysql)
 ![Tests](https://img.shields.io/badge/tests-4500%2B%20passing-brightgreen)
 
+> **GOLDEN RULE #20 (CSJ, NEVER IGNORE):** every Fyn change — prompt, vocabulary, behaviour, rendering — is made ONCE, in ONE place, for ALL surfaces and paths. If more than one mechanism implements the behaviour, consolidating to one source is PART of the fix. Full text: `CLAUDE.md` Rule 20.
+
 ---
 
 ## Quick Stats
