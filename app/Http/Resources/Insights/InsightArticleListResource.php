@@ -21,7 +21,9 @@ class InsightArticleListResource extends JsonResource
             'category' => $this->category,
             'tags' => $this->tags ?? [],
             'authors' => $this->authors ?? [],
-            'image_card' => $this->hero_image_card_path ? $base.$this->hero_image_card_path : null,
+            'image_card' => $this->hero_image_card_path
+                ? $base.$this->hero_image_card_path
+                : rtrim(config('app.url'), '/').'/images/insights/insight-default.svg',
             'published_at' => optional($this->published_at)->toIso8601String(),
             'is_featured' => $this->is_featured,
             'is_bespoke' => $this->is_bespoke,

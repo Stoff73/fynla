@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\DocumentArticleUpdateRequest;
 use App\Models\DocumentArticle;
 use App\Services\Documents\DocumentArticleImporter;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -101,5 +102,22 @@ class DocumentArticleController extends Controller
     public function previewUrl(DocumentArticle $document): JsonResponse
     {
         return response()->json(['url' => $document->previewUrl()]);
+    }
+
+    /**
+     * Upload a cover image for an article that has no suitable embedded image.
+     * Stored alongside the article's other assets (cleaned up on destroy).
+     * Returns the storage-relative path; the editor sets it as cover_image_path
+     * and it persists on the next save.
+     */
+    public function uploadCoverImage(Request $request, DocumentArticle $document): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $path = $request->file('image')->store("document-articles/{$document->id}", 'public');
+
+        return response()->json(['path' => $path]);
     }
 }

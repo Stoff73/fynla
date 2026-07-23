@@ -62,23 +62,39 @@ class InsightController extends Controller
 
     public function featured(): JsonResponse
     {
-        // Prefer an explicitly-flagged article; fall back to the most recently
-        // published one so the homepage always has a featured article.
-        $featured = $this->articles->getFeatured()
-            ?? InsightArticle::published()->orderByDesc('published_at')->first();
+        // An explicitly-flagged native article wins the featured slot.
+        $featuredModel = $this->articles->getFeatured();
+        $featured = $featuredModel
+            ? (new InsightArticleListResource($featuredModel))->resolve()
+            : null;
 
-        $supporting = InsightArticle::published()
-            ->when($featured, fn ($q) => $q->where('id', '!=', $featured->id))
-            ->orderByDesc('published_at')
+        // Pool the most-recent published articles from BOTH sources — native
+        // insights AND CMS/pipeline document articles — so document articles
+        // surface on the homepage strip, not just the /insights listing.
+        $insights = InsightArticle::published()->orderByDesc('published_at')->take(6)->get();
+        $docs = DocumentArticle::published()->orderByDesc('published_at')->take(6)->get();
+        $pool = collect(DocumentArticleAsInsightListResource::collection($docs)->resolve())
+            ->merge(InsightArticleListResource::collection($insights)->resolve())
+            ->sortByDesc('published_at')
+            ->values();
+
+        // No explicit feature → the newest across the pool leads.
+        if ($featured === null) {
+            $featured = $pool->first();
+            $pool = $pool->slice(1)->values();
+        }
+
+        $featuredSlug = $featured['slug'] ?? null;
+        $supporting = $pool
+            ->reject(fn ($a) => $featuredSlug !== null && ($a['slug'] ?? null) === $featuredSlug)
             ->take(2)
-            ->get();
+            ->values()
+            ->all();
 
         return response()->json([
             'data' => [
-                'featured' => $featured
-                    ? (new InsightArticleListResource($featured))->resolve()
-                    : null,
-                'supporting' => InsightArticleListResource::collection($supporting)->resolve(),
+                'featured' => $featured,
+                'supporting' => $supporting,
             ],
         ]);
     }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\Role;
 use App\Models\User;
@@ -48,6 +49,36 @@ it('falls back to the latest published article as featured when nothing flagged 
         ->and($response['data']['featured']['is_featured'])->toBeFalse()
         ->and($response['data']['supporting'])->toHaveCount(1)
         ->and($response['data']['supporting'][0]['slug'])->toBe($older->slug);
+});
+
+it('surfaces published document (CMS/pipeline) articles on the homepage featured strip', function () {
+    InsightArticle::factory()->published()->create(['published_at' => now()->subDay()]);
+    // A newer CMS/pipeline document article — must appear on the homepage strip,
+    // not only the /insights listing.
+    DocumentArticle::factory()->published()->create([
+        'slug' => 'cms-pipeline-article',
+        'published_at' => now()->subHour(),
+    ]);
+
+    $response = $this->getJson('/api/insights/featured')->assertOk();
+
+    $slugs = collect([$response['data']['featured']])
+        ->merge($response['data']['supporting'])
+        ->pluck('slug');
+
+    expect($slugs)->toContain('cms-pipeline-article');
+});
+
+it('falls back to a default cover image when an article has none', function () {
+    DocumentArticle::factory()->published()->create([
+        'slug' => 'no-cover-doc',
+        'cover_image_path' => null,
+    ]);
+
+    $response = $this->getJson('/api/insights/featured')->assertOk();
+
+    expect($response['data']['featured']['image_card'])
+        ->toEndWith('/images/insights/insight-default.svg');
 });
 
 it('returns a published article by slug', function () {

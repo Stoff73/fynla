@@ -116,3 +116,34 @@ it('deletes an article', function () {
     $this->deleteJson("/api/admin/documents/{$article->id}")->assertNoContent();
     expect(DocumentArticle::find($article->id))->toBeNull();
 });
+
+it('uploads a cover image and returns its stored path', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $response = $this->postJson("/api/admin/documents/{$article->id}/cover-image", [
+        'image' => UploadedFile::fake()->image('cover.jpg', 800, 420),
+    ])->assertOk()->assertJsonStructure(['path']);
+
+    $path = $response->json('path');
+    expect($path)->toStartWith("document-articles/{$article->id}/");
+    Storage::disk('public')->assertExists($path);
+});
+
+it('rejects a non-image cover upload', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $this->postJson("/api/admin/documents/{$article->id}/cover-image", [
+        'image' => UploadedFile::fake()->create('notes.pdf', 20, 'application/pdf'),
+    ])->assertStatus(422);
+});
+
+it('forbids non-admins from uploading a cover image', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->user);
+
+    $this->postJson("/api/admin/documents/{$article->id}/cover-image", [
+        'image' => UploadedFile::fake()->image('cover.jpg'),
+    ])->assertForbidden();
+});

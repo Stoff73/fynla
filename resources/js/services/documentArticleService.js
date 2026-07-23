@@ -48,4 +48,12 @@ export default {
     previewUrl(id) {
         return api.get(`${base}/${id}/preview-url`);
     },
+
+    uploadCover(id, file) {
+        const form = new FormData();
+        form.append('image', file);
+        return api.post(`${base}/${id}/cover-image`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
 };
