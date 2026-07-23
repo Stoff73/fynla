@@ -888,30 +888,35 @@ it('answers a question asked at a grouped-extract step instead of retrying blind
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
 
-it('suppresses the interruption advice answer when A1 already answered the question this turn', function () {
-    // Reviewer-flagged double-answer bug: A1's grouped-extract answer-the-
-    // user-first buffer (handleGroupedExtractTurn, ~line 2352) already
-    // voices a (deliberately figure-redacted) answer when the extraction
-    // model emits prose instead of calling its tool. Before this guard,
-    // emitRetry unconditionally called handleInterruption afterwards, which
-    // routed the SAME question through the advice-mode reasoner for a
-    // SECOND, independently-sourced (and potentially un-redacted) answer.
-    // Only ONE scripted LLM call — the extraction turn — should fire here;
-    // if the guard regresses, handleInterruption's advice-mode call fires
-    // a second time and $calls climbs to 2.
+it('never voices the extraction model\'s prose — the dispatcher answers even when the extraction turn was chatty', function () {
+    // All-paths rule (CSJ 2026-07-23, live regression): the extraction
+    // model's off-script prose used to be voiced as the "A1 answer",
+    // bypassing the governed interruption prompt + deterministic guard —
+    // live it voiced a factually wrong gross-income answer. The prose is
+    // now swallowed and scrubbed; the ONE governed answer path (emitRetry's
+    // interruption dispatcher) always answers the question, so BOTH
+    // scripted calls fire.
     $calls = 0;
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function () use (&$calls) {
             $calls++;
 
-            // Extraction call: the model emits an A1-style prose answer
-            // (no £ figures, so it survives filterOffScriptContent) but
-            // calls neither the capture tool nor errors — a clean
-            // no-capture turn that falls into the emitRetry path.
+            if ($calls === 1) {
+                // Extraction call: the model emits chatty prose but calls
+                // neither the capture tool nor errors — a no-capture turn
+                // that falls into the emitRetry path.
+                return (function () {
+                    yield ['type' => 'content', 'text' => 'People typically track spending across housing, food, and transport.'];
+                    yield ['type' => 'done', 'message_id' => 200];
+                })();
+            }
+
+            // Interruption dispatcher's advice-mode reasoner turn — the
+            // governed answer.
             return (function () {
-                yield ['type' => 'content', 'text' => 'People typically track spending across housing, food, and transport.'];
-                yield ['type' => 'done', 'message_id' => 200];
+                yield ['type' => 'content', 'text' => 'You currently spend about £2,400 a month.'];
+                yield ['type' => 'done', 'message_id' => 201];
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
@@ -922,40 +927,30 @@ it('suppresses the interruption advice answer when A1 already answered the quest
 
     $received = driveDirector($user, $conversation, 'What do I spend each month?');
 
-    $contentTexts = collect($received)->where('type', 'content')->pluck('text');
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
 
-    // Exactly two content events: the A1 answer, then the scripted retry
-    // text — never a third, second-sourced advice-loop answer.
-    expect($contentTexts)->toHaveCount(2);
-    expect($contentTexts->first())->toContain('housing, food, and transport');
-    expect($contentTexts->last())->not->toContain('housing, food, and transport')
-        ->and($contentTexts->last())->toContain("didn't catch both pieces");
+    // The extraction prose never reaches the user; the dispatcher's
+    // governed answer does.
+    expect($texts)->not->toContain('housing, food, and transport');
+    expect($texts)->toContain('You currently spend about £2,400 a month.');
 
-    // Only the extraction call fired — the guard stopped emitRetry from
-    // ever invoking handleInterruption's second (advice-mode) LLM call.
-    expect($calls)->toBe(1);
+    // Both calls fired — the extraction turn AND the dispatcher's governed
+    // answer. The old answerAlreadyVoiced suppression is gone.
+    expect($calls)->toBe(2);
 
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
 
-it('routes the interruption dispatcher\'s answer through when the A1 prose is only a re-ask, not an answer', function () {
+it('routes the interruption dispatcher\'s answer through when the extraction prose is only a re-ask', function () {
     // Live bug (csjones, /m campaign income step): the extraction model's
     // ONLY prose was a re-ask — "Thanks — I still need your gross annual
     // income in GBP. Could you share that?" — never an answer to the
-    // user's actual question ("Am I on track for retirement?"). The
-    // pre-fix guard treated ANY non-empty A1 prose as "already answered"
-    // and set answerAlreadyVoiced=true, so emitRetry's
-    // `! ($answerAlreadyVoiced && isQuestion)` check skipped
-    // handleInterruption entirely — the user's real question was deflected
-    // and never answered. The fix requires the A1 prose to also fail
-    // captureResponseRequestsClarification before it counts as "answered";
-    // this re-ask trips that heuristic (it ends in a literal "?" and
-    // contains "could you"), so $a1AnswerEmitted stays false and
-    // emitRetry proceeds to handleInterruption as normal — mirroring the
-    // two-call CoordinatingAgent mock idiom from the "answers a question
-    // asked at a grouped-extract step instead of retrying blind" test
-    // above (Task 6).
+    // user's actual question ("Am I on track for retirement?"), and the
+    // old voice-through suppressed the dispatcher, deflecting the
+    // question. Under the all-paths rule (CSJ 2026-07-23) the extraction
+    // prose is never voiced at all — the dispatcher always fires and
+    // delivers the real answer.
     $calls = 0;
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
@@ -990,13 +985,9 @@ it('routes the interruption dispatcher\'s answer through when the A1 prose is on
 
     $contentTexts = collect($received)->where('type', 'content')->pluck('text');
 
-    // The first sentence of the re-ask ("...in GBP.") is itself stripped by
-    // filterOffScriptContent's pre-existing personal-figure guard (it
-    // matches \bgbp\b) — a filtering behaviour this fix does not touch —
-    // leaving "Could you share that?" as A1's own emitted content. The real
-    // interruption answer is what matters here: it fires as a SECOND
-    // content event, proving the re-ask never suppressed it.
-    expect($contentTexts->first())->toContain('Could you share that?');
+    // The extraction turn's re-ask prose is never voiced; the dispatcher's
+    // real answer is.
+    expect($contentTexts->implode(' | '))->not->toContain('Could you share that?');
     expect($contentTexts->implode(' | '))->toContain('broadly on track for retirement');
 
     // Both scripted turns fired — the extraction call AND the

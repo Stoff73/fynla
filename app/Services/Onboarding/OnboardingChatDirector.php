@@ -2600,13 +2600,13 @@ final class OnboardingChatDirector
         $captureDetails = [];
         $captureError = null;
 
-        // A1 — answer-the-user-first on a grouped_extract turn. When the
-        // user's message asks a question, buffer the model's prose so a
-        // definitional answer can be delivered alongside the scripted re-ask
-        // when no extraction lands. Without a question the prose is swallowed
-        // exactly as before (the extraction tool is meant to fire silently).
         $userAskedQuestion = $this->userAskedQuestion($message);
-        $answerBuffer = '';
+
+        // Baseline so the no-capture cleanup below removes only rows THIS
+        // extraction stream persisted (its off-script conversational prose).
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
         try {
             $generator = $this->fynLoop->stream(
@@ -2673,15 +2673,11 @@ final class OnboardingChatDirector
                 // Claude emit chatty text alongside the tool call. Letting
                 // that text through stacks two assistant messages (model
                 // text + director retry) on the user on failed captures.
-                //
-                // A1 — exception: when the user asked a question, keep the
-                // prose in $answerBuffer so a definitional answer can be
-                // emitted before the re-ask if no extraction lands.
+                // A user question is never answered from this prose — the
+                // no-capture branch routes it through the interruption
+                // dispatcher, the one governed answer path (all-paths rule,
+                // CSJ 2026-07-23).
                 if (($event['type'] ?? '') === 'content') {
-                    if ($userAskedQuestion) {
-                        $answerBuffer .= (string) ($event['text'] ?? '');
-                    }
-
                     continue;
                 }
 
@@ -2720,33 +2716,19 @@ final class OnboardingChatDirector
                 'tool' => $toolName,
             ]);
 
-            // A1 — the user asked a question that yielded no extraction.
-            // Deliver the definitional answer (personal figures stripped)
-            // before the scripted re-ask so the question is not ignored.
-            $a1AnswerEmitted = false;
-            if ($userAskedQuestion && $answerBuffer !== '') {
-                $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
-                // A re-ask ("I still need your gross annual income. Could
-                // you share that?") is prose, but it is not an answer — it
-                // asks the user for a fact rather than telling them
-                // anything. Treating it as "already answered" suppressed
-                // emitRetry's interruption dispatcher below and left the
-                // user's real question unanswered. Reuse the established
-                // clarification heuristic so a genuine A1 answer (no
-                // trailing question) still suppresses the duplicate
-                // interruption call, but a re-ask does not.
-                $a1AnswerEmitted = ($answer !== '') && ! $this->captureResponseRequestsClarification($answer);
-                if ($answer !== '') {
-                    $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
-                        'metadata' => [
-                            'onboarding_step' => $currentStateId,
-                            'is_interruption_answer' => true,
-                            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
-                        ],
-                    ]);
-                    yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
-                }
-            }
+            // The extraction model's off-script prose was swallowed from the
+            // stream but persisted into the transcript by the shared chat
+            // path. Left in place it anchors every later LLM call this turn —
+            // live 2026-07-23: a wrong gross-income answer persisted here was
+            // parroted verbatim by the override-governed dispatcher call that
+            // followed. Delete it so the transcript mirrors the screen and
+            // the dispatcher reasons from clean history. The user's question
+            // is answered by emitRetry's interruption dispatcher below — the
+            // ONE governed answer path (all-paths rule, CSJ 2026-07-23).
+            $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('id', '>', $assistantBaselineId)
+                ->delete();
 
             // Carry-forward disambiguation (director side). The model often
             // declines to call capture_pension_history for a lone figure like
@@ -2778,7 +2760,7 @@ final class OnboardingChatDirector
                 return;
             }
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message, answerAlreadyVoiced: $a1AnswerEmitted);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
         }
@@ -2794,11 +2776,9 @@ final class OnboardingChatDirector
             // answer — dispatch the interruption first (inline answer for a
             // simple question, acknowledge + defer for one needing more);
             // the dispatcher re-emits the step, so the walk still re-asks.
-            // Mirrors emitRetry's identical guard on the no-capture path
-            // (live: Tessa's gross-income question vanished under the
-            // is_partial_retry re-ask, 2026-07-23). No a1AnswerEmitted term:
-            // the A1 block only runs on the no-capture branch, so no answer
-            // can have been voiced before a partial capture.
+            // Mirrors emitRetry's dispatch on the no-capture path (live:
+            // Tessa's gross-income question vanished under the
+            // is_partial_retry re-ask, 2026-07-23).
             if ($userAskedQuestion) {
                 $interruption = $this->handleInterruption(
                     $user, $conversation, $currentStateId, $state, $message, $currentRoute
@@ -2927,22 +2907,15 @@ final class OnboardingChatDirector
         array $state,
         string $currentStateId,
         User $user,
-        string $userMessage,
-        bool $answerAlreadyVoiced = false
+        string $userMessage
     ): \Generator {
-        // A1 already voiced a (figure-redacted) answer to this question
-        // this turn — skip a second, independently-sourced interruption
-        // answer, which would duplicate it and could unredact figures A1
-        // deliberately withheld.
-        if (! ($answerAlreadyVoiced && $this->writeIntentClassifier->isQuestion($userMessage))) {
-            $interruption = $this->handleInterruption(
-                $user, $conversation, $currentStateId, $state, $userMessage
-            );
-            if ($interruption !== null) {
-                yield from $interruption;
+        $interruption = $this->handleInterruption(
+            $user, $conversation, $currentStateId, $state, $userMessage
+        );
+        if ($interruption !== null) {
+            yield from $interruption;
 
-                return;
-            }
+            return;
         }
 
         $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
