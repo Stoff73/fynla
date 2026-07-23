@@ -30,7 +30,7 @@ function deferredConversation(User $user, array $entries): AiConversation
         'status' => 'active',
         'model_used' => 'advice',
         'title' => 'Advice',
-        'metadata' => ['pending_deferred_answer' => $entries],
+        'metadata' => ['pending_deferred_answer' => ['raised_at' => time(), 'questions' => $entries]],
     ]);
 }
 
@@ -80,6 +80,7 @@ it('the raise stashes the deferred questions as pending_deferred_answer instead 
 
     $conversation->refresh();
     expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
-    expect($conversation->metadata['pending_deferred_answer'][0]['question'] ?? null)
+    expect($conversation->metadata['pending_deferred_answer']['questions'][0]['question'] ?? null)
         ->toBe('How is my financial health?');
+    expect($conversation->metadata['pending_deferred_answer']['raised_at'] ?? 0)->toBeGreaterThan(0);
 });
