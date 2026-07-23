@@ -83,7 +83,18 @@ class NextActionsService
      */
     private function midWalk(User $user): bool
     {
-        return $user->onboarding_fyn_step !== null;
+        if ($user->onboarding_fyn_step !== null) {
+            return true;
+        }
+
+        // A fresh campaign registrant's first dashboard fetch races the chat
+        // turn that stamps the step (live 2026-07-23, user 292): a funnel
+        // registrant who has not begun the walk (onboarding_started_at null)
+        // is walking by construction. A paused walker (started_at set, step
+        // nulled) keeps the unlock prompts — they are the re-engagement hook.
+        return ! $user->onboarding_completed
+            && $user->onboarding_started_at === null
+            && ($user->funnel_answers['campaign'] ?? null) !== null;
     }
 
     /** @return array<int,array<string,mixed>> */
