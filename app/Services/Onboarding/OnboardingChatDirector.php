@@ -3827,7 +3827,11 @@ PROMPT;
             && ! $ackShown
             && $toolCallsSeen === 0
             && $pendingWriteFailures === []
-            && trim($visibleResponse) === '') {
+            && trim($visibleResponse) === ''
+            // A negative/none declaration legitimately writes nothing — "No
+            // personal pensions." completes the step even when the model
+            // stays silent; re-asking it would loop (live 2026-07-23).
+            && preg_match('/^\s*(?:no|none|nothing|neither)\b/iu', $message) !== 1) {
             yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
