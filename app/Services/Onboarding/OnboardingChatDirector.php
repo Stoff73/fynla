@@ -4172,17 +4172,23 @@ PROMPT;
     }
 
     /**
-     * Strip sentences the model echoed from OUR scripted failure copy. The
-     * model parrots "I couldn't save that — …" lines from its tool feedback
-     * and from prior turns in the history (live msgs 19708→19712: each retry
-     * stacked the previous turn's failure lines above the new one, and the
-     * echo tripped the clarification heuristics). Failure copy is composed
-     * deterministically by captureFailureText — never the model's to voice.
+     * Strip sentences the model echoed from OUR scripted system copy — copy
+     * that is never the model's to voice on a capture turn. Two classes:
+     * failure lines ("I couldn't save that — …", parroted from tool feedback
+     * and prior turns; live msgs 19708→19712 stacked them on every retry, and
+     * the echo tripped the clarification heuristics), and the prompt-injection
+     * refusal ("I can only help with financial planning questions…", misfired
+     * live at the workplace-pension step on "It's not salary sacrifice" — a
+     * user answering OUR scripted question is by definition not an attack).
+     * Failure copy is composed deterministically by captureFailureText.
      */
     private function stripEchoedFailureCopy(string $text): string
     {
         $stripped = preg_replace(
-            '/[^.!?\n]*couldn[\x{2019}\x{0027}]t\s+save\s+that[^.!?\n]*[.!?]?\s*/iu',
+            [
+                '/[^.!?\n]*couldn[\x{2019}\x{0027}]t\s+save\s+that[^.!?\n]*[.!?]?\s*/iu',
+                '/[^.!?\n]*only\s+help\s+with\s+financial\s+planning\s+questions[^.!?\n]*[.!?]?\s*(?:How\s+can\s+I\s+assist\s+with\s+your\s+finances\?)?\s*/iu',
+            ],
             '',
             $text,
         );
