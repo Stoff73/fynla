@@ -273,3 +273,39 @@ it('deletes prior messages and resets to path_choice on restart', function () {
     // Prior messages wiped.
     expect($conversation->messages()->where('role', 'user')->count())->toBe(0);
 });
+
+// ── Task 3 (structured turn intent): the resume prune matches the enum ─────
+
+it('prunes an enum-stamped resume greeting without the legacy flag', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'first_name' => 'Chris',
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_DEPENDANTS,
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    // A future greeting row carrying ONLY the enum (no legacy boolean) —
+    // the prune must still remove it before persisting the fresh greeting.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'Welcome back, Chris. Last time we were adding your dependants.',
+        'metadata' => ['turn_intent' => 'resume_greeting'],
+    ]);
+
+    foreach (app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'resume') as $_) {
+        // drain
+    }
+
+    $greetings = $conversation->messages()
+        ->where('role', 'assistant')
+        ->where('content', 'like', 'Welcome back%')
+        ->get();
+    expect($greetings)->toHaveCount(1);
+    expect($greetings->first()->metadata['is_resume_greeting'] ?? null)->toBeTrue();
+});

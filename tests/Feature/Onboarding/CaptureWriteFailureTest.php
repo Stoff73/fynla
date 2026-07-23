@@ -71,6 +71,7 @@ function mockDelegatedStream(array $events): void
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
 
     test()->instance(CoordinatingAgent::class, $mock);
@@ -254,6 +255,7 @@ it('combines an unresolved ISA answer with its requested missing facts after res
             yield ['type' => 'done', 'message_id' => 101];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
@@ -573,6 +575,7 @@ it('streams the same deduplicated acknowledgement that is persisted for a succes
             yield ['type' => 'done', 'message_id' => $message->id];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
@@ -650,6 +653,7 @@ it('never merges a question as original capture details — the previous turn as
             yield ['type' => 'done', 'message_id' => 200];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     $received = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
@@ -720,6 +724,7 @@ it('does not arm the merge off the canned security-refusal text', function () {
             yield ['type' => 'done', 'message_id' => 201];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(

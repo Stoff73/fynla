@@ -55,9 +55,17 @@ final class CaptureAccuracyGate
     }
 
     /**
+     * Structured confirmed facts (Task 4): a key in $confirmedFacts whose
+     * value MATCHES the tool argument satisfies that fact without text
+     * evidence. Callers populate it from deterministic sources only —
+     * extractor parses of the awaiting-detail reply, scripted-step answers,
+     * ISA law — never from LLM output. A fact can never launder a
+     * contradicting argument: satisfaction always requires fact === argument.
+     *
+     * @param  array<string, mixed>  $confirmedFacts
      * @return array{allowed: bool, reason?: string, missing?: list<string>}
      */
-    public function inspect(string $tool, array $arguments, string $latestUserText): array
+    public function inspect(string $tool, array $arguments, string $latestUserText, array $confirmedFacts = []): array
     {
         if ($tool === 'capture_dependants') {
             return $this->inspectDependantDates($arguments, mb_strtolower(trim($latestUserText)));
@@ -73,9 +81,17 @@ final class CaptureAccuracyGate
 
         $isIsaWrite = $this->isIsaWrite($tool, $arguments, $text);
         if ($isIsaWrite) {
+            // ISA law — exactly one legal owner, so individual ownership is a
+            // confirmed fact by construction (formalises a2e926d through the
+            // same channel every other deterministic fact uses).
+            $confirmedFacts += ['ownership_type' => 'individual'];
+
             $textSubtype = $this->isaSubtypeFromText($text);
             $argumentSubtype = $this->isaSubtypeFromArguments($tool, $arguments);
-            if ($textSubtype === null || $argumentSubtype !== $textSubtype) {
+            $subtypeSatisfied = $argumentSubtype !== null
+                && ($argumentSubtype === $textSubtype
+                    || $argumentSubtype === ($confirmedFacts['isa_subtype'] ?? null));
+            if (! $subtypeSatisfied) {
                 $missing[] = 'isa_subtype';
                 $reasons[] = 'I need the ISA type before I can save it';
             }
@@ -102,8 +118,8 @@ final class CaptureAccuracyGate
             }
         } elseif (! is_string($argumentOwnership)
             || ! in_array($argumentOwnership, ['individual', 'joint', 'tenants_in_common', 'trust'], true)
-            || $textOwnership === null
-            || $argumentOwnership !== $textOwnership) {
+            || ($argumentOwnership !== ($confirmedFacts['ownership_type'] ?? null)
+                && ($textOwnership === null || $argumentOwnership !== $textOwnership))) {
             $missing[] = 'ownership_type';
             $reasons[] = 'I need you to confirm whether you own it individually or with someone else';
         }
@@ -114,10 +130,14 @@ final class CaptureAccuracyGate
                 $reasons[] = 'I need to know who the joint owner is';
             }
             $evidencedShare = $this->ownershipShareFromText($text);
-            if (! isset($arguments['ownership_percentage'])
-                || ! is_numeric($arguments['ownership_percentage'])
-                || $evidencedShare === null
-                || abs((float) $arguments['ownership_percentage'] - $evidencedShare) > 0.001) {
+            $factShare = $confirmedFacts['ownership_percentage'] ?? null;
+            $shareSatisfied = isset($arguments['ownership_percentage'])
+                && is_numeric($arguments['ownership_percentage'])
+                && ((is_numeric($factShare)
+                    && abs((float) $arguments['ownership_percentage'] - (float) $factShare) <= 0.001)
+                    || ($evidencedShare !== null
+                        && abs((float) $arguments['ownership_percentage'] - $evidencedShare) <= 0.001));
+            if (! $shareSatisfied) {
                 $missing[] = 'ownership_percentage';
                 $reasons[] = 'I need the ownership share';
             }
@@ -301,8 +321,8 @@ final class CaptureAccuracyGate
     {
         return $this->latestCategorisedMatch($text, [
             'tenants_in_common' => '/\btenants?\s+in\s+common\b/u',
-            'joint' => '/\b(?:joint|jointly|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner)|50\s*\/\s*50)\b/u',
-            'individual' => '/\b(?:solely|mine\s+alone|just\s+me|only\s+me|individually)\b/u',
+            'joint' => '/\b(?:joint|jointly|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner|wife|husband)|in\s+both\s+our\s+names|50\s*\/\s*50)\b/u',
+            'individual' => '/\b(?:solely|mine\s+alone|just\s+me|only\s+me|individually|owned\s+by\s+me|(?:on\s+)?my\s+own|in\s+my\s+name)\b/u',
             'trust' => '/\b(?:held\s+in\s+trust|trust-owned|owned\s+by\s+the\s+trust)\b/u',
         ]);
     }

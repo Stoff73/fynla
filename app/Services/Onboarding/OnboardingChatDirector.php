@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Enums\FynTurnIntent;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
@@ -294,8 +295,20 @@ final class OnboardingChatDirector
 
                 $merged = "Original capture details: {$pending['message']}\n"
                     ."Requested missing details: {$message}";
+
+                // Structured confirmed facts (Task 4): the awaiting-detail
+                // reply IS the answer to the gate's question — when the
+                // extractor's deterministic patterns parse an ownership from
+                // it, pass that as a confirmed fact so the gate needs no
+                // evidence-window chaining (the Santander-class shape).
+                $confirmedFacts = [];
+                $parsedOwnership = $this->entityExtractor->extractOwnershipType($message);
+                if ($parsedOwnership !== null) {
+                    $confirmedFacts['ownership_type'] = $parsedOwnership;
+                }
+
                 yield from $this->resolvePendingInterruptionCapture(
-                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute
+                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute, $confirmedFacts
                 );
 
                 return;
@@ -614,7 +627,10 @@ final class OnboardingChatDirector
         // verbatim via loadConversation) shows a repeated "Welcome back" on
         // startup. Remove any earlier ones before persisting this one.
         $conversation->messages()
-            ->where('metadata->is_resume_greeting', true)
+            ->where(function ($query): void {
+                $query->where('metadata->is_resume_greeting', true)
+                    ->orWhere('metadata->turn_intent', FynTurnIntent::ResumeGreeting->value);
+            })
             ->delete();
 
         // Persist the bubbles with the greeting (same metadata.bubbles pattern
@@ -626,6 +642,7 @@ final class OnboardingChatDirector
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_resume_greeting' => true,
+                'turn_intent' => FynTurnIntent::ResumeGreeting->value,
                 'bubbles' => [
                     ['id' => 'continue', 'label' => 'Continue'],
                     ['id' => 'something_else', 'label' => 'Something else'],
@@ -671,7 +688,10 @@ final class OnboardingChatDirector
 
         if ($user->onboarding_fyn_step === null) {
             $message = $this->saveMessage($conversation, 'assistant', 'No problem — what can I help you with?', [
-                'metadata' => ['is_pause_handoff' => true],
+                'metadata' => [
+                    'is_pause_handoff' => true,
+                    'turn_intent' => FynTurnIntent::TerminalNote->value,
+                ],
             ]);
             yield ['type' => 'content', 'text' => 'No problem — what can I help you with?'];
             yield ['type' => 'done', 'message_id' => $message->id];
@@ -715,6 +735,7 @@ final class OnboardingChatDirector
             'metadata' => [
                 'paused_at_step' => $currentStateId,
                 'is_pause_handoff' => true,
+                'turn_intent' => FynTurnIntent::TerminalNote->value,
             ],
         ]);
 
@@ -909,6 +930,15 @@ final class OnboardingChatDirector
             'mode' => $layoutMode,
         ];
 
+        // Verify sub-flow prompts are their own intent — the evidence
+        // boundary (Task 3) treats step_prompt and verify_prompt alike, but
+        // consumers must be able to tell the families apart.
+        $turnIntent = match (true) {
+            $turnType === 'terminal' => FynTurnIntent::TerminalNote,
+            str_starts_with($stateId, 'campaign_verify_') => FynTurnIntent::VerifyPrompt,
+            default => FynTurnIntent::StepPrompt,
+        };
+
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
 
@@ -922,7 +952,7 @@ final class OnboardingChatDirector
             }
             yield $event;
 
-            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId];
+            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -964,7 +994,7 @@ final class OnboardingChatDirector
             // same bubbles on resume; an onboarding_advance between parts makes
             // the /m chat open a fresh bubble. Single-part prompts behave
             // exactly as before (one content event, one saved message).
-            $metadata = ['onboarding_step' => $stateId];
+            $metadata = ['onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -1021,7 +1051,11 @@ final class OnboardingChatDirector
         if ($text !== null && $text !== '') {
             yield ['type' => 'content', 'text' => $text];
             $this->saveMessage($conversation, 'assistant', $text, [
-                'metadata' => ['onboarding_step' => $stateId, 'advice_section' => $section],
+                'metadata' => [
+                    'onboarding_step' => $stateId,
+                    'advice_section' => $section,
+                    'turn_intent' => FynTurnIntent::AdviceAnswer->value,
+                ],
             ]);
         }
 
@@ -1627,7 +1661,7 @@ final class OnboardingChatDirector
                 ->where('role', 'assistant')
                 ->where('id', '>', $assistantBaselineId)
                 ->latest('id')
-                ->first(['id', 'content', 'persona']);
+                ->first(['id', 'content', 'persona', 'metadata']);
 
             // Review finding I-1 — this turn's tool list keeps
             // delegate_to_capture, so a question-phrased write ("Can you add
@@ -1656,7 +1690,17 @@ final class OnboardingChatDirector
                 return;
             }
 
-            if ($this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+            // Structured turn intent (Task 2): a stamped row states outright
+            // whether the capture turn is waiting on a missing detail; the
+            // content heuristic remains for legacy rows only.
+            $latestAssistantIntent = is_array($latestAssistant->metadata)
+                ? ($latestAssistant->metadata['turn_intent'] ?? null)
+                : null;
+            $latestRequestsClarification = is_string($latestAssistantIntent) && $latestAssistantIntent !== ''
+                ? $latestAssistantIntent === FynTurnIntent::CaptureClarification->value
+                : $this->captureResponseRequestsClarification((string) $latestAssistant->content);
+
+            if ($latestRequestsClarification) {
                 // WriteIntentClassifier::classify() short-circuits to null for
                 // any message that looks like a question (the same check that
                 // routed this message into handleQuestionInterruption in the
@@ -1712,7 +1756,10 @@ final class OnboardingChatDirector
 
         $promise = "Good question — that one deserves a proper answer, so I'll come back to it once your setup is done and I can see the full picture.";
         $saved = $this->saveMessage($conversation, 'assistant', $promise, [
-            'metadata' => ['onboarding_step' => $currentStateId],
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'turn_intent' => FynTurnIntent::DeferredPromise->value,
+            ],
         ]);
 
         yield ['type' => 'content', 'text' => $promise];
@@ -1766,6 +1813,7 @@ final class OnboardingChatDirector
             $saved = $this->saveMessage($conversation, 'assistant', $offer, [
                 'metadata' => [
                     'bubbles' => $bubbles,
+                    'turn_intent' => FynTurnIntent::InterruptionOffer->value,
                 ],
             ]);
 
@@ -1797,7 +1845,8 @@ final class OnboardingChatDirector
         array $state,
         string $captureMessage,
         array $pending,
-        ?string $currentRoute
+        ?string $currentRoute,
+        array $confirmedFacts = []
     ): \Generator {
         $captureContext = CaptureContext::fromArray([
             'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
@@ -1816,7 +1865,7 @@ final class OnboardingChatDirector
         // untouched.
         $recordCreated = false;
         foreach ($this->handleInlineCapture(
-            $user, $conversation, $captureMessage, $captureContext, $currentRoute
+            $user, $conversation, $captureMessage, $captureContext, $currentRoute, $confirmedFacts
         ) as $captureEvent) {
             $captureEventType = $captureEvent['type'] ?? '';
             if ($captureEventType === 'entity_created'
@@ -1838,11 +1887,18 @@ final class OnboardingChatDirector
         // An A1 / interruption ANSWER must never re-arm the store flag
         // either — it is not a fresh capture clarification, even when this
         // lookup falls back to a stale row (e.g. handleInlineCapture
-        // persisted nothing new this turn).
+        // persisted nothing new this turn). Structured turn intent (Task 2):
+        // a stamped row re-arms ONLY when it is a capture clarification; the
+        // tag + content heuristics remain for legacy rows only.
+        $latestAssistantIntent = $latestAssistantMetadata['turn_intent'] ?? null;
+        $latestRequestsClarification = is_string($latestAssistantIntent) && $latestAssistantIntent !== ''
+            ? $latestAssistantIntent === FynTurnIntent::CaptureClarification->value
+            : (($latestAssistantMetadata['is_interruption_answer'] ?? false) !== true
+                && $latestAssistant !== null
+                && $this->captureResponseRequestsClarification((string) $latestAssistant->content));
         if (! $recordCreated
             && $latestAssistant !== null
-            && ($latestAssistantMetadata['is_interruption_answer'] ?? false) !== true
-            && $this->captureResponseRequestsClarification((string) $latestAssistant->content)) {
+            && $latestRequestsClarification) {
             $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
             $context['pending_interruption_store'] = [
                 'message' => $captureMessage,
@@ -2617,6 +2673,7 @@ final class OnboardingChatDirector
                         'metadata' => [
                             'onboarding_step' => $currentStateId,
                             'is_interruption_answer' => true,
+                            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
                         ],
                     ]);
                     yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
@@ -2805,6 +2862,7 @@ final class OnboardingChatDirector
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_retry' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2834,6 +2892,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_terminal_error' => true,
                 'error_type' => $captureError['error_type'] ?? 'unknown',
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2860,6 +2919,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_clarification' => true,
                 'clarification_type' => 'pension_history_total_vs_per_year',
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2929,6 +2989,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_partial_retry' => true,
                 'missing_fields' => $missing,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -3120,7 +3181,11 @@ final class OnboardingChatDirector
 
         $text = $this->buildIncomeChallenge($mismatch, $user);
         $this->saveMessage($conversation, 'assistant', $text, [
-            'metadata' => ['onboarding_step' => $stateId, 'income_challenge' => true],
+            'metadata' => [
+                'onboarding_step' => $stateId,
+                'income_challenge' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ],
         ]);
 
         yield [
@@ -3181,7 +3246,12 @@ final class OnboardingChatDirector
             ['id' => 'no', 'label' => 'No, change it'],
         ];
         $this->saveMessage($conversation, 'assistant', $text, [
-            'metadata' => ['onboarding_step' => $stateId, 'dob_confirm' => true, 'bubbles' => $bubbles],
+            'metadata' => [
+                'onboarding_step' => $stateId,
+                'dob_confirm' => true,
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ],
         ]);
 
         yield [
@@ -3626,6 +3696,7 @@ PROMPT;
         // immediately follow the clarification with a false "I've saved..."
         // verification announcement even though no write was attempted.
         if ($modelRequestedClarification && ! $capturedSomething) {
+            $this->tagCaptureClarification($conversation, $assistantBaselineId);
             $this->recordProgress(
                 $user,
                 $currentStateId,
@@ -4841,7 +4912,10 @@ PROMPT;
 
         $prompt = 'Earlier you asked me something — want to pick that up now that your plan is set up?';
         $saved = $this->saveMessage($conversation, 'assistant', $prompt, [
-            'metadata' => ['bubbles' => $bubbles],
+            'metadata' => [
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::DeferredRaise->value,
+            ],
         ]);
 
         yield [
@@ -4891,7 +4965,10 @@ PROMPT;
             $conversation,
             'assistant',
             $appNote,
-            ['metadata' => ['onboarding_step' => $stateId]]
+            ['metadata' => [
+                'onboarding_step' => $stateId,
+                'turn_intent' => FynTurnIntent::TerminalNote->value,
+            ]]
         );
 
         // The user taps a button to view their plan rather than being
@@ -4913,7 +4990,11 @@ PROMPT;
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => $stateId, 'bubbles' => $bubbles]]
+            ['metadata' => [
+                'onboarding_step' => $stateId,
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::Celebration->value,
+            ]]
         );
 
         yield [
@@ -5263,6 +5344,29 @@ PROMPT;
 
         foreach ($assistantMessages as $assistantMessage) {
             $metadata = is_array($assistantMessage->metadata) ? $assistantMessage->metadata : [];
+
+            // Structured turn intent (Task 2): a stamped row answers the
+            // question the heuristics below approximate — only a capture
+            // clarification arms the merge; greetings and interruption
+            // answers are transparent; any other stamped intent means no
+            // capture is pending. Heuristics remain for legacy rows only.
+            $turnIntent = $metadata['turn_intent'] ?? null;
+            if (is_string($turnIntent) && $turnIntent !== '') {
+                if ($turnIntent === FynTurnIntent::CaptureClarification->value) {
+                    $clarificationFound = true;
+
+                    continue;
+                }
+                if (in_array($turnIntent, [
+                    FynTurnIntent::ResumeGreeting->value,
+                    FynTurnIntent::InterruptionAnswer->value,
+                ], true)) {
+                    continue;
+                }
+
+                return $message;
+            }
+
             if (($metadata['is_resume_greeting'] ?? false) === true
                 || ($metadata['is_interruption_answer'] ?? false) === true) {
                 continue;
@@ -5333,7 +5437,35 @@ PROMPT;
         }
 
         $metadata = is_array($message->metadata) ? $message->metadata : [];
-        $message->update(['metadata' => array_merge($metadata, ['is_interruption_answer' => true])]);
+        $message->update(['metadata' => array_merge($metadata, [
+            'is_interruption_answer' => true,
+            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
+        ])]);
+    }
+
+    /**
+     * Stamp the most recently persisted assistant message (created after
+     * $afterId) as a capture clarification. The shared pipeline stamps every
+     * data_capture persist capture_ack by default; a turn that captured
+     * nothing and asked for a missing fact is a clarification — the intent
+     * Task 2-4 read-side consumers key their followup arming on.
+     */
+    private function tagCaptureClarification(AiConversation $conversation, int $afterId): void
+    {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $afterId)
+            ->latest('id')
+            ->first();
+
+        if ($message === null) {
+            return;
+        }
+
+        $metadata = is_array($message->metadata) ? $message->metadata : [];
+        $message->update(['metadata' => array_merge($metadata, [
+            'turn_intent' => FynTurnIntent::CaptureClarification->value,
+        ])]);
     }
 
     /**
@@ -5512,7 +5644,10 @@ PROMPT;
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => OnboardingStateMachine::STATE_DONE]]
+            ['metadata' => [
+                'onboarding_step' => OnboardingStateMachine::STATE_DONE,
+                'turn_intent' => FynTurnIntent::Celebration->value,
+            ]]
         );
 
         yield [
@@ -5636,6 +5771,7 @@ PROMPT;
             'metadata' => array_merge($metadata, [
                 'onboarding_step' => $stateId,
                 'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ]),
         ];
 
@@ -5668,6 +5804,11 @@ PROMPT;
             'metadata' => array_merge($metadata, [
                 'onboarding_step' => $stateId,
                 $metadataFlag => true,
+                // Success/read-back is a verify acknowledgement; a failure or
+                // clarification asks the user for another input.
+                'turn_intent' => in_array($metadataFlag, ['verify_edit_success', 'verify_edit_readback'], true)
+                    ? FynTurnIntent::VerifyAck->value
+                    : FynTurnIntent::CaptureClarification->value,
             ]),
         ];
 
@@ -5711,9 +5852,37 @@ PROMPT;
      * can dedup against them. After the LLM stream completes, runs the
      * multi-entity gap-fill on every focus inferred from the CaptureContext.
      *
+     * Structured confirmed facts (Task 4): $confirmedFacts — deterministic
+     * facts about this capture (extractor-parsed ownership/subtype from an
+     * awaiting-detail reply) — are carried as agent state for the duration
+     * of the turn, so both the streamed tool dispatch and the direct
+     * gap-fill executeTool calls resolve them in CaptureAccuracyGate.
+     * Always cleared on exit, however the generator ends.
+     *
+     * @param  array<string, mixed>|null  $confirmedFacts
      * @return \Generator<array<string, mixed>>
      */
     public function handleInlineCapture(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        CaptureContext $context,
+        ?string $currentRoute = null,
+        ?array $confirmedFacts = null,
+    ): \Generator {
+        $this->coordinatingAgent->setConfirmedCaptureFacts(
+            $confirmedFacts === [] ? null : $confirmedFacts
+        );
+
+        try {
+            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute);
+        } finally {
+            $this->coordinatingAgent->setConfirmedCaptureFacts(null);
+        }
+    }
+
+    /** @return \Generator<array<string, mixed>> */
+    private function runInlineCapture(
         User $user,
         AiConversation $conversation,
         string $message,
@@ -6023,22 +6192,44 @@ PROMPT;
             // this method tracks whether other yielded events (e.g.
             // capture_complete's message_id) still reference this row, so a
             // silent no-op is the safe, simple choice.
+            $captureIntent = $pendingWriteFailures !== []
+                ? FynTurnIntent::CaptureClarification->value
+                : FynTurnIntent::CaptureAck->value;
             if ($persistedMessage !== null && $persistedText !== '') {
                 $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
                 $persistedMessage->update([
                     'content' => $persistedText,
-                    'metadata' => $pendingWriteFailures !== []
-                        ? array_merge($metadata, ['capture_write_failed' => true])
-                        : $metadata,
+                    'metadata' => array_merge(
+                        $metadata,
+                        ['turn_intent' => $captureIntent],
+                        $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    ),
                 ]);
             } elseif ($persistedMessage === null && $persistedText !== '') {
                 $this->saveMessage($conversation, 'assistant', $persistedText, [
-                    'metadata' => $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    'metadata' => array_merge(
+                        ['turn_intent' => $captureIntent],
+                        $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    ),
                 ]);
             }
         } else {
             foreach ($contentEvents as $contentEvent) {
                 yield $contentEvent;
+            }
+
+            // A no-tool clarification turn (the model asked for a missing
+            // fact without attempting a write) persists through the pipeline
+            // with the default capture_ack stamp — refine it so read-side
+            // consumers see the clarification.
+            if ($recordsCreated === [] && $llmEmittedFills === []) {
+                $modelText = implode('', array_map(
+                    static fn (array $event): string => (string) ($event['text'] ?? ''),
+                    $contentEvents,
+                ));
+                if ($modelText !== '' && $this->captureResponseRequestsClarification($modelText)) {
+                    $this->tagCaptureClarification($conversation, $assistantBaselineId);
+                }
             }
         }
 
@@ -6101,7 +6292,10 @@ PROMPT;
                     $sentence = "That's a milestone: ".lcfirst($mint['label']);
                     yield ['type' => 'content', 'text' => $sentence];
                     $this->saveMessage($conversation, 'assistant', $sentence, [
-                        'metadata' => ['milestone_ack' => $mint['type']],
+                        'metadata' => [
+                            'milestone_ack' => $mint['type'],
+                            'turn_intent' => FynTurnIntent::Celebration->value,
+                        ],
                     ]);
                 }
             } catch (\Throwable) {

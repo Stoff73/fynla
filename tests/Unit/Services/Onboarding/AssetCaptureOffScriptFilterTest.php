@@ -49,6 +49,7 @@ function runAssetCapture(User $user, AiConversation $conversation, array $events
     // CoordinatingAgent::setUnifiedOnboardingFocus(); zero-call-satisfied
     // under legacy. Mirrors ChildrenDOBFallbackTest invalidateUserCache.
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     test()->instance(CoordinatingAgent::class, $mock);
 
     $director = app(OnboardingChatDirector::class);

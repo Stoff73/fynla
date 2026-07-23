@@ -114,6 +114,7 @@ it('lets Fyn acknowledge a capture-crossed milestone in the same turn', function
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')->andReturnUsing(function (): Generator {
         yield ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 7, 'name' => 'Cash ISA'];
     });

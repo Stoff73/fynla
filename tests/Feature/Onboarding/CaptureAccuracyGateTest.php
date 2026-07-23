@@ -1476,3 +1476,188 @@ it('recognises an explicit Innovative Finance ISA subtype', function (): void {
 
     expect($result)->toBe(['allowed' => true]);
 });
+
+// ── Task 3 (structured turn intent): the evidence-window boundary reads the
+// enum. A stamped row is a boundary iff step_prompt/verify_prompt — an A1
+// interruption answer carrying onboarding_step (its persisted shape) must
+// no longer sever the entity sentence from the ownership detail. ───────────
+
+it('does not treat an enum-stamped interruption answer as the evidence-window boundary', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'I have a Santander savings account with £9,000 in it.',
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Salary sacrifice swaps salary for employer pension contributions.',
+        'metadata' => [
+            'onboarding_step' => 'campaign_bank_accounts',
+            'is_interruption_answer' => true,
+            'turn_intent' => 'interruption_answer',
+        ],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Just me.',
+    ]);
+
+    $evidenceMethod = new ReflectionMethod(CoordinatingAgent::class, 'recentUserMessageEvidence');
+    $evidenceMethod->setAccessible(true);
+
+    expect($evidenceMethod->invoke(app(CoordinatingAgent::class), $conversation->id))
+        ->toBe("I have a Santander savings account with £9,000 in it.\nJust me.");
+});
+
+it('treats an enum-stamped step prompt as the evidence-window boundary', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'I have a Santander savings account with £9,000 in it.',
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'assistant',
+        'content' => 'Now your pensions — do you have a workplace pension?',
+        'metadata' => [
+            'onboarding_step' => 'campaign_pensions',
+            'turn_intent' => 'step_prompt',
+        ],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Just me.',
+    ]);
+
+    $evidenceMethod = new ReflectionMethod(CoordinatingAgent::class, 'recentUserMessageEvidence');
+    $evidenceMethod->setAccessible(true);
+
+    expect($evidenceMethod->invoke(app(CoordinatingAgent::class), $conversation->id))
+        ->toBe('Just me.');
+});
+
+// ── Task 4 (structured turn intent): confirmed facts satisfy the gate
+// without text evidence — populated only from deterministic sources
+// (extractor parses, scripted answers, ISA law). A fact must MATCH the
+// argument; it can never launder a contradicting argument through. ─────────
+
+it('allows an ownership write on a confirmed fact with no text evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Santander Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 9000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], 'On my own.', ['ownership_type' => 'individual']);
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('allows an ISA subtype on a confirmed fact with no text evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'My ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 8000,
+    ], 'The cash one.', ['isa_subtype' => 'cash']);
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('still blocks a joint ISA regardless of confirmed facts', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Our ISA',
+        'account_type' => 'cash_isa',
+        'is_isa' => true,
+        'current_balance' => 8000,
+        'ownership_type' => 'joint',
+    ], 'It is a Cash ISA we hold jointly.', ['ownership_type' => 'joint', 'isa_subtype' => 'cash']);
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('never lets a confirmed fact launder a contradicting ownership argument', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Santander Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 9000,
+        'ownership_type' => 'joint',
+    ], 'No ownership wording here.', ['ownership_type' => 'individual']);
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('satisfies a joint ownership share from a confirmed fact', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Joint Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 9000,
+        'ownership_type' => 'joint',
+        'joint_owner_id' => 42,
+        'ownership_percentage' => 50,
+    ], 'We own it jointly.', ['ownership_percentage' => 50.0]);
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+// ── Task 5 (approved minor): natural ownership phrasings for non-ISA
+// assets — conservative additions with the existing negation machinery
+// pinned against them. ─────────────────────────────────────────────────────
+
+it('recognises natural individual-ownership phrasings', function (string $text): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text);
+
+    expect($result)->toBe(['allowed' => true]);
+})->with([
+    'My Halifax savings account with £5,000 is owned by me',
+    'The Halifax account with £5,000 is my own',
+    'My £5,000 Halifax savings account is in my name',
+    'I hold the £5,000 Halifax account on my own',
+]);
+
+it('recognises natural joint-ownership phrasings', function (string $text): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 5000,
+        'ownership_type' => 'joint',
+        'joint_owner_id' => 42,
+        'ownership_percentage' => 50,
+    ], $text);
+
+    expect($result)->toBe(['allowed' => true]);
+})->with([
+    'Our Halifax saver holds £5,000, in both our names, owned 50/50',
+    'The Halifax saver holds £5,000, owned 50/50 with my wife',
+    'The Halifax saver holds £5,000, owned 50/50 with my husband',
+]);
+
+it('does not treat a negated natural phrasing as individual-ownership evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], 'The £5,000 Halifax savings account is not owned by me alone.');
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});

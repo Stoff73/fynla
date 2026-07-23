@@ -27,6 +27,8 @@
 </template>
 
 <script>
+import { TOKENS } from '../tokens.js';
+
 export default {
   name: 'GamificationCelebration',
   props: {
@@ -53,7 +55,7 @@ export default {
       this.$emit('dismiss');
     },
     buildFireworks() {
-      const palette = ['#20B486', '#E83E6D', '#A78BFA', '#E6C9A8', '#6EE7B7'];
+      const palette = [TOKENS.spring500, TOKENS.raspberry500, TOKENS.violet400, TOKENS.savannah500, TOKENS.spring300];
       const spots = [[24, 30], [72, 22], [50, 14], [16, 58], [84, 62]];
       return spots.map((s, i) => ({
         id: i,
@@ -66,7 +68,7 @@ export default {
       return `--r:${angle}deg;background:${f.color};animation-delay:${(f.id * 0.4) + 0.5}s`;
     },
     buildConfetti() {
-      const palette = ['#E83E6D', '#20B486', '#E6C9A8', '#A78BFA', '#6EE7B7'];
+      const palette = [TOKENS.raspberry500, TOKENS.spring500, TOKENS.savannah500, TOKENS.violet400, TOKENS.spring300];
       return Array.from({ length: 9 }, (_, i) => ({
         id: i,
         style: `left:${8 + i * 10}%;background:${palette[i % palette.length]};animation-delay:${(i * 0.3) % 2}s`,
@@ -77,21 +79,21 @@ export default {
 </script>
 
 <style scoped>
-.celebrate { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; color: #fff; overflow: hidden; background: linear-gradient(165deg, #141a2e 0%, #1F2A44 35%, #2c2466 72%, #5854E6 100%); }
-.kicker { letter-spacing: 3px; font-size: 13px; font-weight: 700; color: #A7F3D0; }
+.celebrate { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; color: var(--white); overflow: hidden; background: linear-gradient(165deg, var(--horizon-600) 0%, var(--horizon-500) 35%, var(--horizon-500) 72%, var(--violet-500) 100%); }
+.kicker { letter-spacing: 3px; font-size: 13px; font-weight: 700; color: var(--spring-200); }
 .ring-wrap { position: relative; width: 140px; height: 140px; margin: 14px auto 6px; display: flex; align-items: center; justify-content: center; animation: pop .7s cubic-bezier(.2,.9,.3,1.4) both; }
 .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ring-track { fill: none; stroke: rgba(255,255,255,.15); stroke-width: 9; }
-.ring-fill { fill: none; stroke: #20B486; stroke-width: 9; stroke-linecap: round; stroke-dasharray: 389; stroke-dashoffset: 389; animation: ring 1.3s ease-out .4s both; }
+.ring-fill { fill: none; stroke: var(--spring-500); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 389; stroke-dashoffset: 389; animation: ring 1.3s ease-out .4s both; }
 .lvl-num { font-size: 50px; font-weight: 900; }
 .title { font-size: 28px; font-weight: 900; margin-top: 12px; }
-.subtitle { font-size: 20px; font-weight: 700; color: #6EE7B7; margin-top: 2px; }
-.next { font-size: 14px; color: #CBD5E1; margin-top: 16px; line-height: 1.55; max-width: 260px; }
-.cta { margin-top: 20px; padding: 15px 28px; border: none; border-radius: 14px; background: #E83E6D; color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; }
-.hint { font-size: 13px; color: #CBD5E1; margin-top: 12px; }
+.subtitle { font-size: 20px; font-weight: 700; color: var(--spring-300); margin-top: 2px; }
+.next { font-size: 14px; color: var(--horizon-300); margin-top: 16px; line-height: 1.55; max-width: 260px; }
+.cta { margin-top: 20px; padding: 15px 28px; border: none; border-radius: 14px; background: var(--raspberry-500); color: var(--white); font-weight: 700; font-size: 16px; cursor: pointer; }
+.hint { font-size: 13px; color: var(--horizon-300); margin-top: 12px; }
 .confetti { position: absolute; top: -20px; width: 9px; height: 9px; border-radius: 2px; animation: fall 3s linear infinite; }
 .fw { position: absolute; width: 6px; height: 6px; }
-.fw .core { position: absolute; left: -6px; top: -6px; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(#fff, transparent 70%); animation: flash 1.6s ease-out infinite; }
+.fw .core { position: absolute; left: -6px; top: -6px; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(var(--white), transparent 70%); animation: flash 1.6s ease-out infinite; }
 .fw i { position: absolute; left: 0; top: 0; width: 6px; height: 6px; border-radius: 50%; animation: burst 1.6s ease-out infinite; }
 @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes ring { to { stroke-dashoffset: 96; } }

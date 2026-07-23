@@ -128,6 +128,7 @@ function driveDirectorWithScriptedCaptureTurn(User $user, AiConversation $conver
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     $received = driveDirector($user, $conversation, $message);
@@ -621,6 +622,7 @@ it('arms the pending store offer instead of burying the clarification when a que
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser();
@@ -844,6 +846,7 @@ it('answers a question asked at a grouped-extract step instead of retrying blind
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -891,6 +894,7 @@ it('suppresses the interruption advice answer when A1 already answered the quest
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -956,6 +960,7 @@ it('routes the interruption dispatcher\'s answer through when the A1 prose is on
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -1048,6 +1053,7 @@ it("tags the interruption dispatcher's plain advisory answer and lets the DOB ex
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -1133,6 +1139,7 @@ it('still arms pending_interruption_store for a genuine capture clarification re
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -1274,4 +1281,126 @@ it('still records a genuine "roughly Nk" expenditure answer and advances', funct
 
     $user->refresh();
     expect((float) $user->monthly_expenditure)->toBe(2000.0);
+});
+
+// ── Task 2 (structured turn intent): the followup/merge scans prefer the
+// enum. A row stamped turn_intent=interruption_answer — with NO legacy
+// is_interruption_answer boolean — must be skipped by
+// mergeUnresolvedCaptureMessage's scan exactly as the tagged rows are, so
+// the genuine on-script reply reaches the state's own parser unmerged (the
+// conv-168 shape pinned via the enum rather than the tag). ────────────────
+
+it('skips an enum-stamped interruption answer in the merge scan without the legacy tag', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    // Previous user turn — a statement, not a question, so the
+    // userAskedQuestion early-return cannot mask the scan.
+    $conversation->messages()->create(['role' => 'user', 'content' => 'I was born in March 1988.']);
+
+    // The advisory answer row carries ONLY the enum (future rows stop
+    // writing the boolean), with question-shaped wording the legacy
+    // heuristic mistakes for a capture clarification.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I need your date of birth and pension details. Would you like me to help you add those now?',
+        'metadata' => ['turn_intent' => 'interruption_answer'],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => '14 March 1988']);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'mergeUnresolvedCaptureMessage');
+    $merged = $method->invoke(app(OnboardingChatDirector::class), $conversation, '14 March 1988');
+
+    expect($merged)->toBe('14 March 1988');
+});
+
+it('merges on an enum-stamped capture clarification even when the wording defeats the legacy heuristic', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $conversation->messages()->create(['role' => 'user', 'content' => 'I have a savings account with Halifax.']);
+
+    // The stamp says clarification; the terse wording carries none of the
+    // legacy heuristic's cues. The enum must win.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'One detail is missing before that saves.',
+        'metadata' => ['turn_intent' => 'capture_clarification'],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => 'It holds £12,000.']);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'mergeUnresolvedCaptureMessage');
+    $merged = $method->invoke(app(OnboardingChatDirector::class), $conversation, 'It holds £12,000.');
+
+    expect($merged)->toBe(
+        "Original capture details: I have a savings account with Halifax.\n"
+        .'Requested missing details: It holds £12,000.'
+    );
+});
+
+// ── Task 4 (structured turn intent): confirmed facts make the two-step
+// store flow deterministic — the awaiting-detail reply's extractor parse
+// satisfies the gate directly, with no evidence-window dependency. ─────────
+
+it('completes the two-step store flow via confirmed facts when the detail phrasing defeats the gate regexes', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    [$user, $conversation] = interruptionUser();
+
+    driveDirector($user, $conversation, 'I have a Santander savings account with £9,000 in it');
+
+    $clarification = 'I need you to confirm whether you own it individually or with someone else.';
+    $calls = 0;
+    $mock = Mockery::mock(app(CoordinatingAgent::class));
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (...$args) use (&$calls, $clarification) {
+            $calls++;
+            /** @var AiConversation $conversationArg */
+            $conversationArg = $args[1];
+
+            if ($calls === 1) {
+                // The "Yes, save it" capture turn: gate-blocked — the model
+                // voices the ownership ask. Persisted stamped exactly as the
+                // real pipeline (+ the Task 1 refinement) stamps it.
+                $conversationArg->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $clarification,
+                    'persona' => 'data_capture',
+                    'metadata' => ['turn_intent' => 'capture_clarification'],
+                ]);
+
+                return (function () use ($clarification) {
+                    yield ['type' => 'content', 'text' => $clarification];
+                    yield ['type' => 'done', 'message_id' => 800];
+                })();
+            }
+
+            // The merged detail turn: the model captures nothing — the
+            // deterministic gap-fill (REAL executeTool via the partial
+            // mock's passthrough) must land the write.
+            return (function () {
+                yield ['type' => 'done', 'message_id' => 801];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    // NO setConfirmedCaptureFacts stub here on purpose: this is a PARTIAL
+    // mock, and stubbing the setter would swallow the call instead of
+    // forwarding it to the real instance — severing the very facts channel
+    // this test pins (the real executeTool must read the transient).
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    driveDirector($user->refresh(), $conversation, 'Yes, save it');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store']['awaiting_detail'] ?? null)->toBeTrue();
+
+    // "It's only mine." parses deterministically (extractor's "only mine"
+    // pattern) but is NOT in the gate's text-evidence vocabulary (even after
+    // the Task 5 phrasing additions) — only the confirmed-facts channel can
+    // satisfy the gate for this phrasing.
+    driveDirector($user->refresh(), $conversation, "It's only mine.");
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account)->not->toBeNull();
+    expect($account->ownership_type)->toBe('individual');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
 });

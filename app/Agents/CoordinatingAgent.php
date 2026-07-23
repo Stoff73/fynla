@@ -9,6 +9,7 @@ use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
 use App\Constants\ValidationLimits;
+use App\Enums\FynTurnIntent;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
@@ -875,6 +876,7 @@ class CoordinatingAgent extends BaseAgent
         ?array $classification = null,
         ?array $kycResult = null,
         ?string $evidenceOverride = null,
+        ?array $confirmedFacts = null,
     ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
@@ -1022,7 +1024,12 @@ class CoordinatingAgent extends BaseAgent
             $input,
             trustVerbatim: $evidenceOverride !== null,
         );
-        $accuracy = $this->captureAccuracyGate->inspect($toolName, $input, $accuracyEvidence);
+        $accuracy = $this->captureAccuracyGate->inspect(
+            $toolName,
+            $input,
+            $accuracyEvidence,
+            $confirmedFacts ?? $this->confirmedCaptureFacts ?? [],
+        );
         if (! $accuracy['allowed']) {
             if ($accuracyCacheKey !== null) {
                 Cache::put($accuracyCacheKey, $accuracyEvidence, now()->addMinutes(15));
@@ -5040,6 +5047,19 @@ class CoordinatingAgent extends BaseAgent
             ->get(['id', 'metadata'])
             ->first(function (AiMessage $message): bool {
                 $metadata = is_array($message->metadata) ? $message->metadata : [];
+
+                // Structured turn intent (Task 3): a stamped row is a
+                // boundary iff it is a deterministic prompt (step or verify).
+                // The onboarding_step heuristic remains for legacy rows only
+                // — an A1 interruption answer carries onboarding_step and
+                // must no longer sever the evidence window.
+                $turnIntent = $metadata['turn_intent'] ?? null;
+                if (is_string($turnIntent) && $turnIntent !== '') {
+                    return in_array($turnIntent, [
+                        FynTurnIntent::StepPrompt->value,
+                        FynTurnIntent::VerifyPrompt->value,
+                    ], true);
+                }
 
                 return isset($metadata['onboarding_step'])
                     && ($metadata['capture_write_failed'] ?? false) !== true

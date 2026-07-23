@@ -148,6 +148,7 @@ function driveCaptureTurn(User $user, AiConversation $conversation, string $mess
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     test()->instance(CoordinatingAgent::class, $mock);
 
     $received = [];
