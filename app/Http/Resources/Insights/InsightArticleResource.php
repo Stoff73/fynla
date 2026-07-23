@@ -21,6 +21,7 @@ class InsightArticleResource extends JsonResource
             'tags' => $this->tags ?? [],
             'authors' => $this->authors ?? [],
             'hero_image' => $this->heroImageUrls(),
+            'cta' => $this->buildCta(),
             'body_blocks' => $this->body_blocks ?? [],
             'body_html' => null,
             'template_id' => $this->template_id,
@@ -57,6 +58,33 @@ class InsightArticleResource extends JsonResource
             'full' => $this->hero_image_path ? $base.$this->hero_image_path : null,
             'card' => $this->hero_image_card_path ? $base.$this->hero_image_card_path : null,
             'thumb' => $this->hero_image_thumb_path ? $base.$this->hero_image_thumb_path : null,
+        ];
+    }
+
+    /**
+     * Bottom-of-article CTA. A linked campaign overrides the default
+     * "register free" prompt with its own heading/button + landing page.
+     */
+    private function buildCta(): array
+    {
+        $campaign = $this->relationLoaded('pipelineCampaign') ? $this->pipelineCampaign : null;
+
+        if ($campaign) {
+            return [
+                'heading' => $campaign->cta_heading ?: 'Ready to plan smarter?',
+                'subheading' => $campaign->cta_subheading ?: 'See how much more control you can have over your money.',
+                'button_text' => $campaign->cta_button_text ?: 'Get started',
+                'url' => $campaign->landing_url ?: '/register',
+                'is_campaign' => true,
+            ];
+        }
+
+        return [
+            'heading' => 'Take control of your financial future',
+            'subheading' => 'Fynla brings your whole financial picture together with clear, tailored next steps. Get started free.',
+            'button_text' => 'Get started for free',
+            'url' => '/register',
+            'is_campaign' => false,
         ];
     }
 }

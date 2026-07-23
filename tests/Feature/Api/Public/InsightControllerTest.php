@@ -78,7 +78,7 @@ it('falls back to a default cover image when an article has none', function () {
     $response = $this->getJson('/api/insights/featured')->assertOk();
 
     expect($response['data']['featured']['image_card'])
-        ->toEndWith('/images/insights/insight-default.svg');
+        ->toEndWith('/images/insights/insight-default.jpg');
 });
 
 it('returns a published article by slug', function () {

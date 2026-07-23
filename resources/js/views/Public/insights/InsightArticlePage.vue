@@ -59,27 +59,32 @@
         </div>
       </section>
 
-      <!-- Fallback header (no hero image): title on left, category chip inline right -->
-      <header v-else class="mb-8">
-        <div class="flex items-start justify-between gap-4 mb-4">
-          <h1
-            class="flex-1 text-4xl md:text-5xl font-black text-horizon-500 leading-tight"
-            style="letter-spacing:-0.02em;"
-            itemprop="name"
-          >
-            {{ article.title }}
-          </h1>
-          <span
-            v-if="categoryLabel"
-            class="flex-shrink-0 mt-2 text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-raspberry-100 text-raspberry-700"
-          >
-            {{ categoryLabel }}
-          </span>
-        </div>
-        <p v-if="article.subtitle" class="text-lg text-neutral-600 leading-relaxed">
+      <!-- Gradient hero fallback (no photo): branded banner with the title
+           overlaid, matching the bespoke article design. -->
+      <section
+        v-else
+        class="relative rounded-lg overflow-hidden mb-8 bg-gradient-to-r from-horizon-500 to-raspberry-500 px-6 py-12 sm:px-10 sm:py-16 md:px-12 md:py-20"
+      >
+        <span
+          v-if="categoryLabel"
+          class="absolute top-4 right-4 text-xs font-semibold px-2.5 py-1 rounded-md uppercase tracking-wide bg-white/15 text-white"
+        >
+          {{ categoryLabel }}
+        </span>
+        <h1
+          class="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight max-w-3xl"
+          style="letter-spacing:-0.02em;"
+          itemprop="name"
+        >
+          {{ article.title }}
+        </h1>
+        <p
+          v-if="article.subtitle"
+          class="text-base sm:text-lg md:text-xl mt-3 md:mt-4 leading-relaxed text-white/90 max-w-2xl"
+        >
           {{ article.subtitle }}
         </p>
-      </header>
+      </section>
 
       <p v-if="byline" class="text-sm text-neutral-400 mb-10" itemprop="author">{{ byline }}</p>
 

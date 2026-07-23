@@ -76,6 +76,9 @@ class InsightController extends Controller
         $pool = collect(DocumentArticleAsInsightListResource::collection($docs)->resolve())
             ->merge(InsightArticleListResource::collection($insights)->resolve())
             ->sortByDesc('published_at')
+            // De-dupe by title so the same story never appears twice (e.g. an
+            // article that exists as both a native insight and a CMS document).
+            ->unique(fn ($a) => mb_strtolower(trim((string) ($a['title'] ?? ''))))
             ->values();
 
         // No explicit feature → the newest across the pool leads.
@@ -85,8 +88,10 @@ class InsightController extends Controller
         }
 
         $featuredSlug = $featured['slug'] ?? null;
+        $featuredTitle = mb_strtolower(trim((string) ($featured['title'] ?? '')));
         $supporting = $pool
-            ->reject(fn ($a) => $featuredSlug !== null && ($a['slug'] ?? null) === $featuredSlug)
+            ->reject(fn ($a) => ($featuredSlug !== null && ($a['slug'] ?? null) === $featuredSlug)
+                || ($featuredTitle !== '' && mb_strtolower(trim((string) ($a['title'] ?? ''))) === $featuredTitle))
             ->take(2)
             ->values()
             ->all();
@@ -112,7 +117,7 @@ class InsightController extends Controller
             $insightQuery->published();
         }
         if ($article = $insightQuery->first()) {
-            return new InsightArticleResource($article->load('author'));
+            return new InsightArticleResource($article->load(['author', 'pipelineCampaign']));
         }
 
         // Fall back to CMS-imported document articles.

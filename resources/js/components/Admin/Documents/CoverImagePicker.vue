@@ -92,7 +92,7 @@ export default {
         effectiveCover() {
             return this.modelValue
                 ? '/storage/' + this.modelValue
-                : '/images/insights/insight-default.svg';
+                : '/images/insights/insight-default.jpg';
         },
         extractedImages() {
             const matches = [...this.htmlBody.matchAll(/<img[^>]+src="\/storage\/(document-articles\/[^"]+)"/g)];

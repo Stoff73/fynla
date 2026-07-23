@@ -34,7 +34,7 @@ class DocumentArticleAsInsightListResource extends JsonResource
             'authors' => $authors,
             'image_card' => $this->cover_image_path
                 ? $base.$this->cover_image_path
-                : rtrim(config('app.url'), '/').'/images/insights/insight-default.svg',
+                : rtrim(config('app.url'), '/').'/images/insights/insight-default.jpg',
             'published_at' => optional($this->published_at)->toIso8601String(),
             'is_featured' => false,
             'is_bespoke' => false,
