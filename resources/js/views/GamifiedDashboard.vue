@@ -10,7 +10,7 @@
         <section class="gd-header">
           <div class="gd-header__top">
             <span class="gd-header__level">Level {{ level }}</span>
-            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</span>
+            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level</span>
           </div>
           <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
         </section>
@@ -36,7 +36,7 @@
               </div>
             </div>
             <div>
-              <h2 class="md-level__heading" id="gdm-level-h">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</h2>
+              <h2 class="md-level__heading" id="gdm-level-h">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level</h2>
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
           </section>
@@ -85,7 +85,7 @@
                 <li v-if="!activeRecs.length" class="md-rec md-rec--empty">
                   <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">No recommendations here right now.</span></span></span>
                 </li>
-                <li v-for="(rec, idx) in activeRecs" :key="rec.id" class="md-rec" :class="{ 'is-done': rec.done }">
+                <li v-for="rec in activeRecs" :key="rec.id" class="md-rec" :class="{ 'is-done': rec.done }">
                   <button type="button" class="md-rec__check-btn" :aria-pressed="rec.done ? 'true' : 'false'" :aria-label="rec.done ? 'Mark as not done' : 'Mark complete'" @click="toggleRec(rec)">
                     <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
                   </button>
@@ -130,7 +130,7 @@
         <section class="gd-header">
           <div class="gd-header__top">
             <span class="gd-header__level">Level {{ level }}</span>
-            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions complete — reach <strong>Level {{ level + 1 }}</strong></span>
+            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level — reach <strong>Level {{ level + 1 }}</strong></span>
           </div>
           <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
           <div class="gd-header__levelup">
@@ -259,6 +259,13 @@ export default {
       areaStats: { save_tax: '', retirement: '', savings: '' },
       level: 1,
       percentile: 57,
+      // Engine-fed level counts (MobileLevelService — the canonical
+      // "X of 4 actions to your next level", identical to /m). Null until
+      // the payload arrives; the local recommendation count is only a
+      // fallback for a payload without the level block.
+      actionsCompletedSrv: null,
+      actionsTotalSrv: null,
+      progressSrv: null,
       cats: [
         { key: 'save_tax', route: '/tax-strategy', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
         { key: 'retirement', route: '/net-worth/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
@@ -276,19 +283,21 @@ export default {
     doneCount() {
       return this.activeRecs.filter((r) => r.done).length;
     },
-    // The level "actions" are the recommendations across all focus areas, so the
-    // progress bar and "X of Y actions complete" move live as the user checks /
-    // unchecks them (no server round-trip — instant, and works both ways).
     allRecs() {
       return Object.values(this.buckets).reduce((acc, list) => acc.concat(list || []), []);
     },
+    // Level counts come from the gamification engine (same payload block /m
+    // renders — "X of 4 actions to your next level", each action a quarter
+    // of a level). The local recommendation tally is only a fallback for a
+    // payload without the level block.
     actionsTotal() {
-      return this.allRecs.length;
+      return this.actionsTotalSrv ?? this.allRecs.length;
     },
     actionsCompleted() {
-      return this.allRecs.filter((r) => r.done).length;
+      return this.actionsCompletedSrv ?? this.allRecs.filter((r) => r.done).length;
     },
     progressPercent() {
+      if (this.progressSrv !== null) return this.progressSrv;
       return this.actionsTotal > 0 ? Math.round((this.actionsCompleted / this.actionsTotal) * 100) : 0;
     },
     // Empty = no recommendations and no net worth → show a focused "get started"
@@ -422,6 +431,8 @@ export default {
           recommendation_text: rec.title || '',
         }).then(() => {
           this.$store.dispatch('gamification/fetchStatus').catch(() => {});
+          // Refresh the engine-fed level counts (points just landed).
+          this.load({ silent: true });
         }).catch(() => { /* non-fatal */ });
       }
     },
@@ -430,9 +441,13 @@ export default {
       const i = list.indexOf(rec);
       if (i !== -1) list.splice(i, 1);
     },
-    async load() {
-      this.loading = true;
-      this.error = '';
+    async load({ silent = false } = {}) {
+      // silent=true: background refetch (e.g. after a check-off) without a
+      // loading flash — same contract as the /m dashboard's load().
+      if (!silent) {
+        this.loading = true;
+        this.error = '';
+      }
       try {
         const res = await api.get('/v1/mobile/dashboard');
         const d = res.data?.data || res.data || {};
@@ -492,6 +507,9 @@ export default {
         const lv = d.level || {};
         this.level = lv.level ?? 1;
         this.percentile = d.percentile ?? 57;
+        this.actionsCompletedSrv = lv.actions_completed ?? null;
+        this.actionsTotalSrv = lv.actions_total ?? null;
+        this.progressSrv = lv.progress_percent ?? null;
       } catch (e) {
         logger.error?.('[GamifiedDashboard] load failed', e);
         this.error = 'We could not load your dashboard. Please refresh to try again.';
