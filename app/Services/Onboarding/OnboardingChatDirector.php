@@ -4154,7 +4154,7 @@ PROMPT;
     private function buildInterruptionAnswerPrompt(): string
     {
         $context = "\n\nTurn context — the user has paused their onboarding walk to ask a side question. "
-            .'Give the factual answer in ONE short paragraph of at most two sentences; the same answer applies to everyone, so it is general United Kingdom guidance (for example, gross annual income means income before any deductions, so it includes pension contributions along with Income Tax and National Insurance). '
+            .'Give the factual answer in ONE short paragraph of at most two sentences; the same answer applies to everyone, so it is general United Kingdom guidance, and it must be accurate under UK (HMRC) tax rules (for example, gross annual income means income before any deductions such as Income Tax, National Insurance and your own pension contributions — but it does not include employer pension contributions, which your employer pays on top of your salary). '
             .'For this turn the usual missing-data guidance does not apply: no mention of personalised answers, no naming of missing data, no page or navigation suggestions, no offers of further help, and no closing question of any kind. '
             .'The reply contains only the answer — nothing else.';
 
