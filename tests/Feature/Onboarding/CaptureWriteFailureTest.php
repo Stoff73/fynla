@@ -131,6 +131,75 @@ it('names what could not be saved when every write failed and the model said not
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
+it('shows a tier-limit message verbatim — no missing-detail tail a plan limit cannot satisfy', function () {
+    // Live /m msg 19716 (2026-07-23): the delegated composer appended
+    // "Give me the missing detail and I will try again." to a plan-limit
+    // message. Tier limits carry their own upgrade call to action and show
+    // verbatim via the ONE captureFailureText composer (Rule 20).
+    [$user, $conversation] = captureFailureUser();
+
+    $tierMessage = "You've reached your plan's limit of 2 savings accounts. To add more, upgrade your plan.";
+    mockDelegatedStream([
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        [
+            'type' => 'capture_write_result',
+            'tool' => 'create_savings_account',
+            'landed' => false,
+            'message' => $tierMessage,
+            'result' => ['error' => true, 'error_type' => 'tier_limit_reached', 'message' => $tierMessage],
+        ],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I have a Barclays current account with £3,200 in it, owned just by me'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text');
+    $tierText = $texts->first(fn (string $t) => str_contains($t, "plan's limit"));
+    expect($tierText)->toBe($tierMessage)
+        ->and($texts->implode(' '))->not->toContain('Give me the missing detail');
+});
+
+it('strips model-echoed failure copy so retries never stack the previous turn\'s failure lines', function () {
+    // Live msgs 19708→19712: the model parroted the prior turn's scripted
+    // "I couldn't save that — …" lines, the echo tripped the clarification
+    // heuristics, and each retry persisted the old failure text above the
+    // new one. Echoed failure copy is stripped; the deterministic composer
+    // owns the single failure line.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => "I couldn't save that — I need you to confirm whether you own it individually or with someone else. Give me the missing detail and I will try again. "],
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => false, 'message' => 'Validation failed for savings account.'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I have a Halifax saver with £2,000 in it'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text');
+    $failureLines = $texts->filter(fn (string $t) => str_contains($t, "couldn't save"));
+
+    // Exactly ONE failure line — the composer's, for the real error — and
+    // the parroted ownership line is gone.
+    expect($failureLines)->toHaveCount(1)
+        ->and($failureLines->first())->toContain('Validation failed for savings account')
+        ->and($texts->implode(' '))->not->toContain('confirm whether you own it individually');
+});
+
 it('holds a question turn whose only write failed instead of advancing', function () {
     [$user, $conversation] = captureFailureUser();
 
