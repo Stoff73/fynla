@@ -319,10 +319,13 @@ final class CaptureAccuracyGate
 
     private function ownershipFromText(string $text): ?string
     {
+        // Vocabulary composed from OwnershipPhrasings — the ONE source (Rule
+        // 20). Divergent per-file lists re-asked for ownership the user had
+        // stated (live 2026-07-23: "owned just by me" / "both just mine").
         return $this->latestCategorisedMatch($text, [
             'tenants_in_common' => '/\btenants?\s+in\s+common\b/u',
-            'joint' => '/\b(?:joint|jointly|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner|wife|husband)|in\s+both\s+our\s+names|50\s*\/\s*50)\b/u',
-            'individual' => '/\b(?:solely|mine\s+alone|just\s+me|only\s+me|individually|owned\s+by\s+me|(?:on\s+)?my\s+own|in\s+my\s+name)\b/u',
+            'joint' => '/\b(?:'.OwnershipPhrasings::JOINT.')\b/u',
+            'individual' => '/\b(?:'.OwnershipPhrasings::INDIVIDUAL.')\b/u',
             'trust' => '/\b(?:held\s+in\s+trust|trust-owned|owned\s+by\s+the\s+trust)\b/u',
         ]);
     }
@@ -582,7 +585,7 @@ final class CaptureAccuracyGate
             return collect($joined)->every(fn (string $part): bool => $this->isStandaloneEvidence($part));
         }
 
-        return preg_match('/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:it\s+is\s+)?(?:not\s+)?(?:cash(?:\s+isa)?|junior(?:\s+isa)?|lifetime(?:\s+isa)?|innovative\s+finance(?:\s+isa)?|stocks?\s*(?:&|and)\s*shares?(?:\s+isa)?|solely|mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?(?:\s+owned)?|tenants?\s+in\s+common|held\s+in\s+trust|(?:my\s+share\s+(?:(?:is|at)\s+)?)?\d{1,3}(?:\.\d+)?\s*%|(?:my\s+share\s+)?isn[\x{2019}\x{0027}]?t\s+half|(?:ownership\s+is\s+)?not\s+equal|half|equal(?:ly)?)\s*[.!?]*\s*$/u', $segment) === 1;
+        return preg_match('/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:it\s+is\s+)?(?:not\s+)?(?:cash(?:\s+isa)?|junior(?:\s+isa)?|lifetime(?:\s+isa)?|innovative\s+finance(?:\s+isa)?|stocks?\s*(?:&|and)\s*shares?(?:\s+isa)?|'.OwnershipPhrasings::INDIVIDUAL.'|'.OwnershipPhrasings::JOINT.'|tenants?\s+in\s+common|held\s+in\s+trust|(?:my\s+share\s+(?:(?:is|at)\s+)?)?\d{1,3}(?:\.\d+)?\s*%|(?:my\s+share\s+)?isn[\x{2019}\x{0027}]?t\s+half|(?:ownership\s+is\s+)?not\s+equal|half|equal(?:ly)?)\s*[.!?]*\s*$/u', $segment) === 1;
     }
 
     private function isAnaphoricEvidenceContinuation(string $segment): bool
@@ -677,7 +680,7 @@ final class CaptureAccuracyGate
         $declarationEnd = $match[0][1] + strlen($match[0][0]);
         $tail = trim(substr($segment, $declarationEnd), " \t\n\r\0\x0B,;:.!?-");
         if ($tail !== '' && preg_match(
-            '/^(?:and\s+)?(?:both|all|each)\s+(?:(?:are\s+)?(?:owned\s+)?by\s+(?:me|us)\s+(?:individually|solely|jointly)|(?:are\s+)?(?:owned\s+)?(?:individually|solely|jointly)|(?:are\s+)?(?:mine\s+alone|just\s+me|only\s+me|ours))$/u',
+            '/^(?:and\s+)?(?:both|all|each)\s+(?:(?:are\s+)?(?:owned\s+)?by\s+(?:me|us)\s+(?:individually|solely|jointly)|(?:are\s+)?(?:owned\s+)?(?:individually|solely|jointly)|(?:are\s+)?(?:'.OwnershipPhrasings::INDIVIDUAL.'|ours))$/u',
             $tail,
         ) !== 1) {
             return null;

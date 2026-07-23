@@ -45,6 +45,34 @@ it('allows an explicitly individual Cash ISA', function (): void {
     expect($result)->toBe(['allowed' => true]);
 });
 
+it('accepts "owned just by me" as individual ownership evidence — the exact live multi-account message', function (): void {
+    // Live 2026-07-23: this exact message was rejected with "confirm whether
+    // you own it individually" because the phrasing fell through the gate's
+    // vocabulary. The vocabulary now lives ONLY in OwnershipPhrasings
+    // (Rule 20) and covers it.
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Barclays Current Account',
+        'account_type' => 'current_account',
+        'is_isa' => false,
+        'current_balance' => 3200,
+        'ownership_type' => 'individual',
+    ], 'I have a Barclays current account with £3,200 in it, no interest, owned just by me. You already have my Santander and Halifax savings accounts — the Santander pays 4% and the Halifax 3.5%, both just mine.');
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('accepts "held only by me" as individual ownership evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'easy_access',
+        'is_isa' => false,
+        'current_balance' => 2000,
+        'ownership_type' => 'individual',
+    ], 'My Halifax Saver has £2,000 in it, held only by me.');
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
 it('never asks who owns an ISA — no ownership argument and no ownership evidence is allowed', function (): void {
     $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
         'account_name' => 'My Cash ISA',
