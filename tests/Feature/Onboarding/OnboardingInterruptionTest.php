@@ -1559,3 +1559,16 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
 });
+
+it('the side-answer prompt example is factually correct about employer pension contributions', function () {
+    // CSJ live catch 2026-07-23: the prompt's worked example claimed gross
+    // income "includes pension contributions" and the model parroted it,
+    // telling a user their gross income includes EMPLOYER contributions.
+    // Employer contributions are paid on top of salary and are never part
+    // of gross income — the example must say so, not the opposite.
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'buildInterruptionAnswerPrompt');
+    $prompt = $method->invoke(app(OnboardingChatDirector::class));
+
+    expect($prompt)->toContain('does not include employer pension contributions')
+        ->not->toContain('so it includes pension contributions');
+});
