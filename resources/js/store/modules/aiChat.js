@@ -1216,6 +1216,29 @@ const actions = {
                                 commit('SET_SKIP_LINK', event.skip_link || null);
                                 break;
 
+                            case 'navigation':
+                                // Mirrors the sendMessage handler: a resumed
+                                // Continue re-emits campaign_verify_navigate,
+                                // whose navigation event was silently dropped
+                                // here — the chat said "Here's your income
+                                // page" while the route never changed (live
+                                // 2026-07-23). Onboarding navigation carries an
+                                // empty description, so no bubble is rendered.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: {
+                                            route_path: event.route_path,
+                                            description: event.description,
+                                        },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
+                                commit('SET_PENDING_NAVIGATION', event.route_path);
+                                break;
+
                             case 'level_up':
                                 dispatch('gamification/queueCelebration', {
                                     level: event.level,
