@@ -1720,14 +1720,14 @@ final class OnboardingStateMachine
         }
 
         if ($status === 'self_employed') {
-            return "Brilliant. What's your gross annual self-employment income? This includes bonuses and commissions.";
+            return "Brilliant. **What's your gross annual self-employment income?** This includes bonuses and commissions.";
         }
 
         if ($status === 'part_time') {
-            return "Lovely. What's your gross annual income from that role? This includes bonuses and commissions.";
+            return "Lovely. **What's your gross annual income from that role?** This includes bonuses and commissions.";
         }
 
-        return "Brilliant. What's your gross annual income? This includes bonuses and commissions.";
+        return "Brilliant. **What's your gross annual income?** This includes bonuses and commissions.";
     }
 
     /**

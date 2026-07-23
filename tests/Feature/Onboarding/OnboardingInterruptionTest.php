@@ -1492,9 +1492,10 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
     expect($texts)->toContain('not counted in your gross annual income');
 
     // The answer turn carried the definitional-answer framing (CSJ
-    // 2026-07-23): a straightforward question is answered outright — the
-    // model must never deflect into an "I need more data" ask.
-    expect($answerPromptOverride)->toContain('directly and definitively');
+    // 2026-07-23): one short paragraph, same answer for everyone, no
+    // missing-data deflection, no closing question.
+    expect($answerPromptOverride)->toContain('at most two sentences');
+    expect($answerPromptOverride)->toContain('no closing question');
 
     // The answer row is tagged so the followup/merge scans never mistake
     // its wording for a capture clarification.
