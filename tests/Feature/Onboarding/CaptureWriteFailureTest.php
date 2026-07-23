@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -114,6 +115,33 @@ it('matches the bare word "rate" to interest_rate in the verify-edit field vocab
     );
 
     expect($fields)->toContain('interest_rate');
+});
+
+it('scopes a verify edit to BOTH records when the user names both accounts', function () {
+    // Live 2026-07-23: "The Santander rate is 4% and the Halifax rate is
+    // 3.5%" matched two records, the exactly-one rule emptied the scope,
+    // update_record was filtered from the toolset, and the turn fell to the
+    // generic failure line. Explicitly named records are unambiguous.
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $santander = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_name' => 'Santander Savings Account', 'institution' => 'Santander',
+    ]);
+    $halifax = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_name' => 'Halifax savings account', 'institution' => 'Halifax',
+    ]);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'verifyEditScope');
+    $scope = $method->invoke(
+        app(OnboardingChatDirector::class),
+        $user,
+        'savings',
+        'the santander rate is 4% and the halifax rate is 3.5%.'
+    );
+
+    expect($scope['tools'])->toContain('update_record')
+        ->and($scope['records']['savings_account'] ?? [])->toContain($santander->id)
+        ->and($scope['records']['savings_account'] ?? [])->toContain($halifax->id)
+        ->and($scope['record_fields']['savings_account'] ?? [])->toContain('interest_rate');
 });
 
 it('names what could not be saved when every write failed and the model said nothing', function () {

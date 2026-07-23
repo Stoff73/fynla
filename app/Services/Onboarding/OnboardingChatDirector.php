@@ -4517,7 +4517,11 @@ PROMPT;
         if ($candidates->count() === 1) {
             $selected = $candidates;
         } elseif (preg_match('/\b(?:all|both|each|every)\b/u', $message) === 1) {
-            return [];
+            // "both rates are wrong" names every candidate — a bulk
+            // correction edits each record rather than failing as ambiguous
+            // (live 2026-07-23: the exactly-one rule emptied the scope and
+            // the turn fell to the generic failure line).
+            $selected = $candidates;
         } else {
             $selected = $candidates->filter(static function (array $candidate) use ($message): bool {
                 foreach ($candidate['labels'] as $label) {
@@ -4531,7 +4535,12 @@ PROMPT;
             });
         }
 
-        if ($selected->count() !== 1) {
+        // Every selected record was explicitly named (or covered by a bulk
+        // word), so a multi-record edit is unambiguous — "The Santander rate
+        // is 4% and the Halifax rate is 3.5%" edits both by id. The dispatch
+        // scope still pins entity ids and fields server-side. Only a message
+        // naming nothing stays out of scope.
+        if ($selected->isEmpty()) {
             return [];
         }
 
