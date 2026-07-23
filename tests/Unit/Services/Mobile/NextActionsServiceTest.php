@@ -129,3 +129,39 @@ it('builds focus-area cards: a Top card first, then one per module', function ()
 afterEach(function () {
     Mockery::close();
 });
+
+it('suppresses unlock items while the user is mid-onboarding — the walk is the action', function () {
+    // CSJ 2026-07-23 (live): a brand-new mid-walk user saw four "Unlock X
+    // advice — date of birth is required" actions on the dashboard while Fyn
+    // was about to ask for exactly that data in the walk. While the director
+    // owns the next turn (onboarding_fyn_step non-null), unlock prompts are
+    // noise that competes with onboarding — the dashboard's "finish your
+    // plan with Fyn" nudge is the one call to action.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => 'base_work',
+    ]);
+
+    $service = app(NextActionsService::class);
+
+    expect(collect($service->build($user->id))->where('type', 'unlock'))->toBeEmpty();
+
+    // The unified Top card carries no unlock prompts mid-walk; the
+    // per-module tab cards keep their true gate state (the level map).
+    $areas = collect($service->focusAreas($user->id));
+    $top = $areas->firstWhere('key', 'top');
+    expect(collect($top['actions'])->where('type', 'unlock'))->toBeEmpty();
+    expect($areas->where('locked', true))->not->toBeEmpty();
+});
+
+it('shows unlock items again once the walk is over (step nulled)', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+        'onboarding_fyn_step' => null,
+    ]);
+
+    $unlocks = collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock');
+    expect($unlocks)->not->toBeEmpty();
+});

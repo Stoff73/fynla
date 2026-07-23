@@ -73,12 +73,30 @@ class NextActionsService
      *
      * @return array<int,array<string,mixed>>
      */
+    /**
+     * Mid-walk (CSJ 2026-07-23): while the director owns the next turn,
+     * unlock prompts in the UNIFIED action lists are noise competing with
+     * onboarding — Fyn is about to ask for that data in the walk, and the
+     * dashboard's finish-your-plan nudge is the one call to action. The
+     * per-module tab cards keep their true gate state (they are the level
+     * map, not a competing call to action).
+     */
+    private function midWalk(User $user): bool
+    {
+        return $user->onboarding_fyn_step !== null;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function unlockFamilyItems(User $user): array
+    {
+        return array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
+    }
+
     private function rankAll(User $user, int $userId): array
     {
         $items = array_merge(
             $this->recommendationItems($userId),
-            $this->unlockItems($user),
-            $this->strategyUnlockItems($user),
+            $this->midWalk($user) ? [] : $this->unlockFamilyItems($user),
         );
 
         usort($items, static function (array $a, array $b): int {
@@ -102,13 +120,13 @@ class NextActionsService
         $user = User::findOrFail($userId);
 
         $recItems = $this->recommendationItems($userId);
-        $unlocks = array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
+        $unlocks = $this->unlockFamilyItems($user);
 
         // Top card = the unified <=4 (recs + unlocks), same ranking as build()
         // including the WP-6 campaign affinity (tax first for SaveTax users).
         // Affinity runs BEFORE the 4-slot cut so a lower-value tax item can
         // still be lifted into the card.
-        $merged = array_merge($recItems, $unlocks);
+        $merged = array_merge($recItems, $this->midWalk($user) ? [] : $unlocks);
         usort($merged, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
         });
