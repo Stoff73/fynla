@@ -40,6 +40,7 @@ use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;

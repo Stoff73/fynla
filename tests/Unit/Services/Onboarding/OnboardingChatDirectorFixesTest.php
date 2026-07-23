@@ -355,3 +355,25 @@ it('keeps the sentence after an echoed failure line ending in a decimal figure',
 
     expect($result)->toBe('I need the ownership share before I can save it.');
 });
+
+/**
+ * 2026-07-23 live (user 293, conv 181): the spouse-advice fallback calls
+ * app(TaxConfigService::class) with no import, resolving to the
+ * non-existent App\Services\Onboarding\TaxConfigService and killing the
+ * stream with "An unexpected error occurred" right after spouse verify.
+ */
+it('voices the spouse-advice allowance fallback without a container fatal', function (): void {
+    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+
+    $director = app(OnboardingChatDirector::class);
+    $reflection = new ReflectionMethod($director, 'buildSpouseAdvice');
+    $reflection->setAccessible(true);
+
+    $advice = $reflection->invoke($director, [
+        'items' => [
+            ['type' => 'spouse_isa_transfer', 'estimated_annual_tax_saved' => 0],
+        ],
+    ], ['spouse_isa_transfer']);
+
+    expect($advice)->toContain('unused allowances');
+});
