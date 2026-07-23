@@ -74,7 +74,7 @@
             v-if="article.cta"
             class="mt-16 rounded-2xl overflow-hidden bg-gradient-to-r from-horizon-500 to-raspberry-500 text-white text-center px-6 py-10 sm:px-12 sm:py-14 shadow-lg"
           >
-            <h2 class="text-2xl sm:text-4xl font-black mb-3 leading-tight" style="letter-spacing:-0.02em;">
+            <h2 class="text-2xl sm:text-4xl font-black mb-3 leading-tight text-white" style="letter-spacing:-0.02em;">
               {{ article.cta.heading }}
             </h2>
             <p class="text-white/90 mb-8 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
