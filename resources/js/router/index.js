@@ -1724,7 +1724,13 @@ router.beforeEach(async (to, from, next) => {
   // app. Bounce them to the dashboard. Preview personas are exempt so they can
   // still reach the landing-page persona selector. Mirrors the server-side
   // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
-  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+  //
+  // Exception: `?preview=true` is the admin draft-preview link (from the CMS
+  // editor). Admins must be able to view the live article page while logged in,
+  // so don't bounce them — draft visibility is still gated server-side (the
+  // insights API only returns drafts to is_admin).
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode
+      && to.query.preview !== 'true') {
     next({ name: 'Dashboard' });
     return;
   }

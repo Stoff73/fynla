@@ -147,3 +147,31 @@ it('forbids non-admins from uploading a cover image', function () {
         'image' => UploadedFile::fake()->image('cover.jpg'),
     ])->assertForbidden();
 });
+
+it('returns the linked social video clips for an article', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id, 'slug' => 'clippy']);
+    \App\Models\Pipeline\PipelineArticle::create([
+        'document_article_id' => $article->id,
+        'status' => 'rendered',
+        'clip_paths' => ['storage/app/social/video/clippy/clip-1.mp4'],
+    ]);
+    Sanctum::actingAs($this->admin);
+
+    $response = $this->getJson("/api/admin/documents/{$article->id}/social-clips")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'rendered');
+
+    expect($response->json('data.clips'))->toHaveCount(1)
+        ->and($response->json('data.clips.0.filename'))->toBe('clip-1.mp4')
+        ->and($response->json('data.clips.0.url'))->toContain('/pipeline/clips/clippy/clip-1.mp4');
+});
+
+it('returns no clips when the article is not in the pipeline', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $this->getJson("/api/admin/documents/{$article->id}/social-clips")
+        ->assertOk()
+        ->assertJsonPath('data.status', null)
+        ->assertJsonPath('data.clips', []);
+});

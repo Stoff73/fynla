@@ -56,4 +56,8 @@ export default {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
     },
+
+    socialClips(id) {
+        return api.get(`${base}/${id}/social-clips`);
+    },
 };

@@ -8,11 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DocumentArticleImportRequest;
 use App\Http\Requests\Admin\DocumentArticleUpdateRequest;
 use App\Models\DocumentArticle;
+use App\Models\Pipeline\PipelineArticle;
 use App\Services\Documents\DocumentArticleImporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 
 class DocumentArticleController extends Controller
@@ -119,5 +121,38 @@ class DocumentArticleController extends Controller
         $path = $request->file('image')->store("document-articles/{$document->id}", 'public');
 
         return response()->json(['path' => $path]);
+    }
+
+    /**
+     * The social video clips generated for this article by the marketing
+     * pipeline (if any), with signed preview URLs and the pipeline status.
+     */
+    public function socialClips(DocumentArticle $document): JsonResponse
+    {
+        $pipeline = PipelineArticle::where('document_article_id', $document->id)->first();
+
+        if ($pipeline === null) {
+            return response()->json(['data' => ['status' => null, 'clips' => []]]);
+        }
+
+        $ttlDays = (int) config('pipeline.video.signed_url_ttl_days', 30);
+        $clips = collect((array) $pipeline->clip_paths)->values()->map(function ($path, $i) use ($document, $ttlDays) {
+            return [
+                'index' => $i + 1,
+                'filename' => basename((string) $path),
+                'url' => URL::temporarySignedRoute(
+                    'pipeline.clip.download',
+                    now()->addDays($ttlDays),
+                    ['slug' => $document->slug, 'filename' => basename((string) $path)],
+                ),
+            ];
+        })->all();
+
+        return response()->json(['data' => [
+            'pipeline_article_id' => $pipeline->id,
+            'status' => $pipeline->status,
+            'clips' => $clips,
+            'clips_generated_at' => optional($pipeline->clips_generated_at)->toIso8601String(),
+        ]]);
     }
 }

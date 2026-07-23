@@ -61,6 +61,19 @@
                 <p class="text-xs text-horizon-500 mt-1">Linking a campaign swaps the article's bottom call-to-action for the campaign's landing page.</p>
             </div>
 
+            <div class="border border-horizon-200 rounded p-3">
+                <label class="block text-sm font-bold text-horizon-700 mb-1">Social videos</label>
+                <p v-if="!socialClips.length" class="text-xs text-horizon-500">
+                    {{ socialStatus ? 'Pipeline status: ' + socialStatus + ' — no clips generated yet.' : 'No social clips linked to this article yet.' }}
+                </p>
+                <ul v-else class="space-y-1">
+                    <li v-for="clip in socialClips" :key="clip.index" class="flex items-center justify-between text-sm">
+                        <span class="text-horizon-700">Clip {{ clip.index }} <span class="text-horizon-400">({{ clip.filename }})</span></span>
+                        <a :href="clip.url" target="_blank" rel="noopener" class="text-raspberry-500 hover:text-raspberry-700 font-semibold">Preview ↗</a>
+                    </li>
+                </ul>
+            </div>
+
             <div class="flex flex-wrap gap-3 pt-4 border-t border-horizon-200">
                 <button class="bg-horizon-700 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-horizon-800" @click="save">Save</button>
                 <button class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500" @click="openPreview">Preview</button>
@@ -117,6 +130,7 @@ import { Highlight } from '@tiptap/extension-highlight';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CoverImagePicker from '@/components/Admin/Documents/CoverImagePicker.vue';
 import pipelineCampaignsService from '@/services/pipelineCampaignsService';
+import documentArticleService from '@/services/documentArticleService';
 
 export default {
     name: 'DocumentEditor',
@@ -135,6 +149,8 @@ export default {
                 pipeline_campaign_id: null,
             },
             campaigns: [],
+            socialClips: [],
+            socialStatus: null,
             editor: null,
             successMessage: '',
             errorMessage: '',
@@ -150,6 +166,7 @@ export default {
         this.hydrateForm();
         this.mountEditor();
         this.loadCampaigns();
+        this.loadSocialClips();
     },
     beforeUnmount() {
         if (this.editor) this.editor.destroy();
@@ -169,6 +186,17 @@ export default {
                 html_body: this.article.html_body || '',
                 pipeline_campaign_id: this.article.pipeline_campaign_id ?? this.article.campaign?.id ?? null,
             };
+        },
+        async loadSocialClips() {
+            if (!this.article?.id) return;
+            try {
+                const { data } = await documentArticleService.socialClips(this.article.id);
+                this.socialClips = data?.data?.clips || [];
+                this.socialStatus = data?.data?.status || null;
+            } catch (e) {
+                this.socialClips = [];
+                this.socialStatus = null;
+            }
         },
         async loadCampaigns() {
             try {

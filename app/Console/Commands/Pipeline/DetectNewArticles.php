@@ -46,8 +46,14 @@ class DetectNewArticles extends Command
             ->pluck('insight_article_id')
             ->all();
 
+        // One record per story: the CMS document article is canonical. If a slug
+        // is already a published document article, don't ALSO pull it in as a
+        // native insight — that would create a duplicate pipeline record.
+        $documentSlugs = \App\Models\DocumentArticle::published()->pluck('slug')->all();
+
         $newArticles = InsightArticle::published()
             ->whereNotIn('id', $existingIds)
+            ->when($documentSlugs !== [], fn ($q) => $q->whereNotIn('slug', $documentSlugs))
             ->orderBy('published_at')
             ->get();
 

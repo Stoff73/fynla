@@ -1311,6 +1311,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/do
     Route::post('{document}/unpublish', [DocumentArticleController::class, 'unpublish']);
     Route::get('{document}/preview-url', [DocumentArticleController::class, 'previewUrl']);
     Route::post('{document}/cover-image', [DocumentArticleController::class, 'uploadCoverImage']);
+    Route::get('{document}/social-clips', [DocumentArticleController::class, 'socialClips']);
 });
 
 // News subscribers (admin)
