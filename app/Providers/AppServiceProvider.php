@@ -9,9 +9,11 @@ use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\RecommendationTracking;
+use App\Models\User;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Observers\RecommendationTrackingObserver;
+use App\Observers\UserOnboardingStepObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
@@ -208,6 +210,7 @@ class AppServiceProvider extends ServiceProvider
         InsightArticle::observe(InsightArticleObserver::class);
         DocumentArticle::observe(DocumentArticleObserver::class);
         RecommendationTracking::observe(RecommendationTrackingObserver::class);
+        User::observe(UserOnboardingStepObserver::class);
     }
 
     /**

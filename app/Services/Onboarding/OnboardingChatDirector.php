@@ -4232,10 +4232,14 @@ PROMPT;
      */
     private function stripEchoedFailureCopy(string $text): string
     {
+        // Sentence scan: a "." inside a decimal ("4.2%") is not a boundary —
+        // treating it as one truncated the echo mid-number and left a "2%."
+        // fragment in the visible bubble (live 2026-07-23, user 292 msg 19837).
+        $sentenceChars = '(?:[^.!?\n]|\.(?=\d))*';
         $stripped = preg_replace(
             [
-                '/[^.!?\n]*couldn[\x{2019}\x{0027}]t\s+save\s+that[^.!?\n]*[.!?]?\s*/iu',
-                '/[^.!?\n]*only\s+help\s+with\s+financial\s+planning\s+questions[^.!?\n]*[.!?]?\s*(?:How\s+can\s+I\s+assist\s+with\s+your\s+finances\?)?\s*/iu',
+                '/'.$sentenceChars.'couldn[\x{2019}\x{0027}]t\s+save\s+that'.$sentenceChars.'[.!?]?\s*/iu',
+                '/'.$sentenceChars.'only\s+help\s+with\s+financial\s+planning\s+questions'.$sentenceChars.'[.!?]?\s*(?:How\s+can\s+I\s+assist\s+with\s+your\s+finances\?)?\s*/iu',
             ],
             '',
             $text,

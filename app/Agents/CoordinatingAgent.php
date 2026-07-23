@@ -1218,8 +1218,17 @@ class CoordinatingAgent extends BaseAgent
         $jointOwnerId = isset($input['joint_owner_id']) && is_numeric($input['joint_owner_id'])
             ? (int) $input['joint_owner_id']
             : null;
-        $isReciprocalSpouse = $jointOwnerId !== null
-            && (int) $user->spouse_id === $jointOwnerId
+
+        // A joint record whose co-owner is not a platform user is first-class
+        // app-wide (StoreSavingsAccountRequest: joint_owner_id nullable) and
+        // the only state reachable mid-campaign, where savings are captured
+        // before the spouse section links a spouse User (live 2026-07-23,
+        // user 292 msg 19833). Only ATTACHING an id needs authorization.
+        if ($jointOwnerId === null) {
+            return null;
+        }
+
+        $isReciprocalSpouse = (int) $user->spouse_id === $jointOwnerId
             && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
 
         if ($isReciprocalSpouse) {
