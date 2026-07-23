@@ -215,17 +215,25 @@ final class AdviceFyn
         // context-free and punted with the no-action defer (live: "I need a
         // little more time on this"). Yes → this turn runs as the ORIGINAL
         // stored question (the "Yes" row still persists, the answer follows
-        // it); No → close out warmly; anything else → the user moved on and
-        // the typed message processes normally. Cleared on every branch.
+        // it); No → close out warmly. Only Yes/No CONSUME the flag — a stray
+        // interleaved dispatch cleared it live before the user's tap ever
+        // arrived, so any other message leaves it armed; a 10-minute expiry
+        // bounds the lingering flag instead.
         $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
         $pendingDeferred = $metadata['pending_deferred_answer'] ?? [];
-        if ($pendingDeferred !== []) {
-            unset($metadata['pending_deferred_answer']);
-            $conversation->update(['metadata' => $metadata]);
-
+        $pendingQuestions = array_values((array) ($pendingDeferred['questions'] ?? []));
+        $raisedAt = (int) ($pendingDeferred['raised_at'] ?? 0);
+        if ($pendingQuestions !== []) {
             $reply = mb_strtolower(trim($message));
+            $expired = $raisedAt > 0 && (now()->timestamp - $raisedAt) > 600;
 
-            if (preg_match('/^(?:no|not now|no,? than[kx]s?|no thank you)\b/u', $reply) === 1) {
+            if ($expired) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+            } elseif (preg_match('/^(?:no|not now|no,? than[kx]s?|no thank you)\b/u', $reply) === 1) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+
                 $ack = "No problem — ask me any time and I'll pick it up from there.";
                 if ($persistUserMessage) {
                     $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
@@ -235,12 +243,13 @@ final class AdviceFyn
                 yield ['type' => 'done'];
 
                 return;
-            }
+            } elseif (preg_match('/^(?:yes|yes\b.*|okay|ok|sure|go ahead|please do)$/u', $reply) === 1) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
 
-            if (preg_match('/^(?:yes|yes\b.*|okay|ok|sure|go ahead|please do)$/u', $reply) === 1) {
                 $questions = trim(implode(' ', array_filter(array_map(
                     static fn (array $entry): string => trim((string) ($entry['question'] ?? '')),
-                    array_values($pendingDeferred),
+                    $pendingQuestions,
                 ))));
                 if ($questions !== '') {
                     if ($persistUserMessage) {
@@ -250,7 +259,7 @@ final class AdviceFyn
                     $persistUserMessage = false;
                 }
             }
-            // Any other reply: flag cleared, the typed message processes as-is.
+            // Any other reply: the flag stays armed for the user's real tap.
         }
 
         // S0.14 — short-circuit non-financial topics with the canonical

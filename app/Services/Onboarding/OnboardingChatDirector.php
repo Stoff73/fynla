@@ -5175,7 +5175,10 @@ PROMPT;
         // reached the planner context-free and punted with the no-action
         // defer instead of answering).
         unset($metadata['deferred_questions']);
-        $metadata['pending_deferred_answer'] = array_values($deferred);
+        $metadata['pending_deferred_answer'] = [
+            'raised_at' => now()->timestamp,
+            'questions' => array_values($deferred),
+        ];
         $conversation->update(['metadata' => $metadata]);
 
         // CSJ raise shape (2026-07-23): thank the user by name, name the
