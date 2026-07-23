@@ -5870,15 +5870,13 @@ PROMPT;
         ?string $currentRoute = null,
         ?array $confirmedFacts = null,
     ): \Generator {
-        $this->coordinatingAgent->setConfirmedCaptureFacts(
-            $confirmedFacts === [] ? null : $confirmedFacts
-        );
-
-        try {
-            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute);
-        } finally {
-            $this->coordinatingAgent->setConfirmedCaptureFacts(null);
-        }
+        // Facts travel explicitly on both write paths — as a stream()
+        // parameter for the LLM dispatch (CoordinatingAgent is container-
+        // transient; agent state set here never reaches FynLoop's instance)
+        // and as an executeTool argument for the deterministic gap-fill. No
+        // shared transient: clear-ordering between the stream's finally and
+        // the post-stream gap-fill must not matter.
+        yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
     }
 
     /** @return \Generator<array<string, mixed>> */
@@ -5888,6 +5886,7 @@ PROMPT;
         string $message,
         CaptureContext $context,
         ?string $currentRoute = null,
+        ?array $confirmedFacts = null,
     ): \Generator {
         $allowedTools = $this->captureToolSet($context);
 
@@ -5961,6 +5960,7 @@ PROMPT;
             allowedTools: $allowedTools,
             persistUserMessage: false,
             unifiedFocus: $unifiedFocus,
+            confirmedFacts: $confirmedFacts,
         );
 
         foreach ($generator as $event) {
@@ -6083,6 +6083,7 @@ PROMPT;
             $message,
             $llmEmittedFills,
             $llmClarificationInputs,
+            $confirmedFacts,
         ) as $gapFillEvent) {
             if (($gapFillEvent['type'] ?? '') === 'entity_created') {
                 $recordsCreated[] = [
@@ -6387,11 +6388,12 @@ PROMPT;
         string $message,
         array $llmEmittedFills,
         array $llmClarificationInputs = [],
+        ?array $confirmedFacts = null,
     ): \Generator {
         $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
 
         foreach ($focuses as $focus) {
-            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs);
+            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs, $confirmedFacts);
         }
     }
 
@@ -6410,6 +6412,7 @@ PROMPT;
         string $message,
         array $llmEmittedFills,
         array $llmClarificationInputs = [],
+        ?array $confirmedFacts = null,
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($focus);
         if ($tool === null) {
@@ -6460,6 +6463,7 @@ PROMPT;
                     $user,
                     $conversation->id,
                     evidenceOverride: $this->verbatimEvidenceFromCaptureMessage($message),
+                    confirmedFacts: $confirmedFacts,
                 );
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
