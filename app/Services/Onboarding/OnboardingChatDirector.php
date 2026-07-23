@@ -3525,6 +3525,14 @@ PROMPT;
 
             $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$pendingWriteFailures, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, &$visibleResponse, $selection, $userAskedQuestion) {
                 $flushed = true;
+                // Anti-parrot (live 19708→19712): the model narrates/echoes
+                // OUR scripted "couldn't save that" failure copy — from its
+                // tool feedback and from prior turns in the history — so each
+                // retry stacked the previous failure lines above the new one,
+                // and the echo tripped the clarification check below. System
+                // failure copy is composed deterministically after this flush
+                // (captureFailureText); it is never the model's to voice.
+                $contentBuffer = $this->stripEchoedFailureCopy($contentBuffer);
                 // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
                 // captured this turn: either no tool ran at all, or a write was
                 // attempted and FAILED / was blocked (a duplicate warning lands
@@ -3602,9 +3610,10 @@ PROMPT;
                         // nothing landed — enough to suppress a false "Recorded".
                         $sawFailedWrite = true;
                         $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
-                        $pendingWriteFailures[$failureKey] = is_string($event['message'] ?? null)
-                            ? (string) $event['message']
-                            : '';
+                        $pendingWriteFailures[$failureKey] = [
+                            'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
+                            'tier_limit' => (($event['result']['error_type'] ?? '') === 'tier_limit_reached'),
+                        ];
                     }
 
                     continue;
@@ -3719,11 +3728,8 @@ PROMPT;
         // reason; a blocked duplicate (no failure message) gets a truthful
         // "nothing new" line so Fyn never claims a figure it did not record.
         if ($pendingWriteFailures !== [] && ! $ackShown) {
-            $failureReason = collect($pendingWriteFailures)->first(fn (string $message): bool => $message !== '');
-            $failureText = is_string($failureReason)
-                ? "I couldn't save that — ".rtrim($failureReason, '.')
-                    .'. Give me the missing detail and I will try again.'
-                : "I couldn't record anything new there. If a figure has changed, "
+            $failureText = $this->captureFailureText(array_values($pendingWriteFailures))
+                ?? "I couldn't record anything new there. If a figure has changed, "
                     .'tell me the specific amount and I will update it.';
             yield ['type' => 'content', 'text' => $failureText];
             $visibleResponse = $failureText;
@@ -4132,6 +4138,56 @@ PROMPT;
             .'The reply contains only the answer — nothing else.';
 
         return FynSystemPrompt::text().$context;
+    }
+
+    /**
+     * THE failure-text composer for capture write failures (Rule 20 — the
+     * delegated and inline paths previously composed divergently: the
+     * delegated path appended the missing-detail tail to tier-limit
+     * messages, which a plan limit cannot satisfy; live /m msg 19716).
+     * A tier-limit message wins and shows verbatim (it carries its own
+     * upgrade call to action); otherwise the first named reason composes the
+     * missing-detail line. The transport placeholder "The write failed." is
+     * not a reason. Returns null when no failure carries a usable message.
+     *
+     * @param  list<array{message?: string, tier_limit?: bool}>  $failures
+     */
+    private function captureFailureText(array $failures): ?string
+    {
+        $tier = collect($failures)->first(
+            fn (array $failure): bool => ($failure['tier_limit'] ?? false) === true
+                && trim((string) ($failure['message'] ?? '')) !== ''
+        );
+        if ($tier !== null) {
+            return (string) $tier['message'];
+        }
+
+        $reason = collect($failures)
+            ->map(fn (array $failure): string => trim((string) ($failure['message'] ?? '')))
+            ->first(fn (string $message): bool => $message !== '' && $message !== 'The write failed.');
+
+        return is_string($reason)
+            ? "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.'
+            : null;
+    }
+
+    /**
+     * Strip sentences the model echoed from OUR scripted failure copy. The
+     * model parrots "I couldn't save that — …" lines from its tool feedback
+     * and from prior turns in the history (live msgs 19708→19712: each retry
+     * stacked the previous turn's failure lines above the new one, and the
+     * echo tripped the clarification heuristics). Failure copy is composed
+     * deterministically by captureFailureText — never the model's to voice.
+     */
+    private function stripEchoedFailureCopy(string $text): string
+    {
+        $stripped = preg_replace(
+            '/[^.!?\n]*couldn[\x{2019}\x{0027}]t\s+save\s+that[^.!?\n]*[.!?]?\s*/iu',
+            '',
+            $text,
+        );
+
+        return trim(is_string($stripped) ? $stripped : $text);
     }
 
     private function buildVerifyEditPrompt(User $user, string $section): string
@@ -6333,14 +6389,21 @@ PROMPT;
                 $rescuedContentOffsets,
             ));
             $safeContentEvents = array_slice($contentEvents, 0, $safeOffset);
-            $safeModelText = implode('', array_map(
+            // Anti-parrot: the model echoes OUR scripted "couldn't save that"
+            // copy from tool feedback and prior turns — never its line to
+            // voice (the composer below owns failure copy).
+            $safeModelText = $this->stripEchoedFailureCopy(implode('', array_map(
                 static fn (array $event): string => (string) ($event['text'] ?? ''),
                 $safeContentEvents,
-            ));
+            )));
+            if ($safeModelText === '') {
+                $safeContentEvents = [];
+            } else {
+                $safeContentEvents = [['type' => 'content', 'text' => $safeModelText]];
+            }
 
             if ($pendingWriteFailures !== []) {
                 $firstFailure = array_values($pendingWriteFailures)[0];
-                $messageText = $firstFailure['message'];
 
                 // One ask per turn (CSJ 2026-07-23, live: the Santander
                 // ownership ask rendered twice, msg 19675): when the model's
@@ -6362,10 +6425,9 @@ PROMPT;
                         yield $safeContentEvent;
                     }
                 } else {
-                    $failureText = $firstFailure['tier_limit']
-                        ? $messageText
-                        : "I couldn't save that — ".rtrim($messageText, '.').'. '
-                            .'Give me the missing detail and I will try again.';
+                    $failureText = $this->captureFailureText(array_values($pendingWriteFailures))
+                        ?? "I couldn't record anything new there. If a figure has changed, "
+                            .'tell me the specific amount and I will update it.';
                     $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
                     $persistedText = $safeModelText.$failureSeparator.$failureText;
 
