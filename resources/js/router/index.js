@@ -654,6 +654,12 @@ const routes = [
       ],
     },
   },
+  // Canonical section routes the onboarding director navigates to (the /m
+  // router serves them natively). Without these the campaign verify flow's
+  // navigation event silently no-ops on web — Fyn says "Here's your income
+  // page" while the dashboard stays put (live 2026-07-23).
+  { path: '/income', redirect: { path: '/valuable-info', query: { section: 'income' } } },
+  { path: '/expenditure', redirect: { path: '/valuable-info', query: { section: 'expenditure' } } },
   {
     path: '/profile',
     name: 'UserProfile',
