@@ -5535,15 +5535,25 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        $disallowed = array_diff(array_keys($fields), $allowed);
+        $disallowed = array_values(array_diff(array_keys($fields), $allowed));
         if (! empty($disallowed)) {
-            return [
-                'error' => true,
-                'error_type' => 'fields_not_allowed',
-                'entity_type' => $entityType,
-                'disallowed_fields' => array_values($disallowed),
-                'allowed_fields' => $allowed,
-            ];
+            // The model routinely pads updates with schema defaults (live
+            // 2026-07-23: interest_rate + ownership_percentage:100 — the
+            // padded default killed the user's legitimate rate change).
+            // Protected fields are DROPPED, never written, and the remaining
+            // allowed fields still apply; only an update with nothing
+            // allowed left hard-fails. Ignored fields are reported so the
+            // model narrates truthfully.
+            $fields = array_intersect_key($fields, array_flip($allowed));
+            if (empty($fields)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'fields_not_allowed',
+                    'entity_type' => $entityType,
+                    'disallowed_fields' => $disallowed,
+                    'allowed_fields' => $allowed,
+                ];
+            }
         }
 
         // Pension mutations route through PensionStore (canonical write path
@@ -5593,13 +5603,15 @@ class CoordinatingAgent extends BaseAgent
                 ];
             }
 
-            return [
+            return array_filter([
                 'success' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $record->id,
                 'fields_updated' => array_keys($fields),
-                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
-            ];
+                'ignored_fields' => $disallowed,
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.'
+                    .($disallowed !== [] ? ' Ignored protected fields: '.implode(', ', $disallowed).'.' : ''),
+            ], static fn ($value): bool => $value !== []);
         }
 
         $model = $this->resolveModel($entityType, $entityId, $user->id);
@@ -5607,17 +5619,19 @@ class CoordinatingAgent extends BaseAgent
             return $model;
         }
 
-        return DB::transaction(function () use ($model, $fields, $entityType) {
+        return DB::transaction(function () use ($model, $fields, $entityType, $disallowed) {
             $model->fill($fields);
             $model->save();
 
-            return [
+            return array_filter([
                 'success' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $model->id,
                 'fields_updated' => array_keys($fields),
-                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
-            ];
+                'ignored_fields' => $disallowed,
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.'
+                    .($disallowed !== [] ? ' Ignored protected fields: '.implode(', ', $disallowed).'.' : ''),
+            ], static fn ($value): bool => $value !== []);
         });
     }
 
