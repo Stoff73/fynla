@@ -175,6 +175,38 @@ it('names what could not be saved when every write failed and the model said not
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 });
 
+it('never advances a zero-output turn — the refused pension answer re-asks instead of claiming saved', function () {
+    // Live 2026-07-23 (workplace-pension step): grok voiced the scripted
+    // injection refusal, the system-copy strip emptied it, and the turn —
+    // zero tools, zero visible reply — still advanced with "I've saved your
+    // pensions" while nothing was written anywhere. A turn that produced
+    // NOTHING must re-ask, never advance.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I contribute 5% and my employer matches it. It is not salary sacrifice.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+
+    // The refusal never reaches the user, nothing claims "saved", and the
+    // walk stays parked on the same step with a re-ask.
+    expect($texts)->not->toContain('only help with financial planning')
+        ->and($texts)->not->toContain('saved')
+        ->and($texts)->not->toBe('');
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});
+
 it('shows a tier-limit message verbatim — no missing-detail tail a plan limit cannot satisfy', function () {
     // Live /m msg 19716 (2026-07-23): the delegated composer appended
     // "Give me the missing detail and I will try again." to a plan-limit
