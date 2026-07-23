@@ -4076,9 +4076,9 @@ PROMPT;
     private function buildInterruptionAnswerPrompt(): string
     {
         $context = "\n\nTurn context — the user has paused their onboarding walk to ask a side question. "
-            .'Answer the question itself, directly and definitively, in one to three sentences of general United Kingdom guidance. '
-            .'A definitional question always has an answer regardless of what profile data exists (for example, gross annual income means income before any deductions, so it includes pension contributions along with Income Tax and National Insurance). '
-            .'Missing profile data never blocks this answer: no request for personal details, no statement that more information is needed, and no pointing the user at other pages — the onboarding walk resumes immediately after the answer.';
+            .'Give the factual answer in ONE short paragraph of at most two sentences; the same answer applies to everyone, so it is general United Kingdom guidance (for example, gross annual income means income before any deductions, so it includes pension contributions along with Income Tax and National Insurance). '
+            .'For this turn the usual missing-data guidance does not apply: no mention of personalised answers, no naming of missing data, no page or navigation suggestions, no offers of further help, and no closing question of any kind. '
+            .'The reply ends after the factual answer — the onboarding question is re-asked automatically in the next bubble.';
 
         return FynSystemPrompt::text().$context;
     }
