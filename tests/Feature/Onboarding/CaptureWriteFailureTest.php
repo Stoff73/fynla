@@ -100,6 +100,22 @@ function verifyEditFailureUser(string $section = 'income'): array
     return [$user, $conversation];
 }
 
+it('matches the bare word "rate" to interest_rate in the verify-edit field vocabulary', function () {
+    // Live 2026-07-23: "The Santander rate is 4%" matched no field phrase
+    // ('interest rate'/'interest percentage' only), so the edit scope came
+    // out empty, update_record was filtered from the toolset, and the turn
+    // fell to the generic "I wasn't able to apply that change" line.
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'verifyEditRecordFields');
+
+    $fields = $method->invoke(
+        app(OnboardingChatDirector::class),
+        'savings_account',
+        'The Santander rate is 4% and the Halifax rate is 3.5%.'
+    );
+
+    expect($fields)->toContain('interest_rate');
+});
+
 it('names what could not be saved when every write failed and the model said nothing', function () {
     [$user, $conversation] = captureFailureUser();
 
