@@ -994,3 +994,33 @@ it('never voices failure copy for a duplicate-skip alongside a landed write', fu
     expect($texts->first(fn (string $t) => str_contains($t, "couldn't record") || str_contains($t, "couldn't save")))
         ->toBeNull();
 });
+
+it('a completion declaration advances a zero-output turn — "that\'s all my savings" is an answer, not noise', function () {
+    // Live 2026-07-23 (round 2, msgs 19859-19861): the user closed the
+    // savings section with "That's all my savings.", grok refused it with
+    // the injection-refusal line, the strip emptied the turn, and the
+    // zero-output guard re-asked "Sorry, I didn't catch that." A
+    // completion declaration is the negative-declaration case in another
+    // phrasing — it completes the step.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "That's all my savings."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+
+    expect($texts)->not->toContain("didn't catch that")
+        ->and($texts)->not->toContain('only help with financial planning');
+    expect($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});

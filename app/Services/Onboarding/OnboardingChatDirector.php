@@ -3855,7 +3855,11 @@ PROMPT;
             // A negative/none declaration legitimately writes nothing — "No
             // personal pensions." completes the step even when the model
             // stays silent; re-asking it would loop (live 2026-07-23).
-            && preg_match('/^\s*(?:no|none|nothing|neither)\b/iu', $message) !== 1) {
+            // …and so does a completion declaration — "That's all my
+            // savings." closes the section (live 2026-07-23, msg 19859:
+            // grok refused it, the strip emptied the turn, and the guard
+            // re-asked "Sorry, I didn't catch that").
+            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1) {
             yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
