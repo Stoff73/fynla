@@ -4546,7 +4546,11 @@ PROMPT;
         $fields = match ($entityType) {
             'savings_account' => [
                 'current_balance' => ['balance', 'current value'],
-                'interest_rate' => ['interest rate', 'interest percentage'],
+                // "rate" and "pays" cover the natural phrasings ("the
+                // Santander rate is 4%", "it pays 4%") — live 2026-07-23 the
+                // narrow list matched nothing and the whole edit fell to the
+                // generic failure line.
+                'interest_rate' => ['interest rate', 'interest percentage', 'rate', 'pays'],
                 'isa_subscription_amount' => ['isa subscription', 'this tax year', 'contributed this year', 'added this year'],
                 'regular_contribution_amount' => ['regular contribution'],
                 'contribution_frequency' => ['contribution frequency'],
