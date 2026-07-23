@@ -166,3 +166,37 @@ describe('PensionNormaliser::fromUploadDc', function () {
         expect($canonical)->not->toHaveKey('source_document_id');
     });
 });
+
+it('carries salary_sacrifice through fromFynPension — false is a fact, not an absence', function (): void {
+    // 2026-07-23 live (user 293, DCPension 175): the user said "It's not
+    // salary sacrifice", the occupational extractor sent
+    // salary_sacrifice=false, and the normaliser dropped it — the row
+    // persisted NULL (unknown) and downstream salary-sacrifice advice
+    // could re-ask or mis-target.
+    $normaliser = new \App\Services\Stores\Normalisers\PensionNormaliser;
+
+    $denied = $normaliser->fromFynPension([
+        'pension_category' => 'dc',
+        'scheme_type' => 'workplace',
+        'scheme_name' => 'Workplace Pension',
+        'employee_contribution_percent' => 5,
+        'salary_sacrifice' => false,
+    ]);
+    $confirmed = $normaliser->fromFynPension([
+        'pension_category' => 'dc',
+        'scheme_type' => 'workplace',
+        'scheme_name' => 'Workplace Pension',
+        'employee_contribution_percent' => 5,
+        'salary_sacrifice' => true,
+    ]);
+    $unknown = $normaliser->fromFynPension([
+        'pension_category' => 'dc',
+        'scheme_type' => 'workplace',
+        'scheme_name' => 'Workplace Pension',
+        'employee_contribution_percent' => 5,
+    ]);
+
+    expect($denied['salary_sacrifice'])->toBeFalse()
+        ->and($confirmed['salary_sacrifice'])->toBeTrue()
+        ->and($unknown)->not->toHaveKey('salary_sacrifice');
+});
