@@ -67,7 +67,7 @@ final class AssetCaptureEntityExtractor
         return match ($focus) {
             'protection' => 'create_protection_policy',
             'savings', 'budgeting' => 'create_savings_account',
-            'retirement' => 'create_pension',
+            'retirement', 'occupational' => 'create_pension',
             'investment' => 'create_investment_account',
             default => null,
         };
@@ -98,6 +98,7 @@ final class AssetCaptureEntityExtractor
             'protection' => $this->extractProtectionPolicies($message),
             'savings', 'budgeting' => $this->extractSavingsAccounts($message),
             'retirement' => $this->extractPensions($message),
+            'occupational' => $this->extractOccupationalPensionAnswer($message),
             'investment' => $this->extractInvestmentAccounts($message),
             'property' => $this->extractProperties($message),
             'goal' => $this->extractGoals($message),
@@ -304,7 +305,7 @@ final class AssetCaptureEntityExtractor
         return match ($focus) {
             'protection' => $this->protectionPersistedKeys($user, $cutoff),
             'savings', 'budgeting' => $this->savingsPersistedKeys($user, $cutoff),
-            'retirement' => $this->retirementPersistedKeys($user, $cutoff),
+            'retirement', 'occupational' => $this->retirementPersistedKeys($user, $cutoff),
             'investment' => $this->investmentPersistedKeys($user, $cutoff),
             'property' => $this->propertyPersistedKeys($user, $cutoff),
             'goal' => $this->goalPersistedKeys($user, $cutoff),
@@ -721,6 +722,65 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<array<string, mixed>>
      */
+    /**
+     * The workplace-pension contribution answer at the occupational step
+     * ("I contribute 5% and my employer matches it. It's not salary
+     * sacrifice." / "my employer adds 3%, with Aviva"). Scoped to the
+     * dedicated `occupational` focus — outside that step "I contribute 5%"
+     * is ambiguous, so the generic retirement parser stays untouched. This
+     * is the deterministic backstop for the model's injection-refusal
+     * misfire on exactly this answer shape (live 2026-07-23, twice): the
+     * ONE gap-fill mechanism writes the pension when the model will not.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function extractOccupationalPensionAnswer(string $message): array
+    {
+        $lower = mb_strtolower($message);
+
+        // "No workplace pension" / "I don't have one" — nothing to create.
+        if (preg_match('/\b(?:no|don[\x{2019}\x{0027}]t\s+have|without)\b[^.!?]{0,25}\bpension\b/u', $lower) === 1) {
+            return [];
+        }
+
+        if (preg_match('/\b(?:i\s+)?(?:contribute|pay(?:\s+in)?|put(?:\s+in)?)\s+(?:about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*%/u', $lower, $employee) !== 1) {
+            return [];
+        }
+        $employeePercent = (float) $employee[1];
+
+        $employerPercent = null;
+        if (preg_match('/\bemployer\s+(?:adds?|contributes?|pays?(?:\s+in)?|puts?(?:\s+in)?|matches\s+(?:it\s+)?with)\s+(?:another\s+|about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*%/u', $lower, $employer) === 1) {
+            $employerPercent = (float) $employer[1];
+        } elseif (preg_match('/\bemployer\s+matches\b|\bmatched\s+by\s+my\s+employer\b/u', $lower) === 1) {
+            $employerPercent = $employeePercent;
+        }
+
+        $mentionsSacrifice = preg_match('/\bsalary\s+sacrifice\b/u', $lower) === 1;
+        $negatedSacrifice = preg_match('/\b(?:not|no|isn[\x{2019}\x{0027}]t|without)\b[^.!?]{0,40}\bsalary\s+sacrifice\b/u', $lower) === 1;
+        $salarySacrifice = $mentionsSacrifice && ! $negatedSacrifice;
+
+        $provider = null;
+        if (preg_match('/\bwith\s+([A-Z][A-Za-z&]+)\b/u', $message, $providerMatch) === 1) {
+            $provider = $providerMatch[1];
+        }
+
+        $input = [
+            'pension_category' => 'dc',
+            'scheme_type' => 'workplace',
+            'scheme_name' => ($provider !== null ? $provider.' ' : '').'Workplace Pension',
+            'employee_contribution_percent' => $employeePercent,
+            'salary_sacrifice' => $salarySacrifice,
+        ];
+        if ($employerPercent !== null) {
+            $input['employer_contribution_percent'] = $employerPercent;
+        }
+        if ($provider !== null) {
+            $input['provider'] = $provider;
+        }
+
+        return [$input];
+    }
+
     public function extractPensions(string $message): array
     {
         $chunks = $this->splitOnConnectors($message);
@@ -1287,7 +1347,7 @@ final class AssetCaptureEntityExtractor
         return match ($focus) {
             'protection' => $this->protectionIdentityKey($fields, $fromLlm),
             'savings', 'budgeting' => $this->savingsIdentityKey($fields, $fromLlm),
-            'retirement' => $this->pensionIdentityKey($fields, $fromLlm),
+            'retirement', 'occupational' => $this->pensionIdentityKey($fields, $fromLlm),
             'investment' => $this->investmentIdentityKey($fields, $fromLlm),
             'property' => $this->propertyIdentityKey($fields, $fromLlm),
             'goal' => $this->goalIdentityKey($fields, $fromLlm),

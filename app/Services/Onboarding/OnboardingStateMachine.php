@@ -610,6 +610,13 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on.",
                 'capture_field' => null,
+                // Deterministic gap-fill focus: campaign users carry selection
+                // 'savetax', which maps to no gap-fill tool — so a model
+                // misfire here silently lost the contribution answer (live
+                // 2026-07-23, the injection-refusal on "salary sacrifice").
+                // The dedicated occupational extractor writes the workplace
+                // pension when the model will not.
+                'capture_focus' => 'occupational',
                 // For pensioncheck, also skip when a workplace DC pension row already
                 // exists with a current_fund_value (the employer scheme is already
                 // known; campaign2_pension_pots will surface it for value confirmation).
