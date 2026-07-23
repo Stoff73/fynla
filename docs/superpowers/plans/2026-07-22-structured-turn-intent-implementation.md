@@ -29,11 +29,11 @@
 **Interfaces:**
 - Produces: `FynTurnIntent` enum; metadata key `turn_intent` (string) on new assistant rows. Tasks 2-4 consume.
 
-- [ ] **Step 1: Failing test** — drive one representative flow per intent family (resume → `resume_greeting`; step emission → `step_prompt`; interruption offer → `interruption_offer`; defer → `deferred_promise`; done-turn raise → `deferred_raise`; celebration → `celebration`) using the existing OnboardingInterruptionTest/OnboardingResumeTest drive idioms, asserting `metadata['turn_intent']` on the persisted rows.
-- [ ] **Step 2: RED run** — `./vendor/bin/pest tests/Feature/Onboarding/TurnIntentStampTest.php` fails (key absent).
-- [ ] **Step 3: Implement** — enum + stamp every site. No read-side changes.
-- [ ] **Step 4: GREEN + full onboarding family** — new file + `tests/Feature/Onboarding/` + `tests/Feature/Fyn/` green.
-- [ ] **Step 5: FULL suite** (global constraint) then commit `feat(fyn): persist turn_intent on every assistant message`.
+- [x] **Step 1: Failing test** — drive one representative flow per intent family (resume → `resume_greeting`; step emission → `step_prompt`; interruption offer → `interruption_offer`; defer → `deferred_promise`; done-turn raise → `deferred_raise`; celebration → `celebration`) using the existing OnboardingInterruptionTest/OnboardingResumeTest drive idioms, asserting `metadata['turn_intent']` on the persisted rows.
+- [x] **Step 2: RED run** — `./vendor/bin/pest tests/Feature/Onboarding/TurnIntentStampTest.php` fails (key absent).
+- [x] **Step 3: Implement** — enum + stamp every site. No read-side changes.
+- [x] **Step 4: GREEN + full onboarding family** — new file + `tests/Feature/Onboarding/` + `tests/Feature/Fyn/` green.
+- [x] **Step 5: FULL suite** (global constraint) then commit `feat(fyn): persist turn_intent on every assistant message`. *(Done — `39cb870`; 6374 passed, 3 fails = documented NativeSessionApiTest order-flake family, standalone green. Addendum `ecc3237`: no-tool clarification turns refined to capture_clarification at both capture seams — required so Task 2's enum-preferring readers don't lose the followup arm.)*
 
 ### Task 2: Followup/merge arming reads the enum
 
@@ -43,7 +43,7 @@
 
 **Interfaces:** Consumes Task 1's key. Produces no new surface.
 
-- [ ] Steps: failing test (a stamped `interruption_answer` row followed by an on-script reply → normal state handling, no merge — the conv-168 shape pinned via the enum rather than the tag) → RED → implement → GREEN → full suite → commit `refactor(onboarding): followup arming prefers turn_intent`.
+- [x] Steps: failing test (a stamped `interruption_answer` row followed by an on-script reply → normal state handling, no merge — the conv-168 shape pinned via the enum rather than the tag) → RED → implement → GREEN → full suite → commit `refactor(onboarding): followup arming prefers turn_intent`. *(Done — two reflection-driven pins on mergeUnresolvedCaptureMessage, both arming directions; suite same-baseline green.)*
 
 ### Task 3: Resume prune + evidence boundary read the enum
 
@@ -51,7 +51,7 @@
 - Modify: `OnboardingChatDirector.php` `handleResumeAction` prune — query `metadata->turn_intent = resume_greeting` OR the legacy flag (both, one `orWhere`); `app/Agents/CoordinatingAgent.php::recentUserMessageEvidence` boundary predicate — a row with `turn_intent` is a boundary iff `step_prompt`/`verify_prompt`; legacy branch keeps today's predicate.
 - Test: extend `OnboardingResumeTest.php` + a boundary test in `tests/Unit/Services/Onboarding/CaptureAccuracyGateTest.php`'s evidence-window coverage (or the CoordinatingAgent evidence test file if one exists — locate first).
 
-- [ ] Steps: RED (stamped offer/interruption rows must NOT be boundaries; stamped step_prompt must be) → implement → GREEN → full suite → commit `refactor(fyn): evidence boundary and resume prune prefer turn_intent`.
+- [x] Steps: RED (stamped offer/interruption rows must NOT be boundaries; stamped step_prompt must be) → implement → GREEN → full suite → commit `refactor(fyn): evidence boundary and resume prune prefer turn_intent`. *(Done — reflection pins on recentUserMessageEvidence both directions + enum-only prune test; suite same-baseline green.)*
 
 ### Task 4: Gate `confirmedFacts`
 
@@ -61,33 +61,33 @@
 - Modify: `OnboardingChatDirector.php` — the awaiting-detail resolution passes extractor-parsed ownership/subtype from the detail reply as confirmed facts; scripted parse-state answers (campaign ISA subtype question etc.) pass their parsed fact.
 - Test: extend `CaptureAccuracyGateTest.php` (facts satisfy without evidence; facts never override an explicit CONTRADICTING argument — joint+ISA still blocked) + an interruption feature test: the two-step store flow with "Just me" passes via facts with NO evidence-window dependency (the Santander-class shape becomes deterministic).
 
-- [ ] Steps: RED → implement → GREEN → full suite → commit `feat(capture): gate accepts structured confirmed facts`.
+- [x] Steps: RED → implement → GREEN → full suite → commit `feat(capture): gate accepts structured confirmed facts`. *(Done — facts channel: gate param + executeTool param + turn-scoped transient via a handleInlineCapture wrapper (try/finally); awaiting-detail extractor parse wired; "On my own." two-step pin + 5 gate unit rows; ISA law routed through the array. No scripted parse-state producer exists yet for isa_subtype — the gate side is ready when one lands.)*
 
 ### Task 5: Gate phrasing gaps (approved minor)
 
 **Files:** `CaptureAccuracyGate.php::ownershipFromText` — add conservative natural phrasings for non-ISA assets: `owned by me`, `my own`, `in my name`, `on my own` (individual); `in both our names`, `with my wife/husband` (joint — wife/husband already partially covered; verify). Tests: unit rows per phrase incl. negation ("not owned by me" must not match — the existing negation machinery covers it; pin it).
 
-- [ ] Steps: RED → implement → GREEN → full suite → commit `fix(capture): natural ownership phrasings recognised`.
+- [x] Steps: RED → implement → GREEN → full suite → commit `fix(capture): natural ownership phrasings recognised`. *(Done — 8 unit rows incl. negation; Task 4 pin re-isolated to "It's only mine.".)*
 
 ### Task 6: /m secondary-call 401 gaps (approved minor)
 
 **Files:** `resources/mobile/views/modules/Estate.vue` (second apiGet), `NetWorth.vue` + `Goals.vue` (Promise.all secondary responses) — route 401 through the shared `authExpiry` helper. Vitest: extend the existing view specs (Node 20 invocation per fix-m-401-wave-report.md). eslint clean. NO vite build.
 
-- [ ] Steps: RED (mock 401 on the secondary call → redirect) → implement → GREEN → commit `fix(m): secondary data calls re-authenticate on 401`.
+- [x] Steps: RED (mock 401 on the secondary call → redirect) → implement → GREEN → commit `fix(m): secondary data calls re-authenticate on 401`. *(Done — cda7cd5; SecondaryCall401.spec.js 3 RED→GREEN, /m vitest 30/30, eslint clean.)*
 
 ### Task 7: /m hex-to-token sweep (approved minor)
 
 **Files:** per the audit catalogue in the 2026-07-22 sweep (ledger): `resources/mobile/style.css`, `views/Login.vue`, `components/GamificationCelebration.vue` (+ `Dashboard.vue:133` SVG stroke → `currentColor` with a class). Exact-token rows use the mapped `var(--…)` tokens from the catalogue table; no-exact-token rows use the NEAREST listed family token — do NOT invent new palette entries; where the catalogue marked "need a decision", pick the nearest and list each substitution in the commit body for CSJ's eye. Confetti palettes in `<script>` switch to importing the token hexes from one shared constants module reading the CSS custom properties at runtime (`getComputedStyle`) or a single JS mirror constant — smallest faithful approach.
 - Verification: vitest suite green; eslint clean; visual spot-check on csjones after the plan's deploy (login screen + a level-up celebration + hero) — colours must be visually identical (the tokens ARE these hexes).
 
-- [ ] Steps: implement (mechanical) → tests/lint → commit `style(m): palette tokens replace hardcoded hex (CSJ-approved sweep)`.
+- [x] Steps: implement (mechanical) → tests/lint → commit `style(m): palette tokens replace hardcoded hex (CSJ-approved sweep)`. *(Done — fce7ca3; Login + GamificationCelebration hex-free, tokens.js mirror for confetti, 3 missing guide tokens added to :root, Dashboard stroke → currentColor. Two gradient-stop nearest-picks listed in the commit body. style.css BODY deliberately NOT swept: the ledger documents #6B7280 as /m's rendered neutral-500 truth vs --neutral-500 #717171 — needs a CSJ ruling before that sweep is mechanical.)*
 
 ### Task 8: Deploy + live verification + close
 
-- [ ] Full suite green (expect only the documented NativeSessionApiTest order-flake).
-- [ ] PR → dev (admin-merge per pattern), csjones `git pull origin dev`, config:cache; bundle build + rsync (Tasks 6-7 touch mobile source).
-- [ ] Live on csjones (Rule 14): one fresh-user interruption pass (question at a capture step; two-step store with "Just me" — must succeed with zero clarification churn via facts); resume greeting; login-screen + celebration visual check (Task 7).
-- [ ] Ledger + report to CSJ.
+- [x] Full suite green (expect only the documented NativeSessionApiTest order-flake). *(4 runs across the sequence, latest 6,394 passed; only the documented flake family each time.)*
+- [x] PR → dev (admin-merge per pattern), csjones `git pull origin dev`, config:cache; bundle build + rsync (Tasks 6-7 touch mobile source). *(PRs #645 + #646; NOTE: the /m SPA ships from `public/m-build/`, not `public/build/` — both must rsync.)*
+- [x] Live on csjones (Rule 14): one fresh-user interruption pass (question at a capture step; two-step store with "Just me" — must succeed with zero clarification churn via facts); resume greeting; login-screen + celebration visual check (Task 7). *(Fresh user Tessa Winslow: Santander two-step saved first-reply via facts (gap-fill path); the streamed-path Vanguard case exposed the container-transient facts split — fixed in #646 (facts as FynLoop::stream param + explicit gap-fill arg) and re-verified live: gia/individual/100% saved, zero churn. Resume greeting single + Continue re-enters. Login + celebration visuals token-true; the two gradient decision-rows are the only visible deltas.)*
+- [x] Ledger + report to CSJ. *(Register updated in July/July23Updates; live observation for the CSJ-deferred A1 ruling: a question at a delegated capture step whose model turn only re-asks is never answered — no dispatcher exists on the modelRequestedClarification branch; pre-existing, stamps truthful.)*
 
 ## Self-Review
 

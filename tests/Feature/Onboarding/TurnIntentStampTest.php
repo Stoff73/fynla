@@ -165,7 +165,7 @@ it('stamps deferred_raise and celebration on the done turn', function () {
     }
 
     $raise = $conversation->messages()
-        ->where('content', 'like', 'Earlier you asked%')
+        ->where('content', 'like', '%You asked about%')
         ->first();
     expect($raise)->not->toBeNull();
     expect($raise->metadata['turn_intent'] ?? null)->toBe('deferred_raise');
