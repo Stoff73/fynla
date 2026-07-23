@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
@@ -1613,7 +1614,7 @@ final class OnboardingChatDirector
         $level = AdviceFyn::engineCallLevelFor($primary);
 
         if ($level === 'holistic') {
-            return $this->deferQuestion($user, $conversation, $currentStateId, $state, $message); // Task 4
+            return $this->deferQuestion($user, $conversation, $currentStateId, $state, $message, $primary); // Task 4
         }
 
         return (function () use ($user, $conversation, $currentStateId, $state, $message, $currentRoute): \Generator {
@@ -1746,11 +1747,20 @@ final class OnboardingChatDirector
         AiConversation $conversation,
         string $currentStateId,
         array $state,
-        string $message
+        string $message,
+        ?string $primary = null
     ): \Generator {
         $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
         $deferred = $metadata['deferred_questions'] ?? [];
-        $deferred[] = ['question' => $message, 'state_id' => $currentStateId];
+        $entry = ['question' => $message, 'state_id' => $currentStateId];
+        // Topic derived deterministically at defer time (classifier primary →
+        // module label) so the completion raise can say "You asked about '…'
+        // earlier" without re-classifying (CSJ raise shape, 2026-07-23).
+        $topic = $this->deferredTopicLabel($primary);
+        if ($topic !== null) {
+            $entry['topic'] = $topic;
+        }
+        $deferred[] = $entry;
         $metadata['deferred_questions'] = $deferred;
         $conversation->update(['metadata' => $metadata]);
 
@@ -2721,6 +2731,27 @@ final class OnboardingChatDirector
         // same grouped_extract path.
         $missing = (array) ($captureDetails['missing'] ?? []);
         if (count($missing) > 0) {
+            // CSJ decided policy (reconfirmed 2026-07-23): no question is
+            // ever dropped. A partial capture still owes the user their
+            // answer — dispatch the interruption first (inline answer for a
+            // simple question, acknowledge + defer for one needing more);
+            // the dispatcher re-emits the step, so the walk still re-asks.
+            // Mirrors emitRetry's identical guard on the no-capture path
+            // (live: Tessa's gross-income question vanished under the
+            // is_partial_retry re-ask, 2026-07-23). No a1AnswerEmitted term:
+            // the A1 block only runs on the no-capture branch, so no answer
+            // can have been voiced before a partial capture.
+            if ($userAskedQuestion) {
+                $interruption = $this->handleInterruption(
+                    $user, $conversation, $currentStateId, $state, $message, $currentRoute
+                );
+                if ($interruption !== null) {
+                    yield from $interruption;
+
+                    return;
+                }
+            }
+
             yield from $this->emitPartialRetry($conversation, $currentStateId, $toolName, $missing);
 
             return;
@@ -3702,6 +3733,24 @@ PROMPT;
                 $currentStateId,
                 ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
             );
+
+            // CSJ decided policy (reconfirmed 2026-07-23): no question is
+            // ever dropped. When the model's turn only re-asked without
+            // answering the user's question, dispatch the interruption —
+            // inline answer or acknowledge + defer — before ending the
+            // turn. The dispatcher re-emits the step, keeping the walk's
+            // re-ask; without this the question silently vanished.
+            if ($userAskedQuestion) {
+                $interruption = $this->handleInterruption(
+                    $user, $conversation, $currentStateId, $state, $message, $currentRoute
+                );
+                if ($interruption !== null) {
+                    yield from $interruption;
+
+                    return;
+                }
+            }
+
             yield $delegatedDoneEvent ?? ['type' => 'done'];
 
             return;
@@ -4891,7 +4940,37 @@ PROMPT;
      * metadata after emitting, preserving every other key (`source` is the
      * resume-lookup pivot and must survive).
      */
-    private function emitDeferredQuestions(AiConversation $conversation): \Generator
+    /**
+     * Map a classifier primary to the module label the completion raise
+     * names ("You asked about 'Investments' earlier"). Null when no clean
+     * label exists — the raise then quotes the question itself.
+     */
+    private function deferredTopicLabel(?string $primary): ?string
+    {
+        if ($primary === null) {
+            return null;
+        }
+
+        $modules = QuerySchemas::MODULE_MAP[$primary] ?? [];
+        if (count($modules) > 1) {
+            return 'your overall finances';
+        }
+
+        return match ($modules[0] ?? null) {
+            'protection' => 'Protection',
+            'savings' => 'Savings',
+            'investment' => 'Investments',
+            'retirement' => 'Retirement',
+            'estate' => 'Estate planning',
+            'goals' => 'Goals',
+            'tax' => 'Tax',
+            'property' => 'Property',
+            'income' => 'Income',
+            default => null,
+        };
+    }
+
+    private function emitDeferredQuestions(User $user, AiConversation $conversation): \Generator
     {
         $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
         $deferred = $metadata['deferred_questions'] ?? [];
@@ -4902,15 +4981,39 @@ PROMPT;
         unset($metadata['deferred_questions']);
         $conversation->update(['metadata' => $metadata]);
 
-        $bubbles = [];
-        foreach (array_values($deferred) as $i => $entry) {
-            $bubbles[] = [
-                'id' => 'deferred_'.$i,
-                'label' => mb_substr((string) ($entry['question'] ?? ''), 0, 60),
-            ];
+        // CSJ raise shape (2026-07-23): thank the user by name, name the
+        // completed flow, reference each question's topic, warn that a
+        // proper answer may need additional information, and offer Yes/No.
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
         }
 
-        $prompt = 'Earlier you asked me something — want to pick that up now that your plan is set up?';
+        $flowName = match ((string) ($user->onboarding_fyn_selection ?? '')) {
+            'savetax' => 'your Save Tax onboarding',
+            'pensioncheck' => 'your Pension Check onboarding',
+            default => 'your onboarding',
+        };
+
+        $topics = array_map(
+            static fn (array $entry): string => "'".(string) ($entry['topic'] ?? mb_substr((string) ($entry['question'] ?? ''), 0, 60))."'",
+            array_values($deferred),
+        );
+        $topicList = count($topics) > 1
+            ? implode(', ', array_slice($topics, 0, -1)).' and '.end($topics)
+            : $topics[0];
+
+        $prompt = "Thanks {$firstName} for the information — {$flowName} is now complete. "
+            ."You asked about {$topicList} earlier; to answer your "
+            .(count($topics) > 1 ? 'questions' : 'question')
+            .' properly I may need some additional information. Are you okay to continue?';
+
+        $bubbles = [
+            ['id' => 'deferred_yes', 'label' => 'Yes'],
+            ['id' => 'deferred_no', 'label' => 'No'],
+        ];
+
         $saved = $this->saveMessage($conversation, 'assistant', $prompt, [
             'metadata' => [
                 'bubbles' => $bubbles,
@@ -4946,7 +5049,7 @@ PROMPT;
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
 
-        yield from $this->emitDeferredQuestions($conversation);
+        yield from $this->emitDeferredQuestions($user, $conversation);
 
         // CSJ direction 2026-07-21: before the celebration lands, tell the
         // completing user the experience is better in the app — its own Fyn
@@ -5636,7 +5739,7 @@ PROMPT;
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_DONE) ?? [];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user);
 
-        yield from $this->emitDeferredQuestions($conversation);
+        yield from $this->emitDeferredQuestions($user, $conversation);
 
         yield ['type' => 'content', 'text' => $celebration];
 

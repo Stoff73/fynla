@@ -669,6 +669,11 @@ it('defers a holistic question with a promise and parks it on the conversation',
         ->toBe('How is my financial health?');
     expect($conversation->metadata['deferred_questions'][0]['state_id'] ?? null)
         ->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    // CSJ raise shape: the topic is derived deterministically at defer time
+    // (classifier primary → module label) so the completion raise can say
+    // "You asked about '…' earlier" without re-classifying.
+    expect($conversation->metadata['deferred_questions'][0]['topic'] ?? null)
+        ->toBe('your overall finances');
     // Never clobber the resume-lookup pivot already on the conversation.
     expect($conversation->metadata['source'] ?? null)->toBe('fyn_onboarding');
 
@@ -706,6 +711,10 @@ it('falls through to the plain retry when a question-shaped message does not cla
 // ── Task 5: deferred questions raised at both completion terminals ─────────
 
 it('raises deferred questions at the classic completion terminal and clears them', function () {
+    // Legacy entry shape (no stored topic) — the raise falls back to quoting
+    // the question itself. CSJ raise shape (2026-07-23): thanks by name,
+    // names the completed flow, references the question, warns more
+    // information may be needed, Yes/No bubbles.
     [$user, $conversation] = interruptionUser();
     $conversation->update(['metadata' => array_merge($conversation->metadata ?? [], [
         'deferred_questions' => [['question' => 'How healthy are my overall finances?', 'state_id' => 'path_choice']],
@@ -718,13 +727,18 @@ it('raises deferred questions at the classic completion terminal and clears them
     }
 
     $raise = collect($received)->where('type', 'quick_replies')
-        ->first(fn ($e) => str_contains($e['prompt_text'] ?? '', 'Earlier you asked'));
+        ->first(fn ($e) => str_contains($e['prompt_text'] ?? '', 'You asked about'));
     expect($raise)->not->toBeNull();
-    expect($raise['bubbles'][0]['label'])->toBe('How healthy are my overall finances?');
+    expect($raise['prompt_text'])->toContain('Thanks Chris');
+    expect($raise['prompt_text'])->toContain('your onboarding is now complete');
+    expect($raise['prompt_text'])->toContain("You asked about 'How healthy are my overall finances?' earlier");
+    expect($raise['prompt_text'])->toContain('additional information');
+    expect($raise['prompt_text'])->toContain('Are you okay to continue?');
+    expect(array_column($raise['bubbles'], 'label'))->toBe(['Yes', 'No']);
 
     // Event-ordering assertion: raise quick_replies must come before celebration content.
     $types = collect($received)->pluck('type');
-    $raiseIndex = collect($received)->search(fn ($e) => ($e['type'] ?? null) === 'quick_replies' && str_contains($e['prompt_text'] ?? '', 'Earlier you asked'));
+    $raiseIndex = collect($received)->search(fn ($e) => ($e['type'] ?? null) === 'quick_replies' && str_contains($e['prompt_text'] ?? '', 'You asked about'));
     $celebrationIndex = $types->search('content');
     expect($raiseIndex)->not->toBeFalse();
     expect($celebrationIndex)->not->toBeFalse();
@@ -734,9 +748,9 @@ it('raises deferred questions at the classic completion terminal and clears them
     expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
 
     // The persisted raise message keeps its bubbles for transcript renders.
-    $persisted = $conversation->messages()->where('content', 'like', 'Earlier you asked%')->first();
+    $persisted = $conversation->messages()->where('content', 'like', '%You asked about%')->first();
     expect(array_column($persisted->metadata['bubbles'] ?? [], 'label'))
-        ->toBe(['How healthy are my overall finances?']);
+        ->toBe(['Yes', 'No']);
 });
 
 it('raises deferred questions at the campaign completion terminal before the app note and celebration', function () {
@@ -784,7 +798,7 @@ it('raises deferred questions at the campaign completion terminal before the app
         ->get(['content', 'metadata']);
 
     $raiseIndex = $assistantMessages->search(
-        fn (AiMessage $m): bool => str_contains($m->content, 'Earlier you asked')
+        fn (AiMessage $m): bool => str_contains($m->content, 'You asked about')
     );
     $appNoteIndex = $assistantMessages->search(
         fn (AiMessage $m): bool => str_contains($m->content, 'even better in the app')
@@ -800,9 +814,11 @@ it('raises deferred questions at the campaign completion terminal before the app
     expect($raiseIndex)->toBeLessThan($appNoteIndex);
     expect($appNoteIndex)->toBeLessThan($celebrationIndex);
 
+    // CSJ raise shape: names the completed campaign, Yes/No bubbles.
     $raiseMessage = $assistantMessages[$raiseIndex];
+    expect($raiseMessage->content)->toContain('your Pension Check onboarding is now complete');
     expect(array_column($raiseMessage->metadata['bubbles'] ?? [], 'label'))
-        ->toBe(['How healthy are my overall finances?']);
+        ->toBe(['Yes', 'No']);
 });
 
 // ── Task 6: grouped-extract retries route through interruption intelligence ─
@@ -1403,4 +1419,81 @@ it('completes the two-step store flow via confirmed facts when the detail phrasi
 
     $user->refresh();
     expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+});
+
+// ── CSJ decided policy (reconfirmed 2026-07-23): no question is ever
+// dropped. At a delegated step, when the model's capture turn only re-asks
+// the scripted question (the model-requested-clarification branch), the
+// user's question must still route through the interruption dispatcher —
+// answered inline when simple, acknowledged + deferred when it needs more.
+// Live shape: Tessa, base_work, "Does my gross income include my employer
+// pension contributions?" answered with only "I still need your gross
+// annual income" — the question vanished. ─────────────────────────────────
+
+it('answers a question inline when the delegated capture turn only re-asks', function () {
+    $reAsk = 'Thanks — I still need your gross annual income in GBP. Could you share that?';
+    $answer = 'Employer pension contributions are not counted in your gross annual income — quote your salary before pension deductions.';
+
+    $calls = 0;
+    $mock = Mockery::mock(app(CoordinatingAgent::class));
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (...$args) use (&$calls, $reAsk, $answer) {
+            $calls++;
+            /** @var AiConversation $conversationArg */
+            $conversationArg = $args[1];
+
+            if ($calls === 1) {
+                // The grouped extraction turn: the tool ran but reported the
+                // income missing (the user asked a question instead of
+                // giving a figure) — the exact partial-capture shape from
+                // the live failure (metadata is_partial_retry +
+                // missing_fields [annual_income] on row 19602).
+                $conversationArg->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $reAsk,
+                    'persona' => 'data_capture',
+                ]);
+
+                return (function () use ($reAsk) {
+                    yield ['type' => 'content', 'text' => $reAsk];
+                    yield [
+                        'type' => 'onboarding_field_captured',
+                        'details' => ['missing' => ['annual_income']],
+                    ];
+                    yield ['type' => 'done', 'message_id' => 900];
+                })();
+            }
+
+            // The interruption dispatcher's advice-mode answer.
+            $conversationArg->messages()->create([
+                'role' => 'assistant',
+                'content' => $answer,
+                'persona' => 'advice',
+            ]);
+
+            return (function () use ($answer) {
+                yield ['type' => 'content', 'text' => $answer];
+                yield ['type' => 'done', 'message_id' => 901];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_WORK);
+
+    $received = driveDirector($user, $conversation, 'Does my gross income include my employer pension contributions?');
+
+    // The question was answered, not dropped.
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
+    expect($texts)->toContain('not counted in your gross annual income');
+
+    // The answer row is tagged so the followup/merge scans never mistake
+    // its wording for a capture clarification.
+    $answerRow = $conversation->messages()->where('content', $answer)->latest('id')->first();
+    expect($answerRow)->not->toBeNull();
+    expect($answerRow->metadata['turn_intent'] ?? null)->toBe('interruption_answer');
+
+    // The walk stays parked on the same step for the user's next reply.
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
 });
