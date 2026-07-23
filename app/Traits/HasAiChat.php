@@ -41,6 +41,7 @@ use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\ToolResults;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Eval\EvalBypassGate;
@@ -979,6 +980,7 @@ trait HasAiChat
                             || (isset($toolResult['updated']) && $toolResult['updated'] === true)
                             || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
                             || (isset($toolResult['success']) && $toolResult['success'] === true)
+                            || ToolResults::isDuplicateSkip($toolResult)
                         );
                         $toolCallId = (string) ($toolUseBlock['id'] ?? '');
                         $retryOfToolCallId = $captureRetryAssignments[$toolCallId] ?? null;

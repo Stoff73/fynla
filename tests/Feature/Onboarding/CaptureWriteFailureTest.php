@@ -956,3 +956,41 @@ it('does not arm the merge off the canned security-refusal text', function () {
         ->not->toContain('Nationwide')
         ->toBe('Also a Halifax Cash ISA with £5,000, owned individually');
 });
+
+it('never voices failure copy for a duplicate-skip alongside a landed write', function () {
+    // 2026-07-23 live (round 2, msg 19858): the joint account saved and the
+    // model re-called create for the already-saved current account. The
+    // dedupe skip (warning + existing_id) carries landed=false and a
+    // result message, so it entered the failure ledger and the user read
+    // "I couldn't record anything new there" directly above
+    // "Saved Joint Savings Account." A duplicate skip means the record
+    // exists — it is not a failure.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null,
+            'result' => ['success' => true, 'created' => true, 'entity_id' => 558, 'entity_type' => 'savings_account', 'name' => 'Joint Savings Account']],
+        ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 558, 'name' => 'Joint Savings Account'],
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => false, 'message' => null,
+            'result' => ['warning' => true, 'existing_id' => 557, 'message' => "A similar record 'Current Account' already exists. The new record was not created to avoid duplication."]],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'Please try the joint savings account again: £12,000 at 4.2% interest, owned 50/50 with my husband Daniel.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)
+        ->filter(fn (array $e) => ($e['type'] ?? null) === 'content')
+        ->pluck('text');
+
+    expect($texts->first(fn (string $t) => str_contains($t, "couldn't record") || str_contains($t, "couldn't save")))
+        ->toBeNull();
+});

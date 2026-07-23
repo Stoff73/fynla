@@ -28,6 +28,7 @@ use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\ToolResults;
 use App\Services\AI\WriteIntentClassifier;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Coordination\ComposedModulePlanService;
@@ -3611,10 +3612,8 @@ PROMPT;
                         if ($retryOfToolCallId !== '') {
                             unset($pendingWriteFailures[$retryOfToolCallId]);
                         }
-                    } elseif (($event['noop'] ?? false) !== true) {
-                        // A blocked duplicate carries no message; a validation
-                        // failure does. Either way a write was attempted and
-                        // nothing landed — enough to suppress a false "Recorded".
+                    } elseif (($event['noop'] ?? false) !== true
+                        && ! ToolResults::isDuplicateSkip((array) ($event['result'] ?? []))) {
                         $sawFailedWrite = true;
                         $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
                         $pendingWriteFailures[$failureKey] = [
@@ -6387,8 +6386,9 @@ PROMPT;
                     continue;
                 }
 
-                $failed = $explicitFailure
-                    || ($landed === false && $messageText !== '');
+                $failed = ! ToolResults::isDuplicateSkip($result)
+                    && ($explicitFailure
+                        || ($landed === false && $messageText !== ''));
                 if ($failed) {
                     $pendingWriteFailures[$toolCallId] = [
                         'message' => $messageText !== ''
