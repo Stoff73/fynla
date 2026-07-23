@@ -321,8 +321,8 @@ final class CaptureAccuracyGate
     {
         return $this->latestCategorisedMatch($text, [
             'tenants_in_common' => '/\btenants?\s+in\s+common\b/u',
-            'joint' => '/\b(?:joint|jointly|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner)|50\s*\/\s*50)\b/u',
-            'individual' => '/\b(?:solely|mine\s+alone|just\s+me|only\s+me|individually)\b/u',
+            'joint' => '/\b(?:joint|jointly|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner|wife|husband)|in\s+both\s+our\s+names|50\s*\/\s*50)\b/u',
+            'individual' => '/\b(?:solely|mine\s+alone|just\s+me|only\s+me|individually|owned\s+by\s+me|(?:on\s+)?my\s+own|in\s+my\s+name)\b/u',
             'trust' => '/\b(?:held\s+in\s+trust|trust-owned|owned\s+by\s+the\s+trust)\b/u',
         ]);
     }

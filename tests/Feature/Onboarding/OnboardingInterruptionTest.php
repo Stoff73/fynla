@@ -1391,10 +1391,11 @@ it('completes the two-step store flow via confirmed facts when the detail phrasi
     $user->refresh();
     expect($user->onboarding_fyn_context['pending_interruption_store']['awaiting_detail'] ?? null)->toBeTrue();
 
-    // "On my own." parses deterministically (extractor vocabulary) but is
-    // NOT in the gate's text-evidence vocabulary — only the confirmed-facts
-    // channel can satisfy the gate for this phrasing.
-    driveDirector($user->refresh(), $conversation, 'On my own.');
+    // "It's only mine." parses deterministically (extractor's "only mine"
+    // pattern) but is NOT in the gate's text-evidence vocabulary (even after
+    // the Task 5 phrasing additions) — only the confirmed-facts channel can
+    // satisfy the gate for this phrasing.
+    driveDirector($user->refresh(), $conversation, "It's only mine.");
 
     $account = SavingsAccount::where('user_id', $user->id)->first();
     expect($account)->not->toBeNull();

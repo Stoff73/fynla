@@ -1610,3 +1610,54 @@ it('satisfies a joint ownership share from a confirmed fact', function (): void 
 
     expect($result)->toBe(['allowed' => true]);
 });
+
+// ── Task 5 (approved minor): natural ownership phrasings for non-ISA
+// assets — conservative additions with the existing negation machinery
+// pinned against them. ─────────────────────────────────────────────────────
+
+it('recognises natural individual-ownership phrasings', function (string $text): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text);
+
+    expect($result)->toBe(['allowed' => true]);
+})->with([
+    'My Halifax savings account with £5,000 is owned by me',
+    'The Halifax account with £5,000 is my own',
+    'My £5,000 Halifax savings account is in my name',
+    'I hold the £5,000 Halifax account on my own',
+]);
+
+it('recognises natural joint-ownership phrasings', function (string $text): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 5000,
+        'ownership_type' => 'joint',
+        'joint_owner_id' => 42,
+        'ownership_percentage' => 50,
+    ], $text);
+
+    expect($result)->toBe(['allowed' => true]);
+})->with([
+    'Our Halifax saver holds £5,000, in both our names, owned 50/50',
+    'The Halifax saver holds £5,000, owned 50/50 with my wife',
+    'The Halifax saver holds £5,000, owned 50/50 with my husband',
+]);
+
+it('does not treat a negated natural phrasing as individual-ownership evidence', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Halifax Saver',
+        'account_type' => 'savings_account',
+        'current_balance' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], 'The £5,000 Halifax savings account is not owned by me alone.');
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
+});
