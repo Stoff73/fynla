@@ -120,12 +120,19 @@ final class FynLoop
         ?string $unifiedFocus = null,
         ?array $verifyEditScope = null,
         ?string $providerOverride = null,
+        ?array $confirmedFacts = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
         }
         if ($verifyEditScope !== null) {
             $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
+        }
+        if ($confirmedFacts !== null && $confirmedFacts !== []) {
+            // Same instance-pairing discipline as the focus above:
+            // CoordinatingAgent is container-transient, so facts set on a
+            // caller's own instance never reach the streamed tool dispatch.
+            $this->coordinatingAgent->setConfirmedCaptureFacts($confirmedFacts);
         }
 
         try {
@@ -147,6 +154,9 @@ final class FynLoop
             }
             if ($verifyEditScope !== null) {
                 $this->coordinatingAgent->setVerifyEditScope(null);
+            }
+            if ($confirmedFacts !== null && $confirmedFacts !== []) {
+                $this->coordinatingAgent->setConfirmedCaptureFacts(null);
             }
         }
     }

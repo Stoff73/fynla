@@ -669,3 +669,68 @@ it('frames the inline capture as a capture turn (non-null focus) for every captu
     'savings_account' => ['savings_account'],
     'pension' => ['pension'],
 ]);
+
+// ── Task 4 follow-up (live csjones defect, 2026-07-23): confirmed facts must
+// reach the STREAMED tool dispatch. CoordinatingAgent is container-transient,
+// so facts set on the director's own instance never reach FynLoop's separate
+// instance — the Vanguard "On my own." two-step store blocked live while the
+// unit pin (which unified the instances via app()->instance) stayed green.
+// Facts now travel as a FynLoop::stream parameter, the same instance-pairing
+// discipline unifiedFocus uses. This pins the wiring at the loop boundary. ──
+
+it('threads confirmed facts through FynLoop::stream to the loop agent instance and clears them after', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $factsCalls = [];
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')
+        ->andReturnUsing(function ($facts) use (&$factsCalls) {
+            $factsCalls[] = $facts;
+        });
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            yield ['type' => 'content', 'text' => 'Recorded.'];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    /** @var OnboardingChatDirector $director */
+    $director = app(OnboardingChatDirector::class);
+
+    $context = new CaptureContext(
+        reason: 'user is adding their own savings_account',
+        entityTypes: ['savings_account'],
+    );
+
+    iterator_to_array(
+        $director->handleInlineCapture(
+            $user,
+            $conversation,
+            'Original capture details: I have a Vanguard account\nRequested missing details: On my own.',
+            $context,
+            null,
+            ['ownership_type' => 'individual'],
+        ),
+        false,
+    );
+
+    // The facts reached the agent BEFORE the stream (any set carrying the
+    // ownership fact), and every set was later cleared back to null.
+    $sets = array_values(array_filter($factsCalls, fn ($f) => $f !== null));
+    expect($sets)->not->toBeEmpty();
+    expect($sets[0])->toBe(['ownership_type' => 'individual']);
+    expect(end($factsCalls))->toBeNull();
+});
