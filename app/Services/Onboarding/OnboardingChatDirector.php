@@ -6326,17 +6326,39 @@ PROMPT;
             if ($pendingWriteFailures !== []) {
                 $firstFailure = array_values($pendingWriteFailures)[0];
                 $messageText = $firstFailure['message'];
-                $failureText = $firstFailure['tier_limit']
-                    ? $messageText
-                    : "I couldn't save that — ".rtrim($messageText, '.').'. '
-                        .'Give me the missing detail and I will try again.';
-                $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
-                $persistedText = $safeModelText.$failureSeparator.$failureText;
 
-                foreach ($safeContentEvents as $safeContentEvent) {
-                    yield $safeContentEvent;
+                // One ask per turn (CSJ 2026-07-23, live: the Santander
+                // ownership ask rendered twice, msg 19675): when the model's
+                // safe narration already asks for the missing detail, the
+                // scripted failure line repeats the same demand — the model's
+                // ask carries the turn. A tier-limit message always shows: it
+                // is a hard stop, not a clarification the model could voice.
+                // The row keeps its CaptureClarification stamp +
+                // capture_write_failed metadata below, so the awaiting-detail
+                // re-arm is untouched.
+                $modelAlreadyAsked = ! $firstFailure['tier_limit']
+                    && $safeModelText !== ''
+                    && $this->captureResponseRequestsClarification($safeModelText);
+
+                if ($modelAlreadyAsked) {
+                    $persistedText = $safeModelText;
+
+                    foreach ($safeContentEvents as $safeContentEvent) {
+                        yield $safeContentEvent;
+                    }
+                } else {
+                    $failureText = $firstFailure['tier_limit']
+                        ? $messageText
+                        : "I couldn't save that — ".rtrim($messageText, '.').'. '
+                            .'Give me the missing detail and I will try again.';
+                    $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
+                    $persistedText = $safeModelText.$failureSeparator.$failureText;
+
+                    foreach ($safeContentEvents as $safeContentEvent) {
+                        yield $safeContentEvent;
+                    }
+                    yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
                 }
-                yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
             } else {
                 // Every failed attempt this turn was rescued — no failure
                 // text to surface, just the safe prefix (if any) narrated
