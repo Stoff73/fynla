@@ -1692,6 +1692,14 @@ final class OnboardingChatDirector
             if ($latestAssistant === null || $latestAssistant->persona !== 'data_capture') {
                 if ($latestAssistant !== null) {
                     $this->tagInterruptionAnswer($conversation, $assistantBaselineId);
+
+                    // Mid-stream done finalises the ANSWER bubble so the
+                    // re-emitted step prompt opens a fresh one (CSJ
+                    // 2026-07-23: the re-asked question is its own bubble).
+                    // Safe per deferQuestion's verified note: done is a
+                    // per-message finaliser on web, /m and native — the SSE
+                    // stream only ends when this generator exhausts.
+                    yield ['type' => 'done', 'message_id' => $latestAssistant->id];
                 }
 
                 yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);

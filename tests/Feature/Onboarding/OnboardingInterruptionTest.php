@@ -544,17 +544,22 @@ it('answers a module-level question inline from data then resumes the walk', fun
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 
     // Event-ordering hard gate: the advice answer's content event must
-    // arrive strictly before the re-emitted step's quick_replies event, and
-    // there must be exactly one terminal `done` — the one closing the
-    // re-emitted step, not the FynLoop advice turn's own terminal marker
-    // (which would otherwise end the SSE turn before the walk re-renders).
+    // arrive strictly before the re-emitted step's quick_replies event.
+    // TWO done events since CSJ's separate-bubble direction (2026-07-23):
+    // a mid-stream done finalising the ANSWER bubble (per-message done —
+    // deferQuestion's verified contract), then the terminal done closing
+    // the re-emitted step. The FynLoop advice turn's own terminal marker
+    // stays dropped (it would end the SSE turn before the walk re-renders).
     $types = collect($received)->pluck('type');
     $contentIndex = $types->search('content');
     $quickRepliesIndex = $types->search('quick_replies');
     expect($contentIndex)->not->toBeFalse();
     expect($quickRepliesIndex)->not->toBeFalse();
     expect($quickRepliesIndex)->toBeGreaterThan($contentIndex);
-    expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(1);
+    expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(2);
+    $midDone = $types->search('done');
+    expect($midDone)->toBeGreaterThan($contentIndex);
+    expect($midDone)->toBeLessThan($quickRepliesIndex);
 });
 
 // ── Fix: question-branch nested capture clarification must not be buried
@@ -1496,6 +1501,24 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
     // missing-data deflection, no closing question.
     expect($answerPromptOverride)->toContain('at most two sentences');
     expect($answerPromptOverride)->toContain('no closing question');
+
+    // The answer bubble is finalised by a mid-stream done BEFORE the
+    // re-emitted step prompt streams, so the re-asked question renders as
+    // its own bubble on every surface (CSJ 2026-07-23).
+    $answerIndex = collect($received)->search(
+        fn ($e) => ($e['type'] ?? null) === 'content' && str_contains($e['text'] ?? '', 'not counted in your gross annual income')
+    );
+    $stepIndex = collect($received)->search(
+        fn ($e) => ($e['type'] ?? null) === 'content' && str_contains($e['text'] ?? '', 'gross annual income?')
+    );
+    $midDoneIndex = collect($received)->search(
+        fn ($e) => ($e['type'] ?? null) === 'done' && ($e['message_id'] ?? null) !== null
+    );
+    expect($answerIndex)->not->toBeFalse();
+    expect($midDoneIndex)->not->toBeFalse();
+    expect($stepIndex)->not->toBeFalse();
+    expect($answerIndex)->toBeLessThan($midDoneIndex);
+    expect($midDoneIndex)->toBeLessThan($stepIndex);
 
     // The answer row is tagged so the followup/merge scans never mistake
     // its wording for a capture clarification.
