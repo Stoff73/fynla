@@ -4202,6 +4202,21 @@ PROMPT;
                 .'describing a genuinely different pension that is not listed above.';
         }
 
+        // Reference mode (campaign_bank_accounts): a create-oriented state
+        // whose message may ALSO reference records already on file (live
+        // 2026-07-23: "the Santander pays 4%" — with no ids in context the
+        // model called update_record with entity_id 0 and both rate updates
+        // were lost). List the section's records so updates target the real
+        // id; accounts not listed are still created as normal.
+        if (($state['record_context_mode'] ?? '') === 'reference') {
+            return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section).":\n"
+                .$this->verifyEditRecordContext($user, $section)
+                ."\n\nWhen the user gives a value for one of the records listed above (for "
+                .'example its interest rate or balance), call update_record with that '
+                .'record\'s entity_id — never entity_id 0, and never a new create for it. '
+                .'Anything not listed above is a new record — create it as normal.';
+        }
+
         return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section)
             .' (record the value the user gives against the matching entity_id with '
             ."update_record; do not add a new record):\n"

@@ -576,6 +576,14 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
                 'capture_field' => null,
+                // Existing savings rows (with ids) enter the prompt so a
+                // message referencing an account already on file updates it by
+                // entity_id instead of guessing entity_id 0 (live 2026-07-23:
+                // "the Santander pays 4%" lost both rate updates). New
+                // accounts are still created — see the reference mode in
+                // captureRecordContextAppendix.
+                'record_context' => 'savings',
+                'record_context_mode' => 'reference',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
                 // Only ask about bank/savings if the user ticked bank or savings.
                 'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
