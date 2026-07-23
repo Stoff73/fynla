@@ -10,23 +10,26 @@ implies a prod deploy.*
 
 ## A. Fyn / backend
 
-### A1. Delegated-step A1 behaviour — CSJ ruling required
-When the user asks a question at a **delegated** onboarding step, Fyn answers it
-inline immediately (A1 behaviour). At **other step types** the same question is
-deferred and tracked for later raising. Whether answer-now should extend to those
-other step types (or defer-and-track extend to delegated steps) is explicitly out
-of scope of the structured turn-intent spec — the spec says "CSJ to rule
-separately (see the walk report)". Until ruled, behaviour is intentionally
-inconsistent across step types.
-**Live observation (2026-07-23, Tessa E2E):** there is a third shape the ruling
-should cover — a question at a delegated step where the MODEL's turn is only a
-re-ask ("I still need your gross annual income…") ends the turn on the
-model-requested-clarification branch with **no interruption dispatch at all**,
-so the user's question ("Does gross income include employer pension
-contributions?") is silently never answered. Pre-existing; the turn-intent
-stamps on these rows are truthful.
-**Done looks like:** CSJ picks one behaviour (or blesses the split); a small
-director change + pinning test follows.
+### A1. Mid-onboarding questions — POLICY DECIDED (CSJ, reconfirmed 2026-07-23); one defect open
+**The decided behaviour (CSJ):** Fyn decides per question. A straightforward
+definitional question ("What is salary sacrifice?") is answered inline and the
+walk resumes; a longer question needing fuller information is acknowledged with
+a promise and addressed once onboarding completes (deferred_questions → raised
+at the completion terminal). This IS the implemented dispatcher behaviour — it
+is NOT an open ruling. An earlier version of this register wrongly framed the
+policy as undecided (over-read from the turn-intent spec's out-of-scope note);
+that framing is retracted.
+**The open DEFECT (live, 2026-07-23, Tessa E2E):** at a delegated capture step,
+when the model's turn only re-asks the scripted question ("I still need your
+gross annual income…"), the model-requested-clarification branch ends the turn
+with no interruption dispatch — the user's straightforward question ("Does
+gross income include employer pension contributions?") is neither answered
+inline nor acknowledged/deferred. It vanishes. Under the decided policy this
+is a bug, not a design question.
+**Fix shape:** on that branch, when `userAskedQuestion`, run the existing
+interruption dispatcher (which already implements "Fyn decides") before
+parking the step; pin with a test on the exact Tessa shape. Small director
+change; turn-intent stamps already truthful on these rows.
 
 ### A2. `ai_messages` forensic columns have no purge path
 The forensic/debug columns on `ai_messages` (raw payloads captured for defect
