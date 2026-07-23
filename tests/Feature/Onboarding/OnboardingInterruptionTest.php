@@ -1082,7 +1082,12 @@ it("tags the interruption dispatcher's plain advisory answer and lets the DOB ex
     $received = driveDirector($user, $conversation, 'Am I on track for retirement?');
 
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
-    expect($texts)->toContain('Would you like me to help you add those now?');
+    // The answer streamed; its clarification-shaped closing offer ("Would
+    // you like me to help you add those now?") is STRIPPED by the
+    // definitive-answer guard (CSJ 2026-07-23: the reply is the answer — no
+    // closing question of any kind; the walk re-asks its own question).
+    expect($texts)->toContain('I need your date of birth and pension details');
+    expect($texts)->not->toContain('Would you like me to help you add those now?');
 
     // The plain advisory answer must NOT arm pending_interruption_store — it
     // is tagged is_interruption_answer instead, and the walk resumed
@@ -1091,11 +1096,15 @@ it("tags the interruption dispatcher's plain advisory answer and lets the DOB ex
     expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 
+    // The persisted row was rewritten to the stripped text (reload matches
+    // the stream) and still carries the interruption-answer tag.
     $advisoryMessage = $conversation->messages()
         ->where('role', 'assistant')
-        ->where('content', $advisoryAnswer)
+        ->where('content', 'like', '%I need your date of birth and pension details%')
+        ->latest('id')
         ->first();
     expect($advisoryMessage)->not->toBeNull();
+    expect($advisoryMessage->content)->not->toContain('Would you like me to help you add those now?');
     expect($advisoryMessage->metadata['is_interruption_answer'] ?? null)->toBeTrue();
 
     // The genuine on-script DOB reply must route straight back through the
@@ -1473,15 +1482,23 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
                 })();
             }
 
-            // The interruption dispatcher's advice-mode answer.
+            // The interruption dispatcher's advice-mode answer — scripted as
+            // the exact live failure shape (2026-07-23): the answer, a
+            // parroted copy of the walk's bold re-ask, then the whole thing
+            // rambled AGAIN. The deterministic guard must reduce this to the
+            // single clean answer.
+            $rambled = $answer
+                ." **What's your gross annual income?** This includes bonuses, commissions, and overtime. "
+                .$answer
+                ." **What's your gross annual income?** This includes bonuses, commissions, and overtime.";
             $conversationArg->messages()->create([
                 'role' => 'assistant',
-                'content' => $answer,
+                'content' => $rambled,
                 'persona' => 'advice',
             ]);
 
-            return (function () use ($answer) {
-                yield ['type' => 'content', 'text' => $answer];
+            return (function () use ($rambled) {
+                yield ['type' => 'content', 'text' => $rambled];
                 yield ['type' => 'done', 'message_id' => 901];
             })();
         });
@@ -1495,6 +1512,18 @@ it('answers a question inline when the delegated capture turn only re-asks', fun
     // The question was answered, not dropped.
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
     expect($texts)->toContain('not counted in your gross annual income');
+
+    // Deterministic guard (CSJ 2026-07-23): the rambled model output is
+    // reduced to the SINGLE clean answer — one content event, no parroted
+    // bold re-ask, no duplicate, no question mark. The persisted row is
+    // rewritten to the same clean text so a reload matches the stream.
+    $answerEvents = collect($received)->filter(
+        fn ($e) => ($e['type'] ?? null) === 'content' && str_contains($e['text'] ?? '', 'not counted')
+    )->values();
+    expect($answerEvents)->toHaveCount(1);
+    expect($answerEvents[0]['text'])->toBe($answer);
+    $persistedAnswer = $conversation->messages()->where('content', 'like', '%not counted%')->latest('id')->first();
+    expect($persistedAnswer->content)->toBe($answer);
 
     // The answer turn carried the definitional-answer framing (CSJ
     // 2026-07-23): one short paragraph, same answer for everyone, no

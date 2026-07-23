@@ -1654,16 +1654,58 @@ final class OnboardingChatDirector
             // (HasAiChat::chat's closing yield). Drop it here rather than
             // relaying it — a `done` reaching the frontend ends the SSE
             // turn, which would cut the response off before the re-emitted
-            // step below renders. Mirrors handleInlineCapture holding the
-            // upstream terminal marker for the same reason: exactly one
-            // `done` must close this turn, and it belongs to the re-emitted
-            // step, not the inline advice answer.
+            // step below renders.
+            //
+            // Content is BUFFERED, not relayed live (CSJ 2026-07-23): the
+            // model on this path rambled — the same answer voiced twice plus
+            // a parroted copy of the walk's own re-ask. The buffer is
+            // deduped and stripped of any question/echo, then emitted as ONE
+            // clean event; the persisted row is rewritten to match so a
+            // reload shows exactly what streamed. Any non-content event
+            // (a delegate_to_capture handoff's capture output) flushes the
+            // buffer raw and ends filtering — capture narration is not ours
+            // to rewrite here.
+            $answerBuffer = '';
+            $filtering = true;
             foreach ($advice as $event) {
-                if (($event['type'] ?? '') === 'done') {
+                $type = $event['type'] ?? '';
+                if ($type === 'done') {
                     continue;
+                }
+                if ($filtering && $type === 'content') {
+                    $answerBuffer .= (string) ($event['text'] ?? '');
+
+                    continue;
+                }
+                // Only capture-family events end filtering — a handoff's
+                // capture output is not ours to rewrite. Status events
+                // (thinking, classification, actions) relay through with
+                // filtering still on.
+                if ($filtering && in_array($type, ['tool_use', 'entity_created', 'capture_write_result', 'fill_form', 'capture_complete', 'handoff'], true)) {
+                    if ($answerBuffer !== '') {
+                        yield ['type' => 'content', 'text' => $answerBuffer];
+                        $answerBuffer = '';
+                    }
+                    $filtering = false;
                 }
 
                 yield $event;
+            }
+
+            if ($filtering && trim($answerBuffer) !== '') {
+                $clean = $this->definitiveAnswerText($answerBuffer);
+                if ($clean !== '') {
+                    yield ['type' => 'content', 'text' => $clean];
+
+                    $answerRow = $conversation->messages()
+                        ->where('role', 'assistant')
+                        ->where('id', '>', $assistantBaselineId)
+                        ->latest('id')
+                        ->first();
+                    if ($answerRow !== null && $answerRow->content !== $clean) {
+                        $answerRow->update(['content' => $clean]);
+                    }
+                }
             }
 
             $latestAssistant = $conversation->messages()
@@ -4074,6 +4116,34 @@ PROMPT;
      * fall back to the asset-capture prompt as the base.
      */
     /**
+     * Deterministic guard over the model's side-question answer (CSJ
+     * 2026-07-23): dedupe the rambled repeat, then keep sentences only up
+     * to the first question or bold step-prompt echo — the reply is the
+     * ANSWER; the walk re-asks its own question in the next bubble. Falls
+     * back to the deduped text when stripping would empty the answer (a
+     * pure-question reply — better voiced than silently dropped).
+     */
+    private function definitiveAnswerText(string $text): string
+    {
+        $text = AckSentenceDeduper::dedupe(trim($text));
+
+        $sentences = preg_split('/(?<=[.!?])\s+/u', $text) ?: [];
+        $kept = [];
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            if ($sentence === '') {
+                continue;
+            }
+            if (str_contains($sentence, '**') || str_ends_with($sentence, '?')) {
+                break;
+            }
+            $kept[] = $sentence;
+        }
+
+        return $kept !== [] ? implode(' ', $kept) : $text;
+    }
+
+    /**
      * System prompt for the inline interruption-answer turn: the unified
      * base plus turn context framing the side question as answerable
      * outright (CSJ direction 2026-07-23: a straightforward definitive
@@ -4086,7 +4156,7 @@ PROMPT;
         $context = "\n\nTurn context — the user has paused their onboarding walk to ask a side question. "
             .'Give the factual answer in ONE short paragraph of at most two sentences; the same answer applies to everyone, so it is general United Kingdom guidance (for example, gross annual income means income before any deductions, so it includes pension contributions along with Income Tax and National Insurance). '
             .'For this turn the usual missing-data guidance does not apply: no mention of personalised answers, no naming of missing data, no page or navigation suggestions, no offers of further help, and no closing question of any kind. '
-            .'The reply ends after the factual answer — the onboarding question is re-asked automatically in the next bubble.';
+            .'The reply contains only the answer — nothing else.';
 
         return FynSystemPrompt::text().$context;
     }
