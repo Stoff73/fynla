@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\DocumentArticleUpdateRequest;
 use App\Models\DocumentArticle;
 use App\Models\Pipeline\PipelineArticle;
 use App\Services\Documents\DocumentArticleImporter;
+use App\Services\Documents\StockImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -154,5 +155,25 @@ class DocumentArticleController extends Controller
             'clips' => $clips,
             'clips_generated_at' => optional($pipeline->clips_generated_at)->toIso8601String(),
         ]]);
+    }
+
+    /**
+     * Search Pexels for a relevant stock photo and set it as the article cover.
+     * Defaults the search to the article title; returns the stored path.
+     */
+    public function stockCover(Request $request, DocumentArticle $document, StockImageService $stock): JsonResponse
+    {
+        $query = trim((string) $request->input('query', '')) ?: (string) $document->title;
+        $result = $stock->searchAndStore($query, $document);
+
+        if ($result === null) {
+            $message = $stock->isConfigured()
+                ? 'No stock photo found for that search — try different keywords.'
+                : 'Stock photo search is not configured (missing Pexels API key).';
+
+            return response()->json(['message' => $message], 422);
+        }
+
+        return response()->json(['path' => $result['path'], 'photographer' => $result['photographer']]);
     }
 }

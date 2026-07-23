@@ -53,7 +53,25 @@
             </button>
         </div>
         <p v-if="uploadError" class="text-sm text-raspberry-500">{{ uploadError }}</p>
-        <p v-if="!articleId" class="text-xs text-horizon-500">Save the article once before uploading a cover image.</p>
+
+        <!-- Auto-find a relevant stock photo (Pexels) by article keywords. -->
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+            <input
+                v-model="stockQuery"
+                type="text"
+                placeholder="Search stock photos…"
+                class="flex-1 min-w-[10rem] border border-horizon-200 rounded px-2 py-1.5 text-sm"
+            />
+            <button
+                type="button"
+                class="text-sm font-bold rounded px-3 py-2 border border-horizon-200 bg-eggshell-100 hover:bg-eggshell-500"
+                :class="{ 'opacity-60 cursor-not-allowed hover:bg-eggshell-100': stockLoading || !articleId }"
+                :disabled="stockLoading || !articleId"
+                @click="findStock"
+            >{{ stockLoading ? 'Searching…' : 'Find stock photo' }}</button>
+        </div>
+        <p v-if="stockError" class="text-sm text-raspberry-500">{{ stockError }}</p>
+        <p v-if="!articleId" class="text-xs text-horizon-500">Save the article once before adding a cover image.</p>
     </div>
 </template>
 
@@ -66,12 +84,31 @@ export default {
         modelValue: { type: String, default: null }, // current cover_image_path
         htmlBody: { type: String, default: '' }, // article html body — we scan for <img src> within /storage/document-articles/
         articleId: { type: [Number, String], default: null }, // document article id — required to upload
+        searchQuery: { type: String, default: '' }, // default stock-search terms (e.g. article title)
     },
     emits: ['update:modelValue'],
     data() {
-        return { uploading: false, uploadError: '' };
+        return { uploading: false, uploadError: '', stockQuery: this.searchQuery, stockLoading: false, stockError: '' };
+    },
+    watch: {
+        searchQuery(value) {
+            if (!this.stockQuery) this.stockQuery = value;
+        },
     },
     methods: {
+        async findStock() {
+            if (!this.articleId) return;
+            this.stockLoading = true;
+            this.stockError = '';
+            try {
+                const { data } = await documentArticleService.stockCover(this.articleId, this.stockQuery);
+                this.$emit('update:modelValue', data.path);
+            } catch (err) {
+                this.stockError = err?.response?.data?.message || 'Stock photo search failed.';
+            } finally {
+                this.stockLoading = false;
+            }
+        },
         async onUpload(event) {
             const file = event.target.files && event.target.files[0];
             event.target.value = ''; // reset so the same file can be re-selected

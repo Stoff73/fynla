@@ -47,7 +47,7 @@
                 <input v-model="form.author_byline" type="text" class="w-full border border-horizon-200 rounded px-3 py-2" />
             </div>
 
-            <CoverImagePicker v-model="form.cover_image_path" :html-body="form.html_body" :article-id="article && article.id" />
+            <CoverImagePicker v-model="form.cover_image_path" :html-body="form.html_body" :article-id="article && article.id" :search-query="form.title" />
 
             <div class="border border-horizon-200 rounded p-3">
                 <div class="flex items-center justify-between mb-1">

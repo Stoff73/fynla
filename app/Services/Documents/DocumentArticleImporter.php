@@ -96,6 +96,16 @@ class DocumentArticleImporter
                 'cover_image_path' => $coverPath,
             ]);
 
+            // No image embedded in the document → try a relevant stock photo
+            // (Pexels) by the article title. Non-fatal: if it's unconfigured or
+            // finds nothing, the article falls back to the default cover.
+            if ($coverPath === null) {
+                $stock = app(StockImageService::class)->searchAndStore((string) $article->title, $article);
+                if ($stock !== null) {
+                    $article->update(['cover_image_path' => $stock['path']]);
+                }
+            }
+
             return $article->fresh();
         });
     }

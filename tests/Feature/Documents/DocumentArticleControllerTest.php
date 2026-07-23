@@ -175,3 +175,20 @@ it('returns no clips when the article is not in the pipeline', function () {
         ->assertJsonPath('data.status', null)
         ->assertJsonPath('data.clips', []);
 });
+
+it('returns 422 from stock-cover when Pexels is not configured', function () {
+    config()->set('services.pexels.key', null);
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $this->postJson("/api/admin/documents/{$article->id}/stock-cover", ['query' => 'pensions'])
+        ->assertStatus(422);
+});
+
+it('forbids non-admins from the stock-cover search', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->user);
+
+    $this->postJson("/api/admin/documents/{$article->id}/stock-cover", ['query' => 'x'])
+        ->assertForbidden();
+});

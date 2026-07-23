@@ -60,4 +60,8 @@ export default {
     socialClips(id) {
         return api.get(`${base}/${id}/social-clips`);
     },
+
+    stockCover(id, query) {
+        return api.post(`${base}/${id}/stock-cover`, { query });
+    },
 };
