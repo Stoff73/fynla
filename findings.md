@@ -94,3 +94,11 @@
 - Task 12 is locally migrated and green in draft PR #627, but this does not satisfy the cross-environment gate. No remote migration is authorised until the exact audit is green and saved on both csjones and production.
 - Task 13 now has a single repository source of truth at `codex/plans/canonical/01-freemium-economic-contract.md`. The implemented signup spec and design guide point to it, while older commercial designs are visibly historical rather than silently competing contracts.
 - The corresponding vault documents remain materially stale about trials and former paid tiers. They have been inventoried for a gated update, not edited ahead of the Task 12 cross-environment audit.
+
+## 2026-07-23 SaveTax E2E loop — non-obvious findings
+- The savetax campaign NEVER creates a spouse User (household inputs only, `tax_strategy_household_inputs`) — so any joint-record gate requiring a reciprocally-linked spouse User can never pass in-campaign. Structural, not an ordering bug.
+- `CaptureAccuracyGate::evidenceForEntity` binds evidence per-entity via name needles over a 6-message window; any retry that re-names the entity used to make the needle ambiguous forever (deadlock class). Latest-turn-wins is the settled semantics.
+- A dedupe skip (`warning` + `existing_id`) surfaced as `landed=false` + message → both director consumers treated it as a failed write; this single mechanism produced BOTH the fabricated-success blend and the "couldn't record anything new" contradiction. `ToolResults::isDuplicateSkip` is the one predicate now.
+- Namespace-relative `app(TaxConfigService::class)` inside `App\Services\Onboarding` fatals only on the spouse-advice fallback path — reached only when a spouse strategy has zero quantified saving.
+- Playwright accessibility snapshots flatten text across `<br>`/spans WITHOUT spaces — "£1,072 a year.For regulated" style artifacts are NOT rendering bugs; adjudicate copy-join issues with pixel screenshots only.
+- CoreSimulator can wedge host-wide (frozen sim clock, hung launches on fresh devices, service restart useless) — liveness-probe (`simctl launch <udid> com.apple.Preferences` returns in seconds) before any long xcodebuild, and never pipe xcodebuild through `tail` (buffers all visibility away).
