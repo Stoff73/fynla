@@ -479,14 +479,12 @@ it('rescues the gate-blocked write across an interposed "Yes, save it" turn inst
 
     // Turn 3: the user answers with explicit individual-ownership wording.
     // The model pattern-locks on its own prior failing tool call and OMITS
-    // ownership_type AGAIN (mirroring live conversation 164) — the
-    // deterministic gap-fill must rescue it despite the interposed "Yes,
-    // save it" turn. Live event shape (msg 19465): the model narrates
-    // BEFORE calling the (still-failing) tool — textThenToolTurn, not a
-    // bare toolTurn — so handleInlineCapture's content-buffering-until-
-    // write-outcome-known path is genuinely exercised. A bare toolTurn
-    // (no preceding narration) let the earlier version of this test pass
-    // even when a rescued write failed to suppress the failure text.
+    // ownership_type AGAIN (mirroring live conversation 164). Since the
+    // 2026-07-24 gate repair, the attempt no longer fails: the gate adopts
+    // the ownership evidenced by the user's own words into the dropped
+    // argument and the write lands on the model's own call — no gap-fill
+    // rescue needed, no failure text ever streamed. The model's follow-up
+    // narration reflects the tool success it receives.
     FynStreamHarness::fake()
         ->textThenToolTurn("I'll record that for you now.", 'create_savings_account', [
             'account_name' => 'Halifax Fixed Term Bond',
@@ -494,7 +492,7 @@ it('rescues the gate-blocked write across an interposed "Yes, save it" turn inst
             'institution' => 'Halifax',
             'current_balance' => 1500.0,
         ])
-        ->textTurn("I couldn't save that — I need you to confirm whether you own it individually or with someone else.")
+        ->textTurn('Saved your Halifax Fixed Term Bond.')
         ->bind();
 
     $received = driveDirector($user->refresh(), $conversation, 'Just me');

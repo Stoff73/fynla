@@ -1830,3 +1830,25 @@ describe('argument repair from user-word evidence (2026-07-24 ownership deadlock
             ->and($result['missing'])->toContain('ownership_type');
     });
 });
+
+it('binds the latest clarification answer across multiple accumulated turns', function (): void {
+    // Live 2026-07-24 (user 294): the accumulated evidence chain held the
+    // original message plus TWO earlier answers, so "I own it individually"
+    // sat three turns after the anchor and could never bind — the gate
+    // re-asked the same question verbatim, forever.
+    $evidence = "I have an easy access saver with Marcus, £8,000 at 4.3%, not an ISA. That's everything.\n"
+        ."It's not an ISA — just a regular easy access savings account\n"
+        ."It's not an ISA, just a regular savings account owned by me alone\n"
+        .'I own it individually';
+
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'institution' => 'Marcus',
+        'account_name' => 'Marcus Easy Access Saver',
+        'account_type' => 'easy_access',
+        'interest_rate' => 4.3,
+        'current_balance' => 8000,
+    ], $evidence);
+
+    expect($result['allowed'])->toBeTrue()
+        ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual');
+});

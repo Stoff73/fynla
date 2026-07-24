@@ -594,8 +594,14 @@ final class CaptureAccuracyGate
         foreach ($segments as $index => $segment) {
             $segmentTurn = $segmentTurns[$index] ?? null;
             $sameTurn = $targetTurn !== null && $segmentTurn === $targetTurn;
+            // ANY later turn, not only targetTurn + 1: each clarification
+            // answer pushes earlier ones down a turn, so the SECOND answer
+            // ("I own it individually" after "it's not an ISA") could never
+            // bind and the gate re-asked forever (live 2026-07-24, user 294).
+            // Purity + cohort guards below still apply — only a segment that
+            // is nothing but evidence for this entity's cohort binds.
             $nextTurnClarification = $targetTurn !== null
-                && $segmentTurn === $targetTurn + 1
+                && $segmentTurn > $targetTurn
                 && $this->isPureSharedEntityEvidence($segment, $tool);
             if (($sameTurn || $nextTurnClarification)
                 && $this->isSharedEntityEvidence($segment, $tool)
@@ -606,6 +612,39 @@ final class CaptureAccuracyGate
                     $tool,
                 )) {
                 $matchedIndexes[] = $index;
+            }
+        }
+
+        // Latest-turn-wins for singular clarification answers: the newest
+        // turn in the accumulated evidence chain is the user's direct reply
+        // to the just-asked clarification. When it names NO entity (pure
+        // anaphoric evidence — "I own it individually") and carries an
+        // ownership/share/subtype signal, it binds to the uniquely anchored
+        // entity no matter how many earlier answers sit between it and the
+        // anchor. Without this only the turn immediately after the anchor
+        // could ever bind, so the SECOND answer re-asked forever (live
+        // 2026-07-24, user 294). A last turn naming any entity noun stays
+        // out — it must qualify on the strict walk rules above.
+        $presentTurns = array_filter($segmentTurns, static fn ($turn): bool => $turn !== null);
+        $lastTurn = $presentTurns === [] ? null : max($presentTurns);
+        if ($targetTurn !== null && $lastTurn !== null && $lastTurn > $targetTurn) {
+            $lastTurnIndexes = array_keys($segmentTurns, $lastTurn, true);
+            $allPure = $lastTurnIndexes !== [];
+            $carriesSignal = false;
+            foreach ($lastTurnIndexes as $index) {
+                $segment = $segments[$index];
+                if ($this->mentionsEntityNoun($segment)) {
+                    $allPure = false;
+                    break;
+                }
+                if ($this->ownershipFromText($segment) !== null
+                    || $this->ownershipShareFromText($segment) !== null
+                    || $this->isaSubtypeFromText($segment) !== null) {
+                    $carriesSignal = true;
+                }
+            }
+            if ($allPure && $carriesSignal) {
+                array_push($matchedIndexes, ...$lastTurnIndexes);
             }
         }
 
