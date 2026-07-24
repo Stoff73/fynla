@@ -255,7 +255,13 @@ final class CaptureAccuracyGate
             return false;
         }
 
-        return str_contains($text, 'isa')
+        // Negation-aware: "not an ISA" must never classify the write as an
+        // ISA write — the raw substring check deadlocked the capture (live
+        // 2026-07-24: every "it's not an ISA" clarification answer contained
+        // 'isa' and re-triggered the ISA-type ask forever). One vocabulary:
+        // hasPositiveIsaContext, the same negation window the subtype
+        // extraction already uses.
+        return $this->hasPositiveIsaContext($text)
             || ! empty($arguments['is_isa'])
             || str_contains((string) ($arguments['account_type'] ?? ''), 'isa');
     }
@@ -423,7 +429,7 @@ final class CaptureAccuracyGate
 
     private function hasPositiveIsaContext(string $text): bool
     {
-        preg_match_all('/\bisa\b/u', $text, $matches, PREG_OFFSET_CAPTURE);
+        preg_match_all('/\bisas?\b/u', $text, $matches, PREG_OFFSET_CAPTURE);
         foreach ($matches[0] ?? [] as $match) {
             if (! $this->isNegatedMatch($text, $match[1])) {
                 return true;

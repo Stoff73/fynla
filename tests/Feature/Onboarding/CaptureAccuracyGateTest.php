@@ -1745,3 +1745,46 @@ it('keeps ownership evidence beyond an intervening detail sentence in a single-e
 
     expect($result)->toBe(['allowed' => true]);
 });
+
+describe('negated ISA mentions (2026-07-24 deadlock)', function () {
+    it('does not classify "not an ISA" as an ISA write', function (): void {
+        // Live 2026-07-24: "an easy access saver with Marcus, £8,000 at
+        // 4.3%, not an ISA" gated on the missing ISA type, and every
+        // clarification answer ("it's not an ISA") re-contained 'isa' and
+        // re-triggered the ask — an unbreakable loop.
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_name' => 'Marcus Easy Access Saver',
+            'account_type' => 'easy_access',
+            'interest_rate' => 4.3,
+            'current_balance' => 8000,
+            'ownership_type' => 'individual',
+        ], "I have an easy access saver with Marcus, £8,000 at 4.3%, not an ISA, owned just by me. That's everything.");
+
+        expect($result['allowed'])->toBeTrue();
+    });
+
+    it('still gates a genuine ISA mention for its type', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Nationwide',
+            'account_type' => 'easy_access',
+            'current_balance' => 5000,
+            'ownership_type' => 'individual',
+        ], 'I have an ISA with Nationwide, £5,000.');
+
+        expect($result['allowed'])->toBeFalse()
+            ->and($result['reason'])->toContain('ISA type');
+    });
+
+    it('still gates when the arguments claim is_isa regardless of negated text', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_type' => 'easy_access',
+            'is_isa' => true,
+            'current_balance' => 8000,
+            'ownership_type' => 'individual',
+        ], "It's not an ISA.");
+
+        expect($result['allowed'])->toBeFalse();
+    });
+});
