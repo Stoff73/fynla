@@ -1,20 +1,24 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-24 — end-of-day wrap (2026-07-23 evening session). SaveTax
-E2E test loop: web /m journey GREEN end-to-end, 8 defects fixed on
-`codex/savetax-e2e-capture-fixes`, **PR #670 open to dev**; iOS leg blocked by a
-wedged CoreSimulator (reboot the Mac). Handover:
-July/July24Updates/handover-2026-07-24-session-1.md.*
+*Last updated: 2026-07-24 — end-of-day wrap (evening). Merge train complete:
+#670 (E2E loop fixes) + #671 (journey verify loop — every data entry) + #672
+(PSA joint-interest share) all admin-merged to dev per CSJ; csjones on dev
+`c1025ab`; round-3 clean campaign pass GREEN (zero blockers) with the PSA fix
+verified live on both grids. Handover:
+July/July25Updates/handover-2026-07-25-session-1.md.*
 
-## 2026-07-23 — evening session (SaveTax E2E loop)
+## 2026-07-24 — evening wrap (merge train + verify loop)
 
-- [ ] **Reboot the Mac**, then run the staged iOS pull-through (LiveJourneyTests, user priya-e2e-0723b) — commands in July/July23Updates/savetax-e2e-run-report.md §iOS re-run.
-- [ ] **CSJ: review/merge PR #670** (8 fixes; note the flagged 2026-07-13 joint-hardening relaxation). After merge: csjones back onto dev (`git checkout dev && git pull && php artisan cache:clear`) — **csjones currently runs the fix branch `codex/savetax-e2e-capture-fixes`**.
-- [ ] Round-3 clean /m pass (fresh persona) after #670 merges — the loop's final confirmation.
-- [ ] **[HIGH — tax]** PSA joint-interest attribution ignores the 50/50 share (issue log #21) — needs CalculatesOwnershipShare in the tax-strategy calc + tax-compliance review.
+- [ ] **Reboot the Mac**, then the iOS leg: staged LiveJourneyTests (user priya-e2e-0723b, run-report §iOS re-run) AND `FynEventReducerTests` for the pkg7 navigation-allowlist commit `37cd69e` (untested — sim wedged).
+- [ ] **PSA follow-up ledger** (15 findings from the tax-compliance review; list in the 07-25 handover). Priority trio: spouse band/taper excludes joint interest; spouse `known`-flag semantics (CSJ call); IsaTopUp joint shelter ~2× optimistic. Then the user-grid PA→SR→PSA stacking (pre-existing, now inconsistent with the fixed spouse grids).
 - [ ] `/m` savings rows show "Unknown" instead of account_name (Savings.vue:41,67,155) — needs /m rebuild.
-- [ ] CSJ decisions: total-cash share convention; ISA-ownership question copy; fabricated "Yes, that's right" bubble on verify Continue; stale-token registration edge.
-- [ ] Debt: CaptureAccuracyGate 792 lines / EvidenceWalk extraction; pre-LLM short-circuit for completion phrases; ENTITY_NOUNS constant (tech-debt-report.md).
+- [ ] CSJ decisions: 2026-07-13 joint-hardening relaxation (merged in #670 — confirm/revert); total-cash share convention (seen again round 3); ISA-ownership question copy; fabricated "Yes, that's right" bubble; stale-token registration edge; spouse known-flag semantics.
+- [ ] Adjacent from today's loop: "owned by me alone" missing from ownership vocabulary; gap-fill still creates degraded rows on TRUE model refusals (suppression covers failed attempts only); free-tier savings cap fires mid-campaign walk (designed — exemption?).
+- [ ] Debt (tech-debt-report.md): CaptureAccuracyGate 854 lines / EvidenceWalk extraction NOW OVERDUE; rate-normalisation 4 inline copies; verify-edit section→model map duplication; estimateAnnualInterest memoisation; pre-LLM completion short-circuit; ENTITY_NOUNS constant.
+- [x] Merge #670 + csjones back onto dev — DONE (evening, CSJ-directed).
+- [x] Round-3 clean /m pass — DONE, GREEN, zero blockers (user 295).
+- [x] PSA joint-interest share fix + tax-compliance review — DONE, merged (#672).
+- [x] Journey verify loop (CSJ directive: every data entry) — DONE, merged (#671), verified live on /m incl. the Edit arm.
 
 ## 2026-07-21 — session 2 (all delivered)
 
