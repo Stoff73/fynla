@@ -1788,3 +1788,45 @@ describe('negated ISA mentions (2026-07-24 deadlock)', function () {
         expect($result['allowed'])->toBeFalse();
     });
 });
+
+describe('argument repair from user-word evidence (2026-07-24 ownership deadlock)', function () {
+    it('repairs an absent ownership_type from the text instead of re-asking', function (): void {
+        // Live 2026-07-24: grok repeated its identical create_savings_account
+        // call (no ownership_type) after every clarification answer — "I own
+        // it individually" was re-asked verbatim, forever. The evidence is in
+        // the user's own words; the gate adopts it.
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_name' => 'Marcus Easy Access Saver',
+            'account_type' => 'easy_access',
+            'interest_rate' => 4.3,
+            'current_balance' => 8000,
+        ], 'I own it individually');
+
+        expect($result['allowed'])->toBeTrue()
+            ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual');
+    });
+
+    it('repairs a dropped joint share from the evidenced 50/50', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Halifax',
+            'account_type' => 'easy_access',
+            'current_balance' => 12000,
+            'ownership_type' => 'joint',
+        ], 'The Halifax account is owned 50/50 with my husband, joint between us');
+
+        expect($result['allowed'])->toBeTrue()
+            ->and((float) ($result['repaired']['ownership_percentage'] ?? 0))->toBe(50.0);
+    });
+
+    it('still asks when neither the arguments nor the text name an owner', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_type' => 'easy_access',
+            'current_balance' => 8000,
+        ], 'It pays 4.3% a year.');
+
+        expect($result['allowed'])->toBeFalse()
+            ->and($result['missing'])->toContain('ownership_type');
+    });
+});

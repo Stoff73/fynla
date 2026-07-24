@@ -78,6 +78,7 @@ final class CaptureAccuracyGate
         $text = $this->evidenceForEntity(mb_strtolower(trim($latestUserText)), $arguments, $tool);
         $missing = [];
         $reasons = [];
+        $repaired = [];
 
         $isIsaWrite = $this->isIsaWrite($tool, $arguments, $text);
         if ($isIsaWrite) {
@@ -116,6 +117,16 @@ final class CaptureAccuracyGate
                 $missing[] = 'ownership_type';
                 $reasons[] = 'An ISA must be recorded as individually owned';
             }
+        } elseif ($argumentOwnership === null && $textOwnership !== null) {
+            // The user's own words name the owner but the model dropped the
+            // argument — and a model that repeats its identical call after
+            // every clarification answer re-asks forever (live 2026-07-24:
+            // "I own it individually" was re-asked verbatim). Adopt the
+            // evidenced value; the dispatch merges `repaired` into the call.
+            // Still the user's words, never LLM output — the gate's intent
+            // holds.
+            $repaired['ownership_type'] = $textOwnership;
+            $argumentOwnership = $textOwnership;
         } elseif (! is_string($argumentOwnership)
             || ! in_array($argumentOwnership, ['individual', 'joint', 'tenants_in_common', 'trust'], true)
             || ($argumentOwnership !== ($confirmedFacts['ownership_type'] ?? null)
@@ -138,7 +149,11 @@ final class CaptureAccuracyGate
                     && abs((float) $arguments['ownership_percentage'] - (float) $factShare) <= 0.001)
                     || ($evidencedShare !== null
                         && abs((float) $arguments['ownership_percentage'] - $evidencedShare) <= 0.001));
-            if (! $shareSatisfied) {
+            if (! isset($arguments['ownership_percentage']) && $evidencedShare !== null) {
+                // Same repair channel as ownership_type — the share is in
+                // the user's own words, the model dropped the argument.
+                $repaired['ownership_percentage'] = $evidencedShare;
+            } elseif (! $shareSatisfied) {
                 $missing[] = 'ownership_percentage';
                 $reasons[] = 'I need the ownership share';
             }
@@ -154,7 +169,9 @@ final class CaptureAccuracyGate
         }
 
         if ($missing === []) {
-            return ['allowed' => true];
+            return $repaired === []
+                ? ['allowed' => true]
+                : ['allowed' => true, 'repaired' => $repaired];
         }
 
         return [
