@@ -378,7 +378,18 @@ export default {
         cursor.got = true;
         cursor.createdEntityNames = cursor.createdEntityNames || [];
         if (ev.name) cursor.createdEntityNames.push(ev.name);
-        const confirmation = cursor.captureReply || cursor.reply;
+        // Never clobber a bubble that already carries prose (a clarifying
+        // question streamed before this create) — split the confirmation
+        // into its own bubble, same dance as capture_complete below.
+        let confirmation = cursor.captureReply;
+        if (!confirmation) {
+          if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+            confirmation = { role: 'fyn', text: '', bubbles: [] };
+            this.messages.push(confirmation);
+          } else {
+            confirmation = cursor.reply;
+          }
+        }
         confirmation.capturePending = true;
         confirmation.text = cursor.createdEntityNames.length > 1
           ? `Saved ${cursor.createdEntityNames.length} records.`

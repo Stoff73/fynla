@@ -3511,6 +3511,7 @@ PROMPT;
             $toolWritesLanded = 0;
             $sawFailedWrite = false;
             $pendingWriteFailures = [];
+            $failedWriteTools = [];
             $ackShown = false;
             $contentBuffer = '';
             $visibleResponse = '';
@@ -3628,6 +3629,12 @@ PROMPT;
                             'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
                             'tier_limit' => (($event['result']['error_type'] ?? '') === 'tier_limit_reached'),
                         ];
+                        // Remember the tool so the gap-fill never blind-creates
+                        // the entity this failed (richer) attempt was refused for.
+                        $failedTool = trim((string) ($event['tool'] ?? $event['result']['tool'] ?? ''));
+                        if ($failedTool !== '' && ! in_array($failedTool, $failedWriteTools, true)) {
+                            $failedWriteTools[] = $failedTool;
+                        }
                     }
 
                     continue;
@@ -3677,7 +3684,7 @@ PROMPT;
                     // B-1 — synthesize tool calls for entities the LLM
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
-                    foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills) as $gapFillEvent) {
+                    foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
                         if (($gapFillEvent['type'] ?? '') === 'entity_created') {
                             $recordsCreated[] = [
                                 'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
@@ -3703,7 +3710,7 @@ PROMPT;
                     $ackShown = true;
                     yield $flushEvent;
                 }
-                foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills) as $gapFillEvent) {
+                foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
                     if (($gapFillEvent['type'] ?? '') === 'entity_created') {
                         $recordsCreated[] = [
                             'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
@@ -5632,10 +5639,28 @@ PROMPT;
         AiConversation $conversation,
         string $selection,
         string $message,
-        array $llmEmittedFills
+        array $llmEmittedFills,
+        array $failedAttemptTools = []
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($selection);
         if ($tool === null) {
+            return;
+        }
+
+        // The LLM already attempted this tool and the write FAILED (validation
+        // or gate clarification) — the turn is parked on a clarifying question
+        // and the user's answer re-runs the capture with the full facts. A
+        // blind extractor create here would land a DEGRADED row the richer
+        // failed attempt was refused for (live 2026-07-24: grok's Aviva
+        // create_protection_policy carried £250k/£30 but failed on term
+        // length; the extractor then created the policy with no amounts).
+        if (in_array($tool, $failedAttemptTools, true)) {
+            Log::info('[OnboardingChatDirector] Gap-fill suppressed — failed LLM attempt pending clarification', [
+                'user_id' => $user->id,
+                'selection' => $selection,
+                'tool' => $tool,
+            ]);
+
             return;
         }
 
@@ -6443,6 +6468,9 @@ PROMPT;
         /** @var array<string, list<array<string, mixed>>> $llmClarificationInputs */
         $llmClarificationInputs = [];
 
+        /** @var list<string> $failedAttemptTools */
+        $failedAttemptTools = [];
+
         /** @var list<array<string, mixed>> $presentationActions */
         $presentationActions = [];
 
@@ -6541,6 +6569,16 @@ PROMPT;
                     if ($rawInput !== []) {
                         $llmClarificationInputs[$tool][] = $rawInput;
                     }
+                } elseif ($explicitFailure
+                    && $tool !== '__unknown__'
+                    && ! ToolResults::isDuplicateSkip($result)
+                    && ! in_array($tool, $failedAttemptTools, true)) {
+                    // Any OTHER explicit failure (validation_failed, chiefly)
+                    // parks the turn on a clarifying question — suppress the
+                    // blind extractor create for this tool (see
+                    // runExtractorForFocus), it would land the degraded row
+                    // the richer failed attempt was refused for.
+                    $failedAttemptTools[] = $tool;
                 }
 
                 if (! $explicitFailure && $landed === true) {
@@ -6598,6 +6636,7 @@ PROMPT;
             $llmEmittedFills,
             $llmClarificationInputs,
             $confirmedFacts,
+            $failedAttemptTools,
         ) as $gapFillEvent) {
             if (($gapFillEvent['type'] ?? '') === 'entity_created') {
                 $recordsCreated[] = [
@@ -6931,11 +6970,12 @@ PROMPT;
         array $llmEmittedFills,
         array $llmClarificationInputs = [],
         ?array $confirmedFacts = null,
+        array $failedAttemptTools = [],
     ): \Generator {
         $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
 
         foreach ($focuses as $focus) {
-            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs, $confirmedFacts);
+            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs, $confirmedFacts, $failedAttemptTools);
         }
     }
 
@@ -6955,9 +6995,25 @@ PROMPT;
         array $llmEmittedFills,
         array $llmClarificationInputs = [],
         ?array $confirmedFacts = null,
+        array $failedAttemptTools = [],
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($focus);
         if ($tool === null) {
+            return;
+        }
+
+        // Same suppression as emitGapFillToolCalls: an LLM attempt that
+        // FAILED validation is parked on a clarifying question — a blind
+        // extractor create would land the degraded row the richer attempt
+        // was refused for. (Gate-blocked clarification_required attempts are
+        // NOT in this list — their arguments merge below instead.)
+        if (in_array($tool, $failedAttemptTools, true)) {
+            Log::info('[OnboardingChatDirector] Inline gap-fill suppressed — failed LLM attempt pending clarification', [
+                'user_id' => $user->id,
+                'focus' => $focus,
+                'tool' => $tool,
+            ]);
+
             return;
         }
 
