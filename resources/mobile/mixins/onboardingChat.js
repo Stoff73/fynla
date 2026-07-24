@@ -31,6 +31,9 @@ import {
 // carries the result). Keep in step with OnboardingStateMachine::campaignVerifyConfig().
 export const ONBOARDING_NAV_ROUTES = [
   '/tax-strategy', '/income', '/expenditure', '/savings', '/investment', '/retirement',
+  // Journey-path verify destinations (CSJ 2026-07-24: every data entry
+  // verifies) — all three have /m screens registered in router.js.
+  '/protection', '/estate', '/goals',
 ];
 
 export default {

@@ -10,8 +10,14 @@ use App\Enums\FynTurnIntent;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\CriticalIllnessPolicy;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
+use App\Models\Goal;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
@@ -39,6 +45,7 @@ use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\ValueObjects\CaptureContext;
@@ -4571,6 +4578,46 @@ PROMPT;
                 'labels' => [$record->scheme_name, $record->provider],
             ]);
             $candidates = $dc->concat($db);
+        } elseif ($section === 'protection') {
+            $candidates = LifeInsurancePolicy::where('user_id', $user->id)->get()->map(fn ($record): array => [
+                'type' => 'life_insurance', 'id' => (int) $record->id,
+                'labels' => [$record->provider, $record->policy_type, 'life'],
+            ])->concat(CriticalIllnessPolicy::where('user_id', $user->id)->get()->map(fn ($record): array => [
+                'type' => 'critical_illness', 'id' => (int) $record->id,
+                'labels' => [$record->provider, 'critical illness'],
+            ]))->concat(IncomeProtectionPolicy::where('user_id', $user->id)->get()->map(fn ($record): array => [
+                'type' => 'income_protection', 'id' => (int) $record->id,
+                'labels' => [$record->provider, 'income protection'],
+            ]));
+        } elseif ($section === 'goals') {
+            $candidates = Goal::forUserOrJoint($user->id)->get()->map(fn ($record): array => [
+                'type' => 'goal', 'id' => (int) $record->id,
+                'labels' => [$record->goal_name],
+            ]);
+        } elseif ($section === 'estate') {
+            $candidates = app(PropertyStore::class)->forUser($user)->map(fn ($record): array => [
+                'type' => 'property', 'id' => (int) $record->id,
+                'labels' => [$record->address_line_1, $record->property_type],
+            ])->concat($user->trusts()->get()->map(fn ($record): array => [
+                'type' => 'trust', 'id' => (int) $record->id,
+                'labels' => [$record->trust_name],
+            ]))->concat($user->gifts()->get()->map(fn ($record): array => [
+                'type' => 'estate_gift', 'id' => (int) $record->id,
+                'labels' => [$record->recipient],
+            ]))->concat($user->assets()->get()->map(fn ($record): array => [
+                'type' => 'estate_asset', 'id' => (int) $record->id,
+                'labels' => [$record->asset_name],
+            ]))->concat(BusinessInterest::where(fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id))->get()->map(fn ($record): array => [
+                    'type' => 'business_interest', 'id' => (int) $record->id,
+                    'labels' => [$record->business_name],
+                ]))->concat(Chattel::where(fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id))->get()->map(fn ($record): array => [
+                    'type' => 'chattel', 'id' => (int) $record->id,
+                    'labels' => [$record->name],
+                ]));
         }
 
         if ($candidates->isEmpty()) {
@@ -4652,6 +4699,61 @@ PROMPT;
                 'pensionable_salary' => ['pensionable salary'],
                 'pensionable_service_years' => ['service years', 'years of service'],
                 'scheme_name' => ['scheme name', 'rename'],
+            ],
+            'life_insurance' => [
+                'sum_assured' => ['sum assured', 'cover amount', 'cover', 'covered for'],
+                'premium_amount' => ['premium', 'pay'],
+                'premium_frequency' => ['premium frequency'],
+                'policy_end_date' => ['end date', 'expires', 'term ends'],
+                'provider' => ['provider', 'insurer'],
+            ],
+            'critical_illness' => [
+                'sum_assured' => ['sum assured', 'cover amount', 'cover', 'covered for'],
+                'premium_amount' => ['premium', 'pay'],
+                'premium_frequency' => ['premium frequency'],
+                'provider' => ['provider', 'insurer'],
+            ],
+            'income_protection' => [
+                'benefit_amount' => ['benefit', 'pays out', 'payout'],
+                'premium_amount' => ['premium', 'pay'],
+                'premium_frequency' => ['premium frequency'],
+                'deferred_period_weeks' => ['deferred period', 'waiting period'],
+                'provider' => ['provider', 'insurer'],
+            ],
+            'goal' => [
+                'target_amount' => ['target amount', 'target', 'amount', 'save'],
+                'target_date' => ['target date', 'by when', 'deadline', 'by 20'],
+                'monthly_contribution' => ['monthly contribution', 'per month'],
+                'goal_name' => ['goal name', 'rename'],
+            ],
+            'property' => [
+                'current_value' => ['value', 'worth'],
+                'monthly_rental_income' => ['rent', 'rental income'],
+                'property_type' => ['property type', 'buy-to-let', 'buy to let', 'main residence'],
+                'address_line_1' => ['address'],
+            ],
+            'trust' => [
+                'current_value' => ['value', 'worth'],
+                'trust_name' => ['trust name', 'rename'],
+            ],
+            'estate_gift' => [
+                'gift_value' => ['value', 'amount', 'worth'],
+                'gift_date' => ['date', 'when i gave', 'given in'],
+                'recipient' => ['recipient', 'gave it to', 'gave to'],
+            ],
+            'estate_asset' => [
+                'current_value' => ['value', 'worth'],
+                'asset_name' => ['name', 'rename'],
+            ],
+            'business_interest' => [
+                'current_valuation' => ['valuation', 'value', 'worth'],
+                'ownership_percentage' => ['ownership', 'stake', 'share'],
+                'annual_revenue' => ['revenue', 'turnover'],
+                'annual_profit' => ['profit'],
+            ],
+            'chattel' => [
+                'current_value' => ['value', 'worth'],
+                'name' => ['name', 'rename'],
             ],
             default => [],
         };
@@ -4874,6 +4976,60 @@ PROMPT;
                         'label' => (string) $p->scheme_name,
                         'amount' => (float) $p->accrued_annual_pension,
                         'noun' => 'annual pension',
+                    ]])->all(),
+            ),
+            'protection' => array_merge(
+                LifeInsurancePolicy::where('user_id', $user->id)->get()
+                    ->mapWithKeys(fn ($p): array => ['life:'.$p->id => [
+                        'label' => trim((string) $p->provider.' life cover'),
+                        'amount' => (float) $p->sum_assured,
+                        'noun' => 'cover',
+                    ]])->all(),
+                CriticalIllnessPolicy::where('user_id', $user->id)->get()
+                    ->mapWithKeys(fn ($p): array => ['ci:'.$p->id => [
+                        'label' => trim((string) $p->provider.' critical illness cover'),
+                        'amount' => (float) $p->sum_assured,
+                        'noun' => 'cover',
+                    ]])->all(),
+                IncomeProtectionPolicy::where('user_id', $user->id)->get()
+                    ->mapWithKeys(fn ($p): array => ['ip:'.$p->id => [
+                        'label' => trim((string) $p->provider.' income protection'),
+                        'amount' => (float) $p->benefit_amount,
+                        'noun' => 'benefit',
+                    ]])->all(),
+            ),
+            'goals' => Goal::forUserOrJoint($user->id)->get()
+                ->mapWithKeys(fn ($g): array => [$g->id => [
+                    'label' => (string) $g->goal_name,
+                    'amount' => (float) $g->target_amount,
+                    'noun' => 'target',
+                ]])->all(),
+            'estate' => array_merge(
+                app(PropertyStore::class)->forUser($user)
+                    ->mapWithKeys(fn ($p): array => ['prop:'.$p->id => [
+                        'label' => (string) ($p->address_line_1 ?: 'property'),
+                        'amount' => (float) $p->current_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                $user->trusts()->get()
+                    ->mapWithKeys(fn ($t): array => ['trust:'.$t->id => [
+                        'label' => (string) $t->trust_name,
+                        'amount' => (float) $t->current_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                $user->gifts()->get()
+                    ->mapWithKeys(fn ($g): array => ['gift:'.$g->id => [
+                        'label' => trim('gift to '.(string) $g->recipient),
+                        'amount' => (float) $g->gift_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                BusinessInterest::where(fn ($query) => $query
+                    ->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id))->get()
+                    ->mapWithKeys(fn ($b): array => ['biz:'.$b->id => [
+                        'label' => (string) $b->business_name,
+                        'amount' => (float) $b->current_valuation,
+                        'noun' => 'valuation',
                     ]])->all(),
             ),
             default => null,
