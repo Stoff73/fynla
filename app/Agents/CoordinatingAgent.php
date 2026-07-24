@@ -1053,6 +1053,13 @@ class CoordinatingAgent extends BaseAgent
             $this->forgetCaptureAccuracyCacheKey($conversationId, $accuracyCacheKey);
         }
 
+        // Gate-repaired arguments: a value evidenced by the user's own words
+        // that the model dropped from its call (ownership_type, chiefly).
+        // Adopting it here is what breaks the model's identical-retry loop.
+        if (! empty($accuracy['repaired']) && is_array($accuracy['repaired'])) {
+            $input = array_merge($input, $accuracy['repaired']);
+        }
+
         // CoALA pointer fetch tools — `fetch_{pointer_id}` routes through the
         // FetchDispatcher → handler path, sharing provenance + degrade-on-failure
         // with the pre-fetch path. Matched against toolPointers() so dashed

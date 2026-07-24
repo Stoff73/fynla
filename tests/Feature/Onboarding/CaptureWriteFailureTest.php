@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -1023,4 +1024,71 @@ it('a completion declaration advances a zero-output turn — "that\'s all my sav
     expect($texts)->not->toContain("didn't catch that")
         ->and($texts)->not->toContain('only help with financial planning');
     expect($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});
+
+it('suppresses the gap-fill when the model attempt failed validation pending clarification', function () {
+    // Live 2026-07-24 (user 294): grok's create_protection_policy carried
+    // provider/£250k/£30 but failed validation on the missing term length;
+    // the turn parked on "What's the term length?" — and the blind gap-fill
+    // then created a DEGRADED Aviva policy with no amounts. A failed richer
+    // attempt must suppress the extractor's create for that tool; the
+    // clarifying re-ask re-runs the capture with the full facts.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'journey',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
+        'onboarding_fyn_selection' => 'protection',
+        'onboarding_fyn_context' => ['visited_focuses' => ['protection']],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function (User $u, AiConversation $c) {
+            return (function () use ($c) {
+                yield ['type' => 'tool_use', 'tool' => 'create_protection_policy', 'status' => 'running'];
+                yield [
+                    'type' => 'capture_write_result',
+                    'tool' => 'create_protection_policy',
+                    'landed' => false,
+                    'message' => 'What is the term length for this level term policy?',
+                    'result' => ['error' => true, 'error_type' => 'validation_failed'],
+                ];
+                yield ['type' => 'content', 'text' => "What's the term length?"];
+                $message = $c->messages()->create(['role' => 'assistant', 'content' => "What's the term length?"]);
+                yield ['type' => 'done', 'message_id' => $message->id];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
+    // THE assertion: the gap-fill must never blind-create through the tool
+    // the model's richer attempt just failed with.
+    $mock->shouldReceive('executeTool')->never();
+    test()->instance(CoordinatingAgent::class, $mock);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "I have life insurance with Aviva, £250,000 of cover, £30 a month. That's all."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    // No degraded policy row, the turn stays parked on the capture state,
+    // and no verify announce fired for an unconfirmed write.
+    expect(LifeInsurancePolicy::where('user_id', $user->id)->count())->toBe(0)
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+
+    $advance = collect($received)->first(fn (array $e) => ($e['type'] ?? '') === 'onboarding_advance');
+    expect($advance)->toBeNull();
 });

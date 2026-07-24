@@ -1745,3 +1745,110 @@ it('keeps ownership evidence beyond an intervening detail sentence in a single-e
 
     expect($result)->toBe(['allowed' => true]);
 });
+
+describe('negated ISA mentions (2026-07-24 deadlock)', function () {
+    it('does not classify "not an ISA" as an ISA write', function (): void {
+        // Live 2026-07-24: "an easy access saver with Marcus, £8,000 at
+        // 4.3%, not an ISA" gated on the missing ISA type, and every
+        // clarification answer ("it's not an ISA") re-contained 'isa' and
+        // re-triggered the ask — an unbreakable loop.
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_name' => 'Marcus Easy Access Saver',
+            'account_type' => 'easy_access',
+            'interest_rate' => 4.3,
+            'current_balance' => 8000,
+            'ownership_type' => 'individual',
+        ], "I have an easy access saver with Marcus, £8,000 at 4.3%, not an ISA, owned just by me. That's everything.");
+
+        expect($result['allowed'])->toBeTrue();
+    });
+
+    it('still gates a genuine ISA mention for its type', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Nationwide',
+            'account_type' => 'easy_access',
+            'current_balance' => 5000,
+            'ownership_type' => 'individual',
+        ], 'I have an ISA with Nationwide, £5,000.');
+
+        expect($result['allowed'])->toBeFalse()
+            ->and($result['reason'])->toContain('ISA type');
+    });
+
+    it('still gates when the arguments claim is_isa regardless of negated text', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_type' => 'easy_access',
+            'is_isa' => true,
+            'current_balance' => 8000,
+            'ownership_type' => 'individual',
+        ], "It's not an ISA.");
+
+        expect($result['allowed'])->toBeFalse();
+    });
+});
+
+describe('argument repair from user-word evidence (2026-07-24 ownership deadlock)', function () {
+    it('repairs an absent ownership_type from the text instead of re-asking', function (): void {
+        // Live 2026-07-24: grok repeated its identical create_savings_account
+        // call (no ownership_type) after every clarification answer — "I own
+        // it individually" was re-asked verbatim, forever. The evidence is in
+        // the user's own words; the gate adopts it.
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_name' => 'Marcus Easy Access Saver',
+            'account_type' => 'easy_access',
+            'interest_rate' => 4.3,
+            'current_balance' => 8000,
+        ], 'I own it individually');
+
+        expect($result['allowed'])->toBeTrue()
+            ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual');
+    });
+
+    it('repairs a dropped joint share from the evidenced 50/50', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Halifax',
+            'account_type' => 'easy_access',
+            'current_balance' => 12000,
+            'ownership_type' => 'joint',
+        ], 'The Halifax account is owned 50/50 with my husband, joint between us');
+
+        expect($result['allowed'])->toBeTrue()
+            ->and((float) ($result['repaired']['ownership_percentage'] ?? 0))->toBe(50.0);
+    });
+
+    it('still asks when neither the arguments nor the text name an owner', function (): void {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Marcus',
+            'account_type' => 'easy_access',
+            'current_balance' => 8000,
+        ], 'It pays 4.3% a year.');
+
+        expect($result['allowed'])->toBeFalse()
+            ->and($result['missing'])->toContain('ownership_type');
+    });
+});
+
+it('binds the latest clarification answer across multiple accumulated turns', function (): void {
+    // Live 2026-07-24 (user 294): the accumulated evidence chain held the
+    // original message plus TWO earlier answers, so "I own it individually"
+    // sat three turns after the anchor and could never bind — the gate
+    // re-asked the same question verbatim, forever.
+    $evidence = "I have an easy access saver with Marcus, £8,000 at 4.3%, not an ISA. That's everything.\n"
+        ."It's not an ISA — just a regular easy access savings account\n"
+        ."It's not an ISA, just a regular savings account owned by me alone\n"
+        .'I own it individually';
+
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'institution' => 'Marcus',
+        'account_name' => 'Marcus Easy Access Saver',
+        'account_type' => 'easy_access',
+        'interest_rate' => 4.3,
+        'current_balance' => 8000,
+    ], $evidence);
+
+    expect($result['allowed'])->toBeTrue()
+        ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual');
+});

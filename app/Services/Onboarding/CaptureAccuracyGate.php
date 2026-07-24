@@ -78,6 +78,7 @@ final class CaptureAccuracyGate
         $text = $this->evidenceForEntity(mb_strtolower(trim($latestUserText)), $arguments, $tool);
         $missing = [];
         $reasons = [];
+        $repaired = [];
 
         $isIsaWrite = $this->isIsaWrite($tool, $arguments, $text);
         if ($isIsaWrite) {
@@ -116,6 +117,16 @@ final class CaptureAccuracyGate
                 $missing[] = 'ownership_type';
                 $reasons[] = 'An ISA must be recorded as individually owned';
             }
+        } elseif ($argumentOwnership === null && $textOwnership !== null) {
+            // The user's own words name the owner but the model dropped the
+            // argument — and a model that repeats its identical call after
+            // every clarification answer re-asks forever (live 2026-07-24:
+            // "I own it individually" was re-asked verbatim). Adopt the
+            // evidenced value; the dispatch merges `repaired` into the call.
+            // Still the user's words, never LLM output — the gate's intent
+            // holds.
+            $repaired['ownership_type'] = $textOwnership;
+            $argumentOwnership = $textOwnership;
         } elseif (! is_string($argumentOwnership)
             || ! in_array($argumentOwnership, ['individual', 'joint', 'tenants_in_common', 'trust'], true)
             || ($argumentOwnership !== ($confirmedFacts['ownership_type'] ?? null)
@@ -138,7 +149,11 @@ final class CaptureAccuracyGate
                     && abs((float) $arguments['ownership_percentage'] - (float) $factShare) <= 0.001)
                     || ($evidencedShare !== null
                         && abs((float) $arguments['ownership_percentage'] - $evidencedShare) <= 0.001));
-            if (! $shareSatisfied) {
+            if (! isset($arguments['ownership_percentage']) && $evidencedShare !== null) {
+                // Same repair channel as ownership_type — the share is in
+                // the user's own words, the model dropped the argument.
+                $repaired['ownership_percentage'] = $evidencedShare;
+            } elseif (! $shareSatisfied) {
                 $missing[] = 'ownership_percentage';
                 $reasons[] = 'I need the ownership share';
             }
@@ -154,7 +169,9 @@ final class CaptureAccuracyGate
         }
 
         if ($missing === []) {
-            return ['allowed' => true];
+            return $repaired === []
+                ? ['allowed' => true]
+                : ['allowed' => true, 'repaired' => $repaired];
         }
 
         return [
@@ -255,7 +272,13 @@ final class CaptureAccuracyGate
             return false;
         }
 
-        return str_contains($text, 'isa')
+        // Negation-aware: "not an ISA" must never classify the write as an
+        // ISA write — the raw substring check deadlocked the capture (live
+        // 2026-07-24: every "it's not an ISA" clarification answer contained
+        // 'isa' and re-triggered the ISA-type ask forever). One vocabulary:
+        // hasPositiveIsaContext, the same negation window the subtype
+        // extraction already uses.
+        return $this->hasPositiveIsaContext($text)
             || ! empty($arguments['is_isa'])
             || str_contains((string) ($arguments['account_type'] ?? ''), 'isa');
     }
@@ -423,7 +446,7 @@ final class CaptureAccuracyGate
 
     private function hasPositiveIsaContext(string $text): bool
     {
-        preg_match_all('/\bisa\b/u', $text, $matches, PREG_OFFSET_CAPTURE);
+        preg_match_all('/\bisas?\b/u', $text, $matches, PREG_OFFSET_CAPTURE);
         foreach ($matches[0] ?? [] as $match) {
             if (! $this->isNegatedMatch($text, $match[1])) {
                 return true;
@@ -571,8 +594,14 @@ final class CaptureAccuracyGate
         foreach ($segments as $index => $segment) {
             $segmentTurn = $segmentTurns[$index] ?? null;
             $sameTurn = $targetTurn !== null && $segmentTurn === $targetTurn;
+            // ANY later turn, not only targetTurn + 1: each clarification
+            // answer pushes earlier ones down a turn, so the SECOND answer
+            // ("I own it individually" after "it's not an ISA") could never
+            // bind and the gate re-asked forever (live 2026-07-24, user 294).
+            // Purity + cohort guards below still apply — only a segment that
+            // is nothing but evidence for this entity's cohort binds.
             $nextTurnClarification = $targetTurn !== null
-                && $segmentTurn === $targetTurn + 1
+                && $segmentTurn > $targetTurn
                 && $this->isPureSharedEntityEvidence($segment, $tool);
             if (($sameTurn || $nextTurnClarification)
                 && $this->isSharedEntityEvidence($segment, $tool)
@@ -583,6 +612,39 @@ final class CaptureAccuracyGate
                     $tool,
                 )) {
                 $matchedIndexes[] = $index;
+            }
+        }
+
+        // Latest-turn-wins for singular clarification answers: the newest
+        // turn in the accumulated evidence chain is the user's direct reply
+        // to the just-asked clarification. When it names NO entity (pure
+        // anaphoric evidence — "I own it individually") and carries an
+        // ownership/share/subtype signal, it binds to the uniquely anchored
+        // entity no matter how many earlier answers sit between it and the
+        // anchor. Without this only the turn immediately after the anchor
+        // could ever bind, so the SECOND answer re-asked forever (live
+        // 2026-07-24, user 294). A last turn naming any entity noun stays
+        // out — it must qualify on the strict walk rules above.
+        $presentTurns = array_filter($segmentTurns, static fn ($turn): bool => $turn !== null);
+        $lastTurn = $presentTurns === [] ? null : max($presentTurns);
+        if ($targetTurn !== null && $lastTurn !== null && $lastTurn > $targetTurn) {
+            $lastTurnIndexes = array_keys($segmentTurns, $lastTurn, true);
+            $allPure = $lastTurnIndexes !== [];
+            $carriesSignal = false;
+            foreach ($lastTurnIndexes as $index) {
+                $segment = $segments[$index];
+                if ($this->mentionsEntityNoun($segment)) {
+                    $allPure = false;
+                    break;
+                }
+                if ($this->ownershipFromText($segment) !== null
+                    || $this->ownershipShareFromText($segment) !== null
+                    || $this->isaSubtypeFromText($segment) !== null) {
+                    $carriesSignal = true;
+                }
+            }
+            if ($allPure && $carriesSignal) {
+                array_push($matchedIndexes, ...$lastTurnIndexes);
             }
         }
 
