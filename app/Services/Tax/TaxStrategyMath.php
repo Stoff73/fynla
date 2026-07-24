@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 
 /**
@@ -23,6 +24,8 @@ use Carbon\Carbon;
  */
 final class TaxStrategyMath
 {
+    use CalculatesOwnershipShare;
+
     /**
      * Per-instance memo keyed by user id for taxableIncomeFor(), which fires
      * a SavingsAccount query via estimateAnnualInterest. Strategies that call
@@ -258,22 +261,44 @@ final class TaxStrategyMath
 
     public function estimateAnnualInterest(User $user): float
     {
-        // forUser() is joint-aware; the Collection-level where('user_id')
-        // post-filter preserves the original single-owner sum.
+        // forUser() is joint-aware (primary or joint owner). HMRC splits
+        // joint-account interest by beneficial share (50/50 default between
+        // spouses), so each account contributes the user's ownership share —
+        // never the full balance. Issue log 2026-07-23 #21; mirrors the rule
+        // net worth already applies via CalculatesOwnershipShare.
         return (float) app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
             ->where('is_isa', false)
-            ->sum(function ($acc) {
-                // interest_rate convention is mixed across the codebase
-                // (factory writes decimals 0.04, seeders + onboarding write
-                // percent 4.0). Normalise: anything > 1 is treated as percent.
-                $rate = (float) $acc->interest_rate;
-                if ($rate > 1) {
-                    $rate /= 100;
-                }
+            ->sum(fn ($acc) => $this->calculateUserShare($acc, $user->id) * $this->normalisedInterestRate($acc));
+    }
 
-                return (float) $acc->current_balance * $rate;
+    /**
+     * The other owner's share of the user's shared non-ISA accounts — the
+     * interest HMRC attributes to the spouse. The SaveTax campaign stores the
+     * spouse as household input (no User row, joint_owner_id null), so the
+     * spouse grids can only derive this from the primary user's records.
+     */
+    public function estimateSpouseJointInterest(User $user): float
+    {
+        return (float) app(SavingsStore::class)->forUser($user)
+            ->where('is_isa', false)
+            ->filter(fn ($acc) => $this->isSharedOwnership($acc))
+            ->sum(function ($acc) use ($user) {
+                $fullInterest = (float) $acc->current_balance * $this->normalisedInterestRate($acc);
+
+                return $fullInterest - ($this->calculateUserShare($acc, $user->id) * $this->normalisedInterestRate($acc));
             });
+    }
+
+    /**
+     * interest_rate convention is mixed across the codebase (factory writes
+     * decimals 0.04, seeders + onboarding write percent 4.0). Normalise:
+     * anything > 1 is treated as percent.
+     */
+    private function normalisedInterestRate(object $acc): float
+    {
+        $rate = (float) $acc->interest_rate;
+
+        return $rate > 1 ? $rate / 100 : $rate;
     }
 
     public function estimateIsaSubscriptionsThisYear(User $user): float

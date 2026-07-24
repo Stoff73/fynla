@@ -2007,3 +2007,235 @@ describe('overrides applied in-memory', function () {
         expect($user->fresh()->annual_employment_income)->toBe('50000.00');
     });
 });
+
+/**
+ * Issue log 2026-07-23 #21 — PSA joint-interest attribution. The user grid
+ * showed the FULL joint-account interest against the primary owner's Savings
+ * Allowance ("Fully used £500" from £504 of joint interest whose HMRC share
+ * is £252), while the spouse grid ignored the known complement entirely
+ * ("Current-year use not confirmed"). Attribution must follow the ownership
+ * share on both grids, stacking spouse interest through Personal Allowance →
+ * Starting Rate for Savings → Personal Savings Allowance.
+ */
+describe('PSA joint-interest attribution (issue #21)', function () {
+    it('shows the HMRC 50/50 share of joint interest against the user Savings Allowance', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 85000, // higher rate → PSA £500
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 32000,
+            'spouse_employment_status' => 'full_time',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $psa = collect($output->userAllowances)->firstWhere('key', 'savings_allowance');
+        expect((float) $psa['amount'])->toBe(500.0)
+            ->and((float) $psa['used'])->toBe(252.0)
+            ->and((float) $psa['remaining'])->toBe(248.0);
+    });
+
+    it('attributes the spouse share of joint interest on the dual-earner grid', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 85000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 32000, // basic rate → PSA £1,000, PA fully used
+            'spouse_employment_status' => 'full_time',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $psa = collect($output->spouseAllowances)->firstWhere('key', 'savings_allowance');
+        expect($psa['known'])->toBeTrue()
+            ->and((float) $psa['amount'])->toBe(1000.0)
+            ->and((float) $psa['used'])->toBe(252.0)
+            ->and((float) $psa['remaining'])->toBe(748.0);
+    });
+
+    it('stacks spouse joint interest into remaining Personal Allowance before the Savings Allowance', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 85000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 10000, // £2,570 of PA left — absorbs the £252
+            'spouse_employment_status' => 'part_time',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $psa = collect($output->spouseAllowances)->firstWhere('key', 'savings_allowance');
+        expect($psa['known'])->toBeTrue()
+            ->and((float) $psa['used'])->toBe(0.0);
+
+        $pa = collect($output->spouseAllowances)->firstWhere('key', 'personal_allowance');
+        expect((float) $pa['used'])->toBe(10252.0);
+    });
+
+    it('absorbs the spouse joint share inside the Personal Allowance on the non-working grid', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 85000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $pa = collect($output->spouseAllowances)->firstWhere('key', 'personal_allowance');
+        expect((float) $pa['used'])->toBe(252.0);
+
+        $psa = collect($output->spouseAllowances)->firstWhere('key', 'savings_allowance');
+        expect($psa['known'])->toBeTrue()
+            ->and((float) $psa['used'])->toBe(0.0);
+    });
+
+    it('keeps the spouse savings row not-confirmed when there are no shared accounts', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 85000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 32000,
+            'spouse_employment_status' => 'full_time',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $psa = collect($output->spouseAllowances)->firstWhere('key', 'savings_allowance');
+        expect($psa['known'])->toBeFalse();
+    });
+
+    it('does not gate the ISA top-up on the full joint interest when the user share sits within the allowance', function () {
+        // Full joint interest £640 (> £500 PSA) but the user's 50% share is
+        // £320 (≤ PSA) — no taxable excess, so no top-up recommendation.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 85000,
+            'marital_status' => 'married',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 16000,
+            'interest_rate' => 4.0,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $topUp = collect($output->recommendations)->firstWhere('type', 'isa_topup_vs_psa');
+        expect($topUp)->toBeNull();
+    });
+
+    it('does not propose sharing an account that is already joint (null co-owner joint counts as joint)', function () {
+        // Regression for the 4344d6a relaxation: a joint account with no
+        // linked co-owner User passed the whereNull('joint_owner_id')
+        // "sole-name" filter and produced a share-your-savings suggestion
+        // for an account that is already shared.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 85000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 200000,
+            'interest_rate' => 5.0,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $split = collect($output->recommendations)->firstWhere('type', 'joint_savings_psa_split');
+        expect($split)->toBeNull();
+    });
+
+    it('excludes already-joint accounts from asset-shifting transferable cash', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 100000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_isa_balance' => 0,
+            'spouse_existing_savings_balance' => 0,
+            'spouse_existing_investment_balance' => 0,
+            'spouse_existing_dividend_holdings_value' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 200000,
+            'interest_rate' => 3.5,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
+        expect($shift)->toBeNull();
+    });
+});
