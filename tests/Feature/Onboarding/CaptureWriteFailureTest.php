@@ -956,3 +956,71 @@ it('does not arm the merge off the canned security-refusal text', function () {
         ->not->toContain('Nationwide')
         ->toBe('Also a Halifax Cash ISA with £5,000, owned individually');
 });
+
+it('never voices failure copy for a duplicate-skip alongside a landed write', function () {
+    // 2026-07-23 live (round 2, msg 19858): the joint account saved and the
+    // model re-called create for the already-saved current account. The
+    // dedupe skip (warning + existing_id) carries landed=false and a
+    // result message, so it entered the failure ledger and the user read
+    // "I couldn't record anything new there" directly above
+    // "Saved Joint Savings Account." A duplicate skip means the record
+    // exists — it is not a failure.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null,
+            'result' => ['success' => true, 'created' => true, 'entity_id' => 558, 'entity_type' => 'savings_account', 'name' => 'Joint Savings Account']],
+        ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 558, 'name' => 'Joint Savings Account'],
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => false, 'message' => null,
+            'result' => ['warning' => true, 'existing_id' => 557, 'message' => "A similar record 'Current Account' already exists. The new record was not created to avoid duplication."]],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'Please try the joint savings account again: £12,000 at 4.2% interest, owned 50/50 with my husband Daniel.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)
+        ->filter(fn (array $e) => ($e['type'] ?? null) === 'content')
+        ->pluck('text');
+
+    expect($texts->first(fn (string $t) => str_contains($t, "couldn't record") || str_contains($t, "couldn't save")))
+        ->toBeNull();
+});
+
+it('a completion declaration advances a zero-output turn — "that\'s all my savings" is an answer, not noise', function () {
+    // Live 2026-07-23 (round 2, msgs 19859-19861): the user closed the
+    // savings section with "That's all my savings.", grok refused it with
+    // the injection-refusal line, the strip emptied the turn, and the
+    // zero-output guard re-asked "Sorry, I didn't catch that." A
+    // completion declaration is the negative-declaration case in another
+    // phrasing — it completes the step.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "That's all my savings."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+
+    expect($texts)->not->toContain("didn't catch that")
+        ->and($texts)->not->toContain('only help with financial planning');
+    expect($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});

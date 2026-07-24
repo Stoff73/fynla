@@ -101,6 +101,12 @@ class PensionNormaliser
                 $canonical[$f] = $toolParams[$f];
             }
         }
+        // false is a stated fact ("it's not salary sacrifice"), distinct
+        // from absent (unknown) — dropping it persisted NULL and downstream
+        // salary-sacrifice advice re-asked (live 2026-07-23, DCPension 175).
+        if (isset($toolParams['salary_sacrifice']) && is_bool($toolParams['salary_sacrifice'])) {
+            $canonical['salary_sacrifice'] = $toolParams['salary_sacrifice'];
+        }
 
         return $canonical;
     }

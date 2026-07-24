@@ -1,11 +1,20 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-07-21 — context-clear wrap, session 2. Everything asked
-today is DONE: /m-parity sweep complete; CSJ directives (avatar rule,
-fireworks, nudges) executed; better-in-the-app Fyn bubble live on csjones;
-SaveTax campaign live E2E green on web AND native (2 real defects fixed);
-**TestFlight build 1.0(1) of Fynla Dev uploaded and VALID — CSJ invited as
-internal tester**. Handover: July/July21Updates/handover-2026-07-21-session-2-clear.md.*
+*Last updated: 2026-07-24 — end-of-day wrap (2026-07-23 evening session). SaveTax
+E2E test loop: web /m journey GREEN end-to-end, 8 defects fixed on
+`codex/savetax-e2e-capture-fixes`, **PR #670 open to dev**; iOS leg blocked by a
+wedged CoreSimulator (reboot the Mac). Handover:
+July/July24Updates/handover-2026-07-24-session-1.md.*
+
+## 2026-07-23 — evening session (SaveTax E2E loop)
+
+- [ ] **Reboot the Mac**, then run the staged iOS pull-through (LiveJourneyTests, user priya-e2e-0723b) — commands in July/July23Updates/savetax-e2e-run-report.md §iOS re-run.
+- [ ] **CSJ: review/merge PR #670** (8 fixes; note the flagged 2026-07-13 joint-hardening relaxation). After merge: csjones back onto dev (`git checkout dev && git pull && php artisan cache:clear`) — **csjones currently runs the fix branch `codex/savetax-e2e-capture-fixes`**.
+- [ ] Round-3 clean /m pass (fresh persona) after #670 merges — the loop's final confirmation.
+- [ ] **[HIGH — tax]** PSA joint-interest attribution ignores the 50/50 share (issue log #21) — needs CalculatesOwnershipShare in the tax-strategy calc + tax-compliance review.
+- [ ] `/m` savings rows show "Unknown" instead of account_name (Savings.vue:41,67,155) — needs /m rebuild.
+- [ ] CSJ decisions: total-cash share convention; ISA-ownership question copy; fabricated "Yes, that's right" bubble on verify Continue; stale-token registration edge.
+- [ ] Debt: CaptureAccuracyGate 792 lines / EvidenceWalk extraction; pre-LLM short-circuit for completion phrases; ENTITY_NOUNS constant (tech-debt-report.md).
 
 ## 2026-07-21 — session 2 (all delivered)
 

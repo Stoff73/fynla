@@ -410,6 +410,19 @@ class User extends Authenticatable
     }
 
     /**
+     * THE single authorization rule for attaching a joint_owner_id (Rule 20):
+     * an attached id grants the linked account visibility of the record, so
+     * only the user's reciprocally linked spouse qualifies. A joint record
+     * with NO id (co-owner not on the platform) is first-class app-wide and
+     * needs no authorization — callers must not require an id.
+     */
+    public function hasReciprocalSpouseLink(int $candidateId): bool
+    {
+        return (int) $this->spouse_id === $candidateId
+            && static::query()->whereKey($candidateId)->where('spouse_id', $this->id)->exists();
+    }
+
+    /**
      * Get the user's active sessions.
      */
     public function sessions(): HasMany

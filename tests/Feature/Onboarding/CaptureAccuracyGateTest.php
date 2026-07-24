@@ -220,7 +220,7 @@ it('does not treat a possessive as explicit ownership confirmation', function ()
         ->and($result['missing'])->toContain('ownership_type');
 });
 
-it('requires the joint owner and explicit share before a joint write', function (): void {
+it('requires the explicit share before a joint write', function (): void {
     $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
         'account_name' => 'Joint Savings',
         'account_type' => 'easy_access',
@@ -229,8 +229,47 @@ it('requires the joint owner and explicit share before a joint write', function 
     ], 'Our joint savings are £20,000');
 
     expect($result['allowed'])->toBeFalse()
-        ->and($result['missing'])->toContain('joint_owner_id')
-        ->and($result['missing'])->toContain('ownership_percentage');
+        ->and($result['missing'])->toContain('ownership_percentage')
+        ->and($result['missing'])->not->toContain('joint_owner_id');
+});
+
+it('allows a joint write with no linked co-owner when the share is evidenced — the live mid-campaign message', function (): void {
+    // 2026-07-23 live (user 292, msg 19833): the campaign captures savings
+    // BEFORE the spouse is linked, and the web form (StoreSavingsAccountRequest)
+    // already allows joint with a nullable joint_owner_id. The gate must not
+    // demand an id the flow cannot yet possess.
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Joint Savings Account',
+        'account_type' => 'savings_account',
+        'current_balance' => 12000,
+        'interest_rate' => 4.2,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ], 'we have a joint savings account with £12,000 at 4.2% interest — owned 50/50 with my husband daniel. i also have my own current account with £2,500 that pays no interest.');
+
+    expect($result)->toBe(['allowed' => true]);
+});
+
+it('takes the latest turn when the entity needle matches across turns — the live savings-recovery deadlock', function (): void {
+    // 2026-07-23 live (user 292, msgs 19836-19841): after a failed joint
+    // attempt, every recovery message repeats "savings account", so the
+    // needle matched two turns and evidence collapsed to '' forever. A
+    // later turn supersedes an earlier one; only same-turn multi-matches
+    // are genuine two-entity ambiguity.
+    $text = "we have a joint savings account with £12,000 at 4.2% interest — owned 50/50 with my husband daniel. i also have my own current account with £2,500 that pays no interest.\n"
+        ."what detail is missing? i told you the balance, the rate, and that daniel and i own it 50/50.\n"
+        .'ok — for now just save the savings account in my name only: £12,000 at 4.2% interest. we can sort the joint ownership later.';
+
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'account_name' => 'Savings Account',
+        'account_type' => 'savings_account',
+        'current_balance' => 12000,
+        'interest_rate' => 4.2,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text);
+
+    expect($result)->toBe(['allowed' => true]);
 });
 
 it('allows a fully evidenced joint ownership write', function (): void {
@@ -1688,4 +1727,21 @@ it('does not treat a negated natural phrasing as individual-ownership evidence',
 
     expect($result['allowed'])->toBeFalse()
         ->and($result['missing'])->toContain('ownership_type');
+});
+
+it('keeps ownership evidence beyond an intervening detail sentence in a single-entity turn', function (): void {
+    // 2026-07-23 live (msg 19870): the investments prompt asks for value,
+    // cost, dividends AND ownership in one message; the cost/dividend
+    // sentence broke the continuation walk and the trailing "It's owned
+    // individually." was severed — the gate rejected the exact format its
+    // own prompt requested.
+    $result = app(CaptureAccuracyGate::class)->inspect('create_investment_account', [
+        'account_name' => 'General Investment Account',
+        'account_type' => 'personal_investment_account',
+        'current_value' => 15000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], "i have one general investment account worth £15,000 — i paid £11,000 for the holdings and it pays about £300 a year in dividends. it's owned individually.");
+
+    expect($result)->toBe(['allowed' => true]);
 });

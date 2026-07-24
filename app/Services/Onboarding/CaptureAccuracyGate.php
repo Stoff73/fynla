@@ -125,10 +125,11 @@ final class CaptureAccuracyGate
         }
 
         if (in_array($argumentOwnership, ['joint', 'tenants_in_common'], true)) {
-            if (! isset($arguments['joint_owner_id']) || ! is_numeric($arguments['joint_owner_id'])) {
-                $missing[] = 'joint_owner_id';
-                $reasons[] = 'I need to know who the joint owner is';
-            }
+            // No joint_owner_id requirement: a joint record with an unlinked
+            // co-owner is first-class app-wide (StoreSavingsAccountRequest),
+            // and mid-campaign the spouse User does not exist yet. The
+            // handler's captureJointOwnerError still authorizes any id that
+            // IS supplied.
             $evidencedShare = $this->ownershipShareFromText($text);
             $factShare = $confirmedFacts['ownership_percentage'] ?? null;
             $shareSatisfied = isset($arguments['ownership_percentage'])
@@ -488,7 +489,10 @@ final class CaptureAccuracyGate
 
         $targetIndexes = [];
         foreach ($strongNeedles as $needle) {
-            $indexes = $this->matchingSegmentIndexes($segments, $needle);
+            $indexes = $this->latestTurnMatches(
+                $this->matchingSegmentIndexes($segments, $needle),
+                $segmentTurns,
+            );
             if (count($indexes) === 1) {
                 $targetIndexes[] = $indexes[0];
             }
@@ -504,7 +508,10 @@ final class CaptureAccuracyGate
             foreach ($weakNeedles as $needle) {
                 array_push($weakMatches, ...$this->matchingSegmentIndexes($segments, $needle));
             }
-            $weakMatches = array_values(array_unique($weakMatches));
+            $weakMatches = $this->latestTurnMatches(
+                array_values(array_unique($weakMatches)),
+                $segmentTurns,
+            );
             if (count($weakMatches) > 1) {
                 return '';
             }
@@ -528,10 +535,33 @@ final class CaptureAccuracyGate
 
         $targetIndex = $targetIndexes[0];
         $matchedIndexes = [$targetIndex];
+        $targetTurnIndex = $segmentTurns[$targetIndex] ?? null;
         for ($index = $targetIndex + 1; $index < count($segments); $index++) {
-            $isImmediateAnaphoricContinuation = $index === $targetIndex + 1
-                && $this->isAnaphoricEvidenceContinuation($segments[$index]);
-            if (! $this->isStandaloneEvidence($segments[$index]) && ! $isImmediateAnaphoricContinuation) {
+            $segment = $segments[$index];
+            $sameTurn = ($segmentTurns[$index] ?? null) === $targetTurnIndex;
+            // Anaphoric evidence ("it's owned individually") continues the
+            // walk immediately after the entity segment and, within the
+            // entity's own turn, even beyond an intervening detail sentence
+            // — the capture prompts themselves ask for value, cost,
+            // dividends AND ownership in one message (live 2026-07-23, msg
+            // 19870).
+            $isAnaphoricContinuation = ($index === $targetIndex + 1 || $sameTurn)
+                && $this->isAnaphoricEvidenceContinuation($segment);
+            // A same-turn segment carrying NO entity noun and NO evidence
+            // signal is inert detail ("I paid £11,000 for the holdings…")
+            // — stepped over, never severing the chain. Anything naming an
+            // entity or carrying an ownership/subtype/share signal must
+            // still qualify on the strict rules above, so a correction
+            // naming a different account or deferral meta-talk ("we can
+            // sort the joint ownership later") still breaks the walk.
+            $isInertSameTurnDetail = $sameTurn
+                && ! $this->mentionsEntityNoun($segment)
+                && $this->ownershipFromText($segment) === null
+                && $this->isaSubtypeFromText($segment) === null
+                && $this->ownershipShareFromText($segment) === null;
+            if (! $this->isStandaloneEvidence($segment)
+                && ! $isAnaphoricContinuation
+                && ! $isInertSameTurnDetail) {
                 break;
             }
             $matchedIndexes[] = $index;
@@ -567,6 +597,35 @@ final class CaptureAccuracyGate
     }
 
     /**
+     * A later turn's mention of the entity supersedes an earlier one — a
+     * clarification retry re-names the account it is correcting ("just save
+     * the savings account in my name only"), and binding to the earlier
+     * failed turn deadlocked capture permanently (live 2026-07-23, user 292
+     * msgs 19836-19841). Matches within a single turn remain genuine
+     * two-entity ambiguity and are left for the caller to fail closed on.
+     *
+     * @param  list<int>  $indexes
+     * @param  list<int>  $segmentTurns
+     * @return list<int>
+     */
+    private function latestTurnMatches(array $indexes, array $segmentTurns): array
+    {
+        if (count($indexes) < 2) {
+            return $indexes;
+        }
+
+        $latestTurn = max(array_map(
+            static fn (int $index): int => $segmentTurns[$index] ?? 0,
+            $indexes,
+        ));
+
+        return array_values(array_filter(
+            $indexes,
+            static fn (int $index): bool => ($segmentTurns[$index] ?? 0) === $latestTurn,
+        ));
+    }
+
+    /**
      * @param  list<string>  $segments
      * @return list<int>
      */
@@ -585,7 +644,14 @@ final class CaptureAccuracyGate
             return collect($joined)->every(fn (string $part): bool => $this->isStandaloneEvidence($part));
         }
 
-        return preg_match('/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:it\s+is\s+)?(?:not\s+)?(?:cash(?:\s+isa)?|junior(?:\s+isa)?|lifetime(?:\s+isa)?|innovative\s+finance(?:\s+isa)?|stocks?\s*(?:&|and)\s*shares?(?:\s+isa)?|'.OwnershipPhrasings::INDIVIDUAL.'|'.OwnershipPhrasings::JOINT.'|tenants?\s+in\s+common|held\s+in\s+trust|(?:my\s+share\s+(?:(?:is|at)\s+)?)?\d{1,3}(?:\.\d+)?\s*%|(?:my\s+share\s+)?isn[\x{2019}\x{0027}]?t\s+half|(?:ownership\s+is\s+)?not\s+equal|half|equal(?:ly)?)\s*[.!?]*\s*$/u', $segment) === 1;
+        // "owned 50/50 with my husband daniel" — an em-dash routinely severs
+        // this clause from its entity segment ("...at 4.2% — owned 50/50
+        // with..."), and without this alternative the share evidence was
+        // lost and a fully-specified joint account could never save (live
+        // 2026-07-23, user 292 msg 19833).
+        $sharedWithPerson = '(?:owned\s+)?(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)(?:\s+with\s+my\s+(?:spouse|partner|wife|husband)(?:\s+[a-z\x{2019}\x{0027}\-]{1,30})?)?';
+
+        return preg_match('/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:it\s+is\s+)?(?:not\s+)?(?:cash(?:\s+isa)?|junior(?:\s+isa)?|lifetime(?:\s+isa)?|innovative\s+finance(?:\s+isa)?|stocks?\s*(?:&|and)\s*shares?(?:\s+isa)?|'.OwnershipPhrasings::INDIVIDUAL.'|'.OwnershipPhrasings::JOINT.'|tenants?\s+in\s+common|held\s+in\s+trust|(?:my\s+share\s+(?:(?:is|at)\s+)?)?\d{1,3}(?:\.\d+)?\s*%|(?:my\s+share\s+)?isn[\x{2019}\x{0027}]?t\s+half|(?:ownership\s+is\s+)?not\s+equal|half|equal(?:ly)?|'.$sharedWithPerson.')\s*[.!?]*\s*$/u', $segment) === 1;
     }
 
     private function isAnaphoricEvidenceContinuation(string $segment): bool
@@ -594,13 +660,23 @@ final class CaptureAccuracyGate
             return false;
         }
 
-        if (preg_match('/\b(?:my|our|another|a\s+second)\b[^.!?]{0,60}\b(?:account|isa|saver|property|mortgage|loan|liability)\b/u', $segment) === 1) {
+        if ($this->declaresAnotherEntity($segment)) {
             return false;
         }
 
         return $this->ownershipFromText($segment) !== null
             || $this->isaSubtypeFromText($segment) !== null
             || $this->ownershipShareFromText($segment) !== null;
+    }
+
+    private function declaresAnotherEntity(string $segment): bool
+    {
+        return preg_match('/\b(?:my|our|another|a\s+second)\b[^.!?]{0,60}\b(?:account|isa|saver|property|mortgage|loan|liability|pension)\b/u', $segment) === 1;
+    }
+
+    private function mentionsEntityNoun(string $segment): bool
+    {
+        return preg_match('/\b(?:accounts?|isas?|savers?|propert(?:y|ies)|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
     }
 
     private function isSharedEntityEvidence(string $segment, string $tool): bool

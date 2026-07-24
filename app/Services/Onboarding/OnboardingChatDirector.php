@@ -28,6 +28,7 @@ use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\RecordDuplicateChecker;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\ToolResults;
 use App\Services\AI\WriteIntentClassifier;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Coordination\ComposedModulePlanService;
@@ -39,6 +40,7 @@ use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -3611,10 +3613,8 @@ PROMPT;
                         if ($retryOfToolCallId !== '') {
                             unset($pendingWriteFailures[$retryOfToolCallId]);
                         }
-                    } elseif (($event['noop'] ?? false) !== true) {
-                        // A blocked duplicate carries no message; a validation
-                        // failure does. Either way a write was attempted and
-                        // nothing landed — enough to suppress a false "Recorded".
+                    } elseif (($event['noop'] ?? false) !== true
+                        && ! ToolResults::isDuplicateSkip((array) ($event['result'] ?? []))) {
                         $sawFailedWrite = true;
                         $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
                         $pendingWriteFailures[$failureKey] = [
@@ -3856,7 +3856,11 @@ PROMPT;
             // A negative/none declaration legitimately writes nothing — "No
             // personal pensions." completes the step even when the model
             // stays silent; re-asking it would loop (live 2026-07-23).
-            && preg_match('/^\s*(?:no|none|nothing|neither)\b/iu', $message) !== 1) {
+            // …and so does a completion declaration — "That's all my
+            // savings." closes the section (live 2026-07-23, msg 19859:
+            // grok refused it, the strip emptied the turn, and the guard
+            // re-asked "Sorry, I didn't catch that").
+            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1) {
             yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
@@ -4232,10 +4236,14 @@ PROMPT;
      */
     private function stripEchoedFailureCopy(string $text): string
     {
+        // Sentence scan: a "." inside a decimal ("4.2%") is not a boundary —
+        // treating it as one truncated the echo mid-number and left a "2%."
+        // fragment in the visible bubble (live 2026-07-23, user 292 msg 19837).
+        $sentenceChars = '(?:[^.!?\n]|\.(?=\d))*';
         $stripped = preg_replace(
             [
-                '/[^.!?\n]*couldn[\x{2019}\x{0027}]t\s+save\s+that[^.!?\n]*[.!?]?\s*/iu',
-                '/[^.!?\n]*only\s+help\s+with\s+financial\s+planning\s+questions[^.!?\n]*[.!?]?\s*(?:How\s+can\s+I\s+assist\s+with\s+your\s+finances\?)?\s*/iu',
+                '/'.$sentenceChars.'couldn[\x{2019}\x{0027}]t\s+save\s+that'.$sentenceChars.'[.!?]?\s*/iu',
+                '/'.$sentenceChars.'only\s+help\s+with\s+financial\s+planning\s+questions'.$sentenceChars.'[.!?]?\s*(?:How\s+can\s+I\s+assist\s+with\s+your\s+finances\?)?\s*/iu',
             ],
             '',
             $text,
@@ -6383,8 +6391,9 @@ PROMPT;
                     continue;
                 }
 
-                $failed = $explicitFailure
-                    || ($landed === false && $messageText !== '');
+                $failed = ! ToolResults::isDuplicateSkip($result)
+                    && ($explicitFailure
+                        || ($landed === false && $messageText !== ''));
                 if ($failed) {
                     $pendingWriteFailures[$toolCallId] = [
                         'message' => $messageText !== ''

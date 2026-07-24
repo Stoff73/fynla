@@ -165,3 +165,33 @@ it('shows unlock items again once the walk is over (step nulled)', function () {
     $unlocks = collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock');
     expect($unlocks)->not->toBeEmpty();
 });
+
+it('suppresses unlock items for a fresh campaign registrant before the first turn stamps the step', function () {
+    // 2026-07-23 live (user 292, round 2): the first dashboard fetch races
+    // the chat turn that stamps onboarding_fyn_step, so the suppressed list
+    // was cached with four unlock prompts at the exact moment the campaign
+    // walk was starting. A funnel registrant who has not started the walk
+    // (onboarding_started_at null) is walking by construction.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_started_at' => null,
+        'funnel_answers' => ['campaign' => 'savetax', 'employment_status' => 'full_time'],
+    ]);
+
+    expect(collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock'))->toBeEmpty();
+});
+
+it('keeps unlock items for a paused walker whose step was nulled', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_started_at' => now()->subHour(),
+        'funnel_answers' => ['campaign' => 'savetax'],
+    ]);
+
+    $unlocks = collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock');
+    expect($unlocks)->not->toBeEmpty();
+});
