@@ -165,6 +165,12 @@ struct FynEventReducer: Sendable {
         case "/savings": .savings(accountID: nil)
         case "/investment": .investment(accountID: nil)
         case "/retirement": .retirement(pensionType: nil, id: nil)
+        // Journey-path verify destinations (2026-07-24: every data entry
+        // runs the verify loop) — keep in step with /m's
+        // ONBOARDING_NAV_ROUTES in onboardingChat.js.
+        case "/protection": .protection(policyType: nil, id: nil)
+        case "/estate": .estate
+        case "/goals": .goals
         default: nil
         }
     }
