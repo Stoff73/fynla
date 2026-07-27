@@ -1,8 +1,8 @@
 <template>
   <PublicLayout>
-    <div v-if="loading" class="max-w-4xl mx-auto px-4 py-20 text-center">
+    <div v-if="loading" class="min-h-screen flex items-center justify-center px-4">
       <div
-        class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto"
+        class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"
       ></div>
     </div>
 
@@ -27,8 +27,8 @@
         />
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-horizon-500/90 via-horizon-500/70 to-horizon-500/30"></div>
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 w-full text-white">
-          <h1 class="text-4xl md:text-6xl font-black leading-tight max-w-4xl" style="letter-spacing:-0.02em;" itemprop="name">{{ article.title }}</h1>
-          <p v-if="article.subtitle" class="text-lg md:text-xl mt-4 leading-relaxed text-white/90 max-w-3xl">{{ article.subtitle }}</p>
+          <h1 class="text-4xl md:text-6xl font-black leading-tight max-w-4xl text-white drop-shadow" style="letter-spacing:-0.02em;" itemprop="name">{{ article.title }}</h1>
+          <p v-if="article.subtitle" class="text-lg md:text-xl mt-4 leading-relaxed text-white/90 max-w-3xl drop-shadow">{{ article.subtitle }}</p>
         </div>
       </div>
 
