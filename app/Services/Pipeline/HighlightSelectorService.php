@@ -49,13 +49,17 @@ class HighlightSelectorService
         $totalDuration = $this->totalDuration($transcript);
         $picked = [];
         foreach ($data['highlights'] ?? [] as $highlight) {
+            $min = (float) config('pipeline.video.snippet_min_seconds', 12);
+            $max = (float) config('pipeline.video.snippet_max_seconds', 18);
+            $target = (float) config('pipeline.video.snippet_target_seconds', 15);
+
             $start = max(0.0, (float) ($highlight['start'] ?? 0));
-            $end = min($totalDuration, (float) ($highlight['end'] ?? $start + 25));
-            if ($end - $start < 12) {
+            $end = min($totalDuration, (float) ($highlight['end'] ?? $start + $target));
+            if ($end - $start < $min) {
                 continue;
             }
-            if ($end - $start > 30) {
-                $end = $start + 30;
+            if ($end - $start > $max) {
+                $end = $start + $max;
             }
 
             $picked[] = [
@@ -89,13 +93,19 @@ class HighlightSelectorService
             best short vertical clips for Instagram Reels, Facebook Reels and TikTok.
 
             Selection criteria:
-            - Each moment must be 20–30 seconds long. Aim for ~25s.
-            - Prefer moments that stand alone — a viewer with no context should get
-              the point.
-            - Prefer moments with a clear hook in the first two sentences.
+            - Each moment must be 12–18 seconds long. Aim for ~15s.
+            - CATCHY IS THE POINT. Each snippet has to earn attention in a scroll
+              feed: the first spoken words must hook (a question, a surprising
+              number, a "most people don't know" claim). No slow build-ups.
+            - Each must be EASY TO UNDERSTAND alone — one single idea, no jargon
+              left unexplained, no reference to something said earlier in the video.
+            - Start on a clean sentence boundary and end on a completed thought —
+              never mid-sentence, never mid-word.
             - Prefer moments where a concrete number, analogy, or story lands.
             - Do not pick throat-clearing intros, sign-offs ("thanks for watching"),
               or tool/software mentions unless directly relevant.
+            - Pick moments from DIFFERENT parts of the video so the snippets do not
+              overlap or repeat the same point.
             - Return moments in the order they appear in the video.
 
             Output ONLY JSON (no code fence, no preamble):
@@ -104,7 +114,7 @@ class HighlightSelectorService
               "highlights": [
                 {
                   "start": 34.0,
-                  "end": 59.0,
+                  "end": 49.0,
                   "reason": "One-sentence justification for picking this moment."
                 }
               ]

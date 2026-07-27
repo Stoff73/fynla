@@ -45,6 +45,17 @@ it('creates one ClipApproval row per clip on the article', function () {
         ->and($approvals[0]->scheduled_at)->not->toBeNull();
 });
 
+it('schedules each snippet at a different time', function () {
+    $article = makePipelineArticle(3);
+    $approvals = app(ClipApprovalService::class)->createForArticle($article);
+
+    $times = collect($approvals)->map(fn ($a) => $a->scheduled_at->toIso8601String());
+
+    // Three snippets from one video must not stack on the same slot.
+    expect($times->unique())->toHaveCount(3)
+        ->and($times->toArray())->toBe($times->sort()->values()->toArray());
+});
+
 it('is idempotent — recreating does not duplicate rows', function () {
     $article = makePipelineArticle(2);
     app(ClipApprovalService::class)->createForArticle($article);

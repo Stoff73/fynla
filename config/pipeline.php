@@ -178,6 +178,19 @@ return [
         'detect_schedule' => env('PIPELINE_VIDEO_DETECT_SCHEDULE', '07:30'),
         'audit_older_than_days' => env('PIPELINE_VIDEO_AUDIT_DAYS', 365),
         'signed_url_ttl_days' => env('PIPELINE_SIGNED_URL_TTL_DAYS', 30),
+
+        // Snippet rules. A source video LONGER than the threshold is cut into
+        // 2–3 short, catchy snippets (each ~target seconds) that get scheduled
+        // at different times. A video at or under the threshold is short enough
+        // to post as-is and goes straight to scheduling, uncut.
+        'snippet_threshold_seconds' => (int) env('PIPELINE_SNIPPET_THRESHOLD_SECONDS', 30),
+        'snippet_target_seconds' => (int) env('PIPELINE_SNIPPET_TARGET_SECONDS', 15),
+        'snippet_min_seconds' => (int) env('PIPELINE_SNIPPET_MIN_SECONDS', 12),
+        'snippet_max_seconds' => (int) env('PIPELINE_SNIPPET_MAX_SECONDS', 18),
+        'snippet_count' => (int) env('PIPELINE_SNIPPET_COUNT', 3),
+        // After the selector proposes snippets, a second AI pass checks each one
+        // is a coherent, standalone, catchy clip and adjusts the in/out points.
+        'snippet_validation_enabled' => (bool) env('PIPELINE_SNIPPET_VALIDATION', true),
     ],
 
     /*

@@ -49,16 +49,29 @@ class ClipApprovalService
         $existing = ClipApproval::where('pipeline_article_id', $article->id)->get()->keyBy('clip_index');
         $now = CarbonImmutable::now('UTC');
 
+        // Snippets from one video must go out at DIFFERENT times, not stacked on
+        // the same slot. Walk a cursor forward: each clip takes the first slot
+        // strictly after the previous clip's slot.
+        $cursor = $now;
+
         $rows = [];
         foreach ($clipPaths as $index => $path) {
             $clipIndex = $index + 1;
             if ($existing->has($clipIndex)) {
-                $rows[] = $existing[$clipIndex];
+                $row = $existing[$clipIndex];
+                $rows[] = $row;
+                if ($row->scheduled_at !== null) {
+                    $existingSlot = CarbonImmutable::parse($row->scheduled_at);
+                    if ($existingSlot->gt($cursor)) {
+                        $cursor = $existingSlot;
+                    }
+                }
 
                 continue;
             }
 
-            $scheduledAt = $this->earliestScheduledSlot($now->addMinutes(15 * $clipIndex));
+            $scheduledAt = $this->earliestScheduledSlot($cursor->addMinute());
+            $cursor = $scheduledAt;
 
             $rows[] = ClipApproval::create([
                 'pipeline_article_id' => $article->id,
@@ -265,7 +278,11 @@ class ClipApprovalService
         // Prevent double-dispatch (idempotent: composed once means
         // downstream will simply skip in-flight variants).
         if ($article->status === 'scripted' || $article->status === 'rendered') {
-            ComposePostsJob::dispatch($article->fresh());
+            // afterResponse: composition makes a dozen LLM calls, so it must never
+            // run inside the approval request. On a sync queue (local/dev) an
+            // inline dispatch blew PHP's max_execution_time and 500'd the
+            // magic-link approval page *after* the approval had been recorded.
+            ComposePostsJob::dispatch($article->fresh())->afterResponse();
             Log::channel('pipeline')->info('Clips settled — ComposePostsJob dispatched (rejected clips excluded).', [
                 'pipeline_article_id' => $article->id,
                 'approved' => $rows->whereIn('status', ['approved', 'auto_approved'])->count(),

@@ -11,6 +11,7 @@ use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\GoogleSheetsService;
 use App\Services\Pipeline\HighlightSelectorService;
 use App\Services\Pipeline\LocalWhisperTranscriber;
+use App\Services\Pipeline\SnippetValidatorService;
 use App\Services\Pipeline\VideoCropService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,9 +31,11 @@ use Throwable;
  * Flow (per InsightArticle):
  *   1. Download source video from Drive → storage/app/social/source/{slug}.mp4
  *   2. ffprobe → duration
- *   3. Whisper transcribe (local, free) → used only to choose highlights
- *   4. If duration > MAX_WHOLE_VIDEO_SECONDS: Claude picks a couple of short
- *      (20–30s) highlights AND we keep the full video; else: full video only.
+ *   3. Whisper transcribe (local, free) → used only to choose snippets
+ *   4. If duration > snippet_threshold_seconds (30s): Claude picks 2–3 catchy
+ *      ~15s snippets, a second AI pass validates/adjusts the cut points, and we
+ *      keep the full video too. At or under the threshold the video is already
+ *      postable, so it goes straight through uncut.
  *   5. For each range: FFmpeg centre-crop to 9:16 (NO burned captions — those
  *      are added in the editing stage) → storage/app/social/video/{slug}/clip-N.mp4
  *   6. Update tracker sheet row with signed download URLs.
@@ -48,11 +51,12 @@ class ProcessVideoJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    /** Videos ≤ this length only produce the single full clip (no separate shorts). */
-    public const MAX_WHOLE_VIDEO_SECONDS = 75;
-
-    /** How many short (20–30s) highlight clips to cut alongside the full clip. */
-    public const SHORT_CLIP_COUNT = 2;
+    /**
+     * Snippet thresholds live in config('pipeline.video.*') so they can be tuned
+     * per environment: snippet_threshold_seconds (default 30 — at or under this
+     * the video is posted uncut), snippet_target_seconds (default 15) and
+     * snippet_count (default up to 3).
+     */
 
     public int $tries = 1;
 
@@ -68,6 +72,7 @@ class ProcessVideoJob implements ShouldQueue
         GoogleSheetsService $sheets,
         LocalWhisperTranscriber $whisper,
         HighlightSelectorService $highlights,
+        SnippetValidatorService $validator,
         VideoCropService $cropper,
     ): void {
         $article = $this->pipelineArticle->fresh();
@@ -116,28 +121,39 @@ class ProcessVideoJob implements ShouldQueue
             // full clip, since it already qualifies as a short clip on its own.
             $fullClip = ['start' => 0.0, 'end' => $duration, 'reason' => 'Full video, uncut — for editing / long-form use.'];
 
-            $shortClips = [];
-            if ($duration > self::MAX_WHOLE_VIDEO_SECONDS) {
-                // Short highlights are best-effort — if the selector can't find a
-                // usable 20–30s moment (e.g. off-topic or low-coherence audio),
-                // we still ship the full clip rather than failing the whole stage.
+            // Snippet rules: a video LONGER than the threshold (default 30s) is
+            // cut into 2–3 short, catchy snippets (~15s) that get scheduled at
+            // different times. A video at or under the threshold is already
+            // postable, so it goes straight through uncut.
+            $threshold = (int) config('pipeline.video.snippet_threshold_seconds', 30);
+            $snippets = [];
+            if ($duration > $threshold) {
+                // Best-effort — if the selector/validator can't find a usable
+                // moment (off-topic or low-coherence audio) we still ship the
+                // full clip rather than failing the whole stage.
                 try {
-                    $shortClips = $highlights->select(
+                    $snippets = $highlights->select(
                         $article->sourceTitle() ?? '',
                         $article->sourceSummary(),
                         $transcript,
-                        self::SHORT_CLIP_COUNT,
+                        (int) config('pipeline.video.snippet_count', 3),
                     );
+
+                    // Second AI pass: confirm each snippet is a valid, catchy,
+                    // standalone clip and snap the in/out points accordingly.
+                    $snippets = $validator->validate($snippets, $transcript, $duration);
                 } catch (Throwable $e) {
-                    Log::channel('pipeline')->warning('No short highlight clips selected — shipping full clip only.', [
+                    Log::channel('pipeline')->warning('No snippets selected — shipping full clip only.', [
                         'pipeline_article_id' => $article->id,
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
-            $clipRanges = array_merge($shortClips, [$fullClip]);
+            $clipRanges = array_merge($snippets, [$fullClip]);
 
-            @mkdir($clipsDir, 0755, true);
+            if (! is_dir($clipsDir) && ! mkdir($clipsDir, 0755, true) && ! is_dir($clipsDir)) {
+                throw new \RuntimeException("Failed to create clip directory: {$clipsDir}");
+            }
 
             $clipPaths = [];
             foreach ($clipRanges as $index => $range) {

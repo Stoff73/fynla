@@ -12,6 +12,7 @@ use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\GoogleSheetsService;
 use App\Services\Pipeline\HighlightSelectorService;
 use App\Services\Pipeline\LocalWhisperTranscriber;
+use App\Services\Pipeline\SnippetValidatorService;
 use App\Services\Pipeline\VideoCropService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -58,6 +59,7 @@ it('skips articles not in a runnable state', function () {
         app(GoogleSheetsService::class),
         app(LocalWhisperTranscriber::class),
         app(HighlightSelectorService::class),
+        app(SnippetValidatorService::class),
         app(VideoCropService::class),
     );
 
@@ -84,6 +86,7 @@ it('records a fail run when the source video record is missing its Drive file ID
         app(GoogleSheetsService::class),
         app(LocalWhisperTranscriber::class),
         app(HighlightSelectorService::class),
+        app(SnippetValidatorService::class),
         app(VideoCropService::class),
     ))->toThrow(\RuntimeException::class);
 

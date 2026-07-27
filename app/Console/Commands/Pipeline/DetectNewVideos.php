@@ -70,21 +70,30 @@ class DetectNewVideos extends Command
                 continue;
             }
 
-            // Resolve the pipeline article by slug from either CMS: native
-            // InsightArticles or the DocumentArticle (browser-upload) CMS.
+            // Every video must land on its article. Resolve by slug, preferring
+            // the CMS DocumentArticle (canonical) and falling back to a native
+            // InsightArticle.
             $pipelineArticle = null;
-            $insight = InsightArticle::where('slug', $slug)->first();
-            if ($insight !== null) {
-                $pipelineArticle = PipelineArticle::where('insight_article_id', $insight->id)->first();
+            $doc = \App\Models\DocumentArticle::where('slug', $slug)->first();
+            if ($doc !== null) {
+                $pipelineArticle = PipelineArticle::where('document_article_id', $doc->id)->first();
             } else {
-                $doc = \App\Models\DocumentArticle::where('slug', $slug)->first();
-                if ($doc !== null) {
-                    $pipelineArticle = PipelineArticle::where('document_article_id', $doc->id)->first();
+                $insight = InsightArticle::where('slug', $slug)->first();
+                if ($insight !== null) {
+                    $pipelineArticle = PipelineArticle::where('insight_article_id', $insight->id)->first();
                 }
             }
 
             if ($pipelineArticle === null) {
-                $this->line("  · <fg=gray>skip</> {$slug}.mp4 (no pipeline article for slug '{$slug}' — published & script generated?)");
+                // Surface rather than silently drop it — an unmatched video means
+                // a filename/slug mismatch or an article that hasn't been through
+                // the script stage, and someone needs to fix it.
+                $this->warn("  · unmatched: {$file['name']} — no article for slug '{$slug}'");
+                Log::channel('pipeline')->warning('Video has no matching article — not processed.', [
+                    'drive_file_name' => $file['name'] ?? null,
+                    'drive_file_id' => $file['id'] ?? null,
+                    'expected_slug' => $slug,
+                ]);
 
                 continue;
             }
