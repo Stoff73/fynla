@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Pipeline;
 
 use App\Jobs\Pipeline\ProcessInsightArticleJob;
+use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
@@ -49,7 +50,7 @@ class DetectNewArticles extends Command
         // One record per story: the CMS document article is canonical. If a slug
         // is already a published document article, don't ALSO pull it in as a
         // native insight — that would create a duplicate pipeline record.
-        $documentSlugs = \App\Models\DocumentArticle::published()->pluck('slug')->all();
+        $documentSlugs = DocumentArticle::published()->pluck('slug')->all();
 
         $newArticles = InsightArticle::published()
             ->whereNotIn('id', $existingIds)

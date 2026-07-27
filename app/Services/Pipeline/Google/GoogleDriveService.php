@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Google;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -51,7 +52,7 @@ class GoogleDriveService
             ->withBody($body, 'multipart/related; boundary='.$boundary)
             ->timeout(60)
             ->retry(2, 500, function ($e) {
-                return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                return $e instanceof ConnectionException;
             })
             ->post(self::UPLOAD_ROOT.'/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink');
 

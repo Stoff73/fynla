@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -52,7 +53,7 @@ class AnthropicOpusClient
         ])
             ->timeout((int) config('pipeline.anthropic.timeout_seconds', 120))
             ->retry(2, 5000, function ($e, $request) {
-                return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                return $e instanceof ConnectionException;
             })
             ->post(self::API_URL, $payload);
 

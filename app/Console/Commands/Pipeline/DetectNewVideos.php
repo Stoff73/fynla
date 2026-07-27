@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Pipeline;
 
 use App\Jobs\Pipeline\ProcessVideoJob;
+use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
@@ -74,7 +75,7 @@ class DetectNewVideos extends Command
             // the CMS DocumentArticle (canonical) and falling back to a native
             // InsightArticle.
             $pipelineArticle = null;
-            $doc = \App\Models\DocumentArticle::where('slug', $slug)->first();
+            $doc = DocumentArticle::where('slug', $slug)->first();
             if ($doc !== null) {
                 $pipelineArticle = PipelineArticle::where('document_article_id', $doc->id)->first();
             } else {

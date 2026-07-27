@@ -7,6 +7,7 @@ namespace App\Services\Pipeline;
 use App\Models\Insights\InsightArticle;
 use App\Services\Pipeline\Prompts\BrandVoicePrompt;
 use App\Services\Pipeline\Prompts\ScriptOutputSchema;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
@@ -96,7 +97,7 @@ class VideoScriptGeneratorService
     private function buildUserMessage(string $title, ?\DateTimeInterface $publishedAt, string $bodyText): string
     {
         $date = $publishedAt !== null
-            ? \Illuminate\Support\Carbon::instance(\Illuminate\Support\Carbon::parse($publishedAt))->toFormattedDateString()
+            ? Carbon::instance(Carbon::parse($publishedAt))->toFormattedDateString()
             : 'unknown date';
 
         return sprintf(

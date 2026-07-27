@@ -40,7 +40,7 @@ class AuditSocialVideos extends Command
             if (! is_dir($root)) {
                 continue;
             }
-            $finder = (new Finder())
+            $finder = (new Finder)
                 ->files()
                 ->in($root)
                 ->name(['*.mp4', '*.mov'])

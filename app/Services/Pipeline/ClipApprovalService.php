@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Pipeline;
 
 use App\Jobs\Pipeline\ComposePostsJob;
+use App\Jobs\Pipeline\RegenerateClipJob;
 use App\Models\Pipeline\ClipApproval;
 use App\Models\Pipeline\PipelineArticle;
 use App\Services\Pipeline\Social\PostScheduler;
@@ -146,7 +147,7 @@ class ClipApprovalService
 
         $maxRegen = (int) config('pipeline.clip_approval.max_regenerations', 3);
         if ($approval->clip_kind === 'short' && (int) $approval->regen_count < $maxRegen) {
-            \App\Jobs\Pipeline\RegenerateClipJob::dispatch(
+            RegenerateClipJob::dispatch(
                 $approval->pipeline_article_id,
                 $approval->clip_index,
                 $reason,

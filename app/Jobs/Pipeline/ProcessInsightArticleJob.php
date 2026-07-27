@@ -16,6 +16,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -242,7 +243,7 @@ class ProcessInsightArticleJob implements ShouldQueue
     private function renderMarkdown(string $title, string $slug, ?\DateTimeInterface $publishedAt, array $script): string
     {
         $publishedLabel = $publishedAt !== null
-            ? \Illuminate\Support\Carbon::instance(\Illuminate\Support\Carbon::parse($publishedAt))->toFormattedDateString()
+            ? Carbon::instance(Carbon::parse($publishedAt))->toFormattedDateString()
             : 'unknown date';
         $articleUrl = $this->articleUrl($slug);
 

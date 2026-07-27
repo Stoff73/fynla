@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs\Pipeline;
 
 use App\Mail\Pipeline\PostApprovalReadyMail;
+use App\Models\Pipeline\ClipApproval;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelinePost;
 use App\Models\Pipeline\PipelineRun;
@@ -105,7 +106,7 @@ class ComposePostsJob implements ShouldQueue
             // Rejected clips are excluded from the run — compose only the
             // approved ones. (No approval rows at all = clip-approval gate is
             // off; compose every clip, preserving the direct-compose path.)
-            $rejectedIndices = \App\Models\Pipeline\ClipApproval::where('pipeline_article_id', $article->id)
+            $rejectedIndices = ClipApproval::where('pipeline_article_id', $article->id)
                 ->where('status', 'rejected')
                 ->pluck('clip_index')
                 ->map(fn ($i) => (int) $i)

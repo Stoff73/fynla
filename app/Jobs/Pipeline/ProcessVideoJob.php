@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Jobs\Pipeline;
 
+use App\Mail\Pipeline\ClipsAwaitingApprovalMail;
 use App\Mail\Pipeline\ClipsReadyForReviewMail;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
+use App\Services\Pipeline\ClipApprovalService;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\GoogleSheetsService;
 use App\Services\Pipeline\HighlightSelectorService;
@@ -57,7 +59,6 @@ class ProcessVideoJob implements ShouldQueue
      * the video is posted uncut), snippet_target_seconds (default 15) and
      * snippet_count (default up to 3).
      */
-
     public int $tries = 1;
 
     public int $timeout = 3600;
@@ -231,11 +232,11 @@ class ProcessVideoJob implements ShouldQueue
             //      handles composition manually via tinker.
             if (config('pipeline.clip_approval.enabled', true)) {
                 // The full clip is always the last one appended above.
-                $approvals = app(\App\Services\Pipeline\ClipApprovalService::class)
+                $approvals = app(ClipApprovalService::class)
                     ->createForArticle($article->fresh(), count($clipPaths));
 
                 Mail::to((string) config('pipeline.notifications.script_ready_to'))
-                    ->queue(new \App\Mail\Pipeline\ClipsAwaitingApprovalMail(
+                    ->queue(new ClipsAwaitingApprovalMail(
                         $article->fresh(),
                         $approvals,
                         $signedUrls,
@@ -245,7 +246,7 @@ class ProcessVideoJob implements ShouldQueue
                     ->queue(new ClipsReadyForReviewMail($article->fresh(), $signedUrls));
 
                 if (config('pipeline.social.compose_after_render')) {
-                    \App\Jobs\Pipeline\ComposePostsJob::dispatch($article->fresh());
+                    ComposePostsJob::dispatch($article->fresh());
                 }
             }
         } catch (Throwable $e) {

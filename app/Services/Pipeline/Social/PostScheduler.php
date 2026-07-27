@@ -17,7 +17,7 @@ class PostScheduler
 {
     private const OVERRIDE_CACHE_KEY = 'pipeline.social.best_times_override';
 
-    public function nextSlot(string $platform, CarbonImmutable $from = null): CarbonImmutable
+    public function nextSlot(string $platform, ?CarbonImmutable $from = null): CarbonImmutable
     {
         $from = $from ?? CarbonImmutable::now('UTC');
 

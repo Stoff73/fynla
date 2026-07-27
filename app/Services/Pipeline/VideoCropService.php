@@ -27,7 +27,7 @@ class VideoCropService
 
     private const OUTPUT_HEIGHT = 1920;
 
-    private const CAPTION_STYLE = "FontName=Arial,FontSize=18,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2,Shadow=1,Bold=1,Alignment=2,MarginV=140";
+    private const CAPTION_STYLE = 'FontName=Arial,FontSize=18,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2,Shadow=1,Bold=1,Alignment=2,MarginV=140';
 
     public function __construct(
         private readonly int $timeoutSeconds = 900,
