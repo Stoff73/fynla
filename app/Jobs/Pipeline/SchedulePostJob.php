@@ -88,7 +88,24 @@ class SchedulePostJob implements ShouldQueue
         ]);
 
         try {
-            $slot = $scheduler->nextSlot($post->platform, CarbonImmutable::now('UTC'));
+            // Never stack two posts on the same platform at the same minute.
+            // Start looking from AFTER the latest post already booked on this
+            // platform, so a set of snippets queues into successive slots
+            // instead of every one resolving to the same next slot from now().
+            $from = CarbonImmutable::now('UTC');
+            $lastBooked = PipelinePost::where('platform', $post->platform)
+                ->where('id', '!=', $post->id)
+                ->whereNotNull('scheduled_at')
+                ->whereIn('status', ['scheduled', 'published'])
+                ->max('scheduled_at');
+            if ($lastBooked !== null) {
+                $lastSlot = CarbonImmutable::parse($lastBooked);
+                if ($lastSlot->gt($from)) {
+                    $from = $lastSlot;
+                }
+            }
+
+            $slot = $scheduler->nextSlot($post->platform, $from);
 
             $body = trim($post->caption)
                 .' '
