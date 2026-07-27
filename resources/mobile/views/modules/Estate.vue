@@ -122,6 +122,7 @@ export default {
           this.payload = data?.data || {};
           // Pull the authoritative estate net-worth for the headline figures.
           const nw = await apiGet('/api/estate/net-worth', store.token);
+          if (handleAuthExpiry(nw, this.$router)) return;
           if (nw.ok) this.netWorth = nw.data?.data?.net_worth || nw.data?.net_worth || nw.data?.data || null;
         }
       } catch {

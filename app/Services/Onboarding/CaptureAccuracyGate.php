@@ -55,9 +55,17 @@ final class CaptureAccuracyGate
     }
 
     /**
+     * Structured confirmed facts (Task 4): a key in $confirmedFacts whose
+     * value MATCHES the tool argument satisfies that fact without text
+     * evidence. Callers populate it from deterministic sources only —
+     * extractor parses of the awaiting-detail reply, scripted-step answers,
+     * ISA law — never from LLM output. A fact can never launder a
+     * contradicting argument: satisfaction always requires fact === argument.
+     *
+     * @param  array<string, mixed>  $confirmedFacts
      * @return array{allowed: bool, reason?: string, missing?: list<string>}
      */
-    public function inspect(string $tool, array $arguments, string $latestUserText): array
+    public function inspect(string $tool, array $arguments, string $latestUserText, array $confirmedFacts = []): array
     {
         if ($tool === 'capture_dependants') {
             return $this->inspectDependantDates($arguments, mb_strtolower(trim($latestUserText)));
@@ -70,12 +78,21 @@ final class CaptureAccuracyGate
         $text = $this->evidenceForEntity(mb_strtolower(trim($latestUserText)), $arguments, $tool);
         $missing = [];
         $reasons = [];
+        $repaired = [];
 
         $isIsaWrite = $this->isIsaWrite($tool, $arguments, $text);
         if ($isIsaWrite) {
+            // ISA law — exactly one legal owner, so individual ownership is a
+            // confirmed fact by construction (formalises a2e926d through the
+            // same channel every other deterministic fact uses).
+            $confirmedFacts += ['ownership_type' => 'individual'];
+
             $textSubtype = $this->isaSubtypeFromText($text);
             $argumentSubtype = $this->isaSubtypeFromArguments($tool, $arguments);
-            if ($textSubtype === null || $argumentSubtype !== $textSubtype) {
+            $subtypeSatisfied = $argumentSubtype !== null
+                && ($argumentSubtype === $textSubtype
+                    || $argumentSubtype === ($confirmedFacts['isa_subtype'] ?? null));
+            if (! $subtypeSatisfied) {
                 $missing[] = 'isa_subtype';
                 $reasons[] = 'I need the ISA type before I can save it';
             }
@@ -100,24 +117,43 @@ final class CaptureAccuracyGate
                 $missing[] = 'ownership_type';
                 $reasons[] = 'An ISA must be recorded as individually owned';
             }
+        } elseif ($argumentOwnership === null && $textOwnership !== null) {
+            // The user's own words name the owner but the model dropped the
+            // argument — and a model that repeats its identical call after
+            // every clarification answer re-asks forever (live 2026-07-24:
+            // "I own it individually" was re-asked verbatim). Adopt the
+            // evidenced value; the dispatch merges `repaired` into the call.
+            // Still the user's words, never LLM output — the gate's intent
+            // holds.
+            $repaired['ownership_type'] = $textOwnership;
+            $argumentOwnership = $textOwnership;
         } elseif (! is_string($argumentOwnership)
             || ! in_array($argumentOwnership, ['individual', 'joint', 'tenants_in_common', 'trust'], true)
-            || $textOwnership === null
-            || $argumentOwnership !== $textOwnership) {
+            || ($argumentOwnership !== ($confirmedFacts['ownership_type'] ?? null)
+                && ($textOwnership === null || $argumentOwnership !== $textOwnership))) {
             $missing[] = 'ownership_type';
             $reasons[] = 'I need you to confirm whether you own it individually or with someone else';
         }
 
         if (in_array($argumentOwnership, ['joint', 'tenants_in_common'], true)) {
-            if (! isset($arguments['joint_owner_id']) || ! is_numeric($arguments['joint_owner_id'])) {
-                $missing[] = 'joint_owner_id';
-                $reasons[] = 'I need to know who the joint owner is';
-            }
+            // No joint_owner_id requirement: a joint record with an unlinked
+            // co-owner is first-class app-wide (StoreSavingsAccountRequest),
+            // and mid-campaign the spouse User does not exist yet. The
+            // handler's captureJointOwnerError still authorizes any id that
+            // IS supplied.
             $evidencedShare = $this->ownershipShareFromText($text);
-            if (! isset($arguments['ownership_percentage'])
-                || ! is_numeric($arguments['ownership_percentage'])
-                || $evidencedShare === null
-                || abs((float) $arguments['ownership_percentage'] - $evidencedShare) > 0.001) {
+            $factShare = $confirmedFacts['ownership_percentage'] ?? null;
+            $shareSatisfied = isset($arguments['ownership_percentage'])
+                && is_numeric($arguments['ownership_percentage'])
+                && ((is_numeric($factShare)
+                    && abs((float) $arguments['ownership_percentage'] - (float) $factShare) <= 0.001)
+                    || ($evidencedShare !== null
+                        && abs((float) $arguments['ownership_percentage'] - $evidencedShare) <= 0.001));
+            if (! isset($arguments['ownership_percentage']) && $evidencedShare !== null) {
+                // Same repair channel as ownership_type — the share is in
+                // the user's own words, the model dropped the argument.
+                $repaired['ownership_percentage'] = $evidencedShare;
+            } elseif (! $shareSatisfied) {
                 $missing[] = 'ownership_percentage';
                 $reasons[] = 'I need the ownership share';
             }
@@ -133,7 +169,9 @@ final class CaptureAccuracyGate
         }
 
         if ($missing === []) {
-            return ['allowed' => true];
+            return $repaired === []
+                ? ['allowed' => true]
+                : ['allowed' => true, 'repaired' => $repaired];
         }
 
         return [
@@ -234,7 +272,13 @@ final class CaptureAccuracyGate
             return false;
         }
 
-        return str_contains($text, 'isa')
+        // Negation-aware: "not an ISA" must never classify the write as an
+        // ISA write — the raw substring check deadlocked the capture (live
+        // 2026-07-24: every "it's not an ISA" clarification answer contained
+        // 'isa' and re-triggered the ISA-type ask forever). One vocabulary:
+        // hasPositiveIsaContext, the same negation window the subtype
+        // extraction already uses.
+        return $this->hasPositiveIsaContext($text)
             || ! empty($arguments['is_isa'])
             || str_contains((string) ($arguments['account_type'] ?? ''), 'isa');
     }
@@ -299,10 +343,13 @@ final class CaptureAccuracyGate
 
     private function ownershipFromText(string $text): ?string
     {
+        // Vocabulary composed from OwnershipPhrasings — the ONE source (Rule
+        // 20). Divergent per-file lists re-asked for ownership the user had
+        // stated (live 2026-07-23: "owned just by me" / "both just mine").
         return $this->latestCategorisedMatch($text, [
             'tenants_in_common' => '/\btenants?\s+in\s+common\b/u',
-            'joint' => '/\b(?:joint|jointly|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner)|50\s*\/\s*50)\b/u',
-            'individual' => '/\b(?:solely|mine\s+alone|just\s+me|only\s+me|individually)\b/u',
+            'joint' => '/\b(?:'.OwnershipPhrasings::JOINT.')\b/u',
+            'individual' => '/\b(?:'.OwnershipPhrasings::INDIVIDUAL.')\b/u',
             'trust' => '/\b(?:held\s+in\s+trust|trust-owned|owned\s+by\s+the\s+trust)\b/u',
         ]);
     }
@@ -399,7 +446,7 @@ final class CaptureAccuracyGate
 
     private function hasPositiveIsaContext(string $text): bool
     {
-        preg_match_all('/\bisa\b/u', $text, $matches, PREG_OFFSET_CAPTURE);
+        preg_match_all('/\bisas?\b/u', $text, $matches, PREG_OFFSET_CAPTURE);
         foreach ($matches[0] ?? [] as $match) {
             if (! $this->isNegatedMatch($text, $match[1])) {
                 return true;
@@ -465,7 +512,10 @@ final class CaptureAccuracyGate
 
         $targetIndexes = [];
         foreach ($strongNeedles as $needle) {
-            $indexes = $this->matchingSegmentIndexes($segments, $needle);
+            $indexes = $this->latestTurnMatches(
+                $this->matchingSegmentIndexes($segments, $needle),
+                $segmentTurns,
+            );
             if (count($indexes) === 1) {
                 $targetIndexes[] = $indexes[0];
             }
@@ -481,7 +531,10 @@ final class CaptureAccuracyGate
             foreach ($weakNeedles as $needle) {
                 array_push($weakMatches, ...$this->matchingSegmentIndexes($segments, $needle));
             }
-            $weakMatches = array_values(array_unique($weakMatches));
+            $weakMatches = $this->latestTurnMatches(
+                array_values(array_unique($weakMatches)),
+                $segmentTurns,
+            );
             if (count($weakMatches) > 1) {
                 return '';
             }
@@ -505,10 +558,33 @@ final class CaptureAccuracyGate
 
         $targetIndex = $targetIndexes[0];
         $matchedIndexes = [$targetIndex];
+        $targetTurnIndex = $segmentTurns[$targetIndex] ?? null;
         for ($index = $targetIndex + 1; $index < count($segments); $index++) {
-            $isImmediateAnaphoricContinuation = $index === $targetIndex + 1
-                && $this->isAnaphoricEvidenceContinuation($segments[$index]);
-            if (! $this->isStandaloneEvidence($segments[$index]) && ! $isImmediateAnaphoricContinuation) {
+            $segment = $segments[$index];
+            $sameTurn = ($segmentTurns[$index] ?? null) === $targetTurnIndex;
+            // Anaphoric evidence ("it's owned individually") continues the
+            // walk immediately after the entity segment and, within the
+            // entity's own turn, even beyond an intervening detail sentence
+            // — the capture prompts themselves ask for value, cost,
+            // dividends AND ownership in one message (live 2026-07-23, msg
+            // 19870).
+            $isAnaphoricContinuation = ($index === $targetIndex + 1 || $sameTurn)
+                && $this->isAnaphoricEvidenceContinuation($segment);
+            // A same-turn segment carrying NO entity noun and NO evidence
+            // signal is inert detail ("I paid £11,000 for the holdings…")
+            // — stepped over, never severing the chain. Anything naming an
+            // entity or carrying an ownership/subtype/share signal must
+            // still qualify on the strict rules above, so a correction
+            // naming a different account or deferral meta-talk ("we can
+            // sort the joint ownership later") still breaks the walk.
+            $isInertSameTurnDetail = $sameTurn
+                && ! $this->mentionsEntityNoun($segment)
+                && $this->ownershipFromText($segment) === null
+                && $this->isaSubtypeFromText($segment) === null
+                && $this->ownershipShareFromText($segment) === null;
+            if (! $this->isStandaloneEvidence($segment)
+                && ! $isAnaphoricContinuation
+                && ! $isInertSameTurnDetail) {
                 break;
             }
             $matchedIndexes[] = $index;
@@ -518,8 +594,14 @@ final class CaptureAccuracyGate
         foreach ($segments as $index => $segment) {
             $segmentTurn = $segmentTurns[$index] ?? null;
             $sameTurn = $targetTurn !== null && $segmentTurn === $targetTurn;
+            // ANY later turn, not only targetTurn + 1: each clarification
+            // answer pushes earlier ones down a turn, so the SECOND answer
+            // ("I own it individually" after "it's not an ISA") could never
+            // bind and the gate re-asked forever (live 2026-07-24, user 294).
+            // Purity + cohort guards below still apply — only a segment that
+            // is nothing but evidence for this entity's cohort binds.
             $nextTurnClarification = $targetTurn !== null
-                && $segmentTurn === $targetTurn + 1
+                && $segmentTurn > $targetTurn
                 && $this->isPureSharedEntityEvidence($segment, $tool);
             if (($sameTurn || $nextTurnClarification)
                 && $this->isSharedEntityEvidence($segment, $tool)
@@ -533,6 +615,39 @@ final class CaptureAccuracyGate
             }
         }
 
+        // Latest-turn-wins for singular clarification answers: the newest
+        // turn in the accumulated evidence chain is the user's direct reply
+        // to the just-asked clarification. When it names NO entity (pure
+        // anaphoric evidence — "I own it individually") and carries an
+        // ownership/share/subtype signal, it binds to the uniquely anchored
+        // entity no matter how many earlier answers sit between it and the
+        // anchor. Without this only the turn immediately after the anchor
+        // could ever bind, so the SECOND answer re-asked forever (live
+        // 2026-07-24, user 294). A last turn naming any entity noun stays
+        // out — it must qualify on the strict walk rules above.
+        $presentTurns = array_filter($segmentTurns, static fn ($turn): bool => $turn !== null);
+        $lastTurn = $presentTurns === [] ? null : max($presentTurns);
+        if ($targetTurn !== null && $lastTurn !== null && $lastTurn > $targetTurn) {
+            $lastTurnIndexes = array_keys($segmentTurns, $lastTurn, true);
+            $allPure = $lastTurnIndexes !== [];
+            $carriesSignal = false;
+            foreach ($lastTurnIndexes as $index) {
+                $segment = $segments[$index];
+                if ($this->mentionsEntityNoun($segment)) {
+                    $allPure = false;
+                    break;
+                }
+                if ($this->ownershipFromText($segment) !== null
+                    || $this->ownershipShareFromText($segment) !== null
+                    || $this->isaSubtypeFromText($segment) !== null) {
+                    $carriesSignal = true;
+                }
+            }
+            if ($allPure && $carriesSignal) {
+                array_push($matchedIndexes, ...$lastTurnIndexes);
+            }
+        }
+
         $matchedIndexes = array_values(array_unique($matchedIndexes));
         sort($matchedIndexes);
         $matched = array_map(
@@ -541,6 +656,35 @@ final class CaptureAccuracyGate
         );
 
         return implode("\n", array_values(array_unique($matched)));
+    }
+
+    /**
+     * A later turn's mention of the entity supersedes an earlier one — a
+     * clarification retry re-names the account it is correcting ("just save
+     * the savings account in my name only"), and binding to the earlier
+     * failed turn deadlocked capture permanently (live 2026-07-23, user 292
+     * msgs 19836-19841). Matches within a single turn remain genuine
+     * two-entity ambiguity and are left for the caller to fail closed on.
+     *
+     * @param  list<int>  $indexes
+     * @param  list<int>  $segmentTurns
+     * @return list<int>
+     */
+    private function latestTurnMatches(array $indexes, array $segmentTurns): array
+    {
+        if (count($indexes) < 2) {
+            return $indexes;
+        }
+
+        $latestTurn = max(array_map(
+            static fn (int $index): int => $segmentTurns[$index] ?? 0,
+            $indexes,
+        ));
+
+        return array_values(array_filter(
+            $indexes,
+            static fn (int $index): bool => ($segmentTurns[$index] ?? 0) === $latestTurn,
+        ));
     }
 
     /**
@@ -562,7 +706,14 @@ final class CaptureAccuracyGate
             return collect($joined)->every(fn (string $part): bool => $this->isStandaloneEvidence($part));
         }
 
-        return preg_match('/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:it\s+is\s+)?(?:not\s+)?(?:cash(?:\s+isa)?|junior(?:\s+isa)?|lifetime(?:\s+isa)?|innovative\s+finance(?:\s+isa)?|stocks?\s*(?:&|and)\s*shares?(?:\s+isa)?|solely|mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?(?:\s+owned)?|tenants?\s+in\s+common|held\s+in\s+trust|(?:my\s+share\s+(?:(?:is|at)\s+)?)?\d{1,3}(?:\.\d+)?\s*%|(?:my\s+share\s+)?isn[\x{2019}\x{0027}]?t\s+half|(?:ownership\s+is\s+)?not\s+equal|half|equal(?:ly)?)\s*[.!?]*\s*$/u', $segment) === 1;
+        // "owned 50/50 with my husband daniel" — an em-dash routinely severs
+        // this clause from its entity segment ("...at 4.2% — owned 50/50
+        // with..."), and without this alternative the share evidence was
+        // lost and a fully-specified joint account could never save (live
+        // 2026-07-23, user 292 msg 19833).
+        $sharedWithPerson = '(?:owned\s+)?(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)(?:\s+with\s+my\s+(?:spouse|partner|wife|husband)(?:\s+[a-z\x{2019}\x{0027}\-]{1,30})?)?';
+
+        return preg_match('/^\s*(?:(?:actually|correction|rather|instead)[,:]?\s*)?(?:it\s+is\s+)?(?:not\s+)?(?:cash(?:\s+isa)?|junior(?:\s+isa)?|lifetime(?:\s+isa)?|innovative\s+finance(?:\s+isa)?|stocks?\s*(?:&|and)\s*shares?(?:\s+isa)?|'.OwnershipPhrasings::INDIVIDUAL.'|'.OwnershipPhrasings::JOINT.'|tenants?\s+in\s+common|held\s+in\s+trust|(?:my\s+share\s+(?:(?:is|at)\s+)?)?\d{1,3}(?:\.\d+)?\s*%|(?:my\s+share\s+)?isn[\x{2019}\x{0027}]?t\s+half|(?:ownership\s+is\s+)?not\s+equal|half|equal(?:ly)?|'.$sharedWithPerson.')\s*[.!?]*\s*$/u', $segment) === 1;
     }
 
     private function isAnaphoricEvidenceContinuation(string $segment): bool
@@ -571,13 +722,23 @@ final class CaptureAccuracyGate
             return false;
         }
 
-        if (preg_match('/\b(?:my|our|another|a\s+second)\b[^.!?]{0,60}\b(?:account|isa|saver|property|mortgage|loan|liability)\b/u', $segment) === 1) {
+        if ($this->declaresAnotherEntity($segment)) {
             return false;
         }
 
         return $this->ownershipFromText($segment) !== null
             || $this->isaSubtypeFromText($segment) !== null
             || $this->ownershipShareFromText($segment) !== null;
+    }
+
+    private function declaresAnotherEntity(string $segment): bool
+    {
+        return preg_match('/\b(?:my|our|another|a\s+second)\b[^.!?]{0,60}\b(?:account|isa|saver|property|mortgage|loan|liability|pension)\b/u', $segment) === 1;
+    }
+
+    private function mentionsEntityNoun(string $segment): bool
+    {
+        return preg_match('/\b(?:accounts?|isas?|savers?|propert(?:y|ies)|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
     }
 
     private function isSharedEntityEvidence(string $segment, string $tool): bool
@@ -657,7 +818,7 @@ final class CaptureAccuracyGate
         $declarationEnd = $match[0][1] + strlen($match[0][0]);
         $tail = trim(substr($segment, $declarationEnd), " \t\n\r\0\x0B,;:.!?-");
         if ($tail !== '' && preg_match(
-            '/^(?:and\s+)?(?:both|all|each)\s+(?:(?:are\s+)?(?:owned\s+)?by\s+(?:me|us)\s+(?:individually|solely|jointly)|(?:are\s+)?(?:owned\s+)?(?:individually|solely|jointly)|(?:are\s+)?(?:mine\s+alone|just\s+me|only\s+me|ours))$/u',
+            '/^(?:and\s+)?(?:both|all|each)\s+(?:(?:are\s+)?(?:owned\s+)?by\s+(?:me|us)\s+(?:individually|solely|jointly)|(?:are\s+)?(?:owned\s+)?(?:individually|solely|jointly)|(?:are\s+)?(?:'.OwnershipPhrasings::INDIVIDUAL.'|ours))$/u',
             $tail,
         ) !== 1) {
             return null;

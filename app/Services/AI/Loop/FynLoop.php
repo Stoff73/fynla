@@ -120,12 +120,19 @@ final class FynLoop
         ?string $unifiedFocus = null,
         ?array $verifyEditScope = null,
         ?string $providerOverride = null,
+        ?array $confirmedFacts = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
         }
         if ($verifyEditScope !== null) {
             $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
+        }
+        if ($confirmedFacts !== null && $confirmedFacts !== []) {
+            // Same instance-pairing discipline as the focus above:
+            // CoordinatingAgent is container-transient, so facts set on a
+            // caller's own instance never reach the streamed tool dispatch.
+            $this->coordinatingAgent->setConfirmedCaptureFacts($confirmedFacts);
         }
 
         try {
@@ -147,6 +154,9 @@ final class FynLoop
             }
             if ($verifyEditScope !== null) {
                 $this->coordinatingAgent->setVerifyEditScope(null);
+            }
+            if ($confirmedFacts !== null && $confirmedFacts !== []) {
+                $this->coordinatingAgent->setConfirmedCaptureFacts(null);
             }
         }
     }
@@ -172,6 +182,7 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?string $systemPromptOverride = null,
     ): \Generator {
         $retrieveCount = 0;
         $cap = $this->cycleCap($mode);
@@ -221,7 +232,7 @@ final class FynLoop
                         continue 2;
                     }
 
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -233,7 +244,7 @@ final class FynLoop
                     // emits and GroundGate-gates the tool itself. v1 ships one
                     // reasoning template = today's default prompt (no override),
                     // so the reason path is byte-identical to the pre-planner turn.
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -392,6 +403,7 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?string $systemPromptOverride = null,
     ): \Generator {
         $upstream = $this->stream(
             $user,
@@ -399,6 +411,7 @@ final class FynLoop
             $message,
             $currentRoute,
             $mode->persona(),
+            systemPromptOverride: $systemPromptOverride,
             allowedTools: $allowedTools,
             persistUserMessage: $persistUserMessage,
         );

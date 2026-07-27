@@ -130,7 +130,7 @@
                       :aria-label="item.done ? 'Mark as not done' : 'Mark complete'"
                       @click="toggleRec(item)"
                     >
-                      <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
+                      <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
                     </button>
                     <a href="#" class="md-rec__action" @click.prevent="onActionTap(item)">
                       <span class="md-rec__lead" aria-hidden="true" v-html="item.type === 'unlock' ? KEY_ICON : BULB_ICON"></span>

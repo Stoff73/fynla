@@ -166,3 +166,118 @@ describe('estimateIsaSubscriptionsThisYear', function () {
         expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);
     });
 });
+
+/**
+ * Issue log 2026-07-23 #21 — joint-account interest was attributed in FULL to
+ * the primary owner (and not at all to the joint owner), overstating the
+ * primary's Personal Savings Allowance use. HMRC ITA 2007 s.836 splits
+ * spouse/civil-partner joint-account interest 50/50 by default; the app's
+ * single-record joint architecture stores the primary's share in
+ * ownership_percentage. Attribution must follow CalculatesOwnershipShare —
+ * the same rule net worth already applies.
+ */
+describe('estimateAnnualInterest — joint ownership attribution', function () {
+    it('attributes only the ownership share of a joint account to the primary owner', function () {
+        $user = User::factory()->create();
+        // Campaign shape: spouse captured as household input, not a User —
+        // joint_owner_id stays null but ownership_type/percentage are set.
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        expect($this->math->estimateAnnualInterest($user))->toEqualWithDelta(252.0, 0.001);
+    });
+
+    it('attributes the complement share to the joint-owner-side user', function () {
+        $user = User::factory()->create();
+        $spouse = User::factory()->create();
+        SavingsAccount::factory()->create([
+            'user_id' => $spouse->id,
+            'joint_owner_id' => $user->id,
+            'is_isa' => false,
+            'current_balance' => 100000,
+            'interest_rate' => 5.0,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+        ]);
+
+        expect($this->math->estimateAnnualInterest($user))->toEqualWithDelta(2500.0, 0.001);
+        expect($this->math->estimateAnnualInterest($spouse))->toEqualWithDelta(2500.0, 0.001);
+    });
+
+    it('respects a non-50 ownership percentage on both sides', function () {
+        $user = User::factory()->create();
+        $spouse = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'joint_owner_id' => $spouse->id,
+            'is_isa' => false,
+            'current_balance' => 10000,
+            'interest_rate' => 4.0,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 70,
+        ]);
+
+        expect($this->math->estimateAnnualInterest($user))->toEqualWithDelta(280.0, 0.001);
+        expect($this->math->estimateAnnualInterest($spouse))->toEqualWithDelta(120.0, 0.001);
+    });
+
+    it('leaves individual accounts at full value', function () {
+        $user = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 10000,
+            'interest_rate' => 4.0,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+        ]);
+
+        expect($this->math->estimateAnnualInterest($user))->toEqualWithDelta(400.0, 0.001);
+    });
+});
+
+describe('estimateSpouseJointInterest', function () {
+    it('returns the other owner share of shared non-ISA accounts', function () {
+        $user = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 12000,
+            'interest_rate' => 4.2,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+            'joint_owner_id' => null,
+        ]);
+
+        expect($this->math->estimateSpouseJointInterest($user))->toEqualWithDelta(252.0, 0.001);
+    });
+
+    it('returns zero for individual-only holdings', function () {
+        $user = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 50000,
+            'interest_rate' => 4.0,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+        ]);
+
+        expect($this->math->estimateSpouseJointInterest($user))->toBe(0.0);
+    });
+
+    it('ignores ISA accounts even when marked shared', function () {
+        $user = User::factory()->create();
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => true,
+            'current_balance' => 20000,
+            'interest_rate' => 5.0,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+        ]);
+
+        expect($this->math->estimateSpouseJointInterest($user))->toBe(0.0);
+    });
+});

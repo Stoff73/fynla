@@ -970,7 +970,7 @@ it('TaxOptimisationService:113,126,424 ISA / non-ISA / spouse-ISA reads identica
     expect($postSpouse)->toBe(3000.0);
 });
 
-it('TaxStrategyMath::estimateAnnualInterest output identical after store migration (joint excluded)', function () {
+it('TaxStrategyMath::estimateAnnualInterest attributes each account at the ownership share (joint included)', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $spouse = User::factory()->create(['is_preview_user' => false]);
 
@@ -988,8 +988,10 @@ it('TaxStrategyMath::estimateAnnualInterest output identical after store migrati
         'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 20000,
         'interest_rate' => 5.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
-    // Joint owned by spouse with user as joint_owner_id — forUser() is joint-aware;
-    // post-filter where('user_id') must exclude it from estimateAnnualInterest.
+    // Joint owned by spouse with user as joint_owner_id. Issue log 2026-07-23
+    // #21 intentionally changed semantics: the original migration-parity pin
+    // (joint excluded, 550.0) preserved a defect — HMRC splits joint-account
+    // interest by ownership share, so the user's 50% of £5,000 counts.
     SavingsAccount::factory()->create([
         'user_id' => $spouse->id, 'is_isa' => false, 'current_balance' => 100000,
         'interest_rate' => 5.0, 'joint_owner_id' => $user->id,
@@ -997,7 +999,7 @@ it('TaxStrategyMath::estimateAnnualInterest output identical after store migrati
     ]);
 
     $math = app(TaxStrategyMath::class);
-    expect($math->estimateAnnualInterest($user))->toBe(550.0);
+    expect($math->estimateAnnualInterest($user))->toEqualWithDelta(3050.0, 0.001);
 });
 
 it('TaxStrategyMath::estimateIsaSubscriptionsThisYear only sums current-year ISA balances (Carbon filter parity)', function () {

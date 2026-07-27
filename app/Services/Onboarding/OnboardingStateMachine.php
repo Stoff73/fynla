@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Constants\QuerySchemas;
 use App\Models\AiConversation;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\PrerequisiteGateService;
 use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Carbon;
@@ -262,6 +266,13 @@ final class OnboardingStateMachine
             'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
             'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
             'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
+            // Journey-path sections (CSJ 2026-07-24: the verify loop applies
+            // to EVERY data entry). The campaign walk never stamps these; the
+            // journey's module captures verify through the same machinery,
+            // re-entering asset_capture on "add more".
+            'protection' => ['route' => '/protection', 'entry' => self::STATE_ASSET_CAPTURE],
+            'estate' => ['route' => '/estate', 'entry' => self::STATE_ASSET_CAPTURE],
+            'goals' => ['route' => '/goals', 'entry' => self::STATE_ASSET_CAPTURE],
         ];
 
         if ($selection !== 'pensioncheck') {
@@ -515,10 +526,18 @@ final class OnboardingStateMachine
                 'value_parser' => 'parseExpenditureAmount',
                 // Path-aware: the savetax campaign runs expenditure near the end
                 // of its reordered section flow, then heads to the holistic
-                // terminal; the standard flow keeps the profile-review pause.
-                'next' => fn (string $answer, User $user): string => $user->onboarding_fyn_path === 'campaign'
-                    ? self::enterCampaignVerify($user, 'expenditure')
-                    : self::STATE_PROFILE_REVIEW_EXPENDITURE,
+                // terminal. The journey path verifies too (every data entry —
+                // CSJ 2026-07-24), replacing the in-chat profile-review pause;
+                // the confirm continues into asset capture.
+                'next' => function (string $answer, User $user): string {
+                    if ($user->onboarding_fyn_path === 'campaign') {
+                        return self::enterCampaignVerify($user, 'expenditure');
+                    }
+
+                    return self::journeySectionHasData($user, 'expenditure')
+                        ? self::enterCampaignVerify($user, 'expenditure', 'journey_base')
+                        : self::STATE_ASSET_CAPTURE;
+                },
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
             // Phase 10 — profile-review pause after expenditure. Shows the
@@ -576,6 +595,14 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
                 'capture_field' => null,
+                // Existing savings rows (with ids) enter the prompt so a
+                // message referencing an account already on file updates it by
+                // entity_id instead of guessing entity_id 0 (live 2026-07-23:
+                // "the Santander pays 4%" lost both rate updates). New
+                // accounts are still created — see the reference mode in
+                // captureRecordContextAppendix.
+                'record_context' => 'savings',
+                'record_context_mode' => 'reference',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
                 // Only ask about bank/savings if the user ticked bank or savings.
                 'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
@@ -602,6 +629,13 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on.",
                 'capture_field' => null,
+                // Deterministic gap-fill focus: campaign users carry selection
+                // 'savetax', which maps to no gap-fill tool — so a model
+                // misfire here silently lost the contribution answer (live
+                // 2026-07-23, the injection-refusal on "salary sacrifice").
+                // The dedicated occupational extractor writes the workplace
+                // pension when the model will not.
+                'capture_focus' => 'occupational',
                 // For pensioncheck, also skip when a workplace DC pension row already
                 // exists with a current_fund_value (the employer scheme is already
                 // known; campaign2_pension_pots will surface it for value confirmation).
@@ -940,7 +974,10 @@ final class OnboardingStateMachine
                 // Fyn intro message rendered BEFORE the Claude delegation.
                 'prompt_text' => self::class.'::buildAssetCaptureIntro',
                 'capture_field' => null,
-                'next' => self::STATE_ADD_MORE,
+                // Every data entry verifies (CSJ 2026-07-24): a capture that
+                // landed data enters the announce → navigate → Continue/Edit
+                // loop for its module before the add-more picker.
+                'next' => self::class.'::nextFromAssetCapture',
             ],
             self::STATE_ADD_MORE => [
                 'turn_type' => 'bubbles',
@@ -1237,11 +1274,24 @@ final class OnboardingStateMachine
         return str_starts_with(mb_strtolower(trim($answer)), 'yes') ? 'yes' : 'no';
     }
 
-    /** Stamp the section into context and enter the verify sub-flow. */
-    public static function enterCampaignVerify(User $user, string $section): string
+    /**
+     * Stamp the section into context and enter the verify sub-flow.
+     *
+     * $origin distinguishes the journey path's two entry points so the
+     * post-confirm continuation can differ (journey_base: the income/
+     * expenditure base flow; journey_module: an asset-capture focus).
+     * Campaign callers leave it null — their continuation is the section
+     * advice walk, resolved from the section alone.
+     */
+    public static function enterCampaignVerify(User $user, string $section, ?string $origin = null): string
     {
         $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
         $context['verify_section'] = $section;
+        if ($origin !== null) {
+            $context['verify_origin'] = $origin;
+        } else {
+            unset($context['verify_origin']);
+        }
         $user->onboarding_fyn_context = $context;
         $user->save();
 
@@ -1302,6 +1352,12 @@ final class OnboardingStateMachine
 
         $section = self::verifySection($user);
 
+        // Journey/focus users continue their walk (no per-section advice
+        // states on the journey path — advice belongs to the campaign walk).
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign') {
+            return self::journeyAfterVerify($section, $user);
+        }
+
         // 'recap' is the existing-recap edit sentinel (nextFromExistingRecap):
         // the confirmed edit re-enters the gap walk at the first non-skipped
         // section rather than advancing past a real section.
@@ -1314,6 +1370,89 @@ final class OnboardingStateMachine
         // the next section.
         return self::campaignSectionAdvice($section)
             ?? self::nextCampaignSection($section, $user->refresh());
+    }
+
+    // ─── Journey verify wiring (CSJ 2026-07-24) ─────────────────────────
+    // The announce → navigate → Continue/Edit loop applies to EVERY data
+    // entry. The journey path enters the SAME verify states; only the
+    // section stamping (from the current focus) and the post-confirm
+    // continuation below are journey-aware.
+
+    /** Journey focus (onboarding_fyn_selection) → verify section id. */
+    private static function journeySectionFor(User $user): string
+    {
+        return [
+            'savings' => 'savings',
+            'investment' => 'investments',
+            'retirement' => 'pensions',
+            'protection' => 'protection',
+            'estate' => 'estate',
+            'business' => 'estate',
+            'goals' => 'goals',
+            'budgeting' => 'expenditure',
+        ][(string) ($user->onboarding_fyn_selection ?? '')] ?? 'savings';
+    }
+
+    /**
+     * After a journey module capture: verify what landed, or go straight to
+     * the add-more picker when the capture wrote nothing (mirrors
+     * campaignAfterIncome — never announce a screen with nothing on it).
+     */
+    public static function nextFromAssetCapture(string $answer, User $user): string
+    {
+        $section = self::journeySectionFor($user);
+
+        return self::journeySectionHasData($user, $section)
+            ? self::enterCampaignVerify($user, $section, 'journey_module')
+            : self::STATE_ADD_MORE;
+    }
+
+    /** Post-confirm continuation for journey/focus users. */
+    private static function journeyAfterVerify(string $section, User $user): string
+    {
+        if (($user->onboarding_fyn_context['verify_origin'] ?? '') === 'journey_module') {
+            return self::STATE_ADD_MORE;
+        }
+
+        return match ($section) {
+            'income' => self::STATE_BASE_EXPENDITURE,
+            'expenditure' => self::STATE_ASSET_CAPTURE,
+            default => self::STATE_ADD_MORE,
+        };
+    }
+
+    /**
+     * Does the section's screen have anything the user just entered to
+     * confirm? Store-backed sections reuse PrerequisiteGateService's
+     * canonical presence checks; estate is narrower than REQUIREMENT_ESTATE
+     * on purpose (that requirement counts cash/investments/pensions, which
+     * would send a savings-only user to an empty estate screen).
+     */
+    private static function journeySectionHasData(User $user, string $section): bool
+    {
+        $gate = app(PrerequisiteGateService::class);
+
+        return match ($section) {
+            'income' => ((float) ($user->annual_employment_income ?? 0)) > 0
+                || ((float) ($user->annual_self_employment_income ?? 0)) > 0,
+            'expenditure' => ((float) ($user->monthly_expenditure ?? 0)) > 0,
+            'savings' => $gate->hasDataForRequirement(QuerySchemas::REQUIREMENT_SAVINGS, $user),
+            'investments' => $gate->hasDataForRequirement(QuerySchemas::REQUIREMENT_INVESTMENT, $user),
+            'pensions' => $gate->hasDataForRequirement(QuerySchemas::REQUIREMENT_RETIREMENT, $user),
+            'protection' => $gate->hasDataForRequirement(QuerySchemas::REQUIREMENT_PROTECTION, $user),
+            'goals' => $gate->hasDataForRequirement(QuerySchemas::REQUIREMENT_GOALS, $user),
+            'estate' => $user->assets()->exists()
+                || $user->trusts()->exists()
+                || $user->gifts()->exists()
+                || $gate->hasDataForRequirement(QuerySchemas::REQUIREMENT_PROPERTY, $user)
+                || BusinessInterest::where(fn ($query) => $query
+                    ->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id))->exists()
+                || Chattel::where(fn ($query) => $query
+                    ->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id))->exists(),
+            default => true,
+        };
     }
 
     /** Resolved navigate_to for the verify_navigate state (null = inline confirm). */
@@ -1388,7 +1527,8 @@ final class OnboardingStateMachine
         return [
             'income' => 'income', 'savings' => 'bank accounts', 'investments' => 'investments',
             'pensions' => 'pensions', 'spouse' => 'spouse details',
-            'expenditure' => 'expenditure',
+            'expenditure' => 'expenditure', 'protection' => 'protection cover',
+            'estate' => 'estate records', 'goals' => 'goals',
         ][$section] ?? 'details';
     }
 
@@ -1401,12 +1541,16 @@ final class OnboardingStateMachine
 
         // End of the income section. The savetax campaign enters the verify
         // flow (navigate to /income → confirm → income advice → next section);
-        // the standard flow goes to expenditure.
+        // the journey path verifies too (every data entry — CSJ 2026-07-24),
+        // continuing to expenditure after the confirm. No earnings captured →
+        // nothing to show on the income screen, skip straight to expenditure.
         if ($user->onboarding_fyn_path === 'campaign') {
             return self::enterCampaignVerify($user, 'income');
         }
 
-        return self::STATE_BASE_EXPENDITURE;
+        return self::journeySectionHasData($user, 'income')
+            ? self::enterCampaignVerify($user, 'income', 'journey_base')
+            : self::STATE_BASE_EXPENDITURE;
     }
 
     /**
@@ -1720,14 +1864,14 @@ final class OnboardingStateMachine
         }
 
         if ($status === 'self_employed') {
-            return "Brilliant. What's your gross annual self-employment income? This includes bonuses and commissions.";
+            return "**What's your gross annual self-employment income?** This includes bonuses and commissions.";
         }
 
         if ($status === 'part_time') {
-            return "Lovely. What's your gross annual income from that role? This includes bonuses and commissions.";
+            return "**What's your gross annual income from that role?** This includes bonuses and commissions.";
         }
 
-        return "Brilliant. What's your gross annual income? This includes bonuses and commissions.";
+        return "**What's your gross annual income?** This includes bonuses and commissions.";
     }
 
     /**

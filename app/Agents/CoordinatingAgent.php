@@ -9,6 +9,7 @@ use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
 use App\Constants\ValidationLimits;
+use App\Enums\FynTurnIntent;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
@@ -875,6 +876,7 @@ class CoordinatingAgent extends BaseAgent
         ?array $classification = null,
         ?array $kycResult = null,
         ?string $evidenceOverride = null,
+        ?array $confirmedFacts = null,
     ): array {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
@@ -1022,7 +1024,12 @@ class CoordinatingAgent extends BaseAgent
             $input,
             trustVerbatim: $evidenceOverride !== null,
         );
-        $accuracy = $this->captureAccuracyGate->inspect($toolName, $input, $accuracyEvidence);
+        $accuracy = $this->captureAccuracyGate->inspect(
+            $toolName,
+            $input,
+            $accuracyEvidence,
+            $confirmedFacts ?? $this->confirmedCaptureFacts ?? [],
+        );
         if (! $accuracy['allowed']) {
             if ($accuracyCacheKey !== null) {
                 Cache::put($accuracyCacheKey, $accuracyEvidence, now()->addMinutes(15));
@@ -1044,6 +1051,13 @@ class CoordinatingAgent extends BaseAgent
         if ($accuracyCacheKey !== null) {
             Cache::forget($accuracyCacheKey);
             $this->forgetCaptureAccuracyCacheKey($conversationId, $accuracyCacheKey);
+        }
+
+        // Gate-repaired arguments: a value evidenced by the user's own words
+        // that the model dropped from its call (ownership_type, chiefly).
+        // Adopting it here is what breaks the model's identical-retry loop.
+        if (! empty($accuracy['repaired']) && is_array($accuracy['repaired'])) {
+            $input = array_merge($input, $accuracy['repaired']);
         }
 
         // CoALA pointer fetch tools — `fetch_{pointer_id}` routes through the
@@ -1211,11 +1225,17 @@ class CoordinatingAgent extends BaseAgent
         $jointOwnerId = isset($input['joint_owner_id']) && is_numeric($input['joint_owner_id'])
             ? (int) $input['joint_owner_id']
             : null;
-        $isReciprocalSpouse = $jointOwnerId !== null
-            && (int) $user->spouse_id === $jointOwnerId
-            && User::query()->whereKey($jointOwnerId)->where('spouse_id', $user->id)->exists();
 
-        if ($isReciprocalSpouse) {
+        // A joint record whose co-owner is not a platform user is first-class
+        // app-wide (StoreSavingsAccountRequest: joint_owner_id nullable) and
+        // the only state reachable mid-campaign, where savings are captured
+        // before the spouse section links a spouse User (live 2026-07-23,
+        // user 292 msg 19833). Only ATTACHING an id needs authorization.
+        if ($jointOwnerId === null) {
+            return null;
+        }
+
+        if ($user->hasReciprocalSpouseLink($jointOwnerId)) {
             return null;
         }
 
@@ -5041,6 +5061,19 @@ class CoordinatingAgent extends BaseAgent
             ->first(function (AiMessage $message): bool {
                 $metadata = is_array($message->metadata) ? $message->metadata : [];
 
+                // Structured turn intent (Task 3): a stamped row is a
+                // boundary iff it is a deterministic prompt (step or verify).
+                // The onboarding_step heuristic remains for legacy rows only
+                // — an A1 interruption answer carries onboarding_step and
+                // must no longer sever the evidence window.
+                $turnIntent = $metadata['turn_intent'] ?? null;
+                if (is_string($turnIntent) && $turnIntent !== '') {
+                    return in_array($turnIntent, [
+                        FynTurnIntent::StepPrompt->value,
+                        FynTurnIntent::VerifyPrompt->value,
+                    ], true);
+                }
+
                 return isset($metadata['onboarding_step'])
                     && ($metadata['capture_write_failed'] ?? false) !== true
                     && ($metadata['is_resume_greeting'] ?? false) !== true;
@@ -5515,15 +5548,25 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        $disallowed = array_diff(array_keys($fields), $allowed);
+        $disallowed = array_values(array_diff(array_keys($fields), $allowed));
         if (! empty($disallowed)) {
-            return [
-                'error' => true,
-                'error_type' => 'fields_not_allowed',
-                'entity_type' => $entityType,
-                'disallowed_fields' => array_values($disallowed),
-                'allowed_fields' => $allowed,
-            ];
+            // The model routinely pads updates with schema defaults (live
+            // 2026-07-23: interest_rate + ownership_percentage:100 — the
+            // padded default killed the user's legitimate rate change).
+            // Protected fields are DROPPED, never written, and the remaining
+            // allowed fields still apply; only an update with nothing
+            // allowed left hard-fails. Ignored fields are reported so the
+            // model narrates truthfully.
+            $fields = array_intersect_key($fields, array_flip($allowed));
+            if (empty($fields)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'fields_not_allowed',
+                    'entity_type' => $entityType,
+                    'disallowed_fields' => $disallowed,
+                    'allowed_fields' => $allowed,
+                ];
+            }
         }
 
         // Pension mutations route through PensionStore (canonical write path
@@ -5573,13 +5616,15 @@ class CoordinatingAgent extends BaseAgent
                 ];
             }
 
-            return [
+            return array_filter([
                 'success' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $record->id,
                 'fields_updated' => array_keys($fields),
-                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
-            ];
+                'ignored_fields' => $disallowed,
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.'
+                    .($disallowed !== [] ? ' Ignored protected fields: '.implode(', ', $disallowed).'.' : ''),
+            ], static fn ($value): bool => $value !== []);
         }
 
         $model = $this->resolveModel($entityType, $entityId, $user->id);
@@ -5587,17 +5632,19 @@ class CoordinatingAgent extends BaseAgent
             return $model;
         }
 
-        return DB::transaction(function () use ($model, $fields, $entityType) {
+        return DB::transaction(function () use ($model, $fields, $entityType, $disallowed) {
             $model->fill($fields);
             $model->save();
 
-            return [
+            return array_filter([
                 'success' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $model->id,
                 'fields_updated' => array_keys($fields),
-                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
-            ];
+                'ignored_fields' => $disallowed,
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.'
+                    .($disallowed !== [] ? ' Ignored protected fields: '.implode(', ', $disallowed).'.' : ''),
+            ], static fn ($value): bool => $value !== []);
         });
     }
 

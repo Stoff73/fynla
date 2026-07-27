@@ -128,6 +128,7 @@ function driveDirectorWithScriptedCaptureTurn(User $user, AiConversation $conver
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     $received = driveDirector($user, $conversation, $message);
@@ -478,14 +479,12 @@ it('rescues the gate-blocked write across an interposed "Yes, save it" turn inst
 
     // Turn 3: the user answers with explicit individual-ownership wording.
     // The model pattern-locks on its own prior failing tool call and OMITS
-    // ownership_type AGAIN (mirroring live conversation 164) — the
-    // deterministic gap-fill must rescue it despite the interposed "Yes,
-    // save it" turn. Live event shape (msg 19465): the model narrates
-    // BEFORE calling the (still-failing) tool — textThenToolTurn, not a
-    // bare toolTurn — so handleInlineCapture's content-buffering-until-
-    // write-outcome-known path is genuinely exercised. A bare toolTurn
-    // (no preceding narration) let the earlier version of this test pass
-    // even when a rescued write failed to suppress the failure text.
+    // ownership_type AGAIN (mirroring live conversation 164). Since the
+    // 2026-07-24 gate repair, the attempt no longer fails: the gate adopts
+    // the ownership evidenced by the user's own words into the dropped
+    // argument and the write lands on the model's own call — no gap-fill
+    // rescue needed, no failure text ever streamed. The model's follow-up
+    // narration reflects the tool success it receives.
     FynStreamHarness::fake()
         ->textThenToolTurn("I'll record that for you now.", 'create_savings_account', [
             'account_name' => 'Halifax Fixed Term Bond',
@@ -493,7 +492,7 @@ it('rescues the gate-blocked write across an interposed "Yes, save it" turn inst
             'institution' => 'Halifax',
             'current_balance' => 1500.0,
         ])
-        ->textTurn("I couldn't save that — I need you to confirm whether you own it individually or with someone else.")
+        ->textTurn('Saved your Halifax Fixed Term Bond.')
         ->bind();
 
     $received = driveDirector($user->refresh(), $conversation, 'Just me');
@@ -543,17 +542,22 @@ it('answers a module-level question inline from data then resumes the walk', fun
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
 
     // Event-ordering hard gate: the advice answer's content event must
-    // arrive strictly before the re-emitted step's quick_replies event, and
-    // there must be exactly one terminal `done` — the one closing the
-    // re-emitted step, not the FynLoop advice turn's own terminal marker
-    // (which would otherwise end the SSE turn before the walk re-renders).
+    // arrive strictly before the re-emitted step's quick_replies event.
+    // TWO done events since CSJ's separate-bubble direction (2026-07-23):
+    // a mid-stream done finalising the ANSWER bubble (per-message done —
+    // deferQuestion's verified contract), then the terminal done closing
+    // the re-emitted step. The FynLoop advice turn's own terminal marker
+    // stays dropped (it would end the SSE turn before the walk re-renders).
     $types = collect($received)->pluck('type');
     $contentIndex = $types->search('content');
     $quickRepliesIndex = $types->search('quick_replies');
     expect($contentIndex)->not->toBeFalse();
     expect($quickRepliesIndex)->not->toBeFalse();
     expect($quickRepliesIndex)->toBeGreaterThan($contentIndex);
-    expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(1);
+    expect($types->filter(fn ($t) => $t === 'done'))->toHaveCount(2);
+    $midDone = $types->search('done');
+    expect($midDone)->toBeGreaterThan($contentIndex);
+    expect($midDone)->toBeLessThan($quickRepliesIndex);
 });
 
 // ── Fix: question-branch nested capture clarification must not be buried
@@ -621,6 +625,7 @@ it('arms the pending store offer instead of burying the clarification when a que
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser();
@@ -667,6 +672,11 @@ it('defers a holistic question with a promise and parks it on the conversation',
         ->toBe('How is my financial health?');
     expect($conversation->metadata['deferred_questions'][0]['state_id'] ?? null)
         ->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    // CSJ raise shape: the topic is derived deterministically at defer time
+    // (classifier primary → module label) so the completion raise can say
+    // "You asked about '…' earlier" without re-classifying.
+    expect($conversation->metadata['deferred_questions'][0]['topic'] ?? null)
+        ->toBe('your overall finances');
     // Never clobber the resume-lookup pivot already on the conversation.
     expect($conversation->metadata['source'] ?? null)->toBe('fyn_onboarding');
 
@@ -704,6 +714,10 @@ it('falls through to the plain retry when a question-shaped message does not cla
 // ── Task 5: deferred questions raised at both completion terminals ─────────
 
 it('raises deferred questions at the classic completion terminal and clears them', function () {
+    // Legacy entry shape (no stored topic) — the raise falls back to quoting
+    // the question itself. CSJ raise shape (2026-07-23): thanks by name,
+    // names the completed flow, references the question, warns more
+    // information may be needed, Yes/No bubbles.
     [$user, $conversation] = interruptionUser();
     $conversation->update(['metadata' => array_merge($conversation->metadata ?? [], [
         'deferred_questions' => [['question' => 'How healthy are my overall finances?', 'state_id' => 'path_choice']],
@@ -716,13 +730,18 @@ it('raises deferred questions at the classic completion terminal and clears them
     }
 
     $raise = collect($received)->where('type', 'quick_replies')
-        ->first(fn ($e) => str_contains($e['prompt_text'] ?? '', 'Earlier you asked'));
+        ->first(fn ($e) => str_contains($e['prompt_text'] ?? '', 'You asked about'));
     expect($raise)->not->toBeNull();
-    expect($raise['bubbles'][0]['label'])->toBe('How healthy are my overall finances?');
+    expect($raise['prompt_text'])->toContain('Thanks Chris');
+    expect($raise['prompt_text'])->toContain('your onboarding is now complete');
+    expect($raise['prompt_text'])->toContain("You asked about 'How healthy are my overall finances?' earlier");
+    expect($raise['prompt_text'])->toContain('additional information');
+    expect($raise['prompt_text'])->toContain('Are you okay to continue?');
+    expect(array_column($raise['bubbles'], 'label'))->toBe(['Yes', 'No']);
 
     // Event-ordering assertion: raise quick_replies must come before celebration content.
     $types = collect($received)->pluck('type');
-    $raiseIndex = collect($received)->search(fn ($e) => ($e['type'] ?? null) === 'quick_replies' && str_contains($e['prompt_text'] ?? '', 'Earlier you asked'));
+    $raiseIndex = collect($received)->search(fn ($e) => ($e['type'] ?? null) === 'quick_replies' && str_contains($e['prompt_text'] ?? '', 'You asked about'));
     $celebrationIndex = $types->search('content');
     expect($raiseIndex)->not->toBeFalse();
     expect($celebrationIndex)->not->toBeFalse();
@@ -732,9 +751,9 @@ it('raises deferred questions at the classic completion terminal and clears them
     expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
 
     // The persisted raise message keeps its bubbles for transcript renders.
-    $persisted = $conversation->messages()->where('content', 'like', 'Earlier you asked%')->first();
+    $persisted = $conversation->messages()->where('content', 'like', '%You asked about%')->first();
     expect(array_column($persisted->metadata['bubbles'] ?? [], 'label'))
-        ->toBe(['How healthy are my overall finances?']);
+        ->toBe(['Yes', 'No']);
 });
 
 it('raises deferred questions at the campaign completion terminal before the app note and celebration', function () {
@@ -782,7 +801,7 @@ it('raises deferred questions at the campaign completion terminal before the app
         ->get(['content', 'metadata']);
 
     $raiseIndex = $assistantMessages->search(
-        fn (AiMessage $m): bool => str_contains($m->content, 'Earlier you asked')
+        fn (AiMessage $m): bool => str_contains($m->content, 'You asked about')
     );
     $appNoteIndex = $assistantMessages->search(
         fn (AiMessage $m): bool => str_contains($m->content, 'even better in the app')
@@ -798,9 +817,11 @@ it('raises deferred questions at the campaign completion terminal before the app
     expect($raiseIndex)->toBeLessThan($appNoteIndex);
     expect($appNoteIndex)->toBeLessThan($celebrationIndex);
 
+    // CSJ raise shape: names the completed campaign, Yes/No bubbles.
     $raiseMessage = $assistantMessages[$raiseIndex];
+    expect($raiseMessage->content)->toContain('your Pension Check onboarding is now complete');
     expect(array_column($raiseMessage->metadata['bubbles'] ?? [], 'label'))
-        ->toBe(['How healthy are my overall finances?']);
+        ->toBe(['Yes', 'No']);
 });
 
 // ── Task 6: grouped-extract retries route through interruption intelligence ─
@@ -844,6 +865,7 @@ it('answers a question asked at a grouped-extract step instead of retrying blind
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -864,73 +886,69 @@ it('answers a question asked at a grouped-extract step instead of retrying blind
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
 
-it('suppresses the interruption advice answer when A1 already answered the question this turn', function () {
-    // Reviewer-flagged double-answer bug: A1's grouped-extract answer-the-
-    // user-first buffer (handleGroupedExtractTurn, ~line 2352) already
-    // voices a (deliberately figure-redacted) answer when the extraction
-    // model emits prose instead of calling its tool. Before this guard,
-    // emitRetry unconditionally called handleInterruption afterwards, which
-    // routed the SAME question through the advice-mode reasoner for a
-    // SECOND, independently-sourced (and potentially un-redacted) answer.
-    // Only ONE scripted LLM call — the extraction turn — should fire here;
-    // if the guard regresses, handleInterruption's advice-mode call fires
-    // a second time and $calls climbs to 2.
+it('never voices the extraction model\'s prose — the dispatcher answers even when the extraction turn was chatty', function () {
+    // All-paths rule (CSJ 2026-07-23, live regression): the extraction
+    // model's off-script prose used to be voiced as the "A1 answer",
+    // bypassing the governed interruption prompt + deterministic guard —
+    // live it voiced a factually wrong gross-income answer. The prose is
+    // now swallowed and scrubbed; the ONE governed answer path (emitRetry's
+    // interruption dispatcher) always answers the question, so BOTH
+    // scripted calls fire.
     $calls = 0;
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function () use (&$calls) {
             $calls++;
 
-            // Extraction call: the model emits an A1-style prose answer
-            // (no £ figures, so it survives filterOffScriptContent) but
-            // calls neither the capture tool nor errors — a clean
-            // no-capture turn that falls into the emitRetry path.
+            if ($calls === 1) {
+                // Extraction call: the model emits chatty prose but calls
+                // neither the capture tool nor errors — a no-capture turn
+                // that falls into the emitRetry path.
+                return (function () {
+                    yield ['type' => 'content', 'text' => 'People typically track spending across housing, food, and transport.'];
+                    yield ['type' => 'done', 'message_id' => 200];
+                })();
+            }
+
+            // Interruption dispatcher's advice-mode reasoner turn — the
+            // governed answer.
             return (function () {
-                yield ['type' => 'content', 'text' => 'People typically track spending across housing, food, and transport.'];
-                yield ['type' => 'done', 'message_id' => 200];
+                yield ['type' => 'content', 'text' => 'You currently spend about £2,400 a month.'];
+                yield ['type' => 'done', 'message_id' => 201];
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
 
     $received = driveDirector($user, $conversation, 'What do I spend each month?');
 
-    $contentTexts = collect($received)->where('type', 'content')->pluck('text');
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
 
-    // Exactly two content events: the A1 answer, then the scripted retry
-    // text — never a third, second-sourced advice-loop answer.
-    expect($contentTexts)->toHaveCount(2);
-    expect($contentTexts->first())->toContain('housing, food, and transport');
-    expect($contentTexts->last())->not->toContain('housing, food, and transport')
-        ->and($contentTexts->last())->toContain("didn't catch both pieces");
+    // The extraction prose never reaches the user; the dispatcher's
+    // governed answer does.
+    expect($texts)->not->toContain('housing, food, and transport');
+    expect($texts)->toContain('You currently spend about £2,400 a month.');
 
-    // Only the extraction call fired — the guard stopped emitRetry from
-    // ever invoking handleInterruption's second (advice-mode) LLM call.
-    expect($calls)->toBe(1);
+    // Both calls fired — the extraction turn AND the dispatcher's governed
+    // answer. The old answerAlreadyVoiced suppression is gone.
+    expect($calls)->toBe(2);
 
     $user->refresh();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
 
-it('routes the interruption dispatcher\'s answer through when the A1 prose is only a re-ask, not an answer', function () {
+it('routes the interruption dispatcher\'s answer through when the extraction prose is only a re-ask', function () {
     // Live bug (csjones, /m campaign income step): the extraction model's
     // ONLY prose was a re-ask — "Thanks — I still need your gross annual
     // income in GBP. Could you share that?" — never an answer to the
-    // user's actual question ("Am I on track for retirement?"). The
-    // pre-fix guard treated ANY non-empty A1 prose as "already answered"
-    // and set answerAlreadyVoiced=true, so emitRetry's
-    // `! ($answerAlreadyVoiced && isQuestion)` check skipped
-    // handleInterruption entirely — the user's real question was deflected
-    // and never answered. The fix requires the A1 prose to also fail
-    // captureResponseRequestsClarification before it counts as "answered";
-    // this re-ask trips that heuristic (it ends in a literal "?" and
-    // contains "could you"), so $a1AnswerEmitted stays false and
-    // emitRetry proceeds to handleInterruption as normal — mirroring the
-    // two-call CoordinatingAgent mock idiom from the "answers a question
-    // asked at a grouped-extract step instead of retrying blind" test
-    // above (Task 6).
+    // user's actual question ("Am I on track for retirement?"), and the
+    // old voice-through suppressed the dispatcher, deflecting the
+    // question. Under the all-paths rule (CSJ 2026-07-23) the extraction
+    // prose is never voiced at all — the dispatcher always fires and
+    // delivers the real answer.
     $calls = 0;
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
@@ -956,6 +974,7 @@ it('routes the interruption dispatcher\'s answer through when the A1 prose is on
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -964,13 +983,9 @@ it('routes the interruption dispatcher\'s answer through when the A1 prose is on
 
     $contentTexts = collect($received)->where('type', 'content')->pluck('text');
 
-    // The first sentence of the re-ask ("...in GBP.") is itself stripped by
-    // filterOffScriptContent's pre-existing personal-figure guard (it
-    // matches \bgbp\b) — a filtering behaviour this fix does not touch —
-    // leaving "Could you share that?" as A1's own emitted content. The real
-    // interruption answer is what matters here: it fires as a SECOND
-    // content event, proving the re-ask never suppressed it.
-    expect($contentTexts->first())->toContain('Could you share that?');
+    // The extraction turn's re-ask prose is never voiced; the dispatcher's
+    // real answer is.
+    expect($contentTexts->implode(' | '))->not->toContain('Could you share that?');
     expect($contentTexts->implode(' | '))->toContain('broadly on track for retirement');
 
     // Both scripted turns fired — the extraction call AND the
@@ -1048,6 +1063,7 @@ it("tags the interruption dispatcher's plain advisory answer and lets the DOB ex
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -1055,7 +1071,12 @@ it("tags the interruption dispatcher's plain advisory answer and lets the DOB ex
     $received = driveDirector($user, $conversation, 'Am I on track for retirement?');
 
     $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
-    expect($texts)->toContain('Would you like me to help you add those now?');
+    // The answer streamed; its clarification-shaped closing offer ("Would
+    // you like me to help you add those now?") is STRIPPED by the
+    // definitive-answer guard (CSJ 2026-07-23: the reply is the answer — no
+    // closing question of any kind; the walk re-asks its own question).
+    expect($texts)->toContain('I need your date of birth and pension details');
+    expect($texts)->not->toContain('Would you like me to help you add those now?');
 
     // The plain advisory answer must NOT arm pending_interruption_store — it
     // is tagged is_interruption_answer instead, and the walk resumed
@@ -1064,11 +1085,15 @@ it("tags the interruption dispatcher's plain advisory answer and lets the DOB ex
     expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 
+    // The persisted row was rewritten to the stripped text (reload matches
+    // the stream) and still carries the interruption-answer tag.
     $advisoryMessage = $conversation->messages()
         ->where('role', 'assistant')
-        ->where('content', $advisoryAnswer)
+        ->where('content', 'like', '%I need your date of birth and pension details%')
+        ->latest('id')
         ->first();
     expect($advisoryMessage)->not->toBeNull();
+    expect($advisoryMessage->content)->not->toContain('Would you like me to help you add those now?');
     expect($advisoryMessage->metadata['is_interruption_answer'] ?? null)->toBeTrue();
 
     // The genuine on-script DOB reply must route straight back through the
@@ -1133,6 +1158,7 @@ it('still arms pending_interruption_store for a genuine capture clarification re
             })();
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     app()->instance(CoordinatingAgent::class, $mock);
 
     [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
@@ -1274,4 +1300,264 @@ it('still records a genuine "roughly Nk" expenditure answer and advances', funct
 
     $user->refresh();
     expect((float) $user->monthly_expenditure)->toBe(2000.0);
+});
+
+// ── Task 2 (structured turn intent): the followup/merge scans prefer the
+// enum. A row stamped turn_intent=interruption_answer — with NO legacy
+// is_interruption_answer boolean — must be skipped by
+// mergeUnresolvedCaptureMessage's scan exactly as the tagged rows are, so
+// the genuine on-script reply reaches the state's own parser unmerged (the
+// conv-168 shape pinned via the enum rather than the tag). ────────────────
+
+it('skips an enum-stamped interruption answer in the merge scan without the legacy tag', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    // Previous user turn — a statement, not a question, so the
+    // userAskedQuestion early-return cannot mask the scan.
+    $conversation->messages()->create(['role' => 'user', 'content' => 'I was born in March 1988.']);
+
+    // The advisory answer row carries ONLY the enum (future rows stop
+    // writing the boolean), with question-shaped wording the legacy
+    // heuristic mistakes for a capture clarification.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I need your date of birth and pension details. Would you like me to help you add those now?',
+        'metadata' => ['turn_intent' => 'interruption_answer'],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => '14 March 1988']);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'mergeUnresolvedCaptureMessage');
+    $merged = $method->invoke(app(OnboardingChatDirector::class), $conversation, '14 March 1988');
+
+    expect($merged)->toBe('14 March 1988');
+});
+
+it('merges on an enum-stamped capture clarification even when the wording defeats the legacy heuristic', function () {
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
+
+    $conversation->messages()->create(['role' => 'user', 'content' => 'I have a savings account with Halifax.']);
+
+    // The stamp says clarification; the terse wording carries none of the
+    // legacy heuristic's cues. The enum must win.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'One detail is missing before that saves.',
+        'metadata' => ['turn_intent' => 'capture_clarification'],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => 'It holds £12,000.']);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'mergeUnresolvedCaptureMessage');
+    $merged = $method->invoke(app(OnboardingChatDirector::class), $conversation, 'It holds £12,000.');
+
+    expect($merged)->toBe(
+        "Original capture details: I have a savings account with Halifax.\n"
+        .'Requested missing details: It holds £12,000.'
+    );
+});
+
+// ── Task 4 (structured turn intent): confirmed facts make the two-step
+// store flow deterministic — the awaiting-detail reply's extractor parse
+// satisfies the gate directly, with no evidence-window dependency. ─────────
+
+it('completes the two-step store flow via confirmed facts when the detail phrasing defeats the gate regexes', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    [$user, $conversation] = interruptionUser();
+
+    driveDirector($user, $conversation, 'I have a Santander savings account with £9,000 in it');
+
+    $clarification = 'I need you to confirm whether you own it individually or with someone else.';
+    $calls = 0;
+    $mock = Mockery::mock(app(CoordinatingAgent::class));
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (...$args) use (&$calls, $clarification) {
+            $calls++;
+            /** @var AiConversation $conversationArg */
+            $conversationArg = $args[1];
+
+            if ($calls === 1) {
+                // The "Yes, save it" capture turn: gate-blocked — the model
+                // voices the ownership ask. Persisted stamped exactly as the
+                // real pipeline (+ the Task 1 refinement) stamps it.
+                $conversationArg->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $clarification,
+                    'persona' => 'data_capture',
+                    'metadata' => ['turn_intent' => 'capture_clarification'],
+                ]);
+
+                return (function () use ($clarification) {
+                    yield ['type' => 'content', 'text' => $clarification];
+                    yield ['type' => 'done', 'message_id' => 800];
+                })();
+            }
+
+            // The merged detail turn: the model captures nothing — the
+            // deterministic gap-fill (REAL executeTool via the partial
+            // mock's passthrough) must land the write.
+            return (function () {
+                yield ['type' => 'done', 'message_id' => 801];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    // NO setConfirmedCaptureFacts stub here on purpose: this is a PARTIAL
+    // mock, and stubbing the setter would swallow the call instead of
+    // forwarding it to the real instance — severing the very facts channel
+    // this test pins (the real executeTool must read the transient).
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    driveDirector($user->refresh(), $conversation, 'Yes, save it');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store']['awaiting_detail'] ?? null)->toBeTrue();
+
+    // "It's only mine." parses deterministically (extractor's "only mine"
+    // pattern) but is NOT in the gate's text-evidence vocabulary (even after
+    // the Task 5 phrasing additions) — only the confirmed-facts channel can
+    // satisfy the gate for this phrasing.
+    driveDirector($user->refresh(), $conversation, "It's only mine.");
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account)->not->toBeNull();
+    expect($account->ownership_type)->toBe('individual');
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+});
+
+// ── CSJ decided policy (reconfirmed 2026-07-23): no question is ever
+// dropped. At a delegated step, when the model's capture turn only re-asks
+// the scripted question (the model-requested-clarification branch), the
+// user's question must still route through the interruption dispatcher —
+// answered inline when simple, acknowledged + deferred when it needs more.
+// Live shape: Tessa, base_work, "Does my gross income include my employer
+// pension contributions?" answered with only "I still need your gross
+// annual income" — the question vanished. ─────────────────────────────────
+
+it('answers a question inline when the delegated capture turn only re-asks', function () {
+    $reAsk = 'Thanks — I still need your gross annual income in GBP. Could you share that?';
+    $answer = 'Employer pension contributions are not counted in your gross annual income — quote your salary before pension deductions.';
+
+    $calls = 0;
+    $answerPromptOverride = null;
+    $mock = Mockery::mock(app(CoordinatingAgent::class));
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->andReturnUsing(function (...$args) use (&$calls, &$answerPromptOverride, $reAsk, $answer) {
+            $calls++;
+            /** @var AiConversation $conversationArg */
+            $conversationArg = $args[1];
+            if ($calls > 1) {
+                $answerPromptOverride = $args[4] ?? null;
+            }
+
+            if ($calls === 1) {
+                // The grouped extraction turn: the tool ran but reported the
+                // income missing (the user asked a question instead of
+                // giving a figure) — the exact partial-capture shape from
+                // the live failure (metadata is_partial_retry +
+                // missing_fields [annual_income] on row 19602).
+                $conversationArg->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $reAsk,
+                    'persona' => 'data_capture',
+                ]);
+
+                return (function () use ($reAsk) {
+                    yield ['type' => 'content', 'text' => $reAsk];
+                    yield [
+                        'type' => 'onboarding_field_captured',
+                        'details' => ['missing' => ['annual_income']],
+                    ];
+                    yield ['type' => 'done', 'message_id' => 900];
+                })();
+            }
+
+            // The interruption dispatcher's advice-mode answer — scripted as
+            // the exact live failure shape (2026-07-23): the answer, a
+            // parroted copy of the walk's bold re-ask, then the whole thing
+            // rambled AGAIN. The deterministic guard must reduce this to the
+            // single clean answer.
+            $rambled = $answer
+                ." **What's your gross annual income?** This includes bonuses, commissions, and overtime. "
+                .$answer
+                ." **What's your gross annual income?** This includes bonuses, commissions, and overtime.";
+            $conversationArg->messages()->create([
+                'role' => 'assistant',
+                'content' => $rambled,
+                'persona' => 'advice',
+            ]);
+
+            return (function () use ($rambled) {
+                yield ['type' => 'content', 'text' => $rambled];
+                yield ['type' => 'done', 'message_id' => 901];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    app()->instance(CoordinatingAgent::class, $mock);
+
+    [$user, $conversation] = interruptionUser(OnboardingStateMachine::STATE_BASE_WORK);
+
+    $received = driveDirector($user, $conversation, 'Does my gross income include my employer pension contributions?');
+
+    // The question was answered, not dropped.
+    $texts = collect($received)->where('type', 'content')->pluck('text')->implode(' | ');
+    expect($texts)->toContain('not counted in your gross annual income');
+
+    // Deterministic guard (CSJ 2026-07-23): the rambled model output is
+    // reduced to the SINGLE clean answer — one content event, no parroted
+    // bold re-ask, no duplicate, no question mark. The persisted row is
+    // rewritten to the same clean text so a reload matches the stream.
+    $answerEvents = collect($received)->filter(
+        fn ($e) => ($e['type'] ?? null) === 'content' && str_contains($e['text'] ?? '', 'not counted')
+    )->values();
+    expect($answerEvents)->toHaveCount(1);
+    expect($answerEvents[0]['text'])->toBe($answer);
+    $persistedAnswer = $conversation->messages()->where('content', 'like', '%not counted%')->latest('id')->first();
+    expect($persistedAnswer->content)->toBe($answer);
+
+    // The answer turn carried the definitional-answer framing (CSJ
+    // 2026-07-23): one short paragraph, same answer for everyone, no
+    // missing-data deflection, no closing question.
+    expect($answerPromptOverride)->toContain('at most two sentences');
+    expect($answerPromptOverride)->toContain('no closing question');
+
+    // The answer bubble is finalised by a mid-stream done BEFORE the
+    // re-emitted step prompt streams, so the re-asked question renders as
+    // its own bubble on every surface (CSJ 2026-07-23).
+    $answerIndex = collect($received)->search(
+        fn ($e) => ($e['type'] ?? null) === 'content' && str_contains($e['text'] ?? '', 'not counted in your gross annual income')
+    );
+    $stepIndex = collect($received)->search(
+        fn ($e) => ($e['type'] ?? null) === 'content' && str_contains($e['text'] ?? '', 'gross annual income?')
+    );
+    $midDoneIndex = collect($received)->search(
+        fn ($e) => ($e['type'] ?? null) === 'done' && ($e['message_id'] ?? null) !== null
+    );
+    expect($answerIndex)->not->toBeFalse();
+    expect($midDoneIndex)->not->toBeFalse();
+    expect($stepIndex)->not->toBeFalse();
+    expect($answerIndex)->toBeLessThan($midDoneIndex);
+    expect($midDoneIndex)->toBeLessThan($stepIndex);
+
+    // The answer row is tagged so the followup/merge scans never mistake
+    // its wording for a capture clarification.
+    $answerRow = $conversation->messages()->where('content', $answer)->latest('id')->first();
+    expect($answerRow)->not->toBeNull();
+    expect($answerRow->metadata['turn_intent'] ?? null)->toBe('interruption_answer');
+
+    // The walk stays parked on the same step for the user's next reply.
+    $user->refresh();
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
+});
+
+it('the side-answer prompt example is factually correct about employer pension contributions', function () {
+    // CSJ live catch 2026-07-23: the prompt's worked example claimed gross
+    // income "includes pension contributions" and the model parroted it,
+    // telling a user their gross income includes EMPLOYER contributions.
+    // Employer contributions are paid on top of salary and are never part
+    // of gross income — the example must say so, not the opposite.
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'buildInterruptionAnswerPrompt');
+    $prompt = $method->invoke(app(OnboardingChatDirector::class));
+
+    expect($prompt)->toContain('does not include employer pension contributions')
+        ->not->toContain('so it includes pension contributions');
 });

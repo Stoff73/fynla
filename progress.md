@@ -232,3 +232,12 @@
 - Done: /m-parity sweep COMPLETE; fireworks + nudges + avatar rule (CSJ directives); better-in-the-app bubble live on csjones; SaveTax live E2E (web + native, 2 defects fixed); TestFlight build 1.0(1) VALID, CSJ invited.
 - Note: csjones now runs codex/savetax-allowance-ctas (dev merged in), not dev.
 - Next: CSJ installs TestFlight build; /m milestone-banner build+deploy still CSJ's call; pkg4–7 PR chain open.
+
+## 2026-07-24 — session 1 (eod, wrapping the 2026-07-23 evening session)
+- Handover: [[handover-2026-07-24-session-1]]
+- Branch: codex/savetax-e2e-capture-fixes (9 commits, pushed; PR #670 open to dev; csjones runs this branch)
+- Commits this session: 9
+- Status: 0 uncommitted (handover/docs committed in the wrap)
+- Done: SaveTax /m E2E test loop GREEN end-to-end; 8 live-found defects fixed (joint capture, ownership deadlock, dedupe blends, completion declarations, echo-strip decimal, spouse-advice fatal, salary_sacrifice, unlock-cache race); run report + 22-item issue log in July/July23Updates.
+- Blocked: iOS LiveJourneyTests — CoreSimulator wedged host-wide; reboot Mac, then re-run per run report §iOS re-run.
+- Next: iOS leg after reboot → merge #670 → csjones back to dev → round-3 clean pass → PSA joint-interest share fix.

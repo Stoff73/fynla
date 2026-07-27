@@ -58,9 +58,9 @@ final class TaxStrategyCalculator
 
         $spouseAllowances = match ($mode) {
             'dual_earner' => $household instanceof TaxStrategyHouseholdInput
-                ? $this->buildSpouseAllowanceGridDualEarner($household, $this->marriageAllowanceAvailableFor($user))
+                ? $this->buildSpouseAllowanceGridDualEarner($user, $household, $this->marriageAllowanceAvailableFor($user))
                 : null,
-            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($household, $this->marriageAllowanceAvailableFor($user)),
+            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user)),
             default => null,
         };
 
@@ -238,7 +238,7 @@ final class TaxStrategyCalculator
             <= (float) $this->taxConfig->get('income_tax.higher_rate_threshold', 50270);
     }
 
-    private function buildSpouseAllowanceGridDualEarner(TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
+    private function buildSpouseAllowanceGridDualEarner(User $user, TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
     {
         $income = $this->taxConfig->getIncomeTax();
         $isa = $this->taxConfig->getISAAllowances();
@@ -265,10 +265,20 @@ final class TaxStrategyCalculator
         $divUsed = (float) ($household->spouse_annual_dividends ?? 0);
         $startingRateAvailable = max(0.0, $startingRateAmount - max(0.0, $spouseNonSavingsIncome - $personalAllowance));
 
+        // The spouse's HMRC share of the user's joint accounts is confirmed
+        // data (issue #21) — stack it through the allowances in HMRC order:
+        // remaining Personal Allowance → Starting Rate → Savings Allowance.
+        $spouseJointInterest = $this->math->estimateSpouseJointInterest($user);
+        $spouseSavingsKnown = $spouseJointInterest > 0;
+        $paRemainingForSavings = max(0.0, $personalAllowance - $spouseNonSavingsIncome);
+        $interestAboveAllowances = max(0.0, $spouseJointInterest - $paRemainingForSavings);
+        $spouseStartingRateUsed = min($startingRateAvailable, $interestAboveAllowances);
+        $spousePsaUsed = min($psa, $interestAboveAllowances - $spouseStartingRateUsed);
+
         return [
-            $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, min($spouseTotalIncome, $personalAllowance), 'spouse', $personalAllowance > 0),
-            $this->position('savings_allowance', 'Savings Allowance', $psa, 0.0, 'spouse', true, false),
-            $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAvailable, 0.0, 'spouse', $startingRateAvailable > 0, false),
+            $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, min($spouseTotalIncome + $spouseJointInterest, $personalAllowance), 'spouse', $personalAllowance > 0),
+            $this->position('savings_allowance', 'Savings Allowance', $psa, $spousePsaUsed, 'spouse', true, $spouseSavingsKnown),
+            $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAvailable, $spouseStartingRateUsed, 'spouse', $startingRateAvailable > 0, $spouseSavingsKnown),
             $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse', $marriageAllowanceAvailable),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, 0.0, 'spouse', true, $spouseIsaUseKnown),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'spouse', true, false),
@@ -280,7 +290,7 @@ final class TaxStrategyCalculator
         ];
     }
 
-    private function buildSpouseAllowanceGridNonWorking(?TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
+    private function buildSpouseAllowanceGridNonWorking(User $user, ?TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
     {
         $income = $this->taxConfig->getIncomeTax();
         $isa = $this->taxConfig->getISAAllowances();
@@ -308,12 +318,22 @@ final class TaxStrategyCalculator
             && (float) $household->spouse_existing_dividend_holdings_value === 0.0;
         $nonEarnerPensionLimit = (float) ($pension['relevant_earnings_minimum'] ?? 3600);
 
+        // The spouse's HMRC share of the user's joint accounts is confirmed
+        // data (issue #21). With no other income the Personal Allowance
+        // absorbs it first; only the (unlikely) excess reaches the Starting
+        // Rate and then the Savings Allowance.
+        $spouseJointInterest = $this->math->estimateSpouseJointInterest($user);
+        $interestAbovePa = max(0.0, $spouseJointInterest - $personalAllowance);
+        $spouseStartingRateUsed = min($startingRateAmount, $interestAbovePa);
+        $spousePsaUsed = min($this->math->psaForBand('basic'), $interestAbovePa - $spouseStartingRateUsed);
+        $savingsUseKnown = $savingsUseKnown || $spouseJointInterest > 0;
+
         return [
-            // Spouse has no income → PA fully unused
-            $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, 0.0, 'spouse'),
+            // No earnings — only the joint-interest share consumes any PA.
+            $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, min($personalAllowance, $spouseJointInterest), 'spouse'),
             // Basic-rate PSA from TaxConfigService
-            $this->position('savings_allowance', 'Savings Allowance', $this->math->psaForBand('basic'), 0.0, 'spouse', true, $savingsUseKnown),
-            $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAmount, 0.0, 'spouse', true, $savingsUseKnown),
+            $this->position('savings_allowance', 'Savings Allowance', $this->math->psaForBand('basic'), $spousePsaUsed, 'spouse', true, $savingsUseKnown),
+            $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAmount, $spouseStartingRateUsed, 'spouse', true, $savingsUseKnown),
             // Marriage Allowance on the spouse's grid = their PA slice available
             // to transfer TO the working spouse — gated on the recipient's band.
             $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse', $marriageAllowanceAvailable),

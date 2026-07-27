@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 
 /**
  * Strategy #5 — ISA Top-Up From Cash Earning Beyond the Savings Allowance.
@@ -21,6 +22,8 @@ use App\Services\TaxConfigService;
  */
 final class IsaTopUpStrategy implements TaxStrategy
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
@@ -51,10 +54,12 @@ final class IsaTopUpStrategy implements TaxStrategy
         // interest with the least cash, starting with the highest captured
         // rate. A blended-rate proposal is inaccurate when one account earns
         // nothing and another earns materially more.
+        // forUser() is joint-aware; only the user's ownership share of each
+        // balance is theirs to wrap — an ISA is individual, so the spouse's
+        // half of a joint account can never move into it (issue #21).
         $nonIsaAccounts = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
             ->where('is_isa', false);
-        $nonIsaBalance = (float) $nonIsaAccounts->sum('current_balance');
+        $nonIsaBalance = (float) $nonIsaAccounts->sum(fn ($acc) => $this->calculateUserShare($acc, $user->id));
 
         // Use the centralised helper — it normalises the interest_rate
         // column convention (decimals 0.04 vs. percents 4.0) the same way
@@ -86,7 +91,7 @@ final class IsaTopUpStrategy implements TaxStrategy
             if ($rate > 1) {
                 $rate /= 100;
             }
-            $balance = max(0.0, (float) $account->current_balance);
+            $balance = max(0.0, $this->calculateUserShare($account, $user->id));
             if ($rate <= 0 || $balance <= 0 || $remainingInterest <= 0 || $remainingIsa <= 0) {
                 continue;
             }

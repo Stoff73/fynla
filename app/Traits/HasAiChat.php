@@ -16,6 +16,7 @@ use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
 use App\Constants\QuerySchemas;
+use App\Enums\FynTurnIntent;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiAbortEvent;
 use App\Models\AiAdviceLog;
@@ -40,6 +41,7 @@ use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
 use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\ToolResults;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Eval\EvalBypassGate;
@@ -115,6 +117,23 @@ trait HasAiChat
     public function setUnifiedOnboardingFocus(?string $focus): void
     {
         $this->unifiedOnboardingFocus = $focus;
+    }
+
+    /**
+     * Deterministic confirmed facts for the CURRENT capture turn (Task 4) —
+     * consumed by executeTool as the CaptureAccuracyGate's $confirmedFacts
+     * when the streamed tool dispatch cannot pass them per-call. Set by
+     * OnboardingChatDirector::handleInlineCapture around its stream and
+     * always cleared in its finally.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $confirmedCaptureFacts = null;
+
+    /** @param array<string, mixed>|null $facts */
+    public function setConfirmedCaptureFacts(?array $facts): void
+    {
+        $this->confirmedCaptureFacts = $facts;
     }
 
     /** @param array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null $scope */
@@ -961,6 +980,7 @@ trait HasAiChat
                             || (isset($toolResult['updated']) && $toolResult['updated'] === true)
                             || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
                             || (isset($toolResult['success']) && $toolResult['success'] === true)
+                            || ToolResults::isDuplicateSkip($toolResult)
                         );
                         $toolCallId = (string) ($toolUseBlock['id'] ?? '');
                         $retryOfToolCallId = $captureRetryAssignments[$toolCallId] ?? null;
@@ -1149,6 +1169,15 @@ trait HasAiChat
         // prompt view for every post-F-8 row. The forensic requirement —
         // admin-only data, never user-exposed — overrides the bloat
         // concern. Restored to verbatim.)
+        // Structured turn intent — the shared pipeline emits either a
+        // data-capture acknowledgement or an advice answer, keyed off the
+        // persona it already tracks. The director's after-the-fact helpers
+        // (failure voice, interruption-answer tag) overwrite this when the
+        // row turns out to be something more specific.
+        $messageMetadata['turn_intent'] = ($this->personaOverride === 'data_capture'
+            ? FynTurnIntent::CaptureAck
+            : FynTurnIntent::AdviceAnswer)->value;
+
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
@@ -1157,7 +1186,7 @@ trait HasAiChat
             'assembled_context' => $this->assembledContext,
             'tool_calls' => $fullToolCalls ?: null,
             'tool_results' => $fullToolResults ?: null,
-        ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
+        ], ['metadata' => $messageMetadata]);
 
         if ($this->personaOverride !== null) {
             $assistantExtra['persona'] = $this->personaOverride;

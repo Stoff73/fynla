@@ -148,6 +148,7 @@ function driveCaptureTurn(User $user, AiConversation $conversation, string $mess
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     test()->instance(CoordinatingAgent::class, $mock);
 
     $received = [];
@@ -279,19 +280,55 @@ describe('delegated capture turn answers a question (A1)', function () {
     });
 });
 
-describe('grouped_extract turn answers a question before re-asking (A1)', function () {
-    // Onboarding Interruption Intelligence Task 6 — emitRetry tries
-    // handleInterruption before falling back to the blind scripted
-    // retry_text (OnboardingChatDirector.php ~line 2518). BUT: when the A1
-    // buffer (handleGroupedExtractTurn, ~line 2352) has already voiced a
-    // (deliberately figure-redacted) answer to the user's question this
-    // turn, a subsequent independently-sourced handleInterruption advice
-    // answer would duplicate it and could unredact figures A1 withheld — so
-    // emitRetry's answerAlreadyVoiced guard skips handleInterruption
-    // entirely in that case and falls straight to the scripted retry_text
-    // tail. These two cases exercise that guard: exactly one answer (the A1
-    // one) plus the retry text, never a second advice-loop answer.
-    it('emits only the extraction turn\'s own A1 answer plus the retry text — the interruption dispatcher is suppressed', function () {
+describe('grouped_extract turn routes a question through the central dispatcher', function () {
+    // All-paths rule (CSJ 2026-07-23, live regression): the extraction
+    // model's off-script prose is NEVER voiced as the answer — it bypassed
+    // the governed interruption prompt and guard, and live it voiced a
+    // factually wrong gross-income answer that then poisoned the transcript
+    // for the dispatcher's own call. The no-capture branch now scrubs the
+    // stream-persisted prose and lets emitRetry's interruption dispatcher —
+    // the ONE governed answer path — answer the question.
+
+    /**
+     * Call 1 = the extraction turn (persists its off-script prose exactly as
+     * the live shared chat path does, no capture event). Call 2+ = the
+     * dispatcher's advice-mode answer. Mirrors the call-counting idiom of
+     * OnboardingInterruptionTest's "answers a question inline" case.
+     */
+    function driveQuestionCaptureTurn(User $user, AiConversation $conversation, string $message, string $extractionProse, string $dispatcherAnswer): array
+    {
+        $calls = 0;
+        $mock = Mockery::mock(app(CoordinatingAgent::class));
+        $mock->shouldReceive('chatWithPromptOverride')
+            ->andReturnUsing(function (...$args) use (&$calls, $extractionProse, $dispatcherAnswer) {
+                $calls++;
+                /** @var AiConversation $conversationArg */
+                $conversationArg = $args[1];
+                $text = $calls === 1 ? $extractionProse : $dispatcherAnswer;
+                $conversationArg->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $text,
+                    'persona' => $calls === 1 ? 'data_capture' : 'advice',
+                ]);
+
+                return (function () use ($text) {
+                    yield ['type' => 'content', 'text' => $text];
+                    yield ['type' => 'done', 'message_id' => 900];
+                })();
+            });
+        $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+        $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+        test()->instance(CoordinatingAgent::class, $mock);
+
+        $received = [];
+        foreach (app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, $message) as $event) {
+            $received[] = $event;
+        }
+
+        return $received;
+    }
+
+    it('never voices the extraction turn\'s off-script prose — the dispatcher answers and the prose is scrubbed from the transcript', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -305,33 +342,31 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             'title' => 'Onboarding',
         ]);
 
-        // Model answers the question but emits no onboarding_field_captured —
-        // the no-capture path falls into emitRetry, which would try
-        // handleInterruption first, but the guard under test skips that
-        // because A1 already answered this question this turn.
-        $received = driveCaptureTurn($user, $conversation, 'what do you mean by marital status?', [
-            ['type' => 'content', 'text' => 'Marital status means whether you are single, married, or in a civil partnership. It affects allowances you can share.'],
-            ['type' => 'done', 'message_id' => 1],
-        ]);
+        $prose = 'Yes, marital status includes everything about your household finances and I need two more pieces of data from you.';
+        $answer = 'Marital status means whether you are single, married, or in a civil partnership.';
+
+        $received = driveQuestionCaptureTurn($user, $conversation, 'what do you mean by marital status?', $prose, $answer);
 
         $contentTexts = array_values(array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
         ));
 
-        // Exactly two content events: the A1 answer, then the scripted
-        // retry text — never a duplicate from the (suppressed) interruption
-        // dispatcher's own advice call.
-        $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($contentTexts)->toHaveCount(2);
-        expect($contentTexts[0])->toContain('Marital status means whether you are single');
-        expect($contentTexts[1])->toBe($retry);
+        // The extraction model's prose never reaches the user...
+        expect(implode(' | ', $contentTexts))->not->toContain('two more pieces of data');
+        // ...the dispatcher's governed answer does, exactly once.
+        $answerEvents = array_values(array_filter($contentTexts, fn ($t) => str_contains($t, 'single, married')));
+        expect($answerEvents)->toHaveCount(1);
+
+        // The prose row the stream persisted is scrubbed — transcript
+        // mirrors the screen and cannot poison later calls this turn.
+        expect($conversation->messages()->where('content', 'like', '%two more pieces of data%')->exists())->toBeFalse();
 
         // The walk stayed on the grouped-extract step — no blind advance.
         expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 
-    it('strips personal figures from the grouped_extract turn own A1 answer and still emits the retry', function () {
+    it('scrubbed prose includes personal figures — they never reach an event or survive in the transcript', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -345,30 +380,18 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             'title' => 'Onboarding',
         ]);
 
-        // NOTE: the personal-figure sentence must not name an allowance/limit/
-        // threshold/band — those words trigger the statutory-definition
-        // carve-out and the sentence would legitimately survive.
-        $received = driveCaptureTurn($user, $conversation, 'why does my income matter?', [
-            ['type' => 'content', 'text' => 'Your income sets which tax band applies. Based on your £110,000 salary you would pay extra tax.'],
-            ['type' => 'done', 'message_id' => 1],
-        ]);
+        $prose = 'Your income sets which tax band applies. Based on your £110,000 salary you would pay extra tax.';
+        $answer = 'Your income determines which tax band applies to you.';
 
-        $contentTexts = array_values(array_column(
+        $received = driveQuestionCaptureTurn($user, $conversation, 'why does my income matter?', $prose, $answer);
+
+        $allText = implode(' | ', array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
         ));
 
-        // The FIRST content event is the grouped_extract turn's own A1
-        // buffer — filterOffScriptContent(allowAnswer: true) still strips
-        // the user's personal figure from it.
-        expect($contentTexts[0] ?? '')->toContain('Your income sets which tax band applies.')
-            ->and($contentTexts[0] ?? '')->not->toContain('£110,000');
-
-        // Because A1 already answered, emitRetry's guard suppresses the
-        // interruption dispatcher's advice-mode call and falls straight to
-        // the scripted retry text instead — exactly one answer, never a
-        // duplicate.
-        $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($contentTexts[1] ?? null)->toBe($retry);
+        expect($allText)->not->toContain('£110,000');
+        expect($conversation->messages()->where('content', 'like', '%£110,000%')->exists())->toBeFalse();
+        expect($allText)->toContain('determines which tax band');
     });
 });

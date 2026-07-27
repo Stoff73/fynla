@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 
 /**
  * Strategy #15 — Joint Savings Split for Personal Savings Allowance Doubling.
@@ -22,6 +23,8 @@ use App\Services\TaxConfigService;
  */
 final class JointSavingsStrategy implements TaxStrategy
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
@@ -60,14 +63,14 @@ final class JointSavingsStrategy implements TaxStrategy
             return [];
         }
 
-        // Sole-name non-ISA savings — joint accounts (joint_owner_id set) are
-        // already split 50/50 by HMRC default and cannot benefit further.
-        // forUser() is joint-aware; the Collection-level where('user_id') keeps
-        // strictly single-owner semantics (whereNull('joint_owner_id') further
-        // excludes joint accounts owned by this user).
+        // Sole-name non-ISA savings — shared accounts are already split 50/50
+        // by HMRC default and cannot benefit further. "Sole" is decided by
+        // ownership_type, not joint_owner_id: the campaign captures joint
+        // accounts with a null co-owner User (spouse lives in household
+        // input), which a whereNull filter would wrongly count as sole.
         $soleSavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
-            ->whereNull('joint_owner_id')
+            ->reject(fn ($acc) => $this->isSharedOwnership($acc))
             ->where('is_isa', false);
 
         if ($soleSavings->isEmpty()) {

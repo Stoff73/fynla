@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 
 /**
  * Single_earner_couple bundle of asset-shifting strategies — Marriage
@@ -20,6 +21,8 @@ use App\Services\TaxConfigService;
  */
 final class AssetShiftingBundleStrategy implements TaxStrategy
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
@@ -64,8 +67,12 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         // confirmed that the non-earning spouse has no existing savings. A
         // balance without an account rate is not enough to infer their interest
         // income or unused tax-free capacity.
+        // Sole-name only: a shared account is already split 50/50 by HMRC
+        // default and cannot be "shifted" to the spouse. Ownership_type
+        // decides — the campaign's joint accounts carry a null co-owner User.
         $userSavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
+            ->reject(fn ($acc) => $this->isSharedOwnership($acc))
             ->where('is_isa', false);
         $userSavingsTotal = (float) $userSavings->sum('current_balance');
         $annualInterest = (float) $userSavings->sum(function ($acc) {

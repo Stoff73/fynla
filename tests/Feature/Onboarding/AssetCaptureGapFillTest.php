@@ -82,6 +82,7 @@ it('synthesises fill_form events for entities the LLM dropped on protection', fu
     // Unified prompt mode arms + resets the onboarding focus on the agent
     // (OnboardingChatDirector::handleAssetCaptureTurn) — allow it.
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
 
     // executeTool is called by the gap-fill path. It must receive the
     // extractor-generated input for Vitality CI, not the Aviva life (already
@@ -208,6 +209,7 @@ it('does not synthesise duplicates when the LLM emitted every entity', function 
     // Unified prompt mode arms + resets the onboarding focus on the agent
     // (OnboardingChatDirector::handleAssetCaptureTurn) — allow it.
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
 
     // CRITICAL: executeTool MUST NOT be called — the gap-fill path should
     // decide both entities were already covered by the LLM's emissions and
@@ -271,6 +273,7 @@ it('is a no-op when the user message contains no extractable entity', function (
     // Unified prompt mode arms + resets the onboarding focus on the agent
     // (OnboardingChatDirector::handleAssetCaptureTurn) — allow it.
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
 
     $mock->shouldNotReceive('executeTool');
 
@@ -335,6 +338,7 @@ it('skips gap-fill entirely for unsupported focuses (estate)', function () {
     // Unified prompt mode arms + resets the onboarding focus on the agent
     // (OnboardingChatDirector::handleAssetCaptureTurn) — allow it.
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
 
     // Estate has too many sub-tool types (asset, liability, gift, trust,
     // chattel, business) for the simple gap-fill extractor to cover safely.

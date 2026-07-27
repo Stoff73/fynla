@@ -324,3 +324,56 @@ describe('OnboardingChatDirector::verbatimEvidenceFromCaptureMessage', function 
             ->toBe('Just me');
     });
 });
+
+/**
+ * 2026-07-23 live (user 292, msg 19837): stripEchoedFailureCopy treated the
+ * decimal point in "4.2%" as a sentence boundary, truncating the echoed
+ * sentence mid-number and leaving the fragment "2%." in the user-visible
+ * bubble.
+ */
+function invokeStripEchoedFailureCopy(string $text): string
+{
+    $director = app(OnboardingChatDirector::class);
+    $reflection = new ReflectionMethod($director, 'stripEchoedFailureCopy');
+    $reflection->setAccessible(true);
+
+    return $reflection->invoke($director, $text);
+}
+
+it('strips an echoed failure sentence containing a decimal without leaving a fragment', function (): void {
+    $result = invokeStripEchoedFailureCopy(
+        "I couldn't save that joint account earlier, so I'm saving it in your name only at £12,000 at 4.2%. Done."
+    );
+
+    expect($result)->toBe('Done.');
+});
+
+it('keeps the sentence after an echoed failure line ending in a decimal figure', function (): void {
+    $result = invokeStripEchoedFailureCopy(
+        "I couldn't save that — the rate is 4.2%. I need the ownership share before I can save it."
+    );
+
+    expect($result)->toBe('I need the ownership share before I can save it.');
+});
+
+/**
+ * 2026-07-23 live (user 293, conv 181): the spouse-advice fallback calls
+ * app(TaxConfigService::class) with no import, resolving to the
+ * non-existent App\Services\Onboarding\TaxConfigService and killing the
+ * stream with "An unexpected error occurred" right after spouse verify.
+ */
+it('voices the spouse-advice allowance fallback without a container fatal', function (): void {
+    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+
+    $director = app(OnboardingChatDirector::class);
+    $reflection = new ReflectionMethod($director, 'buildSpouseAdvice');
+    $reflection->setAccessible(true);
+
+    $advice = $reflection->invoke($director, [
+        'items' => [
+            ['type' => 'spouse_isa_transfer', 'estimated_annual_tax_saved' => 0],
+        ],
+    ], ['spouse_isa_transfer']);
+
+    expect($advice)->toContain('unused allowances');
+});

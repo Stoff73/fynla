@@ -47,6 +47,7 @@ function directorYielding(array $events): OnboardingChatDirector
     // therefore calls setUnifiedOnboardingFocus; allow it without weakening the
     // strict chatWithPromptOverride expectation.
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function () use ($events): Generator {
             yield from $events;

@@ -86,6 +86,7 @@ function stubAdvicePathForDispatch(string $sentinel = 'advice-dispatch-sentinel'
 {
     test()->mock(CoordinatingAgent::class, function ($mock) use ($sentinel) {
         $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
         $mock->shouldReceive('chatWithPromptOverride')
             ->zeroOrMoreTimes()
             ->andReturnUsing(function () use ($sentinel) {

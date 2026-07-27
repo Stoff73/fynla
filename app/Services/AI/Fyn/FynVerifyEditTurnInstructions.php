@@ -10,7 +10,10 @@ final class FynVerifyEditTurnInstructions
     public static function toolsForSection(string $section): array
     {
         return match ($section) {
-            'savings', 'investments', 'pensions' => ['update_record'],
+            // protection/estate/goals are journey-path sections (CSJ
+            // 2026-07-24: every data entry verifies) — record-backed, so
+            // they edit through update_record like the campaign trio.
+            'savings', 'investments', 'pensions', 'protection', 'estate', 'goals' => ['update_record'],
             'income', 'spouse', 'expenditure' => ['update_profile'],
             'giving' => ['capture_charitable_giving'],
             'state_pension' => ['capture_state_pension'],
@@ -38,6 +41,9 @@ final class FynVerifyEditTurnInstructions
             'savings' => 'savings and ISA accounts',
             'investments' => 'investment accounts',
             'pensions' => 'pensions',
+            'protection' => 'protection policies',
+            'estate' => 'estate records',
+            'goals' => 'goals',
             'income' => 'income',
             'spouse' => 'spouse details',
             'expenditure' => 'expenditure',

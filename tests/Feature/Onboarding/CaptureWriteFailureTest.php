@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\LifeInsurancePolicy;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -71,6 +73,7 @@ function mockDelegatedStream(array $events): void
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
 
     test()->instance(CoordinatingAgent::class, $mock);
@@ -98,6 +101,49 @@ function verifyEditFailureUser(string $section = 'income'): array
 
     return [$user, $conversation];
 }
+
+it('matches the bare word "rate" to interest_rate in the verify-edit field vocabulary', function () {
+    // Live 2026-07-23: "The Santander rate is 4%" matched no field phrase
+    // ('interest rate'/'interest percentage' only), so the edit scope came
+    // out empty, update_record was filtered from the toolset, and the turn
+    // fell to the generic "I wasn't able to apply that change" line.
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'verifyEditRecordFields');
+
+    $fields = $method->invoke(
+        app(OnboardingChatDirector::class),
+        'savings_account',
+        'The Santander rate is 4% and the Halifax rate is 3.5%.'
+    );
+
+    expect($fields)->toContain('interest_rate');
+});
+
+it('scopes a verify edit to BOTH records when the user names both accounts', function () {
+    // Live 2026-07-23: "The Santander rate is 4% and the Halifax rate is
+    // 3.5%" matched two records, the exactly-one rule emptied the scope,
+    // update_record was filtered from the toolset, and the turn fell to the
+    // generic failure line. Explicitly named records are unambiguous.
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $santander = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_name' => 'Santander Savings Account', 'institution' => 'Santander',
+    ]);
+    $halifax = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_name' => 'Halifax savings account', 'institution' => 'Halifax',
+    ]);
+
+    $method = new ReflectionMethod(OnboardingChatDirector::class, 'verifyEditScope');
+    $scope = $method->invoke(
+        app(OnboardingChatDirector::class),
+        $user,
+        'savings',
+        'the santander rate is 4% and the halifax rate is 3.5%.'
+    );
+
+    expect($scope['tools'])->toContain('update_record')
+        ->and($scope['records']['savings_account'] ?? [])->toContain($santander->id)
+        ->and($scope['records']['savings_account'] ?? [])->toContain($halifax->id)
+        ->and($scope['record_fields']['savings_account'] ?? [])->toContain('interest_rate');
+});
 
 it('names what could not be saved when every write failed and the model said nothing', function () {
     [$user, $conversation] = captureFailureUser();
@@ -128,6 +174,180 @@ it('names what could not be saved when every write failed and the model said not
     // The failure explanation persists so the transcript matches on reload.
     expect($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeTrue()
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});
+
+it('gap-fills the workplace pension when the model refuses — the answer is never lost', function () {
+    // The original live failure end-to-end (2026-07-23): grok voiced the
+    // injection refusal on "It's not salary sacrifice", captured nothing,
+    // and the contribution answer was silently lost. The occupational
+    // capture_focus now engages the ONE deterministic gap-fill, which
+    // parses the answer and writes the pension itself.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'annual_employment_income' => 78000,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+        'onboarding_fyn_selection' => 'savetax',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            return (function () {
+                yield ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'];
+                yield ['type' => 'done', 'message_id' => 99];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
+    $capturedInput = null;
+    $mock->shouldReceive('executeTool')
+        ->once()
+        ->andReturnUsing(function (string $tool, array $input) use (&$capturedInput) {
+            $capturedInput = ['tool' => $tool, 'input' => $input];
+
+            return [
+                'success' => true,
+                'entity_type' => 'dc_pension',
+                'entity_id' => 4242,
+                'message' => 'Created dc pension successfully.',
+            ];
+        });
+    test()->instance(CoordinatingAgent::class, $mock);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "I contribute 5% and my employer matches it. It's not salary sacrifice."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    // The gap-fill called create_pension with the parsed answer + salary.
+    expect($capturedInput['tool'] ?? null)->toBe('create_pension');
+    expect($capturedInput['input']['employee_contribution_percent'] ?? null)->toBe(5.0);
+    expect($capturedInput['input']['employer_contribution_percent'] ?? null)->toBe(5.0);
+    expect($capturedInput['input']['salary_sacrifice'] ?? null)->toBeFalse();
+    expect($capturedInput['input']['annual_salary'] ?? null)->toBe(78000.0);
+
+    // The landed record surfaced and the walk advanced — no re-ask, no
+    // refusal text, no silent loss.
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+    expect($texts)->not->toContain('only help with financial planning')
+        ->and($texts)->not->toContain("didn't catch that");
+    expect(collect($received)->contains(fn (array $e) => ($e['type'] ?? null) === 'entity_created' && ($e['entity_id'] ?? null) === 4242))->toBeTrue();
+    expect($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+});
+
+it('never advances a zero-output turn — the refused pension answer re-asks instead of claiming saved', function () {
+    // Live 2026-07-23 (workplace-pension step): grok voiced the scripted
+    // injection refusal, the system-copy strip emptied it, and the turn —
+    // zero tools, zero visible reply — still advanced with "I've saved your
+    // pensions" while nothing was written anywhere. A turn that produced
+    // NOTHING must re-ask, never advance.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I contribute 5% and my employer matches it. It is not salary sacrifice.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+
+    // The refusal never reaches the user, nothing claims "saved", and the
+    // walk stays parked on the same step with a re-ask.
+    expect($texts)->not->toContain('only help with financial planning')
+        ->and($texts)->not->toContain('saved')
+        ->and($texts)->not->toBe('');
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});
+
+it('shows a tier-limit message verbatim — no missing-detail tail a plan limit cannot satisfy', function () {
+    // Live /m msg 19716 (2026-07-23): the delegated composer appended
+    // "Give me the missing detail and I will try again." to a plan-limit
+    // message. Tier limits carry their own upgrade call to action and show
+    // verbatim via the ONE captureFailureText composer (Rule 20).
+    [$user, $conversation] = captureFailureUser();
+
+    $tierMessage = "You've reached your plan's limit of 2 savings accounts. To add more, upgrade your plan.";
+    mockDelegatedStream([
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        [
+            'type' => 'capture_write_result',
+            'tool' => 'create_savings_account',
+            'landed' => false,
+            'message' => $tierMessage,
+            'result' => ['error' => true, 'error_type' => 'tier_limit_reached', 'message' => $tierMessage],
+        ],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I have a Barclays current account with £3,200 in it, owned just by me'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text');
+    $tierText = $texts->first(fn (string $t) => str_contains($t, "plan's limit"));
+    expect($tierText)->toBe($tierMessage)
+        ->and($texts->implode(' '))->not->toContain('Give me the missing detail');
+});
+
+it('strips model-echoed failure copy so retries never stack the previous turn\'s failure lines', function () {
+    // Live msgs 19708→19712: the model parroted the prior turn's scripted
+    // "I couldn't save that — …" lines, the echo tripped the clarification
+    // heuristics, and each retry persisted the old failure text above the
+    // new one. Echoed failure copy is stripped; the deterministic composer
+    // owns the single failure line.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => "I couldn't save that — I need you to confirm whether you own it individually or with someone else. Give me the missing detail and I will try again. "],
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => false, 'message' => 'Validation failed for savings account.'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I have a Halifax saver with £2,000 in it'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text');
+    $failureLines = $texts->filter(fn (string $t) => str_contains($t, "couldn't save"));
+
+    // Exactly ONE failure line — the composer's, for the real error — and
+    // the parroted ownership line is gone.
+    expect($failureLines)->toHaveCount(1)
+        ->and($failureLines->first())->toContain('Validation failed for savings account')
+        ->and($texts->implode(' '))->not->toContain('confirm whether you own it individually');
 });
 
 it('holds a question turn whose only write failed instead of advancing', function () {
@@ -254,6 +474,7 @@ it('combines an unresolved ISA answer with its requested missing facts after res
             yield ['type' => 'done', 'message_id' => 101];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
@@ -573,6 +794,7 @@ it('streams the same deduplicated acknowledgement that is persisted for a succes
             yield ['type' => 'done', 'message_id' => $message->id];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
@@ -650,6 +872,7 @@ it('never merges a question as original capture details — the previous turn as
             yield ['type' => 'done', 'message_id' => 200];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     $received = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
@@ -720,6 +943,7 @@ it('does not arm the merge off the canned security-refusal text', function () {
             yield ['type' => 'done', 'message_id' => 201];
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $this->instance(CoordinatingAgent::class, $mock);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
@@ -732,4 +956,139 @@ it('does not arm the merge off the canned security-refusal text', function () {
         ->not->toContain('Original capture details')
         ->not->toContain('Nationwide')
         ->toBe('Also a Halifax Cash ISA with £5,000, owned individually');
+});
+
+it('never voices failure copy for a duplicate-skip alongside a landed write', function () {
+    // 2026-07-23 live (round 2, msg 19858): the joint account saved and the
+    // model re-called create for the already-saved current account. The
+    // dedupe skip (warning + existing_id) carries landed=false and a
+    // result message, so it entered the failure ledger and the user read
+    // "I couldn't record anything new there" directly above
+    // "Saved Joint Savings Account." A duplicate skip means the record
+    // exists — it is not a failure.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => true, 'message' => null,
+            'result' => ['success' => true, 'created' => true, 'entity_id' => 558, 'entity_type' => 'savings_account', 'name' => 'Joint Savings Account']],
+        ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 558, 'name' => 'Joint Savings Account'],
+        ['type' => 'tool_use', 'tool' => 'create_savings_account', 'status' => 'running'],
+        ['type' => 'capture_write_result', 'tool' => 'create_savings_account', 'landed' => false, 'message' => null,
+            'result' => ['warning' => true, 'existing_id' => 557, 'message' => "A similar record 'Current Account' already exists. The new record was not created to avoid duplication."]],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'Please try the joint savings account again: £12,000 at 4.2% interest, owned 50/50 with my husband Daniel.'
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)
+        ->filter(fn (array $e) => ($e['type'] ?? null) === 'content')
+        ->pluck('text');
+
+    expect($texts->first(fn (string $t) => str_contains($t, "couldn't record") || str_contains($t, "couldn't save")))
+        ->toBeNull();
+});
+
+it('a completion declaration advances a zero-output turn — "that\'s all my savings" is an answer, not noise', function () {
+    // Live 2026-07-23 (round 2, msgs 19859-19861): the user closed the
+    // savings section with "That's all my savings.", grok refused it with
+    // the injection-refusal line, the strip emptied the turn, and the
+    // zero-output guard re-asked "Sorry, I didn't catch that." A
+    // completion declaration is the negative-declaration case in another
+    // phrasing — it completes the step.
+    [$user, $conversation] = captureFailureUser();
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "That's all my savings."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+
+    expect($texts)->not->toContain("didn't catch that")
+        ->and($texts)->not->toContain('only help with financial planning');
+    expect($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+});
+
+it('suppresses the gap-fill when the model attempt failed validation pending clarification', function () {
+    // Live 2026-07-24 (user 294): grok's create_protection_policy carried
+    // provider/£250k/£30 but failed validation on the missing term length;
+    // the turn parked on "What's the term length?" — and the blind gap-fill
+    // then created a DEGRADED Aviva policy with no amounts. A failed richer
+    // attempt must suppress the extractor's create for that tool; the
+    // clarifying re-ask re-runs the capture with the full facts.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_path' => 'journey',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
+        'onboarding_fyn_selection' => 'protection',
+        'onboarding_fyn_context' => ['visited_focuses' => ['protection']],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function (User $u, AiConversation $c) {
+            return (function () use ($c) {
+                yield ['type' => 'tool_use', 'tool' => 'create_protection_policy', 'status' => 'running'];
+                yield [
+                    'type' => 'capture_write_result',
+                    'tool' => 'create_protection_policy',
+                    'landed' => false,
+                    'message' => 'What is the term length for this level term policy?',
+                    'result' => ['error' => true, 'error_type' => 'validation_failed'],
+                ];
+                yield ['type' => 'content', 'text' => "What's the term length?"];
+                $message = $c->messages()->create(['role' => 'assistant', 'content' => "What's the term length?"]);
+                yield ['type' => 'done', 'message_id' => $message->id];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
+    // THE assertion: the gap-fill must never blind-create through the tool
+    // the model's richer attempt just failed with.
+    $mock->shouldReceive('executeTool')->never();
+    test()->instance(CoordinatingAgent::class, $mock);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        "I have life insurance with Aviva, £250,000 of cover, £30 a month. That's all."
+    ) as $event) {
+        $received[] = $event;
+    }
+
+    // No degraded policy row, the turn stays parked on the capture state,
+    // and no verify announce fired for an unconfirmed write.
+    expect(LifeInsurancePolicy::where('user_id', $user->id)->count())->toBe(0)
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+
+    $advance = collect($received)->first(fn (array $e) => ($e['type'] ?? '') === 'onboarding_advance');
+    expect($advance)->toBeNull();
 });

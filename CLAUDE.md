@@ -266,6 +266,19 @@ What this means in practice:
 
 **Ownership:** OWNED by CSJ (issued 2026-06-11). Changeable only by CSJ editing this section.
 
+### 20. GOLDEN RULE — Every Fyn Change Is Made ONCE, In ONE Place, For ALL Surfaces (NEVER IGNORE)
+
+**Every Fyn change, update, prompt enhancement, vocabulary edit, or rendering fix is done ONCE, for ALL surfaces, always — never piecemeal, never in different places, always in one place.** Issued by CSJ 2026-07-23 after a full E2E day of "regressions" that were all the same disease: parallel mechanisms doing the same job, with each past fix landing in only one of them (two ownership-phrasing vocabularies, two answer paths, three SSE consumers with one missing `navigation`, per-surface markdown renderers, /m-only routes).
+
+What this means in practice:
+- **Before fixing ANY Fyn behaviour, enumerate every mechanism that implements it.** If more than one exists, consolidating them into ONE source (constant, helper, single code path) that all consumers read is PART of the fix — editing copies "in lockstep" is a violation, not a fix.
+- **Prompts:** one prompt source per behaviour (`FynSystemPrompt` + per-turn assembler layers). Never a second prompt carrying its own copy of a fact or rule.
+- **Vocabularies/regexes** (ownership phrasings, etc.): one canonical constant/class; every consumer composes from it.
+- **Frontend:** shared helpers across web + /m (e.g. `renderFynText`); every SSE consumer handles the full event contract; any route the backend emits must resolve on every surface.
+- **A change is not done until proven on all surfaces AND all paths from its ONE home** (fresh + resumed conversations, first + repeat turns, every dispatch branch — see the `feedback_all_surfaces_means_all_paths` memory).
+
+**Ownership:** OWNED by CSJ (issued 2026-07-23). Changeable only by CSJ editing this section. No plan, PR, contributor, or sub-agent overrides it.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**

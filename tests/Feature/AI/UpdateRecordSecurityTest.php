@@ -146,6 +146,32 @@ it('rejects a verify edit that omits one of the fields the user requested', func
         ->and((float) $reviewed->fresh()->isa_subscription_amount)->toBe(5000.0);
 });
 
+it('applies allowed fields and drops model-padded protected ones — the live rate-update shape', function (): void {
+    // Live 2026-07-23: grok padded ownership_percentage:100 (a schema
+    // default) alongside the user's real interest_rate change, and the
+    // whole update hard-failed — both rate corrections were lost. Protected
+    // fields are dropped (never written); the legitimate fields apply; the
+    // result names what was ignored so the model narrates truthfully.
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'interest_rate' => 0,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $account->id,
+        'fields' => ['interest_rate' => 4, 'ownership_percentage' => 100],
+    ], $user);
+
+    expect($result['success'] ?? null)->toBeTrue();
+    expect($result['fields_updated'])->toBe(['interest_rate']);
+    expect($result['ignored_fields'])->toBe(['ownership_percentage']);
+    expect((float) $account->fresh()->interest_rate)->toBe(4.0);
+});
+
 it('rejects Trust.settlor with fields_not_allowed', function (): void {
     $user = User::factory()->create();
     $trust = Trust::factory()->create(['user_id' => $user->id]);
@@ -219,7 +245,11 @@ it('rejects FamilyMember.relationship with fields_not_allowed', function (): voi
     expect($member->fresh()->relationship)->toBe('child');
 });
 
-it('rejects identity FKs across every entity', function (): void {
+it('drops identity FKs while applying the legitimate fields', function (): void {
+    // The security contract holds — user_id is NEVER written — but the
+    // legitimate field alongside it still applies instead of hard-failing
+    // the whole update (the model routinely pads protected defaults; live
+    // 2026-07-23 that padding lost the user's real changes).
     $user = User::factory()->create();
     $goal = Goal::factory()->create(['user_id' => $user->id]);
 
@@ -229,10 +259,10 @@ it('rejects identity FKs across every entity', function (): void {
         'fields' => ['user_id' => 9999, 'goal_name' => 'New name'],
     ], $user);
 
-    expect($result['error'])->toBeTrue();
-    expect($result['error_type'])->toBe('fields_not_allowed');
-    expect($result['disallowed_fields'])->toContain('user_id');
+    expect($result['success'] ?? null)->toBeTrue();
+    expect($result['ignored_fields'])->toContain('user_id');
     expect($goal->fresh()->user_id)->toBe($user->id);
+    expect($goal->fresh()->goal_name)->toBe('New name');
 });
 
 it('rejects unsupported entity types', function (): void {

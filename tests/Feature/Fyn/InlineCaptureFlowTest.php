@@ -50,6 +50,7 @@ it('strips onboarding_layout_change and quick_replies, passes fill_form and cont
     // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
     // legacy — non-weakening (other expectations stay strict).
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -105,6 +106,7 @@ it('consumes a failed capture write result and emits deterministic failure text'
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation) {
@@ -172,6 +174,7 @@ it('preserves a side-question answer when the capture write fails', function () 
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $answerText, $falseSaveText) {
@@ -223,6 +226,74 @@ it('preserves a side-question answer when the capture write fails', function () 
         ->and($types->last())->toBe('done');
 });
 
+it('emits one ask when the model already requested the missing detail before the blocked write', function () {
+    // CSJ live catch 2026-07-23 (msg 19675): the model asked for ownership,
+    // the gate blocked the write for the same reason, and the scripted
+    // "I couldn't save that" line stacked a second copy of the same ask under
+    // the model's own. One ask per turn: when the safe narration already
+    // requests the missing detail, the scripted line is dropped — while the
+    // row keeps capture_write_failed so the awaiting-detail re-arm still
+    // fires.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $modelAsk = 'I need to know whether this Santander savings account is owned individually or jointly, and if jointly, the joint owner\'s name and your percentage share.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $modelAsk) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $modelAsk,
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'content', 'text' => $modelAsk];
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'error' => true,
+                'message' => 'I need you to confirm whether you own it individually or with someone else',
+            ];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'I have a Santander savings account with £9,000 in it',
+        new CaptureContext(
+            reason: 'volunteered_mid_onboarding',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    $persistedText = (string) $conversation->messages()
+        ->where('role', 'assistant')
+        ->latest('id')
+        ->value('content');
+
+    expect($streamText)->toContain('owned individually or jointly')
+        ->and($streamText)->not->toContain("I couldn't save that")
+        ->and($persistedText)->toBe($modelAsk)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+});
+
 it('does not report a resolved write failure after the corrected retry lands', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
@@ -240,6 +311,7 @@ it('does not report a resolved write failure after the corrected retry lands', f
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $successText) {
@@ -319,6 +391,7 @@ it('keeps the earliest safe-content cutoff when a correlated retry also fails', 
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $answerText, $falseSaveText) {
@@ -391,6 +464,7 @@ it('keeps a same-batch same-tool partial failure in either result order', functi
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $landedResults) {
@@ -470,6 +544,7 @@ it('does not report failure after a complete correlated retry batch lands', func
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () use ($conversation, $successText) {
@@ -547,6 +622,7 @@ it('consumes a duplicate capture write result without presenting it as a failure
 
     $agent = Mockery::mock(CoordinatingAgent::class);
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -617,6 +693,7 @@ it('frames the inline capture as a capture turn (non-null focus) for every captu
                 $capturedFocus = $focus;
             }
         });
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -660,3 +737,68 @@ it('frames the inline capture as a capture turn (non-null focus) for every captu
     'savings_account' => ['savings_account'],
     'pension' => ['pension'],
 ]);
+
+// ── Task 4 follow-up (live csjones defect, 2026-07-23): confirmed facts must
+// reach the STREAMED tool dispatch. CoordinatingAgent is container-transient,
+// so facts set on the director's own instance never reach FynLoop's separate
+// instance — the Vanguard "On my own." two-step store blocked live while the
+// unit pin (which unified the instances via app()->instance) stayed green.
+// Facts now travel as a FynLoop::stream parameter, the same instance-pairing
+// discipline unifiedFocus uses. This pins the wiring at the loop boundary. ──
+
+it('threads confirmed facts through FynLoop::stream to the loop agent instance and clears them after', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $factsCalls = [];
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')
+        ->andReturnUsing(function ($facts) use (&$factsCalls) {
+            $factsCalls[] = $facts;
+        });
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            yield ['type' => 'content', 'text' => 'Recorded.'];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    /** @var OnboardingChatDirector $director */
+    $director = app(OnboardingChatDirector::class);
+
+    $context = new CaptureContext(
+        reason: 'user is adding their own savings_account',
+        entityTypes: ['savings_account'],
+    );
+
+    iterator_to_array(
+        $director->handleInlineCapture(
+            $user,
+            $conversation,
+            'Original capture details: I have a Vanguard account\nRequested missing details: On my own.',
+            $context,
+            null,
+            ['ownership_type' => 'individual'],
+        ),
+        false,
+    );
+
+    // The facts reached the agent BEFORE the stream (any set carrying the
+    // ownership fact), and every set was later cleared back to null.
+    $sets = array_values(array_filter($factsCalls, fn ($f) => $f !== null));
+    expect($sets)->not->toBeEmpty();
+    expect($sets[0])->toBe(['ownership_type' => 'individual']);
+    expect(end($factsCalls))->toBeNull();
+});

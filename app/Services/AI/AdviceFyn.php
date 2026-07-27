@@ -209,6 +209,59 @@ final class AdviceFyn
         ?string $currentRoute = null,
         bool $persistUserMessage = true,
     ): \Generator {
+        // Deferred-question resolution (CSJ raise shape, 2026-07-23). The
+        // completion raise's Yes/No bubbles land HERE as plain text on the
+        // now-completed user; unhandled, a bare "Yes" reached the planner
+        // context-free and punted with the no-action defer (live: "I need a
+        // little more time on this"). Yes → this turn runs as the ORIGINAL
+        // stored question (the "Yes" row still persists, the answer follows
+        // it); No → close out warmly. Only Yes/No CONSUME the flag — a stray
+        // interleaved dispatch cleared it live before the user's tap ever
+        // arrived, so any other message leaves it armed; a 10-minute expiry
+        // bounds the lingering flag instead.
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $pendingDeferred = $metadata['pending_deferred_answer'] ?? [];
+        $pendingQuestions = array_values((array) ($pendingDeferred['questions'] ?? []));
+        $raisedAt = (int) ($pendingDeferred['raised_at'] ?? 0);
+        if ($pendingQuestions !== []) {
+            $reply = mb_strtolower(trim($message));
+            $expired = $raisedAt > 0 && (now()->timestamp - $raisedAt) > 600;
+
+            if ($expired) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+            } elseif (preg_match('/^(?:no|not now|no,? than[kx]s?|no thank you)\b/u', $reply) === 1) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+
+                $ack = "No problem — ask me any time and I'll pick it up from there.";
+                if ($persistUserMessage) {
+                    $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+                }
+                $conversation->messages()->create(['role' => 'assistant', 'content' => $ack, 'persona' => 'advice']);
+                yield ['type' => 'content', 'text' => $ack];
+                yield ['type' => 'done'];
+
+                return;
+            } elseif (preg_match('/^(?:yes|yes\b.*|okay|ok|sure|go ahead|please do)$/u', $reply) === 1) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+
+                $questions = trim(implode(' ', array_filter(array_map(
+                    static fn (array $entry): string => trim((string) ($entry['question'] ?? '')),
+                    $pendingQuestions,
+                ))));
+                if ($questions !== '') {
+                    if ($persistUserMessage) {
+                        $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+                    }
+                    $message = $questions;
+                    $persistUserMessage = false;
+                }
+            }
+            // Any other reply: the flag stays armed for the user's real tap.
+        }
+
         // S0.14 — short-circuit non-financial topics with the canonical
         // refusal. The classifier only flags out_of_remit when no advice
         // keyword fired, so financial questions that incidentally mention

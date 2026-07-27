@@ -153,6 +153,7 @@ export default {
           apiGet('/api/goals/dashboard-overview', store.token),
         ]);
         if (handleAuthExpiry(listRes, this.$router)) return;
+        if (handleAuthExpiry(overviewRes, this.$router)) return;
         if (listRes.ok) {
           this.goals = listRes.data?.data?.goals || listRes.data?.goals || [];
         } else {
