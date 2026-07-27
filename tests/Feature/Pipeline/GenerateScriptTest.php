@@ -28,6 +28,9 @@ beforeEach(function () {
     Config::set('pipeline.cost.per_day_gbp', 2.00);
     Config::set('pipeline.cost.per_request_gbp', 0.30);
     Cache::flush();
+    // Scripts land in a "Scripts" subfolder; pre-seed the locator cache so tests
+    // don't need to fake the Drive folder lookup/create round-trip.
+    Cache::put('pipeline.google.drive.scripts_folder_id', 'SCRIPTS_FOLDER_ID', 3600);
 
     OAuthCredential::create([
         'provider' => 'google',
@@ -95,6 +98,7 @@ it('runs the full happy path: script → drive → sheet → email', function ()
         app(App\Services\Pipeline\VideoScriptGeneratorService::class),
         app(App\Services\Pipeline\Google\GoogleDriveService::class),
         app(App\Services\Pipeline\Google\GoogleSheetsService::class),
+        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
     );
 
     $pipelineArticle->refresh();
@@ -135,6 +139,7 @@ it('marks the article failed and records the error when Anthropic returns invali
         app(App\Services\Pipeline\VideoScriptGeneratorService::class),
         app(App\Services\Pipeline\Google\GoogleDriveService::class),
         app(App\Services\Pipeline\Google\GoogleSheetsService::class),
+        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
     ))->toThrow(\RuntimeException::class);
 
     $pipelineArticle->refresh();
@@ -164,6 +169,7 @@ it('marks the article failed when the daily cost cap is already exhausted', func
         app(App\Services\Pipeline\VideoScriptGeneratorService::class),
         app(App\Services\Pipeline\Google\GoogleDriveService::class),
         app(App\Services\Pipeline\Google\GoogleSheetsService::class),
+        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
     ))->toThrow(\RuntimeException::class, 'daily cost cap');
 
     $pipelineArticle->refresh();
@@ -185,6 +191,7 @@ it('skips articles that are not in a runnable state', function () {
         app(App\Services\Pipeline\VideoScriptGeneratorService::class),
         app(App\Services\Pipeline\Google\GoogleDriveService::class),
         app(App\Services\Pipeline\Google\GoogleSheetsService::class),
+        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
     );
 
     $pipelineArticle->refresh();

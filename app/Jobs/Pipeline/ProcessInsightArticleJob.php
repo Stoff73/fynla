@@ -9,6 +9,7 @@ use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\GoogleSheetsService;
+use App\Services\Pipeline\Google\ScriptsFolderLocator;
 use App\Services\Pipeline\VideoScriptGeneratorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -52,6 +53,7 @@ class ProcessInsightArticleJob implements ShouldQueue
         VideoScriptGeneratorService $generator,
         GoogleDriveService $drive,
         GoogleSheetsService $sheets,
+        ScriptsFolderLocator $scriptsFolder,
     ): void {
         $article = $this->pipelineArticle->fresh();
 
@@ -104,9 +106,11 @@ class ProcessInsightArticleJob implements ShouldQueue
                 : $generator->generateFromContent($title, $publishedAt, (string) $bodyText);
 
             $markdown = $this->renderMarkdown($title, $slug, $publishedAt, $result['data']);
-            $docTitle = 'Script — '.$title;
+            $docTitle = $this->datePrefix($slug, $publishedAt).' — '.$title;
 
-            $uploaded = $drive->uploadMarkdownAsGoogleDoc($docTitle, $markdown);
+            // Scripts live in their own "Scripts" subfolder, not the Marketing
+            // Automation root alongside the Articles/Videos input folders.
+            $uploaded = $drive->uploadMarkdownAsGoogleDoc($docTitle, $markdown, $scriptsFolder->resolve());
 
             // Tracker-sheet logging is best-effort: the script is already in
             // Drive, so a Sheets outage/timeout must not fail the pipeline.
@@ -214,6 +218,25 @@ class ProcessInsightArticleJob implements ShouldQueue
             'pipeline_article_id' => $article->id,
             'reason' => $reason,
         ]);
+    }
+
+    /**
+     * YYYYMMDD prefix (UK date, reversed) so scripts sort chronologically in
+     * Drive and share a date stem with the video for the same article.
+     *
+     * Prefers the date already embedded in the article slug (e.g.
+     * "20260719-01-the-tax-break…") so the script and its video line up exactly;
+     * falls back to the published date, then today.
+     */
+    private function datePrefix(?string $slug, ?\DateTimeInterface $publishedAt): string
+    {
+        if (is_string($slug) && preg_match('/^(\d{8})/', $slug, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return $publishedAt !== null
+            ? $publishedAt->format('Ymd')
+            : now()->format('Ymd');
     }
 
     private function renderMarkdown(string $title, string $slug, ?\DateTimeInterface $publishedAt, array $script): string

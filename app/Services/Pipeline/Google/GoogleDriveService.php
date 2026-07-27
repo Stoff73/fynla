@@ -184,6 +184,40 @@ class GoogleDriveService
     }
 
     /**
+     * Find a subfolder by name, creating it if it doesn't exist yet. Used for
+     * pipeline output folders (e.g. "Scripts") so a fresh environment doesn't
+     * need the folder hand-made in Drive first.
+     */
+    public function findOrCreateSubfolder(string $parentFolderId, string $name): string
+    {
+        $existing = $this->findSubfolder($parentFolderId, $name);
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $response = Http::withToken($this->oauth->accessToken())
+            ->timeout(30)
+            ->post(self::API_ROOT.'/files?supportsAllDrives=true&fields=id', [
+                'name' => $name,
+                'mimeType' => 'application/vnd.google-apps.folder',
+                'parents' => [$parentFolderId],
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                "Google Drive could not create the \"{$name}\" folder: HTTP ".$response->status()
+            );
+        }
+
+        $id = $response->json('id');
+        if (! is_string($id) || $id === '') {
+            throw new RuntimeException("Google Drive returned no folder id for \"{$name}\".");
+        }
+
+        return $id;
+    }
+
+    /**
      * A cursor marking "now" in the Drive change stream. Store it, then feed it
      * to listChanges() later to get everything that changed since.
      */
