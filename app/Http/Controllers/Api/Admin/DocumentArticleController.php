@@ -11,6 +11,8 @@ use App\Models\DocumentArticle;
 use App\Models\Pipeline\PipelineArticle;
 use App\Services\Documents\DocumentArticleImporter;
 use App\Services\Documents\StockImageService;
+use App\Services\Pipeline\ArticlePublishScheduler;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -71,7 +73,7 @@ class DocumentArticleController extends Controller
         return response()->noContent();
     }
 
-    public function publish(DocumentArticle $document): JsonResponse
+    public function publish(Request $request, DocumentArticle $document): JsonResponse
     {
         $errors = [];
         if (trim((string) $document->title) === '') {
@@ -84,12 +86,45 @@ class DocumentArticleController extends Controller
             throw ValidationException::withMessages($errors);
         }
 
-        $document->update([
-            'status' => 'published',
-            'published_at' => now(),
+        // The approver may schedule the release. A future published_at keeps the
+        // article off the public site (see DocumentArticle::scopeLive) until it
+        // comes round; omitting it publishes immediately, as before.
+        $validated = $request->validate([
+            'published_at' => ['nullable', 'date'],
         ]);
 
-        return response()->json(['data' => $document->fresh()]);
+        $publishAt = isset($validated['published_at'])
+            ? CarbonImmutable::parse($validated['published_at'])
+            : CarbonImmutable::now();
+
+        $document->update([
+            'status' => 'published',
+            'published_at' => $publishAt,
+        ]);
+
+        $fresh = $document->fresh();
+
+        return response()->json([
+            'data' => $fresh,
+            'scheduled' => $fresh->isScheduled(),
+        ]);
+    }
+
+    /**
+     * Suggested publish date/time for this article — GA-informed where there's
+     * enough data, spaced away from other articles already going out.
+     */
+    public function publishRecommendation(DocumentArticle $document, ArticlePublishScheduler $scheduler): JsonResponse
+    {
+        $recommendation = $scheduler->recommend($document->id);
+
+        return response()->json(['data' => [
+            'recommended_at' => $recommendation['at']->toIso8601String(),
+            'recommended_label' => $recommendation['at']->format('D j M Y, H:i'),
+            'reason' => $recommendation['reason'],
+            'source' => $recommendation['source'],
+            'clashes_avoided' => $recommendation['clashes_avoided'],
+        ]]);
     }
 
     public function unpublish(DocumentArticle $document): JsonResponse

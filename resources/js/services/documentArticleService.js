@@ -37,8 +37,12 @@ export default {
         return api.delete(`${base}/${id}`);
     },
 
-    publish(id) {
-        return api.post(`${base}/${id}/publish`);
+    publishRecommendation(id) {
+        return api.get(`${base}/${id}/publish-recommendation`);
+    },
+
+    publish(id, publishedAt = null) {
+        return api.post(`${base}/${id}/publish`, publishedAt ? { published_at: publishedAt } : {});
     },
 
     unpublish(id) {

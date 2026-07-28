@@ -331,6 +331,32 @@ return [
 
     'article_docs_schedule' => env('PIPELINE_ARTICLE_DOCS_SCHEDULE', '06:45'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Article publishing slots
+    |--------------------------------------------------------------------------
+    |
+    | When an approver publishes a CMS article they can pick the date/time. The
+    | editor suggests one, chosen the same way social posts are: preferred slots
+    | (below) re-ranked by Google Analytics engagement when there's enough data,
+    | skipping any slot too close to another article that's already scheduled so
+    | releases stay spaced out.
+    */
+
+    'articles' => [
+        'publish_slots' => [
+            ['day' => 'Tuesday', 'time' => '08:00'],
+            ['day' => 'Wednesday', 'time' => '12:00'],
+            ['day' => 'Thursday', 'time' => '08:00'],
+            ['day' => 'Saturday', 'time' => '09:00'],
+        ],
+        // Don't recommend a slot within this many hours of another article.
+        'min_gap_hours' => (int) env('PIPELINE_ARTICLE_MIN_GAP_HOURS', 24),
+        // Never recommend something less than this far out — the approver needs
+        // a moment, and same-minute publishing defeats the point of scheduling.
+        'min_lead_minutes' => (int) env('PIPELINE_ARTICLE_MIN_LEAD_MINUTES', 30),
+    ],
+
     'gate' => [
         'dev_to_prod_min_hours' => (int) env('PIPELINE_DEV_TO_PROD_MIN_HOURS', 1),
     ],

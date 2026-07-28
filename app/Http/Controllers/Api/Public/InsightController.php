@@ -41,7 +41,7 @@ class InsightController extends Controller
             // ahead of native insights and re-sorted by published_at desc.
             $docTotal = 0;
             if (! $category && $page === 1) {
-                $docs = DocumentArticle::published()->orderByDesc('published_at')->get();
+                $docs = DocumentArticle::live()->orderByDesc('published_at')->get();
                 $docTotal = $docs->count();
                 $docItems = DocumentArticleAsInsightListResource::collection($docs)->resolve();
                 $items = collect($docItems)->merge($items)
@@ -72,7 +72,7 @@ class InsightController extends Controller
         // insights AND CMS/pipeline document articles — so document articles
         // surface on the homepage strip, not just the /insights listing.
         $insights = InsightArticle::published()->orderByDesc('published_at')->take(6)->get();
-        $docs = DocumentArticle::published()->orderByDesc('published_at')->take(6)->get();
+        $docs = DocumentArticle::live()->orderByDesc('published_at')->take(6)->get();
         $pool = collect(DocumentArticleAsInsightListResource::collection($docs)->resolve())
             ->merge(InsightArticleListResource::collection($insights)->resolve())
             ->sortByDesc('published_at')
@@ -120,10 +120,12 @@ class InsightController extends Controller
             return new InsightArticleResource($article->load(['author', 'pipelineCampaign']));
         }
 
-        // Fall back to CMS-imported document articles.
+        // Fall back to CMS-imported document articles. `live()` rather than
+        // `published()`: an article scheduled for a future date must not be
+        // reachable at its URL before then (admins still see it via ?preview).
         $docQuery = DocumentArticle::where('slug', $slug);
         if (! $allowDraft) {
-            $docQuery->published();
+            $docQuery->live();
         }
 
         return new DocumentArticleAsInsightResource($docQuery->with('campaign')->firstOrFail());

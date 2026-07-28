@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Pipeline;
 
+use App\Services\Pipeline\ArticlePublishScheduler;
 use App\Services\Pipeline\Google\GoogleAnalyticsReporter;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -98,6 +99,29 @@ class WeeklyOptimalTimeRecalculator extends Command
         Log::channel('pipeline')->info('WeeklyOptimalTimeRecalculator wrote override.', [
             'platforms' => array_keys($override),
         ]);
+
+        // Same idea for article publishing: site-wide engagement peaks (not just
+        // social traffic) drive the publish-time the CMS recommends to approvers.
+        try {
+            $scheduler = app(ArticlePublishScheduler::class);
+            $articleSlots = $scheduler->slotsFromAnalytics($ga->peakSlotsForSite($lookback));
+
+            if ($articleSlots !== []) {
+                Cache::put(
+                    ArticlePublishScheduler::OVERRIDE_CACHE_KEY,
+                    $articleSlots,
+                    now()->addDays(10),
+                );
+                $this->info('Article publish slots updated from analytics: '.count($articleSlots).' slot(s).');
+            } else {
+                $this->line('Not enough analytics data for article publish slots — keeping the configured ones.');
+            }
+        } catch (Throwable $e) {
+            // Never fail the social recalculation because the article side errored.
+            Log::channel('pipeline')->warning('Article publish-slot recalculation failed (non-fatal).', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return self::SUCCESS;
     }

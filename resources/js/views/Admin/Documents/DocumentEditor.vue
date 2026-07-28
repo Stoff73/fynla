@@ -74,6 +74,34 @@
                 </ul>
             </div>
 
+            <div v-if="article.status !== 'published'" class="border border-horizon-200 rounded p-3">
+                <label class="block text-sm font-bold text-horizon-700 mb-1">Publish date and time</label>
+                <div class="flex flex-wrap items-center gap-2">
+                    <input
+                        v-model="publishAt"
+                        type="datetime-local"
+                        class="border border-horizon-200 rounded px-3 py-2 text-sm"
+                    />
+                    <button
+                        type="button"
+                        class="text-sm font-bold rounded px-3 py-2 border border-horizon-200 bg-eggshell-100 hover:bg-eggshell-500"
+                        @click="useRecommendedTime"
+                    >Use recommended</button>
+                    <button
+                        type="button"
+                        class="text-sm text-horizon-500 hover:text-raspberry-500 underline"
+                        @click="publishAt = ''"
+                    >Publish immediately</button>
+                </div>
+                <p v-if="recommendation" class="text-xs text-horizon-500 mt-2">
+                    <span class="font-bold text-horizon-700">Recommended:</span> {{ recommendation.reason }}
+                </p>
+                <p v-else class="text-xs text-horizon-500 mt-2">Leave blank to publish straight away.</p>
+                <p v-if="publishAtIsFuture" class="text-xs text-spring-700 mt-1">
+                    This article will stay off the site until then, and go live automatically.
+                </p>
+            </div>
+
             <div class="flex flex-wrap gap-3 pt-4 border-t border-horizon-200">
                 <button class="bg-horizon-700 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-horizon-800" @click="save">Save</button>
                 <button class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500" @click="openPreview">Preview</button>
@@ -151,6 +179,8 @@ export default {
             campaigns: [],
             socialClips: [],
             socialStatus: null,
+            publishAt: '',
+            recommendation: null,
             editor: null,
             successMessage: '',
             errorMessage: '',
@@ -159,6 +189,9 @@ export default {
     computed: {
         ...mapState('documentArticles', ['current']),
         article() { return this.current; },
+        publishAtIsFuture() {
+            return !!this.publishAt && new Date(this.publishAt).getTime() > Date.now();
+        },
     },
     async created() {
         const id = parseInt(this.$route.params.id, 10);
@@ -167,12 +200,13 @@ export default {
         this.mountEditor();
         this.loadCampaigns();
         this.loadSocialClips();
+        this.loadPublishRecommendation();
     },
     beforeUnmount() {
         if (this.editor) this.editor.destroy();
     },
     methods: {
-        ...mapActions('documentArticles', ['get', 'update', 'publish', 'unpublish', 'destroy', 'previewUrl']),
+        ...mapActions('documentArticles', ['get', 'update', 'publish', 'unpublish', 'destroy', 'previewUrl', 'publishRecommendation']),
         hydrateForm() {
             if (!this.article) return;
             this.form = {
@@ -252,11 +286,30 @@ export default {
             const url = await this.previewUrl(this.article.id);
             window.open(url, '_blank');
         },
+        async loadPublishRecommendation() {
+            if (!this.article?.id || this.article.status === 'published') return;
+            try {
+                this.recommendation = await this.publishRecommendation(this.article.id);
+                // Pre-fill with the recommendation; the approver can override or clear it.
+                if (!this.publishAt) this.publishAt = this.toLocalInput(this.recommendation.recommended_at);
+            } catch (e) {
+                this.recommendation = null;
+            }
+        },
+        useRecommendedTime() {
+            if (this.recommendation) this.publishAt = this.toLocalInput(this.recommendation.recommended_at);
+        },
+        // datetime-local needs 'YYYY-MM-DDTHH:mm' in local time, not an ISO string.
+        toLocalInput(iso) {
+            const d = new Date(iso);
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
         async onPublish() {
             const ok = await this.save({ redirect: false });
             if (!ok) return;
             try {
-                await this.publish(this.article.id);
+                await this.publish({ id: this.article.id, publishedAt: this.publishAt || null });
                 this.$router.push('/admin/documents');
             } catch (e) {
                 this.errorMessage = e?.response?.data?.message || 'Publish failed.';

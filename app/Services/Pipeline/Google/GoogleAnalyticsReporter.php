@@ -135,6 +135,53 @@ class GoogleAnalyticsReporter
         return $grouped;
     }
 
+    /**
+     * Site-wide engagement by day + hour, used to suggest when to publish an
+     * article. Unlike peakSlotsByPlatform() this is NOT filtered to social
+     * sources — it reflects when readers actually land on the site.
+     *
+     * @return list<array{day:string,hour:int,sessions:int}>
+     */
+    public function peakSlotsForSite(int $lookbackDays): array
+    {
+        $data = $this->runReport([
+            'dateRanges' => [[
+                'startDate' => $lookbackDays.'daysAgo',
+                'endDate' => 'yesterday',
+            ]],
+            'dimensions' => [
+                ['name' => 'dayOfWeekName'],
+                ['name' => 'hour'],
+            ],
+            'metrics' => [
+                ['name' => 'engagedSessions'],
+            ],
+            'orderBys' => [
+                ['metric' => ['metricName' => 'engagedSessions'], 'desc' => true],
+            ],
+            'limit' => 500,
+        ]);
+
+        $slots = [];
+        foreach ($data['rows'] ?? [] as $row) {
+            $dims = array_column($row['dimensionValues'] ?? [], 'value');
+            $mets = array_column($row['metricValues'] ?? [], 'value');
+
+            $day = (string) ($dims[0] ?? '');
+            if ($day === '') {
+                continue;
+            }
+
+            $slots[] = [
+                'day' => $day,
+                'hour' => (int) ($dims[1] ?? 0),
+                'sessions' => (int) ($mets[0] ?? 0),
+            ];
+        }
+
+        return $slots;
+    }
+
     private function runReport(array $payload): array
     {
         $propertyId = $this->propertyId();
