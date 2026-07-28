@@ -206,7 +206,7 @@
                 loading="lazy"
               />
               <h3 id="csj-heading" class="founder-card__name">Chris Slater-Jones</h3>
-              <p class="founder-card__role founder-card__role--violet">Co-Founder, Financial Planning Lead</p>
+              <p class="founder-card__role founder-card__role--violet">Co-Founder, Financial Planning and Technology Lead</p>
             </div>
 
             <dl class="founder-card__meta">
@@ -242,7 +242,7 @@
                 loading="lazy"
               />
               <h3 id="brett-heading" class="founder-card__name">Brett Isenberg, FCA</h3>
-              <p class="founder-card__role founder-card__role--spring">Co-Founder, Technology &amp; Strategy Lead</p>
+              <p class="founder-card__role founder-card__role--spring">Co-Founder, Operations and Strategy Lead</p>
             </div>
 
             <dl class="founder-card__meta">
@@ -278,26 +278,26 @@
                 loading="lazy"
               />
               <h3 id="azlan-heading" class="founder-card__name">Azlan Raj</h3>
-              <p class="founder-card__role founder-card__role--raspberry">Co-Founder, Chief Marketing Officer</p>
+              <p class="founder-card__role founder-card__role--raspberry">Co-Founder, Product and Marketing Lead</p>
             </div>
 
             <dl class="founder-card__meta">
               <div class="founder-card__meta-item">
                 <dt class="founder-card__meta-label">Qualifications</dt>
-                <dd class="founder-card__meta-value">Lorem ipsum dolor sit amet, consectetur adipiscing elit</dd>
+                <dd class="founder-card__meta-value">BA Fine Art with Business &amp; IT; MA Computer Arts</dd>
               </div>
               <div class="founder-card__meta-item">
                 <dt class="founder-card__meta-label">Experience</dt>
-                <dd class="founder-card__meta-value">Lorem ipsum dolor sit amet, consectetur adipiscing elit</dd>
+                <dd class="founder-card__meta-value">20+ years in marketing (Performance Marketing World Powerlist, PerformanceIN, CXM Today, CXM Hall of Fame)</dd>
               </div>
             </dl>
 
             <div class="founder-card__bio">
               <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 25 years&rsquo; experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world&rsquo;s largest brands &mdash; Vodafone, Sky, Rolex, Unilever, Aviva and Intel &mdash; as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
               </p>
               <p>
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis.
+                He co-authored the Amazon best-seller &ldquo;Shift: Transform motion into progress in business&rdquo;, holds a joint world record for the world&rsquo;s smallest advert, and sits on industry boards including the Forbes Communications Council, Performance Marketing World, ClickZ and the DMA Customer Engagement Committee. His style is approachable but honest &mdash; focused on innovation grounded in reality, and what it actually means for businesses today.
               </p>
             </div>
           </article>

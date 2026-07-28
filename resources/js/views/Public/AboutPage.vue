@@ -112,7 +112,7 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-violet-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Chris Slater-Jones</h3>
-              <p class="text-violet-400 font-medium">Co-Founder, Financial Planning Lead</p>
+              <p class="text-violet-400 font-medium">Co-Founder, Financial Planning and Technology Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
@@ -145,7 +145,7 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-emerald-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Brett Isenberg, FCA</h3>
-              <p class="text-emerald-400 font-medium">Co-Founder, Technology &amp; Strategy Lead</p>
+              <p class="text-emerald-400 font-medium">Co-Founder, Operations and Strategy Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
@@ -178,26 +178,26 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-raspberry-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Azlan Raj</h3>
-              <p class="text-raspberry-400 font-medium">Co-Founder, Chief Marketing Officer</p>
+              <p class="text-raspberry-400 font-medium">Co-Founder, Product and Marketing Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
               <div>
                 <p class="text-slate-500 font-medium">Qualifications</p>
-                <p class="text-slate-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
+                <p class="text-slate-300">BA Fine Art with Business &amp; IT; MA Computer Arts</p>
               </div>
               <div>
                 <p class="text-slate-500 font-medium">Experience</p>
-                <p class="text-slate-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
+                <p class="text-slate-300">20+ years in marketing (Performance Marketing World Powerlist, PerformanceIN, CXM Today, CXM Hall of Fame)</p>
               </div>
             </div>
 
             <div class="space-y-4 text-slate-300 leading-relaxed">
               <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 25 years' experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world's largest brands — Vodafone, Sky, Rolex, Unilever, Aviva and Intel — as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
               </p>
               <p>
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis.
+                He co-authored the Amazon best-seller "Shift: Transform motion into progress in business", holds a joint world record for the world's smallest advert, and sits on industry boards including the Forbes Communications Council, Performance Marketing World, ClickZ and the DMA Customer Engagement Committee. His style is approachable but honest — focused on innovation grounded in reality, and what it actually means for businesses today.
               </p>
             </div>
           </div>
