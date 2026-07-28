@@ -266,6 +266,42 @@
             </div>
           </article>
 
+          <!-- Azlan Raj -->
+          <article id="azlan-raj" class="founder-card" aria-labelledby="azlan-heading">
+            <div class="founder-card__portrait">
+              <img
+                src="/images/portraits/azlan.png"
+                alt=""
+                class="founder-card__img"
+                width="128"
+                height="128"
+                loading="lazy"
+              />
+              <h3 id="azlan-heading" class="founder-card__name">Azlan Raj</h3>
+              <p class="founder-card__role founder-card__role--raspberry">Co-Founder, Chief Marketing Officer</p>
+            </div>
+
+            <dl class="founder-card__meta">
+              <div class="founder-card__meta-item">
+                <dt class="founder-card__meta-label">Qualifications</dt>
+                <dd class="founder-card__meta-value">Lorem ipsum dolor sit amet, consectetur adipiscing elit</dd>
+              </div>
+              <div class="founder-card__meta-item">
+                <dt class="founder-card__meta-label">Experience</dt>
+                <dd class="founder-card__meta-value">Lorem ipsum dolor sit amet, consectetur adipiscing elit</dd>
+              </div>
+            </dl>
+
+            <div class="founder-card__bio">
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+              </p>
+              <p>
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis.
+              </p>
+            </div>
+          </article>
+
         </div><!-- /.founders-grid -->
       </div><!-- /.about-founders__inner -->
     </section>

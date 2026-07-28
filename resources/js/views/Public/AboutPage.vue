@@ -168,6 +168,39 @@
               </p>
             </div>
           </div>
+
+          <!-- Azlan Raj -->
+          <div id="azlan-raj" class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 scroll-mt-24">
+            <div class="flex flex-col items-center mb-6">
+              <img
+                :src="azlanImageUrl"
+                alt="Azlan Raj"
+                class="w-32 h-32 rounded-full object-cover border-4 border-raspberry-500/30 mb-4"
+              />
+              <h3 class="text-2xl font-bold text-white">Azlan Raj</h3>
+              <p class="text-raspberry-400 font-medium">Co-Founder, Chief Marketing Officer</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
+              <div>
+                <p class="text-slate-500 font-medium">Qualifications</p>
+                <p class="text-slate-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
+              </div>
+              <div>
+                <p class="text-slate-500 font-medium">Experience</p>
+                <p class="text-slate-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
+              </div>
+            </div>
+
+            <div class="space-y-4 text-slate-300 leading-relaxed">
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+              </p>
+              <p>
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -211,6 +244,7 @@ export default {
     return {
       csjImageUrl: '/images/portraits/csj.png',
       brettImageUrl: '/images/portraits/brett.png',
+      azlanImageUrl: '/images/portraits/azlan.png',
     };
   },
 
