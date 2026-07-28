@@ -194,7 +194,7 @@
 
             <div class="space-y-4 text-slate-300 leading-relaxed">
               <p>
-                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 25 years' experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world's largest brands — Vodafone, Sky, Rolex, Unilever, Aviva and Intel — as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
+                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 20 years' experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world's largest brands — Vodafone, Sky, Rolex, Unilever, Aviva and Intel — as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
               </p>
               <p>
                 He co-authored the Amazon best-seller "Shift: Transform motion into progress in business", holds a joint world record for the world's smallest advert, and sits on industry boards including the Forbes Communications Council, Performance Marketing World, ClickZ and the DMA Customer Engagement Committee. His style is approachable but honest — focused on innovation grounded in reality, and what it actually means for businesses today.
