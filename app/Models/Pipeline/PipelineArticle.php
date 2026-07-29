@@ -21,13 +21,13 @@ class PipelineArticle extends Model
         'boost' => 'array',
         'boost_eligible' => 'boolean',
         'retry_count' => 'integer',
-        'script_cost_gbp' => 'float',
+        'script_cost_gbp' => 'decimal:4',
         'script_generated_at' => 'datetime',
         'clip_paths' => 'array',
         'captions_burned' => 'boolean',
         'clips_generated_at' => 'datetime',
         'source_video_duration_s' => 'integer',
-        'video_cost_gbp' => 'float',
+        'video_cost_gbp' => 'decimal:4',
         'published_at' => 'datetime',
     ];
 

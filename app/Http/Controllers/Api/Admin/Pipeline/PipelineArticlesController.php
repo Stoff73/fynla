@@ -191,7 +191,9 @@ class PipelineArticlesController extends Controller
 
     public function destroy(Request $request, InsightArticle $article): JsonResponse
     {
-        DB::transaction(function () use ($article, $request) {
+        // Controllers don't touch the DB facade (architecture rule) — drive the
+        // transaction through the model's own connection instead.
+        $article->getConnection()->transaction(function () use ($article, $request) {
             ArticleSyncLog::create([
                 'insight_article_id' => $article->id,
                 'actor_id' => $request->user()->id,
