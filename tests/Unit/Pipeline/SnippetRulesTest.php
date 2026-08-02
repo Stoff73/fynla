@@ -6,8 +6,9 @@ use App\Services\Pipeline\AnthropicOpusClient;
 use App\Services\Pipeline\HighlightSelectorService;
 use App\Services\Pipeline\SnippetValidatorService;
 use Illuminate\Support\Facades\Config;
+use Tests\TestCase;
 
-uses(\Tests\TestCase::class);
+uses(TestCase::class);
 
 beforeEach(function () {
     Config::set('pipeline.video.snippet_threshold_seconds', 30);

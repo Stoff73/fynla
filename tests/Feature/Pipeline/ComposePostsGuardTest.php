@@ -10,9 +10,10 @@ use App\Models\Pipeline\PipelinePost;
 use App\Services\Pipeline\Social\HashtagPicker;
 use App\Services\Pipeline\Social\PostComposer;
 use App\Services\Pipeline\Social\UtmLinkBuilder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.enabled', true);

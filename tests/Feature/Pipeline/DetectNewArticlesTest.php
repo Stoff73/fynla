@@ -6,10 +6,11 @@ use App\Jobs\Pipeline\ProcessInsightArticleJob;
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.enabled', true);

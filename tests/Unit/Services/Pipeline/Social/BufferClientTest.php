@@ -36,6 +36,7 @@ it('POSTs the createPost mutation to api.buffer.com/graphql on schedule', functi
 
     Http::assertSent(function ($request) {
         $payload = $request->data();
+
         return $request->url() === 'https://api.buffer.com/graphql'
             && $request->hasHeader('Authorization', 'Bearer fake-token')
             && str_contains($payload['query'], 'mutation CreatePost')
@@ -61,6 +62,7 @@ it('sends shareNow mode when no dueAt is supplied', function () {
 
     Http::assertSent(function ($request) {
         $input = $request->data()['variables']['input'];
+
         return $input['mode'] === 'shareNow' && ! array_key_exists('dueAt', $input);
     });
 });
@@ -145,6 +147,7 @@ it('uses facebook metadata block for facebook posts', function () {
 
     Http::assertSent(function ($request) {
         $input = $request->data()['variables']['input'];
+
         return $input['channelId'] === 'fb-channel-id-def'
             && $input['metadata']['facebook']['type'] === 'reel';
     });

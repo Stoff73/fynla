@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\DocumentArticle;
+use App\Models\Pipeline\PipelineArticle;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -150,7 +151,7 @@ it('forbids non-admins from uploading a cover image', function () {
 
 it('returns the linked social video clips for an article', function () {
     $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id, 'slug' => 'clippy']);
-    \App\Models\Pipeline\PipelineArticle::create([
+    PipelineArticle::create([
         'document_article_id' => $article->id,
         'status' => 'rendered',
         'clip_paths' => ['storage/app/social/video/clippy/clip-1.mp4'],

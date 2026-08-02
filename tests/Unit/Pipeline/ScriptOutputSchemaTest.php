@@ -49,7 +49,7 @@ it('rejects output missing a required field', function () {
     ]);
 
     expect(fn () => ScriptOutputSchema::parse($json))
-        ->toThrow(\RuntimeException::class, 'missing required field: cta_text');
+        ->toThrow(RuntimeException::class, 'missing required field: cta_text');
 });
 
 it('rejects a script that is too short', function () {
@@ -64,7 +64,7 @@ it('rejects a script that is too short', function () {
     ]);
 
     expect(fn () => ScriptOutputSchema::parse($json))
-        ->toThrow(\RuntimeException::class, 'at least 100 words');
+        ->toThrow(RuntimeException::class, 'at least 100 words');
 });
 
 it('rejects an out-of-range duration', function () {
@@ -79,5 +79,5 @@ it('rejects an out-of-range duration', function () {
     ]);
 
     expect(fn () => ScriptOutputSchema::parse($json))
-        ->toThrow(\RuntimeException::class, '45–75');
+        ->toThrow(RuntimeException::class, '45–75');
 });

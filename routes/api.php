@@ -9,6 +9,13 @@ use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\Pipeline\ArticleSyncInboundController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineCampaignsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineSyncStatusController;
 use App\Http\Controllers\Api\Admin\ProceduralCorpusController;
 use App\Http\Controllers\Api\Admin\ProcedureAmendmentReviewController;
 use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
@@ -1325,45 +1332,45 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
 });
 
 // Marketing Pipeline — Stage 5 cross-env sync inbound (shared-secret auth, no user session)
-Route::post('admin/pipeline/articles/sync-inbound', [\App\Http\Controllers\Api\Admin\Pipeline\ArticleSyncInboundController::class, 'receive'])
+Route::post('admin/pipeline/articles/sync-inbound', [ArticleSyncInboundController::class, 'receive'])
     ->name('pipeline.articles.sync-inbound');
 
 // Marketing Pipeline — Stage 4 admin (campaigns + post approval queue)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pipeline')->group(function () {
-    Route::apiResource('campaigns', \App\Http\Controllers\Api\Admin\Pipeline\PipelineCampaignsController::class)
+    Route::apiResource('campaigns', PipelineCampaignsController::class)
         ->parameters(['campaigns' => 'campaign']);
 
-    Route::get('posts', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'index']);
-    Route::get('posts/{post}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'show']);
-    Route::patch('posts/{post}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'update']);
-    Route::post('posts/{post}/approve', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'approve']);
-    Route::post('posts/{post}/reject', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController::class, 'reject']);
+    Route::get('posts', [PipelinePostsController::class, 'index']);
+    Route::get('posts/{post}', [PipelinePostsController::class, 'show']);
+    Route::patch('posts/{post}', [PipelinePostsController::class, 'update']);
+    Route::post('posts/{post}/approve', [PipelinePostsController::class, 'approve']);
+    Route::post('posts/{post}/reject', [PipelinePostsController::class, 'reject']);
 
     // Stage 5 — Article manager (Word doc → cross-env publish flow)
-    Route::get('articles', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'index']);
-    Route::get('articles/{article}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'show']);
-    Route::patch('articles/{article}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'update']);
-    Route::post('articles/{article}/publish-local', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'publishLocal']);
-    Route::post('articles/{article}/push-to-dev', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'pushToDev']);
-    Route::post('articles/{article}/push-to-live', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'pushToLive']);
-    Route::post('articles/{article}/reimport', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'reimport']);
-    Route::delete('articles/{article}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController::class, 'destroy']);
+    Route::get('articles', [PipelineArticlesController::class, 'index']);
+    Route::get('articles/{article}', [PipelineArticlesController::class, 'show']);
+    Route::patch('articles/{article}', [PipelineArticlesController::class, 'update']);
+    Route::post('articles/{article}/publish-local', [PipelineArticlesController::class, 'publishLocal']);
+    Route::post('articles/{article}/push-to-dev', [PipelineArticlesController::class, 'pushToDev']);
+    Route::post('articles/{article}/push-to-live', [PipelineArticlesController::class, 'pushToLive']);
+    Route::post('articles/{article}/reimport', [PipelineArticlesController::class, 'reimport']);
+    Route::delete('articles/{article}', [PipelineArticlesController::class, 'destroy']);
 
     // Stage 5 — Publisher whitelist (users allowed to push to live)
-    Route::get('publishers', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'index']);
-    Route::post('publishers', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'store']);
-    Route::delete('publishers/{userId}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'destroy']);
-    Route::get('publishers/search-users', [\App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController::class, 'searchUsers']);
+    Route::get('publishers', [PipelinePublishersController::class, 'index']);
+    Route::post('publishers', [PipelinePublishersController::class, 'store']);
+    Route::delete('publishers/{userId}', [PipelinePublishersController::class, 'destroy']);
+    Route::get('publishers/search-users', [PipelinePublishersController::class, 'searchUsers']);
 
     // Stage 5 — Cross-env sync credential health check
-    Route::get('sync-status', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineSyncStatusController::class, 'index']);
+    Route::get('sync-status', [PipelineSyncStatusController::class, 'index']);
 
     // Stage 3.5 — Clip approval queue (between Stage 3 clip gen and Stage 4 compose)
-    Route::get('clip-approvals', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'index']);
-    Route::get('clip-approvals/{approval}', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'show']);
-    Route::post('clip-approvals/{approval}/approve', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'approve']);
-    Route::post('clip-approvals/{approval}/reject', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'reject']);
-    Route::post('clip-approvals/article/{pipelineArticleId}/approve-all', [\App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController::class, 'approveAll']);
+    Route::get('clip-approvals', [PipelineClipApprovalsController::class, 'index']);
+    Route::get('clip-approvals/{approval}', [PipelineClipApprovalsController::class, 'show']);
+    Route::post('clip-approvals/{approval}/approve', [PipelineClipApprovalsController::class, 'approve']);
+    Route::post('clip-approvals/{approval}/reject', [PipelineClipApprovalsController::class, 'reject']);
+    Route::post('clip-approvals/article/{pipelineArticleId}/approve-all', [PipelineClipApprovalsController::class, 'approveAll']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)

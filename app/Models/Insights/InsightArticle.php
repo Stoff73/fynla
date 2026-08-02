@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models\Insights;
 
+use App\Models\Pipeline\ArticleSyncLog;
+use App\Models\Pipeline\PipelineCampaign;
 use App\Models\User;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
@@ -83,12 +85,12 @@ class InsightArticle extends Model
 
     public function pipelineCampaign(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Pipeline\PipelineCampaign::class, 'pipeline_campaign_id');
+        return $this->belongsTo(PipelineCampaign::class, 'pipeline_campaign_id');
     }
 
     public function syncLogs(): HasMany
     {
-        return $this->hasMany(\App\Models\Pipeline\ArticleSyncLog::class)
+        return $this->hasMany(ArticleSyncLog::class)
             ->orderByDesc('created_at');
     }
 

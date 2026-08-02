@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 use App\Services\Pipeline\AnthropicOpusClient;
 use App\Services\Pipeline\Social\HashtagPicker;
+use Tests\TestCase;
 
-uses(\Tests\TestCase::class);
+uses(TestCase::class);
 
 beforeEach(function () {
     config()->set('pipeline.social.default_hashtag_count', 3);
@@ -60,7 +61,7 @@ it('adds missing leading # and dedupes case-insensitively', function () {
 it('throws when fewer than 2 usable hashtags survive filtering', function () {
     $anthropic = fakeAnthropic(json_encode(['#finance', '#money']));
     expect(fn () => (new HashtagPicker($anthropic))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram'))
-        ->toThrow(\RuntimeException::class);
+        ->toThrow(RuntimeException::class);
 });
 
 it('caps at hashtag_max', function () {

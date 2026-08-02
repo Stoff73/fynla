@@ -14,7 +14,6 @@ use App\Services\Pipeline\Google\ArticlesFolderLocator;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 

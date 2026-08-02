@@ -22,7 +22,7 @@ it('builds an SRT covering the full transcript when no clip range is set', funct
         ],
     ];
 
-    (new CaptionBuilder())->buildSrt($transcript, $this->tempPath);
+    (new CaptionBuilder)->buildSrt($transcript, $this->tempPath);
 
     $srt = file_get_contents($this->tempPath);
 
@@ -42,7 +42,7 @@ it('shifts timecodes to be relative to the clip start when a range is given', fu
         ],
     ];
 
-    (new CaptionBuilder())->buildSrt($transcript, $this->tempPath, clipStart: 30.0, clipEnd: 40.0);
+    (new CaptionBuilder)->buildSrt($transcript, $this->tempPath, clipStart: 30.0, clipEnd: 40.0);
 
     $srt = file_get_contents($this->tempPath);
 
@@ -62,7 +62,7 @@ it('skips empty segments and very short segments', function () {
         ],
     ];
 
-    (new CaptionBuilder())->buildSrt($transcript, $this->tempPath);
+    (new CaptionBuilder)->buildSrt($transcript, $this->tempPath);
 
     $srt = file_get_contents($this->tempPath);
 

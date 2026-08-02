@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Jobs\Pipeline\ProcessVideoJob;
-use App\Mail\Pipeline\ClipsReadyForReviewMail;
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\OAuthCredential;
 use App\Models\Pipeline\PipelineArticle;
@@ -14,12 +13,13 @@ use App\Services\Pipeline\HighlightSelectorService;
 use App\Services\Pipeline\LocalWhisperTranscriber;
 use App\Services\Pipeline\SnippetValidatorService;
 use App\Services\Pipeline\VideoCropService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.enabled', true);
@@ -88,7 +88,7 @@ it('records a fail run when the source video record is missing its Drive file ID
         app(HighlightSelectorService::class),
         app(SnippetValidatorService::class),
         app(VideoCropService::class),
-    ))->toThrow(\RuntimeException::class);
+    ))->toThrow(RuntimeException::class);
 
     $pipelineArticle->refresh();
     expect($pipelineArticle->status)->toBe('failed')

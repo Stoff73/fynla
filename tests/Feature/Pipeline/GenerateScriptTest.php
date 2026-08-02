@@ -8,12 +8,17 @@ use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\OAuthCredential;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
+use App\Services\Pipeline\Google\GoogleDriveService;
+use App\Services\Pipeline\Google\GoogleSheetsService;
+use App\Services\Pipeline\Google\ScriptsFolderLocator;
+use App\Services\Pipeline\VideoScriptGeneratorService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.enabled', true);
@@ -95,10 +100,10 @@ it('runs the full happy path: script → drive → sheet → email', function ()
     ]);
 
     (new ProcessInsightArticleJob($pipelineArticle))->handle(
-        app(App\Services\Pipeline\VideoScriptGeneratorService::class),
-        app(App\Services\Pipeline\Google\GoogleDriveService::class),
-        app(App\Services\Pipeline\Google\GoogleSheetsService::class),
-        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
+        app(VideoScriptGeneratorService::class),
+        app(GoogleDriveService::class),
+        app(GoogleSheetsService::class),
+        app(ScriptsFolderLocator::class),
     );
 
     $pipelineArticle->refresh();
@@ -136,11 +141,11 @@ it('marks the article failed and records the error when Anthropic returns invali
     $job = new ProcessInsightArticleJob($pipelineArticle);
 
     expect(fn () => $job->handle(
-        app(App\Services\Pipeline\VideoScriptGeneratorService::class),
-        app(App\Services\Pipeline\Google\GoogleDriveService::class),
-        app(App\Services\Pipeline\Google\GoogleSheetsService::class),
-        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
-    ))->toThrow(\RuntimeException::class);
+        app(VideoScriptGeneratorService::class),
+        app(GoogleDriveService::class),
+        app(GoogleSheetsService::class),
+        app(ScriptsFolderLocator::class),
+    ))->toThrow(RuntimeException::class);
 
     $pipelineArticle->refresh();
 
@@ -166,11 +171,11 @@ it('marks the article failed when the daily cost cap is already exhausted', func
     $job = new ProcessInsightArticleJob($pipelineArticle);
 
     expect(fn () => $job->handle(
-        app(App\Services\Pipeline\VideoScriptGeneratorService::class),
-        app(App\Services\Pipeline\Google\GoogleDriveService::class),
-        app(App\Services\Pipeline\Google\GoogleSheetsService::class),
-        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
-    ))->toThrow(\RuntimeException::class, 'daily cost cap');
+        app(VideoScriptGeneratorService::class),
+        app(GoogleDriveService::class),
+        app(GoogleSheetsService::class),
+        app(ScriptsFolderLocator::class),
+    ))->toThrow(RuntimeException::class, 'daily cost cap');
 
     $pipelineArticle->refresh();
 
@@ -188,10 +193,10 @@ it('skips articles that are not in a runnable state', function () {
     Http::fake();
 
     (new ProcessInsightArticleJob($pipelineArticle))->handle(
-        app(App\Services\Pipeline\VideoScriptGeneratorService::class),
-        app(App\Services\Pipeline\Google\GoogleDriveService::class),
-        app(App\Services\Pipeline\Google\GoogleSheetsService::class),
-        app(App\Services\Pipeline\Google\ScriptsFolderLocator::class),
+        app(VideoScriptGeneratorService::class),
+        app(GoogleDriveService::class),
+        app(GoogleSheetsService::class),
+        app(ScriptsFolderLocator::class),
     );
 
     $pipelineArticle->refresh();

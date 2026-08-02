@@ -7,7 +7,6 @@ namespace App\Http\Requests\Admin\Pipeline;
 use App\Models\Pipeline\PipelineCampaign;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class StorePipelineCampaignRequest extends FormRequest
 {

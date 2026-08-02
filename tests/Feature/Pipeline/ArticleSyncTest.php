@@ -5,12 +5,15 @@ declare(strict_types=1);
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\ArticleSyncLog;
 use App\Models\Pipeline\PublisherUser;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Pipeline\Content\ArticleSyncService;
+use Database\Seeders\RolesPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.sync.dev_url', 'https://dev.example.test');
@@ -18,7 +21,7 @@ beforeEach(function () {
     Config::set('pipeline.sync.prod_url', 'https://prod.example.test');
     Config::set('pipeline.sync.prod_token', 'prod-secret');
     Config::set('pipeline.sync.inbound_token', 'inbound-secret');
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
 });
 
 it('pushes an article to dev and stamps dev_synced_at', function () {
@@ -47,7 +50,7 @@ it('records an error log when the target returns non-2xx', function () {
     $article = InsightArticle::factory()->published()->create();
 
     expect(fn () => app(ArticleSyncService::class)->push($article, 'prod'))
-        ->toThrow(\RuntimeException::class);
+        ->toThrow(RuntimeException::class);
 
     $article->refresh();
     expect($article->prod_synced_at)->toBeNull();
@@ -89,7 +92,7 @@ it('inbound sync endpoint upserts the article when the token matches', function 
 
 it('push-to-live endpoint returns 422 until dev_synced_at is set', function () {
     $admin = User::factory()->create();
-    $admin->role_id = \App\Models\Role::where('name', 'admin')->first()->id;
+    $admin->role_id = Role::where('name', 'admin')->first()->id;
     $admin->save();
 
     $article = InsightArticle::factory()->published()->create();
@@ -101,7 +104,7 @@ it('push-to-live endpoint returns 422 until dev_synced_at is set', function () {
 
 it('push-to-live endpoint returns 403 without publisher permission', function () {
     $admin = User::factory()->create();
-    $admin->role_id = \App\Models\Role::where('name', 'admin')->first()->id;
+    $admin->role_id = Role::where('name', 'admin')->first()->id;
     $admin->save();
 
     $article = InsightArticle::factory()->published()->create([
@@ -119,7 +122,7 @@ it('push-to-live succeeds for a publisher after the dev-to-prod gate', function 
     ]);
 
     $admin = User::factory()->create();
-    $admin->role_id = \App\Models\Role::where('name', 'admin')->first()->id;
+    $admin->role_id = Role::where('name', 'admin')->first()->id;
     $admin->save();
 
     PublisherUser::create([

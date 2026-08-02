@@ -9,17 +9,19 @@ use App\Models\Pipeline\ClipApproval;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\User;
 use App\Services\Pipeline\ClipApprovalService;
+use Database\Seeders\RolesPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.enabled', true);
     Config::set('pipeline.clip_approval.enabled', true);
     Config::set('pipeline.clip_approval.auto_approve_minutes_before_post', 10);
     Bus::fake();
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
 });
 
 function makePipelineArticle(int $clipCount = 2): PipelineArticle

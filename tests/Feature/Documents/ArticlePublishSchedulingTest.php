@@ -6,11 +6,12 @@ use App\Models\DocumentArticle;
 use App\Models\User;
 use App\Services\Pipeline\ArticlePublishScheduler;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Laravel\Sanctum\Sanctum;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->admin = User::factory()->create(['is_admin' => true]);

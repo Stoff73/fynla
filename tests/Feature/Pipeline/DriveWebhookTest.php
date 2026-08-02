@@ -6,10 +6,11 @@ use App\Jobs\Pipeline\SyncDriveChangesJob;
 use App\Services\Pipeline\Google\ArticlesFolderLocator;
 use App\Services\Pipeline\Google\DriveChangeRouter;
 use App\Services\Pipeline\Google\VideosFolderLocator;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.drive.webhook_token', 'secret-token');

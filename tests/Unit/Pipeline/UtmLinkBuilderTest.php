@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 use App\Models\Pipeline\PipelineCampaign;
 use App\Services\Pipeline\Social\UtmLinkBuilder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(\Tests\TestCase::class, \Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     config()->set('app.url', 'https://fynla.org');
-    $this->builder = new UtmLinkBuilder();
+    $this->builder = new UtmLinkBuilder;
 });
 
 it('builds a UTM URL from an insight article slug', function () {
@@ -51,10 +53,10 @@ it('preserves existing query parameters on a custom URL', function () {
 
 it('rejects an unknown platform', function () {
     expect(fn () => $this->builder->forArticle('x', 'linkedin', 1))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('rejects a clip index below 1', function () {
     expect(fn () => $this->builder->forArticle('x', 'instagram', 0))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
