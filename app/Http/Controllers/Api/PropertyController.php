@@ -89,11 +89,16 @@ class PropertyController extends Controller
             $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
             $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
-            // Calculate user's mortgage share if mortgages exist
+            // Mortgage liability follows the borrower configuration, not the
+            // property's ownership percentage. Aggregate in case a property
+            // has more than one mortgage.
             if ($property->mortgages && $property->mortgages->count() > 0) {
-                $mortgage = $property->mortgages->first();
-                $propertyData['mortgage_user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-                $propertyData['mortgage_full_balance'] = (float) $mortgage->outstanding_balance;
+                $propertyData['mortgage_user_share'] = (float) $property->mortgages
+                    ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
+                $propertyData['mortgage_full_balance'] = (float) $property->mortgages
+                    ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
+                $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
+                    ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
             }
 
             return $propertyData;
@@ -232,11 +237,16 @@ class PropertyController extends Controller
         $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
         $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
-        // Calculate user's mortgage share if mortgages exist
+        // Mortgage liability follows the borrower configuration, not the
+        // property's ownership percentage. Aggregate in case a property has
+        // more than one mortgage.
         if ($property->mortgages && $property->mortgages->count() > 0) {
-            $mortgage = $property->mortgages->first();
-            $propertyData['mortgage_user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-            $propertyData['mortgage_full_balance'] = (float) $mortgage->outstanding_balance;
+            $propertyData['mortgage_user_share'] = (float) $property->mortgages
+                ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
+            $propertyData['mortgage_full_balance'] = (float) $property->mortgages
+                ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
+            $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
+                ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
         }
 
         return response()->json([

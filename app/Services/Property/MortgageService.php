@@ -22,8 +22,8 @@ class MortgageService
      * Create a mortgage record from property form data
      *
      * Extracts mortgage-related fields from validated property data and creates
-     * a new Mortgage record linked to the property. Handles ownership inheritance
-     * from property if not explicitly specified.
+     * a new Mortgage record linked to the property. Mortgage borrower liability
+     * is configured independently from property ownership.
      *
      * @param  Property  $property  The property to attach the mortgage to
      * @param  array  $validated  Validated form data containing mortgage fields
@@ -36,6 +36,10 @@ class MortgageService
         if (! isset($validated['outstanding_mortgage']) || $validated['outstanding_mortgage'] <= 0) {
             return null;
         }
+
+        $mortgageOwnershipType = $this->normalizeMortgageOwnershipType(
+            $validated['mortgage_ownership_type'] ?? 'individual'
+        );
 
         $mortgageData = [
             'property_id' => $property->id,
@@ -55,28 +59,26 @@ class MortgageService
             'start_date' => $validated['mortgage_start_date'] ?? now(),
             'maturity_date' => $validated['mortgage_maturity_date'] ?? now()->addYears(25),
             'remaining_term_months' => 300,
-            // Use mortgage's own ownership_type if provided, otherwise inherit from property
-            // Convert tenants_in_common to joint (mortgages only support individual/joint)
-            'ownership_type' => $this->normalizeMortgageOwnershipType(
-                $validated['mortgage_ownership_type'] ?? $validated['ownership_type'] ?? 'individual'
-            ),
-            // Use mortgage-specific ownership_percentage if provided, otherwise inherit from property
-            'ownership_percentage' => $validated['mortgage_ownership_percentage']
-                ?? $validated['ownership_percentage']
-                ?? 100.00,
+            'ownership_type' => $mortgageOwnershipType,
+            'ownership_percentage' => $mortgageOwnershipType === 'joint'
+                ? ($validated['mortgage_ownership_percentage'] ?? 50.00)
+                : 100.00,
         ];
 
-        // Add joint ownership fields if applicable
-        $mortgageJointOwnerId = $validated['mortgage_joint_owner_id']
-            ?? $validated['joint_owner_id']
-            ?? null;
+        // Add joint borrower fields if applicable.
+        $mortgageJointOwnerId = $validated['mortgage_joint_owner_id'] ?? null;
+        $mortgageJointOwnerName = $validated['mortgage_joint_owner_name'] ?? null;
 
-        if ($mortgageData['ownership_type'] === 'joint' && $mortgageJointOwnerId) {
-            $jointOwner = User::find($mortgageJointOwnerId);
-            $mortgageData['joint_owner_id'] = $mortgageJointOwnerId;
-            $mortgageData['joint_owner_name'] = $jointOwner?->name;
+        if ($mortgageData['ownership_type'] === 'joint') {
+            if ($mortgageJointOwnerId) {
+                $jointOwner = User::find($mortgageJointOwnerId);
+                $mortgageData['joint_owner_id'] = $mortgageJointOwnerId;
+                $mortgageData['joint_owner_name'] = $jointOwner?->name;
+            } elseif ($mortgageJointOwnerName) {
+                $mortgageData['joint_owner_name'] = $mortgageJointOwnerName;
+            }
 
-            // Apply same 50% default for joint mortgages (match property behavior)
+            // A mortgage with two borrowers defaults to an even liability split.
             if ($mortgageData['ownership_percentage'] == 100.00) {
                 $mortgageData['ownership_percentage'] = 50.00;
             }

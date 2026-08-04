@@ -97,22 +97,53 @@ trait CalculatesOwnershipShare
     {
         $fullBalance = (float) ($mortgage->outstanding_balance ?? 0);
 
+        return $this->calculateUserMortgageAmountShare($mortgage, $userId, $fullBalance);
+    }
+
+    /**
+     * Calculate the user's share of a mortgage monthly payment.
+     *
+     * Mortgage liability follows the mortgage borrower(s), not the ownership
+     * percentage recorded on the linked property.
+     *
+     * @param  object  $mortgage
+     * @param  int  $userId
+     * @return float
+     */
+    protected function calculateUserMortgageMonthlyPaymentShare(object $mortgage, int $userId): float
+    {
+        $fullPayment = (float) ($mortgage->monthly_payment ?? 0);
+
+        return $this->calculateUserMortgageAmountShare($mortgage, $userId, $fullPayment);
+    }
+
+    /**
+     * Calculate the user's share of a mortgage amount using the mortgage's
+     * borrower configuration.
+     *
+     * @param  object  $mortgage
+     * @param  int  $userId
+     * @param  float  $fullAmount
+     * @return float
+     */
+    private function calculateUserMortgageAmountShare(object $mortgage, int $userId, float $fullAmount): float
+    {
         $ownershipType = $mortgage->ownership_type ?? 'individual';
 
         // Individual ownership
         if ($ownershipType === 'individual' || $ownershipType === 'trust') {
-            return $mortgage->user_id === $userId ? $fullBalance : 0.0;
+            return $mortgage->user_id === $userId ? $fullAmount : 0.0;
         }
 
         // Joint ownership
         $percentage = (float) ($mortgage->ownership_percentage ?? 50);
 
         if ($mortgage->user_id === $userId) {
-            return $fullBalance * ($percentage / 100);
+            return $fullAmount * ($percentage / 100);
         }
 
         if (($mortgage->joint_owner_id ?? null) === $userId) {
-            return $fullBalance * ((100 - $percentage) / 100);
+            return $fullAmount * ((100 - $percentage) / 100);
         }
 
         return 0.0;

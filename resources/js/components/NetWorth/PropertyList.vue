@@ -276,6 +276,7 @@ export default {
             data.property.mortgage_original_loan_amount = data.mortgage.original_loan_amount;
             // Include joint ownership fields for mortgage
             data.property.mortgage_joint_owner_id = data.mortgage.joint_owner_id;
+            data.property.mortgage_joint_owner_name = data.mortgage.joint_owner_name;
             data.property.mortgage_ownership_percentage = data.mortgage.ownership_percentage;
           }
 

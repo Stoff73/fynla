@@ -119,9 +119,8 @@ export default {
     },
 
     mortgageLabel() {
-      // For shared ownership (joint or tenants in common), show user's share label
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return `Your share of mortgage (${this.property.ownership_percentage}%)`;
+      if (this.property.mortgage_user_share !== undefined) {
+        return 'Your mortgage liability';
       }
       return 'Mortgage Outstanding';
     },
@@ -135,22 +134,26 @@ export default {
     },
 
     mortgageAmount() {
-      // Get mortgage balance, applying ownership split based on property ownership type
+      // Prefer the borrower-based liability calculated by the API. Property
+      // ownership and mortgage liability can have different percentages.
+      if (this.property.mortgage_user_share !== undefined) {
+        return parseFloat(this.property.mortgage_user_share) || 0;
+      }
+
       if (this.property.mortgages && this.property.mortgages.length > 0) {
-        const total = this.property.mortgages.reduce((sum, m) => sum + (m.outstanding_balance || 0), 0);
-        // Apply ownership split for shared ownership (joint or tenants in common)
-        if (this.isSharedOwnership && this.property.ownership_percentage) {
-          return total * (this.property.ownership_percentage / 100);
-        }
-        return total;
+        return this.property.mortgages.reduce((sum, mortgage) => {
+          const balance = parseFloat(mortgage.outstanding_balance) || 0;
+
+          if (mortgage.ownership_type === 'joint') {
+            return sum + (balance * ((parseFloat(mortgage.ownership_percentage) || 50) / 100));
+          }
+
+          return sum + balance;
+        }, 0);
       }
 
       // Fallback for properties without detailed mortgage records
-      const fullMortgage = this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return fullMortgage * (this.property.ownership_percentage / 100);
-      }
-      return fullMortgage;
+      return this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
     },
 
     equity() {

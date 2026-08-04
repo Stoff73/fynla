@@ -53,6 +53,34 @@ it('creates a mortgage via POST and records FORM audit context', function () {
     expect($auditRow->metadata['ingest_source'] ?? null)->toBe('form');
 });
 
+it('does not copy a property co-owner into an individual mortgage', function () {
+    $coOwner = User::factory()->create(['tier' => 'premium']);
+    $sharedProperty = Property::factory()->create([
+        'user_id' => $this->user->id,
+        'joint_owner_id' => $coOwner->id,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 30.00,
+    ]);
+
+    $response = $this->postJson("/api/properties/{$sharedProperty->id}/mortgages", [
+        'lender_name' => 'Nationwide',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 210000.00,
+        'monthly_payment' => 1300.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertCreated();
+
+    $mortgage = Mortgage::where('property_id', $sharedProperty->id)->latest('id')->firstOrFail();
+
+    expect($mortgage->ownership_type)->toBe('individual')
+        ->and((float) $mortgage->ownership_percentage)->toBe(100.00)
+        ->and($mortgage->joint_owner_id)->toBeNull()
+        ->and($mortgage->joint_owner_name)->toBeNull();
+});
+
 it('updates a mortgage via PUT', function () {
     $mortgage = Mortgage::factory()->create([
         'user_id' => $this->user->id,

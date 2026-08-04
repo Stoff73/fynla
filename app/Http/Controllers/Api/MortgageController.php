@@ -120,13 +120,6 @@ class MortgageController extends Controller
             $validated['remaining_term_months'] = config('mortgage.default_term_months', 300);
         }
 
-        // Copy joint ownership from property if applicable
-        if (in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id) {
-            $validated['joint_owner_id'] = $property->joint_owner_id;
-            $jointOwner = User::find($property->joint_owner_id);
-            $validated['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
-        }
-
         // Default country
         if (! isset($validated['country']) || $validated['country'] === null) {
             $validated['country'] = 'United Kingdom';
