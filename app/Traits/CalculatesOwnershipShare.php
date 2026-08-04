@@ -105,10 +105,6 @@ trait CalculatesOwnershipShare
      *
      * Mortgage liability follows the mortgage borrower(s), not the ownership
      * percentage recorded on the linked property.
-     *
-     * @param  object  $mortgage
-     * @param  int  $userId
-     * @return float
      */
     protected function calculateUserMortgageMonthlyPaymentShare(object $mortgage, int $userId): float
     {
@@ -120,11 +116,6 @@ trait CalculatesOwnershipShare
     /**
      * Calculate the user's share of a mortgage amount using the mortgage's
      * borrower configuration.
-     *
-     * @param  object  $mortgage
-     * @param  int  $userId
-     * @param  float  $fullAmount
-     * @return float
      */
     private function calculateUserMortgageAmountShare(object $mortgage, int $userId, float $fullAmount): float
     {
