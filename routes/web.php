@@ -3,6 +3,10 @@
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Lifecycle\LifecycleActionController;
 use App\Http\Controllers\NewsletterActionController;
+use App\Http\Controllers\Pipeline\ClipApprovalActionController;
+use App\Http\Controllers\Pipeline\DriveWebhookController;
+use App\Http\Controllers\Pipeline\GoogleOAuthController;
+use App\Http\Controllers\Pipeline\SignedClipDownloadController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -739,6 +743,37 @@ Route::get('/mockup/dashboard', function () {
 
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8']);
 });
+
+// Marketing pipeline — Google OAuth callback (one-time, from `pipeline:authorise-google`).
+// MUST be before the SPA catch-all so the redirect renders the confirmation page.
+Route::get('/pipeline/oauth/google/callback', [GoogleOAuthController::class, 'callback'])
+    ->name('pipeline.oauth.google.callback');
+
+// Marketing pipeline — Google Drive change webhook (real-time trigger).
+// Google POSTs here on any Drive change; the X-Goog-Channel-Token header is the
+// auth (verified in the controller). CSRF-exempt (see VerifyCsrfToken).
+Route::post('/pipeline/drive/webhook', [DriveWebhookController::class, 'handle'])
+    ->name('pipeline.drive.webhook');
+
+// Marketing pipeline — signed clip download for the tracker sheet review link.
+// Signature enforces 30-day expiry (see PIPELINE_SIGNED_URL_TTL_DAYS).
+Route::get('/pipeline/clips/{slug}/{filename}', [SignedClipDownloadController::class, 'download'])
+    ->name('pipeline.clip.download')
+    ->where('slug', '[a-z0-9-]{1,80}')
+    ->where('filename', 'clip-[0-9]{1,3}\.mp4');
+
+// Marketing pipeline — magic-link clip approval from the approval email.
+// 48-char single-use tokens with a 48-hour TTL are the auth (no login required).
+Route::get('/pipeline/clips/approve/{token}', [ClipApprovalActionController::class, 'approve'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.approve');
+Route::get('/pipeline/clips/reject/{token}', [ClipApprovalActionController::class, 'reject'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.reject');
+Route::get('/pipeline/clips/approve-all/{pipelineArticleId}/{token}', [ClipApprovalActionController::class, 'approveAll'])
+    ->where('pipelineArticleId', '[0-9]+')
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.approve-all');
 
 // Serve Vue.js SPA for all routes (catch-all).
 //

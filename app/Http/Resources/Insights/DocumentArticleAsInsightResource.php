@@ -57,6 +57,37 @@ class DocumentArticleAsInsightResource extends JsonResource
             'meta_description' => $this->description,
             'canonical_url' => null,
             'source' => 'document',
+            'cta' => $this->buildCta(),
+        ];
+    }
+
+    /**
+     * Bottom call-to-action. A linked campaign overrides the default
+     * "register free" prompt with the campaign's own heading/button and
+     * points the button at the campaign landing page.
+     *
+     * @return array{heading:string,subheading:string,button_text:string,url:string,is_campaign:bool}
+     */
+    private function buildCta(): array
+    {
+        $campaign = $this->campaign; // BelongsTo; lazy-loaded when not eager-loaded.
+
+        if ($campaign !== null) {
+            return [
+                'heading' => $campaign->cta_heading ?: 'Ready to plan smarter?',
+                'subheading' => $campaign->cta_subheading ?: 'See how much more control you can have over your money.',
+                'button_text' => $campaign->cta_button_text ?: 'Get started',
+                'url' => $campaign->landing_url,
+                'is_campaign' => true,
+            ];
+        }
+
+        return [
+            'heading' => 'Ready to plan smarter?',
+            'subheading' => 'Register free and see how much more control you can have over your money.',
+            'button_text' => 'Register free',
+            'url' => '/register',
+            'is_campaign' => false,
         ];
     }
 }

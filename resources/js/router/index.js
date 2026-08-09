@@ -141,6 +141,11 @@ const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleList
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
 const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
+const PostApprovalQueue = () => import('@/views/Admin/Pipeline/PostApprovalQueue.vue');
+const PipelineArticleManager = () => import('@/views/Admin/Pipeline/ArticleManager.vue');
+const PipelineArticleEditor = () => import('@/views/Admin/Pipeline/ArticleEditor.vue');
+const PipelinePublisherManager = () => import('@/views/Admin/Pipeline/PublisherManager.vue');
+const PipelineClipApprovalQueue = () => import('@/views/Admin/Pipeline/ClipApprovalQueue.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -1326,9 +1331,57 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin/cms/pages',
+    name: 'admin.cms.pages',
+    component: () => import('@/views/Admin/Cms/PagesManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/cms/emails',
+    name: 'admin.cms.emails',
+    component: () => import('@/views/Admin/Cms/EmailsComingSoon.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/campaigns',
+    name: 'admin.campaigns',
+    component: () => import('@/views/Admin/Campaigns/CampaignManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/news-subscribers',
     name: 'AdminNewsSubscribers',
     component: NewsSubscribersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/posts',
+    name: 'AdminPipelinePosts',
+    component: PostApprovalQueue,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles',
+    name: 'AdminPipelineArticles',
+    component: PipelineArticleManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles/:id',
+    name: 'AdminPipelineArticleEditor',
+    component: PipelineArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/publishers',
+    name: 'AdminPipelinePublishers',
+    component: PipelinePublisherManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/clips',
+    name: 'AdminPipelineClipApprovals',
+    component: PipelineClipApprovalQueue,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
@@ -1677,7 +1730,13 @@ router.beforeEach(async (to, from, next) => {
   // app. Bounce them to the dashboard. Preview personas are exempt so they can
   // still reach the landing-page persona selector. Mirrors the server-side
   // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
-  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+  //
+  // Exception: `?preview=true` is the admin draft-preview link (from the CMS
+  // editor). Admins must be able to view the live article page while logged in,
+  // so don't bounce them — draft visibility is still gated server-side (the
+  // insights API only returns drafts to is_admin).
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode
+      && to.query.preview !== 'true') {
     next({ name: 'Dashboard' });
     return;
   }

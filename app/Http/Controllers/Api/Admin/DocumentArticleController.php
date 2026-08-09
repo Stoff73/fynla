@@ -8,10 +8,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DocumentArticleImportRequest;
 use App\Http\Requests\Admin\DocumentArticleUpdateRequest;
 use App\Models\DocumentArticle;
+use App\Models\Pipeline\PipelineArticle;
 use App\Services\Documents\DocumentArticleImporter;
+use App\Services\Documents\StockImageService;
+use App\Services\Pipeline\ArticlePublishScheduler;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 
 class DocumentArticleController extends Controller
@@ -28,7 +34,7 @@ class DocumentArticleController extends Controller
 
     public function show(DocumentArticle $document): JsonResponse
     {
-        $document->load('importer:id,first_name,surname,email');
+        $document->load('importer:id,first_name,surname,email', 'campaign');
 
         return response()->json(['data' => $document]);
     }
@@ -67,7 +73,7 @@ class DocumentArticleController extends Controller
         return response()->noContent();
     }
 
-    public function publish(DocumentArticle $document): JsonResponse
+    public function publish(Request $request, DocumentArticle $document): JsonResponse
     {
         $errors = [];
         if (trim((string) $document->title) === '') {
@@ -80,12 +86,45 @@ class DocumentArticleController extends Controller
             throw ValidationException::withMessages($errors);
         }
 
-        $document->update([
-            'status' => 'published',
-            'published_at' => now(),
+        // The approver may schedule the release. A future published_at keeps the
+        // article off the public site (see DocumentArticle::scopeLive) until it
+        // comes round; omitting it publishes immediately, as before.
+        $validated = $request->validate([
+            'published_at' => ['nullable', 'date'],
         ]);
 
-        return response()->json(['data' => $document->fresh()]);
+        $publishAt = isset($validated['published_at'])
+            ? CarbonImmutable::parse($validated['published_at'])
+            : CarbonImmutable::now();
+
+        $document->update([
+            'status' => 'published',
+            'published_at' => $publishAt,
+        ]);
+
+        $fresh = $document->fresh();
+
+        return response()->json([
+            'data' => $fresh,
+            'scheduled' => $fresh->isScheduled(),
+        ]);
+    }
+
+    /**
+     * Suggested publish date/time for this article — GA-informed where there's
+     * enough data, spaced away from other articles already going out.
+     */
+    public function publishRecommendation(DocumentArticle $document, ArticlePublishScheduler $scheduler): JsonResponse
+    {
+        $recommendation = $scheduler->recommend($document->id);
+
+        return response()->json(['data' => [
+            'recommended_at' => $recommendation['at']->toIso8601String(),
+            'recommended_label' => $recommendation['at']->format('D j M Y, H:i'),
+            'reason' => $recommendation['reason'],
+            'source' => $recommendation['source'],
+            'clashes_avoided' => $recommendation['clashes_avoided'],
+        ]]);
     }
 
     public function unpublish(DocumentArticle $document): JsonResponse
@@ -101,5 +140,75 @@ class DocumentArticleController extends Controller
     public function previewUrl(DocumentArticle $document): JsonResponse
     {
         return response()->json(['url' => $document->previewUrl()]);
+    }
+
+    /**
+     * Upload a cover image for an article that has no suitable embedded image.
+     * Stored alongside the article's other assets (cleaned up on destroy).
+     * Returns the storage-relative path; the editor sets it as cover_image_path
+     * and it persists on the next save.
+     */
+    public function uploadCoverImage(Request $request, DocumentArticle $document): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $path = $request->file('image')->store("document-articles/{$document->id}", 'public');
+
+        return response()->json(['path' => $path]);
+    }
+
+    /**
+     * The social video clips generated for this article by the marketing
+     * pipeline (if any), with signed preview URLs and the pipeline status.
+     */
+    public function socialClips(DocumentArticle $document): JsonResponse
+    {
+        $pipeline = PipelineArticle::where('document_article_id', $document->id)->first();
+
+        if ($pipeline === null) {
+            return response()->json(['data' => ['status' => null, 'clips' => []]]);
+        }
+
+        $ttlDays = (int) config('pipeline.video.signed_url_ttl_days', 30);
+        $clips = collect((array) $pipeline->clip_paths)->values()->map(function ($path, $i) use ($document, $ttlDays) {
+            return [
+                'index' => $i + 1,
+                'filename' => basename((string) $path),
+                'url' => URL::temporarySignedRoute(
+                    'pipeline.clip.download',
+                    now()->addDays($ttlDays),
+                    ['slug' => $document->slug, 'filename' => basename((string) $path)],
+                ),
+            ];
+        })->all();
+
+        return response()->json(['data' => [
+            'pipeline_article_id' => $pipeline->id,
+            'status' => $pipeline->status,
+            'clips' => $clips,
+            'clips_generated_at' => optional($pipeline->clips_generated_at)->toIso8601String(),
+        ]]);
+    }
+
+    /**
+     * Search Pexels for a relevant stock photo and set it as the article cover.
+     * Defaults the search to the article title; returns the stored path.
+     */
+    public function stockCover(Request $request, DocumentArticle $document, StockImageService $stock): JsonResponse
+    {
+        $query = trim((string) $request->input('query', '')) ?: (string) $document->title;
+        $result = $stock->searchAndStore($query, $document);
+
+        if ($result === null) {
+            $message = $stock->isConfigured()
+                ? 'No stock photo found for that search — try different keywords.'
+                : 'Stock photo search is not configured (missing Pexels API key).';
+
+            return response()->json(['message' => $message], 422);
+        }
+
+        return response()->json(['path' => $result['path'], 'photographer' => $result['photographer']]);
     }
 }

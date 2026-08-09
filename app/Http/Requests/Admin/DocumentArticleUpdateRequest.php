@@ -34,6 +34,7 @@ class DocumentArticleUpdateRequest extends FormRequest
             'author_byline' => ['nullable', 'string', 'max:255'],
             'cover_image_path' => ['nullable', 'string', 'max:500', 'starts_with:document-articles/'],
             'html_body' => ['required', 'string', 'max:1048576'],
+            'pipeline_campaign_id' => ['nullable', 'integer', Rule::exists('pipeline_campaigns', 'id')],
         ];
     }
 }

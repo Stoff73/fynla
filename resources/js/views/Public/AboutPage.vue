@@ -112,7 +112,7 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-violet-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Chris Slater-Jones</h3>
-              <p class="text-violet-400 font-medium">Co-Founder, Financial Planning Lead</p>
+              <p class="text-violet-400 font-medium">Co-Founder, Financial Planning and Technology Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
@@ -145,7 +145,7 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-emerald-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Brett Isenberg, FCA</h3>
-              <p class="text-emerald-400 font-medium">Co-Founder, Technology &amp; Strategy Lead</p>
+              <p class="text-emerald-400 font-medium">Co-Founder, Operations and Strategy Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
@@ -165,6 +165,39 @@
               </p>
               <p>
                 Brett writes and reviews Fynla's content on net worth, investments, savings strategy, tax planning and personal finance technology. His editorial perspective is grounded in bringing the same financial rigour used by global enterprises to personal financial planning.
+              </p>
+            </div>
+          </div>
+
+          <!-- Azlan Raj -->
+          <div id="azlan-raj" class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 scroll-mt-24">
+            <div class="flex flex-col items-center mb-6">
+              <img
+                :src="azlanImageUrl"
+                alt="Azlan Raj"
+                class="w-32 h-32 rounded-full object-cover border-4 border-raspberry-500/30 mb-4"
+              />
+              <h3 class="text-2xl font-bold text-white">Azlan Raj</h3>
+              <p class="text-raspberry-400 font-medium">Co-Founder, Product and Marketing Lead</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
+              <div>
+                <p class="text-slate-500 font-medium">Qualifications</p>
+                <p class="text-slate-300">BA Fine Art with Business &amp; IT; MA Computer Arts</p>
+              </div>
+              <div>
+                <p class="text-slate-500 font-medium">Experience</p>
+                <p class="text-slate-300">20+ years in marketing (Performance Marketing World Powerlist, PerformanceIN, CXM Today, CXM Hall of Fame)</p>
+              </div>
+            </div>
+
+            <div class="space-y-4 text-slate-300 leading-relaxed">
+              <p>
+                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 20 years' experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world's largest financial services brands — Barclays, Barclaycard, WisdomTree, Aviva and AXA — as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
+              </p>
+              <p>
+                He co-authored the Amazon best-seller "Shift: Transform motion into progress in business", holds a joint world record for the world's smallest advert, and sits on industry boards including the Forbes Communications Council, Performance Marketing World, ClickZ and the DMA Customer Engagement Committee. His style is approachable but honest — focused on innovation grounded in reality, and what it actually means for businesses today.
               </p>
             </div>
           </div>
@@ -211,6 +244,7 @@ export default {
     return {
       csjImageUrl: '/images/portraits/csj.png',
       brettImageUrl: '/images/portraits/brett.png',
+      azlanImageUrl: '/images/portraits/azlan.png',
     };
   },
 

@@ -32,7 +32,9 @@ class DocumentArticleAsInsightListResource extends JsonResource
             'category' => null,
             'tags' => [],
             'authors' => $authors,
-            'image_card' => $this->cover_image_path ? $base.$this->cover_image_path : null,
+            'image_card' => $this->cover_image_path
+                ? $base.$this->cover_image_path
+                : rtrim(config('app.url'), '/').'/images/insights/insight-default.jpg',
             'published_at' => optional($this->published_at)->toIso8601String(),
             'is_featured' => false,
             'is_bespoke' => false,

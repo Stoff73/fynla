@@ -1,0 +1,303 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Jobs\Pipeline;
+
+use App\Mail\Pipeline\ClipsAwaitingApprovalMail;
+use App\Mail\Pipeline\ClipsReadyForReviewMail;
+use App\Models\Pipeline\PipelineArticle;
+use App\Models\Pipeline\PipelineRun;
+use App\Services\Pipeline\ClipApprovalService;
+use App\Services\Pipeline\Google\GoogleDriveService;
+use App\Services\Pipeline\Google\GoogleSheetsService;
+use App\Services\Pipeline\HighlightSelectorService;
+use App\Services\Pipeline\LocalWhisperTranscriber;
+use App\Services\Pipeline\SnippetValidatorService;
+use App\Services\Pipeline\VideoCropService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Throwable;
+
+/**
+ * Stage 3 orchestrator — turns a source video from Drive into one or more
+ * 9:16 clips ready for social publishing.
+ *
+ * Flow (per InsightArticle):
+ *   1. Download source video from Drive → storage/app/social/source/{slug}.mp4
+ *   2. ffprobe → duration
+ *   3. Whisper transcribe (local, free) → used only to choose snippets
+ *   4. If duration > snippet_threshold_seconds (30s): Claude picks 2–3 catchy
+ *      ~15s snippets, a second AI pass validates/adjusts the cut points, and we
+ *      keep the full video too. At or under the threshold the video is already
+ *      postable, so it goes straight through uncut.
+ *   5. For each range: FFmpeg centre-crop to 9:16 (NO burned captions — those
+ *      are added in the editing stage) → storage/app/social/video/{slug}/clip-N.mp4
+ *   6. Update tracker sheet row with signed download URLs.
+ *   7. Email marketing@fynla.org.
+ *
+ * Errors abort the run and move the article to `failed`; retry_count is
+ * incremented so a re-run can pick up where we left off.
+ */
+class ProcessVideoJob implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+
+    /**
+     * Snippet thresholds live in config('pipeline.video.*') so they can be tuned
+     * per environment: snippet_threshold_seconds (default 30 — at or under this
+     * the video is posted uncut), snippet_target_seconds (default 15) and
+     * snippet_count (default up to 3).
+     */
+    public int $tries = 1;
+
+    public int $timeout = 3600;
+
+    public function __construct(public PipelineArticle $pipelineArticle)
+    {
+        $this->onQueue(config('pipeline.queue', 'pipeline'));
+    }
+
+    public function handle(
+        GoogleDriveService $drive,
+        GoogleSheetsService $sheets,
+        LocalWhisperTranscriber $whisper,
+        HighlightSelectorService $highlights,
+        SnippetValidatorService $validator,
+        VideoCropService $cropper,
+    ): void {
+        $article = $this->pipelineArticle->fresh();
+
+        if (! $article->hasSource()) {
+            $this->fail($article, 'Source article no longer exists.');
+
+            return;
+        }
+
+        if (! in_array($article->status, ['rendering', 'failed'], true)) {
+            Log::channel('pipeline')->info('Skipping — video already processed.', [
+                'pipeline_article_id' => $article->id,
+                'status' => $article->status,
+            ]);
+
+            return;
+        }
+
+        $slug = $article->sourceSlug();
+        $sourceDir = storage_path('app/social/source');
+        $sourcePath = $sourceDir.DIRECTORY_SEPARATOR.$slug.'.mp4';
+        $clipsDir = storage_path("app/social/video/{$slug}");
+
+        $run = PipelineRun::create([
+            'pipeline_article_id' => $article->id,
+            'stage' => 'video',
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+
+        try {
+            if (empty($article->source_video_drive_file_id)) {
+                throw new \RuntimeException('source_video_drive_file_id is missing — was the detect step skipped?');
+            }
+            $drive->downloadFile($article->source_video_drive_file_id, $sourcePath);
+            $duration = $cropper->probeDurationSeconds($sourcePath);
+
+            $transcriptPath = $whisper->transcribe($sourcePath);
+            $transcript = $whisper->load($transcriptPath);
+
+            // Build the clip set: a couple of short (20–30s) highlight clips for
+            // social PLUS the full video, uncut. Captions are NOT burned in —
+            // they're added later in the editing stage — so each range is just a
+            // crop. Very short sources (≤ the whole-video cap) only yield the
+            // full clip, since it already qualifies as a short clip on its own.
+            $fullClip = ['start' => 0.0, 'end' => $duration, 'reason' => 'Full video, uncut — for editing / long-form use.'];
+
+            // Snippet rules: a video LONGER than the threshold (default 30s) is
+            // cut into 2–3 short, catchy snippets (~15s) that get scheduled at
+            // different times. A video at or under the threshold is already
+            // postable, so it goes straight through uncut.
+            $threshold = (int) config('pipeline.video.snippet_threshold_seconds', 30);
+            $snippets = [];
+            if ($duration > $threshold) {
+                // Best-effort — if the selector/validator can't find a usable
+                // moment (off-topic or low-coherence audio) we still ship the
+                // full clip rather than failing the whole stage.
+                try {
+                    $snippets = $highlights->select(
+                        $article->sourceTitle() ?? '',
+                        $article->sourceSummary(),
+                        $transcript,
+                        (int) config('pipeline.video.snippet_count', 3),
+                    );
+
+                    // Second AI pass: confirm each snippet is a valid, catchy,
+                    // standalone clip and snap the in/out points accordingly.
+                    $snippets = $validator->validate($snippets, $transcript, $duration);
+                } catch (Throwable $e) {
+                    Log::channel('pipeline')->warning('No snippets selected — shipping full clip only.', [
+                        'pipeline_article_id' => $article->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            $clipRanges = array_merge($snippets, [$fullClip]);
+
+            if (! is_dir($clipsDir) && ! mkdir($clipsDir, 0755, true) && ! is_dir($clipsDir)) {
+                throw new \RuntimeException("Failed to create clip directory: {$clipsDir}");
+            }
+
+            $clipPaths = [];
+            foreach ($clipRanges as $index => $range) {
+                $clipNumber = $index + 1;
+                $clipPath = $clipsDir.DIRECTORY_SEPARATOR."clip-{$clipNumber}.mp4";
+                $cropper->cropAndBurn($sourcePath, $clipPath, $range['start'], $range['end']);
+                $clipPaths[] = $clipPath;
+            }
+
+            $signedUrls = array_map(
+                fn (string $path) => $this->signedDownloadUrl($slug, basename($path)),
+                $clipPaths,
+            );
+
+            $article->update([
+                'source_video_path' => $sourcePath,
+                'source_video_duration_s' => (int) round($duration),
+                'transcript_path' => $transcriptPath,
+                'clip_paths' => $clipPaths,
+                'captions_burned' => false,
+                'clips_generated_at' => now(),
+                'status' => 'rendered',
+                'last_error' => null,
+            ]);
+
+            // Best-effort tracker logging — clips are already rendered, so a
+            // Sheets outage/timeout must not fail the video stage.
+            if ($article->tracking_sheet_row_id !== null) {
+                $sheetId = (string) config('pipeline.google.tracker_sheet_id');
+                if ($sheetId !== '') {
+                    try {
+                        $sheets->appendRow($sheetId, [
+                            now()->toIso8601String(),
+                            $slug,
+                            $article->sourceTitle(),
+                            $article->script_drive_url,
+                            'Video Ready',
+                            $article->source_video_drive_url,
+                            implode("\n", $signedUrls),
+                            'captions: burned',
+                        ]);
+                    } catch (Throwable $e) {
+                        Log::channel('pipeline')->warning('Tracker sheet append failed (non-fatal).', [
+                            'pipeline_article_id' => $article->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            $run->update([
+                'status' => 'success',
+                'finished_at' => now(),
+                'metadata' => [
+                    'duration_s' => (int) round($duration),
+                    'clip_count' => count($clipPaths),
+                    'ranges' => $clipRanges,
+                ],
+            ]);
+
+            Log::channel('pipeline')->info('Video clips generated.', [
+                'pipeline_article_id' => $article->id,
+                'clip_count' => count($clipPaths),
+            ]);
+
+            // Stage 3.5 / Stage 4 handoff. Three shapes:
+            //   1. clip_approval.enabled = true → approval gate: create
+            //      ClipApproval rows, send ClipsAwaitingApprovalMail,
+            //      ComposePostsJob fires only when all clips are decided
+            //      (approved, auto_approved, or one rejected → blocked).
+            //   2. clip_approval.enabled = false + social.compose_after_render
+            //      = true → old direct-compose path (kept for regression).
+            //   3. clip_approval.enabled = false + compose_after_render =
+            //      false → clips rendered but nothing dispatched; marketing
+            //      handles composition manually via tinker.
+            if (config('pipeline.clip_approval.enabled', true)) {
+                // The full clip is always the last one appended above.
+                $approvals = app(ClipApprovalService::class)
+                    ->createForArticle($article->fresh(), count($clipPaths));
+
+                Mail::to((string) config('pipeline.notifications.script_ready_to'))
+                    ->queue(new ClipsAwaitingApprovalMail(
+                        $article->fresh(),
+                        $approvals,
+                        $signedUrls,
+                    ));
+            } else {
+                Mail::to((string) config('pipeline.notifications.script_ready_to'))
+                    ->queue(new ClipsReadyForReviewMail($article->fresh(), $signedUrls));
+
+                if (config('pipeline.social.compose_after_render')) {
+                    ComposePostsJob::dispatch($article->fresh());
+                }
+            }
+        } catch (Throwable $e) {
+            $run->update([
+                'status' => 'error',
+                'error' => $e->getMessage(),
+                'finished_at' => now(),
+            ]);
+
+            $article->increment('retry_count');
+            $article->update([
+                'status' => 'failed',
+                'last_error' => $e->getMessage(),
+            ]);
+
+            Log::channel('pipeline')->error('Video processing failed.', [
+                'pipeline_article_id' => $article->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    private function signedDownloadUrl(string $slug, string $filename): string
+    {
+        $ttlDays = (int) config('pipeline.video.signed_url_ttl_days', 30);
+
+        return URL::temporarySignedRoute(
+            'pipeline.clip.download',
+            now()->addDays($ttlDays),
+            ['slug' => $slug, 'filename' => $filename],
+        );
+    }
+
+    private function fail(PipelineArticle $article, string $reason): void
+    {
+        $article->update(['status' => 'failed', 'last_error' => $reason]);
+
+        PipelineRun::create([
+            'pipeline_article_id' => $article->id,
+            'stage' => 'video',
+            'status' => 'error',
+            'error' => $reason,
+            'started_at' => now(),
+            'finished_at' => now(),
+        ]);
+
+        Log::channel('pipeline')->error('Video processing aborted.', [
+            'pipeline_article_id' => $article->id,
+            'reason' => $reason,
+        ]);
+    }
+}

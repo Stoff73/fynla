@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\DocumentArticle;
+use App\Models\Pipeline\PipelineArticle;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -115,4 +116,80 @@ it('deletes an article', function () {
 
     $this->deleteJson("/api/admin/documents/{$article->id}")->assertNoContent();
     expect(DocumentArticle::find($article->id))->toBeNull();
+});
+
+it('uploads a cover image and returns its stored path', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $response = $this->postJson("/api/admin/documents/{$article->id}/cover-image", [
+        'image' => UploadedFile::fake()->image('cover.jpg', 800, 420),
+    ])->assertOk()->assertJsonStructure(['path']);
+
+    $path = $response->json('path');
+    expect($path)->toStartWith("document-articles/{$article->id}/");
+    Storage::disk('public')->assertExists($path);
+});
+
+it('rejects a non-image cover upload', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $this->postJson("/api/admin/documents/{$article->id}/cover-image", [
+        'image' => UploadedFile::fake()->create('notes.pdf', 20, 'application/pdf'),
+    ])->assertStatus(422);
+});
+
+it('forbids non-admins from uploading a cover image', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->user);
+
+    $this->postJson("/api/admin/documents/{$article->id}/cover-image", [
+        'image' => UploadedFile::fake()->image('cover.jpg'),
+    ])->assertForbidden();
+});
+
+it('returns the linked social video clips for an article', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id, 'slug' => 'clippy']);
+    PipelineArticle::create([
+        'document_article_id' => $article->id,
+        'status' => 'rendered',
+        'clip_paths' => ['storage/app/social/video/clippy/clip-1.mp4'],
+    ]);
+    Sanctum::actingAs($this->admin);
+
+    $response = $this->getJson("/api/admin/documents/{$article->id}/social-clips")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'rendered');
+
+    expect($response->json('data.clips'))->toHaveCount(1)
+        ->and($response->json('data.clips.0.filename'))->toBe('clip-1.mp4')
+        ->and($response->json('data.clips.0.url'))->toContain('/pipeline/clips/clippy/clip-1.mp4');
+});
+
+it('returns no clips when the article is not in the pipeline', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $this->getJson("/api/admin/documents/{$article->id}/social-clips")
+        ->assertOk()
+        ->assertJsonPath('data.status', null)
+        ->assertJsonPath('data.clips', []);
+});
+
+it('returns 422 from stock-cover when Pexels is not configured', function () {
+    config()->set('services.pexels.key', null);
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->admin);
+
+    $this->postJson("/api/admin/documents/{$article->id}/stock-cover", ['query' => 'pensions'])
+        ->assertStatus(422);
+});
+
+it('forbids non-admins from the stock-cover search', function () {
+    $article = DocumentArticle::factory()->create(['imported_by' => $this->admin->id]);
+    Sanctum::actingAs($this->user);
+
+    $this->postJson("/api/admin/documents/{$article->id}/stock-cover", ['query' => 'x'])
+        ->assertForbidden();
 });
