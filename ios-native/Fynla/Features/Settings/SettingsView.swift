@@ -1,4 +1,3 @@
-import SafariServices
 import SwiftUI
 
 struct SettingsView: View {
@@ -9,7 +8,7 @@ struct SettingsView: View {
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
     let pushCoordinator: PushRegistrationCoordinator
-    @State private var browserItem: SettingsBrowserItem?
+    @State private var browserItem: SafariSheetItem?
 
     var body: some View {
         ScrollView {
@@ -53,7 +52,7 @@ struct SettingsView: View {
             model.refresh(subscription: state)
         }
         .sheet(item: $browserItem) { item in
-            SettingsBrowserView(url: item.url)
+            SafariSheet(url: item.url)
                 .ignoresSafeArea()
         }
         .accessibilityIdentifier("settings.screen")
@@ -180,7 +179,7 @@ struct SettingsView: View {
 
     private func browserButton(_ title: String, url: URL) -> some View {
         Button(title) {
-            browserItem = SettingsBrowserItem(url: url)
+            browserItem = SafariSheetItem(url: url)
         }
         .font(FynlaTypography.body)
         .foregroundStyle(FynlaColor.primaryAction)
@@ -193,24 +192,6 @@ struct SettingsView: View {
             "settings.link.\(title.lowercased().replacingOccurrences(of: " ", with: "-"))"
         )
     }
-}
-
-private struct SettingsBrowserItem: Identifiable {
-    let url: URL
-    var id: String { url.absoluteString }
-}
-
-private struct SettingsBrowserView: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        SFSafariViewController(url: url)
-    }
-
-    func updateUIViewController(
-        _ uiViewController: SFSafariViewController,
-        context: Context
-    ) {}
 }
 
 private extension View {

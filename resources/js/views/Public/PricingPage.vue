@@ -198,28 +198,6 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getPricingFaqs } from '@/constants/faqData';
 import api from '@/services/api';
 
-// Human-readable, British-English labels for each capability_matrix /
-// count_caps entity key. Acronyms spelled out (Rule #10; ISA may stay).
-const FEATURE_LABELS = {
-  dashboard: 'Financial dashboard',
-  income: 'Income tracking',
-  expenditure: 'Expenditure tracking',
-  liabilities: 'Liabilities tracking',
-  protection: 'Protection module',
-  savings_account: 'Savings accounts',
-  investment: 'Investments',
-  investments_exotic: 'Alternative investments',
-  pension_account: 'Pensions',
-  retirement_decumulation: 'Retirement decumulation planning',
-  property: 'Property',
-  chattels: 'Personal valuables',
-  goals: 'Goals and life events',
-  family_module: 'Family module',
-  benefits_child: 'Child benefit modelling',
-  estate: 'Estate planning',
-  letter_to_spouse: 'Letter to spouse and expression of wishes',
-};
-
 export default {
   name: 'PricingPage',
 
@@ -327,33 +305,8 @@ export default {
       return this.isAuthenticated ? 'Upgrade now' : 'Choose Premium';
     },
 
-    // Build the feature list from the tier's own capability_matrix +
-    // count_caps. full → included; teaser → preview only; limited → "Up to N"
-    // (or "Unlimited" when cap is null); none → shown as not included.
     tierFeatures(tier) {
-      const matrix = tier.capability_matrix || {};
-      const caps = tier.count_caps || {};
-      return Object.keys(FEATURE_LABELS)
-        .filter(key => key in matrix)
-        .map(key => {
-          const capability = matrix[key];
-          const name = FEATURE_LABELS[key];
-          if (capability === 'full') {
-            return { key, label: name, included: true };
-          }
-          if (capability === 'teaser') {
-            return { key, label: `${name} — preview only`, included: true };
-          }
-          if (capability === 'limited') {
-            const cap = caps[key];
-            if (cap === null || cap === undefined) {
-              return { key, label: `Unlimited ${name.toLowerCase()}`, included: true };
-            }
-            return { key, label: `Up to ${cap} ${name.toLowerCase()}`, included: true };
-          }
-          // 'none' or unknown — show as not included
-          return { key, label: name, included: false };
-        });
+      return Array.isArray(tier.features) ? tier.features : [];
     },
 
     selectTier(tierKey) {

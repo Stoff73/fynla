@@ -87,7 +87,7 @@ struct DashboardModules: Decodable, Sendable, Equatable {
     var ordered: [(key: String, title: String, summary: DashboardModuleSummary)] {
         [
             ("protection", "Protection", protection),
-            ("savings", "Savings", savings),
+            ("savings", "Bank Accounts", savings),
             ("investment", "Investment", investment),
             ("retirement", "Retirement", retirement),
             ("estate", "Estate planning", estate),
@@ -190,7 +190,8 @@ enum DashboardActionKind: String, Decodable, Sendable, Equatable {
 
 struct DashboardActionDestination: Decodable, Sendable, Equatable {
     let kind: DashboardActionKind
-    let payload: String
+    let payload: String?
+    let destination: SemanticDestination?
 }
 
 struct DashboardAction: Decodable, Sendable, Equatable, Identifiable {

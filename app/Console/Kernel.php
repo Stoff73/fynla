@@ -7,6 +7,7 @@ namespace App\Console;
 use App\Jobs\AiAuditRetentionJob;
 use App\Jobs\AiIdempotencyCleanupJob;
 use App\Jobs\PublishScheduledInsightsJob;
+use App\Models\WebHandoff;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -26,6 +27,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('accounts:purge-after-retention')->monthlyOn(1, '02:00');
         $schedule->command('registrations:cleanup')->hourly();
         $schedule->command('sessions:cleanup')->dailyAt('02:00');
+        $schedule->command('model:prune', ['--model' => [WebHandoff::class]])
+            ->dailyAt('02:10');
         $schedule->command('audit:purge')->weeklyOn(0, '03:00');
         // CoALA Phase 5 FR-M10 — pause + consolidate conversations idle 3+ min.
         $schedule->command('ai:conversations:summarise-stale --idle-minutes=3 --pause')

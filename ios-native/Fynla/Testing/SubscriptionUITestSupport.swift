@@ -45,6 +45,10 @@ private actor SubscriptionUITestAPI: SubscriptionAPI {
         }
     }
 
+    func planComparison() async throws -> [PlanComparison] {
+        [.uiTestFree, .uiTestPremium]
+    }
+
     func authorizePurchase() async throws -> Bool {
         true
     }
@@ -146,6 +150,58 @@ private extension NativeEntitlement {
         capabilities: ["dashboard": "full"],
         limits: ["savings_account": nil],
         billingManagement: .web
+    )
+}
+
+private extension PlanComparison {
+    static let uiTestFree = Self(
+        tier: "free",
+        displayName: "Free",
+        features: [
+            PlanFeature(
+                key: "dashboard",
+                label: "Financial dashboard",
+                included: true,
+                availability: "full"
+            ),
+            PlanFeature(
+                key: "savings_account",
+                label: "Up to 2 bank accounts",
+                included: true,
+                availability: "limited"
+            ),
+            PlanFeature(
+                key: "estate",
+                label: "Estate planning — preview only",
+                included: true,
+                availability: "teaser"
+            ),
+        ]
+    )
+
+    static let uiTestPremium = Self(
+        tier: "premium",
+        displayName: "Premium",
+        features: [
+            PlanFeature(
+                key: "dashboard",
+                label: "Financial dashboard",
+                included: true,
+                availability: "full"
+            ),
+            PlanFeature(
+                key: "savings_account",
+                label: "Bank accounts",
+                included: true,
+                availability: "full"
+            ),
+            PlanFeature(
+                key: "estate",
+                label: "Estate planning",
+                included: true,
+                availability: "full"
+            ),
+        ]
     )
 }
 

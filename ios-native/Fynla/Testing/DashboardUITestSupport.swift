@@ -35,7 +35,7 @@ private struct DashboardUITestClient: DashboardClient {
         "alerts":[],
         "fyn_insight":"Your financial plan is taking shape. Regular reviews help ensure you stay on track with your goals.",
         "cached_at":"2026-07-18T09:00:00Z",
-        "focus_areas":[{"key":"top","label":"Top actions","locked":false,"stat":"1 action","actions":[{"id":"saving-1","type":"recommendation","module":"savings","title":"Build your emergency fund","meta":"Review your monthly contribution","value":1200,"done":false,"action":{"kind":"navigate","payload":"/savings"}}]}],
+        "focus_areas":[{"key":"top","label":"Top actions","locked":false,"stat":"1 action","actions":[{"id":"retirement-1","type":"recommendation","module":"retirement","title":"Review whether increasing your workplace pension contributions could improve your retirement outcome","meta":"This explanation must remain readable across multiple lines on a narrow mobile screen.","value":1200,"done":false,"action":{"kind":"navigate","payload":"/tax-strategy","destination":{"screen":"retirement","params":{},"fallback":"dashboard"}}}]}],
         "next_actions":[],
         "level":{"level":2,"level_name":"Building","next_level_name":"Growing","progress_percent":25,"actions_completed":1,"actions_total":4,"actions_to_next":3},
         "percentile":42,

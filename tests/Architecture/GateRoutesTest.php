@@ -11,7 +11,7 @@ it('resolves every canonical gate destination for desktop and mobile', function 
         GateRoutes::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         GateRoutes::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         GateRoutes::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],
-        GateRoutes::SAVINGS => ['label' => 'Savings', 'web' => '/savings', 'mobile' => '/savings'],
+        GateRoutes::SAVINGS => ['label' => 'Bank Accounts', 'web' => '/savings', 'mobile' => '/savings'],
         GateRoutes::LIABILITIES => ['label' => 'Liabilities', 'web' => '/net-worth/liabilities', 'mobile' => '/net-worth/liabilities'],
         GateRoutes::RETIREMENT => ['label' => 'Retirement', 'web' => '/retirement', 'mobile' => '/retirement'],
         GateRoutes::INVESTMENT => ['label' => 'Investments', 'web' => '/investment', 'mobile' => '/investment'],
@@ -21,6 +21,12 @@ it('resolves every canonical gate destination for desktop and mobile', function 
         GateRoutes::TAX_STRATEGY => ['label' => 'Tax Strategy', 'web' => '/tax-strategy', 'mobile' => '/tax-strategy'],
         GateRoutes::PROPERTY => ['label' => 'Property', 'web' => '/net-worth/property', 'mobile' => '/net-worth/property'],
         GateRoutes::HOLISTIC_PLAN => ['label' => 'Holistic Financial Plan', 'web' => '/holistic-plan', 'mobile' => '/holistic-plan'],
+        GateRoutes::NET_WORTH => ['label' => 'Net Worth', 'web' => '/net-worth', 'mobile' => '/net-worth'],
+        GateRoutes::PERSONAL_INFORMATION => ['label' => 'Personal Information', 'web' => '/settings/personal', 'mobile' => '/personal-information'],
+        GateRoutes::SUBSCRIPTION => ['label' => 'Subscription', 'web' => '/settings/subscription', 'mobile' => '/subscription'],
+        GateRoutes::SETTINGS => ['label' => 'Settings', 'web' => '/settings', 'mobile' => '/settings'],
+        GateRoutes::ACHIEVEMENTS => ['label' => 'Achievements', 'web' => '/dashboard', 'mobile' => '/achievements'],
+        GateRoutes::ADMIN => ['label' => 'Admin Panel', 'web' => '/admin', 'mobile' => null],
         GateRoutes::DASHBOARD => ['label' => 'Dashboard', 'web' => '/dashboard', 'mobile' => '/dashboard'],
     ];
 
@@ -65,4 +71,26 @@ it('backs every canonical route with the real desktop and mobile routers', funct
 
 it('rejects an unknown gate destination instead of leaking it into model-facing text', function (): void {
     GateRoutes::resolve('/internal/dead-route');
+})->throws(InvalidArgumentException::class);
+
+it('builds an allowlisted semantic destination with an explicit fallback', function (): void {
+    expect(GateRoutes::destination(
+        GateRoutes::RETIREMENT,
+        ['pension_id' => 8472],
+        GateRoutes::NET_WORTH,
+    ))->toBe([
+        'screen' => GateRoutes::RETIREMENT,
+        'params' => ['pension_id' => 8472],
+        'fallback' => GateRoutes::NET_WORTH,
+    ]);
+});
+
+it('rejects an unknown semantic fallback', function (): void {
+    GateRoutes::destination(GateRoutes::RETIREMENT, [], 'tax-by-accident');
+})->throws(InvalidArgumentException::class);
+
+it('rejects financial values in semantic destination parameters', function (): void {
+    GateRoutes::destination(GateRoutes::RETIREMENT, [
+        'current_value' => 184500.25,
+    ]);
 })->throws(InvalidArgumentException::class);

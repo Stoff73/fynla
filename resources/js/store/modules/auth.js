@@ -225,10 +225,8 @@ const mutations = {
     state.permissions = [];
     state.subscriptionData = null;
     state.tierFlags = null;
-    // Also drop the /m mobile bearer token. The desktop boot bridge
-    // (mScaffoldBridge.js) adopts localStorage('m_scaffold_token') into
-    // sessionStorage; without clearing it here, a sign-out would silently
-    // re-authenticate on the next boot.
+    // Explicit desktop sign-out also signs out the same-origin /m client.
+    // mScaffoldBridge never copies this bearer token into desktop storage.
     try { localStorage.removeItem('m_scaffold_token'); } catch (e) { /* storage disabled */ }
   },
 

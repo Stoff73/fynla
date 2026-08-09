@@ -30,6 +30,9 @@ struct NetWorthTests {
         #expect(snapshot.assetCategories.map(\.id) == [
             .property, .investments, .pensions, .cash, .business, .chattels,
         ])
+        #expect(snapshot.assetCategories.last?.title == "Valuables")
+        #expect(NetWorthCategory.chattels.rawValue == "chattels")
+        #expect(NetWorthCategory.chattels.title == "Valuables")
         #expect(snapshot.section(for: .business)?.totalValue == Decimal(60000))
         #expect(snapshot.liabilityRows.map(\.title) == [
             "Mortgages", "Loans", "Credit cards",

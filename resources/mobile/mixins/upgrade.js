@@ -1,10 +1,6 @@
-// Shared "upgrade your plan" break-out for the /m freemium nudges (Batch 5).
-//
-// The /m SPA runs inside an iframe; the subscription/upgrade UI lives on the
-// desktop web SPA, so an upgrade tap must navigate the PARENT frame — it cannot
-// route inside /m/app. This mirrors MobileChrome.gotoAdmin: bridge the auth
-// token into the parent's sessionStorage, then hard-navigate the top frame to a
-// base-aware URL. Target matches the canonical web LimitReachedModal.
+// Shared "upgrade your plan" behavior for the /m freemium nudges. Every entry
+// point first opens the in-app comparison; only that screen may issue the
+// short-lived web checkout handoff.
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
 
@@ -32,21 +28,6 @@ export async function loadMobileSubscriptionStatus() {
   return subscriptionStatusRequest;
 }
 
-export function subscriptionOptionsUrl(basePath = import.meta.env.VITE_ROUTER_BASE || '/') {
-  return `${basePath.replace(/\/?$/, '/')}settings/subscription?openPricing=1`;
-}
-
-export function openSubscriptionOptions() {
-  const url = subscriptionOptionsUrl();
-  try {
-    const token = store.token || localStorage.getItem('m_scaffold_token');
-    if (token && window.top && window.top !== window) {
-      window.top.sessionStorage.setItem('auth_token', token);
-    }
-  } catch { /* iOS partitioned storage — desktop boot bridge covers it */ }
-  (window.top || window).location.href = url;
-}
-
 export const upgradeMixin = {
   created() {
     loadMobileSubscriptionStatus();
@@ -59,7 +40,7 @@ export const upgradeMixin = {
   methods: {
     goUpgrade() {
       if (!this.paidUpgradeAvailable) return;
-      openSubscriptionOptions();
+      this.$router.push('/subscription');
     },
   },
 };

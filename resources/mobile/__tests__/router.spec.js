@@ -34,4 +34,25 @@ describe('router.js — tokenless guard on authenticated routes', () => {
     await router.push('/login');
     expect(router.currentRoute.value.path).toBe('/login');
   });
+
+  it.each([
+    '/personal-information',
+    '/settings',
+    '/notifications',
+    '/subscription',
+  ])('protects the account route %s', async (path) => {
+    await router.push(path);
+    expect(router.currentRoute.value.path).toBe('/login');
+  });
+
+  it.each([
+    '/personal-information',
+    '/settings',
+    '/notifications',
+    '/subscription',
+  ])('allows an authenticated visit to %s', async (path) => {
+    store.token = 'live-token';
+    await router.push(path);
+    expect(router.currentRoute.value.path).toBe(path);
+  });
 });

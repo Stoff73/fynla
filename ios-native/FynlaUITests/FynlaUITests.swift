@@ -68,6 +68,61 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testDashboardFirstDrawerShowsAdminForAnAuthenticatedAdmin() throws {
+        let app = app(mode: "unlocked", additionalArguments: ["-fynla-admin"])
+        app.launch()
+
+        XCTAssertTrue(app.buttons["navigation.open"].waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        let admin = app.buttons["navigation.admin"]
+        assertReachable(admin, in: app)
+        XCTAssertTrue(admin.exists)
+    }
+
+    @MainActor
+    func testDrawerOpensTheReadOnlyPersonalInformationScreen() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        XCTAssertTrue(app.buttons["navigation.open"].waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        let personalInformation = app.buttons["navigation.personal-information"]
+        assertReachable(personalInformation, in: app)
+        personalInformation.tap()
+
+        XCTAssertTrue(
+            element("personal-information.screen", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(app.buttons["Edit details"].exists)
+    }
+
+    @MainActor
+    func testDashboardShowsFullRecommendationAndUsesSemanticDestination() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let action = element("dashboard.action.retirement-1.open", in: app)
+        // The recommendation sits below the level and milestone cards on an
+        // iPhone-sized screen. Exercise the same scroll a user needs before
+        // asserting the row's complete accessible label.
+        for _ in 0..<4 where !action.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(action.waitForExistence(timeout: 3))
+        XCTAssertTrue(action.label.contains(
+            "Review whether increasing your workplace pension contributions could improve your retirement outcome"
+        ))
+        XCTAssertTrue(action.label.contains(
+            "This explanation must remain readable across multiple lines on a narrow mobile screen."
+        ))
+
+        action.tap()
+
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertFalse(element("tax-strategy.screen", in: app).exists)
+    }
+
+    @MainActor
     func testLevelWheelOpensAchievementsWithoutLeavingTheApp() throws {
         // Mirrors /m: achievements open from the level wheel — the drawer has
         // no Achievements entry.
@@ -120,13 +175,16 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
         reportProblem.tap()
 
-        // Reporting a problem chains two sequential animated transitions —
-        // the Fyn fullScreenCover dismisses, then (only once .onDisappear
-        // fires) the bug report screen is pushed onto the navigation stack.
-        // That chain comfortably finishes within 3s on local hardware but
-        // can exceed it on the CI simulator under load.
-        let description = app.textViews["bug-report.description"]
-        XCTAssertTrue(description.waitForExistence(timeout: 8))
+        let fynScreen = element("fyn.screen", in: app)
+        let bugReportScreen = element("bug-report.screen", in: app)
+        XCTAssertTrue(bugReportScreen.waitForExistence(timeout: 3))
+        XCTAssertFalse(fynScreen.exists)
+        XCTAssertFalse(reportProblem.exists)
+
+        // A vertical-axis SwiftUI TextField is exposed by XCTest as a
+        // TextField on the supported iOS 18.6 simulator, not a TextView.
+        let description = app.textFields["bug-report.description"]
+        XCTAssertTrue(description.waitForExistence(timeout: 3))
         description.tap()
         description.typeText("The native dashboard did not refresh.")
         // Dismiss the keyboard (it covers the review button on small devices).
@@ -155,13 +213,23 @@ final class FynlaUITests: XCTestCase {
     func testFreeSubscriptionShowsLocalizedStoreKitChoicesAndRestore() throws {
         let app = openSubscription(mode: "subscription-free")
 
+        XCTAssertTrue(
+            element("subscription.comparison", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(element("subscription.plan.free", in: app).exists)
+        XCTAssertTrue(element("subscription.plan.premium", in: app).exists)
+        XCTAssertTrue(
+            element("subscription.feature.free.savings_account", in: app)
+                .label.contains("Up to 2 bank accounts")
+        )
         XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("£6.99"))
         XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("1 month"))
         XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("£59.99"))
         XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("1 year"))
-        XCTAssertTrue(app.buttons["subscription.purchase"].isHittable)
-        XCTAssertTrue(app.buttons["subscription.restore"].isHittable)
+
+        assertReachable(app.buttons["subscription.purchase"], in: app)
+        assertReachable(app.buttons["subscription.restore"], in: app)
     }
 
     @MainActor
@@ -171,7 +239,7 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(
             element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
         )
-        XCTAssertTrue(app.buttons["subscription.manage-apple"].isHittable)
+        assertReachable(app.buttons["subscription.manage-apple"], in: app)
         XCTAssertFalse(app.buttons["subscription.purchase"].exists)
         XCTAssertFalse(app.buttons["subscription.restore"].exists)
     }
@@ -195,14 +263,16 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(
             element("subscription.unavailable", in: app).waitForExistence(timeout: 3)
         )
-        XCTAssertTrue(app.buttons["Try again"].isHittable)
+        assertReachable(app.buttons["Try again"], in: app)
     }
 
     @MainActor
     func testPendingPurchaseDoesNotOfferAnotherPurchaseTap() throws {
         let app = openSubscription(mode: "subscription-purchase-pending")
 
-        app.buttons["subscription.purchase"].tap()
+        let purchase = app.buttons["subscription.purchase"]
+        assertReachable(purchase, in: app)
+        purchase.tap()
         XCTAssertTrue(
             element("subscription.pending", in: app).waitForExistence(timeout: 3)
         )
@@ -214,7 +284,9 @@ final class FynlaUITests: XCTestCase {
     func testVerifiedPurchaseBecomesApplePremiumOnlyAfterServerAck() throws {
         let app = openSubscription(mode: "subscription-purchase-success")
 
-        app.buttons["subscription.purchase"].tap()
+        let purchase = app.buttons["subscription.purchase"]
+        assertReachable(purchase, in: app)
+        purchase.tap()
         XCTAssertTrue(
             element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
         )
@@ -225,7 +297,9 @@ final class FynlaUITests: XCTestCase {
     func testCancelledPurchaseRemainsFreeWithoutAnError() throws {
         let app = openSubscription(mode: "subscription-purchase-cancelled")
 
-        app.buttons["subscription.purchase"].tap()
+        let purchase = app.buttons["subscription.purchase"]
+        assertReachable(purchase, in: app)
+        purchase.tap()
         XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["subscription.message"].exists)
     }
@@ -234,7 +308,9 @@ final class FynlaUITests: XCTestCase {
     func testRestoreReconcilesAndLoadsApplePremium() throws {
         let app = openSubscription(mode: "subscription-restore-success")
 
-        app.buttons["subscription.restore"].tap()
+        let restore = app.buttons["subscription.restore"]
+        assertReachable(restore, in: app)
+        restore.tap()
         XCTAssertTrue(
             element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
         )
@@ -290,7 +366,9 @@ final class FynlaUITests: XCTestCase {
         let app = openSettings(mode: "subscription-unavailable")
 
         XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Unavailable")
-        app.buttons["app.unlocked.sign-out"].tap()
+        let signOut = app.buttons["app.unlocked.sign-out"]
+        assertReachable(signOut, in: app)
+        signOut.tap()
         XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
     }
 
@@ -392,8 +470,12 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(secondaryButton.waitForExistence(timeout: 3))
         XCTAssertTrue(destructiveButton.waitForExistence(timeout: 3))
 
-        XCTAssertEqual(window.frame.width, 414, accuracy: 1)
-        XCTAssertEqual(window.frame.height, 896, accuracy: 1)
+        // Layout reachability must hold on every supported iPhone rather
+        // than encoding the dimensions of the former iPhone 11 runner.
+        for button in [primaryButton, secondaryButton, destructiveButton] {
+            XCTAssertGreaterThanOrEqual(button.frame.minX, window.frame.minX)
+            XCTAssertLessThanOrEqual(button.frame.maxX, window.frame.maxX)
+        }
         XCTAssertGreaterThanOrEqual(primaryButton.frame.width, 44)
         XCTAssertGreaterThan(primaryButton.frame.height, 44)
         XCTAssertGreaterThan(primaryButton.frame.height, secondaryButton.frame.height)

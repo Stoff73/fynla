@@ -34,8 +34,32 @@ struct NativeEntitlement: Decodable, Sendable, Equatable {
     }
 }
 
+struct PlanComparison: Decodable, Sendable, Equatable, Identifiable {
+    let tier: String
+    let displayName: String
+    let features: [PlanFeature]
+
+    var id: String { tier }
+
+    private enum CodingKeys: String, CodingKey {
+        case tier
+        case displayName = "display_name"
+        case features
+    }
+}
+
+struct PlanFeature: Decodable, Sendable, Equatable, Identifiable {
+    let key: String
+    let label: String
+    let included: Bool
+    let availability: String
+
+    var id: String { key }
+}
+
 protocol SubscriptionAPI: Sendable {
     func entitlement() async throws -> NativeEntitlement
+    func planComparison() async throws -> [PlanComparison]
     func authorizePurchase() async throws -> Bool
     func appAccountToken() async throws -> UUID
     func acknowledge(_ transaction: SignedStoreTransaction) async throws -> Bool
@@ -58,6 +82,7 @@ enum SubscriptionUIState: Sendable, Equatable {
 @Observable
 final class SubscriptionModel {
     private(set) var state: SubscriptionUIState = .loading
+    private(set) var plans: [PlanComparison] = []
     private(set) var message: String?
     private(set) var isPurchasing = false
     private(set) var isRestoring = false
@@ -121,6 +146,7 @@ final class SubscriptionModel {
         isPurchasing = false
         isRestoring = false
         availableProducts = []
+        plans = []
         processingTransactionIDs = []
         processedTransactionIDs = []
     }
@@ -134,9 +160,18 @@ final class SubscriptionModel {
         }
         async let entitlementResult = loadEntitlement()
         async let productsResult = loadProducts()
-        let (entitlement, products) = await (entitlementResult, productsResult)
+        async let planComparisonResult = loadPlanComparison()
+        let (entitlement, products, planComparison) = await (
+            entitlementResult,
+            productsResult,
+            planComparisonResult
+        )
 
         guard generation == loadGeneration else { return }
+
+        if case let .success(resolvedPlans) = planComparison {
+            plans = resolvedPlans
+        }
 
         guard case let .success(resolvedEntitlement) = entitlement else {
             if pendingProductID != nil { return }
@@ -327,6 +362,14 @@ final class SubscriptionModel {
     private func loadProducts() async -> SubscriptionLoadResult<[StoreProduct]> {
         do {
             return .success(try await storeKit.products())
+        } catch {
+            return .failure
+        }
+    }
+
+    private func loadPlanComparison() async -> SubscriptionLoadResult<[PlanComparison]> {
+        do {
+            return .success(try await api.planComparison())
         } catch {
             return .failure
         }

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
+import { readFileSync } from 'node:fs';
 
 // Regression coverage for D2 (CSJ report, 2026-07-21): the advice suggestion
 // pills must not render until the user's onboarding state is actually known.
@@ -216,5 +217,77 @@ describe('Dashboard.vue — load() routes a 401 through handleAuthExpiry', () =>
     expect(push).not.toHaveBeenCalledWith('/login');
     expect(store.token).toBe('live-token');
     expect(wrapper.vm.error).toBe('We could not load your dashboard. Please try again.');
+  });
+});
+
+describe('Dashboard.vue — recommendation text remains readable', () => {
+  it('renders complete long action copy and uses wrapping CSS with a full tap target', async () => {
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/v1/mobile/dashboard') {
+        return Promise.resolve({ ok: true, status: 200, data: { data: { focus_areas: [] } } });
+      }
+      return Promise.resolve({ ok: true, status: 200, data: { data: {} } });
+    });
+    store.token = 'live-token';
+    store.user = {
+      id: 1,
+      onboarding_completed: true,
+      onboarding_fyn_step: null,
+      active_campaign: null,
+    };
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    const title = 'Review whether increasing your workplace pension contributions could improve your retirement outcome';
+    const meta = 'This explanation must remain readable across multiple lines on a narrow mobile screen.';
+    wrapper.vm.focusAreas = [{
+      key: 'top',
+      label: 'Top actions',
+      locked: false,
+      actions: [{ id: 'long-1', type: 'recommendation', title, meta, done: false }],
+    }];
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.get('.md-rec__title').text()).toBe(title);
+    expect(wrapper.get('.md-rec__meta').text()).toBe(meta);
+
+    const css = readFileSync('resources/mobile/views/dashboard.css', 'utf8');
+    const titleRule = css.match(/(?:^|\n)\.md-rec__title\s*\{([^}]*)\}/)?.[1] || '';
+    const metaRule = css.match(/(?:^|\n)\.md-rec__meta\s*\{([^}]*)\}/)?.[1] || '';
+    const actionRule = css.match(/(?:^|\n)\.md-rec__action\s*\{([^}]*)\}/)?.[1] || '';
+
+    expect(titleRule).toContain('white-space: normal');
+    expect(titleRule).toContain('overflow-wrap: anywhere');
+    expect(titleRule).not.toContain('text-overflow: ellipsis');
+    expect(metaRule).toContain('overflow-wrap: anywhere');
+    expect(actionRule).toContain('min-height: 44px');
+  });
+});
+
+describe('Dashboard.vue — Bank Accounts presentation naming', () => {
+  it('keeps the savings key and compatible route while presenting the finance panel as Bank Accounts', async () => {
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/v1/mobile/dashboard') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          data: {
+            data: {
+              focus_areas: [],
+              modules: { savings: { total_savings: 5000 } },
+              net_worth: { total: 5000, breakdown: { assets: { savings: 5000 } } },
+            },
+          },
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, data: { data: {} } });
+    });
+    store.token = 'live-token';
+    store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null, active_campaign: null };
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    const panel = wrapper.vm.finances.find((item) => item.key === 'savings');
+    expect(panel).toMatchObject({ label: 'Bank Accounts', route: '/savings' });
   });
 });

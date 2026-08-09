@@ -44,7 +44,7 @@ struct SavingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 MobilePageHero(
-                    title: "Bank accounts & cash",
+                    title: "Bank Accounts",
                     subtitle: "Your cash, emergency-fund runway and ISA allowance"
                 )
 
@@ -399,7 +399,7 @@ struct SavingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 MobilePageHero(
-                    title: "Bank accounts & cash",
+                    title: "Bank Accounts",
                     subtitle: "Your cash, emergency-fund runway and ISA allowance"
                 )
                 content()

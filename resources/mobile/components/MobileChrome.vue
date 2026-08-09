@@ -79,16 +79,10 @@
         </button>
       </div>
       <nav class="md-drawer__nav" aria-label="Primary navigation">
-        <div class="md-drawer__section">
-          <a href="#" class="md-drawer__link" :class="{ 'is-active': activePath === '/dashboard' }" @click.prevent="goto('/dashboard')">
-            <span class="md-drawer__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></span>
-            <span class="md-drawer__label">Dashboard</span>
-          </a>
-        </div>
         <div v-for="section in navSections" :key="section.group" class="md-drawer__section">
           <p class="md-drawer__group">{{ section.group }}</p>
           <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" :class="{ 'is-active': activePath === link.route }" @click.prevent="goto(link.route)">
-            <span class="md-drawer__icon" aria-hidden="true" v-html="link.icon"></span>
+            <span class="md-drawer__icon" aria-hidden="true" v-html="NAV_ICON[link.icon]"></span>
             <span class="md-drawer__label">{{ link.label }}</span>
           </a>
         </div>
@@ -163,6 +157,8 @@
 <script>
 import { apiGet, apiPost } from '../api.js';
 import { store } from '../store.js';
+import { primaryNavigationSections } from '../navigation/navigationModel.js';
+import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Shared Fyn onboarding-chat client. The campaign verify flow navigates the user
 // to a section's screen mid-onboarding; when they reopen the docked Fyn bar here,
 // the mixin resumes the persisted onboarding conversation and re-shows the waiting
@@ -251,27 +247,7 @@ export default {
       return store.user?.is_admin === true;
     },
     navSections() {
-      return [
-        { group: 'Cash Management', links: [
-          { slug: 'income', label: 'Income', icon: NAV_ICON.income, route: '/income' },
-          { slug: 'expenditure', label: 'Expenditure', icon: NAV_ICON.expenditure, route: '/expenditure' },
-        ] },
-        { group: 'Finances', links: [
-          { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
-          { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
-          { slug: 'investment', label: 'Investments', icon: NAV_ICON.investment, route: '/investment' },
-          { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
-        ] },
-        { group: 'Family', links: [
-          { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
-          { slug: 'estate', label: 'Estate Planning', icon: NAV_ICON.estate, route: '/estate' },
-        ] },
-        { group: 'Planning', links: [
-          { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
-          { slug: 'tax', label: 'Tax Strategy', icon: NAV_ICON.tax, route: '/tax-strategy' },
-          { slug: 'holistic', label: 'Holistic Plan', icon: NAV_ICON.holistic, route: '/holistic-plan' },
-        ] },
-      ];
+      return primaryNavigationSections;
     },
   },
   methods: {
@@ -287,16 +263,11 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    gotoAdmin() {
+    async gotoAdmin() {
       this.closeDrawer();
-      const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
       try {
-        const token = store.token || localStorage.getItem('m_scaffold_token');
-        if (token && window.top && window.top !== window) {
-          window.top.sessionStorage.setItem('auth_token', token);
-        }
-      } catch { /* iOS partitioned storage — desktop boot bridge covers it */ }
-      (window.top || window).location.href = url;
+        await issueWebHandoff('admin');
+      } catch { /* keep the current authenticated surface available */ }
     },
     async doShare(shareType) {
       try {

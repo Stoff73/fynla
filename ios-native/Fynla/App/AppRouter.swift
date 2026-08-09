@@ -3,6 +3,8 @@ import Observation
 enum AppRoute: Hashable, Sendable {
     case dashboard
     case achievements
+    case personalInformation
+    case subscription
     case income
     case expenditure
     case netWorth(category: String?)
