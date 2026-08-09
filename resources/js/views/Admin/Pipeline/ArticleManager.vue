@@ -5,7 +5,7 @@
         <div>
           <p class="text-xs text-neutral-500 uppercase tracking-wide mb-1">Admin › Pipeline › Articles</p>
           <h1 class="text-3xl font-black text-horizon-500" style="letter-spacing:-0.02em;">Article manager</h1>
-          <p class="text-sm text-neutral-500 mt-1">Word docs auto-import from Marketing Automation → Articles daily at 06:45.</p>
+          <p class="text-sm text-neutral-500 mt-1">Word docs auto-import from Marketing Automation to Articles daily at 06:45.</p>
         </div>
       </header>
 
@@ -22,7 +22,7 @@
             <p class="text-xs mt-0.5" :class="statusBandTextClass">
               <span class="mr-3">Dev: {{ envStatusLabel(syncStatus.dev) }}</span>
               <span class="mr-3">Live: {{ envStatusLabel(syncStatus.prod) }}</span>
-              <span>Inbound token on this env: {{ syncStatus.inbound.configured ? '✓' : '—' }}</span>
+              <span>Inbound token on this env: {{ syncStatus.inbound.configured ? 'Configured' : 'Not configured' }}</span>
             </p>
           </div>
           <button
@@ -102,13 +102,13 @@
                 <span
                   class="px-2 py-1 rounded-full text-xs font-semibold"
                   :class="envPillClass(article.env_state.dev_synced_at ? 'live' : 'none')"
-                >{{ article.env_state.dev_synced_at ? '✓ Live' : '—' }}</span>
+                >{{ article.env_state.dev_synced_at ? 'Live' : 'Not live' }}</span>
               </td>
               <td class="px-2 py-3 align-top text-center">
                 <span
                   class="px-2 py-1 rounded-full text-xs font-semibold"
                   :class="envPillClass(article.env_state.prod_synced_at ? 'live' : 'none')"
-                >{{ article.env_state.prod_synced_at ? '✓ Live' : '—' }}</span>
+                >{{ article.env_state.prod_synced_at ? 'Live' : 'Not live' }}</span>
               </td>
               <td class="px-4 py-3 align-top text-horizon-400">
                 <span v-if="article.campaign">{{ article.campaign.name }}</span>
@@ -188,7 +188,7 @@ export default {
       }[this.worstEnvStatus];
     },
     statusBandIcon() {
-      return { green: '✓', amber: '⚠', red: '⚠', unknown: '…' }[this.worstEnvStatus];
+      return { green: 'Healthy', amber: 'Warning', red: 'Warning', unknown: 'Unknown' }[this.worstEnvStatus];
     },
     statusBandHeading() {
       return {
@@ -238,7 +238,7 @@ export default {
       if (!env.configured) return 'not configured';
       if (env.reachable === false) return 'unreachable';
       if (env.token_valid === false) return 'token invalid';
-      if (env.token_valid === true) return '✓ ready';
+      if (env.token_valid === true) return 'Ready';
       return 'partial';
     },
     async pushToDev(article) {
@@ -269,7 +269,7 @@ export default {
       }[state] ?? 'bg-neutral-100 text-neutral-400';
     },
     envPillLabel(state) {
-      return { live: '✓ Live', draft: 'Draft', archived: 'Archived', none: '—' }[state] ?? state;
+      return { live: 'Live', draft: 'Draft', archived: 'Archived', none: 'Not live' }[state] ?? state;
     },
     humanTime(iso) {
       if (!iso) return '';

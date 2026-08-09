@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" v-if="article">
       <header class="flex items-start justify-between mb-6">
         <div>
-          <router-link to="/admin/pipeline/articles" class="text-xs text-horizon-400 hover:underline">← Back to article manager</router-link>
+          <router-link to="/admin/pipeline/articles" class="text-xs text-horizon-400 hover:underline">Back to article manager</router-link>
           <h1 class="text-2xl font-black text-horizon-500 mt-1" style="letter-spacing:-0.02em;">{{ article.title }}</h1>
           <p class="text-xs text-neutral-500 font-mono mt-1">{{ article.slug }}</p>
         </div>
@@ -88,7 +88,7 @@
             <h3 class="text-xs font-semibold uppercase text-spring-500 tracking-wide mb-2">Bottom CTA preview</h3>
             <p class="text-sm font-bold text-horizon-500 mb-1">{{ ctaHeading }}</p>
             <p class="text-xs text-horizon-400 mb-3">{{ ctaSub }}</p>
-            <button class="bg-raspberry-500 text-white px-4 py-1.5 rounded text-xs font-semibold">{{ ctaButton }} →</button>
+            <button class="bg-raspberry-500 text-white px-4 py-1.5 rounded text-xs font-semibold">{{ ctaButton }}</button>
           </div>
 
           <div class="card">

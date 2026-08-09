@@ -233,7 +233,7 @@ export default {
       const f = (c.active_from || '').slice(0, 10);
       const t = (c.active_to || '').slice(0, 10);
       if (!f && !t) return 'Always on';
-      return `${f || '…'} → ${t || '…'}`;
+      return `${f || '…'} to ${t || '…'}`;
     },
   },
 };

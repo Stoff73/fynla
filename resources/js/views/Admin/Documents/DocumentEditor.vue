@@ -69,7 +69,7 @@
                 <ul v-else class="space-y-1">
                     <li v-for="clip in socialClips" :key="clip.index" class="flex items-center justify-between text-sm">
                         <span class="text-horizon-700">Clip {{ clip.index }} <span class="text-horizon-400">({{ clip.filename }})</span></span>
-                        <a :href="clip.url" target="_blank" rel="noopener" class="text-raspberry-500 hover:text-raspberry-700 font-semibold">Preview ↗</a>
+                        <a :href="clip.url" target="_blank" rel="noopener" class="text-raspberry-500 hover:text-raspberry-700 font-semibold">Preview</a>
                     </li>
                 </ul>
             </div>
@@ -111,7 +111,7 @@
                     target="_blank"
                     rel="noopener"
                     class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500 inline-flex items-center"
-                >Open live ↗</a>
+                >Open live</a>
                 <button
                     v-if="article.status !== 'published'"
                     class="bg-raspberry-500 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-raspberry-600"
