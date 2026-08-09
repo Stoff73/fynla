@@ -36,7 +36,7 @@ class PipelineProcess extends Command
         FFmpegService $ffmpeg,
     ): int {
         $article = $this->resolveArticle();
-        if (!$article) {
+        if (! $article) {
             return self::FAILURE;
         }
 
@@ -54,7 +54,7 @@ class PipelineProcess extends Command
             // Stage 3 — Images
             $this->runStage('images', $article, fn () => $renderer->renderAll($article->fresh(), $claudeOutput));
 
-            if (!$this->option('skip-video')) {
+            if (! $this->option('skip-video')) {
                 // Stage 4 — HeyGen video
                 $videoAsset = $this->runStage('heygen', $article, fn () => $heygen->generateVideo($article->fresh(), $claudeOutput['video_script']));
 
@@ -70,8 +70,9 @@ class PipelineProcess extends Command
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
-            $this->error("Pipeline failed: " . $e->getMessage());
+            $this->error('Pipeline failed: '.$e->getMessage());
             $article->fresh()->setStatus('failed');
+
             return self::FAILURE;
         }
     }
@@ -80,10 +81,12 @@ class PipelineProcess extends Command
     {
         if ($id = $this->option('article-id')) {
             $article = Article::find($id);
-            if (!$article) {
+            if (! $article) {
                 $this->error("No article with ID {$id}");
+
                 return null;
             }
+
             return $article;
         }
 
@@ -95,6 +98,7 @@ class PipelineProcess extends Command
         }
 
         $this->error('Provide either --url or --article-id');
+
         return null;
     }
 
@@ -110,6 +114,7 @@ class PipelineProcess extends Command
         try {
             $result = $fn();
             $run->update(['status' => 'success', 'finished_at' => now()]);
+
             return $result;
         } catch (\Throwable $e) {
             $run->update(['status' => 'error', 'error' => $e->getMessage(), 'finished_at' => now()]);

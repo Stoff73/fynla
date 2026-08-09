@@ -74,7 +74,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -375,19 +375,19 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'security-cta',
-      'heading' => 'Have questions about our security practices?',
-      'actions' => [
-        ['text' => 'Contact us',  'href' => '/contact',  'primary' => true],
-        ['text' => 'Get started', 'href' => '/register', 'primary' => false],
-      ],
+        'id' => 'security-cta',
+        'heading' => 'Have questions about our security practices?',
+        'actions' => [
+            ['text' => 'Contact us',  'href' => '/contact',  'primary' => true],
+            ['text' => 'Get started', 'href' => '/register', 'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=1" defer></script>
   <script src="/pages/js/security.js?v=1" defer></script>

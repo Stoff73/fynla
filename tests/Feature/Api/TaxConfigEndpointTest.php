@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\TaxConfiguration;
 use App\Models\User;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -241,11 +243,11 @@ it('reflects edits to the active config across requests', function () {
     expect($this->getJson('/api/tax/config')->json('data.isa.annual_allowance'))
         ->toBe(20000);
 
-    \App\Models\TaxConfiguration::query()
+    TaxConfiguration::query()
         ->where('is_active', true)
         ->update([
             'config_data' => array_replace_recursive(
-                \App\Models\TaxConfiguration::query()->where('is_active', true)->first()->config_data,
+                TaxConfiguration::query()->where('is_active', true)->first()->config_data,
                 ['isa' => ['annual_allowance' => 22000]],
             ),
         ]);
@@ -253,7 +255,7 @@ it('reflects edits to the active config across requests', function () {
     // Real requests get a fresh app container, but feature tests reuse it.
     // Drop the request-scoped cache to simulate the cross-request boundary —
     // proves the controller has no extra layer of caching of its own.
-    app(\App\Services\TaxConfigService::class)->clearCache();
+    app(TaxConfigService::class)->clearCache();
 
     expect($this->getJson('/api/tax/config')->json('data.isa.annual_allowance'))
         ->toBe(22000);

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -71,7 +71,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -180,20 +180,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'cta',
-      'heading' => 'Try it yourself',
-      'subtext' => 'See the full platform with sample data. No sign-up, no credit card.',
-      'actions' => [
-        ['text' => 'Try the free demo', 'href' => '/?demo=true', 'primary' => true],
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => false],
-      ],
+        'id' => 'cta',
+        'heading' => 'Try it yourself',
+        'subtext' => 'See the full platform with sample data. No sign-up, no credit card.',
+        'actions' => [
+            ['text' => 'Try the free demo', 'href' => '/?demo=true', 'primary' => true],
+            ['text' => 'Start your free trial', 'href' => '/register', 'primary' => false],
+        ],
     ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
   <script src="/pages/js/why-fynla-independent.js?v=1" defer></script>

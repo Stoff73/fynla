@@ -18,26 +18,26 @@
  * Base CSS lives in global.css under the MODULE STYLES section.
  */
 $sectionId = htmlspecialchars($module['id'] ?? 'cta-band', ENT_QUOTES, 'UTF-8');
-$mod       = $module['modifier'] ?? '';
-$modClass  = $mod ? ' ' . htmlspecialchars($mod, ENT_QUOTES, 'UTF-8') : '';
-$tag       = $module['heading_tag'] ?? 'h2';
-$headId    = $sectionId . '-heading';
+$mod = $module['modifier'] ?? '';
+$modClass = $mod ? ' '.htmlspecialchars($mod, ENT_QUOTES, 'UTF-8') : '';
+$tag = $module['heading_tag'] ?? 'h2';
+$headId = $sectionId.'-heading';
 ?>
 <section id="<?= $sectionId ?>" class="cta-band<?= $modClass ?>" aria-labelledby="<?= htmlspecialchars($headId, ENT_QUOTES, 'UTF-8') ?>">
   <div class="cta-band__inner">
     <<?= $tag ?> id="<?= htmlspecialchars($headId, ENT_QUOTES, 'UTF-8') ?>" class="cta-band__heading"><?= htmlspecialchars($module['heading'], ENT_QUOTES, 'UTF-8') ?></<?= $tag ?>>
-    <?php if (!empty($module['subtext'])): ?>
+    <?php if (! empty($module['subtext'])) { ?>
     <p class="cta-band__subtext"><?= htmlspecialchars($module['subtext'], ENT_QUOTES, 'UTF-8') ?></p>
-    <?php endif; ?>
-    <?php if (!empty($module['actions'])): ?>
+    <?php } ?>
+    <?php if (! empty($module['actions'])) { ?>
     <div class="cta-band__actions">
-      <?php foreach ($module['actions'] as $action): ?>
+      <?php foreach ($module['actions'] as $action) { ?>
         <?php
-        $cls = !empty($action['primary']) ? 'cta-band__btn cta-band__btn--primary' : 'cta-band__btn cta-band__btn--secondary';
-        ?>
+        $cls = ! empty($action['primary']) ? 'cta-band__btn cta-band__btn--primary' : 'cta-band__btn cta-band__btn--secondary';
+          ?>
         <a href="<?= htmlspecialchars($action['href'], ENT_QUOTES, 'UTF-8') ?>" class="<?= $cls ?>"><?= htmlspecialchars($action['text'], ENT_QUOTES, 'UTF-8') ?></a>
-      <?php endforeach; ?>
+      <?php } ?>
     </div>
-    <?php endif; ?>
+    <?php } ?>
   </div>
 </section>

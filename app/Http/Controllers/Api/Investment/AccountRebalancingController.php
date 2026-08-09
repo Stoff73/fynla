@@ -16,6 +16,7 @@ use App\Services\Investment\Rebalancing\TaxAwareRebalancer;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * Account-level rebalancing controller
@@ -282,7 +283,7 @@ class AccountRebalancingController extends Controller
     /**
      * Convert asset allocation percentages to holding-level weights
      *
-     * @param  EloquentCollection|\Illuminate\Support\Collection  $holdings
+     * @param  EloquentCollection|Collection  $holdings
      */
     private function convertAllocationToHoldingWeights($holdings, array $targetAllocation): array
     {

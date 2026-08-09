@@ -78,7 +78,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -276,20 +276,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'about-cta',
-      'heading' => 'Start your free trial today',
-      'subtext' => 'No credit card required. Try any plan free for 7 days and see your complete financial picture.',
-      'actions' => [
-        ['text' => 'Get started free', 'href' => '/register',    'primary' => true],
-        ['text' => 'See pricing',      'href' => '/pricing',     'primary' => false],
-      ],
+        'id' => 'about-cta',
+        'heading' => 'Start your free trial today',
+        'subtext' => 'No credit card required. Try any plan free for 7 days and see your complete financial picture.',
+        'actions' => [
+            ['text' => 'Get started free', 'href' => '/register',    'primary' => true],
+            ['text' => 'See pricing',      'href' => '/pricing',     'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
   <script src="/pages/js/about.js?v=1" defer></script>

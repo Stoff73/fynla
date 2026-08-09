@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Http\Middleware\ApiCacheHeaders;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 uses(RefreshDatabase::class);
 
@@ -13,7 +15,7 @@ uses(RefreshDatabase::class);
  * when set via headers->set('Cache-Control', ...), so we assert on the
  * presence of each directive rather than a fixed string.
  */
-function assertNoStore(\Illuminate\Testing\TestResponse|\Symfony\Component\HttpFoundation\Response $response): void
+function assertNoStore(TestResponse|Response $response): void
 {
     $cc = $response->headers->get('Cache-Control');
 

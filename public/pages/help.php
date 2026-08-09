@@ -74,7 +74,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -443,41 +443,41 @@
 
             <?php
             $module = [
-              'id'          => 'help-page-faq',
-              'heading'     => '',
-              'heading_tag' => 'h3',
-              'items'       => [
-                ['q' => 'How do I add a protection policy?',
-                 'a' => 'Go to Protection module â†’ Policy Details tab â†’ click "Add Policy". Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.'],
-                ['q' => 'How is Inheritance Tax calculated?',
-                 'a' => 'Inheritance Tax is charged at 40% on your estate above the tax-free allowances: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.'],
-                ['q' => 'What is the difference between Defined Contribution and Defined Benefit pensions?',
-                 'a' => 'Defined Contribution (money purchase) pensions are pot-based — you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
-                ['q' => 'Can I have multiple ISAs?',
-                 'a' => 'Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (6 April to 5 April).'],
-                ['q' => 'How do I link my spouse account?',
-                 'a' => 'Go to User Profile â†’ Family tab â†’ Add Family Member â†’ Select "spouse" and enter their email. If they have an account, it will link automatically. If not, the system creates an account and emails them login details.'],
-                ['q' => 'Can I export my data?',
-                 'a' => 'Yes. You can print or export the Protection Plan and Estate Plan as PDFs. Comprehensive export functionality is available in the account settings.'],
-              ],
+                'id' => 'help-page-faq',
+                'heading' => '',
+                'heading_tag' => 'h3',
+                'items' => [
+                    ['q' => 'How do I add a protection policy?',
+                        'a' => 'Go to Protection module â†’ Policy Details tab â†’ click "Add Policy". Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.'],
+                    ['q' => 'How is Inheritance Tax calculated?',
+                        'a' => 'Inheritance Tax is charged at 40% on your estate above the tax-free allowances: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.'],
+                    ['q' => 'What is the difference between Defined Contribution and Defined Benefit pensions?',
+                        'a' => 'Defined Contribution (money purchase) pensions are pot-based — you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
+                    ['q' => 'Can I have multiple ISAs?',
+                        'a' => 'Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (6 April to 5 April).'],
+                    ['q' => 'How do I link my spouse account?',
+                        'a' => 'Go to User Profile â†’ Family tab â†’ Add Family Member â†’ Select "spouse" and enter their email. If they have an account, it will link automatically. If not, the system creates an account and emails them login details.'],
+                    ['q' => 'Can I export my data?',
+                        'a' => 'Yes. You can print or export the Protection Plan and Estate Plan as PDFs. Comprehensive export functionality is available in the account settings.'],
+                ],
             ];
-            // Render FAQ items directly (not via partial) since heading is empty
-            // and this is embedded within an existing section.
-            ?>
+  // Render FAQ items directly (not via partial) since heading is empty
+  // and this is embedded within an existing section.
+  ?>
             <dl class="faq__list help-inline-faq">
-              <?php foreach ($module['items'] as $i => $item): ?>
+              <?php foreach ($module['items'] as $i => $item) { ?>
               <div class="faq__item" data-faq-item>
                 <dt class="faq__question">
-                  <button class="faq__toggle" aria-expanded="false" aria-controls="hfaq-answer-<?= (int)$i ?>">
+                  <button class="faq__toggle" aria-expanded="false" aria-controls="hfaq-answer-<?= (int) $i ?>">
                     <?= htmlspecialchars($item['q'], ENT_QUOTES, 'UTF-8') ?>
                     <span class="faq__icon" aria-hidden="true"></span>
                   </button>
                 </dt>
-                <dd class="faq__answer" id="hfaq-answer-<?= (int)$i ?>" hidden>
+                <dd class="faq__answer" id="hfaq-answer-<?= (int) $i ?>" hidden>
                   <div class="faq__answer-inner"><?= nl2br(htmlspecialchars($item['a'], ENT_QUOTES, 'UTF-8')) ?></div>
                 </dd>
               </div>
-              <?php endforeach; ?>
+              <?php } ?>
             </dl>
           </section>
 
@@ -558,20 +558,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'help-cta',
-      'heading' => 'Ready to get started?',
-      'subtext' => 'Create your free account and see your complete financial picture.',
-      'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Contact support',       'href' => '/contact',  'primary' => false],
-      ],
+        'id' => 'help-cta',
+        'heading' => 'Ready to get started?',
+        'subtext' => 'Create your free account and see your complete financial picture.',
+        'actions' => [
+            ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+            ['text' => 'Contact support',       'href' => '/contact',  'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=1" defer></script>
   <script src="/pages/js/help.js?v=1" defer></script>

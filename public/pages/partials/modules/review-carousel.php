@@ -17,10 +17,10 @@
  * JS initialiser lives in site.js under MODULE INITIALISERS.
  */
 $sectionId = htmlspecialchars($module['id'] ?? 'reviews', ENT_QUOTES, 'UTF-8');
-$mod       = $module['modifier'] ?? '';
-$modClass  = $mod ? ' ' . htmlspecialchars($mod, ENT_QUOTES, 'UTF-8') : '';
-$headId    = $sectionId . '-heading';
-$reviews   = $module['reviews'] ?? [];
+$mod = $module['modifier'] ?? '';
+$modClass = $mod ? ' '.htmlspecialchars($mod, ENT_QUOTES, 'UTF-8') : '';
+$headId = $sectionId.'-heading';
+$reviews = $module['reviews'] ?? [];
 // Encode reviews for JS initialiser via data attribute — avoids inline <script>
 $reviewsJson = htmlspecialchars(json_encode($reviews, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
 ?>

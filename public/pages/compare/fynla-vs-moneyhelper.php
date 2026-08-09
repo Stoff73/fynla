@@ -68,7 +68,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -235,21 +235,21 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'compare-cta',
-      'modifier' => 'cta-band--raspberry',
-      'heading'  => 'Ready to go beyond the basics?',
-      'subtext'  => 'See what personalised financial planning looks like — pensions, retirement, estate, and protection in one place.',
-      'actions'  => [
-        ['text' => 'Register for free', 'href' => '/register', 'primary' => true],
-        ['text' => 'View pricing', 'href' => '/pricing',            'primary' => false],
-      ],
+        'id' => 'compare-cta',
+        'modifier' => 'cta-band--raspberry',
+        'heading' => 'Ready to go beyond the basics?',
+        'subtext' => 'See what personalised financial planning looks like — pensions, retirement, estate, and protection in one place.',
+        'actions' => [
+            ['text' => 'Register for free', 'href' => '/register', 'primary' => true],
+            ['text' => 'View pricing', 'href' => '/pricing',            'primary' => false],
+        ],
     ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
   <script src="/pages/js/compare-moneyhelper.js?v=1" defer></script>

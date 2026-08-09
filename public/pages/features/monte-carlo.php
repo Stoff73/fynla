@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -196,46 +196,46 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'Does Fynla do Monte Carlo simulations?',
-          'a' => 'Yes (Premium tier). Fynla runs thousands of market scenarios against your financial plan to give you a probability-based confidence level rather than a single projection. This is the same approach used by professional financial planners.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'Does Fynla do Monte Carlo simulations?',
+                'a' => 'Yes (Premium tier). Fynla runs thousands of market scenarios against your financial plan to give you a probability-based confidence level rather than a single projection. This is the same approach used by professional financial planners.',
+            ],
+            [
+                'q' => 'What confidence level should I aim for?',
+                'a' => 'Financial planners generally consider 80%+ a solid plan and 90%+ a very robust one. Below 70% suggests meaningful risk. Fynla shows you what changes would improve your level.',
+            ],
+            [
+                'q' => 'Is the Monte Carlo analysis the same as what an IFA would do?',
+                'a' => 'Many IFAs use similar Monte Carlo tools — but charge £1,000+ for the privilege. Fynla puts the same analytical power in your hands for a fraction of the cost.',
+            ],
+            [
+                'q' => 'Can I see individual scenario paths?',
+                'a' => 'Yes. The fan chart shows the distribution, and you can explore specific scenario paths including worst-case, best-case, and median outcomes.',
+            ],
         ],
-        [
-          'q' => 'What confidence level should I aim for?',
-          'a' => 'Financial planners generally consider 80%+ a solid plan and 90%+ a very robust one. Below 70% suggests meaningful risk. Fynla shows you what changes would improve your level.',
-        ],
-        [
-          'q' => 'Is the Monte Carlo analysis the same as what an IFA would do?',
-          'a' => 'Many IFAs use similar Monte Carlo tools — but charge £1,000+ for the privilege. Fynla puts the same analytical power in your hands for a fraction of the cost.',
-        ],
-        [
-          'q' => 'Can I see individual scenario paths?',
-          'a' => 'Yes. The fan chart shows the distribution, and you can explore specific scenario paths including worst-case, best-case, and median outcomes.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => 'How Confident Is Your Plan? Find Out in Minutes.',
       'subtext' => 'The demo runs Monte Carlo simulations on sample data so you can see exactly how it works — no maths degree required.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -254,7 +254,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-monte-carlo.js?v=1" defer></script>

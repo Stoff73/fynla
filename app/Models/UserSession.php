@@ -122,7 +122,7 @@ class UserSession extends Model
     public function isCurrentSession(): bool
     {
         $currentToken = request()->user()?->currentAccessToken();
-        if (! $currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
+        if (! $currentToken instanceof PersonalAccessToken) {
             return false;
         }
 

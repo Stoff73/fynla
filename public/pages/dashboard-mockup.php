@@ -121,60 +121,61 @@
 <?php
   // ---- Hard-coded mock data mirroring the screenshot ----
   $ICON = [
-    'saveTax'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-    'retirement'=> '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-    'savings'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
-    'netWorth'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
-    'shield'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
-    'card'      => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
-    'clock'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-    'investment'=> '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>',
+      'saveTax' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+      'retirement' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+      'savings' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
+      'netWorth' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
+      'shield' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
+      'card' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
+      'clock' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+      'investment' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>',
   ];
-  $check = '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-  $chevR = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>';
-  $burger = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>';
+$check = '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+$chevR = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>';
+$burger = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>';
 
-  $focus = [
-    ['key'=>'save_tax','label'=>'Save tax','icon'=>$ICON['saveTax'],'stat'=>'£130,000','info'=>'Use your full ISA and pension allowances to keep more of what you earn.'],
-    ['key'=>'retirement','label'=>'Retirement','icon'=>$ICON['retirement'],'stat'=>'£1,200','info'=>'Close your projected income gap — small increases now compound.'],
-    ['key'=>'savings','label'=>'Savings','icon'=>$ICON['savings'],'stat'=>'£3,500','info'=>'Build your emergency fund and earn more on your cash.'],
-  ];
-  $recs = [
-    ['title'=>'Establish discretionary trust','meta'=>'You can save: £130,000'],
-    ['title'=>'Start using annual gift allowance','meta'=>'You can save: £1,200'],
-  ];
-  // Per-focus recommendations (desktop tabs — shows focus → recs are connected)
-  $focusRecs = [
-    'save_tax'   => [
-      ['title'=>'Establish discretionary trust','meta'=>'You can save: £130,000'],
-      ['title'=>'Start using annual gift allowance','meta'=>'You can save: £1,200'],
+$focus = [
+    ['key' => 'save_tax', 'label' => 'Save tax', 'icon' => $ICON['saveTax'], 'stat' => '£130,000', 'info' => 'Use your full ISA and pension allowances to keep more of what you earn.'],
+    ['key' => 'retirement', 'label' => 'Retirement', 'icon' => $ICON['retirement'], 'stat' => '£1,200', 'info' => 'Close your projected income gap — small increases now compound.'],
+    ['key' => 'savings', 'label' => 'Savings', 'icon' => $ICON['savings'], 'stat' => '£3,500', 'info' => 'Build your emergency fund and earn more on your cash.'],
+];
+$recs = [
+    ['title' => 'Establish discretionary trust', 'meta' => 'You can save: £130,000'],
+    ['title' => 'Start using annual gift allowance', 'meta' => 'You can save: £1,200'],
+];
+// Per-focus recommendations (desktop tabs — shows focus → recs are connected)
+$focusRecs = [
+    'save_tax' => [
+        ['title' => 'Establish discretionary trust', 'meta' => 'You can save: £130,000'],
+        ['title' => 'Start using annual gift allowance', 'meta' => 'You can save: £1,200'],
     ],
     'retirement' => [
-      ['title'=>'Increase pension contributions','meta'=>'You can save: £1,200 a year'],
-      ['title'=>'Consolidate your old pensions','meta'=>'Lower fees, one clear view'],
+        ['title' => 'Increase pension contributions', 'meta' => 'You can save: £1,200 a year'],
+        ['title' => 'Consolidate your old pensions', 'meta' => 'Lower fees, one clear view'],
     ],
-    'savings'    => [
-      ['title'=>'Build your emergency fund to 6 months','meta'=>'1.8 months to go'],
-      ['title'=>'Move cash to a higher-rate account','meta'=>'You can earn: £3,500'],
+    'savings' => [
+        ['title' => 'Build your emergency fund to 6 months', 'meta' => '1.8 months to go'],
+        ['title' => 'Move cash to a higher-rate account', 'meta' => 'You can earn: £3,500'],
     ],
-  ];
-  // Sidebar icons (functional — side nav is the Rule #16 carve-out)
-  $navIcon = [
+];
+// Sidebar icons (functional — side nav is the Rule #16 carve-out)
+$navIcon = [
     'dashboard' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>',
-    'netWorth'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
-    'chevron'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>',
-  ];
-  // Existing dashboard module cards (new panel design)
-  $panels = [
-    ['label'=>'Net worth','tone'=>'horizon','icon'=>$ICON['netWorth'],'value'=>'£487,500','viz'=>'donut','progress'=>72,'vizNum'=>'+4%','vizCap'=>'Trend','caption'=>'£612,000 assets'],
-    ['label'=>'Protection','tone'=>'raspberry','icon'=>$ICON['shield'],'value'=>'£250,000','viz'=>'donut','progress'=>85,'vizNum'=>'Active','vizCap'=>'Cover','caption'=>'Cover in place'],
-    ['label'=>'Savings','tone'=>'spring','icon'=>$ICON['card'],'value'=>'£21,400','viz'=>'bar','barFill'=>70,'barValue'=>'4.2','barUnit'=>'/ 6 months','caption'=>'Building your fund'],
-    ['label'=>'Retirement','tone'=>'violet','icon'=>$ICON['clock'],'value'=>'£1,200','viz'=>'bar','barFill'=>62,'barValue'=>'62%','barUnit'=>'of target','caption'=>'Towards your target'],
-    ['label'=>'Investment','tone'=>'horizon','icon'=>$ICON['investment'],'value'=>'£96,300','viz'=>'donut','progress'=>72,'vizNum'=>'3','vizCap'=>'Accounts','caption'=>'8 holdings','wide'=>true],
-  ];
+    'netWorth' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
+    'chevron' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>',
+];
+// Existing dashboard module cards (new panel design)
+$panels = [
+    ['label' => 'Net worth', 'tone' => 'horizon', 'icon' => $ICON['netWorth'], 'value' => '£487,500', 'viz' => 'donut', 'progress' => 72, 'vizNum' => '+4%', 'vizCap' => 'Trend', 'caption' => '£612,000 assets'],
+    ['label' => 'Protection', 'tone' => 'raspberry', 'icon' => $ICON['shield'], 'value' => '£250,000', 'viz' => 'donut', 'progress' => 85, 'vizNum' => 'Active', 'vizCap' => 'Cover', 'caption' => 'Cover in place'],
+    ['label' => 'Savings', 'tone' => 'spring', 'icon' => $ICON['card'], 'value' => '£21,400', 'viz' => 'bar', 'barFill' => 70, 'barValue' => '4.2', 'barUnit' => '/ 6 months', 'caption' => 'Building your fund'],
+    ['label' => 'Retirement', 'tone' => 'violet', 'icon' => $ICON['clock'], 'value' => '£1,200', 'viz' => 'bar', 'barFill' => 62, 'barValue' => '62%', 'barUnit' => 'of target', 'caption' => 'Towards your target'],
+    ['label' => 'Investment', 'tone' => 'horizon', 'icon' => $ICON['investment'], 'value' => '£96,300', 'viz' => 'donut', 'progress' => 72, 'vizNum' => '3', 'vizCap' => 'Accounts', 'caption' => '8 holdings', 'wide' => true],
+];
 
-  // Renders the shared "level card" markup
-  function levelCard() { ?>
+// Renders the shared "level card" markup
+function levelCard()
+{ ?>
     <section class="md-level" aria-labelledby="lv-h">
       <div class="md-level__pie" role="img" aria-label="Level 1, 0 percent complete">
         <svg class="md-level__pie-svg" viewBox="0 0 100 100" aria-hidden="true">
@@ -193,7 +194,8 @@
     </section>
   <?php }
 
-  function recRow($r, $check, $chevR) { ?>
+function recRow($r, $check, $chevR)
+{ ?>
     <li class="md-rec">
       <button type="button" class="md-rec__check-btn" aria-label="Mark complete">
         <span class="md-rec__check" aria-hidden="true"><?= $check ?></span>
@@ -209,7 +211,8 @@
     </li>
   <?php }
 
-  function fynDock() { ?>
+function fynDock()
+{ ?>
     <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true">F</span>
       <span class="md-fyn-dock__text">
@@ -222,21 +225,22 @@
     </button>
   <?php }
 
-  function panelTile($p) { ?>
-    <a href="#" class="md-panel md-panel--<?= $p['tone'] ?><?= !empty($p['wide']) ? ' md-panel--wide' : '' ?>" onclick="return false">
-      <?php if ($p['viz'] === 'bar'): ?>
+function panelTile($p)
+{ ?>
+    <a href="#" class="md-panel md-panel--<?= $p['tone'] ?><?= ! empty($p['wide']) ? ' md-panel--wide' : '' ?>" onclick="return false">
+      <?php if ($p['viz'] === 'bar') { ?>
         <div class="md-panel__viz md-panel__viz--bar" aria-hidden="true">
           <div class="md-panel__bar"><div class="md-panel__bar-fill" style="width:<?= $p['barFill'] ?>%"></div></div>
           <p class="md-panel__bar-label"><strong><?= $p['barValue'] ?></strong> <?= $p['barUnit'] ?></p>
         </div>
-      <?php else: ?>
+      <?php } else { ?>
         <div class="md-panel__viz" style="--progress:<?= $p['progress'] ?>" aria-hidden="true">
           <div class="md-panel__viz-inner">
             <span class="md-panel__viz-num"><?= $p['vizNum'] ?></span>
             <span class="md-panel__viz-cap"><?= $p['vizCap'] ?></span>
           </div>
         </div>
-      <?php endif; ?>
+      <?php } ?>
       <div class="md-panel__body">
         <p class="md-panel__label"><span class="md-panel__title-icon" aria-hidden="true"><?= $p['icon'] ?></span><?= $p['label'] ?></p>
         <p class="md-panel__value"><?= $p['value'] ?></p>
@@ -288,8 +292,8 @@
 
                 <div class="md-callout__carousel">
                   <div class="md-accordion" role="tablist" aria-label="Focus areas">
-                    <?php foreach ($focus as $i => $c): ?>
-                      <button type="button" class="md-accordion__card js-acc<?= $i===0?' is-active':'' ?>" data-i="<?= $i ?>" role="tab" aria-selected="<?= $i===0?'true':'false' ?>" aria-label="<?= htmlspecialchars($c['label']) ?>">
+                    <?php foreach ($focus as $i => $c) { ?>
+                      <button type="button" class="md-accordion__card js-acc<?= $i === 0 ? ' is-active' : '' ?>" data-i="<?= $i ?>" role="tab" aria-selected="<?= $i === 0 ? 'true' : 'false' ?>" aria-label="<?= htmlspecialchars($c['label']) ?>">
                         <span class="md-accordion__icon" aria-hidden="true"><?= $c['icon'] ?></span>
                         <span class="md-accordion__content">
                           <span class="md-callout__slide-stat"><?= $c['stat'] ?></span>
@@ -297,13 +301,13 @@
                           <span class="md-callout__slide-info"><?= htmlspecialchars($c['info']) ?></span>
                         </span>
                       </button>
-                    <?php endforeach; ?>
+                    <?php } ?>
                   </div>
 
                   <div class="md-callout__dots" role="tablist" aria-label="Focus area navigation">
-                    <?php foreach ($focus as $i => $c): ?>
-                      <button type="button" class="md-callout__dot js-dot<?= $i===0?' is-active':'' ?>" data-i="<?= $i ?>" aria-label="<?= htmlspecialchars($c['label']) ?>"></button>
-                    <?php endforeach; ?>
+                    <?php foreach ($focus as $i => $c) { ?>
+                      <button type="button" class="md-callout__dot js-dot<?= $i === 0 ? ' is-active' : '' ?>" data-i="<?= $i ?>" aria-label="<?= htmlspecialchars($c['label']) ?>"></button>
+                    <?php } ?>
                   </div>
 
                   <section class="md-recs is-open" aria-labelledby="m-recs-h">
@@ -313,7 +317,9 @@
                     </div>
                     <div class="md-recs__body">
                       <ul class="md-recs__list">
-                        <?php foreach ($recs as $r) recRow($r, $check, $chevR); ?>
+                        <?php foreach ($recs as $r) {
+                            recRow($r, $check, $chevR);
+                        } ?>
                       </ul>
                       <a href="#" class="md-recs__view-all" onclick="return false">View all recommendations</a>
                     </div>
@@ -324,7 +330,9 @@
               <section class="md-panels" aria-labelledby="m-fin-h">
                 <div class="md-section-head"><h3 class="md-section-head__title" id="m-fin-h">Your finances</h3></div>
                 <div class="md-panels__list">
-                  <?php foreach ($panels as $p) panelTile($p); ?>
+                  <?php foreach ($panels as $p) {
+                      panelTile($p);
+                  } ?>
                 </div>
               </section>
 
@@ -393,12 +401,12 @@
             <section class="gd-card" aria-labelledby="gd-focus-h">
               <h2 id="gd-focus-h" class="visually-hidden">Where to focus</h2>
               <div class="gd-tabs" role="tablist" aria-label="Where to focus">
-                <?php foreach ($focus as $i => $c): ?>
-                  <button type="button" class="gd-tab js-tab<?= $i===0?' is-active':'' ?>" data-tab="<?= $c['key'] ?>" role="tab" aria-selected="<?= $i===0?'true':'false' ?>">
+                <?php foreach ($focus as $i => $c) { ?>
+                  <button type="button" class="gd-tab js-tab<?= $i === 0 ? ' is-active' : '' ?>" data-tab="<?= $c['key'] ?>" role="tab" aria-selected="<?= $i === 0 ? 'true' : 'false' ?>">
                     <span class="gd-tab__stat"><?= $c['stat'] ?></span>
                     <span class="gd-tab__area"><?= htmlspecialchars($c['label']) ?></span>
                   </button>
-                <?php endforeach; ?>
+                <?php } ?>
               </div>
 
               <div class="gd-recs">
@@ -406,14 +414,16 @@
                   <h3>Recommendations</h3>
                   <span class="count">0 / 2</span>
                 </div>
-                <?php foreach ($focus as $i => $c): ?>
-                  <div class="gd-recs__panel js-panel<?= $i===0?' is-active':'' ?>" data-panel="<?= $c['key'] ?>">
+                <?php foreach ($focus as $i => $c) { ?>
+                  <div class="gd-recs__panel js-panel<?= $i === 0 ? ' is-active' : '' ?>" data-panel="<?= $c['key'] ?>">
                     <p class="gd-recs__info"><?= htmlspecialchars($c['info']) ?></p>
                     <ul class="md-recs__list">
-                      <?php foreach ($focusRecs[$c['key']] as $r) recRow($r, $check, $chevR); ?>
+                      <?php foreach ($focusRecs[$c['key']] as $r) {
+                          recRow($r, $check, $chevR);
+                      } ?>
                     </ul>
                   </div>
-                <?php endforeach; ?>
+                <?php } ?>
               </div>
             </section>
 
@@ -421,7 +431,9 @@
             <section aria-labelledby="gd-fin-h">
               <div class="gd-section-head"><h2 id="gd-fin-h">Your finances</h2></div>
               <div class="gd-finances__grid">
-                <?php foreach ($panels as $p) panelTile($p); ?>
+                <?php foreach ($panels as $p) {
+                    panelTile($p);
+                } ?>
               </div>
             </section>
 

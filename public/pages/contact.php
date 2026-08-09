@@ -75,7 +75,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -108,8 +108,8 @@
         /* Simple server-side math captcha — generate two random numbers.
            The POST handler in Laravel will validate the answer. */
         $captchaA = rand(1, 10);
-        $captchaB = rand(1, 10);
-        ?>
+  $captchaB = rand(1, 10);
+  ?>
 
         <form
           class="contact-form"
@@ -118,11 +118,11 @@
           novalidate
           id="contact-form-el"
         >
-          <?php if (function_exists('csrf_field')): ?>
+          <?php if (function_exists('csrf_field')) { ?>
             <?= csrf_field() ?>
-          <?php else: ?>
+          <?php } else { ?>
             <!-- CSRF token is injected by the Laravel route handler -->
-          <?php endif; ?>
+          <?php } ?>
 
           <!-- Name -->
           <div class="contact-form__field">
@@ -187,11 +187,11 @@
           <!-- Math captcha — rendered server-side -->
           <div class="contact-form__field">
             <label class="contact-form__label" for="contact-captcha">
-              Verify you're human — what is <?= (int)$captchaA ?> + <?= (int)$captchaB ?>?
+              Verify you're human — what is <?= (int) $captchaA ?> + <?= (int) $captchaB ?>?
               <span class="contact-form__required" aria-label="required">*</span>
             </label>
-            <input type="hidden" name="captcha_a" value="<?= (int)$captchaA ?>" />
-            <input type="hidden" name="captcha_b" value="<?= (int)$captchaB ?>" />
+            <input type="hidden" name="captcha_a" value="<?= (int) $captchaA ?>" />
+            <input type="hidden" name="captcha_b" value="<?= (int) $captchaB ?>" />
             <input
               class="contact-form__input contact-form__input--narrow"
               id="contact-captcha"
@@ -292,19 +292,19 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'start-planning',
-      'heading' => 'Just want to start planning?',
-      'subtext' => 'Create your free account and see where you stand financially.',
-      'actions' => [
-        ['text' => 'Get started', 'href' => '/register', 'primary' => true],
-      ],
+        'id' => 'start-planning',
+        'heading' => 'Just want to start planning?',
+        'subtext' => 'Create your free account and see where you stand financially.',
+        'actions' => [
+            ['text' => 'Get started', 'href' => '/register', 'primary' => true],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=1" defer></script>
   <script src="/pages/js/contact.js?v=1" defer></script>

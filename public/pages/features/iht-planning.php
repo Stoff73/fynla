@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -268,50 +268,50 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'Is Fynla giving me tax advice?',
-          'a' => 'No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we\'d recommend consulting a qualified adviser — and Fynla gives you the numbers to make that conversation productive.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'Is Fynla giving me tax advice?',
+                'a' => 'No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we\'d recommend consulting a qualified adviser — and Fynla gives you the numbers to make that conversation productive.',
+            ],
+            [
+                'q' => 'Does Fynla cover the April 2027 pension Inheritance Tax changes?',
+                'a' => 'Yes. Our Inheritance Tax planning suite (Premium tier) lets you model your estate under both current rules and the post-April 2027 rules where unused pension pots are included in your estate for Inheritance Tax purposes.',
+            ],
+            [
+                'q' => 'Does Inheritance Tax planning work for married couples?',
+                'a' => 'Yes. Fynla models transferable nil rate bands, residence nil rate band, and joint estate planning. You can see your position individually and as a couple.',
+            ],
+            [
+                'q' => 'How accurate is the Inheritance Tax calculation?',
+                'a' => 'Fynla applies current HMRC rules including all standard bands, taper thresholds, and exemptions. Accuracy depends on the completeness of your asset data.',
+            ],
+            [
+                'q' => 'What about trusts and business property relief?',
+                'a' => 'Fynla covers the most common planning strategies including gifting, pension drawdown, and standard exemptions. For complex trust structures, we\'d recommend using Fynla\'s numbers alongside professional advice.',
+            ],
         ],
-        [
-          'q' => 'Does Fynla cover the April 2027 pension Inheritance Tax changes?',
-          'a' => 'Yes. Our Inheritance Tax planning suite (Premium tier) lets you model your estate under both current rules and the post-April 2027 rules where unused pension pots are included in your estate for Inheritance Tax purposes.',
-        ],
-        [
-          'q' => 'Does Inheritance Tax planning work for married couples?',
-          'a' => 'Yes. Fynla models transferable nil rate bands, residence nil rate band, and joint estate planning. You can see your position individually and as a couple.',
-        ],
-        [
-          'q' => 'How accurate is the Inheritance Tax calculation?',
-          'a' => 'Fynla applies current HMRC rules including all standard bands, taper thresholds, and exemptions. Accuracy depends on the completeness of your asset data.',
-        ],
-        [
-          'q' => 'What about trusts and business property relief?',
-          'a' => 'Fynla covers the most common planning strategies including gifting, pension drawdown, and standard exemptions. For complex trust structures, we\'d recommend using Fynla\'s numbers alongside professional advice.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => 'Don\'t Leave Your Family a Tax Bill They Didn\'t Expect',
       'subtext' => 'It takes 10 minutes to see your Inheritance Tax exposure. The demo lets you explore with sample data — no sign-up needed.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -330,7 +330,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-iht-planning.js?v=1" defer></script>

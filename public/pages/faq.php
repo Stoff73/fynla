@@ -74,7 +74,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -486,20 +486,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'still-questions',
-      'heading' => 'Still have questions?',
-      'subtext' => 'Can\'t find what you\'re looking for? Get in touch and we\'ll help.',
-      'actions' => [
-        ['text' => 'Contact us',  'href' => '/contact',  'primary' => true],
-        ['text' => 'Try the demo', 'href' => '/?demo=true', 'primary' => false],
-      ],
+        'id' => 'still-questions',
+        'heading' => 'Still have questions?',
+        'subtext' => 'Can\'t find what you\'re looking for? Get in touch and we\'ll help.',
+        'actions' => [
+            ['text' => 'Contact us',  'href' => '/contact',  'primary' => true],
+            ['text' => 'Try the demo', 'href' => '/?demo=true', 'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=1" defer></script>
   <script src="/pages/js/faq.js?v=1" defer></script>

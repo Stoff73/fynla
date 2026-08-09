@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -269,46 +269,46 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'How do I value my property?',
-          'a' => 'Enter your best estimate of current market value. You can update this periodically — many people check Zoopla or Rightmove for comparable sales. Fynla doesn\'t auto-value property, so you stay in control of the estimate.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'How do I value my property?',
+                'a' => 'Enter your best estimate of current market value. You can update this periodically — many people check Zoopla or Rightmove for comparable sales. Fynla doesn\'t auto-value property, so you stay in control of the estimate.',
+            ],
+            [
+                'q' => 'Do I need to connect my bank accounts?',
+                'a' => 'No. Fynla doesn\'t require bank connections. You enter your data manually, which means you stay in full control and don\'t need to share banking credentials. We\'re exploring optional open banking integrations for the future.',
+            ],
+            [
+                'q' => 'How often should I update my data?',
+                'a' => 'Property and pension values: every 3–6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.',
+            ],
+            [
+                'q' => 'Is net worth the same as wealth?',
+                'a' => 'Net worth is a snapshot of assets minus liabilities at a point in time. It doesn\'t account for your earning capacity, pension income rights, or state benefits — but it\'s the best single measure of your financial position.',
+            ],
         ],
-        [
-          'q' => 'Do I need to connect my bank accounts?',
-          'a' => 'No. Fynla doesn\'t require bank connections. You enter your data manually, which means you stay in full control and don\'t need to share banking credentials. We\'re exploring optional open banking integrations for the future.',
-        ],
-        [
-          'q' => 'How often should I update my data?',
-          'a' => 'Property and pension values: every 3–6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.',
-        ],
-        [
-          'q' => 'Is net worth the same as wealth?',
-          'a' => 'Net worth is a snapshot of assets minus liabilities at a point in time. It doesn\'t account for your earning capacity, pension income rights, or state benefits — but it\'s the best single measure of your financial position.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => 'Start With the Number That Matters Most',
       'subtext' => 'Your net worth is the foundation of every financial decision. See it clearly, track it over time, and build your plan from there.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register',  'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register',  'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register',  'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register',  'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -328,7 +328,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-net-worth-dashboard.js?v=1" defer></script>

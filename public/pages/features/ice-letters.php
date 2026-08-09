@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -201,50 +201,50 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'What is included in the In Case of Emergency letter?',
-          'a' => 'The In Case of Emergency letter is a comprehensive summary of your entire financial life — accounts, policies, pensions, property, debts, contacts, and instructions — designed so your family can quickly understand and access everything if the worst happens.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'What is included in the In Case of Emergency letter?',
+                'a' => 'The In Case of Emergency letter is a comprehensive summary of your entire financial life — accounts, policies, pensions, property, debts, contacts, and instructions — designed so your family can quickly understand and access everything if the worst happens.',
+            ],
+            [
+                'q' => 'Is the letter automatically kept up to date?',
+                'a' => 'Yes. As you update your financial data in Fynla, the In Case of Emergency letter reflects those changes automatically. You can download a fresh copy at any time.',
+            ],
+            [
+                'q' => 'Can I customise the letter?',
+                'a' => 'Yes. You can add personal notes, instructions, and wishes that go beyond the financial data. Some people include messages to family members, funeral preferences, or specific instructions.',
+            ],
+            [
+                'q' => 'Who should I give the letter to?',
+                'a' => 'At minimum, your partner or spouse and your solicitor. Some people also give a copy to an adult child or trusted family member. Store a physical copy in a fireproof safe or with your will.',
+            ],
+            [
+                'q' => 'Do I need a will as well as an In Case of Emergency letter?',
+                'a' => 'Yes. An In Case of Emergency letter complements a will — it doesn\'t replace one. Your will is the legal document that determines who gets what. Your letter is the practical guide that helps your family navigate the process.',
+            ],
         ],
-        [
-          'q' => 'Is the letter automatically kept up to date?',
-          'a' => 'Yes. As you update your financial data in Fynla, the In Case of Emergency letter reflects those changes automatically. You can download a fresh copy at any time.',
-        ],
-        [
-          'q' => 'Can I customise the letter?',
-          'a' => 'Yes. You can add personal notes, instructions, and wishes that go beyond the financial data. Some people include messages to family members, funeral preferences, or specific instructions.',
-        ],
-        [
-          'q' => 'Who should I give the letter to?',
-          'a' => 'At minimum, your partner or spouse and your solicitor. Some people also give a copy to an adult child or trusted family member. Store a physical copy in a fireproof safe or with your will.',
-        ],
-        [
-          'q' => 'Do I need a will as well as an In Case of Emergency letter?',
-          'a' => 'Yes. An In Case of Emergency letter complements a will — it doesn\'t replace one. Your will is the legal document that determines who gets what. Your letter is the practical guide that helps your family navigate the process.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => '15 Minutes Now Could Save Your Family Months of Stress',
       'subtext' => 'The demo includes a sample In Case of Emergency letter so you can see exactly what it looks like. It\'s the feature people didn\'t know they needed — until they see it.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -263,7 +263,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-ice-letters.js?v=1" defer></script>

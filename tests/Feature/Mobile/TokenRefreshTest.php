@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Auth\TokenRefreshController;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\TransientToken;
 
@@ -61,8 +63,8 @@ describe('Token Refresh API', function () {
             $user = User::factory()->create();
             $user->withAccessToken(new TransientToken);
 
-            $controller = app(\App\Http\Controllers\Api\V1\Auth\TokenRefreshController::class);
-            $request = \Illuminate\Http\Request::create('/api/v1/auth/refresh-token', 'POST');
+            $controller = app(TokenRefreshController::class);
+            $request = Request::create('/api/v1/auth/refresh-token', 'POST');
             $request->setUserResolver(fn () => $user);
 
             $response = $controller->refresh($request);

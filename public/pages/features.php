@@ -80,7 +80,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -463,56 +463,56 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'reviews',
-      'heading' => 'What our customers say',
-      'reviews' => [
-        [
-          'name' => 'Stephen D.',
-          'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way."',
+        'id' => 'reviews',
+        'heading' => 'What our customers say',
+        'reviews' => [
+            [
+                'name' => 'Stephen D.',
+                'text' => '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way."',
+            ],
+            [
+                'name' => 'Mia R.',
+                'text' => '"It was so easy to see all my finances in one place. I had all current and savings accounts in different locations and had no idea what to do with my money. Fyn was really helpful in getting my information into Fynla, and then I had clear next steps on what I needed to do with my money."',
+            ],
+            [
+                'name' => 'Anne L.',
+                'text' => '"Fynla has been a useful way to get a clearer picture of my finances without it feeling overwhelming. It pulls everything into one place, making it much easier to see where things stand. The recommendations are sensible and practical, giving me clear next steps rather than trying to do everything at once."',
+            ],
+            [
+                'name' => 'Neil S.',
+                'text' => '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save £1,400 a year!"',
+            ],
+            [
+                'name' => 'Ron B.',
+                'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions. I can\'t imagine going back to spreadsheets."',
+            ],
+            [
+                'name' => 'Michael H.',
+                'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
+            ],
         ],
-        [
-          'name' => 'Mia R.',
-          'text' => '"It was so easy to see all my finances in one place. I had all current and savings accounts in different locations and had no idea what to do with my money. Fyn was really helpful in getting my information into Fynla, and then I had clear next steps on what I needed to do with my money."',
-        ],
-        [
-          'name' => 'Anne L.',
-          'text' => '"Fynla has been a useful way to get a clearer picture of my finances without it feeling overwhelming. It pulls everything into one place, making it much easier to see where things stand. The recommendations are sensible and practical, giving me clear next steps rather than trying to do everything at once."',
-        ],
-        [
-          'name' => 'Neil S.',
-          'text' => '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save £1,400 a year!"',
-        ],
-        [
-          'name' => 'Ron B.',
-          'text' => '"Finally, everything in one place. Our family\'s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions. I can\'t imagine going back to spreadsheets."',
-        ],
-        [
-          'name' => 'Michael H.',
-          'text' => '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."',
-        ],
-      ],
     ];
-    include __DIR__ . '/partials/modules/review-carousel.php';
-    ?>
+  include __DIR__.'/partials/modules/review-carousel.php';
+  ?>
 
     <!-- ================================================================
          CTA BAND  [id=cta-features]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'cta-features',
+  $module = [
+      'id' => 'cta-features',
       'heading' => 'Ready to take control of your finances?',
       'subtext' => 'Start your free trial today. No credit card required.',
       'actions' => [
-        ['text' => 'Get started free', 'href' => '/register', 'primary' => true],
+          ['text' => 'Get started free', 'href' => '/register', 'primary' => true],
       ],
-    ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/features.js?v=1" defer></script>

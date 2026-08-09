@@ -9,8 +9,8 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
-use App\Constants\TaxDefaults;
 use App\Constants\SignificanceThresholds;
+use App\Constants\TaxDefaults;
 
 class DashboardAggregator
 {

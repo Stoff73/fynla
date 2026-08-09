@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -258,50 +258,50 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'Does Fynla sell insurance?',
-          'a' => 'No. Fynla calculates your protection gap — we don\'t sell insurance products, earn commissions, or recommend specific providers.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'Does Fynla sell insurance?',
+                'a' => 'No. Fynla calculates your protection gap — we don\'t sell insurance products, earn commissions, or recommend specific providers.',
+            ],
+            [
+                'q' => 'What\'s the difference between life insurance, income protection, and critical illness?',
+                'a' => 'Life insurance pays out when you die. Income protection replaces your income if you can\'t work. Critical illness pays a lump sum if diagnosed with a specified condition. You may need all three.',
+            ],
+            [
+                'q' => 'Does the protection analysis factor in state benefits?',
+                'a' => 'Yes. Fynla includes bereavement support payment, child benefit, and statutory sick pay in the calculations. But these are typically far less than most families need.',
+            ],
+            [
+                'q' => 'What about my employer\'s death-in-service benefit?',
+                'a' => 'Add it in. Most employers offer 2–4× salary. Fynla includes this in your existing cover and shows the remaining gap.',
+            ],
+            [
+                'q' => 'My partner works — does that change my protection needs?',
+                'a' => 'Absolutely. A dual-income household has a different protection need. Fynla models both scenarios and accounts for the surviving partner\'s income.',
+            ],
         ],
-        [
-          'q' => 'What\'s the difference between life insurance, income protection, and critical illness?',
-          'a' => 'Life insurance pays out when you die. Income protection replaces your income if you can\'t work. Critical illness pays a lump sum if diagnosed with a specified condition. You may need all three.',
-        ],
-        [
-          'q' => 'Does the protection analysis factor in state benefits?',
-          'a' => 'Yes. Fynla includes bereavement support payment, child benefit, and statutory sick pay in the calculations. But these are typically far less than most families need.',
-        ],
-        [
-          'q' => 'What about my employer\'s death-in-service benefit?',
-          'a' => 'Add it in. Most employers offer 2–4× salary. Fynla includes this in your existing cover and shows the remaining gap.',
-        ],
-        [
-          'q' => 'My partner works — does that change my protection needs?',
-          'a' => 'Absolutely. A dual-income household has a different protection need. Fynla models both scenarios and accounts for the surviving partner\'s income.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => 'The Number You Don\'t Want to Need — But Need to Know',
       'subtext' => 'It takes 10 minutes to see your family\'s protection gap. The demo uses sample data so you can explore without entering personal details.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -319,7 +319,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-protection-gap.js?v=1" defer></script>

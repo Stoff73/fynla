@@ -91,7 +91,7 @@ describe('Holding precision casts', function () {
         $reloaded = Holding::find($holding->id);
 
         foreach (['allocation_percent', 'quantity', 'purchase_price', 'current_price',
-                  'current_value', 'cost_basis', 'dividend_yield', 'ocf_percent'] as $col) {
+            'current_value', 'cost_basis', 'dividend_yield', 'ocf_percent'] as $col) {
             expect($reloaded->{$col})->toBeString("Column {$col} should cast to string under decimal:N");
         }
     });

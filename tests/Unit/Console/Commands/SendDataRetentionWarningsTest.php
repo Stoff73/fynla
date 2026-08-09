@@ -49,7 +49,7 @@ describe('data-retention:send-warnings SMTP throttle', function () {
     it('still sleeps when a send fails so a partial-failure burst does not exhaust the SMTP rate-limit', function () {
         $startsAt = now()->subDays(19)->startOfDay();
 
-        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP boom'));
+        Mail::shouldReceive('to')->andThrow(new RuntimeException('SMTP boom'));
 
         for ($i = 0; $i < 3; $i++) {
             $user = User::factory()->create(['is_preview_user' => false]);

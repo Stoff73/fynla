@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -270,50 +270,50 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'Can Fynla connect directly to my pension providers?',
-          'a' => 'Currently, you add your pension details manually — provider, value, contribution rate, and fund type. The manual setup takes about 5 minutes per pension.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'Can Fynla connect directly to my pension providers?',
+                'a' => 'Currently, you add your pension details manually — provider, value, contribution rate, and fund type. The manual setup takes about 5 minutes per pension.',
+            ],
+            [
+                'q' => 'Does the retirement calculator include the state pension?',
+                'a' => 'Yes. Enter your state pension forecast from gov.uk and Fynla incorporates it into your total retirement income projection.',
+            ],
+            [
+                'q' => 'What about defined benefit (final salary) pensions?',
+                'a' => 'Yes, Fynla supports defined benefit pensions. Enter the projected annual pension amount and retirement age, and it\'s included in your retirement income modelling.',
+            ],
+            [
+                'q' => 'Should I consolidate my pensions?',
+                'a' => 'That depends on your specific situation — fees, fund performance, guaranteed benefits, and employer match all factor in. Fynla gives you the data to make that decision.',
+            ],
+            [
+                'q' => 'How accurate is the retirement date?',
+                'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
+            ],
         ],
-        [
-          'q' => 'Does the retirement calculator include the state pension?',
-          'a' => 'Yes. Enter your state pension forecast from gov.uk and Fynla incorporates it into your total retirement income projection.',
-        ],
-        [
-          'q' => 'What about defined benefit (final salary) pensions?',
-          'a' => 'Yes, Fynla supports defined benefit pensions. Enter the projected annual pension amount and retirement age, and it\'s included in your retirement income modelling.',
-        ],
-        [
-          'q' => 'Should I consolidate my pensions?',
-          'a' => 'That depends on your specific situation — fees, fund performance, guaranteed benefits, and employer match all factor in. Fynla gives you the data to make that decision.',
-        ],
-        [
-          'q' => 'How accurate is the retirement date?',
-          'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => 'Stop guessing what your retirement looks like',
       'subtext' => 'Add your pensions in under 10 minutes. See what you\'ve really got — and what you need to do about it.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -332,7 +332,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-pension-tracker.js?v=1" defer></script>

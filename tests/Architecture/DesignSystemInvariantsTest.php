@@ -21,7 +21,6 @@ declare(strict_types=1);
  * contexts; Rule #14 needs router/index.js parsing to distinguish
  * routed views from sub-components). Both tracked as follow-ups.
  */
-
 $projectRoot = realpath(__DIR__.'/../../');
 
 /**

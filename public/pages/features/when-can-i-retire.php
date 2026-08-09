@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/../partials/nav.php'; ?>
+  <?php include __DIR__.'/../partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -255,50 +255,50 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'       => 'faq',
-      'modifier' => 'faq--dark',
-      'heading'  => 'Frequently asked questions',
-      'items'    => [
-        [
-          'q' => 'How accurate is the retirement date?',
-          'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
+        'id' => 'faq',
+        'modifier' => 'faq--dark',
+        'heading' => 'Frequently asked questions',
+        'items' => [
+            [
+                'q' => 'How accurate is the retirement date?',
+                'a' => 'The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.',
+            ],
+            [
+                'q' => 'Does the retirement calculator account for inflation?',
+                'a' => 'Yes. All projections are shown in today\'s money by default, so you can understand what your retirement income actually buys.',
+            ],
+            [
+                'q' => 'What about early retirement / FIRE?',
+                'a' => 'Fynla is particularly useful for early retirement planning because it models the income bridge between stopping work and accessing state pension, including changing spending patterns and sequence of returns risk.',
+            ],
+            [
+                'q' => 'Does the retirement calculator include the state pension?',
+                'a' => 'Yes. Enter your state pension forecast from gov.uk and Fynla incorporates it into your total retirement income projection.',
+            ],
+            [
+                'q' => 'Can I model part-time work or semi-retirement?',
+                'a' => 'Yes. You can model reduced income over a transition period — for example, earning £20,000/year from part-time work between ages 58–63, then fully retiring.',
+            ],
         ],
-        [
-          'q' => 'Does the retirement calculator account for inflation?',
-          'a' => 'Yes. All projections are shown in today\'s money by default, so you can understand what your retirement income actually buys.',
-        ],
-        [
-          'q' => 'What about early retirement / FIRE?',
-          'a' => 'Fynla is particularly useful for early retirement planning because it models the income bridge between stopping work and accessing state pension, including changing spending patterns and sequence of returns risk.',
-        ],
-        [
-          'q' => 'Does the retirement calculator include the state pension?',
-          'a' => 'Yes. Enter your state pension forecast from gov.uk and Fynla incorporates it into your total retirement income projection.',
-        ],
-        [
-          'q' => 'Can I model part-time work or semi-retirement?',
-          'a' => 'Yes. You can model reduced income over a transition period — for example, earning £20,000/year from part-time work between ages 58–63, then fully retiring.',
-        ],
-      ],
     ];
-    include __DIR__ . '/../partials/modules/faq.php';
-    ?>
+  include __DIR__.'/../partials/modules/faq.php';
+  ?>
 
     <!-- ================================================================
          FINAL CTA  [id=final-cta]
          ================================================================ -->
     <?php
-    $module = [
-      'id'      => 'final-cta',
+  $module = [
+      'id' => 'final-cta',
       'heading' => 'Find Out Your Number. It Might Surprise You.',
       'subtext' => 'Whether it\'s 55 or 68, you deserve to know. The demo lets you explore with sample data in under 5 minutes.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
-        ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
+          ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+          ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
-    ];
-    include __DIR__ . '/../partials/modules/cta-band.php';
-    ?>
+  ];
+  include __DIR__.'/../partials/modules/cta-band.php';
+  ?>
 
     <!-- ================================================================
          RELATED LINKS  [id=related]
@@ -317,7 +317,7 @@
 
   </main>
 
-  <?php include __DIR__ . '/../partials/footer.php'; ?>
+  <?php include __DIR__.'/../partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/feat-when-can-i-retire.js?v=1" defer></script>

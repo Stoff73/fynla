@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\Investment\InvestmentAccount;
-use App\Services\Stores\SavingsStore;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
 use App\Traits\FormatsCurrency;
+use Carbon\Carbon;
 
 /**
  * Retirement Strategy Service
@@ -1192,7 +1193,7 @@ class RetirementStrategyService
         $effectiveDateString = $sacrificeConfig['nic_exemption_cap_effective_date'] ?? null;
 
         $capActive = $effectiveDateString
-            && now()->gte(\Carbon\Carbon::parse($effectiveDateString));
+            && now()->gte(Carbon::parse($effectiveDateString));
         $salarySacrificeLimit = $capActive ? $cap : INF;
 
         // Salary-sacrificed portion (within the cap when active) is zero-cost.

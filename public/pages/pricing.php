@@ -262,7 +262,7 @@
         'items' => [
             [
                 'q' => 'Is there a free trial?',
-                'a' => "There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.",
+                'a' => 'There is no time-limited trial — the Free tier is genuinely free for as long as you like, with no credit card required. Upgrade to a paid tier whenever you want more capabilities and higher limits.',
             ],
             [
                 'q' => 'Can I change plans?',

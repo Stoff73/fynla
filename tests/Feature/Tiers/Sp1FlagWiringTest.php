@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
 use App\Services\Stores\TierConfigurationStore;
-use App\Services\Tiers\TierResolver;
+use Database\Seeders\TierConfigurationSeeder;
 
-beforeEach(fn () => $this->seed(\Database\Seeders\TierConfigurationSeeder::class));
+beforeEach(fn () => $this->seed(TierConfigurationSeeder::class));
 
 it('exposes the per-tier doc upload allowance + storage quota', function () {
     $s = app(TierConfigurationStore::class);

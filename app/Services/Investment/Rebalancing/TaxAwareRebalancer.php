@@ -554,7 +554,7 @@ class TaxAwareRebalancer
      * @return float Marginal CGT rate (0..1)
      *
      * @throws FinancialCalculationException when neither options['tax_rate']
-     *         nor `$cgtConfig['basic_rate']` is available.
+     *                                       nor `$cgtConfig['basic_rate']` is available.
      */
     private function resolveTaxRate(array $options, array $cgtConfig): float
     {
@@ -587,7 +587,7 @@ class TaxAwareRebalancer
      * @return float Annual CGT exempt amount in £
      *
      * @throws FinancialCalculationException when neither options['cgt_allowance']
-     *         nor `$cgtConfig['annual_exempt_amount']` is available.
+     *                                       nor `$cgtConfig['annual_exempt_amount']` is available.
      */
     private function resolveCgtAllowance(array $options, array $cgtConfig): float
     {

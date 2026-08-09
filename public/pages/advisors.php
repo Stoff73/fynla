@@ -74,7 +74,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -244,20 +244,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'adviser-signup',
-      'heading' => 'Interested in Fynla for your practice?',
-      'subtext' => 'We\'re working with advisers to shape how Fynla supports professional advice. Get in touch to learn more.',
-      'actions' => [
-        ['text' => 'Get in touch', 'href' => '/contact', 'primary' => true],
-        ['text' => 'Try the demo', 'href' => '/?demo=true', 'primary' => false],
-      ],
+        'id' => 'adviser-signup',
+        'heading' => 'Interested in Fynla for your practice?',
+        'subtext' => 'We\'re working with advisers to shape how Fynla supports professional advice. Get in touch to learn more.',
+        'actions' => [
+            ['text' => 'Get in touch', 'href' => '/contact', 'primary' => true],
+            ['text' => 'Try the demo', 'href' => '/?demo=true', 'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=1" defer></script>
   <script src="/pages/js/advisors.js?v=1" defer></script>
