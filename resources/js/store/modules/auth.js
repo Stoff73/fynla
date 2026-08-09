@@ -1,5 +1,5 @@
 import authService from '@/services/authService';
-import { removeToken, isNativePlatform } from '@/services/tokenStorage';
+import { removeToken } from '@/services/tokenStorage';
 
 import logger from '@/utils/logger';
 const state = {
@@ -36,12 +36,9 @@ const getters = {
 };
 
 const actions = {
-  async register({ commit, dispatch, rootState }, userData) {
+  async register({ commit, dispatch }, userData) {
     commit('setLoading', true);
     commit('setError', null);
-
-    // Check if in preview mode BEFORE clearing auth
-    const wasInPreviewMode = rootState.auth?.user?.is_preview_user === true;
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
@@ -74,12 +71,9 @@ const actions = {
     }
   },
 
-  async login({ commit, dispatch, rootState }, credentials) {
+  async login({ commit, dispatch }, credentials) {
     commit('setLoading', true);
     commit('setError', null);
-
-    // Check if in preview mode BEFORE clearing auth
-    const wasInPreviewMode = rootState.auth?.user?.is_preview_user === true;
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
@@ -190,7 +184,7 @@ const actions = {
     }
   },
 
-  async fetchUserById({ commit }, userId) {
+  async fetchUserById(_context, userId) {
     try {
       const user = await authService.getUserById(userId);
       return user;
@@ -227,7 +221,7 @@ const mutations = {
     state.tierFlags = null;
     // Explicit desktop sign-out also signs out the same-origin /m client.
     // mScaffoldBridge never copies this bearer token into desktop storage.
-    try { localStorage.removeItem('m_scaffold_token'); } catch (e) { /* storage disabled */ }
+    try { localStorage.removeItem('m_scaffold_token'); } catch { /* storage disabled */ }
   },
 
   setTierFlags(state, flags) {
