@@ -18,7 +18,10 @@ class TierConfigurationResource extends JsonResource
             'price_annual_pence' => $this->price_annual_pence,
             'capability_matrix' => $this->capability_matrix,
             'count_caps' => $this->count_caps,
-            'features' => app(TierComparisonService::class)->featuresFor($this->resource),
+            'features' => app(TierComparisonService::class)->featuresFor(
+                (array) $this->capability_matrix,
+                (array) $this->count_caps,
+            ),
             'document_upload_allowance' => $this->document_upload_allowance,
             'document_storage_gb' => $this->document_storage_gb,
             'fyn_weekly_token_budget' => $this->fyn_weekly_token_budget,

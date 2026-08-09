@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
-use App\Models\TierConfiguration;
-
 class TierComparisonService
 {
     /**
@@ -36,10 +34,8 @@ class TierComparisonService
     /**
      * @return list<array{key: string, label: string, included: bool, availability: string}>
      */
-    public function featuresFor(TierConfiguration $tier): array
+    public function featuresFor(array $matrix, array $caps): array
     {
-        $matrix = $tier->capability_matrix ?? [];
-        $caps = $tier->count_caps ?? [];
         $features = [];
 
         foreach (self::FEATURES as $key => $definition) {

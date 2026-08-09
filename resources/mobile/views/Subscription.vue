@@ -44,7 +44,24 @@
             :key="feature.key"
             :class="{ 'is-unavailable': !feature.included }"
           >
-            <span aria-hidden="true">{{ feature.included ? '✓' : '—' }}</span>
+            <span class="subscription-feature-icon" aria-hidden="true">
+              <svg
+                v-if="feature.included"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                width="14"
+                height="14"
+              >
+                <path
+                  d="M5 13l4 4L19 7"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span v-else>&ndash;</span>
+            </span>
             <span>{{ feature.label }}</span>
           </li>
         </ul>
@@ -152,5 +169,6 @@ export default {
 .subscription-features { display: grid; gap: 9px; margin: 16px 0 0; padding: 0; list-style: none; }
 .subscription-features li { display: flex; gap: 8px; color: var(--neutral-600); font-size: 13px; }
 .subscription-features li.is-unavailable { color: var(--neutral-400); }
+.subscription-feature-icon { display: inline-flex; width: 14px; min-width: 14px; align-items: center; justify-content: center; }
 .subscription-upgrade { width: 100%; }
 </style>
