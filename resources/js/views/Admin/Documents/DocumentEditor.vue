@@ -227,7 +227,7 @@ export default {
                 const { data } = await documentArticleService.socialClips(this.article.id);
                 this.socialClips = data?.data?.clips || [];
                 this.socialStatus = data?.data?.status || null;
-            } catch (e) {
+            } catch {
                 this.socialClips = [];
                 this.socialStatus = null;
             }
@@ -238,7 +238,7 @@ export default {
                 // The endpoint returns a paginator: { data: { data: [...] } }.
                 const body = res?.data;
                 this.campaigns = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
-            } catch (e) {
+            } catch {
                 this.campaigns = [];
             }
         },
@@ -292,7 +292,7 @@ export default {
                 this.recommendation = await this.publishRecommendation(this.article.id);
                 // Pre-fill with the recommendation; the approver can override or clear it.
                 if (!this.publishAt) this.publishAt = this.toLocalInput(this.recommendation.recommended_at);
-            } catch (e) {
+            } catch {
                 this.recommendation = null;
             }
         },

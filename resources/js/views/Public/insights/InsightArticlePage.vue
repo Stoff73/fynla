@@ -170,7 +170,7 @@ export default {
         // through to the catch-all, show the not-found state rather than
         // rendering its empty body_blocks through the generic renderer.
         this.article = article && !article.is_bespoke ? article : null;
-      } catch (e) {
+      } catch {
         this.article = null;
       } finally {
         this.loading = false;

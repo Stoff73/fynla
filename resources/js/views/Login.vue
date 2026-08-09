@@ -352,7 +352,7 @@ export default {
       // sign-in click to get through.
       try {
         await store.dispatch('auth/fetchUser');
-      } catch (e) {
+      } catch {
         // Swallow — proceed to redirect regardless; the app recovers on load.
       }
       if (typeof gtag === 'function') {
@@ -437,7 +437,7 @@ export default {
 
       try {
         await store.dispatch('auth/fetchUser');
-      } catch (e) {
+      } catch {
         // fetchUser failure shouldn't block redirect — token is set.
       }
 
