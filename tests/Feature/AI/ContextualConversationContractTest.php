@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -134,6 +136,84 @@ it('does not disclose whether another user owns a requested resource', function 
 
     $this->postJson('/api/ai-chat/contextual-conversations', $foreign)->assertNotFound();
     $this->postJson('/api/ai-chat/contextual-conversations', $missing)->assertNotFound();
+});
+
+it('creates a fresh conversation for every identical surface action', function (): void {
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create([
+        'account_name' => 'Rainy Day Account',
+        'current_balance' => 12500,
+    ]);
+    Sanctum::actingAs($user);
+    $payload = contextualConversationPayload([
+        'resource_id' => $account->id,
+        'current_destination' => [
+            'params' => ['account_id' => $account->id],
+        ],
+    ]);
+
+    $first = $this->postJson('/api/ai-chat/contextual-conversations', $payload)
+        ->assertCreated()
+        ->json('data.conversation.id');
+    $second = $this->postJson('/api/ai-chat/contextual-conversations', $payload)
+        ->assertCreated()
+        ->json('data.conversation.id');
+
+    expect($first)->toBeInt()
+        ->and($second)->toBeInt()
+        ->and($second)->not->toBe($first)
+        ->and(AiConversation::forUser($user->id)->count())->toBe(2);
+});
+
+it('persists a server-authored personalised opening without financial values', function (): void {
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create([
+        'account_name' => 'Rainy Day Account',
+        'current_balance' => 12500,
+        'interest_rate' => 4.25,
+    ]);
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'resource_id' => $account->id,
+        'current_destination' => [
+            'params' => ['account_id' => $account->id],
+        ],
+    ]))->assertCreated()
+        ->assertJsonPath('data.opening_message.role', 'assistant');
+
+    $conversation = AiConversation::findOrFail($response->json('data.conversation.id'));
+    $opening = AiMessage::query()
+        ->where('conversation_id', $conversation->id)
+        ->sole();
+    $metadataJson = json_encode($conversation->metadata, JSON_THROW_ON_ERROR);
+
+    expect($response->json('data.opening_message.id'))->toBe($opening->id)
+        ->and($response->json('data.opening_message.content'))->toBe($opening->content)
+        ->and($opening->content)->toContain('Rainy Day Account')
+        ->and($opening->content)->not->toContain('12,500')
+        ->and($opening->content)->not->toContain('12500')
+        ->and($opening->content)->not->toContain('4.25')
+        ->and($conversation->message_count)->toBe(1)
+        ->and($conversation->last_message_at)->not->toBeNull()
+        ->and($metadataJson)->not->toContain('Rainy Day Account')
+        ->and($metadataJson)->not->toContain('12500')
+        ->and($metadataJson)->not->toContain('4.25');
+});
+
+it('creates no conversation or message when resource resolution fails', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'resource_id' => 999999,
+        'current_destination' => [
+            'params' => ['account_id' => 999999],
+        ],
+    ]))->assertNotFound();
+
+    expect(AiConversation::query()->count())->toBe(0)
+        ->and(AiMessage::query()->count())->toBe(0);
 });
 
 it('resolves owned entity types using server records', function (

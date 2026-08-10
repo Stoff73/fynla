@@ -14,7 +14,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
-use App\Services\AI\ContextualConversation\ContextualResourceResolver;
+use App\Services\AI\ContextualConversation\ContextualConversationService;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
@@ -95,42 +95,13 @@ class AiChatController extends Controller
      */
     public function createContextual(
         CreateContextualConversationRequest $request,
-        ContextualResourceResolver $resources,
+        ContextualConversationService $contextualConversations,
     ): JsonResponse {
-        $validated = $request->validated();
-        $resource = $resources->resolve(
-            $request->user(),
-            $validated['resource_type'],
-            $validated['resource_id'] ?? null,
-        );
-
-        $conversation = AiConversation::create([
-            'user_id' => $request->user()->id,
-            'title' => ucfirst($validated['action']).' '.$resource->label,
-            'status' => 'active',
-            'model_used' => '',
-            'metadata' => [
-                'source' => 'surface_action',
-                'mode' => 'surface_action',
-                'action' => $validated['action'],
-                'resource_type' => $resource->resourceType,
-                'resource_id' => $resource->resourceId,
-                'current_destination' => $validated['current_destination'],
-                'origin' => $validated['origin'],
-                'context_provenance' => [
-                    'authority' => 'server',
-                    'rehydrated_at' => now()->toIso8601String(),
-                    'resource_type' => $resource->resourceType,
-                    'resource_id' => $resource->resourceId,
-                ],
-            ],
-        ]);
+        $created = $contextualConversations->create($request->user(), $request->validated());
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'conversation' => $conversation,
-            ],
+            'data' => $created,
         ], 201);
     }
 

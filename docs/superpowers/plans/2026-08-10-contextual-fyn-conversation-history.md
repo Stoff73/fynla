@@ -84,21 +84,21 @@ Run: `git add app/Http/Requests/AI/CreateContextualConversationRequest.php app/S
 - Stores metadata: `source=surface_action`, `mode=surface_action`, action/resource identifiers, semantic destination, identifier-only origin, and `context_provenance.authority=server` plus rehydration timestamp.
 - Persists the opening as an assistant `AiMessage` so immediate response and later transcript are identical.
 
-- [ ] **Step 1: Extend tests before implementation**
+- [x] **Step 1: Extend tests before implementation**
 
 Assert two identical taps create two different conversation IDs; metadata contains identifiers/provenance but no submitted or canonical financial values; the opening is personalised from the owned server record; the opening contains no balance; it is the first persisted assistant message; and a failed lookup creates neither conversation nor message.
 
-- [ ] **Step 2: Run the test and confirm RED**
+- [x] **Step 2: Run the test and confirm RED**
 
 Run: `./vendor/bin/pest tests/Feature/AI/ContextualConversationContractTest.php --filter='creates|opening|provenance|fresh'`
 
 Expected: FAIL because creation is not implemented.
 
-- [ ] **Step 3: Implement transactional creation**
+- [x] **Step 3: Implement transactional creation**
 
 Resolve before write, then create the conversation and assistant message in one transaction. Derive title, purpose, related label, fallback screen, and opening from the server-resolved resource. Increment message count and timestamps consistently with existing conversation behaviour.
 
-- [ ] **Step 4: Run focused and compatibility tests**
+- [x] **Step 4: Run focused and compatibility tests**
 
 Run:
 
@@ -109,7 +109,7 @@ Run:
 
 Expected: PASS; legacy `POST /api/ai-chat/conversations` remains compatible.
 
-- [ ] **Step 5: Commit fresh conversation creation**
+- [x] **Step 5: Commit fresh conversation creation**
 
 Run: `git add app/Http/Controllers/Api/AiChatController.php app/Models/AiConversation.php app/Services/AI/ContextualConversation/ContextualConversationService.php tests/Feature/AI/ContextualConversationContractTest.php && git commit -m "feat: create fresh contextual Fyn conversations"`
 
