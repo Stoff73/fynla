@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 
 // Regression coverage for the adjacent D3 race pattern flagged (not fixed) in
-// the CSJ report (2026-07-21): MobileChrome's own openFyn()/openFynWith()/
-// verifyAnswer() had the same unawaited-open -> immediate-send race as
+// the CSJ report (2026-07-21): MobileChrome's own openFyn()/verifyAnswer()
+// had the same unawaited-open -> immediate-send race as
 // Dashboard.vue's openRecChat/openFynForCapture (see Dashboard.spec.js). Fixed
 // the same way: openFyn() is now async and returns the open+init promise chain
 // (mirrors Dashboard.vue's openFyn), and initFyn()'s onboarding branch now
@@ -27,8 +27,9 @@ import MobileChrome from '../MobileChrome.vue';
 import Dashboard from '../../views/Dashboard.vue';
 import { store } from '../../store.js';
 
-function mountChrome() {
+function mountChrome(props = {}) {
   return mount(MobileChrome, {
+    props,
     global: {
       mocks: {
         $route: { path: '/income', query: {} },
@@ -78,27 +79,62 @@ describe('MobileChrome.vue', () => {
     storageSpy.mockRestore();
   });
 
-  describe('openFynWith() awaits openFyn() (adjacent D3: edit-details race)', () => {
-    it('does not send() until openFyn()\'s promise settles', async () => {
+  describe('trusted contextual launch', () => {
+    const request = {
+      action: 'edit',
+      resource_type: 'savings',
+      current_destination: { screen: 'savings', params: {}, fallback: 'dashboard' },
+      origin: { kind: 'surface_action', recommendation_id: null },
+    };
+
+    it('shows the server-persisted opening without sending client-authored prose or resuming onboarding', async () => {
       store.token = 'live-token';
-      store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null, active_campaign: null };
-      const wrapper = mountChrome();
+      store.user = { id: 1, onboarding_completed: false, onboarding_fyn_step: 'campaign_verify_navigate' };
+      const wrapper = mountChrome({ contextualRequest: request });
       await flushPromises();
 
-      let resolveOpen;
-      const openPromise = new Promise((resolve) => { resolveOpen = resolve; });
-      const openSpy = vi.spyOn(wrapper.vm, 'openFyn').mockReturnValue(openPromise);
+      const createSpy = vi.spyOn(wrapper.vm, 'createContextualConversation').mockImplementation(async () => {
+        wrapper.vm.conversationId = 101;
+        wrapper.vm.messages = [{ role: 'fyn', text: 'Trusted opening from Laravel.' }];
+        return 101;
+      });
+      const resumeSpy = vi.spyOn(wrapper.vm, 'resumeOnboardingInDock');
       const sendSpy = vi.spyOn(wrapper.vm, 'send').mockImplementation(() => {});
 
-      const tapPromise = wrapper.vm.openFynWith('What would you like to update?');
-      await Promise.resolve();
-      await Promise.resolve();
-      expect(openSpy).toHaveBeenCalled();
-      expect(sendSpy).not.toHaveBeenCalled();
+      await wrapper.vm.openContextualFyn(request);
 
-      resolveOpen();
-      await tapPromise;
-      expect(sendSpy).toHaveBeenCalledWith('What would you like to update?');
+      expect(createSpy).toHaveBeenCalledWith(request);
+      expect(wrapper.vm.fynOpen).toBe(true);
+      expect(wrapper.vm.messages[0].text).toBe('Trusted opening from Laravel.');
+      expect(resumeSpy).not.toHaveBeenCalled();
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+
+    it('issues a fresh creation call on every Edit tap', async () => {
+      store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null };
+      const wrapper = mountChrome({ contextualRequest: request });
+      const createSpy = vi.spyOn(wrapper.vm, 'createContextualConversation')
+        .mockResolvedValueOnce(101)
+        .mockResolvedValueOnce(102);
+
+      await wrapper.vm.openContextualFyn(request);
+      wrapper.vm.fynOpen = false;
+      await wrapper.vm.openContextualFyn(request);
+
+      expect(createSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the page visible and exposes retry copy when creation fails', async () => {
+      store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null };
+      const wrapper = mountChrome({ contextualRequest: request });
+      vi.spyOn(wrapper.vm, 'createContextualConversation').mockResolvedValue(null);
+
+      await wrapper.get('.md-edit-details').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.vm.fynOpen).toBe(false);
+      expect(wrapper.text()).toContain('Fyn could not start that conversation. Please try again.');
+      expect(wrapper.get('.md-edit-details').exists()).toBe(true);
     });
   });
 

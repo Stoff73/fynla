@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="this pension" back @back="goBack">
+  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="this pension" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ title }}</h1>
       <p class="m-sub">{{ typeLabel }}</p>
@@ -137,6 +137,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -176,6 +177,22 @@ export default {
   computed: {
     type() { return this.$route.params.type; },
     id() { return this.$route.params.id; },
+    contextualRequest() {
+      const pensionId = Number(this.id);
+      const resourceType = { dc: 'dc_pension', db: 'db_pension', state: 'state_pension' }[this.type];
+      if (!resourceType || !Number.isInteger(pensionId) || pensionId < 1) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType,
+        resourceId: pensionId,
+        currentDestination: {
+          screen: 'pension_detail',
+          params: { pension_id: pensionId, pension_type: this.type },
+          fallback: 'retirement',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
     typeLabel() { return TYPE_LABELS[this.type] || 'Pension'; },
     title() {
       if (this.type === 'state') return 'State Pension';

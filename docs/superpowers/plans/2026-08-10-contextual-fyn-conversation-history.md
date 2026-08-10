@@ -239,11 +239,11 @@ Run: `git add app/Constants/GateRoutes.php app/Http/Controllers/Api/AiChatContro
 - Produces mixin methods: `createContextualConversation(request)` and `openConversation(conversationID)`.
 - Produces component method: `openContextualFyn(request)`.
 
-- [ ] **Step 1: Write failing JavaScript contract/component tests**
+- [x] **Step 1: Write failing JavaScript contract/component tests**
 
 Assert exact snake_case JSON, no balance/value/name/prompt fields, fresh POST on every Add/Edit tap, returned opening shown without sending a second user message, creation failure leaves the current screen visible with retry, contextual launch does not resume onboarding even when onboarding is active, and explicit history loading opens the requested transcript.
 
-- [ ] **Step 2: Run the focused tests and confirm RED**
+- [x] **Step 2: Run the focused tests and confirm RED**
 
 Run:
 
@@ -253,11 +253,11 @@ env PATH=/Users/CSJ/.nvm/versions/node/v20.19.5/bin:/usr/bin:/bin:/usr/sbin:/sbi
 
 Expected: FAIL because typed launch support is absent.
 
-- [ ] **Step 3: Implement the shared `/m` launcher**
+- [x] **Step 3: Implement the shared `/m` launcher**
 
 Reset transcript/conversation state, POST the contract, set the returned ID, load the persisted transcript, and open the dock. Keep generic chat and onboarding resume intact. Replace `editPrompt` props and `openFynWith()` calls at supported Add/Edit entry points with identifiers and semantic destinations; delete the name-bearing prompt builder after all imports are removed.
 
-- [ ] **Step 4: Run focused and full mobile tests**
+- [x] **Step 4: Run focused and full mobile tests**
 
 Run:
 
@@ -268,7 +268,7 @@ env PATH=/Users/CSJ/.nvm/versions/node/v20.19.5/bin:/usr/bin:/bin:/usr/sbin:/sbi
 
 Expected: PASS and production mobile build succeeds.
 
-- [ ] **Step 5: Commit `/m` contextual launch parity**
+- [x] **Step 5: Commit `/m` contextual launch parity**
 
 Run: `git add resources/mobile tests/frontend/mobile && git commit -m "feat: launch trusted contextual Fyn on mobile web"`
 

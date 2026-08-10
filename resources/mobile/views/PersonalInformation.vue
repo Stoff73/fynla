@@ -4,7 +4,7 @@
     subtitle="Your canonical profile and financial position"
     :loading="loading"
     loading-label="your personal information"
-    :edit-details="false"
+    :contextual-request="contextualRequest"
   >
     <div v-if="error" class="m-card m-state" role="alert">
       <p class="m-err">{{ error }}</p>
@@ -66,6 +66,7 @@
 import { apiGet } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../fyn/contextualConversation.js';
 import { store } from '../store.js';
 
 export default {
@@ -77,6 +78,14 @@ export default {
     profile: null,
   }),
   computed: {
+    contextualRequest() {
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'personal_information',
+        currentDestination: { screen: 'personal_information', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
+    },
     hasProfile() {
       return Boolean(this.profile?.personal_info);
     },

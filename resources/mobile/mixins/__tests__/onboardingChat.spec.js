@@ -14,7 +14,7 @@ vi.mock('../../api.js', () => ({
   apiStream: vi.fn(() => Promise.resolve({ ok: true, status: 200, text: '' })),
 }));
 
-import { apiPost, apiStream } from '../../api.js';
+import { apiGet, apiPost, apiStream } from '../../api.js';
 import { store } from '../../store.js';
 import onboardingChat from '../onboardingChat.js';
 
@@ -88,5 +88,83 @@ describe('onboardingChat mixin — handleAuthExpiry (D1: dead-token chat taps)',
     expect(wrapper.vm.conversationId).toBeNull();
     const fynReply = wrapper.vm.messages.find((m) => m.role === 'fyn');
     expect(fynReply?.text || '').not.toMatch(/could not start/i);
+  });
+});
+
+describe('onboardingChat mixin — contextual and explicit conversation loading', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.token = 'live-token';
+    store.user = {
+      id: 1,
+      onboarding_completed: false,
+      onboarding_fyn_step: 'campaign_verify_navigate',
+    };
+    store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+    wrapper = mount(Host, {
+      global: {
+        mocks: {
+          $router: { push: vi.fn() },
+          $route: { path: '/savings', query: {} },
+        },
+      },
+    });
+  });
+
+  it('creates a fresh contextual conversation on every call and loads its persisted opening', async () => {
+    const request = {
+      action: 'edit',
+      resource_type: 'savings',
+      current_destination: { screen: 'savings', params: {}, fallback: 'dashboard' },
+      origin: { kind: 'surface_action', recommendation_id: null },
+    };
+    apiPost
+      .mockResolvedValueOnce({ ok: true, status: 201, data: { data: { conversation: { id: 101 } } } })
+      .mockResolvedValueOnce({ ok: true, status: 201, data: { data: { conversation: { id: 102 } } } });
+    apiGet
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: { data: { messages: [{ role: 'assistant', content: 'First trusted opening.', metadata: {} }] } },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: { data: { messages: [{ role: 'assistant', content: 'Second trusted opening.', metadata: {} }] } },
+      });
+
+    expect(await wrapper.vm.createContextualConversation(request)).toBe(101);
+    expect(wrapper.vm.messages).toEqual([{ role: 'fyn', text: 'First trusted opening.', bubbles: [], actionBubbles: false }]);
+    expect(await wrapper.vm.createContextualConversation(request)).toBe(102);
+    expect(wrapper.vm.messages[0].text).toBe('Second trusted opening.');
+    expect(apiPost).toHaveBeenCalledTimes(2);
+    expect(apiPost).toHaveBeenNthCalledWith(1, '/api/ai-chat/contextual-conversations', request, 'live-token');
+    expect(apiPost).toHaveBeenNthCalledWith(2, '/api/ai-chat/contextual-conversations', request, 'live-token');
+  });
+
+  it('returns null on creation failure so the caller can keep the current screen visible and retry', async () => {
+    wrapper.vm.conversationId = 88;
+    wrapper.vm.messages = [{ role: 'user', text: 'stale' }];
+    apiPost.mockResolvedValue({ ok: false, status: 422, data: {} });
+
+    expect(await wrapper.vm.createContextualConversation({ action: 'edit' })).toBeNull();
+    expect(wrapper.vm.conversationId).toBeNull();
+    expect(wrapper.vm.messages).toEqual([]);
+  });
+
+  it('opens an exact history conversation without creating or resuming another one', async () => {
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { data: { messages: [{ role: 'user', content: 'Exact prior turn', metadata: {} }] } },
+    });
+
+    expect(await wrapper.vm.openConversation(77)).toBe(77);
+    expect(wrapper.vm.conversationId).toBe(77);
+    expect(apiGet).toHaveBeenCalledWith('/api/ai-chat/conversations/77', 'live-token');
+    expect(apiPost).not.toHaveBeenCalled();
+    expect(apiStream).not.toHaveBeenCalled();
   });
 });

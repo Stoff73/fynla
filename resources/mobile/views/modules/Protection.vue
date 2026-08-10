@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection" :edit-prompt="editPrompt">
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your protection position…</p>
     </div>
@@ -74,7 +74,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
-import { buildEditPrompt } from '../../utils/editPrompt.js';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -105,9 +105,13 @@ export default {
   computed: {
     profile() { return this.payload?.profile || {}; },
 
-    editPrompt() {
-      return buildEditPrompt('protection cover', "I'd like to add a protection policy.",
-        this.policies.map((p) => p.provider || p.typeLabel));
+    contextualRequest() {
+      return buildContextualConversationRequest({
+        action: this.policies.length ? 'edit' : 'add',
+        resourceType: 'protection',
+        currentDestination: { screen: 'protection', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
     },
 
     // Flatten the index payload's grouped policies into a single tappable list.

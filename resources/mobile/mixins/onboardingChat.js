@@ -104,6 +104,41 @@ export default {
       return this.conversationId;
     },
 
+    resetConversationState() {
+      this.conversationId = null;
+      this.resumeId = null;
+      this.messages = [];
+      this.draft = '';
+      this.sending = false;
+      this.fynStarted = false;
+    },
+
+    async createContextualConversation(request) {
+      this.resetConversationState();
+      const res = await apiPost('/api/ai-chat/contextual-conversations', request, store.token);
+      if (this.handleAuthExpiry(res) || !res?.ok) return null;
+
+      const conversationId = res.data?.data?.conversation?.id
+        ?? res.data?.conversation?.id
+        ?? null;
+      if (!conversationId) return null;
+
+      this.conversationId = conversationId;
+      this.fynStarted = true;
+      await this.loadTranscript(conversationId);
+
+      return conversationId;
+    },
+
+    async openConversation(conversationId) {
+      this.resetConversationState();
+      this.conversationId = conversationId;
+      this.fynStarted = true;
+      await this.loadTranscript(conversationId);
+
+      return conversationId;
+    },
+
     // First turn of the onboarding chat (dashboard entry). Onboarding-incomplete
     // users (incl. funnel arrivals) start the onboarding conversation; a returning
     // mid-flow user gets the welcome-back resume (summary + Continue / Something

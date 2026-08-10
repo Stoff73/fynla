@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="your investments" :edit-prompt="editPrompt">
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="your investments" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your investments…</p>
     </div>
@@ -71,8 +71,8 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
-import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 export default {
   name: 'MobileInvestment',
@@ -85,9 +85,13 @@ export default {
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
-    editPrompt() {
-      return buildEditPrompt('investments', "I'd like to add an investment account.",
-        this.accounts.map((a) => a.provider || a.platform || 'Investment account'));
+    contextualRequest() {
+      return buildContextualConversationRequest({
+        action: this.accounts.length ? 'edit' : 'add',
+        resourceType: 'investment',
+        currentDestination: { screen: 'investment', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
     },
     riskProfile() { return this.payload?.risk_profile || null; },
     riskLabel() {
