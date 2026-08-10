@@ -880,6 +880,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 // Liabilities is a Free-tier module (capability_matrix: liabilities=full),
 // surfaced under Net Worth. Not count-gated.
 Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(function () {
+    Route::get('/{id}', [EstateController::class, 'showLiability']);
     Route::post('/', [EstateController::class, 'storeLiability']);
     Route::put('/{id}', [EstateController::class, 'updateLiability']);
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);

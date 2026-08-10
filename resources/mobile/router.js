@@ -11,6 +11,9 @@ import ConversationHistory from './views/ConversationHistory.vue';
 import MobileLogin from './views/Login.vue';
 import MobileNetWorth from './views/modules/NetWorth.vue';
 import MobileNetWorthCategory from './views/modules/NetWorthCategory.vue';
+import MobilePropertyDetail from './views/modules/PropertyDetail.vue';
+import MobileMortgageDetail from './views/modules/MortgageDetail.vue';
+import MobileLiabilityDetail from './views/modules/LiabilityDetail.vue';
 import MobileProtection from './views/modules/Protection.vue';
 import MobileProtectionPolicy from './views/modules/ProtectionPolicy.vue';
 import MobileSavings from './views/modules/Savings.vue';
@@ -49,6 +52,9 @@ const router = createRouter({
     { path: '/net-worth', name: 'm-net-worth', component: MobileNetWorth, meta: { auth: true } },
     { path: '/net-worth/history', name: 'm-balance-history', component: MobileBalanceHistory, meta: { auth: true } },
     { path: '/net-worth/:category', name: 'm-net-worth-category', component: MobileNetWorthCategory, props: true, meta: { auth: true } },
+    { path: '/net-worth/property/:id', name: 'm-property', component: MobilePropertyDetail, meta: { auth: true } },
+    { path: '/net-worth/mortgage/:id', name: 'm-mortgage', component: MobileMortgageDetail, meta: { auth: true } },
+    { path: '/net-worth/liability/:id', name: 'm-liability', component: MobileLiabilityDetail, meta: { auth: true } },
     { path: '/protection', name: 'm-protection', component: MobileProtection, meta: { auth: true } },
     { path: '/protection/policy/:policyType/:id', name: 'm-protection-policy', component: MobileProtectionPolicy, props: true, meta: { auth: true } },
     { path: '/savings', name: 'm-savings', component: MobileSavings, meta: { auth: true } },

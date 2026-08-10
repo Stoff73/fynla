@@ -1,0 +1,1 @@
+{"success":true,"data":{"liability":{"id":92,"liability_name":"Personal loan","liability_type":"loan","current_balance":12000,"monthly_payment":350,"interest_rate":5.9,"maturity_date":"2029-06-01","secured_against":null,"ownership_type":"individual","ownership_percentage":100,"is_primary_owner":true}}}

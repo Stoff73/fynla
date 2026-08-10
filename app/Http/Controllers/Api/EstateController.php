@@ -359,6 +359,31 @@ class EstateController extends Controller
     // ============ LIABILITY CRUD ============
 
     /**
+     * Return one liability through the same ownership rules used by the
+     * canonical Net Worth detail surfaces.
+     */
+    public function showLiability(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $liability = Liability::query()
+            ->whereKey($id)
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->with('jointOwner')
+            ->firstOrFail();
+
+        $data = (new LiabilityResource($liability))->resolve($request);
+        $data['is_primary_owner'] = $liability->user_id === $user->id;
+
+        return response()->json([
+            'success' => true,
+            'data' => ['liability' => $data],
+        ]);
+    }
+
+    /**
      * Store a new liability
      */
     public function storeLiability(StoreLiabilityRequest $request): JsonResponse

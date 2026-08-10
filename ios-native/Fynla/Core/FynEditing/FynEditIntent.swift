@@ -97,6 +97,36 @@ enum FynContextualActions {
         )
     }
 
+    static func property(id: Int) -> FynContextualAction {
+        entity(
+            resourceType: "property",
+            resourceID: id,
+            screen: "property_detail",
+            params: ["property_id": .int(id)],
+            fallback: "net_worth"
+        )
+    }
+
+    static func mortgage(id: Int) -> FynContextualAction {
+        entity(
+            resourceType: "mortgage",
+            resourceID: id,
+            screen: "mortgage_detail",
+            params: ["mortgage_id": .int(id)],
+            fallback: "net_worth"
+        )
+    }
+
+    static func liability(id: Int) -> FynContextualAction {
+        entity(
+            resourceType: "liability",
+            resourceID: id,
+            screen: "liability_detail",
+            params: ["liability_id": .int(id)],
+            fallback: "net_worth"
+        )
+    }
+
     private static func overview(
         action: FynContextualActionKind,
         resourceType: String,

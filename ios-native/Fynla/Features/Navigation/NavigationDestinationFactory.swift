@@ -92,8 +92,31 @@ enum NavigationDestinationFactory {
                 onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
-        case .incomeDetail, .propertyDetail, .mortgageDetail, .liabilityDetail:
+        case .incomeDetail:
             StagedNativeDestinationView(title: title(for: route))
+        case let .propertyDetail(propertyID):
+            PropertyDetailView(
+                propertyID: propertyID,
+                model: netWorthModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .mortgageDetail(mortgageID):
+            MortgageDetailView(
+                mortgageID: mortgageID,
+                model: netWorthModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .liabilityDetail(liabilityID):
+            LiabilityDetailView(
+                liabilityID: liabilityID,
+                model: netWorthModel,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
         case .expenditure:
             ExpenditureView(
                 model: expenditureModel,
@@ -105,7 +128,7 @@ enum NavigationDestinationFactory {
                 NetWorthCategoryView(
                     categoryKey: category,
                     model: netWorthModel,
-                    onOpenFyn: onOpenFyn,
+                    onRoute: onRoute,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             } else {

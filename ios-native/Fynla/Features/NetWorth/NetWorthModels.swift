@@ -50,6 +50,7 @@ struct NetWorthDetailedAssets: Decodable, Sendable, Equatable {
     let cash: NetWorthAssetSection
     let business: NetWorthAssetSection
     let chattels: NetWorthAssetSection
+    let liabilities: NetWorthLiabilitySection?
 }
 
 struct NetWorthAssetSection: Decodable, Sendable, Equatable {
@@ -80,6 +81,7 @@ struct NetWorthAssetItem: Decodable, Sendable, Equatable, Identifiable {
     let businessType: String?
     let chattelType: String?
     let year: Int?
+    let outstandingMortgage: Decimal?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -97,7 +99,201 @@ struct NetWorthAssetItem: Decodable, Sendable, Equatable, Identifiable {
         case businessType = "business_type"
         case chattelType = "chattel_type"
         case year
+        case outstandingMortgage = "outstanding_mortgage"
     }
+
+    func detailRoute(for category: NetWorthCategory) -> AppRoute? {
+        switch category {
+        case .property: .propertyDetail(id: id)
+        case .investments: .investment(accountID: id)
+        case .pensions:
+            type.map { .retirement(pensionType: $0, id: id) }
+        case .cash: .savings(accountID: id)
+        case .business, .chattels, .liabilities: nil
+        }
+    }
+}
+
+struct NetWorthLiabilitySection: Decodable, Sendable, Equatable {
+    let count: Int
+    let totalValue: Decimal
+    let items: [NetWorthDebtItem]
+
+    private enum CodingKeys: String, CodingKey {
+        case count
+        case totalValue = "total_value"
+        case items
+    }
+}
+
+struct NetWorthDebtItem: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let kind: String
+    let name: String
+    let value: Decimal
+    let propertyID: Int?
+    let liabilityType: String?
+    let ownershipType: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, name, value
+        case propertyID = "property_id"
+        case liabilityType = "liability_type"
+        case ownershipType = "ownership_type"
+    }
+
+    var detailRoute: AppRoute? {
+        switch kind {
+        case "mortgage": .mortgageDetail(id: id)
+        case "liability": .liabilityDetail(id: id)
+        default: nil
+        }
+    }
+}
+
+struct PropertyDetailResponse: Decodable, Sendable, Equatable {
+    let property: PropertyDetail
+}
+
+struct PropertyDetail: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let addressLine1: String?
+    let propertyType: String?
+    let currentValue: Decimal?
+    let purchasePrice: Decimal?
+    let purchaseDate: String?
+    let valuationDate: String?
+    let ownershipType: String?
+    let ownershipPercentage: Decimal?
+    let equity: Decimal?
+    let outstandingMortgage: Decimal?
+    let isPrimaryOwner: Bool?
+    let mortgages: [PropertyMortgageSummary]?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case addressLine1 = "address_line_1"
+        case propertyType = "property_type"
+        case currentValue = "current_value"
+        case purchasePrice = "purchase_price"
+        case purchaseDate = "purchase_date"
+        case valuationDate = "valuation_date"
+        case ownershipType = "ownership_type"
+        case ownershipPercentage = "ownership_percentage"
+        case equity
+        case outstandingMortgage = "outstanding_mortgage"
+        case isPrimaryOwner = "is_primary_owner"
+        case mortgages
+    }
+
+    var displayName: String { addressLine1 ?? "Property" }
+    var detailRoute: AppRoute { .propertyDetail(id: id) }
+}
+
+struct PropertyMortgageSummary: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let lenderName: String?
+    let outstandingBalance: Decimal?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case lenderName = "lender_name"
+        case outstandingBalance = "outstanding_balance"
+    }
+
+    var detailRoute: AppRoute { .mortgageDetail(id: id) }
+}
+
+struct MortgageDetailResponse: Decodable, Sendable, Equatable {
+    let mortgage: MortgageDetail
+}
+
+struct MortgageDetail: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let lenderName: String?
+    let mortgageType: String?
+    let outstandingBalance: Decimal?
+    let interestRate: Decimal?
+    let rateType: String?
+    let monthlyPayment: Decimal?
+    let maturityDate: String?
+    let remainingTermMonths: Int?
+    let ownershipType: String?
+    let ownershipPercentage: Decimal?
+    let isPrimaryOwner: Bool?
+    let property: PropertyDetail?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case lenderName = "lender_name"
+        case mortgageType = "mortgage_type"
+        case outstandingBalance = "outstanding_balance"
+        case interestRate = "interest_rate"
+        case rateType = "rate_type"
+        case monthlyPayment = "monthly_payment"
+        case maturityDate = "maturity_date"
+        case remainingTermMonths = "remaining_term_months"
+        case ownershipType = "ownership_type"
+        case ownershipPercentage = "ownership_percentage"
+        case isPrimaryOwner = "is_primary_owner"
+        case property
+    }
+
+    var displayName: String { lenderName ?? "Mortgage" }
+}
+
+struct LiabilityDetailResponse: Decodable, Sendable, Equatable {
+    let liability: LiabilityDetail
+}
+
+struct LiabilityDetail: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let liabilityName: String?
+    let liabilityType: String?
+    let currentBalance: Decimal?
+    let monthlyPayment: Decimal?
+    let interestRate: Decimal?
+    let maturityDate: String?
+    let securedAgainst: String?
+    let fixedUntil: String?
+    let ownershipType: String?
+    let ownershipPercentage: Decimal?
+    let isPrimaryOwner: Bool?
+    let notes: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case liabilityName = "liability_name"
+        case liabilityType = "liability_type"
+        case currentBalance = "current_balance"
+        case monthlyPayment = "monthly_payment"
+        case interestRate = "interest_rate"
+        case maturityDate = "maturity_date"
+        case securedAgainst = "secured_against"
+        case fixedUntil = "fixed_until"
+        case ownershipType = "ownership_type"
+        case ownershipPercentage = "ownership_percentage"
+        case isPrimaryOwner = "is_primary_owner"
+        case notes
+    }
+
+    var displayName: String { liabilityName ?? "Liability" }
+}
+
+enum NetWorthCanonicalDetail: Sendable, Equatable {
+    case property(PropertyDetail)
+    case mortgage(MortgageDetail)
+    case liability(LiabilityDetail)
+}
+
+enum NetWorthDetailViewState: Sendable, Equatable {
+    case idle
+    case loading
+    case loaded(NetWorthCanonicalDetail)
+    case offline(previous: NetWorthCanonicalDetail?)
+    case unauthenticated
+    case upgradeRequired(message: String)
+    case failed(requestID: String?)
 }
 
 enum NetWorthCategory: String, CaseIterable, Sendable {
