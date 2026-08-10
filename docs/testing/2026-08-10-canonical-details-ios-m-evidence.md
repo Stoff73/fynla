@@ -67,6 +67,8 @@ Exported final screenshots:
 | Full `/m` suite | Goals contextual-authority contract failed | Overview refactor removed the ownership helper and entity-request branch still used by the shared authority contract | Restore the primary-owner guard and identifier-only canonical goal entity request without restoring overview Edit | Focused Goals tests and all 114 mobile tests passed |
 | Native detail heading | Employment title rendered white on the light page after push navigation | Global-positioned gradient slice retained transition geometry | Fill every `MobilePageHero` with the shared gradient directly and retain header accessibility traits/identifiers | PR 3 XCUITest reran green; visual screenshot inspected |
 | Native full suite | Six StoreKit system-session cases failed | Existing StoreKitTest environment baseline | Reproduced on untouched `dev`; no PR 3 StoreKit change | All other native tests passed; focused PR 3 and UI journeys green |
+| PR lint | Five changed PHP files failed repository formatting rules | Import ordering and fully qualified names did not match the project Pint profile | Apply Pint only to the five reported files | Pint and the 80 directly affected backend tests passed; replacement lint job passed |
+| PR architecture | Property contextual resolution bypassed the canonical read boundary | The resolver added a direct `Property` model query | Inject `PropertyStore`, use its joint-aware `findMany` read and remove the model dependency | Contextual contract passed with 31 tests and 126 assertions; replacement architecture job is the merge gate |
 
 ## Installed Google Chrome `/m` acceptance
 
