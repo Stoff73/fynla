@@ -7,6 +7,7 @@ import SwiftUI
 // amounts as /m's formatCurrency.
 struct NetWorthView: View {
     let model: NetWorthModel
+    let forecastModel: NetWorthForecastModel
     let onRoute: (AppRoute) -> Void
     let onOpenFyn: (String) -> Void
     let onOpenSubscription: () -> Void
@@ -68,6 +69,7 @@ struct NetWorthView: View {
                     }
 
                     historyCard
+                    NetWorthForecastView(model: forecastModel)
                     assetCard(snapshot.assetCategories)
                     liabilityCard(snapshot.overview.totalLiabilities)
                 }
@@ -76,7 +78,11 @@ struct NetWorthView: View {
                 Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
         }
-        .refreshable { await model.refresh() }
+        .refreshable {
+            async let netWorthRefresh: Void = model.refresh()
+            async let forecastRefresh: Void = forecastModel.refresh()
+            _ = await (netWorthRefresh, forecastRefresh)
+        }
     }
 
     // m-hero: dark card with the big metric + assets/liabilities sub-line.
@@ -93,7 +99,7 @@ struct NetWorthView: View {
     private var historyCard: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Balance history")
+                Text("Recorded balance history")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(FynlaColor.Token.horizon500.color)
                 Text("Track how your recorded balances change over time.")

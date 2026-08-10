@@ -27,6 +27,7 @@ use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
+use App\Services\Retirement\RetirementProjectionContractService;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\RetirementStrategyService;
 use App\Services\Stores\Exceptions\StoreValidationException;
@@ -56,6 +57,7 @@ class RetirementController extends Controller
         private readonly RetirementAgent $agent,
         private readonly AnnualAllowanceChecker $allowanceChecker,
         private readonly RetirementProjectionService $projectionService,
+        private readonly RetirementProjectionContractService $projectionContractService,
         private readonly RetirementStrategyService $strategyService,
         private readonly RetirementIncomeService $retirementIncomeService,
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
@@ -151,6 +153,7 @@ class RetirementController extends Controller
         $user = $request->user();
 
         $projections = $this->projectionService->getProjections($user->id);
+        $projections['planning_projection'] = $this->projectionContractService->build($user);
 
         return response()->json([
             'success' => true,

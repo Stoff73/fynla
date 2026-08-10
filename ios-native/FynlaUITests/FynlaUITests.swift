@@ -227,6 +227,72 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testPR5ProjectionParityJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.retirement", in: app)
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+
+        for label in [
+            "Age 65–66",
+            "Age 67–69",
+            "Age 70–100",
+        ] {
+            let band = app.staticTexts.matching(
+                NSPredicate(format: "label == %@", label)
+            ).firstMatch
+            assertReachable(band, in: app)
+            XCTAssertTrue(band.exists)
+        }
+
+        let retirementAssumptions = element("retirement.projection.assumptions", in: app)
+        assertReachable(retirementAssumptions, in: app)
+        XCTAssertTrue(retirementAssumptions.label.contains("4.7%"))
+        XCTAssertFalse(app.staticTexts["Median projection"].exists)
+        attachAcceptance(app, name: "PR5-01-retirement-reconciliation")
+
+        openDrawerItem("navigation.net-worth", in: app)
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Recorded balance history"].exists)
+
+        let forecast = element("net-worth.forecast", in: app)
+        assertReachable(forecast, in: app)
+        XCTAssertTrue(app.staticTexts["PROJECTED NET WORTH"].exists)
+
+        let propertyRate = app.textFields["net-worth.forecast.rate.property"]
+        assertReachable(propertyRate, in: app)
+        replaceText(in: propertyRate, with: "6.25", app: app)
+        app.buttons["net-worth.forecast.keyboard-done"].tap()
+
+        let save = app.buttons["net-worth.forecast.save"]
+        assertReachable(save, in: app)
+        save.tap()
+        XCTAssertTrue(
+            element("net-worth.forecast.feedback", in: app)
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertEqual(propertyRate.value as? String, "6.25")
+        attachAcceptance(app, name: "PR5-02-net-worth-saved-assumption")
+
+        openDrawerItem("navigation.retirement", in: app)
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+        openDrawerItem("navigation.net-worth", in: app)
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+
+        let persistedPropertyRate = app.textFields["net-worth.forecast.rate.property"]
+        assertReachable(persistedPropertyRate, in: app)
+        XCTAssertEqual(persistedPropertyRate.value as? String, "6.25")
+
+        let reset = app.buttons["net-worth.forecast.reset"]
+        assertReachable(reset, in: app)
+        reset.tap()
+        XCTAssertTrue(app.staticTexts["Assumptions reset to Fynla defaults."].waitForExistence(timeout: 3))
+        XCTAssertEqual(persistedPropertyRate.value as? String, "3")
+        attachAcceptance(app, name: "PR5-03-net-worth-reset-assumption")
+    }
+
+    @MainActor
     func testDashboardShowsFullRecommendationAndUsesSemanticDestination() throws {
         let app = app(mode: "unlocked")
         app.launch()
@@ -1134,6 +1200,30 @@ final class FynlaUITests: XCTestCase {
         } else {
             field.typeText(value)
         }
+    }
+
+    @MainActor
+    private func replaceText(
+        in field: XCUIElement,
+        with value: String,
+        app: XCUIApplication
+    ) {
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        assertReachable(field, in: app)
+
+        for _ in 0..<3 {
+            // The forecast fields are right-aligned. A centre tap can put
+            // the insertion point before the existing value on compact CI
+            // simulators, making leading backspaces no-ops ("6.25" then
+            // became "6.253"). Double-tap selects the existing numeric
+            // token so typing replaces it without relying on caret position.
+            // Retry if XCTest drops an event while the keyboard is settling.
+            field.doubleTap()
+            field.typeText(value)
+            if field.value as? String == value { return }
+        }
+
+        XCTAssertEqual(field.value as? String, value)
     }
 
     @MainActor

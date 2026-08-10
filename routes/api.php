@@ -373,6 +373,9 @@ Route::middleware('auth:sanctum')->prefix('tax-strategy')->group(function () {
 
 // Net Worth routes (Phase 3)
 Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
+    Route::get('/forecast', [NetWorthController::class, 'getForecast']);
+    Route::put('/forecast/assumptions', [NetWorthController::class, 'updateForecastAssumptions']);
+    Route::delete('/forecast/assumptions', [NetWorthController::class, 'resetForecastAssumptions']);
     Route::get('/overview', [NetWorthController::class, 'getOverview']);
     Route::get('/breakdown', [NetWorthController::class, 'getBreakdown']);
     Route::get('/assets-summary', [NetWorthController::class, 'getAssetsSummary']);

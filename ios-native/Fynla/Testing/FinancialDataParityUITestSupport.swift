@@ -159,7 +159,7 @@ private struct RetirementUITestClient: RetirementClient {
     }
 
     func loadProjections() async throws -> RetirementProjections {
-        throw FinancialDataParityUITestError.unavailable
+        try ProjectionParityUITestFixtures.retirementProjections()
     }
 
     func loadDCPensionProjection(id: Int) async throws -> RetirementPotProjection {

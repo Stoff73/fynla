@@ -103,29 +103,36 @@
 
       <CanonicalPortfolio v-if="type === 'dc'" :portfolio="pension.portfolio" />
 
-      <!-- DC projection -->
+      <!-- DC projection from the same server-owned contract as the overview -->
       <div v-if="type === 'dc'" class="m-card m-detail-rows">
         <p class="m-section-label" style="margin-top:0">Pension pot projection</p>
         <div v-if="projLoading" class="m-state">
           <p class="m-sub" style="margin-bottom:0">Loading projection…</p>
         </div>
-        <template v-else-if="projection">
+        <template v-else-if="planningProduct">
           <div class="m-detail-row">
             <span class="m-detail-key">Current value</span>
-            <span class="m-detail-value">{{ fmt(projection.current_value) }}</span>
+            <span class="m-detail-value">{{ fmt(planningProduct.current_value) }}</span>
           </div>
           <div class="m-detail-row">
-            <span class="m-detail-key">Projected at retirement</span>
-            <span class="m-detail-value">{{ fmt(projection.percentile_20_at_retirement) }}</span>
+            <span class="m-detail-key">Monthly contribution</span>
+            <span class="m-detail-value">{{ fmt(planningProduct.monthly_contribution) }}</span>
           </div>
           <div class="m-detail-row">
-            <span class="m-detail-key">Median projection</span>
-            <span class="m-detail-value">{{ fmt(projection.median_at_retirement) }}</span>
+            <span class="m-detail-key">Planning value at retirement</span>
+            <span class="m-detail-value">{{ fmt(planningProduct.projected_value) }}</span>
+          </div>
+          <div class="m-detail-row">
+            <span class="m-detail-key">Projected income from age {{ planningProduct.commencement_age }}</span>
+            <span class="m-detail-value">{{ fmt(planningProduct.annual_income) }} a year</span>
           </div>
           <p class="rpd-proj-note">
-            Projected to age {{ projection.retirement_age }} over {{ projection.years_to_retirement }} years
-            at an estimated {{ projection.expected_return }}% annual return. The projected figure is a
-            conservative estimate (80% likelihood of exceeding it).
+            This planning value uses a {{ planningAssumptions.sustainable_withdrawal_rate?.percent }}% sustainable
+            withdrawal rate, {{ planningAssumptions.growth_rate_percent }}% growth,
+            {{ planningAssumptions.fee_rate_percent }}% fees ({{ planningAssumptions.net_growth_rate_percent }}% net
+            growth), {{ planningAssumptions.inflation_rate_percent }}% inflation, and this pension's recorded
+            contributions. Figures are {{ planningAssumptions.basis || 'nominal' }}; uncertainty is shown separately
+            from the primary planning value.
           </p>
         </template>
         <p v-else class="m-sub" style="margin-bottom:0">No projection available for this pension.</p>
@@ -174,7 +181,7 @@ export default {
     loading: true,
     error: '',
     pension: null,
-    projection: null,
+    planningProjection: null,
     projLoading: false,
   }),
   computed: {
@@ -208,6 +215,9 @@ export default {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(this.weeklyAmount) + ' a week';
     },
     monthlyContributionDc() {
+      if (this.planningProduct?.monthly_contribution != null) {
+        return Number(this.planningProduct.monthly_contribution);
+      }
       // Mirrors RetirementProjectionService: salary-percentage schemes derive
       // the monthly figure from contribution percentages, otherwise use the
       // flat monthly amount.
@@ -237,6 +247,13 @@ export default {
       if (this.type === 'dc' && this.pension?.provider) return this.pension.provider;
       return '';
     },
+    planningProduct() {
+      const resourceType = { dc: 'dc_pension', db: 'db_pension', state: 'state_pension' }[this.type];
+      return (this.planningProjection?.products || []).find((product) => (
+        product.resource_type === resourceType && String(product.resource_id) === String(this.id)
+      )) || null;
+    },
+    planningAssumptions() { return this.planningProjection?.assumptions || {}; },
   },
   async created() { await this.load(); },
   methods: {
@@ -248,7 +265,7 @@ export default {
       this.loading = true;
       this.error = '';
       this.pension = null;
-      this.projection = null;
+      this.planningProjection = null;
       try {
         const { ok, status, data } = await apiGet('/api/retirement', store.token);
         if (handleAuthExpiry({ status }, this.$router)) return;
@@ -279,8 +296,11 @@ export default {
     async loadProjection() {
       this.projLoading = true;
       try {
-        const { ok, data } = await apiGet(`/api/retirement/dc-pensions/${this.pension.id}/projections`, store.token);
-        if (ok) this.projection = data?.data || data || null;
+        const { ok, data } = await apiGet('/api/retirement/projections', store.token);
+        if (ok) {
+          const payload = data?.data || data || {};
+          this.planningProjection = payload.planning_projection || null;
+        }
       } catch {
         // Leave projection null — the template shows a graceful fallback.
       } finally {

@@ -7,6 +7,10 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Retirement\RetirementProjectionContractService;
+use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Settings\AssumptionsService;
+use App\Services\TaxConfigService;
 use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -24,6 +28,85 @@ beforeEach(function () {
         'annual_employment_income' => 50000,
     ]);
     $this->actingAs($this->user, 'sanctum');
+});
+
+describe('Shared retirement projection contract', function () {
+    it('adds the planning contract without removing legacy projection fields', function () {
+        $projectionService = new class extends RetirementProjectionService
+        {
+            public function __construct() {}
+
+            public function getProjections(int $userId): array
+            {
+                return [
+                    'pension_pot_projection' => ['current_value' => 125_000.0],
+                    'income_drawdown' => [],
+                    'target_income_drawdown' => [],
+                    'life_events_applied' => [],
+                ];
+            }
+
+            public function projectIndividualDCPension(int $pensionId, int $userId): array
+            {
+                return [];
+            }
+        };
+        $assumptionsService = new class extends AssumptionsService
+        {
+            public function __construct() {}
+
+            public function getTypeAssumptions(User $user, string $type): array
+            {
+                return [
+                    'inflation_rate' => 2.5,
+                    'return_rate' => 5.0,
+                    'compound_periods' => 12,
+                    'fees' => ['total' => 0.5],
+                    'has_overrides' => false,
+                ];
+            }
+        };
+        $taxConfig = new class extends TaxConfigService
+        {
+            public function __construct() {}
+
+            public function get(string $key, mixed $default = null): mixed
+            {
+                return match ($key) {
+                    'retirement.withdrawal_rates.sustainable' => 0.047,
+                    'retirement.projection_end_age' => 100,
+                    default => $default,
+                };
+            }
+        };
+
+        $this->app->instance(RetirementProjectionService::class, $projectionService);
+        $this->app->instance(
+            RetirementProjectionContractService::class,
+            new RetirementProjectionContractService($projectionService, $assumptionsService, $taxConfig),
+        );
+
+        $response = $this->getJson('/api/retirement/projections');
+
+        $response->assertOk()
+            ->assertJsonPath('data.pension_pot_projection.current_value', 125_000)
+            ->assertJsonPath('data.planning_projection.contract_version', 'retirement_projection_v1')
+            ->assertJsonStructure([
+                'data' => [
+                    'pension_pot_projection',
+                    'income_drawdown',
+                    'target_income_drawdown',
+                    'life_events_applied',
+                    'planning_projection' => [
+                        'products',
+                        'age_bands',
+                        'assumptions',
+                        'uncertainty',
+                        'warnings',
+                    ],
+                ],
+            ]);
+    });
 });
 
 describe('Full Retirement Analysis Flow', function () {

@@ -43,6 +43,7 @@ enum NavigationDestinationFactory {
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
         netWorthModel: NetWorthModel,
+        netWorthForecastModel: NetWorthForecastModel,
         balanceHistoryModel: BalanceHistoryModel,
         savingsModel: SavingsModel,
         investmentModel: InvestmentModel,
@@ -140,6 +141,7 @@ enum NavigationDestinationFactory {
             } else {
                 NetWorthView(
                     model: netWorthModel,
+                    forecastModel: netWorthForecastModel,
                     onRoute: onRoute,
                     onOpenFyn: onOpenFyn,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
