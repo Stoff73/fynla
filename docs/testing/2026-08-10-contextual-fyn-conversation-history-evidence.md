@@ -2,6 +2,7 @@
 
 Date: 2026-08-10
 Branch: `codex/ios-mobile-contextual-fyn`
+Follow-ups: `codex/ios-m-overview-actions` (PRs 677 and 678)
 Native target: `ios-native/Fynla.xcodeproj`, `Fynla-Staging`
 Simulator: Fynla iPhone 16 Pro iOS 18.6 (`B880080D-37ED-453E-A87E-3DE049902ECA`)
 
@@ -83,20 +84,29 @@ credential journeys skipped. The bundle is:
 
 ## Installed Google Chrome `/m` acceptance
 
-The installed Chrome-only connector was unavailable during this PR 2 session.
-The first lightweight connection and one documented retry both failed. After
-user authorisation, the Chrome extension helper attempted to open a fresh
-Default-profile window, but macOS Launch Services returned
-`kLSNoExecutableErr`; a final connector retry still reported that the Chrome
-extension browser was unavailable. The app bundle and running Chrome 151
-executable were present, so this is classified as a connector/Launch Services
-environment failure, not a Fynla product failure.
+The resumed session recovered the installed Chrome connector after user
+authorisation. No Chromium, bundled Playwright browser, headless substitute or
+in-app browser was used. PR 677 was deployed to csjones staging at merged
+`dev` commit `ceaffad4`; `/fynla/m` returned HTTP 200 and the deployed mobile
+manifest matched the verified local manifest byte-for-byte.
 
-No Chromium, bundled Playwright browser, headless substitute or in-app browser
-was used. Browser-dependent visual/network acceptance is therefore explicitly
-deferred. `/m` remains covered here by its exact request/component contracts,
-complete frontend gate and successful production mobile build; those are not
-represented as Chrome evidence.
+The Family preview journey verified the populated product overviews render one
+correct top-level action each: Add bank account, Add investment account, Add
+pension, Add policy and Add goal. The former duplicate Add goal control is
+absent. Opening the Marcus account still renders Edit details on the individual
+account detail, preserving the detail-only edit rule.
+
+The same Chrome loop then reproduced a second product defect: Add bank account
+returned “Fyn could not start that conversation.” The preview write middleware
+had not exempted the new contextual-conversation endpoint, so it returned its
+generic fake HTTP 200 write envelope without a conversation identifier. A
+Bearer-authenticated preview regression reproduced that response before the
+fix. PR 678 adds only the explicit contextual endpoint exemption; preview
+financial writes and Fyn write tools remain blocked. The regression then
+received the real HTTP 201 server-authored conversation and the complete
+contextual contract passed 27 tests with 111 assertions. Final acceptance
+requires the same installed-Chrome Add action to open the real conversation
+after PR 678 is merged and deployed.
 
 ## Issue and retest ledger
 
@@ -114,7 +124,9 @@ represented as Chrome evidence.
 | Contextual creation succeeded but transcript GET failed | `/m` and iOS could replace the trusted opening with a blank/error state and a retry could create another conversation | Product resilience defect | The two-stage client flow discarded the POST result and did not retain the created ID | Retain the server-authored opening and conversation ID; retry GET for that same ID without another POST | Vue and Swift retry regressions passed |
 | Joint-owner Edit actions | Read-only joint savings, investment and goal rows could still offer contextual Edit | Product authorisation/presentation defect | The clients did not consistently consume primary-owner authority | Expose/consume `is_primary_owner` and suppress Edit while retaining read access | Laravel, Vue and Swift ownership regressions passed |
 | Contextual history availability lookup | Multiple history rows caused one ownership query per conversation | Product performance defect | The projector resolved every related entity independently | Batch references and issue one ownership-scoped query per resource type | Query-budget regression proves three savings references use one savings query |
-| Installed Chrome connector | Extension browser remained unavailable after authorised helper recovery | Acceptance environment | Launch Services rejected the helper launch although the signed Chrome bundle/executable was present | Followed Chrome troubleshooting and retried once; did not substitute another engine | Chrome-only portion deferred |
+| Populated product overviews | Bank Accounts and the other populated modules still showed Edit details; Goals also showed a second Add goal control | Product presentation defect | Both clients selected Edit when data existed and the shared action chrome hard-coded its label | Make overview actions unconditionally additive on both clients, map product-specific labels and remove the duplicate Goals Add control | 135 mobile tests, 372 native tests, iPhone UI acceptance and installed-Chrome checks for all five labels passed |
+| `/m` Family preview contextual Add | Add bank account returned “Fyn could not start that conversation” | Product integration defect | `PreviewWriteInterceptor` omitted the new sibling contextual-conversation endpoint and returned a fake response without a conversation ID | Add the exact endpoint exemption and a Bearer-authenticated preview regression; all financial writes remain blocked | Red test reproduced HTTP 200; green test receives HTTP 201; final Chrome rerun pending PR 678 deployment |
+| Installed Chrome connector | Extension browser was unavailable during the original PR 2 pass | Acceptance environment, recovered | The original helper launch failed through macOS Launch Services | Reconnected after user authorisation; did not substitute another engine | Installed-Chrome staging acceptance completed in the resumed session |
 
 ## Traceability
 

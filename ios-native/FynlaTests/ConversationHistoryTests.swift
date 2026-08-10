@@ -53,7 +53,7 @@ struct ConversationHistoryTests {
         let policy = FynContextualActions.protectionPolicy(type: "life", id: 77)
         let goal = FynContextualActions.goal(id: 54)
 
-        #expect(overview.request.action == .edit)
+        #expect(overview.request.action == .add)
         #expect(overview.request.resourceType == "savings")
         #expect(overview.request.resourceID == nil)
         #expect(detail.request.resourceType == "savings_account")
