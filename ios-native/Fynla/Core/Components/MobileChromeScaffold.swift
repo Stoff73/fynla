@@ -70,7 +70,11 @@ struct MobilePageHero: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 24)
-        .background { MobileChromeGradientSlice() }
+        // Detail routes are pushed inside NavigationStack. A global-positioned
+        // gradient slice can retain the previous route's geometry during that
+        // transition and leave white heading text on the light page. Fill the
+        // hero itself so every pushed detail has a deterministic visible band.
+        .background { MobileChromeMetrics.sharedGradient }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(accessibilityID)
