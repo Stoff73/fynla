@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\ISAContribution;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\ISAContribution;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\IngestSource;

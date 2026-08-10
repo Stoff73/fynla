@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
-use App\Constants\InvestmentDefaults;
 use App\Models\Investment\Holding;
 use App\Models\Investment\RiskProfile;
 use Carbon\Carbon;

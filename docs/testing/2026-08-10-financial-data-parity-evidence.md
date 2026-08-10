@@ -91,6 +91,16 @@ failures in 69.521 seconds. Its result bundle is:
 
 `/tmp/fynla-ios-parity-derived/Logs/Test/Test-Fynla-Staging-2026.08.10_16-54-09-+0100.xcresult`
 
+After the first GitHub CI pass exposed unrelated test-harness races, the same
+journey was rerun with the iPhone 16 Pro Simulator open and visible. It again
+passed one test with zero failures, exercising all four screens in 286.401
+seconds after a 101.5-second simulator automation-attachment delay. That
+result bundle is `/tmp/FynlaPR4VisibleJourney.xcresult`.
+
+The repaired Net Worth and SSE suites then passed 15 tests across two suites
+with zero failures on the same booted simulator. Their result bundle is
+`/tmp/FynlaPR4CIFix2.xcresult`.
+
 Four kept screenshots were exported to:
 
 `/private/tmp/fynla-pr4-ios-acceptance-attachments`
@@ -120,6 +130,8 @@ after the Chrome extension connection is restored.
 | Native DC history | Final card said `Dated Value History Unavailable.` | Cross-client copy defect | A generic title-humaniser generated the native fallback | Use the exact canonical `/m` sentence `Recorded performance history is unavailable.` | Final journey passed with PR4-04 evidence |
 | Architecture runner | Full boundary file fails before its first repository assertion on PHP 8.5.2 | Acceptance environment | Pinned Pest architecture dependency is incompatible with the workstation runtime and the worktree autoload shim initially obscured that error | Correct the ignored worktree shim locally, run the new boundary assertion directly, and retain full supported-PHP CI gating | PR 4 boundary assertion passes; 221 application tests pass cleanly |
 | Xcode sandbox | Initial simulator cleanup and Release asset-catalog build could not reach CoreSimulatorService | Acceptance environment | macOS sandbox denied Xcode simulator service access | Rerun the exact operations with approved Xcode/simulator access | Focused UI test, native suite and Release production build all succeeded |
+| Xcode CI test harness | Concurrent Net Worth requests occasionally decoded the other endpoint's ordered fixture; the SSE overflow assertion depended on advisory task yields | Test-harness defects | The shared transport matched responses by call order, and newer Swift scheduling could repeatedly reselect the consumer test task | Add request-path-aware stubs for concurrent endpoints and give the SSE producer a real scheduling window | Net Worth and SSE suites: 15 tests passed; visible PR4 journey passed again |
+| Simulator launch | A visible `test-without-building` rerun remained on the home screen before attaching automation | Acceptance environment | CoreSimulator needed 101.5 seconds to launch the runner, load accessibility and establish the automation session | Keep the simulator visibly open, distinguish attachment time from test execution, and wait for the first recorded app action before counting the journey | Fynla launched and all four PR4 journey stages passed |
 | Installed Chrome `/m` | The exact `https://csjones.co/fynla/m` acceptance journey cannot currently be controlled | Acceptance environment | The ChatGPT Chrome Extension stopped advertising its live browser connection after a stalled navigation; Chrome is running and the extension and native-host checks both pass | Do not substitute `/m/app`, another browser or a headless runner; restore the Chrome plugin connection and rerun only the exact `/m` route | Pending; this remains a merge gate |
 
 ## Traceability
