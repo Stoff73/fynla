@@ -108,6 +108,7 @@ export default {
   async created() { await this.load(); },
   methods: {
     fmt(v) { return formatCurrency(v); },
+    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
     barWidth(goal) {
       const pct = Number(goal.progress_percentage) || 0;
       return `${Math.min(pct, 100)}%`;
@@ -130,7 +131,21 @@ export default {
       return 'Target date passed';
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
-    goalRequest(action) {
+    goalRequest(action, goalId = null) {
+      const id = Number(goalId);
+      if (action === 'edit' && Number.isInteger(id) && id > 0) {
+        return buildContextualConversationRequest({
+          action,
+          resourceType: 'goal',
+          resourceId: id,
+          currentDestination: {
+            screen: 'goal_detail',
+            params: { goal_id: id },
+            fallback: 'goals',
+          },
+          origin: { kind: 'surface_action' },
+        });
+      }
       return buildContextualConversationRequest({
         action,
         resourceType: 'goals',
