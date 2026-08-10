@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\ISAAllowanceTracking;
+use App\Models\ISAContribution;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Savings\ISATracker;
@@ -141,6 +143,124 @@ describe('ISATracker', function () {
 
             expect($status['cash_isa_used'])->toBe(5000.0);
             expect($status['total_used'])->toBe(5000.0);
+        });
+
+        it('uses recorded ledger entries and returns an owner-aware breakdown that exactly totals the overview', function () {
+            $tracker = app(ISATracker::class);
+            $user = User::factory()->create([
+                'first_name' => 'Alex',
+                'surname' => 'Jones',
+                'marital_status' => 'married',
+            ]);
+            $spouse = User::factory()->create([
+                'first_name' => 'Sam',
+                'surname' => 'Jones',
+                'marital_status' => 'married',
+            ]);
+            $user->update(['spouse_id' => $spouse->id]);
+            $spouse->update(['spouse_id' => $user->id]);
+
+            $cashIsa = SavingsAccount::factory()->create([
+                'user_id' => $user->id,
+                'account_name' => 'Alex Cash ISA',
+                'account_type' => 'cash_isa',
+                'is_isa' => true,
+                'isa_type' => 'cash',
+                'isa_subscription_year' => '2025/26',
+                'isa_subscription_amount' => 4000,
+            ]);
+            $sharesIsa = InvestmentAccount::factory()->create([
+                'user_id' => $user->id,
+                'account_name' => 'Alex S&S ISA',
+                'account_type' => 'isa',
+                'isa_type' => 'stocks_and_shares',
+                'tax_year' => '2025/26',
+                'isa_subscription_current_year' => 8000,
+            ]);
+            $spouseCashIsa = SavingsAccount::factory()->create([
+                'user_id' => $spouse->id,
+                'account_name' => 'Sam Cash ISA',
+                'account_type' => 'cash_isa',
+                'is_isa' => true,
+                'isa_type' => 'cash',
+                'isa_subscription_year' => '2025/26',
+                'isa_subscription_amount' => 2000,
+            ]);
+
+            ISAContribution::create([
+                'user_id' => $user->id,
+                'account_type' => InvestmentAccount::class,
+                'account_id' => $sharesIsa->id,
+                'tax_year' => '2025/26',
+                'contribution_date' => '2025-06-01',
+                'entry_type' => 'subscription',
+                'amount' => 3000,
+                'source' => 'form',
+                'provenance' => 'recorded_ledger',
+            ]);
+            ISAContribution::create([
+                'user_id' => $user->id,
+                'account_type' => InvestmentAccount::class,
+                'account_id' => $sharesIsa->id,
+                'tax_year' => '2025/26',
+                'contribution_date' => '2025-07-01',
+                'entry_type' => 'subscription',
+                'amount' => 2000,
+                'source' => 'fyn',
+                'provenance' => 'recorded_ledger',
+            ]);
+
+            $status = $tracker->getISAAllowanceStatus($user->id, '2025/26');
+
+            expect($status['cash_isa_used'])->toBe(4000.0)
+                ->and($status['stocks_shares_isa_used'])->toBe(5000.0)
+                ->and($status['total_used'])->toBe(9000.0)
+                ->and(collect($status['account_breakdown'])->sum('contributed'))->toBe(9000.0)
+                ->and($status['account_breakdown'][0])->toHaveKeys([
+                    'account_id',
+                    'account_type',
+                    'account_name',
+                    'isa_type',
+                    'owner',
+                    'contributed',
+                    'provenance',
+                    'contributions',
+                ])
+                ->and(collect($status['account_breakdown'])->first(
+                    fn (array $row) => $row['account_id'] === $sharesIsa->id
+                        && $row['account_type'] === InvestmentAccount::class
+                )['provenance'])->toBe('recorded_ledger')
+                ->and($status['owner']['label'])->toBe('You')
+                ->and($status['owners'])->toHaveCount(2)
+                ->and($status['owners'][1]['owner']['name'])->toBe('Sam Jones')
+                ->and($status['owners'][1]['total_used'])->toBe(2000.0)
+                ->and(collect($status['owners'][1]['account_breakdown'])->firstWhere('account_id', $spouseCashIsa->id))->not->toBeNull()
+                ->and($status['prior_tax_year'])->toBe('2024/25');
+        });
+
+        it('returns prior-year account history without attributing current regular contributions', function () {
+            $tracker = app(ISATracker::class);
+            $user = User::factory()->create();
+
+            SavingsAccount::factory()->create([
+                'user_id' => $user->id,
+                'account_name' => 'Prior Cash ISA',
+                'account_type' => 'cash_isa',
+                'is_isa' => true,
+                'isa_type' => 'cash',
+                'isa_subscription_year' => '2024/25',
+                'isa_subscription_amount' => 3500,
+                'regular_contribution_amount' => 500,
+                'contribution_frequency' => 'monthly',
+            ]);
+
+            $status = $tracker->getISAAllowanceStatus($user->id, '2024/25');
+
+            expect($status['total_used'])->toBe(3500.0)
+                ->and($status['account_breakdown'])->toHaveCount(1)
+                ->and($status['account_breakdown'][0]['provenance'])->toBe('legacy_annual_summary')
+                ->and($status['projected_usage']['total_projected'])->toBe(0.0)
+                ->and($status['available_tax_years'])->toContain('2024/25', '2025/26');
         });
     });
 
