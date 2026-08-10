@@ -63,6 +63,9 @@ class InvestmentAccount extends Model
         'risk_preference',
         'has_custom_risk',
         'rebalance_threshold_percent',
+        'entered_allocation_baseline',
+        'entered_allocation_source',
+        'entered_allocation_effective_at',
         'include_in_retirement',
         // Bond-specific fields (onshore/offshore bonds)
         'bond_purchase_date',
@@ -213,6 +216,8 @@ class InvestmentAccount extends Model
         'ownership_percentage' => 'decimal:2',
         'has_custom_risk' => 'boolean',
         'rebalance_threshold_percent' => 'decimal:4',
+        'entered_allocation_baseline' => 'array',
+        'entered_allocation_effective_at' => 'date',
         'include_in_retirement' => 'boolean',
         // Bond-specific casts
         'bond_purchase_date' => 'date',

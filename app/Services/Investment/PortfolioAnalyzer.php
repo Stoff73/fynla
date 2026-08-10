@@ -125,72 +125,18 @@ class PortfolioAnalyzer
     /**
      * Calculate asset allocation with fund/ETF look-through.
      *
-     * Direct holdings pass through at 100% to their resolved asset class.
-     * Funds resolving to 'mixed' are decomposed into underlying asset classes
-     * (60% equities, 30% bonds, 10% cash) via InvestmentDefaults::resolveAssetClass().
+     * Delegates to the evidence-aware shared engine. Composite holdings without
+     * recorded look-through data remain explicitly unclassified.
      */
     public function calculateAssetAllocationWithLookThrough(Collection $holdings): array
     {
-        $totalValue = $holdings->sum('current_value');
+        $analysis = (new PortfolioExposureService)->analyse($holdings);
 
-        if ($totalValue == 0) {
-            return [];
-        }
-
-        $assetTotals = [];
-
-        foreach ($holdings as $holding) {
-            $breakdown = $this->getAssetBreakdown($holding);
-            $holdingValue = (float) $holding->current_value;
-
-            foreach ($breakdown as $assetType => $weight) {
-                if (! isset($assetTotals[$assetType])) {
-                    $assetTotals[$assetType] = 0.0;
-                }
-                $assetTotals[$assetType] += $holdingValue * $weight;
-            }
-        }
-
-        // Convert to output format
-        $result = [];
-        foreach ($assetTotals as $assetType => $value) {
-            if ($value > 0) {
-                $result[] = [
-                    'asset_type' => $assetType,
-                    'value' => round($value, 2),
-                    'percentage' => round(($value / $totalValue) * 100, 2),
-                ];
-            }
-        }
-
-        // Sort by value descending
-        usort($result, fn ($a, $b) => $b['value'] <=> $a['value']);
-
-        return $result;
-    }
-
-    /**
-     * Get the underlying asset breakdown for a holding.
-     *
-     * Uses InvestmentDefaults::resolveAssetClass() for consistent asset class
-     * resolution. Mixed/balanced funds are decomposed into a 60/30/10
-     * equity/bond/cash split; all other classes allocate 100%.
-     *
-     * @return array<string, float> Asset class => weight (0.0 to 1.0)
-     */
-    private function getAssetBreakdown(mixed $holding): array
-    {
-        $assetType = $holding->asset_type ?? 'unknown';
-        $subType = $holding->sub_type ?? null;
-
-        $resolvedClass = InvestmentDefaults::resolveAssetClass($assetType, $subType);
-
-        // Mixed/balanced funds: look-through decomposition
-        if ($resolvedClass === 'mixed') {
-            return ['equities' => 0.60, 'bonds' => 0.30, 'cash' => 0.10];
-        }
-
-        return [$resolvedClass => 1.0];
+        return array_map(static fn (array $row): array => [
+            'asset_type' => $row['asset_class'],
+            'value' => $row['value'],
+            'percentage' => $row['portfolio_percentage'],
+        ], $analysis['allocation']);
     }
 
     /**
