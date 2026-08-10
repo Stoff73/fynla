@@ -66,6 +66,19 @@ export async function apiPut(path, body, token = null) {
   return { ok: res.ok, status: res.status, data };
 }
 
+export async function apiDelete(path, token = null) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'DELETE',
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
 export async function apiDownload(path, token) {
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'omit',
