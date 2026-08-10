@@ -13,6 +13,7 @@ struct AppRootView: View {
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
     let netWorthModel: NetWorthModel
+    let netWorthForecastModel: NetWorthForecastModel
     let balanceHistoryModel: BalanceHistoryModel
     let savingsModel: SavingsModel
     let investmentModel: InvestmentModel
@@ -52,6 +53,7 @@ struct AppRootView: View {
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
         netWorthModel: NetWorthModel,
+        netWorthForecastModel: NetWorthForecastModel,
         balanceHistoryModel: BalanceHistoryModel,
         savingsModel: SavingsModel,
         investmentModel: InvestmentModel,
@@ -91,6 +93,7 @@ struct AppRootView: View {
         self.incomeModel = incomeModel
         self.expenditureModel = expenditureModel
         self.netWorthModel = netWorthModel
+        self.netWorthForecastModel = netWorthForecastModel
         self.balanceHistoryModel = balanceHistoryModel
         self.savingsModel = savingsModel
         self.investmentModel = investmentModel
@@ -196,6 +199,7 @@ struct AppRootView: View {
                         incomeModel: incomeModel,
                         expenditureModel: expenditureModel,
                         netWorthModel: netWorthModel,
+                        netWorthForecastModel: netWorthForecastModel,
                         balanceHistoryModel: balanceHistoryModel,
                         savingsModel: savingsModel,
                         investmentModel: investmentModel,
@@ -273,6 +277,7 @@ struct AppRootView: View {
                 incomeModel.stop()
                 expenditureModel.stop()
                 netWorthModel.stop()
+                netWorthForecastModel.stop()
                 balanceHistoryModel.stop()
                 savingsModel.stop()
                 investmentModel.stop()
@@ -362,6 +367,7 @@ private struct UnlockedView: View {
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
     let netWorthModel: NetWorthModel
+    let netWorthForecastModel: NetWorthForecastModel
     let balanceHistoryModel: BalanceHistoryModel
     let savingsModel: SavingsModel
     let investmentModel: InvestmentModel
@@ -606,6 +612,7 @@ private struct UnlockedView: View {
                     incomeModel: incomeModel,
                     expenditureModel: expenditureModel,
                     netWorthModel: netWorthModel,
+                    netWorthForecastModel: netWorthForecastModel,
                     balanceHistoryModel: balanceHistoryModel,
                     savingsModel: savingsModel,
                     investmentModel: investmentModel,

@@ -18,6 +18,7 @@ struct FynlaApp: App {
     @State private var incomeModel: IncomeModel
     @State private var expenditureModel: ExpenditureModel
     @State private var netWorthModel: NetWorthModel
+    @State private var netWorthForecastModel: NetWorthForecastModel
     @State private var balanceHistoryModel: BalanceHistoryModel
     @State private var savingsModel: SavingsModel
     @State private var investmentModel: InvestmentModel
@@ -192,6 +193,11 @@ struct FynlaApp: App {
         #endif
         let netWorthModel = NetWorthModel(
             client: LiveNetWorthClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        let netWorthForecastModel = NetWorthForecastModel(
+            client: LiveNetWorthForecastClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
@@ -496,6 +502,7 @@ struct FynlaApp: App {
         _incomeModel = State(initialValue: incomeModel)
         _expenditureModel = State(initialValue: expenditureModel)
         _netWorthModel = State(initialValue: netWorthModel)
+        _netWorthForecastModel = State(initialValue: netWorthForecastModel)
         _balanceHistoryModel = State(initialValue: balanceHistoryModel)
         _savingsModel = State(initialValue: savingsModel)
         _investmentModel = State(initialValue: investmentModel)
@@ -556,6 +563,7 @@ struct FynlaApp: App {
             incomeModel: incomeModel,
             expenditureModel: expenditureModel,
             netWorthModel: netWorthModel,
+            netWorthForecastModel: netWorthForecastModel,
             balanceHistoryModel: balanceHistoryModel,
             savingsModel: savingsModel,
             investmentModel: investmentModel,
