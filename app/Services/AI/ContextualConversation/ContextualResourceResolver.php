@@ -13,10 +13,10 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +27,7 @@ final class ContextualResourceResolver
     public function __construct(
         private readonly SavingsStore $savingsStore,
         private readonly PensionStore $pensionStore,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     public function referenceKey(string $resourceType, ?int $resourceId): string
@@ -202,6 +203,10 @@ final class ContextualResourceResolver
             );
         }
 
+        if ($resourceType === 'property') {
+            return $this->propertyStore->findMany($resourceIds, $user);
+        }
+
         [$modelClass] = $this->entityDefinition($resourceType);
 
         if ($modelClass === null) {
@@ -257,7 +262,7 @@ final class ContextualResourceResolver
                 ['goal_name', 'goal_type', 'description', 'target_amount', 'current_amount', 'target_date', 'status'],
             ],
             'property' => [
-                Property::class,
+                null,
                 ['address_line_1', 'postcode'],
                 'net_worth',
                 ['property_type', 'ownership_type', 'ownership_percentage', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'purchase_date', 'purchase_price', 'current_value', 'valuation_date', 'outstanding_mortgage'],
