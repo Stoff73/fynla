@@ -91,7 +91,7 @@ enum FynContextualActions {
         entity(
             resourceType: "goal",
             resourceID: id,
-            screen: "goals",
+            screen: "goal_detail",
             params: ["goal_id": .int(id)],
             fallback: "goals"
         )

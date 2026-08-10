@@ -1,0 +1,43 @@
+{
+  "success": true,
+  "data": {
+    "goal": {
+      "id": 61,
+      "name": "Home deposit",
+      "goal_name": "Home deposit",
+      "goal_type": "home_deposit",
+      "display_goal_type": "Home deposit",
+      "description": "Buy a family home near our support network.",
+      "target_amount": 50000,
+      "current_amount": 30000,
+      "target_date": "2028-07-18",
+      "start_date": "2025-02-03",
+      "status": "active",
+      "progress_percentage": 60,
+      "amount_remaining": 20000,
+      "days_remaining": 730,
+      "months_remaining": 24,
+      "is_on_track": true,
+      "current_milestone": 50,
+      "next_milestone": 75,
+      "required_monthly_contribution": 715,
+      "monthly_contribution": 750,
+      "contribution_frequency": "monthly",
+      "contribution_streak": 6,
+      "longest_streak": 8,
+      "last_contribution_date": "2026-08-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "is_primary_owner": true,
+      "created_at": "2025-02-03T10:00:00Z"
+    },
+    "progress": { "percentage": 60 },
+    "milestones": [
+      { "percentage": 50, "reached": true },
+      { "percentage": 75, "reached": false }
+    ],
+    "streak": { "current": 6 },
+    "affordability": { "status": "affordable" },
+    "projections": null
+  }
+}

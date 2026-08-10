@@ -92,7 +92,7 @@ enum NavigationDestinationFactory {
                 onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
-        case .incomeDetail, .goalDetail, .propertyDetail, .mortgageDetail, .liabilityDetail:
+        case .incomeDetail, .propertyDetail, .mortgageDetail, .liabilityDetail:
             StagedNativeDestinationView(title: title(for: route))
         case .expenditure:
             ExpenditureView(
@@ -192,6 +192,14 @@ enum NavigationDestinationFactory {
             )
         case .goals:
             GoalsView(
+                model: goalsModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .goalDetail(goalID):
+            GoalDetailView(
+                goalID: goalID,
                 model: goalsModel,
                 onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
