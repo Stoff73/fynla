@@ -49,7 +49,7 @@ struct RetirementView: View {
                     subtitle: "Your projected retirement income, pensions and projections"
                 )
 
-                MobilePageActions(editDetails: {
+                MobilePageActions(actionTitle: "Add pension", editDetails: {
                     onOpenContextualFyn(
                         FynContextualActions.retirementOverview(
                             hasPensions: !snapshot.pensions.isEmpty

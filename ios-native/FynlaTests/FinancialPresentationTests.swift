@@ -26,15 +26,25 @@ struct FinancialPresentationTests {
     }
 
     @Test
-    func contextualOverviewActionCarriesModeButNoClientAuthoredFacts() {
-        let populated = FynContextualActions.savingsOverview(hasAccounts: true)
-        let empty = FynContextualActions.savingsOverview(hasAccounts: false)
+    func contextualOverviewActionsAlwaysAddWithoutClientAuthoredFacts() {
+        let actions = [
+            FynContextualActions.savingsOverview(hasAccounts: true),
+            FynContextualActions.investmentOverview(hasAccounts: true),
+            FynContextualActions.retirementOverview(hasPensions: true),
+            FynContextualActions.protectionOverview(hasPolicies: true),
+            FynContextualActions.goalsOverview(hasGoals: true),
+        ]
 
-        #expect(populated.request.action == .edit)
-        #expect(empty.request.action == .add)
-        #expect(populated.request.resourceType == "savings")
-        #expect(populated.request.resourceID == nil)
-        #expect(populated.request.currentDestination.params.isEmpty)
+        #expect(actions.allSatisfy { $0.request.action == .add })
+        #expect(actions.map(\.request.resourceType) == [
+            "savings",
+            "investment",
+            "retirement",
+            "protection",
+            "goals",
+        ])
+        #expect(actions.allSatisfy { $0.request.resourceID == nil })
+        #expect(actions.allSatisfy { $0.request.currentDestination.params.isEmpty })
     }
 
     @Test

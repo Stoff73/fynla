@@ -39,7 +39,6 @@
       <div class="m-card">
         <div class="mg-head" style="margin-top:0">
           <p class="m-section-label">Your goals</p>
-          <button type="button" class="mg-action" @click="addGoal">Add goal</button>
         </div>
         <p v-if="!goals.length" class="m-sub" style="margin-bottom:0">
           You haven't set any goals yet.
@@ -106,7 +105,7 @@ export default {
       return `${this.fmt(this.totalCurrent)} of ${this.fmt(this.totalTarget)} saved so far.`;
     },
     contextualRequest() {
-      return this.goalRequest(this.goals.length ? 'edit' : 'add');
+      return this.goalRequest('add');
     },
   },
   async created() { await this.load(); },
@@ -148,7 +147,6 @@ export default {
       });
     },
     canEditGoal(goal) { return goal?.is_primary_owner !== false; },
-    addGoal() { this.$refs.chrome?.openContextualFyn(this.goalRequest('add')); },
     editGoal(goal) {
       this.$refs.chrome?.openContextualFyn(this.goalRequest('edit', Number(goal.id)));
     },

@@ -136,6 +136,25 @@ describe('MobileChrome.vue', () => {
       expect(wrapper.text()).toContain('Fyn could not start that conversation. Please try again.');
       expect(wrapper.get('.md-edit-details').exists()).toBe(true);
     });
+
+    it.each([
+      ['savings', 'Add bank account'],
+      ['investment', 'Add investment account'],
+      ['retirement', 'Add pension'],
+      ['protection', 'Add policy'],
+      ['goals', 'Add goal'],
+    ])('labels an overview %s request as %s', (resourceType, expectedLabel) => {
+      const wrapper = mountChrome({
+        contextualRequest: {
+          action: 'add',
+          resource_type: resourceType,
+          current_destination: { screen: resourceType, params: {}, fallback: 'dashboard' },
+          origin: { kind: 'surface_action', recommendation_id: null },
+        },
+      });
+
+      expect(wrapper.get('.md-edit-details').text()).toBe(expectedLabel);
+    });
   });
 
   describe('verifyAnswer() awaits openFyn() before resuming + sending, preserving verify sequencing (adjacent D3)', () => {

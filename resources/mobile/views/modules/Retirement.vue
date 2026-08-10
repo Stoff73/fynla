@@ -165,7 +165,7 @@ export default {
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     contextualRequest() {
       return buildContextualConversationRequest({
-        action: this.pensions.length ? 'edit' : 'add',
+        action: 'add',
         resourceType: 'retirement',
         currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
         origin: { kind: 'surface_action' },

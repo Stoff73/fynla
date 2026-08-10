@@ -107,7 +107,7 @@ export default {
 
     contextualRequest() {
       return buildContextualConversationRequest({
-        action: this.policies.length ? 'edit' : 'add',
+        action: 'add',
         resourceType: 'protection',
         currentDestination: { screen: 'protection', params: {}, fallback: 'dashboard' },
         origin: { kind: 'surface_action' },

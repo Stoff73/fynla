@@ -207,6 +207,7 @@ struct MobileDetailHeader: View {
 // pre-asked with the page's holdings.
 struct MobilePageActions: View {
     var onBack: (() -> Void)?
+    var actionTitle = "Edit details"
     var editDetails: (() -> Void)?
 
     var body: some View {
@@ -234,7 +235,7 @@ struct MobilePageActions: View {
 
             if let editDetails {
                 Button(action: editDetails) {
-                    Text("Edit details")
+                    Text(actionTitle)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(FynlaColor.Token.raspberry600.color)
                         .padding(.vertical, 7)
