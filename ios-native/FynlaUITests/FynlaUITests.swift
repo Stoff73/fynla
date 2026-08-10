@@ -809,8 +809,13 @@ final class FynlaUITests: XCTestCase {
 
     @MainActor
     private func assertReachable(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<6 where !element.isHittable {
-            app.swipeUp()
+        let viewport = app.windows.firstMatch.frame
+        for _ in 0..<8 where !element.isHittable {
+            if element.frame.midY < viewport.midY {
+                app.swipeDown()
+            } else {
+                app.swipeUp()
+            }
         }
         XCTAssertTrue(element.isHittable)
     }
@@ -950,7 +955,10 @@ final class FynlaUITests: XCTestCase {
         var focused = false
         for attempt in 0..<5 where !focused {
             if attempt > 0 {
-                app.swipeUp()
+                let keyboard = app.keyboards.firstMatch
+                if keyboard.exists, field.frame.intersects(keyboard.frame) {
+                    app.swipeUp()
+                }
             }
             assertReachable(field, in: app)
             field.tap()
