@@ -398,11 +398,11 @@ Run: `git add ios-native/Fynla/Features/Fyn ios-native/FynlaTests/FynConversatio
 - Changes supported surface callbacks from prompt strings to typed `FynContextualAction`.
 - Adds native history sections and safe unavailable-resource fallback navigation.
 
-- [ ] **Step 1: Write failing navigation, history, and launch tests**
+- [x] **Step 1: Write failing navigation, history, and launch tests**
 
 Assert the menu order; `/conversation-history` mapping; typed detail actions include the correct entity ID/type and no labels/values; overview actions include module context without client facts; each tap invokes `startContextual`; history groups/rendering and exact-ID open; inaccessible entities show the fallback action.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+- [x] **Step 2: Run focused tests and confirm RED**
 
 Run:
 
@@ -419,15 +419,15 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging \
 
 Expected: compile/test failure because the history route/view and typed callbacks are absent.
 
-- [ ] **Step 3: Implement typed launch wiring and history UI**
+- [x] **Step 3: Implement typed launch wiring and history UI**
 
 Have `AppRootView` distinguish generic presentation, contextual presentation, and exact history resume. Set `currentRoute`, invoke the matching model method, and present the cover without drafting client prose. Add Conversation History after Achievements. Render server fields without reconstructing financial context locally.
 
-- [ ] **Step 4: Add the critical XCUITest journey**
+- [x] **Step 4: Add the critical XCUITest journey**
 
 Extend deterministic UI-test support so the simulator can prove: open a product detail, tap Edit, see a newly created contextual opening, close, repeat and receive a different conversation; open Conversation History; reopen the first contextual conversation; and navigate safely from an unavailable related entity.
 
-- [ ] **Step 5: Run focused native suites and full UI test target**
+- [x] **Step 5: Run focused native suites and full UI test target**
 
 Run the focused command above, then:
 
@@ -439,6 +439,14 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging \
 ```
 
 Expected: all unit and UI tests pass, with only documented expected skips.
+
+Actual on the authorised iOS 18.6 simulator: the focused native suites, both
+Task 8 UI journeys, and a fresh staging build pass. The full target reported
+416 passes and 3 skips after exposing one Task 8 UI-fixture regression, which
+was fixed and rerun green. Six pre-existing StoreKitTest failures remain
+reproducible in isolation (`productUnavailable` / StoreKitTest `unknown`);
+PR 2 changes do not touch StoreKit code or configuration. Task 9 records this
+baseline separately from the contextual Fyn acceptance result.
 
 - [ ] **Step 6: Commit native surface parity**
 

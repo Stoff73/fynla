@@ -80,7 +80,7 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
-    func testDrawerOpensTheReadOnlyPersonalInformationScreen() throws {
+    func testDrawerOpensPersonalInformationWithTrustedContextualEdit() throws {
         let app = app(mode: "unlocked")
         app.launch()
 
@@ -93,7 +93,43 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(
             element("personal-information.screen", in: app).waitForExistence(timeout: 3)
         )
-        XCTAssertFalse(app.buttons["Edit details"].exists)
+        XCTAssertTrue(app.buttons["Edit details"].exists)
+    }
+
+    @MainActor
+    func testContextualEditCreatesFreshConversationsAndHistoryReopensExactID() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.bank-accounts", in: app)
+        XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
+        let account = app.buttons["savings.account.12"]
+        assertReachable(account, in: app)
+        account.tap()
+        XCTAssertTrue(element("savings.account.screen", in: app).waitForExistence(timeout: 3))
+
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        app.buttons["fyn.close"].tap()
+        XCTAssertTrue(element("savings.account.screen", in: app).waitForExistence(timeout: 3))
+
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 402."].waitForExistence(timeout: 3))
+        app.buttons["fyn.close"].tap()
+
+        openDrawerItem("navigation.conversation-history", in: app)
+        XCTAssertTrue(element("conversation-history.screen", in: app).waitForExistence(timeout: 3))
+        let firstConversation = app.buttons["conversation-history.open.401"]
+        assertReachable(firstConversation, in: app)
+        firstConversation.tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Trusted contextual opening 402."].exists)
+        app.buttons["fyn.close"].tap()
+
+        let fallback = app.buttons["conversation-history.fallback.499"]
+        assertReachable(fallback, in: app)
+        fallback.tap()
+        XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
     }
 
     @MainActor
@@ -818,6 +854,16 @@ final class FynlaUITests: XCTestCase {
             }
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func openDrawerItem(_ identifier: String, in app: XCUIApplication) {
+        let menu = app.buttons["navigation.open"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3))
+        menu.tap()
+        let item = app.buttons[identifier]
+        assertReachable(item, in: app)
+        item.tap()
     }
 
     @MainActor

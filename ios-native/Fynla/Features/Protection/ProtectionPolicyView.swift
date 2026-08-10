@@ -10,7 +10,7 @@ struct ProtectionPolicyView: View {
     let policyTypeKey: String
     let policyID: Int
     let model: ProtectionModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -66,7 +66,14 @@ struct ProtectionPolicyView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
+                    editDetails: {
+                        onOpenContextualFyn(
+                            FynContextualActions.protectionPolicy(
+                                type: policyTypeKey,
+                                id: policyID
+                            )
+                        )
+                    }
                 )
 
                 Group {

@@ -8,7 +8,7 @@ import SwiftUI
 struct SavingsAccountView: View {
     let accountID: Int
     let model: SavingsModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -45,7 +45,9 @@ struct SavingsAccountView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
+                    editDetails: {
+                        onOpenContextualFyn(FynContextualActions.savingsAccount(id: accountID))
+                    }
                 )
 
                 Group {

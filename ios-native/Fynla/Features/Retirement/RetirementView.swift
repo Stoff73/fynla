@@ -9,7 +9,7 @@ import SwiftUI
 struct RetirementView: View {
     let model: RetirementModel
     let onRoute: (AppRoute) -> Void
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -50,11 +50,9 @@ struct RetirementView: View {
                 )
 
                 MobilePageActions(editDetails: {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "pensions",
-                            addPhrase: "I'd like to add a pension.",
-                            names: snapshot.pensions.map { Optional($0.name) }
+                    onOpenContextualFyn(
+                        FynContextualActions.retirementOverview(
+                            hasPensions: !snapshot.pensions.isEmpty
                         )
                     )
                 })

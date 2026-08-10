@@ -88,6 +88,7 @@ enum SemanticDestinationResolver {
         switch screen {
         case "dashboard": .dashboard
         case "achievements": .achievements
+        case "conversation_history": .conversationHistory
         case "income": .income
         case "expenditure": .expenditure
         case "net_worth": .netWorth(category: nil)
@@ -160,6 +161,7 @@ enum SemanticDestinationResolver {
         switch path?.trimmingCharacters(in: CharacterSet(charactersIn: "/")) {
         case "dashboard": .dashboard
         case "achievements": .achievements
+        case "conversation-history": .conversationHistory
         case "income": .income
         case "expenditure": .expenditure
         case "net-worth": .netWorth(category: nil)

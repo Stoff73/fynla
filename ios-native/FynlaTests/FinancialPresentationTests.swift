@@ -26,21 +26,15 @@ struct FinancialPresentationTests {
     }
 
     @Test
-    func fynEditIntentMatchesTheExistingMobileWording() {
-        #expect(
-            FynEditIntent.message(
-                updateScope: "savings",
-                addPhrase: "I'd like to add savings.",
-                names: [nil, " ", "Cash ISA", "Emergency fund"]
-            ) == "I'd like to update my savings. I currently have: Cash ISA, Emergency fund."
-        )
-        #expect(
-            FynEditIntent.message(
-                updateScope: "savings",
-                addPhrase: "I'd like to add savings.",
-                names: [nil, " "]
-            ) == "I'd like to add savings."
-        )
+    func contextualOverviewActionCarriesModeButNoClientAuthoredFacts() {
+        let populated = FynContextualActions.savingsOverview(hasAccounts: true)
+        let empty = FynContextualActions.savingsOverview(hasAccounts: false)
+
+        #expect(populated.request.action == .edit)
+        #expect(empty.request.action == .add)
+        #expect(populated.request.resourceType == "savings")
+        #expect(populated.request.resourceID == nil)
+        #expect(populated.request.currentDestination.params.isEmpty)
     }
 
     @Test

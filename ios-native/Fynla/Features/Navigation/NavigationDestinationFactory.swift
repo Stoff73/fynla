@@ -7,6 +7,7 @@ enum NavigationDestinationFactory {
         switch route {
         case .dashboard: "Dashboard"
         case .achievements: "Achievements"
+        case .conversationHistory: "Conversation History"
         case .personalInformation: "Personal Information"
         case .subscription: "Subscription"
         case .income: "Income"
@@ -32,6 +33,7 @@ enum NavigationDestinationFactory {
         for route: AppRoute,
         subscriptionModel: SubscriptionModel,
         achievementsModel: AchievementsModel,
+        conversationHistoryModel: ConversationHistoryModel,
         personalInformationModel: PersonalInformationModel,
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
@@ -53,13 +55,24 @@ enum NavigationDestinationFactory {
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         onOpenFyn: @escaping (String) -> Void,
+        onOpenContextualFyn: @escaping (FynContextualAction) -> Void,
+        onOpenConversation: @escaping (String) -> Void,
         onRoute: @escaping (AppRoute) -> Void
     ) -> some View {
         switch route {
         case .achievements:
             AchievementsView(model: achievementsModel, onRoute: onRoute)
+        case .conversationHistory:
+            ConversationHistoryView(
+                model: conversationHistoryModel,
+                onOpenConversation: onOpenConversation,
+                onRoute: onRoute
+            )
         case .personalInformation:
-            PersonalInformationView(model: personalInformationModel)
+            PersonalInformationView(
+                model: personalInformationModel,
+                onOpenContextualFyn: onOpenContextualFyn
+            )
         case .subscription:
             SubscriptionView(
                 model: subscriptionModel,
@@ -106,13 +119,13 @@ enum NavigationDestinationFactory {
                 SavingsAccountView(
                     accountID: accountID,
                     model: savingsModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 SavingsView(
                     model: savingsModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
+                    onOpenContextualFyn: onOpenContextualFyn,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
@@ -121,13 +134,13 @@ enum NavigationDestinationFactory {
                 InvestmentAccountView(
                     accountID: accountID,
                     model: investmentModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 InvestmentView(
                     model: investmentModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
+                    onOpenContextualFyn: onOpenContextualFyn,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
@@ -137,13 +150,13 @@ enum NavigationDestinationFactory {
                     pensionType: pensionType,
                     pensionID: pensionID,
                     model: retirementModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 RetirementView(
                     model: retirementModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
+                    onOpenContextualFyn: onOpenContextualFyn,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
@@ -153,13 +166,13 @@ enum NavigationDestinationFactory {
                     policyTypeKey: policyType,
                     policyID: policyID,
                     model: protectionModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 ProtectionView(
                     model: protectionModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
+                    onOpenContextualFyn: onOpenContextualFyn,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
@@ -172,7 +185,7 @@ enum NavigationDestinationFactory {
         case .goals:
             GoalsView(
                 model: goalsModel,
-                onOpenFyn: onOpenFyn,
+                onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .taxStrategy:

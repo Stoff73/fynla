@@ -11,7 +11,7 @@ struct RetirementPensionView: View {
     let pensionType: String
     let pensionID: Int?
     let model: RetirementModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -228,7 +228,12 @@ struct RetirementPensionView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
+                    editDetails: {
+                        guard let pensionID else { return }
+                        onOpenContextualFyn(
+                            FynContextualActions.pension(type: pensionType, id: pensionID)
+                        )
+                    }
                 )
 
                 Group {

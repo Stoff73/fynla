@@ -8,7 +8,7 @@ import SwiftUI
 struct SavingsView: View {
     let model: SavingsModel
     let onRoute: (AppRoute) -> Void
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -49,11 +49,9 @@ struct SavingsView: View {
                 )
 
                 MobilePageActions(editDetails: {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "savings",
-                            addPhrase: "I'd like to add a bank account.",
-                            names: snapshot.accounts.map { Optional($0.displayName) }
+                    onOpenContextualFyn(
+                        FynContextualActions.savingsOverview(
+                            hasAccounts: !snapshot.accounts.isEmpty
                         )
                     )
                 })

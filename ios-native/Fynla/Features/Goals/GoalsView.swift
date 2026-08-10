@@ -7,7 +7,7 @@ import SwiftUI
 // through Fyn with /m's exact prompts. Whole-pound amounts.
 struct GoalsView: View {
     let model: GoalsModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -45,11 +45,9 @@ struct GoalsView: View {
                 )
 
                 MobilePageActions(editDetails: {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "goals",
-                            addPhrase: "I'd like to add a new goal.",
-                            names: snapshot.goals.map { Optional($0.displayName) }
+                    onOpenContextualFyn(
+                        FynContextualActions.goalsOverview(
+                            hasGoals: !snapshot.goals.isEmpty
                         )
                     )
                 })
@@ -134,7 +132,7 @@ struct GoalsView: View {
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
                 Spacer()
                 Button {
-                    onOpenFyn("I'd like to add a new goal.")
+                    onOpenContextualFyn(FynContextualActions.addGoal())
                 } label: {
                     Text("Add goal".uppercased())
                         .font(.system(size: 12, weight: .bold))
@@ -201,7 +199,7 @@ struct GoalsView: View {
             }
 
             Button {
-                onOpenFyn("I'd like to update my \"\(goal.displayName)\" goal.")
+                onOpenContextualFyn(FynContextualActions.goal(id: goal.id))
             } label: {
                 Text("Edit".uppercased())
                     .font(.system(size: 12, weight: .bold))
