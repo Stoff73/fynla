@@ -7,12 +7,14 @@ namespace App\Http\Controllers\Api;
 use App\Agents\CoordinatingAgent;
 use App\Enums\AiMessageStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AI\CreateContextualConversationRequest;
 use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
@@ -83,6 +85,52 @@ class AiChatController extends Controller
         return response()->json([
             'success' => true,
             'data' => $conversation,
+        ], 201);
+    }
+
+    /**
+     * Start a fresh, server-authorised conversation for a surface Add/Edit action.
+     *
+     * POST /api/ai-chat/contextual-conversations
+     */
+    public function createContextual(
+        CreateContextualConversationRequest $request,
+        ContextualResourceResolver $resources,
+    ): JsonResponse {
+        $validated = $request->validated();
+        $resource = $resources->resolve(
+            $request->user(),
+            $validated['resource_type'],
+            $validated['resource_id'] ?? null,
+        );
+
+        $conversation = AiConversation::create([
+            'user_id' => $request->user()->id,
+            'title' => ucfirst($validated['action']).' '.$resource->label,
+            'status' => 'active',
+            'model_used' => '',
+            'metadata' => [
+                'source' => 'surface_action',
+                'mode' => 'surface_action',
+                'action' => $validated['action'],
+                'resource_type' => $resource->resourceType,
+                'resource_id' => $resource->resourceId,
+                'current_destination' => $validated['current_destination'],
+                'origin' => $validated['origin'],
+                'context_provenance' => [
+                    'authority' => 'server',
+                    'rehydrated_at' => now()->toIso8601String(),
+                    'resource_type' => $resource->resourceType,
+                    'resource_id' => $resource->resourceId,
+                ],
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'conversation' => $conversation,
+            ],
         ], 201);
     }
 
