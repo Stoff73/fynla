@@ -7,6 +7,7 @@ namespace App\Models\Investment;
 use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Estate\Trust;
 use App\Models\Household;
+use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\User;
 use App\Services\Investment\EmployeeSchemeCalculationService;
 use App\Traits\Auditable;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
@@ -338,6 +340,11 @@ class InvestmentAccount extends Model
     public function holdings(): MorphMany
     {
         return $this->morphMany(Holding::class, 'holdable');
+    }
+
+    public function valueSnapshots(): HasMany
+    {
+        return $this->hasMany(InvestmentAccountValueSnapshot::class);
     }
 
     /**

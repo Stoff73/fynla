@@ -10,6 +10,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -140,5 +141,10 @@ class DCPension extends Model
     public function holdings(): MorphMany
     {
         return $this->morphMany(Holding::class, 'holdable');
+    }
+
+    public function valueSnapshots(): HasMany
+    {
+        return $this->hasMany(DCPensionValueSnapshot::class, 'dc_pension_id');
     }
 }
