@@ -27,7 +27,7 @@
 
 **Files:**
 - Create: `app/Services/Retirement/RetirementProjectionContractService.php`
-- Create: `tests/Unit/Services/Retirement/RetirementProjectionContractServiceTest.php`
+- Create: `tests/Unit/RetirementProjectionContractServiceTest.php`
 - Modify: `app/Services/Retirement/RetirementProjectionService.php`
 - Modify: `app/Http/Controllers/Api/RetirementController.php`
 - Modify: `tests/Feature/RetirementIntegrationTest.php`
@@ -62,7 +62,7 @@ expect($bands)->toBe([
 Run:
 
 ```bash
-php vendor/pestphp/pest/bin/pest tests/Unit/Services/Retirement/RetirementProjectionContractServiceTest.php
+php vendor/pestphp/pest/bin/pest tests/Unit/RetirementProjectionContractServiceTest.php
 ```
 
 Expected: FAIL because `RetirementProjectionContractService` does not exist.
@@ -104,7 +104,7 @@ Also assert the legacy `pension_pot_projection` and `income_drawdown` keys remai
 - [ ] **Step 5: Run focused retirement tests and verify GREEN**
 
 ```bash
-php vendor/pestphp/pest/bin/pest tests/Unit/Services/Retirement/RetirementProjectionContractServiceTest.php tests/Feature/RetirementIntegrationTest.php
+php vendor/pestphp/pest/bin/pest tests/Unit/RetirementProjectionContractServiceTest.php tests/Feature/RetirementIntegrationTest.php
 ```
 
 Expected: PASS with no warnings.
@@ -112,7 +112,7 @@ Expected: PASS with no warnings.
 - [ ] **Step 6: Commit the retirement contract**
 
 ```bash
-git add app/Services/Retirement/RetirementProjectionContractService.php app/Services/Retirement/RetirementProjectionService.php app/Http/Controllers/Api/RetirementController.php tests/Unit/Services/Retirement/RetirementProjectionContractServiceTest.php tests/Feature/RetirementIntegrationTest.php
+git add app/Services/Retirement/RetirementProjectionContractService.php app/Services/Retirement/RetirementProjectionService.php app/Http/Controllers/Api/RetirementController.php tests/Unit/RetirementProjectionContractServiceTest.php tests/Feature/RetirementIntegrationTest.php
 git commit -m "feat: add reconciled retirement projection contract"
 ```
 
