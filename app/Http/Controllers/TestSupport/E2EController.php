@@ -6,8 +6,6 @@ namespace App\Http\Controllers\TestSupport;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiConversation;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\EmailVerificationCode;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
@@ -18,7 +16,6 @@ use App\Models\LifeEvent;
 use App\Models\Mortgage;
 use App\Models\PendingRegistration;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
@@ -276,8 +273,7 @@ class E2EController extends Controller
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100,
             ], $user, IngestSource::FORM);
-            DCPension::query()->create([
-                'user_id' => $user->id,
+            $pensionStore->createDc([
                 'scheme_name' => 'Workplace Pension',
                 'scheme_type' => 'workplace',
                 'pension_type' => 'occupational',
@@ -288,22 +284,20 @@ class E2EController extends Controller
                 'employer_contribution_percent' => 5,
                 'monthly_contribution_amount' => 500,
                 'retirement_age' => 70,
-            ]);
-            DBPension::query()->create([
-                'user_id' => $user->id,
+            ], $user, IngestSource::FORM);
+            $pensionStore->createDb([
                 'scheme_name' => 'Career Average Pension',
                 'scheme_type' => 'career_average',
                 'accrued_annual_pension' => 12000,
                 'projected_annual_pension_at_nra_gbp' => 12000,
                 'normal_retirement_age' => 65,
-            ]);
-            StatePension::query()->create([
-                'user_id' => $user->id,
+            ], $user, IngestSource::FORM);
+            $pensionStore->upsertState([
                 'ni_years_completed' => 35,
                 'ni_years_required' => 35,
                 'state_pension_forecast_annual' => 11502,
                 'state_pension_age' => 67,
-            ]);
+            ], $user, IngestSource::FORM);
         }
 
         $token = $user->createToken('e2e-active-user', ['mfa_verified'])->plainTextToken;
