@@ -34,6 +34,7 @@ struct ISAContributionHistoryView: View {
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
                 .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .accessibilityIdentifier("isa-contribution-history")
 
             taxYearSelector
 
@@ -62,7 +63,6 @@ struct ISAContributionHistoryView: View {
                 }
             }
         }
-        .accessibilityIdentifier("isa-contribution-history")
     }
 
     @ViewBuilder

@@ -20,7 +20,7 @@ struct CanonicalPortfolioView: View {
             )
             historyCard
         }
-        .accessibilityIdentifier("canonical-portfolio.\(portfolio.wrapperType).\(portfolio.wrapperID)")
+        .accessibilityElement(children: .contain)
     }
 
     private var holdingsCard: some View {
@@ -104,6 +104,7 @@ struct CanonicalPortfolioView: View {
                 )
             }
         }
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("canonical-portfolio.holding.\(holding.id)")
     }
 
@@ -138,6 +139,9 @@ struct CanonicalPortfolioView: View {
     ) -> some View {
         card {
             sectionTitle(title)
+                .accessibilityIdentifier(
+                    "canonical-portfolio.comparison.\(title.lowercased().replacingOccurrences(of: " ", with: "-"))"
+                )
 
             if let comparison {
                 if let reason = comparison.unavailableReason {
@@ -168,12 +172,12 @@ struct CanonicalPortfolioView: View {
                 unavailable("No \(title.lowercased()) has been recorded for comparison.")
             }
         }
-        .accessibilityIdentifier("canonical-portfolio.comparison.\(title.lowercased().replacingOccurrences(of: " ", with: "-"))")
     }
 
     private var historyCard: some View {
         card {
             sectionTitle("Recorded performance history")
+                .accessibilityIdentifier("canonical-portfolio.history")
 
             if portfolio.performanceHistory.available,
                !portfolio.performanceHistory.points.isEmpty
@@ -207,18 +211,14 @@ struct CanonicalPortfolioView: View {
                     valueRow(point.date ?? "Date unavailable", MoneyFormatter.gbpWhole(point.value))
                 }
 
-                Text("Recorded account-value snapshots only; missing values are not inferred.")
+                Text("Recorded account-value snapshots only; no missing values are inferred.")
                     .font(.system(size: 11))
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
                     .padding(.top, 4)
             } else {
-                unavailable(
-                    portfolio.performanceHistory.unavailableReason.map(unavailableReason)
-                        ?? "Dated account-value history is unavailable."
-                )
+                unavailable("Recorded performance history is unavailable.")
             }
         }
-        .accessibilityIdentifier("canonical-portfolio.history")
     }
 
     private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
