@@ -14,6 +14,7 @@ export const primaryNavigationSections = deepFreeze([
     links: [
       { slug: 'dashboard', label: 'Dashboard', icon: 'net_worth', route: '/dashboard' },
       { slug: 'achievements', label: 'Achievements', icon: 'goals', route: '/achievements' },
+      { slug: 'conversation_history', label: 'Conversation History', icon: 'holistic', route: '/conversation-history' },
     ],
   },
   {

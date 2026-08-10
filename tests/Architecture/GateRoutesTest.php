@@ -26,7 +26,7 @@ it('resolves every canonical gate destination for desktop and mobile', function 
         GateRoutes::SUBSCRIPTION => ['label' => 'Subscription', 'web' => '/settings/subscription', 'mobile' => '/subscription'],
         GateRoutes::SETTINGS => ['label' => 'Settings', 'web' => '/settings', 'mobile' => '/settings'],
         GateRoutes::ACHIEVEMENTS => ['label' => 'Achievements', 'web' => '/dashboard', 'mobile' => '/achievements'],
-        GateRoutes::CONVERSATION_HISTORY => ['label' => 'Conversation History', 'web' => '/dashboard', 'mobile' => null],
+        GateRoutes::CONVERSATION_HISTORY => ['label' => 'Conversation History', 'web' => '/dashboard', 'mobile' => '/conversation-history'],
         GateRoutes::ADMIN => ['label' => 'Admin Panel', 'web' => '/admin', 'mobile' => null],
         GateRoutes::DASHBOARD => ['label' => 'Dashboard', 'web' => '/dashboard', 'mobile' => '/dashboard'],
     ];

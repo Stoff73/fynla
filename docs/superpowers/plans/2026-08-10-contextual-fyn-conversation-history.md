@@ -290,11 +290,11 @@ Run: `git add resources/mobile tests/frontend/mobile && git commit -m "feat: lau
 - Displays separate Onboarding and Contextual sections with server-projected metadata.
 - Opens available conversations by exact ID; unavailable related entities show the server explanation and route through the semantic fallback.
 
-- [ ] **Step 1: Write failing route, navigation, and view tests**
+- [x] **Step 1: Write failing route, navigation, and view tests**
 
 Assert menu order places Conversation History after Achievements; semantic resolution; loading/error/empty states; separate sections; title/purpose/entity/status/time/summary rendering; exact transcript open; and deleted-entity fallback navigation.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+- [x] **Step 2: Run focused tests and confirm RED**
 
 Run:
 
@@ -304,17 +304,17 @@ env PATH=/Users/CSJ/.nvm/versions/node/v20.19.5/bin:/usr/bin:/bin:/usr/sbin:/sbi
 
 Expected: FAIL because the route/view/menu entry do not exist.
 
-- [ ] **Step 3: Implement the view and safe actions**
+- [x] **Step 3: Implement the view and safe actions**
 
 Use the existing authenticated API helpers and `MobileChrome`. Do not regroup or infer entity availability client-side; render the server contract. Opening a conversation calls `openConversation(id)`. The unavailable action resolves `fallback_destination` through the existing allowlisted semantic adapter.
 
-- [ ] **Step 4: Run mobile tests and build**
+- [x] **Step 4: Run mobile tests and build**
 
 Run the commands from Task 5 Step 4.
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit `/m` history**
+- [x] **Step 5: Commit `/m` history**
 
 Run: `git add resources/mobile && git commit -m "feat: add mobile web conversation history"`
 

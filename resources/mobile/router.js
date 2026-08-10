@@ -7,6 +7,7 @@ import HolisticPlan from './views/HolisticPlan.vue';
 import Income from './views/Income.vue';
 import Expenditure from './views/Expenditure.vue';
 import Achievements from './views/Achievements.vue';
+import ConversationHistory from './views/ConversationHistory.vue';
 import MobileLogin from './views/Login.vue';
 import MobileNetWorth from './views/modules/NetWorth.vue';
 import MobileNetWorthCategory from './views/modules/NetWorthCategory.vue';
@@ -43,6 +44,7 @@ const router = createRouter({
     { path: '/income', name: 'm-income', component: Income, meta: { auth: true } },
     { path: '/expenditure', name: 'm-expenditure', component: Expenditure, meta: { auth: true } },
     { path: '/achievements', name: 'm-achievements', component: Achievements, meta: { auth: true } },
+    { path: '/conversation-history', name: 'm-conversation-history', component: ConversationHistory, meta: { auth: true } },
     { path: '/net-worth', name: 'm-net-worth', component: MobileNetWorth, meta: { auth: true } },
     { path: '/net-worth/history', name: 'm-balance-history', component: MobileBalanceHistory, meta: { auth: true } },
     { path: '/net-worth/:category', name: 'm-net-worth-category', component: MobileNetWorthCategory, props: true, meta: { auth: true } },

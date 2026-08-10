@@ -54,6 +54,7 @@ describe('mobile semantic destinations', () => {
   });
 
   it.each([
+    ['conversation_history', '/conversation-history'],
     ['personal_information', '/personal-information'],
     ['subscription', '/subscription'],
     ['settings', '/settings'],
