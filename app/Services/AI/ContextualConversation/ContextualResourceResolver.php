@@ -22,6 +22,58 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class ContextualResourceResolver
 {
+    public function overviewScreenFor(string $resourceType): string
+    {
+        return match ($resourceType) {
+            'personal_information' => 'personal_information',
+            'savings', 'savings_account' => 'savings',
+            'investment', 'investment_account' => 'investment',
+            'retirement', 'dc_pension', 'db_pension', 'state_pension' => 'retirement',
+            'protection',
+            'life_insurance_policy',
+            'critical_illness_policy',
+            'income_protection_policy',
+            'disability_policy',
+            'sickness_illness_policy' => 'protection',
+            'goals', 'goal' => 'goals',
+            'income' => 'income',
+            'expenditure' => 'expenditure',
+            'net_worth' => 'net_worth',
+            'estate' => 'estate',
+            'tax_strategy' => 'tax_strategy',
+            default => 'dashboard',
+        };
+    }
+
+    public function displayNameFor(string $resourceType): string
+    {
+        return match ($resourceType) {
+            'personal_information' => 'Personal Information',
+            'savings' => 'Bank Accounts',
+            'savings_account' => 'Bank Account',
+            'investment' => 'Investments',
+            'investment_account' => 'Investment Account',
+            'retirement' => 'Retirement',
+            'dc_pension' => 'Defined Contribution Pension',
+            'db_pension' => 'Defined Benefit Pension',
+            'state_pension' => 'State Pension',
+            'protection' => 'Protection',
+            'life_insurance_policy' => 'Life Insurance Policy',
+            'critical_illness_policy' => 'Critical Illness Policy',
+            'income_protection_policy' => 'Income Protection Policy',
+            'disability_policy' => 'Disability Policy',
+            'sickness_illness_policy' => 'Sickness and Illness Policy',
+            'goals' => 'Goals',
+            'goal' => 'Goal',
+            'income' => 'Income',
+            'expenditure' => 'Expenditure',
+            'net_worth' => 'Net Worth',
+            'estate' => 'Estate Planning',
+            'tax_strategy' => 'Tax Strategy',
+            default => 'Fyn Conversation',
+        };
+    }
+
     public function resolve(User $user, string $resourceType, ?int $resourceId): ContextualResource
     {
         if (in_array($resourceType, CreateContextualConversationRequest::OVERVIEW_RESOURCE_TYPES, true)) {
@@ -37,26 +89,15 @@ final class ContextualResourceResolver
 
     private function resolveOverview(User $user, string $resourceType): ContextualResource
     {
-        $definition = match ($resourceType) {
-            'personal_information' => ['Personal Information', 'personal_information'],
-            'savings' => ['Bank Accounts', 'savings'],
-            'investment' => ['Investments', 'investment'],
-            'retirement' => ['Retirement', 'retirement'],
-            'protection' => ['Protection', 'protection'],
-            'goals' => ['Goals', 'goals'],
-            'income' => ['Income', 'income'],
-            'expenditure' => ['Expenditure', 'expenditure'],
-            'net_worth' => ['Net Worth', 'net_worth'],
-            'estate' => ['Estate Planning', 'estate'],
-            'tax_strategy' => ['Tax Strategy', 'tax_strategy'],
-            default => throw (new ModelNotFoundException)->setModel($resourceType),
-        };
+        if (! in_array($resourceType, CreateContextualConversationRequest::OVERVIEW_RESOURCE_TYPES, true)) {
+            throw (new ModelNotFoundException)->setModel($resourceType);
+        }
 
         return new ContextualResource(
             resourceType: $resourceType,
             resourceId: null,
-            label: $definition[0],
-            overviewScreen: $definition[1],
+            label: $this->displayNameFor($resourceType),
+            overviewScreen: $this->overviewScreenFor($resourceType),
             canonicalFacts: ['user_id' => $user->id],
         );
     }

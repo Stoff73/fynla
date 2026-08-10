@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\ContextualConversation\ContextualConversationService;
+use App\Services\AI\ContextualConversation\ConversationHistoryService;
 use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
@@ -49,20 +50,11 @@ class AiChatController extends Controller
      *
      * GET /api/ai-chat/conversations
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, ConversationHistoryService $history): JsonResponse
     {
-        // FR-M10 — paused (idle) conversations stay in history so the user can
-        // return to them; sending reopens them. Only soft-deleted / archived
-        // conversations drop out.
-        $conversations = AiConversation::forUser($request->user()->id)
-            ->whereIn('status', ['active', 'paused'])
-            ->orderByDesc('last_message_at')
-            ->limit(50)
-            ->get(['id', 'title', 'message_count', 'last_message_at', 'created_at']);
-
         return response()->json([
             'success' => true,
-            'data' => $conversations,
+            'data' => $history->forUser($request->user()),
         ]);
     }
 

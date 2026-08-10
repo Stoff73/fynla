@@ -54,6 +54,8 @@ final class GateRoutes
 
     public const ACHIEVEMENTS = 'achievements';
 
+    public const CONVERSATION_HISTORY = 'conversation_history';
+
     public const ADMIN = 'admin';
 
     public const DASHBOARD = 'dashboard';
@@ -80,6 +82,7 @@ final class GateRoutes
         self::SUBSCRIPTION => ['label' => 'Subscription', 'web' => '/settings/subscription', 'mobile' => '/subscription'],
         self::SETTINGS => ['label' => 'Settings', 'web' => '/settings', 'mobile' => '/settings'],
         self::ACHIEVEMENTS => ['label' => 'Achievements', 'web' => '/dashboard', 'mobile' => '/achievements'],
+        self::CONVERSATION_HISTORY => ['label' => 'Conversation History', 'web' => '/dashboard', 'mobile' => null],
         self::ADMIN => ['label' => 'Admin Panel', 'web' => '/admin', 'mobile' => null],
         self::DASHBOARD => ['label' => 'Dashboard', 'web' => '/dashboard', 'mobile' => '/dashboard'],
     ];

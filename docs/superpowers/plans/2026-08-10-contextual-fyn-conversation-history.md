@@ -182,21 +182,21 @@ Run: `git add app/Http/Controllers/Api/AiChatController.php app/Services/AI/Cont
 - Extends each index item with: `mode`, `purpose`, `related_entity`, `status`, `created_at`, `updated_at`, `last_message_at`, `last_message_summary`, and `fallback_destination`.
 - Adds semantic screen: `conversation_history` with mobile path `/conversation-history`.
 
-- [ ] **Step 1: Add failing history tests**
+- [x] **Step 1: Add failing history tests**
 
 Create active/paused onboarding, contextual, and legacy conversations. Assert grouping fields, truncation-safe last-message summaries, no system/tool content, no cross-user rows, stable ordering, and a deleted/inaccessible contextual entity returning `related_entity.available=false` with the canonical overview fallback.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+- [x] **Step 2: Run focused tests and confirm RED**
 
 Run: `./vendor/bin/pest tests/Feature/AI/ConversationIndexPopulationTest.php tests/Architecture/GateRoutesTest.php`
 
 Expected: FAIL because enriched fields and destination are absent.
 
-- [ ] **Step 3: Implement history projection without exposing financial values**
+- [x] **Step 3: Implement history projection without exposing financial values**
 
 Use a constrained latest visible-message relationship or grouped query to avoid N+1 reads. Derive mode and purpose from typed metadata. Re-resolve only availability/label for contextual entities and produce the safe semantic fallback when unavailable.
 
-- [ ] **Step 4: Run tests and formatter**
+- [x] **Step 4: Run tests and formatter**
 
 Run:
 
@@ -207,7 +207,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the history projection**
+- [x] **Step 5: Commit the history projection**
 
 Run: `git add app/Constants/GateRoutes.php app/Http/Controllers/Api/AiChatController.php app/Services/AI/ContextualConversation/ConversationHistoryService.php tests/Feature/AI/ConversationIndexPopulationTest.php tests/Architecture/GateRoutesTest.php && git commit -m "feat: expose safe conversation history metadata"`
 
