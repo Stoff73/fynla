@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account" back @back="goBack">
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ account ? (account.provider || account.platform || 'Investment account') : 'Investment account' }}</h1>
       <p class="m-sub">{{ account ? accountTypeLabel(account) : 'Account detail' }}</p>
@@ -70,6 +70,7 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function capitalise(s) {
   if (!s) return '';
@@ -82,6 +83,23 @@ export default {
   data: () => ({ loading: true, error: '', accounts: [] }),
   computed: {
     accountId() { return this.$route.params.id; },
+    canEdit() { return this.account?.is_primary_owner !== false; },
+    contextualRequest() {
+      if (!this.canEdit) return null;
+      const accountId = Number(this.accountId);
+      if (!Number.isInteger(accountId) || accountId < 1) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'investment_account',
+        resourceId: accountId,
+        currentDestination: {
+          screen: 'investment_account_detail',
+          params: { account_id: accountId },
+          fallback: 'investment',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
     account() {
       return this.accounts.find((a) => String(a.id) === String(this.accountId)) || null;
     },

@@ -60,6 +60,7 @@ class GoalResource extends JsonResource
             // Ownership
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'is_primary_owner' => $request->user()?->id === $this->user_id,
             'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
 
             // Property-specific fields

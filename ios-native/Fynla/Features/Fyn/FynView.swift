@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FynView: View {
     let model: FynConversationModel
+    let onStart: () async -> Void
     let onClose: () -> Void
     let onRoute: (AppRoute) -> Void
     let onRefreshCurrentScreen: () -> Void
@@ -18,7 +19,7 @@ struct FynView: View {
             FynComposerView(model: model)
         }
         .background(FynlaColor.pageBackground)
-        .task { await model.open() }
+        .task { await onStart() }
         .onDisappear { model.stop() }
         .onChange(of: model.phase) { _, phase in
             guard !phase.isBusy else { return }
@@ -174,8 +175,27 @@ struct FynView: View {
             status("Fyn chat consent is required before you can continue.", id: "consent")
         case let .tokenLimited(message):
             status(message, id: "token-limit")
+        case let .contextualResourceUnavailable(destination):
+            VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+                status(
+                    "This related item is no longer available. Return to its overview to continue.",
+                    id: "contextual-unavailable"
+                )
+                Button("Return to overview") {
+                    onRoute(SemanticDestinationResolver.route(for: destination, legacyPath: nil))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("fyn.contextual-unavailable.return")
+            }
         case let .failed(message):
-            status(message, id: "failure")
+            VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+                status(message, id: "failure")
+                Button("Try again") {
+                    Task { await onStart() }
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("fyn.start.retry")
+            }
         case .sessionExpired:
             status(
                 "Your session expired — please sign in again.",

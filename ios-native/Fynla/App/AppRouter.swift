@@ -3,6 +3,7 @@ import Observation
 enum AppRoute: Hashable, Sendable {
     case dashboard
     case achievements
+    case conversationHistory
     case personalInformation
     case subscription
     case income
@@ -22,6 +23,30 @@ enum AppRoute: Hashable, Sendable {
 
     var requiresUnlockedSession: Bool {
         self != .settings
+    }
+
+    var mobilePath: String {
+        switch self {
+        case .dashboard: "/dashboard"
+        case .achievements: "/achievements"
+        case .conversationHistory: "/conversation-history"
+        case .personalInformation: "/personal-information"
+        case .subscription: "/subscription"
+        case .income: "/income"
+        case .expenditure: "/expenditure"
+        case .netWorth: "/net-worth"
+        case .balanceHistory: "/net-worth/history"
+        case .protection: "/protection"
+        case .savings: "/savings"
+        case .investment: "/investment"
+        case .retirement: "/retirement"
+        case .estate: "/estate"
+        case .goals: "/goals"
+        case .taxStrategy: "/tax-strategy"
+        case .holisticPlan: "/holistic-plan"
+        case .bugReport: "/report-a-problem"
+        case .settings: "/settings"
+        }
     }
 }
 

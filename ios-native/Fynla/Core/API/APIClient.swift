@@ -122,11 +122,31 @@ actor APIClient {
     ) async throws -> APIRawResponse {
         let correlationID = requestID()
         let accessToken = await tokenProvider.accessToken()
-        let result = try await perform(
+        var result = try await perform(
             request,
             accessToken: accessToken,
             correlationID: correlationID
         )
+
+        if result.response.statusCode == 401,
+           request.method.permitsAuthenticationReplay,
+           accessToken != nil,
+           let tokenRefresher,
+           let refreshedToken = try await tokenRefresher.refreshAccessToken()
+        {
+            result = try await perform(
+                request,
+                accessToken: refreshedToken,
+                correlationID: correlationID
+            )
+        } else if result.response.statusCode == 401,
+                  !request.method.permitsAuthenticationReplay,
+                  accessToken != nil,
+                  let tokenRefresher
+        {
+            _ = try? await tokenRefresher.refreshAccessToken()
+        }
+
         return APIRawResponse(
             statusCode: result.response.statusCode,
             data: result.data,

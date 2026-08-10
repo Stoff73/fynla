@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="this policy" back @back="goBack">
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="this policy" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ headerProvider }}</h1>
       <p class="m-sub">{{ typeLabel }}</p>
@@ -141,6 +141,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -185,6 +186,27 @@ export default {
     };
   },
   computed: {
+    contextualRequest() {
+      const resourceType = {
+        life: 'life_insurance_policy',
+        criticalIllness: 'critical_illness_policy',
+        incomeProtection: 'income_protection_policy',
+        disability: 'disability_policy',
+        sicknessIllness: 'sickness_illness_policy',
+      }[this.policyType];
+      if (!resourceType || !Number.isInteger(this.policyId) || this.policyId < 1) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType,
+        resourceId: this.policyId,
+        currentDestination: {
+          screen: 'protection_policy_detail',
+          params: { policy_id: this.policyId, policy_type: this.policyType },
+          fallback: 'protection',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
     typeLabel() { return TYPE_LABELS[this.policyType] || 'Policy'; },
     headerProvider() { return this.policy?.provider || 'Policy'; },
     isLumpSum() { return this.policyType === 'life' || this.policyType === 'criticalIllness'; },

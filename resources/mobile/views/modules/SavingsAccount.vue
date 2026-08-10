@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" back @back="goBack">
+  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ headerTitle }}</h1>
       <p class="m-sub">{{ headerSub }}</p>
@@ -60,6 +60,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -98,6 +99,23 @@ export default {
   data: () => ({ loading: true, error: '', account: null }),
   computed: {
     accountId() { return this.$route.params.id; },
+    canEdit() { return this.account?.is_primary_owner !== false; },
+    contextualRequest() {
+      if (!this.canEdit) return null;
+      const accountId = Number(this.accountId);
+      if (!Number.isInteger(accountId) || accountId < 1) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'savings_account',
+        resourceId: accountId,
+        currentDestination: {
+          screen: 'savings_account_detail',
+          params: { account_id: accountId },
+          fallback: 'savings',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
     headerTitle() {
       if (!this.account) return 'Account';
       return this.account.provider || this.account.institution || 'Savings account';

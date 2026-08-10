@@ -13,6 +13,7 @@ struct FynlaApp: App {
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
+    @State private var conversationHistoryModel: ConversationHistoryModel
     @State private var personalInformationModel: PersonalInformationModel
     @State private var incomeModel: IncomeModel
     @State private var expenditureModel: ExpenditureModel
@@ -194,21 +195,41 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #if FYNLA_UI_TESTING
+        let personalInformationModel = uiTestMode == nil
+            ? PersonalInformationModel(
+                client: LivePersonalInformationClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : PersonalInformationUITestComposition.model()
+        #else
         let personalInformationModel = PersonalInformationModel(
             client: LivePersonalInformationClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let balanceHistoryModel = BalanceHistoryModel(
             client: LiveBalanceHistoryClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #if FYNLA_UI_TESTING
+        let savingsModel = uiTestMode == nil
+            ? SavingsModel(
+                client: LiveSavingsClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : SavingsUITestComposition.model()
+        #else
         let savingsModel = SavingsModel(
             client: LiveSavingsClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let investmentModel = InvestmentModel(
             client: LiveInvestmentClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -394,10 +415,18 @@ struct FynlaApp: App {
         let fynModel = uiTestMode == nil
             ? FynConversationModel(client: authenticatedDependencies.makeFynClient())
             : FynUITestComposition.model()
+        let conversationHistoryModel = uiTestMode == nil
+            ? ConversationHistoryModel {
+                try await authenticatedDependencies.makeFynClient().listConversations()
+            }
+            : FynUITestComposition.historyModel()
         #else
         let fynModel = FynConversationModel(
             client: authenticatedDependencies.makeFynClient()
         )
+        let conversationHistoryModel = ConversationHistoryModel {
+            try await authenticatedDependencies.makeFynClient().listConversations()
+        }
         #endif
         #if FYNLA_UI_TESTING
         let bugReportModel = uiTestMode == nil
@@ -438,6 +467,7 @@ struct FynlaApp: App {
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
+        _conversationHistoryModel = State(initialValue: conversationHistoryModel)
         _personalInformationModel = State(initialValue: personalInformationModel)
         _incomeModel = State(initialValue: incomeModel)
         _expenditureModel = State(initialValue: expenditureModel)
@@ -497,6 +527,7 @@ struct FynlaApp: App {
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,
+            conversationHistoryModel: conversationHistoryModel,
             personalInformationModel: personalInformationModel,
             incomeModel: incomeModel,
             expenditureModel: expenditureModel,

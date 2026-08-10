@@ -1479,6 +1479,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('ai-chat')->group(f
     Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
+    Route::post('/contextual-conversations', [AiChatController::class, 'createContextual']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])

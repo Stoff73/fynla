@@ -106,6 +106,49 @@ struct LiveFynClientTests {
         #expect(await transport.requests().count == 2)
     }
 
+    @Test
+    func mapsUnavailableContextualTranscriptToItsCanonicalFallback() async {
+        let transport = TestHTTPTransport([
+            .response(
+                status: 410,
+                body: Data(
+                    #"{"success":false,"error":"contextual_resource_unavailable","data":{"fallback_destination":{"screen":"savings","params":{},"fallback":"dashboard"}}}"#.utf8
+                )
+            ),
+        ])
+        let tokens = TestTokenStore(token: "live")
+        let apiClient = APIClient(
+            environment: environment(),
+            version: "1.2.3",
+            build: "45",
+            transport: transport,
+            tokenProvider: tokens,
+            tokenRefresher: tokens,
+            requestID: { "corr-1" }
+        )
+        let client = LiveFynClient(
+            apiClient: apiClient,
+            environment: environment(),
+            version: "1.2.3",
+            build: "45",
+            transport: SequencedSSETransport([]),
+            tokenProvider: tokens,
+            tokenRefresher: tokens,
+            requestID: { "corr-1" }
+        )
+
+        do {
+            _ = try await client.loadConversation(id: "321")
+            Issue.record("Expected contextualResourceUnavailable")
+        } catch let error as FynClientError {
+            #expect(error == .contextualResourceUnavailable(
+                SemanticDestination(screen: "savings", params: [:], fallback: "dashboard")
+            ))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
     private func expectAuthExpired(from client: LiveFynClient) async {
         do {
             _ = try await client.sendMessage(

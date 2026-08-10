@@ -154,12 +154,19 @@ struct DashboardModelsTests {
         #expect(
             SemanticDestinationResolver.route(
                 for: nil,
+                legacyPath: "/conversation-history"
+            ) == .conversationHistory
+        )
+        #expect(
+            SemanticDestinationResolver.route(
+                for: nil,
                 legacyPath: "/not-an-app-route"
             ) == .dashboard
         )
     }
 
     @Test(arguments: [
+        ("conversation_history", AppRoute.conversationHistory),
         ("personal_information", AppRoute.personalInformation),
         ("subscription", AppRoute.subscription),
         ("settings", AppRoute.settings),

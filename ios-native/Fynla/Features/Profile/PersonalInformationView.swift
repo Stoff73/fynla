@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PersonalInformationView: View {
     let model: PersonalInformationModel
+    let onOpenContextualFyn: (FynContextualAction) -> Void
 
     var body: some View {
         Group {
@@ -37,6 +38,10 @@ struct PersonalInformationView: View {
                     title: "Personal Information",
                     subtitle: "Your canonical profile and financial position"
                 )
+
+                MobilePageActions(editDetails: {
+                    onOpenContextualFyn(FynContextualActions.personalInformation())
+                })
 
                 if offline {
                     Text("You're offline. Showing your last loaded personal information.")

@@ -12,6 +12,7 @@ const overviewPaths = Object.freeze({
   tax_strategy: '/tax-strategy',
   holistic_plan: '/holistic-plan',
   achievements: '/achievements',
+  conversation_history: '/conversation-history',
   personal_information: '/personal-information',
   subscription: '/subscription',
   settings: '/settings',

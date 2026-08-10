@@ -56,6 +56,23 @@ class PensionStore
     }
 
     /**
+     * User-scoped id-based read for batched contextual history rehydration.
+     */
+    public function findMany(array $ids, string $type, User $user): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        $model = $this->modelClassForType($type);
+
+        return $model::query()
+            ->whereIn('id', $ids)
+            ->where('user_id', $user->id)
+            ->get();
+    }
+
+    /**
      * Return every pension the user owns, grouped by type.
      *
      * @return array{dc: Collection, db: Collection, state: ?StatePension, input_history: Collection}

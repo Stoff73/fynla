@@ -20,6 +20,7 @@ struct NavigationMenuTests {
         #expect(sections.flatMap(\.items).map(\.label) == [
             "Dashboard",
             "Achievements",
+            "Conversation History",
             "Income",
             "Expenditure",
             "Net Worth",
@@ -38,6 +39,7 @@ struct NavigationMenuTests {
         #expect(sections.flatMap(\.items).map(\.route) == [
             .dashboard,
             .achievements,
+            .conversationHistory,
             .income,
             .expenditure,
             .netWorth(category: nil),
@@ -97,5 +99,10 @@ struct NavigationMenuTests {
     @Test
     func everyPremiumGateRoutesDirectlyToSubscription() {
         #expect(NavigationDestinationFactory.premiumGateRoute == .subscription)
+    }
+
+    @Test
+    func conversationHistoryHasTheCanonicalMobilePath() {
+        #expect(AppRoute.conversationHistory.mobilePath == "/conversation-history")
     }
 }

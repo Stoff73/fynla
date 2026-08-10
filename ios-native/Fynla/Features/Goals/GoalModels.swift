@@ -27,6 +27,7 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
     let daysRemaining: Int?
     let monthsRemaining: Int?
     let isOnTrack: Bool
+    let isPrimaryOwner: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -43,6 +44,7 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
         case daysRemaining = "days_remaining"
         case monthsRemaining = "months_remaining"
         case isOnTrack = "is_on_track"
+        case isPrimaryOwner = "is_primary_owner"
     }
 
     var displayName: String { name ?? goalName ?? "Goal" }

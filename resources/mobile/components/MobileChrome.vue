@@ -26,10 +26,12 @@
         </button>
         <!-- Hidden during the onboarding verify step: the on-page Continue/Edit
              bubbles below replace it (Edit there opens Fyn to change details). -->
-        <button v-if="editDetails && !showOnboardingNudge" type="button" class="md-edit-details" @click="openFynWith(editPrompt || 'What would you like to update?')">
+        <button v-if="editDetails && !showOnboardingNudge" type="button" class="md-edit-details" :disabled="contextualCreating" @click="contextualRequest ? openContextualFyn(contextualRequest) : openFyn()">
           Edit details
         </button>
       </div>
+
+      <p v-if="contextualLaunchError" class="md-contextual-error" role="alert">{{ contextualLaunchError }}</p>
 
       <!-- Centred ring + coin loader while the page's data loads. -->
       <div v-if="loading" class="md-loader" role="status" aria-live="polite">
@@ -125,6 +127,17 @@
       </header>
 
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
+        <div v-if="transcriptLoadError" class="md-fyn__transcript-error" role="alert">
+          <p>{{ transcriptLoadError }}</p>
+          <button
+            v-if="!transcriptFallbackDestination"
+            type="button"
+            class="md-fyn__bubble"
+            :disabled="contextualCreating"
+            data-testid="fyn-transcript-retry"
+            @click="retryLoadedTranscript"
+          >Try again</button>
+        </div>
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
           <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
@@ -192,12 +205,11 @@ export default {
     // Show the centred ring+coin loader (and hide the slot) while true.
     loading: { type: Boolean, default: false },
     loadingLabel: { type: String, default: '' },
-    // Show the "Edit details" button under the header (opens Fyn pre-asked).
+    // Show the "Edit details" button under the header.
     editDetails: { type: Boolean, default: true },
-    // Page/data-specific opener for "Edit details" (/m 7-D): the parent passes a
-    // message naming the current page's real holdings (e.g. "I'd like to update
-    // my savings: Cash ISA, Barclays Saver."). Falls back to a generic prompt.
-    editPrompt: { type: String, default: '' },
+    // Identifier-only server contract for contextual Add/Edit actions. Existing
+    // balances, values, labels, and names are deliberately never accepted here.
+    contextualRequest: { type: Object, default: null },
     // Show a Back button to the left of Edit details (sub-pages). The parent
     // owns the destination via @back.
     back: { type: Boolean, default: false },
@@ -210,6 +222,8 @@ export default {
       drawerMounted: false,
       fynOpen: false,
       fynMounted: false,
+      contextualCreating: false,
+      contextualLaunchError: '',
       // conversationId / resumeId / messages / draft / sending / fynStarted come
       // from the onboardingChat mixin (the shared chat client owns that state).
     };
@@ -290,8 +304,8 @@ export default {
       this.$router.push('/login');
     },
     // Returns the open+init promise chain (mirrors Dashboard.vue's openFyn) so
-    // callers that need to send a message right after opening (openFynWith,
-    // verifyAnswer) can await it — initFyn may fire the async, unawaited
+    // callers that need to send a message right after opening (verifyAnswer)
+    // can await it — initFyn may fire the async, unawaited
     // resumeOnboardingInDock() stream, and sending while that's still in flight
     // silently no-ops (this.sending stays true). Callers that just open the dock
     // (the bare @click="openFyn" bindings) can ignore the return value.
@@ -308,11 +322,38 @@ export default {
       this.$nextTick(() => this.$refs.fynDock?.focus());
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
-    // Open Fyn and immediately ask a preset question (e.g. from "Edit details").
-    // Awaits openFyn() before sending — see the comment on openFyn() for why.
-    async openFynWith(message) {
-      await this.openFyn();
-      if (message) this.send(message);
+    async revealLoadedConversation() {
+      this.fynMounted = true;
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); });
+    },
+    async openContextualFyn(request) {
+      if (this.contextualCreating) return;
+      this.contextualCreating = true;
+      this.contextualLaunchError = '';
+      try {
+        const conversationId = await this.createContextualConversation(request);
+        if (!conversationId) {
+          this.contextualLaunchError = 'Fyn could not start that conversation. Please try again.';
+          return;
+        }
+        await this.revealLoadedConversation();
+      } catch {
+        this.contextualLaunchError = 'Fyn could not start that conversation. Please try again.';
+      } finally {
+        this.contextualCreating = false;
+      }
+    },
+    async retryLoadedTranscript() {
+      if (this.contextualCreating) return;
+      this.contextualCreating = true;
+      try {
+        await this.retryTranscript();
+      } finally {
+        this.contextualCreating = false;
+      }
     },
     // Onboarding verify actions (on-page, in place of the nudge banner). Both
     // send the verify-confirm answer the chat bubbles would, so the director's
@@ -364,7 +405,7 @@ export default {
         // full resume stream settling — resumeOnboardingInDock sets
         // this.sending = true synchronously and only clears it in its own
         // finally block, so a caller that sends a follow-up right after
-        // opening (openFynWith, verifyAnswer) must wait for this to actually
+        // opening (verifyAnswer) must wait for this to actually
         // finish, not just start.
         return this.resumeOnboardingInDock();
       } else if (!this.messages.length) {
@@ -437,4 +478,12 @@ export default {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .md-edit-details:hover { background: var(--light-pink-50); border-color: var(--raspberry-500); }
+.md-edit-details:disabled { cursor: wait; opacity: 0.6; }
+.md-contextual-error {
+  align-self: stretch;
+  margin: 0.5rem 0 0;
+  color: var(--raspberry-600);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
 </style>

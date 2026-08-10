@@ -24,6 +24,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
             items: [
                 NavigationMenuItem(label: "Dashboard", icon: "house", route: .dashboard),
                 NavigationMenuItem(label: "Achievements", icon: "star.circle", route: .achievements),
+                NavigationMenuItem(label: "Conversation History", icon: "clock.arrow.circlepath", route: .conversationHistory),
             ]
         ),
         NavigationMenuSection(

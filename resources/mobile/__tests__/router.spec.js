@@ -36,6 +36,7 @@ describe('router.js — tokenless guard on authenticated routes', () => {
   });
 
   it.each([
+    '/conversation-history',
     '/personal-information',
     '/settings',
     '/notifications',
@@ -46,6 +47,7 @@ describe('router.js — tokenless guard on authenticated routes', () => {
   });
 
   it.each([
+    '/conversation-history',
     '/personal-information',
     '/settings',
     '/notifications',

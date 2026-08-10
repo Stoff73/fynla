@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-enum SemanticParameter: Decodable, Sendable, Equatable {
+enum SemanticParameter: Codable, Sendable, Equatable {
     case string(String)
     case int(Int)
 
@@ -27,6 +27,16 @@ enum SemanticParameter: Decodable, Sendable, Equatable {
         )
     }
 
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value):
+            try container.encode(value)
+        case .int(let value):
+            try container.encode(value)
+        }
+    }
+
     var stringValue: String {
         switch self {
         case .string(let value): value
@@ -42,7 +52,7 @@ enum SemanticParameter: Decodable, Sendable, Equatable {
     }
 }
 
-struct SemanticDestination: Decodable, Sendable, Equatable {
+struct SemanticDestination: Codable, Sendable, Equatable {
     let screen: String
     let params: [String: SemanticParameter]
     let fallback: String
@@ -78,6 +88,7 @@ enum SemanticDestinationResolver {
         switch screen {
         case "dashboard": .dashboard
         case "achievements": .achievements
+        case "conversation_history": .conversationHistory
         case "income": .income
         case "expenditure": .expenditure
         case "net_worth": .netWorth(category: nil)
@@ -150,6 +161,7 @@ enum SemanticDestinationResolver {
         switch path?.trimmingCharacters(in: CharacterSet(charactersIn: "/")) {
         case "dashboard": .dashboard
         case "achievements": .achievements
+        case "conversation-history": .conversationHistory
         case "income": .income
         case "expenditure": .expenditure
         case "net-worth": .netWorth(category: nil)

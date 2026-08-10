@@ -8,6 +8,7 @@ struct AppRootView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let conversationHistoryModel: ConversationHistoryModel
     let personalInformationModel: PersonalInformationModel
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
@@ -46,6 +47,7 @@ struct AppRootView: View {
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
+        conversationHistoryModel: ConversationHistoryModel,
         personalInformationModel: PersonalInformationModel,
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
@@ -84,6 +86,7 @@ struct AppRootView: View {
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
+        self.conversationHistoryModel = conversationHistoryModel
         self.personalInformationModel = personalInformationModel
         self.incomeModel = incomeModel
         self.expenditureModel = expenditureModel
@@ -188,6 +191,7 @@ struct AppRootView: View {
                         subscriptionModel: subscriptionModel,
                         dashboardModel: dashboardModel,
                         achievementsModel: achievementsModel,
+                        conversationHistoryModel: conversationHistoryModel,
                         personalInformationModel: personalInformationModel,
                         incomeModel: incomeModel,
                         expenditureModel: expenditureModel,
@@ -342,11 +346,18 @@ private struct LaunchingView: View {
     }
 }
 
+private enum FynLaunchRequest {
+    case generic
+    case contextual(FynContextualAction)
+    case conversation(String)
+}
+
 private struct UnlockedView: View {
     let privacyLockController: PrivacyLockController?
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let conversationHistoryModel: ConversationHistoryModel
     let personalInformationModel: PersonalInformationModel
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
@@ -373,6 +384,7 @@ private struct UnlockedView: View {
     @Environment(AppRouter.self) private var router
     @State private var isPresentingMenu = false
     @State private var isPresentingFyn = false
+    @State private var fynLaunchRequest: FynLaunchRequest = .generic
     // Route requested from inside the Fyn cover — applied only once the cover
     // has fully dismissed, so the push never races the dismissal transaction.
     @State private var pendingFynRoute: AppRoute?
@@ -589,6 +601,7 @@ private struct UnlockedView: View {
                     for: route,
                     subscriptionModel: subscriptionModel,
                     achievementsModel: achievementsModel,
+                    conversationHistoryModel: conversationHistoryModel,
                     personalInformationModel: personalInformationModel,
                     incomeModel: incomeModel,
                     expenditureModel: expenditureModel,
@@ -612,6 +625,9 @@ private struct UnlockedView: View {
                     onOpenFyn: { prompt in
                         presentFyn(prompt: prompt)
                     },
+                    onOpenContextualFyn: presentContextualFyn,
+                    onOpenConversation: presentConversation,
+                    onOpenRoute: openTopLevel,
                     onRoute: navigate
                 )
                 // /m has no system navigation bar anywhere — the shell header
@@ -624,6 +640,16 @@ private struct UnlockedView: View {
     private var fynCover: some View {
         FynView(
             model: fynModel,
+            onStart: {
+                switch fynLaunchRequest {
+                case .generic:
+                    await fynModel.open()
+                case let .contextual(action):
+                    await fynModel.startContextual(action)
+                case let .conversation(id):
+                    await fynModel.start(preferredID: id)
+                }
+            },
             onClose: { isPresentingFyn = false },
             onRoute: { route in
                 pendingFynRoute = route
@@ -661,6 +687,8 @@ private struct UnlockedView: View {
                     Task { await personalInformationModel.refresh() }
                 case .subscription:
                     break
+                case .conversationHistory:
+                    Task { await conversationHistoryModel.load() }
                 default:
                     break
                 }
@@ -805,7 +833,7 @@ private struct UnlockedView: View {
     private func navigate(to route: AppRoute) {
         if route == .bugReport {
             bugReportModel.updateContext(
-                route: mobilePath(for: router.path.last ?? .dashboard),
+                route: (router.path.last ?? .dashboard).mobilePath,
                 conversationID: fynModel.conversationID
             )
         }
@@ -816,8 +844,13 @@ private struct UnlockedView: View {
         }
     }
 
+    private func openTopLevel(_ route: AppRoute) {
+        _ = router.open(route)
+    }
+
     private func presentFyn(prompt: String? = nil) {
-        fynModel.currentRoute = mobilePath(for: router.path.last ?? .dashboard)
+        fynModel.currentRoute = (router.path.last ?? .dashboard).mobilePath
+        fynLaunchRequest = .generic
         if let prompt,
            !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         {
@@ -826,26 +859,17 @@ private struct UnlockedView: View {
         isPresentingFyn = true
     }
 
-    private func mobilePath(for route: AppRoute) -> String {
-        switch route {
-        case .dashboard: "/dashboard"
-        case .personalInformation: "/personal-information"
-        case .subscription: "/subscription"
-        case .income: "/income"
-        case .expenditure: "/expenditure"
-        case .savings: "/savings"
-        case .investment: "/investment"
-        case .retirement: "/retirement"
-        case .taxStrategy: "/tax-strategy"
-        case .achievements: "/achievements"
-        case .netWorth: "/net-worth"
-        case .balanceHistory: "/net-worth/history"
-        case .protection: "/protection"
-        case .estate: "/estate"
-        case .goals: "/goals"
-        case .holisticPlan: "/holistic-plan"
-        case .bugReport: "/report-a-problem"
-        case .settings: "/settings"
-        }
+    private func presentContextualFyn(_ action: FynContextualAction) {
+        fynModel.currentRoute = (router.path.last ?? .dashboard).mobilePath
+        fynModel.draft = ""
+        fynLaunchRequest = .contextual(action)
+        isPresentingFyn = true
+    }
+
+    private func presentConversation(_ id: String) {
+        fynModel.currentRoute = AppRoute.conversationHistory.mobilePath
+        fynModel.draft = ""
+        fynLaunchRequest = .conversation(id)
+        isPresentingFyn = true
     }
 }

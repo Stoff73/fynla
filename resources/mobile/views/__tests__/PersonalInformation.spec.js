@@ -38,8 +38,8 @@ const canonicalProfile = {
 };
 
 const MobileChromeStub = {
-  props: ['title', 'subtitle', 'loading', 'loadingLabel', 'editDetails'],
-  template: '<main><h1>{{ title }}</h1><button v-if="editDetails">Edit details</button><slot /></main>',
+  props: ['title', 'subtitle', 'loading', 'loadingLabel', 'contextualRequest'],
+  template: '<main><h1>{{ title }}</h1><button v-if="contextualRequest">Edit details</button><slot /></main>',
 };
 
 function mountView() {
@@ -59,7 +59,7 @@ describe('PersonalInformation.vue', () => {
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { data: canonicalProfile } });
   });
 
-  it('renders the canonical profile summary without an Edit action', async () => {
+  it('renders the canonical profile summary with an identifier-only contextual Edit action', async () => {
     const wrapper = mountView();
     await flushPromises();
 
@@ -72,8 +72,13 @@ describe('PersonalInformation.vue', () => {
     expect(wrapper.text()).toContain('£86,000');
     expect(wrapper.text()).toContain('£3,200');
     expect(wrapper.text()).toContain('£525,000');
-    expect(wrapper.text()).not.toContain('Edit details');
-    expect(wrapper.findComponent(MobileChromeStub).props('editDetails')).toBe(false);
+    expect(wrapper.text()).toContain('Edit details');
+    expect(wrapper.findComponent(MobileChromeStub).props('contextualRequest')).toEqual({
+      action: 'edit',
+      resource_type: 'personal_information',
+      current_destination: { screen: 'personal_information', params: {}, fallback: 'dashboard' },
+      origin: { kind: 'surface_action', recommendation_id: null },
+    });
     expect(wrapper.find('[data-testid="personal-information-edit"]').exists()).toBe(false);
   });
 

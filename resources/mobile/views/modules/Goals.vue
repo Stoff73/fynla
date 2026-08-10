@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals" :edit-prompt="editPrompt">
+  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your goals…</p>
     </div>
@@ -60,7 +60,7 @@
               <span class="mg-goal__amounts">{{ fmt(goal.current_amount) }} of {{ fmt(goal.target_amount) }}</span>
               <span class="mg-goal__remaining">{{ remainingLabel(goal) }}</span>
             </div>
-            <div class="mg-goal__actions">
+            <div v-if="canEditGoal(goal)" class="mg-goal__actions">
               <button type="button" class="mg-action" @click="editGoal(goal)">Edit</button>
             </div>
           </div>
@@ -75,7 +75,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
-import { buildEditPrompt } from '../../utils/editPrompt.js';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -105,9 +105,8 @@ export default {
       if (!this.totalGoals) return 'No goals set yet.';
       return `${this.fmt(this.totalCurrent)} of ${this.fmt(this.totalTarget)} saved so far.`;
     },
-    editPrompt() {
-      return buildEditPrompt('goals', "I'd like to add a new goal.",
-        this.goals.map((g) => g.name || g.goal_name));
+    contextualRequest() {
+      return this.goalRequest(this.goals.length ? 'edit' : 'add');
     },
   },
   async created() { await this.load(); },
@@ -135,12 +134,23 @@ export default {
       return 'Target date passed';
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
-    // Goals add/edit run through Fyn (no standalone goal form on /m), reusing
-    // MobileChrome's openFynWith — the same dock the "Edit details" button uses.
-    addGoal() { this.$refs.chrome?.openFynWith('I\'d like to add a new goal.'); },
+    goalRequest(action, goalId = null) {
+      return buildContextualConversationRequest({
+        action,
+        resourceType: goalId ? 'goal' : 'goals',
+        resourceId: goalId,
+        currentDestination: {
+          screen: 'goals',
+          params: goalId ? { goal_id: goalId } : {},
+          fallback: goalId ? 'goals' : 'dashboard',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
+    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
+    addGoal() { this.$refs.chrome?.openContextualFyn(this.goalRequest('add')); },
     editGoal(goal) {
-      const name = goal.name || goal.goal_name || 'goal';
-      this.$refs.chrome?.openFynWith(`I'd like to update my "${name}" goal.`);
+      this.$refs.chrome?.openContextualFyn(this.goalRequest('edit', Number(goal.id)));
     },
     async load() {
       this.loading = true;

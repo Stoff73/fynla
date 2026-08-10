@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Bank Accounts" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your bank accounts" :edit-prompt="editPrompt">
+  <MobileChrome title="Bank Accounts" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your bank accounts" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your bank accounts…</p>
     </div>
@@ -127,8 +127,8 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
-import { buildEditPrompt } from '../../utils/editPrompt.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -150,9 +150,13 @@ export default {
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
-    editPrompt() {
-      return buildEditPrompt('savings', "I'd like to add a bank account.",
-        this.accounts.map((a) => a.provider || a.institution || 'Bank account'));
+    contextualRequest() {
+      return buildContextualConversationRequest({
+        action: this.accounts.length ? 'edit' : 'add',
+        resourceType: 'savings',
+        currentDestination: { screen: 'savings', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
     },
     isaAllowance() { return this.payload?.isa_allowance || null; },
     emergencyTargetData() { return this.payload?.emergency_fund_target || null; },

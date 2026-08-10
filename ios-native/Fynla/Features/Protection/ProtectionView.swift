@@ -8,7 +8,7 @@ import SwiftUI
 struct ProtectionView: View {
     let model: ProtectionModel
     let onRoute: (AppRoute) -> Void
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -46,13 +46,9 @@ struct ProtectionView: View {
                 )
 
                 MobilePageActions(editDetails: {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "protection cover",
-                            addPhrase: "I'd like to add a protection policy.",
-                            names: snapshot.policies.map {
-                                Optional($0.policy.provider ?? $0.type.label)
-                            }
+                    onOpenContextualFyn(
+                        FynContextualActions.protectionOverview(
+                            hasPolicies: !snapshot.policies.isEmpty
                         )
                     )
                 })

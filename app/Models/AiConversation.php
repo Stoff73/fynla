@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AiConversation extends Model
@@ -59,6 +60,15 @@ class AiConversation extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(AiMessage::class, 'conversation_id');
+    }
+
+    public function latestVisibleMessage(): HasOne
+    {
+        return $this->hasOne(AiMessage::class, 'conversation_id')
+            ->ofMany(
+                ['id' => 'max'],
+                fn (Builder $query) => $query->whereIn('role', ['user', 'assistant']),
+            );
     }
 
     public function scopeActive(Builder $query): Builder
