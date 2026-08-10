@@ -68,6 +68,53 @@ struct FynConversationModelTests {
     }
 
     @Test
+    func contextualTranscriptFailureKeepsTrustedOpeningAndRetriesTheCreatedConversation() async throws {
+        let recovered = try transcript(id: 701, messages: [
+            (id: 2, role: "assistant", content: "Recovered persisted opening."),
+        ])
+        let client = ScriptedFynClient(
+            transcripts: [recovered],
+            loadConversationFailure: .unexpectedStatus(503, requestID: "load-503"),
+            contextualConversationIDs: [701]
+        )
+        let model = FynConversationModel(client: client, currentRoute: "/savings")
+        let action = contextualSavingsEdit()
+
+        await model.startContextual(action)
+
+        #expect(model.conversationID == "701")
+        #expect(model.messages.map(\.text) == ["Trusted opening."])
+        #expect(model.phase == .failed("Fyn could not respond. Request load-503."))
+        #expect(await client.contextualCreateCount() == 1)
+
+        await model.startContextual(action)
+
+        #expect(model.conversationID == "701")
+        #expect(model.messages.map(\.text) == ["Recovered persisted opening."])
+        #expect(model.phase == .idle)
+        #expect(await client.contextualCreateCount() == 1)
+    }
+
+    @Test
+    func unavailableContextualTranscriptExposesTheCanonicalFallback() async throws {
+        let destination = SemanticDestination(
+            screen: "savings",
+            params: [:],
+            fallback: "dashboard"
+        )
+        let client = ScriptedFynClient(
+            transcripts: [],
+            loadConversationFailure: .contextualResourceUnavailable(destination)
+        )
+        let model = FynConversationModel(client: client, currentRoute: "/conversation-history")
+
+        await model.start(preferredID: "701")
+
+        #expect(model.phase == .contextualResourceUnavailable(destination))
+        #expect(model.messages.isEmpty)
+    }
+
+    @Test
     func queuedTurnRetriesBusyStreamAndKeepsReadingAfterDone() async throws {
         let client = ScriptedFynClient(
             transcripts: [try transcript(messages: [])],

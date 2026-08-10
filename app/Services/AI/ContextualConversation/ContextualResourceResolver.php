@@ -22,6 +22,11 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class ContextualResourceResolver
 {
+    public function referenceKey(string $resourceType, ?int $resourceId): string
+    {
+        return $resourceType.':'.($resourceId ?? 'overview');
+    }
+
     public function overviewScreenFor(string $resourceType): string
     {
         return match ($resourceType) {
@@ -87,6 +92,54 @@ final class ContextualResourceResolver
         return $this->resolveEntity($user, $resourceType, $resourceId);
     }
 
+    /**
+     * Resolve history references in one ownership-scoped query per entity type.
+     * Missing, malformed, and foreign references are deliberately omitted.
+     *
+     * @param  list<array{resource_type: string, resource_id: int|null}>  $references
+     * @return array<string, ContextualResource>
+     */
+    public function resolveMany(User $user, array $references): array
+    {
+        $resolved = [];
+        $idsByType = [];
+
+        foreach ($references as $reference) {
+            $resourceType = $reference['resource_type'];
+            $resourceId = $reference['resource_id'];
+
+            if (in_array($resourceType, CreateContextualConversationRequest::OVERVIEW_RESOURCE_TYPES, true)) {
+                $resolved[$this->referenceKey($resourceType, null)] = $this->resolveOverview($user, $resourceType);
+
+                continue;
+            }
+
+            if ($resourceId !== null) {
+                $idsByType[$resourceType][] = $resourceId;
+            }
+        }
+
+        foreach ($idsByType as $resourceType => $ids) {
+            try {
+                [$modelClass] = $this->entityDefinition($resourceType);
+            } catch (ModelNotFoundException) {
+                continue;
+            }
+
+            $models = $modelClass::query()
+                ->where('user_id', $user->id)
+                ->whereIn('id', array_values(array_unique($ids)))
+                ->get();
+
+            foreach ($models as $model) {
+                $resource = $this->resourceFromModel($model, $resourceType);
+                $resolved[$this->referenceKey($resourceType, $resource->resourceId)] = $resource;
+            }
+        }
+
+        return $resolved;
+    }
+
     private function resolveOverview(User $user, string $resourceType): ContextualResource
     {
         if (! in_array($resourceType, CreateContextualConversationRequest::OVERVIEW_RESOURCE_TYPES, true)) {
@@ -104,7 +157,22 @@ final class ContextualResourceResolver
 
     private function resolveEntity(User $user, string $resourceType, int $resourceId): ContextualResource
     {
-        [$modelClass, $labelFields, $overviewScreen, $factFields] = match ($resourceType) {
+        [$modelClass] = $this->entityDefinition($resourceType);
+
+        /** @var Model $model */
+        $model = $modelClass::query()
+            ->where('user_id', $user->id)
+            ->findOrFail($resourceId);
+
+        return $this->resourceFromModel($model, $resourceType);
+    }
+
+    /**
+     * @return array{class-string<Model>, list<string>, string, list<string>}
+     */
+    private function entityDefinition(string $resourceType): array
+    {
+        return match ($resourceType) {
             'savings_account' => [
                 SavingsAccount::class,
                 ['account_name', 'institution'],
@@ -171,13 +239,14 @@ final class ContextualResourceResolver
                 'protection',
                 ['provider', 'benefit_amount', 'benefit_frequency', 'premium_amount', 'premium_frequency'],
             ],
-            default => throw (new ModelNotFoundException)->setModel($resourceType, [$resourceId]),
+            default => throw (new ModelNotFoundException)->setModel($resourceType),
         };
+    }
 
-        /** @var Model $model */
-        $model = $modelClass::query()
-            ->where('user_id', $user->id)
-            ->findOrFail($resourceId);
+    private function resourceFromModel(Model $model, string $resourceType): ContextualResource
+    {
+        [, $labelFields, $overviewScreen, $factFields] = $this->entityDefinition($resourceType);
+        $resourceId = (int) $model->getKey();
 
         return new ContextualResource(
             resourceType: $resourceType,

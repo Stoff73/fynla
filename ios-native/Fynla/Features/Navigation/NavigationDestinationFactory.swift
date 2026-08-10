@@ -57,6 +57,7 @@ enum NavigationDestinationFactory {
         onOpenFyn: @escaping (String) -> Void,
         onOpenContextualFyn: @escaping (FynContextualAction) -> Void,
         onOpenConversation: @escaping (String) -> Void,
+        onOpenRoute: @escaping (AppRoute) -> Void,
         onRoute: @escaping (AppRoute) -> Void
     ) -> some View {
         switch route {
@@ -66,7 +67,7 @@ enum NavigationDestinationFactory {
             ConversationHistoryView(
                 model: conversationHistoryModel,
                 onOpenConversation: onOpenConversation,
-                onRoute: onRoute
+                onRoute: onOpenRoute
             )
         case .personalInformation:
             PersonalInformationView(

@@ -13,6 +13,7 @@ use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 
@@ -423,7 +424,7 @@ it('projects onboarding, contextual, and legacy conversations into safe ordered 
     AiMessage::create([
         'conversation_id' => $contextual->id,
         'role' => 'assistant',
-        'content' => str_repeat('A useful contextual update. ', 12),
+        'content' => 'Your balance is £184,500 and the account number is 12345678.',
     ]);
     AiMessage::create([
         'conversation_id' => $contextual->id,
@@ -471,8 +472,9 @@ it('projects onboarding, contextual, and legacy conversations into safe ordered 
             ],
         ])
         ->and($contextualItem['fallback_destination']['screen'])->toBe('savings')
-        ->and($contextualItem['last_message_summary'])->toStartWith('A useful contextual update.')
-        ->and(mb_strlen($contextualItem['last_message_summary']))->toBeLessThanOrEqual(161)
+        ->and($contextualItem['last_message_summary'])->toBe('Continue this contextual conversation with Fyn.')
+        ->and($contextualItem['last_message_summary'])->not->toContain('184,500')
+        ->and($contextualItem['last_message_summary'])->not->toContain('12345678')
         ->and($contextualItem['last_message_summary'])->not->toContain('SYSTEM CONTENT')
         ->and($contextualItem['created_at'])->toBeString()
         ->and($contextualItem['updated_at'])->toBeString();
@@ -490,4 +492,37 @@ it('projects onboarding, contextual, and legacy conversations into safe ordered 
         ->and($unavailable['related_entity']['explanation'])
         ->toBe('This related item is no longer available.')
         ->and($unavailable['fallback_destination']['screen'])->toBe('savings');
+});
+
+it('batches contextual history availability checks by resource type', function (): void {
+    $user = User::factory()->create();
+    $accounts = SavingsAccount::factory()->count(3)->for($user)->create();
+
+    foreach ($accounts as $account) {
+        AiConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Edit account',
+            'status' => 'active',
+            'model_used' => 'test',
+            'last_message_at' => now(),
+            'metadata' => [
+                'source' => 'surface_action',
+                'action' => 'edit',
+                'resource_type' => 'savings_account',
+                'resource_id' => $account->id,
+            ],
+        ]);
+    }
+
+    Sanctum::actingAs($user);
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $this->getJson('/api/ai-chat/conversations')->assertOk();
+
+    $savingsQueries = collect(DB::getQueryLog())
+        ->pluck('query')
+        ->filter(fn (string $query): bool => str_contains($query, 'savings_accounts'));
+
+    expect($savingsQueries)->toHaveCount(1);
 });

@@ -154,6 +154,39 @@ describe('onboardingChat mixin — contextual and explicit conversation loading'
     expect(wrapper.vm.messages).toEqual([]);
   });
 
+  it('keeps the server opening and retries the same conversation when transcript loading fails', async () => {
+    const request = { action: 'edit' };
+    apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      data: {
+        data: {
+          conversation: { id: 103 },
+          opening_message: {
+            role: 'assistant', content: 'Trusted opening from Laravel.', metadata: {},
+          },
+        },
+      },
+    });
+    apiGet
+      .mockResolvedValueOnce({ ok: false, status: 503, data: {} })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: { data: { messages: [{ role: 'assistant', content: 'Persisted trusted opening.', metadata: {} }] } },
+      });
+
+    expect(await wrapper.vm.createContextualConversation(request)).toBe(103);
+    expect(wrapper.vm.messages.map((message) => message.text)).toEqual(['Trusted opening from Laravel.']);
+    expect(wrapper.vm.transcriptLoadError).toContain('full conversation');
+
+    expect(await wrapper.vm.retryTranscript()).toBe(true);
+    expect(wrapper.vm.messages.map((message) => message.text)).toEqual(['Persisted trusted opening.']);
+    expect(wrapper.vm.transcriptLoadError).toBe('');
+    expect(apiPost).toHaveBeenCalledTimes(1);
+    expect(apiGet).toHaveBeenCalledTimes(2);
+  });
+
   it('opens an exact history conversation without creating or resuming another one', async () => {
     apiGet.mockResolvedValue({
       ok: true,
@@ -166,5 +199,22 @@ describe('onboardingChat mixin — contextual and explicit conversation loading'
     expect(apiGet).toHaveBeenCalledWith('/api/ai-chat/conversations/77', 'live-token');
     expect(apiPost).not.toHaveBeenCalled();
     expect(apiStream).not.toHaveBeenCalled();
+  });
+
+  it('returns a typed canonical fallback instead of opening an unavailable transcript', async () => {
+    apiGet.mockResolvedValue({
+      ok: false,
+      status: 410,
+      data: {
+        error: 'contextual_resource_unavailable',
+        data: { fallback_destination: { screen: 'savings', params: {}, fallback: 'dashboard' } },
+      },
+    });
+
+    expect(await wrapper.vm.openConversation(77)).toBeNull();
+    expect(wrapper.vm.transcriptFallbackDestination).toEqual({
+      screen: 'savings', params: {}, fallback: 'dashboard',
+    });
+    expect(wrapper.vm.messages).toEqual([]);
   });
 });

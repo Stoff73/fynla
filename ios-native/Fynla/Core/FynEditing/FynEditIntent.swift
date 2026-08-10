@@ -93,7 +93,7 @@ enum FynContextualActions {
             resourceID: id,
             screen: "goals",
             params: ["goal_id": .int(id)],
-            fallback: "dashboard"
+            fallback: "goals"
         )
     }
 

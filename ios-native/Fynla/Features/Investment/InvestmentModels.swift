@@ -54,6 +54,7 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
     let ownershipPercentage: Decimal?
     let country: String?
     let isaSubscriptionCurrentYear: Decimal?
+    let isPrimaryOwner: Bool?
     let holdings: [InvestmentHolding]
 
     private enum CodingKeys: String, CodingKey {
@@ -70,6 +71,7 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
         case ownershipPercentage = "ownership_percentage"
         case country
         case isaSubscriptionCurrentYear = "isa_subscription_current_year"
+        case isPrimaryOwner = "is_primary_owner"
         case holdings
     }
 

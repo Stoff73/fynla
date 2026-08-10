@@ -115,6 +115,52 @@ it('requires a resource id for entity context', function (): void {
         ->assertJsonValidationErrors('resource_id');
 });
 
+it('rejects numeric strings at every identifier boundary', function (): void {
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'resource_id' => (string) $account->id,
+        'current_destination' => [
+            'params' => ['account_id' => (string) $account->id],
+        ],
+        'origin' => [
+            'kind' => 'recommendation',
+            'recommendation_id' => '99',
+        ],
+    ]))->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'resource_id',
+            'current_destination.params.account_id',
+            'origin.recommendation_id',
+        ]);
+});
+
+it('requires the destination screen fallback identifiers and enums to match the resource type', function (): void {
+    $user = User::factory()->create();
+    $pension = DCPension::factory()->for($user)->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'resource_type' => 'dc_pension',
+        'resource_id' => $pension->id,
+        'current_destination' => [
+            'screen' => 'investment_account_detail',
+            'params' => [
+                'pension_id' => $pension->id,
+                'pension_type' => 'db',
+            ],
+            'fallback' => 'investment',
+        ],
+    ]))->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'current_destination.screen',
+            'current_destination.params.pension_type',
+            'current_destination.fallback',
+        ]);
+});
+
 it('does not disclose whether another user owns a requested resource', function (): void {
     $owner = User::factory()->create();
     $attacker = User::factory()->create();
@@ -136,6 +182,38 @@ it('does not disclose whether another user owns a requested resource', function 
 
     $this->postJson('/api/ai-chat/contextual-conversations', $foreign)->assertNotFound();
     $this->postJson('/api/ai-chat/contextual-conversations', $missing)->assertNotFound();
+});
+
+it('keeps contextual edit authority primary-owner only for read-only joint records', function (): void {
+    $owner = User::factory()->create();
+    $jointOwner = User::factory()->create();
+    $account = SavingsAccount::factory()->for($owner)->create([
+        'ownership_type' => 'joint',
+        'joint_owner_id' => $jointOwner->id,
+    ]);
+    Sanctum::actingAs($jointOwner);
+
+    $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'resource_id' => $account->id,
+        'current_destination' => [
+            'params' => ['account_id' => $account->id],
+        ],
+    ]))->assertNotFound();
+});
+
+it('marks joint-owned goals read-only for contextual edit surfaces', function (): void {
+    $owner = User::factory()->create();
+    $jointOwner = User::factory()->create();
+    $goal = Goal::factory()->for($owner)->create([
+        'ownership_type' => 'joint',
+        'joint_owner_id' => $jointOwner->id,
+    ]);
+    Sanctum::actingAs($jointOwner);
+
+    $this->getJson('/api/goals')
+        ->assertOk()
+        ->assertJsonPath('data.goals.0.id', $goal->id)
+        ->assertJsonPath('data.goals.0.is_primary_owner', false);
 });
 
 it('creates a fresh conversation for every identical surface action', function (): void {
@@ -216,6 +294,54 @@ it('creates no conversation or message when resource resolution fails', function
         ->and(AiMessage::query()->count())->toBe(0);
 });
 
+it('refuses to replay stale contextual transcripts after the related record is deleted', function (): void {
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create();
+    Sanctum::actingAs($user);
+
+    $conversationId = $this->postJson(
+        '/api/ai-chat/contextual-conversations',
+        contextualConversationPayload([
+            'resource_id' => $account->id,
+            'current_destination' => [
+                'params' => ['account_id' => $account->id],
+            ],
+        ]),
+    )->assertCreated()->json('data.conversation.id');
+
+    $account->delete();
+
+    $this->getJson("/api/ai-chat/conversations/{$conversationId}")
+        ->assertStatus(410)
+        ->assertJsonPath('error', 'contextual_resource_unavailable')
+        ->assertJsonPath('data.fallback_destination.screen', 'savings')
+        ->assertJsonMissingPath('data.messages');
+});
+
+it('refuses to replay contextual transcripts after resource ownership is lost', function (): void {
+    $user = User::factory()->create();
+    $newOwner = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create();
+    Sanctum::actingAs($user);
+
+    $conversationId = $this->postJson(
+        '/api/ai-chat/contextual-conversations',
+        contextualConversationPayload([
+            'resource_id' => $account->id,
+            'current_destination' => [
+                'params' => ['account_id' => $account->id],
+            ],
+        ]),
+    )->assertCreated()->json('data.conversation.id');
+
+    $account->forceFill(['user_id' => $newOwner->id])->save();
+
+    $this->getJson("/api/ai-chat/conversations/{$conversationId}")
+        ->assertStatus(410)
+        ->assertJsonPath('error', 'contextual_resource_unavailable')
+        ->assertJsonPath('data.fallback_destination.screen', 'savings');
+});
+
 it('resolves owned entity types using server records', function (
     string $resourceType,
     string $screen,
@@ -227,12 +353,38 @@ it('resolves owned entity types using server records', function (
     $resource = $modelClass::factory()->for($user)->create($attributes);
     Sanctum::actingAs($user);
 
+    $params = [$idKey => $resource->id];
+    if (str_ends_with($resourceType, '_pension')) {
+        $params['pension_type'] = match ($resourceType) {
+            'dc_pension' => 'dc',
+            'db_pension' => 'db',
+            'state_pension' => 'state',
+        };
+    } elseif (str_ends_with($resourceType, '_policy')) {
+        $params['policy_type'] = match ($resourceType) {
+            'life_insurance_policy' => 'life',
+            'critical_illness_policy' => 'criticalIllness',
+            'income_protection_policy' => 'incomeProtection',
+            'disability_policy' => 'disability',
+            'sickness_illness_policy' => 'sicknessIllness',
+        };
+    }
+
+    $fallback = match ($resourceType) {
+        'savings_account' => 'savings',
+        'investment_account' => 'investment',
+        'dc_pension', 'db_pension', 'state_pension' => 'retirement',
+        'goal' => 'goals',
+        default => 'protection',
+    };
+
     $response = $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
         'resource_type' => $resourceType,
         'resource_id' => $resource->id,
         'current_destination' => [
             'screen' => $screen,
-            'params' => [$idKey => $resource->id],
+            'params' => $params,
+            'fallback' => $fallback,
         ],
     ]));
 

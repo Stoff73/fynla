@@ -335,12 +335,12 @@ final class FynContextAssembler
         $resourceId = is_int($rawResourceId)
             ? $rawResourceId
             : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
-        $fallback = $metadata['current_destination']['fallback'] ?? 'dashboard';
-        $fallback = is_string($fallback) ? $fallback : 'dashboard';
 
         if (! is_string($resourceType) || $resourceType === '') {
-            return $this->unavailableSurfaceAction($fallback);
+            return $this->unavailableSurfaceAction('dashboard');
         }
+
+        $fallback = $this->contextualResources->overviewScreenFor($resourceType);
 
         try {
             $resource = $this->contextualResources->resolve(

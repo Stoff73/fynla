@@ -47,6 +47,8 @@ export default {
       draft: '',
       sending: false,
       fynStarted: false,
+      transcriptLoadError: '',
+      transcriptFallbackDestination: null,
     };
   },
   computed: {
@@ -111,6 +113,8 @@ export default {
       this.draft = '';
       this.sending = false;
       this.fynStarted = false;
+      this.transcriptLoadError = '';
+      this.transcriptFallbackDestination = null;
     },
 
     async createContextualConversation(request) {
@@ -125,7 +129,20 @@ export default {
 
       this.conversationId = conversationId;
       this.fynStarted = true;
-      await this.loadTranscript(conversationId);
+      const opening = res.data?.data?.opening_message
+        ?? res.data?.opening_message
+        ?? null;
+      if (opening?.content) {
+        this.messages = [{
+          role: opening.role === 'user' ? 'user' : 'fyn',
+          text: opening.content,
+          bubbles: [],
+          actionBubbles: false,
+        }];
+      }
+
+      const loaded = await this.loadTranscript(conversationId);
+      if (!loaded && !this.messages.length) return null;
 
       return conversationId;
     },
@@ -134,9 +151,14 @@ export default {
       this.resetConversationState();
       this.conversationId = conversationId;
       this.fynStarted = true;
-      await this.loadTranscript(conversationId);
+      const loaded = await this.loadTranscript(conversationId);
 
-      return conversationId;
+      return loaded ? conversationId : null;
+    },
+
+    async retryTranscript() {
+      if (!this.conversationId) return false;
+      return this.loadTranscript(this.conversationId);
     },
 
     // First turn of the onboarding chat (dashboard entry). Onboarding-incomplete
@@ -232,9 +254,27 @@ export default {
     async loadTranscript(conversationId) {
       await loadMobileSubscriptionStatus();
       const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
-      if (this.handleAuthExpiry(res)) return;
+      if (this.handleAuthExpiry(res)) return false;
+      if (!res?.ok) {
+        this.transcriptFallbackDestination = res?.status === 410
+          && res.data?.error === 'contextual_resource_unavailable'
+          ? res.data?.data?.fallback_destination ?? null
+          : null;
+        this.transcriptLoadError = this.transcriptFallbackDestination
+          ? 'This related item is no longer available.'
+          : 'Fyn created the conversation, but could not load the full conversation. Please try again.';
+        return false;
+      }
       const msgs = (res && res.ok && (res.data?.data?.messages || res.data?.messages)) || [];
-      if (!msgs.length) return;
+      if (!msgs.length) {
+        if (this.messages.length) {
+          this.transcriptLoadError = '';
+          this.transcriptFallbackDestination = null;
+          return true;
+        }
+        this.transcriptLoadError = 'Fyn could not load that conversation. Please try again.';
+        return false;
+      }
       const mapped = msgs.map((m) => {
         const metadata = m.metadata || {};
         const bubbles = Array.isArray(metadata.bubbles) ? metadata.bubbles.slice() : [];
@@ -256,7 +296,10 @@ export default {
       });
       mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; });
       this.messages = mapped;
+      this.transcriptLoadError = '';
+      this.transcriptFallbackDestination = null;
       this.$nextTick(this.scrollFyn);
+      return true;
     },
 
     // Stream a director action (resume / continue / something_else) into the

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account" :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ account ? (account.provider || account.platform || 'Investment account') : 'Investment account' }}</h1>
       <p class="m-sub">{{ account ? accountTypeLabel(account) : 'Account detail' }}</p>
@@ -83,7 +83,9 @@ export default {
   data: () => ({ loading: true, error: '', accounts: [] }),
   computed: {
     accountId() { return this.$route.params.id; },
+    canEdit() { return this.account?.is_primary_owner !== false; },
     contextualRequest() {
+      if (!this.canEdit) return null;
       const accountId = Number(this.accountId);
       if (!Number.isInteger(accountId) || accountId < 1) return null;
       return buildContextualConversationRequest({

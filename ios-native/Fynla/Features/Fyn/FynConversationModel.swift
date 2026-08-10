@@ -23,6 +23,7 @@ enum FynConversationPhase: Sendable, Equatable {
     case acceptanceUncertain
     case consentRequired
     case tokenLimited(String)
+    case contextualResourceUnavailable(SemanticDestination)
     case failed(String)
     /// F2/F1: the SSE open's one-shot refresh-and-replay (see
     /// `LiveFynClient.open`) could not renew the session. Distinct from
@@ -66,6 +67,8 @@ final class FynConversationModel {
     private var reduction = FynReductionState()
     private var retryText: String?
     private var retryID: String?
+    private var pendingContextualConversationID: String?
+    private var pendingContextualAction: FynContextualAction?
     @ObservationIgnored private var streamTask: Task<Void, Error>?
     @ObservationIgnored private var hasFiredResume = false
 
@@ -98,8 +101,17 @@ final class FynConversationModel {
     }
 
     func startContextual(_ action: FynContextualAction) async {
+        if pendingContextualAction == action,
+           let pendingContextualConversationID
+        {
+            await retryContextualTranscript(id: pendingContextualConversationID)
+            return
+        }
+
         stop()
         reduction = FynReductionState()
+        pendingContextualConversationID = nil
+        pendingContextualAction = nil
         retryText = nil
         retryID = nil
         draft = ""
@@ -108,7 +120,15 @@ final class FynConversationModel {
 
         do {
             let created = try await client.createContextualConversation(action.request)
+            pendingContextualConversationID = created.conversation.id
+            pendingContextualAction = action
+            reduction = FynReductionState(
+                conversationID: created.conversation.id,
+                messages: [created.openingMessage.fynMessage]
+            )
             try await load(created.conversation.id)
+            pendingContextualConversationID = nil
+            pendingContextualAction = nil
             phase = .idle
         } catch is CancellationError {
             phase = .idle
@@ -318,6 +338,22 @@ final class FynConversationModel {
         draft = ""
         shouldCloseAndRefresh = false
         hasFiredResume = false
+        pendingContextualConversationID = nil
+        pendingContextualAction = nil
+    }
+
+    private func retryContextualTranscript(id: String) async {
+        phase = .loading
+        do {
+            try await load(id)
+            pendingContextualConversationID = nil
+            pendingContextualAction = nil
+            phase = .idle
+        } catch is CancellationError {
+            phase = .idle
+        } catch {
+            handle(error)
+        }
     }
 
     /// Fire the director's resume action and discard its stream — the
@@ -547,6 +583,8 @@ final class FynConversationModel {
             phase = .consentRequired
         case FynClientError.authExpired:
             phase = .sessionExpired
+        case let FynClientError.contextualResourceUnavailable(destination):
+            phase = .contextualResourceUnavailable(destination)
         case let FynClientError.unexpectedStatus(_, requestID):
             phase = .failed(requestID.map { "Fyn could not respond. Request \($0)." }
                 ?? "Fyn could not respond. Please try again.")

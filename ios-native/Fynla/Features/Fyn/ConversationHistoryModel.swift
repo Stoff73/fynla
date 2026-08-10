@@ -80,4 +80,8 @@ final class ConversationHistoryModel {
             legacyPath: nil
         )
     }
+
+    func canOpen(_ conversation: FynConversationListItem) -> Bool {
+        conversation.relatedEntity?.available != false
+    }
 }

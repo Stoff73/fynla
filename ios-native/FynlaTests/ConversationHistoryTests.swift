@@ -29,6 +29,7 @@ struct ConversationHistoryTests {
 
         #expect(unavailable.relatedEntity?.available == false)
         #expect(unavailable.relatedEntity?.explanation == "This account is no longer available.")
+        #expect(model.canOpen(unavailable) == false)
         #expect(model.fallbackRoute(for: unavailable) == .savings(accountID: nil))
     }
 
@@ -64,6 +65,7 @@ struct ConversationHistoryTests {
         #expect(policy.request.currentDestination.params["policy_id"] == .int(77))
         #expect(goal.request.resourceType == "goal")
         #expect(goal.request.currentDestination.params == ["goal_id": .int(54)])
+        #expect(goal.request.currentDestination.fallback == "goals")
 
         let encoded = String(
             decoding: try JSONEncoder().encode(detail.request),

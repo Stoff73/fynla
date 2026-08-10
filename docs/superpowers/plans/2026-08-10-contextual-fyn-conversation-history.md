@@ -442,13 +442,13 @@ Expected: all unit and UI tests pass, with only documented expected skips.
 
 Actual on the authorised iOS 18.6 simulator: the focused native suites, both
 Task 8 UI journeys, and a fresh staging build pass. The full target reported
-416 passes and 3 skips after exposing one Task 8 UI-fixture regression, which
+422 passes and 3 skips after exposing one Task 8 UI-fixture regression, which
 was fixed and rerun green. Six pre-existing StoreKitTest failures remain
 reproducible in isolation (`productUnavailable` / StoreKitTest `unknown`);
 PR 2 changes do not touch StoreKit code or configuration. Task 9 records this
 baseline separately from the contextual Fyn acceptance result.
 
-- [ ] **Step 6: Commit native surface parity**
+- [x] **Step 6: Commit native surface parity**
 
 Run: `git add ios-native && git commit -m "feat: add native contextual actions and history"`
 
@@ -461,7 +461,7 @@ Run: `git add ios-native && git commit -m "feat: add native contextual actions a
 - Create: `docs/testing/2026-08-10-contextual-fyn-conversation-history-evidence.md`
 - Modify: any regression test or smallest production file required by a reproduced defect.
 
-- [ ] **Step 1: Write and run the capture/write boundary regression**
+- [x] **Step 1: Write and run the capture/write boundary regression**
 
 Prove creating or opening a contextual conversation never mutates a financial model; unconfirmed user text remains an `AiMessage`; confirmed capture still delegates through the existing validated inline-capture path and preserves its audit/provenance; cross-user identifiers never reach capture context.
 
@@ -469,7 +469,7 @@ Run: `./vendor/bin/pest tests/Feature/AI/ContextualCaptureWriteBoundaryTest.php`
 
 Expected: RED first, then PASS after only the smallest necessary boundary fix.
 
-- [ ] **Step 2: Run server, frontend, architecture, and build verification**
+- [x] **Step 2: Run server, frontend, architecture, and build verification**
 
 Run:
 
@@ -486,15 +486,22 @@ Expected: PASS from fresh output.
 
 Using the seeded scenario, verify onboarding resume, contextual Add/Edit during active onboarding, repeated fresh conversations, history grouping, exact transcript resume, inaccessible-resource fallback, failure/retry, and that request payloads contain identifiers only. Capture screenshots and Chrome network evidence in the evidence document.
 
-- [ ] **Step 4: Run the equivalent iOS Simulator journey**
+Blocked by the installed-Chrome connector: after the documented retry and an
+authorised extension-helper recovery, Launch Services returned
+`kLSNoExecutableErr` and the extension browser remained unavailable. No other
+browser engine was substituted. Exact `/m` contracts, the complete frontend
+gate and the production mobile build pass; the Chrome-only visual/network
+journey is recorded as deferred in the evidence document.
+
+- [x] **Step 4: Run the equivalent iOS Simulator journey**
 
 Use the open Xcode installation and a dedicated simulator without altering the user's PR1 Xcode worktree. Exercise the same journey and record device/application logs and screenshots.
 
-- [ ] **Step 5: Loop every discovered issue to green**
+- [x] **Step 5: Loop every discovered issue to green**
 
 For each failure, record route/persona, expected, actual, classification, and logs; reproduce in isolation; add a failing regression; diagnose root cause; apply the smallest fix; rerun the isolated test and full affected journey. Continue until no in-scope defect remains.
 
-- [ ] **Step 6: Run final native verification**
+- [x] **Step 6: Run final native verification**
 
 Run:
 
@@ -509,6 +516,11 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Production \
 ```
 
 Expected: tests and unsigned production build pass from fresh output.
+
+Actual: the unsigned production build passed. The complete staging bundle
+reported 422 passes and 3 skips; all 51 UI tests passed with 2 live-credential
+skips. The only failures were the same 6 independently reproduced StoreKitTest
+system-session failures documented in the evidence ledger.
 
 - [ ] **Step 7: Final review, commit evidence, and publish PR2**
 
@@ -527,11 +539,11 @@ Request a code review, resolve every actionable finding with tests, push the fin
 
 ## Self-review checklist
 
-- [ ] Every PR2 bullet and M-08 partial/M-11/M-31/M-32 has an implementation task, automated regression, and acceptance evidence.
-- [ ] No task sends client-authored financial facts or entity labels as authoritative context.
-- [ ] No contextual metadata stores a financial snapshot; each turn rehydrates from owned canonical models.
-- [ ] Message, queued-stream, and action dispatch all use the same immutable mode resolver.
-- [ ] The existing onboarding conversation and validated capture/write path are regression-covered.
-- [ ] Deleted/cross-user entities fail safely in both history and turn assembly.
-- [ ] `/m` and Swift use the same field names and semantic screens.
-- [ ] No placeholder, TODO, TBD, destructive migration, or unapproved phase work remains.
+- [x] Every PR2 bullet and M-08 partial/M-11/M-31/M-32 has an implementation task, automated regression, and acceptance evidence.
+- [x] No task sends client-authored financial facts or entity labels as authoritative context.
+- [x] No contextual metadata stores a financial snapshot; each turn rehydrates from owned canonical models.
+- [x] Message, queued-stream, and action dispatch all use the same immutable mode resolver.
+- [x] The existing onboarding conversation and validated capture/write path are regression-covered.
+- [x] Deleted/cross-user entities fail safely in both history and turn assembly.
+- [x] `/m` and Swift use the same field names and semantic screens.
+- [x] No placeholder, TODO, TBD, destructive migration, or unapproved phase work remains.

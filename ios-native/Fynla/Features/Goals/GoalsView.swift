@@ -198,16 +198,18 @@ struct GoalsView: View {
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
 
-            Button {
-                onOpenContextualFyn(FynContextualActions.goal(id: goal.id))
-            } label: {
-                Text("Edit".uppercased())
-                    .font(.system(size: 12, weight: .bold))
-                    .kerning(0.5)
-                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
+            if goal.isPrimaryOwner != false {
+                Button {
+                    onOpenContextualFyn(FynContextualActions.goal(id: goal.id))
+                } label: {
+                    Text("Edit".uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                }
+                .padding(.top, 2)
+                .accessibilityIdentifier("goals.edit.\(goal.id)")
             }
-            .padding(.top, 2)
-            .accessibilityIdentifier("goals.edit.\(goal.id)")
         }
         .padding(.vertical, 12)
         .overlay(alignment: .bottom) {

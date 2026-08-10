@@ -12,6 +12,7 @@ enum FynClientError: Error, Sendable, Equatable {
     case acceptanceUncertain
     case unexpectedStatus(Int, requestID: String?)
     case invalidEvent
+    case contextualResourceUnavailable(SemanticDestination)
     /// F1: the SSE open received a 401 and the one-shot refresh-and-replay
     /// (see `LiveFynClient.open(path:body:headers:)`) could not recover —
     /// either no refresher was configured, the refresh itself failed, or
@@ -120,12 +121,50 @@ struct LiveFynClient: FynClient {
     }
 
     func loadConversation(id: String) async throws -> FynTranscript {
-        try await apiClient.send(
+        let response = try await apiClient.sendRawResponse(
             APIRequest<FynTranscript>(
                 path: "api/ai-chat/conversations/\(id)",
                 method: .get,
                 headers: ["Cache-Control": "no-cache"]
             )
+        )
+
+        if (200..<300).contains(response.statusCode) {
+            do {
+                let envelope = try JSONDecoder().decode(
+                    APIEnvelope<FynTranscript>.self,
+                    from: response.data
+                )
+                guard envelope.success else {
+                    throw FynClientError.invalidEvent
+                }
+                return envelope.data
+            } catch let error as FynClientError {
+                throw error
+            } catch {
+                throw FynClientError.invalidEvent
+            }
+        }
+
+        if response.statusCode == 410,
+           let unavailable = try? JSONDecoder().decode(
+               FynContextualUnavailableEnvelope.self,
+               from: response.data
+           ),
+           unavailable.error == "contextual_resource_unavailable"
+        {
+            throw FynClientError.contextualResourceUnavailable(
+                unavailable.data.fallbackDestination
+            )
+        }
+
+        if response.statusCode == 401 {
+            throw FynClientError.authExpired
+        }
+
+        throw FynClientError.unexpectedStatus(
+            response.statusCode,
+            requestID: response.requestID
         )
     }
 
@@ -338,6 +377,19 @@ struct LiveFynClient: FynClient {
             continuation.onTermination = { _ in task.cancel() }
         }
     }
+}
+
+private struct FynContextualUnavailableEnvelope: Decodable {
+    struct Payload: Decodable {
+        let fallbackDestination: SemanticDestination
+
+        private enum CodingKeys: String, CodingKey {
+            case fallbackDestination = "fallback_destination"
+        }
+    }
+
+    let error: String
+    let data: Payload
 }
 
 private struct FynRouteBody: Encodable, Sendable {

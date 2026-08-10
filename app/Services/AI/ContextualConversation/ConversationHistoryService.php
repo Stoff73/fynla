@@ -7,9 +7,7 @@ namespace App\Services\AI\ContextualConversation;
 use App\Constants\GateRoutes;
 use App\Models\AiConversation;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 final class ConversationHistoryService
 {
@@ -22,7 +20,7 @@ final class ConversationHistoryService
      */
     public function forUser(User $user): Collection
     {
-        return AiConversation::forUser($user->id)
+        $conversations = AiConversation::forUser($user->id)
             ->whereIn('status', ['active', 'paused'])
             ->with(['latestVisibleMessage' => fn ($query) => $query->select([
                 'ai_messages.id',
@@ -42,15 +40,24 @@ final class ConversationHistoryService
                 'metadata',
                 'created_at',
                 'updated_at',
-            ])
-            ->map(fn (AiConversation $conversation): array => $this->project($conversation, $user))
+            ]);
+
+        $references = $conversations
+            ->map(fn (AiConversation $conversation): ?array => $this->contextualReference($conversation))
+            ->filter()
+            ->values()
+            ->all();
+        $resolved = $this->resources->resolveMany($user, $references);
+
+        return $conversations
+            ->map(fn (AiConversation $conversation): array => $this->project($conversation, $resolved))
             ->values();
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function project(AiConversation $conversation, User $user): array
+    private function project(AiConversation $conversation, array $resolved): array
     {
         $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
         $mode = match ($metadata['source'] ?? null) {
@@ -60,17 +67,17 @@ final class ConversationHistoryService
         };
         $purpose = $this->purpose($mode, $metadata);
         [$relatedEntity, $fallback] = $mode === 'contextual'
-            ? $this->contextualRelationship($metadata, $user)
+            ? $this->contextualRelationship($metadata, $resolved)
             : [null, GateRoutes::destination(GateRoutes::DASHBOARD)];
 
         $lastMessage = $conversation->latestVisibleMessage?->content;
         $lastMessageSummary = is_string($lastMessage) && trim($lastMessage) !== ''
-            ? Str::limit(Str::squish(strip_tags($lastMessage)), 160, '…')
+            ? $this->safeLastMessageSummary($mode)
             : null;
 
         return [
             'id' => $conversation->id,
-            'title' => $conversation->title ?: $purpose,
+            'title' => $mode === 'contextual' ? $purpose : ($conversation->title ?: $purpose),
             'message_count' => $conversation->message_count,
             'mode' => $mode,
             'purpose' => $purpose,
@@ -82,6 +89,15 @@ final class ConversationHistoryService
             'last_message_summary' => $lastMessageSummary,
             'fallback_destination' => $fallback,
         ];
+    }
+
+    private function safeLastMessageSummary(string $mode): string
+    {
+        return match ($mode) {
+            'onboarding' => 'Continue your setup with Fyn.',
+            'contextual' => 'Continue this contextual conversation with Fyn.',
+            default => 'Continue your conversation with Fyn.',
+        };
     }
 
     /**
@@ -107,9 +123,10 @@ final class ConversationHistoryService
 
     /**
      * @param  array<string, mixed>  $metadata
+     * @param  array<string, ContextualResource>  $resolved
      * @return array{0: array<string, mixed>, 1: array{screen: string, params: array<string, int|string>, fallback: string}}
      */
-    private function contextualRelationship(array $metadata, User $user): array
+    private function contextualRelationship(array $metadata, array $resolved): array
     {
         $resourceType = is_string($metadata['resource_type'] ?? null)
             ? $metadata['resource_type']
@@ -119,10 +136,9 @@ final class ConversationHistoryService
             ? $rawResourceId
             : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
         $overview = $this->resources->overviewScreenFor($resourceType);
+        $resource = $resolved[$this->resources->referenceKey($resourceType, $resourceId)] ?? null;
 
-        try {
-            $resource = $this->resources->resolve($user, $resourceType, $resourceId);
-
+        if ($resource !== null) {
             return [[
                 'type' => $resource->resourceType,
                 'id' => $resource->resourceId,
@@ -130,14 +146,40 @@ final class ConversationHistoryService
                 'available' => true,
                 'explanation' => null,
             ], GateRoutes::destination($resource->overviewScreen)];
-        } catch (ModelNotFoundException) {
-            return [[
-                'type' => $resourceType,
-                'id' => $resourceId,
-                'label' => null,
-                'available' => false,
-                'explanation' => 'This related item is no longer available.',
-            ], GateRoutes::destination($overview)];
         }
+
+        return [[
+            'type' => $resourceType,
+            'id' => $resourceId,
+            'label' => null,
+            'available' => false,
+            'explanation' => 'This related item is no longer available.',
+        ], GateRoutes::destination($overview)];
+    }
+
+    /**
+     * @return array{resource_type: string, resource_id: int|null}|null
+     */
+    private function contextualReference(AiConversation $conversation): ?array
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if (($metadata['source'] ?? null) !== 'surface_action') {
+            return null;
+        }
+
+        $resourceType = $metadata['resource_type'] ?? null;
+        if (! is_string($resourceType) || $resourceType === '') {
+            return null;
+        }
+
+        $rawResourceId = $metadata['resource_id'] ?? null;
+        $resourceId = is_int($rawResourceId)
+            ? $rawResourceId
+            : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
+
+        return [
+            'resource_type' => $resourceType,
+            'resource_id' => $resourceId,
+        ];
     }
 }

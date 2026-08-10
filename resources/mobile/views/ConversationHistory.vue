@@ -9,6 +9,15 @@
     back
     @back="goBack"
   >
+    <div
+      v-if="openError && !error"
+      class="m-card m-state"
+      role="alert"
+      data-testid="conversation-open-error"
+    >
+      <p class="m-err">{{ openError }}</p>
+    </div>
+
     <div v-if="error" class="m-card m-state" role="alert">
       <p class="m-err">{{ error }}</p>
       <button
@@ -61,10 +70,11 @@
 
           <div class="mch-actions">
             <button
+              v-if="conversation.related_entity?.available !== false"
               type="button"
               class="m-btn mch-open"
               :data-testid="`open-conversation-${conversation.id}`"
-              @click="openTranscript(conversation.id)"
+              @click="openTranscript(conversation)"
             >Open conversation</button>
             <button
               v-if="conversation.related_entity?.available === false"
@@ -99,6 +109,7 @@ export default {
   data: () => ({
     loading: true,
     error: '',
+    openError: '',
     conversations: [],
   }),
   computed: {
@@ -134,8 +145,19 @@ export default {
     fallbackLabel(conversation) {
       return conversation.fallback_destination?.screen?.replaceAll('_', ' ') || 'dashboard';
     },
-    async openTranscript(conversationId) {
-      await this.$refs.chrome?.openConversation(conversationId);
+    async openTranscript(conversation) {
+      this.openError = '';
+      const opened = await this.$refs.chrome?.openConversation(conversation.id);
+      if (!opened) {
+        const fallback = this.$refs.chrome?.transcriptFallbackDestination;
+        if (fallback) {
+          const path = resolveMobileDestination({ destination: fallback });
+          this.$router.push(path);
+        } else {
+          this.openError = 'We could not open that conversation. Please try again.';
+        }
+        return;
+      }
       await this.$refs.chrome?.revealLoadedConversation();
     },
     openFallback(conversation) {
@@ -145,6 +167,7 @@ export default {
     async load() {
       this.loading = true;
       this.error = '';
+      this.openError = '';
       this.conversations = [];
       try {
         const response = await apiGet('/api/ai-chat/conversations', store.token);

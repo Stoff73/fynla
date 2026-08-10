@@ -45,9 +45,11 @@ struct SavingsAccountView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: {
-                        onOpenContextualFyn(FynContextualActions.savingsAccount(id: accountID))
-                    }
+                    editDetails: account.isPrimaryOwner == false
+                        ? nil
+                        : {
+                            onOpenContextualFyn(FynContextualActions.savingsAccount(id: accountID))
+                        }
                 )
 
                 Group {

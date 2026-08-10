@@ -127,6 +127,17 @@
       </header>
 
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
+        <div v-if="transcriptLoadError" class="md-fyn__transcript-error" role="alert">
+          <p>{{ transcriptLoadError }}</p>
+          <button
+            v-if="!transcriptFallbackDestination"
+            type="button"
+            class="md-fyn__bubble"
+            :disabled="contextualCreating"
+            data-testid="fyn-transcript-retry"
+            @click="retryLoadedTranscript"
+          >Try again</button>
+        </div>
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
           <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
@@ -331,6 +342,15 @@ export default {
         await this.revealLoadedConversation();
       } catch {
         this.contextualLaunchError = 'Fyn could not start that conversation. Please try again.';
+      } finally {
+        this.contextualCreating = false;
+      }
+    },
+    async retryLoadedTranscript() {
+      if (this.contextualCreating) return;
+      this.contextualCreating = true;
+      try {
+        await this.retryTranscript();
       } finally {
         this.contextualCreating = false;
       }

@@ -60,7 +60,7 @@
               <span class="mg-goal__amounts">{{ fmt(goal.current_amount) }} of {{ fmt(goal.target_amount) }}</span>
               <span class="mg-goal__remaining">{{ remainingLabel(goal) }}</span>
             </div>
-            <div class="mg-goal__actions">
+            <div v-if="canEditGoal(goal)" class="mg-goal__actions">
               <button type="button" class="mg-action" @click="editGoal(goal)">Edit</button>
             </div>
           </div>
@@ -142,11 +142,12 @@ export default {
         currentDestination: {
           screen: 'goals',
           params: goalId ? { goal_id: goalId } : {},
-          fallback: 'dashboard',
+          fallback: goalId ? 'goals' : 'dashboard',
         },
         origin: { kind: 'surface_action' },
       });
     },
+    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
     addGoal() { this.$refs.chrome?.openContextualFyn(this.goalRequest('add')); },
     editGoal(goal) {
       this.$refs.chrome?.openContextualFyn(this.goalRequest('edit', Number(goal.id)));

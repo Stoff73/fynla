@@ -137,11 +137,13 @@ struct ConversationHistoryView: View {
             }
 
             HStack(spacing: 12) {
-                Button("Open conversation") {
-                    onOpenConversation(conversation.id)
+                if model.canOpen(conversation) {
+                    Button("Open conversation") {
+                        onOpenConversation(conversation.id)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("conversation-history.open.\(conversation.id)")
                 }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("conversation-history.open.\(conversation.id)")
 
                 if conversation.relatedEntity?.available == false {
                     Button("Return to \(fallbackLabel(conversation))") {

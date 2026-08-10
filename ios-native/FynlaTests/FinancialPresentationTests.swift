@@ -86,6 +86,25 @@ struct FinancialPresentationTests {
     }
 
     @Test
+    func jointOwnedEntitiesDecodeAsReadOnlyForContextualEditSurfaces() throws {
+        let investment = try JSONDecoder().decode(
+            InvestmentAccount.self,
+            from: Data(
+                #"{"id":42,"current_value":"1000.00","holdings":[],"is_primary_owner":false}"#.utf8
+            )
+        )
+        let goal = try JSONDecoder().decode(
+            FinancialGoal.self,
+            from: Data(
+                #"{"id":43,"target_amount":"5000.00","current_amount":"1000.00","progress_percentage":"20.00","is_on_track":true,"is_primary_owner":false}"#.utf8
+            )
+        )
+
+        #expect(investment.isPrimaryOwner == false)
+        #expect(goal.isPrimaryOwner == false)
+    }
+
+    @Test
     func screenStateKeepsRetryAndUpgradeActionsExplicit() {
         #expect(ScreenStatePresentation.loading.canRetry == false)
         #expect(ScreenStatePresentation.offline.canRetry)

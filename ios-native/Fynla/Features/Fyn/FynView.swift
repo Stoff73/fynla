@@ -175,6 +175,18 @@ struct FynView: View {
             status("Fyn chat consent is required before you can continue.", id: "consent")
         case let .tokenLimited(message):
             status(message, id: "token-limit")
+        case let .contextualResourceUnavailable(destination):
+            VStack(alignment: .leading, spacing: FynlaSpacing.small) {
+                status(
+                    "This related item is no longer available. Return to its overview to continue.",
+                    id: "contextual-unavailable"
+                )
+                Button("Return to overview") {
+                    onRoute(SemanticDestinationResolver.route(for: destination, legacyPath: nil))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("fyn.contextual-unavailable.return")
+            }
         case let .failed(message):
             VStack(alignment: .leading, spacing: FynlaSpacing.small) {
                 status(message, id: "failure")

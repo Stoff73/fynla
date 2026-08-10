@@ -88,6 +88,8 @@ function mountView() {
 describe('ConversationHistory.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    openConversation.mockResolvedValue(42);
+    revealLoadedConversation.mockResolvedValue();
     store.token = 'live-token';
     store.user = { id: 1, onboarding_completed: true };
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { data: history } });
@@ -123,9 +125,24 @@ describe('ConversationHistory.vue', () => {
 
     expect(wrapper.get('[data-testid="conversation-43"]').text())
       .toContain('This related item is no longer available.');
+    expect(wrapper.find('[data-testid="open-conversation-43"]').exists()).toBe(false);
     await wrapper.get('[data-testid="fallback-conversation-43"]').trigger('click');
 
     expect(push).toHaveBeenCalledWith('/savings');
+  });
+
+  it('keeps history visible and retryable when the transcript GET fails', async () => {
+    openConversation.mockResolvedValueOnce(null);
+    const { wrapper } = mountView();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="open-conversation-42"]').trigger('click');
+    await flushPromises();
+
+    expect(revealLoadedConversation).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="conversation-open-error"]').text())
+      .toContain('could not open');
+    expect(wrapper.get('[data-testid="open-conversation-42"]').exists()).toBe(true);
   });
 
   it('renders loading, empty, and retryable error states', async () => {

@@ -627,6 +627,7 @@ private struct UnlockedView: View {
                     },
                     onOpenContextualFyn: presentContextualFyn,
                     onOpenConversation: presentConversation,
+                    onOpenRoute: openTopLevel,
                     onRoute: navigate
                 )
                 // /m has no system navigation bar anywhere — the shell header
@@ -841,6 +842,10 @@ private struct UnlockedView: View {
         } else {
             _ = router.navigate(to: route)
         }
+    }
+
+    private func openTopLevel(_ route: AppRoute) {
+        _ = router.open(route)
     }
 
     private func presentFyn(prompt: String? = nil) {

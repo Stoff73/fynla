@@ -105,7 +105,7 @@ it('fails closed when contextual metadata points to a deleted or foreign resourc
             'current_destination' => [
                 'screen' => 'savings_account_detail',
                 'params' => ['account_id' => $foreign->id],
-                'fallback' => 'savings',
+                'fallback' => 'tax_strategy',
             ],
         ],
     ]);
@@ -118,6 +118,7 @@ it('fails closed when contextual metadata points to a deleted or foreign resourc
 
     expect($block)->toContain('status: unavailable')
         ->and($block)->toContain('fallback_screen: savings')
+        ->and($block)->not->toContain('fallback_screen: tax_strategy')
         ->and($block)->not->toContain('987654')
         ->and($block)->not->toContain('current_balance');
 });
