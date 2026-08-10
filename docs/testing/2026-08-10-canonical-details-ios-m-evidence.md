@@ -69,12 +69,20 @@ Exported final screenshots:
 | Native full suite | Six StoreKit system-session cases failed | Existing StoreKitTest environment baseline | Reproduced on untouched `dev`; no PR 3 StoreKit change | All other native tests passed; focused PR 3 and UI journeys green |
 | PR lint | Five changed PHP files failed repository formatting rules | Import ordering and fully qualified names did not match the project Pint profile | Apply Pint only to the five reported files | Pint and the 80 directly affected backend tests passed; replacement lint job passed |
 | PR architecture | Property contextual resolution bypassed the canonical read boundary | The resolver added a direct `Property` model query | Inject `PropertyStore`, use its joint-aware `findMany` read and remove the model dependency | Contextual contract passed with 31 tests and 126 assertions; replacement architecture job is the merge gate |
+| Installed Chrome Net Worth loop | Headline liabilities were £134,500 while the category showed £257,000; Property rendered as 138% of assets | The detailed endpoint exposed full joint balances while the overview used the requesting user's ownership share | Make Property, Mortgage, Investment and Cash detailed values joint-aware for both primary and secondary owners while retaining `full_value` as canonical record context | Two regression cases pass with 20 assertions; the full Net Worth API file passes with 61 assertions |
 
 ## Installed Google Chrome `/m` acceptance
 
-The required installed-Chrome acceptance is run against
-`https://csjones.co/fynla/m` after this PR is merged to `dev` and deployed.
-Google Chrome through the connected extension is the only browser used; no
-Chromium, bundled Playwright browser or in-app browser is an acceptable
-substitute. The post-deploy loop covers Goals, Net Worth detail reuse, Income,
-Expenditure, Holistic Plan and contextual conversation/history behaviour.
+PR 3 was merged as `5c1df7e6d3b59a7773a708ef5ccc11ea8dc1b3ce`, deployed to
+`https://csjones.co/fynla/m`, and exercised in the user's installed Google
+Chrome through the connected extension. No Chromium, bundled Playwright
+browser or in-app browser was used.
+
+The seeded Family preview journey passed Goals overview and canonical Goal
+detail; Property category, canonical Property detail and linked Mortgage;
+canonical Liability detail; Income overview and source detail; reconciled
+Expenditure; and the typed Premium Holistic Plan gate. It also exposed the
+ownership-share mismatch recorded above. The focused follow-up keeps the
+canonical full balance available as `full_value`, but uses the requesting
+user's share for every total, percentage and list value on both `/m` and the
+native client that consumes the same endpoint.
