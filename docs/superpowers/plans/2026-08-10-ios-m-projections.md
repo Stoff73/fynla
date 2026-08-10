@@ -229,7 +229,7 @@ git commit -m "feat: persist net worth forecast assumptions"
 
 **Files:**
 - Create: `app/Services/NetWorth/NetWorthForecastService.php`
-- Create: `tests/Unit/Services/NetWorth/NetWorthForecastServiceTest.php`
+- Create: `tests/Unit/NetWorthForecastServiceTest.php`
 - Modify: `app/Http/Controllers/Api/NetWorthController.php`
 - Modify: `routes/api.php`
 - Create: `tests/Feature/Api/NetWorthForecastTest.php`
@@ -250,12 +250,12 @@ expect($result['points'][0]['net_worth'])->toBe(350000.0)
     ->and($result['points'][1]['liabilities']['mortgages'])->toBe(194000.0);
 ```
 
-Also assert `BalanceHistorySnapshot` rows are unchanged before and after forecasting.
+Also assert the canonical recorded value-snapshot rows are unchanged before and after forecasting.
 
 - [ ] **Step 2: Run the focused tests and verify RED**
 
 ```bash
-php vendor/pestphp/pest/bin/pest tests/Unit/Services/NetWorth/NetWorthForecastServiceTest.php tests/Feature/Api/NetWorthForecastTest.php
+php vendor/pestphp/pest/bin/pest tests/Unit/NetWorthForecastServiceTest.php tests/Feature/Api/NetWorthForecastTest.php
 ```
 
 - [ ] **Step 3: Implement the forecast service and authenticated endpoints**
@@ -265,7 +265,7 @@ Apply each category rate independently. Add known annual contributions to cash, 
 - [ ] **Step 4: Run forecast and history regression tests and verify GREEN**
 
 ```bash
-php vendor/pestphp/pest/bin/pest tests/Unit/Services/NetWorth/NetWorthForecastServiceTest.php tests/Feature/Api/NetWorthForecastTest.php tests/Feature/History
+php vendor/pestphp/pest/bin/pest tests/Unit/NetWorthForecastServiceTest.php tests/Feature/Api/NetWorthForecastTest.php tests/Feature/History
 ```
 
 - [ ] **Step 5: Commit the Net Worth forecast contract**
@@ -390,7 +390,7 @@ xcodebuild test -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging -confi
 - [ ] **Step 4: Run full affected suites**
 
 ```bash
-php vendor/pestphp/pest/bin/pest tests/Unit/Services/Retirement tests/Unit/Services/NetWorth tests/Feature/RetirementIntegrationTest.php tests/Feature/Api/NetWorthForecastTest.php tests/Feature/Services/NetWorth/NetWorthForecastAssumptionServiceTest.php tests/Feature/History
+php vendor/pestphp/pest/bin/pest tests/Unit/RetirementProjectionContractServiceTest.php tests/Unit/NetWorthForecastServiceTest.php tests/Feature/RetirementIntegrationTest.php tests/Feature/Api/NetWorthForecastTest.php tests/Feature/Services/NetWorth/NetWorthForecastAssumptionServiceTest.php tests/Feature/History
 PATH=/Users/CSJ/.nvm/versions/node/v20.19.5/bin:$PATH npm run test:run
 PATH=/Users/CSJ/.nvm/versions/node/v20.19.5/bin:$PATH npm run build:mobile
 xcodebuild test -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging -destination 'platform=iOS Simulator,id=94F2B841-2099-4291-88AB-EDAA797ADF75' -skip-testing:FynlaTests/StoreKitTestTests CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
